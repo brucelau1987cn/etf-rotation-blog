@@ -4,10 +4,10 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import FormattedDate from '../components/FormattedDate.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 
 const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-const latest = posts.slice(0, 5);
+const latest = posts.slice(0, 6);
 ---
 
 <!doctype html>
@@ -15,38 +15,79 @@ const latest = posts.slice(0, 5);
   <head>
     <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
     <style>
-      .hero { padding: 3rem 0 2rem; }
-      .hero h1 { margin-bottom: 0.75rem; font-size: 3rem; }
-      .hero p { color: rgb(var(--gray)); font-size: 1.15rem; line-height: 1.8; }
-      .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0; }
-      .card { border: 1px solid rgb(var(--gray-light)); border-radius: 16px; padding: 1rem; background: white; box-shadow: var(--box-shadow); }
-      .post-list { padding: 0; list-style: none; }
-      .post-list li { padding: 1rem 0; border-bottom: 1px solid rgb(var(--gray-light)); }
-      .post-list a { color: rgb(var(--black)); text-decoration: none; }
-      .date { color: rgb(var(--gray)); margin: 0.25rem 0 0; }
-      @media (max-width: 720px) { .hero h1 { font-size: 2.2rem; } .cards { grid-template-columns: 1fr; } }
+      .hero { padding: clamp(3rem, 9vw, 6.5rem) 0 2.5rem; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 2rem; align-items: center; }
+      .eyebrow { margin-bottom: 0.9rem; }
+      .hero h1 { max-width: 820px; margin-bottom: 1rem; letter-spacing: -0.055em; }
+      .hero p { max-width: 680px; color: rgb(var(--gray)); font-size: clamp(1.05rem, 2vw, 1.24rem); line-height: 1.75; }
+      .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+      .button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.6rem; padding: 0.62rem 1rem; border-radius: 999px; font-weight: 800; text-decoration: none; }
+      .button.primary { background: rgb(var(--black)); color: white; }
+      .button.secondary { background: white; color: rgb(var(--black)); border: 1px solid var(--border); }
+      .dashboard { padding: 1.1rem; }
+      .dashboard-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+      .dashboard-title strong { font-size: 1rem; }
+      .rank-list { display: grid; gap: 0.7rem; }
+      .rank-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.7rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 14px; background: var(--warm-2); }
+      .rank-row .num { display: inline-flex; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: white; border: 1px solid var(--border); font-weight: 800; font-size: 0.85rem; }
+      .rank-row small { display: block; color: rgb(var(--gray)); line-height: 1.35; }
+      .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 2.5rem 0 1rem; }
+      .section-head h2 { margin: 0; }
+      .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
+      .card { padding: 1.15rem; }
+      .card strong { display: block; margin-bottom: 0.45rem; }
+      .post-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 0; list-style: none; margin: 0; }
+      .post-card { display: block; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
+      .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
+      .post-card h3 { margin-top: 0.65rem; }
+      .date { color: rgb(var(--gray)); margin: 0.35rem 0 0; font-size: 0.92rem; }
+      @media (max-width: 860px) { .hero, .post-list, .cards { grid-template-columns: 1fr; } .hero { padding-top: 2.5rem; } }
     </style>
   </head>
   <body>
     <Header />
     <main>
       <section class="hero">
-        <h1>ETF 轮动笔记</h1>
-        <p>记录 A股 ETF 板块轮动、每日复盘、预测命中率和策略修正。重点关注近3/5日强度、资金流向、收盘位置、成交放量、新闻催化与监管风险。</p>
+        <div>
+          <div class="eyebrow"><span class="pill pill-red">🔴 A股ETF轮动</span> <span class="pill">作者 {SITE_AUTHOR}</span></div>
+          <h1>每日预测，次日复盘，持续修正权重。</h1>
+          <p>{SITE_DESCRIPTION} 核心看近3/5日强度、资金流向、收盘位置、成交放量、新闻催化和监管风险。</p>
+          <div class="hero-actions">
+            <a class="button primary" href="/blog">查看最新文章</a>
+            <a class="button secondary" href="/about">了解策略框架</a>
+          </div>
+        </div>
+        <aside class="dashboard card" aria-label="当前轮动观察">
+          <div class="dashboard-title"><strong>明日观察队列</strong><span class="pill pill-amber">预测模式</span></div>
+          <div class="rank-list">
+            <div class="rank-row"><span class="num">1</span><div><strong>银行 / 红利低波</strong><small>防守主线，高股息承接</small></div><span>🔴</span></div>
+            <div class="rank-row"><span class="num">2</span><div><strong>白酒 / 消费</strong><small>低位轮动，资金回流</small></div><span>🔴</span></div>
+            <div class="rank-row"><span class="num">3</span><div><strong>煤炭</strong><small>趋势延续，注意高位分歧</small></div><span>🔴</span></div>
+            <div class="rank-row"><span class="num">4</span><div><strong>医药 / 创新药</strong><small>修复弹性，等待放量确认</small></div><span>🔴</span></div>
+            <div class="rank-row"><span class="num">5</span><div><strong>芯片 / 科创</strong><small>分歧修复，只看反抽确认</small></div><span>⚠️</span></div>
+          </div>
+        </aside>
       </section>
+
       <section class="cards">
-        <div class="card"><strong>📈 每日复盘</strong><br />预测Top 5与实际涨幅对照。</div>
-        <div class="card"><strong>🧭 轮动策略</strong><br />按趋势延续、分歧修复、轮动补涨分类。</div>
-        <div class="card"><strong>📰 新闻校准</strong><br />把催化、监管、溢价风险纳入权重。</div>
+        <div class="card"><span class="pill">01</span><strong>每日预测</strong><p>收盘后给出次日ETF板块Top 5、关键条件和操作优先级。</p></div>
+        <div class="card"><span class="pill">02</span><strong>次日复盘</strong><p>对比预测Top 5与实际Top 5，记录命中率和平均收益。</p></div>
+        <div class="card"><span class="pill">03</span><strong>策略修正</strong><p>把资金背离、监管风险、新闻催化纳入下一轮权重。</p></div>
       </section>
+
       <section>
-        <h2>最新文章</h2>
+        <div class="section-head">
+          <h2>最新文章</h2>
+          <a href="/blog">全部文章 →</a>
+        </div>
         <ul class="post-list">
           {latest.map((post) => (
             <li>
-              <a href={`/blog/${post.id}/`}><h3>{post.data.title}</h3></a>
-              <p class="date"><FormattedDate date={post.data.pubDate} /></p>
-              <p>{post.data.description}</p>
+              <a class="post-card" href={`/blog/${post.id}/`}>
+                <span class="pill pill-red">ETF研究</span>
+                <h3>{post.data.title}</h3>
+                <p>{post.data.description}</p>
+                <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+              </a>
             </li>
           ))}
         </ul>

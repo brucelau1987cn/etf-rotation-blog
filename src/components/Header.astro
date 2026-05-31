@@ -1,23 +1,44 @@
 ---
-import { SITE_TITLE } from '../consts';
+import { SITE_AUTHOR, SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
 ---
 
 <header>
-  <nav>
-    <h2><a href="/">{SITE_TITLE}</a></h2>
+  <nav class="site-shell">
+    <a class="brand" href="/" aria-label={SITE_TITLE}>
+      <span class="mark">ETF</span>
+      <span>{SITE_TITLE}</span>
+    </a>
     <div class="internal-links">
       <HeaderLink href="/">首页</HeaderLink>
-      <HeaderLink href="/blog">复盘文章</HeaderLink>
-      <HeaderLink href="/about">关于</HeaderLink>
+      <HeaderLink href="/blog">文章</HeaderLink>
+      <HeaderLink href="/about">策略框架</HeaderLink>
+      <a class="author" href="https://github.com/brucelau1987cn" target="_blank" rel="noreferrer">{SITE_AUTHOR}</a>
     </div>
   </nav>
 </header>
 <style>
-  header { margin: 0; padding: 0 1em; background: white; box-shadow: 0 2px 8px rgba(var(--black), 5%); }
-  h2 { margin: 0; font-size: 1em; }
-  h2 a, h2 a.active { text-decoration: none; }
-  nav { display: flex; align-items: center; justify-content: space-between; }
-  nav a { padding: 1em 0.5em; color: var(--black); border-bottom: 4px solid transparent; text-decoration: none; }
-  nav a.active { text-decoration: none; border-bottom-color: var(--accent); }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0;
+    padding: 0.75rem 0;
+    background: rgba(255, 255, 255, 0.84);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+  }
+  nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .brand { display: inline-flex; align-items: center; gap: 0.65rem; color: rgb(var(--black)); font-weight: 800; text-decoration: none; }
+  .mark { display: inline-flex; align-items: center; justify-content: center; width: 2.45rem; height: 2.45rem; border-radius: 12px; background: rgb(var(--black)); color: white; font-size: 0.78rem; letter-spacing: 0.04em; }
+  .internal-links { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+  nav a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.92rem; font-weight: 700; padding: 0.55rem 0.75rem; border-radius: 999px; }
+  nav a.active { color: var(--accent-dark); background: var(--accent-soft); }
+  nav a:hover { background: var(--warm); color: rgb(var(--black)); }
+  .author { background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(0, 117, 222, 0.12); }
+  @media (max-width: 720px) {
+    header { position: static; }
+    nav { align-items: flex-start; flex-direction: column; }
+    .internal-links { justify-content: flex-start; }
+  }
 </style>
