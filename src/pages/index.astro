@@ -1,0 +1,57 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const latest = posts.slice(0, 5);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <style>
+      .hero { padding: 3rem 0 2rem; }
+      .hero h1 { margin-bottom: 0.75rem; font-size: 3rem; }
+      .hero p { color: rgb(var(--gray)); font-size: 1.15rem; line-height: 1.8; }
+      .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0; }
+      .card { border: 1px solid rgb(var(--gray-light)); border-radius: 16px; padding: 1rem; background: white; box-shadow: var(--box-shadow); }
+      .post-list { padding: 0; list-style: none; }
+      .post-list li { padding: 1rem 0; border-bottom: 1px solid rgb(var(--gray-light)); }
+      .post-list a { color: rgb(var(--black)); text-decoration: none; }
+      .date { color: rgb(var(--gray)); margin: 0.25rem 0 0; }
+      @media (max-width: 720px) { .hero h1 { font-size: 2.2rem; } .cards { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="hero">
+        <h1>ETF 轮动笔记</h1>
+        <p>记录 A股 ETF 板块轮动、每日复盘、预测命中率和策略修正。重点关注近3/5日强度、资金流向、收盘位置、成交放量、新闻催化与监管风险。</p>
+      </section>
+      <section class="cards">
+        <div class="card"><strong>📈 每日复盘</strong><br />预测Top 5与实际涨幅对照。</div>
+        <div class="card"><strong>🧭 轮动策略</strong><br />按趋势延续、分歧修复、轮动补涨分类。</div>
+        <div class="card"><strong>📰 新闻校准</strong><br />把催化、监管、溢价风险纳入权重。</div>
+      </section>
+      <section>
+        <h2>最新文章</h2>
+        <ul class="post-list">
+          {latest.map((post) => (
+            <li>
+              <a href={`/blog/${post.id}/`}><h3>{post.data.title}</h3></a>
+              <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+              <p>{post.data.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>

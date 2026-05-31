@@ -1,0 +1,23 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`关于 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <h1>关于 ETF 轮动笔记</h1>
+      <p>这里记录 A股 ETF 板块轮动的每日复盘和策略迭代。</p>
+      <p>核心框架：近3日强度、近5日强度、主力资金、收盘位置、成交放量、新闻催化/监管风险。</p>
+      <p>内容仅用于个人研究记录，不构成投资建议。</p>
+    </main>
+    <Footer />
+  </body>
+</html>
