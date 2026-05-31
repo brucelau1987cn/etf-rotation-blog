@@ -28,7 +28,9 @@
 html { background: var(--warm-2); }
 
 body {
-	font-family: var(--font-atkinson), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', Arial, sans-serif;
+	font-variant-numeric: lining-nums tabular-nums;
+	font-feature-settings: 'lnum' 1, 'tnum' 1;
 	margin: 0;
 	padding: 0;
 	text-align: left;
@@ -73,6 +75,9 @@ li { margin: 0.25rem 0; }
 img { max-width: 100%; height: auto; border-radius: 14px; }
 
 code {
+	font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+	font-variant-numeric: lining-nums tabular-nums;
+	font-feature-settings: 'zero' 0, 'tnum' 1, 'lnum' 1;
 	padding: 0.16rem 0.34rem;
 	background-color: var(--warm);
 	border: 1px solid var(--border);
@@ -193,6 +198,26 @@ th { text-align: left; background: var(--warm); color: rgb(var(--black)); }
 	background: var(--paper);
 }
 .watch-item strong { display: block; margin-bottom: 0.25rem; }
+
+.etf-codes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-top: 0.32rem;
+}
+.code-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	padding: 0.12rem 0.48rem;
+	background: #fff;
+	border: 1px solid var(--border);
+	color: rgb(var(--gray-dark));
+	font-size: 0.78rem;
+	font-weight: 800;
+	letter-spacing: 0.01em;
+}
 
 .notice {
 	padding: 1rem 1.15rem;
