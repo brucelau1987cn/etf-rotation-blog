@@ -1,26 +1,52 @@
 ---
 title: 'A股ETF轮动预测：2026-06-01'
-description: '5月31日基于近一个月周一复盘、5月29日收盘数据和新闻风险校准，给出明日ETF板块轮动排序。'
+description: '5月31日基于近一个月周一复盘、5月29日收盘数据和新闻风险校准，并加入6月1日10:59盘中修正版。'
 pubDate: 2026-05-31
 ---
 
 ## 结论先行
 
 <div class="brief-grid">
-  <div class="brief-card"><span class="pill pill-red">主线</span><h3>银行 / 红利低波</h3><p>防守资金承接，高股息逻辑延续。</p></div>
-  <div class="brief-card"><span class="pill">补涨</span><h3>白酒 / 消费 / 医药</h3><p>低位资金回流，适合看回踩确认。</p></div>
-  <div class="brief-card"><span class="pill pill-amber">风险</span><h3>芯片 / 科创</h3><p>周一惯性仍在，监管和资金分歧已升温。</p></div>
+  <div class="brief-card"><span class="pill pill-red">主线</span><h3>煤炭 / 银行红利</h3><p>煤炭强势确认，银行红利继续高位承接。</p></div>
+  <div class="brief-card"><span class="pill">轮动</span><h3>传媒游戏 / 电力</h3><p>上午资金从科技硬件切向传媒游戏、电力和部分低位修复。</p></div>
+  <div class="brief-card"><span class="pill pill-amber">风险</span><h3>芯片 / 科创 / 通信 / AI</h3><p>科技硬件上午集体走弱，分歧修复信号转为风险观察。</p></div>
 </div>
 
-明天优先观察：银行/红利低波、白酒消费、煤炭、医药创新药。芯片/科创是近一个月周一胜率最高的方向，但5月29日已经出现大跌、资金流出和监管关注，明天只按反抽观察处理。
+盘中修正后，今天优先观察：煤炭、银行/红利低波、传媒游戏、电力、中概互联/云计算。芯片/科创、通信、人工智能上午出现明显资金分歧，反抽观察级别下调。
 
-更新后的板块排序：
+盘中修正版排序：
 
-1. 🔴 银行/红利低波
-2. 🔴 白酒消费
-3. 🔴 煤炭
-4. 🔴 医药创新药
-5. ⚠️ 芯片/科创反抽观察
+1. 🔴 煤炭
+2. 🔴 银行/红利低波
+3. 🔴 传媒/游戏
+4. 🔴 电力
+5. 🔴 中概互联/云计算
+
+## 盘中修正：10:59 信号更新
+
+<div class="notice">
+  <strong>数据时间：</strong>2026-06-01 10:59 左右。<br />
+  <strong>数据来源：</strong>moomoo/Futu OpenD 本地只读端口暂未连通，本次使用腾讯行情快照兜底，并以 ETF 实时涨跌幅、盘中位置、成交额做修正。
+</div>
+
+上午信号已经从“防守 + 消费医药修复”切到“煤炭强趋势 + 银行红利承接 + 传媒游戏轮动”。医药创新药、芯片科创的盘中承接偏弱，需要从原先观察队列下调。
+
+<div class="signal-grid">
+  <div class="signal-card"><h3><span class="rank">1</span>煤炭</h3><div class="meta"><span class="pill pill-red">强趋势确认</span><span class="pill">515220</span></div><p>煤炭ETF 10:59 报 1.348，涨幅约 4.98%，盘中位置约 96%，明显强于原预测。成交额约 8.62 亿元，放量趋势延续。</p><p><strong>盘中动作：</strong>持仓继续看 1.35 附近承接；快速冲高后缩量回落，可做部分高抛。</p></div>
+  <div class="signal-card"><h3><span class="rank">2</span>银行 / 红利低波</h3><div class="meta"><span class="pill pill-red">防守主线</span><span class="pill">512800</span><span class="pill">512890</span></div><p>银行ETF 512800 涨约 0.52%，价格 0.780，站上原预测强弱线 0.779；红利低波ETF 512890 涨约 0.43%，价格 1.172，也站上 1.169 强弱线。</p><p><strong>盘中动作：</strong>这是当前最稳的底仓方向，回踩强弱线附近承接好可继续拿。</p></div>
+  <div class="signal-card"><h3><span class="rank">3</span>传媒 / 游戏</h3><div class="meta"><span class="pill">轮动补涨</span><span class="pill">512980</span><span class="pill">159869</span></div><p>传媒ETF涨约 2.99%，游戏ETF涨约 2.19%，盘中位置分别约 73% 和 70%。这是上午最清晰的弹性轮动方向之一。</p><p><strong>盘中动作：</strong>适合轻仓观察回踩承接，追高性价比一般，午后能维持分时均线上方更强。</p></div>
+  <div class="signal-card"><h3><span class="rank">4</span>电力</h3><div class="meta"><span class="pill">趋势承接</span><span class="pill">159611</span></div><p>电力ETF涨约 0.73%，盘中位置约 91%，成交额约 13.42 亿元。涨幅普通，但承接位置强。</p><p><strong>盘中动作：</strong>观察午后能否继续站稳 1.25；若放量突破上午高点，可作为低波动补涨方向。</p></div>
+  <div class="signal-card"><h3><span class="rank">5</span>中概互联 / 云计算</h3><div class="meta"><span class="pill">弹性修复</span><span class="pill">159605</span><span class="pill">516510</span></div><p>中概互联ETF涨约 1.10%，云计算ETF涨约 1.53%。云计算盘中冲高后位置回到约 45%，弹性有，承接需要午后确认。</p><p><strong>盘中动作：</strong>只看回踩低吸和分时修复，午后重新站回上午均价线更值得跟踪。</p></div>
+</div>
+
+## 盘中下调方向
+
+- 🟢 芯片ETF 159995 跌约 3.65%，芯片ETF 512760 跌约 3.61%，半导体ETF 512480 跌约 3.38%。
+- 🟢 科创50ETF 588000 跌约 3.42%，盘中位置接近日内低位。
+- 🟢 通信ETF 515880 跌约 3.02%，人工智能ETF 159819 跌约 1.88%。
+- 🟢 医药ETF 512010 跌约 1.16%，创新药ETF 159992 跌约 0.78%，盘中承接弱于早盘预期。
+
+这几个方向今天以风险控制为主。芯片/科创只有午后放量收回分时均线并脱离日内低位，才具备反抽观察价值；医药创新药需要先收回上午高点附近，才能重新进入修复队列。
 
 ## 明日预测Top 5
 
