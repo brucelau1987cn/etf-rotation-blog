@@ -26,10 +26,16 @@ const latest = posts.slice(0, 6);
       .dashboard { padding: 1.1rem; }
       .dashboard-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
       .dashboard-title strong { font-size: 1rem; }
+      .dashboard-note { margin: -0.35rem 0 0.85rem; color: rgb(var(--gray)); font-size: 0.9rem; line-height: 1.55; }
       .rank-list { display: grid; gap: 0.7rem; }
-      .rank-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.7rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 14px; background: var(--warm-2); }
-      .rank-row .num { display: inline-flex; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: white; border: 1px solid var(--border); font-weight: 800; font-size: 0.85rem; }
-      .rank-row small { display: block; color: rgb(var(--gray)); line-height: 1.35; }
+      .rank-row { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 0.75rem; padding: 0.85rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
+      .rank-row .num { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; border-radius: 999px; background: rgb(var(--black)); color: white; font-weight: 800; font-size: 0.85rem; }
+      .rank-main { min-width: 0; }
+      .rank-head { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; margin-bottom: 0.4rem; }
+      .rank-head strong { font-size: 1.02rem; }
+      .rank-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.65rem; margin-top: 0.55rem; color: rgb(var(--gray)); font-size: 0.82rem; line-height: 1.45; }
+      .rank-details span { display: block; }
+      .rank-action { color: rgb(var(--black)); font-weight: 800; }
       .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 2.5rem 0 1rem; }
       .section-head h2 { margin: 0; }
       .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
@@ -41,6 +47,7 @@ const latest = posts.slice(0, 6);
       .post-card h3 { margin-top: 0.65rem; }
       .date { color: rgb(var(--gray)); margin: 0.35rem 0 0; font-size: 0.92rem; }
       @media (max-width: 860px) { .hero, .post-list, .cards { grid-template-columns: 1fr; } .hero { padding-top: 2.5rem; } }
+      @media (max-width: 520px) { .rank-details { grid-template-columns: 1fr; } .rank-head { align-items: flex-start; flex-direction: column; } }
     </style>
   </head>
   <body>
@@ -58,12 +65,13 @@ const latest = posts.slice(0, 6);
         </div>
         <aside class="dashboard card" aria-label="当前轮动观察">
           <div class="dashboard-title"><strong>当前观察队列</strong><span class="pill pill-amber">收盘复盘</span></div>
+          <p class="dashboard-note">按收盘强弱、关键价位和持仓动作展示，优先看“动作”和“失效条件”。</p>
           <div class="rank-list">
-            <div class="rank-row"><span class="num">1</span><div><strong>煤炭</strong><small>全天强趋势，明天看 1.35 承接</small><span class="etf-codes"><span class="code-pill">515220</span></span></div><span>🔴</span></div>
-            <div class="rank-row"><span class="num">2</span><div><strong>传媒 / 游戏</strong><small>弹性轮动，关注延续性</small><span class="etf-codes"><span class="code-pill">512980</span><span class="code-pill">159869</span></span></div><span>🔴</span></div>
-            <div class="rank-row"><span class="num">3</span><div><strong>银行 / 红利低波</strong><small>防守承接，继续站上强弱线</small><span class="etf-codes"><span class="code-pill">512800</span><span class="code-pill">512890</span></span></div><span>🔴</span></div>
-            <div class="rank-row"><span class="num">4</span><div><strong>电力</strong><small>低波补涨，已站稳 1.25</small><span class="etf-codes"><span class="code-pill">159611</span></span></div><span>🔴</span></div>
-            <div class="rank-row"><span class="num">5</span><div><strong>中概互联 / 云计算</strong><small>修复跟踪，中概承接更强</small><span class="etf-codes"><span class="code-pill">159605</span><span class="code-pill">516510</span></span></div><span>🔴</span></div>
+            <div class="rank-row"><span class="num">1</span><div class="rank-main"><div class="rank-head"><strong>通信 / AI算力</strong><span class="pill pill-red">🔴 强趋势</span></div><span class="etf-codes"><span class="code-pill">515880</span><span class="code-pill">159819</span></span><div class="rank-details"><span><b>关键位</b> 1.60 / 1.93</span><span class="rank-action">动作：回踩承接低吸，高开急拉做T</span><span><b>失效</b> 跌回 1.58 / 1.90 下方</span><span><b>风险</b> 单日涨幅大，隔日兑现</span></div></div></div>
+            <div class="rank-row"><span class="num">2</span><div class="rank-main"><div class="rank-head"><strong>中概互联</strong><span class="pill pill-red">🔴 强修复</span></div><span class="etf-codes"><span class="code-pill">159605</span></span><div class="rank-details"><span><b>关键位</b> 0.86 上方</span><span class="rank-action">动作：持仓看延续，0.88 附近做T</span><span><b>失效</b> 跌回 0.85 下方</span><span><b>风险</b> 港股科技情绪扰动</span></div></div></div>
+            <div class="rank-row"><span class="num">3</span><div class="rank-main"><div class="rank-head"><strong>芯片 / 科创 / 半导体</strong><span class="pill pill-amber">⚠️ 分歧修复</span></div><span class="etf-codes"><span class="code-pill">159995</span><span class="code-pill">512760</span><span class="code-pill">512480</span><span class="code-pill">588000</span></span><div class="rank-details"><span><b>关键位</b> 今日高点突破</span><span class="rank-action">动作：轻仓观察，确认后再加</span><span><b>失效</b> 冲高回落到日内低位</span><span><b>风险</b> 溢价与交易监控压力</span></div></div></div>
+            <div class="rank-row"><span class="num">4</span><div class="rank-main"><div class="rank-head"><strong>银行 / 红利低波</strong><span class="pill">🔴 防守承接</span></div><span class="etf-codes"><span class="code-pill">512800</span><span class="code-pill">512890</span></span><div class="rank-details"><span><b>关键位</b> 0.785 / 1.178</span><span class="rank-action">动作：底仓继续拿，回踩承接低吸</span><span><b>失效</b> 跌破强弱线</span><span><b>风险</b> 弹性弱于科技方向</span></div></div></div>
+            <div class="rank-row"><span class="num">5</span><div class="rank-main"><div class="rank-head"><strong>云计算</strong><span class="pill">🔴 跟随修复</span></div><span class="etf-codes"><span class="code-pill">516510</span></span><div class="rank-details"><span><b>关键位</b> 1.79–1.80</span><span class="rank-action">动作：站稳后看补涨</span><span><b>失效</b> 跌回 1.76 下方</span><span><b>风险</b> 强度低于通信AI</span></div></div></div>
           </div>
         </aside>
       </section>
