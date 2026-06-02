@@ -1,0 +1,6 @@
+---
+export async function getStaticPaths() {
+  return [{ params: { slug: '2026-06-02' } }];
+}
+return Astro.redirect(`/blog/picks/${Astro.params.slug}/`, 301);
+---
