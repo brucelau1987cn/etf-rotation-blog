@@ -60,6 +60,7 @@ const latest = posts.slice(0, 6);
           <p>{SITE_DESCRIPTION} 核心看近3/5日强度、资金流向、收盘位置、成交放量、新闻催化和监管风险。</p>
           <div class="hero-actions">
             <a class="button primary" href="/blog">查看最新文章</a>
+            <a class="button secondary" href="/research">查看研测</a>
             <a class="button secondary" href="/about">了解策略框架</a>
           </div>
         </div>
@@ -78,8 +79,8 @@ const latest = posts.slice(0, 6);
 
       <section class="cards">
         <div class="card"><span class="pill">01</span><strong>每日预测</strong><p>收盘后给出次日ETF板块Top 5、关键条件和操作优先级。</p></div>
-        <div class="card"><span class="pill">02</span><strong>次日复盘</strong><p>对比预测Top 5与实际Top 5，记录命中率和平均收益。</p></div>
-        <div class="card"><span class="pill">03</span><strong>策略修正</strong><p>把资金背离、监管风险、新闻催化纳入下一轮权重。</p></div>
+        <div class="card"><span class="pill">02</span><strong>研测</strong><p>把筹码冰点、持仓弹性、候选池筛选单独沉淀成可回测文章。</p></div>
+        <div class="card"><span class="pill">03</span><strong>策略框架</strong><p>把资金背离、监管风险、新闻催化纳入下一轮权重。</p></div>
       </section>
 
       <section>
@@ -91,7 +92,7 @@ const latest = posts.slice(0, 6);
           {latest.map((post) => (
             <li>
               <a class="post-card" href={`/blog/${post.id}/`}>
-                <span class="pill pill-red">ETF研究</span>
+                <span class="pill pill-red">{post.data.category ?? 'ETF研究'}</span>
                 <h3>{post.data.title}</h3>
                 <p>{post.data.description}</p>
                 <p class="date"><FormattedDate date={post.data.pubDate} /></p>

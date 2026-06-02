@@ -9,7 +9,7 @@ import { SITE_AUTHOR } from '../consts';
 
 type Props = CollectionEntry<'blog'>['data'];
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, category } = Astro.props;
 ---
 
 <html lang="zh-CN">
@@ -43,7 +43,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				</div>
 				<div class="title">
 					<div class="meta">
-						<span class="pill pill-red">ETF研究</span>
+						<span class="pill pill-red">{category ?? 'ETF研究'}</span>
 						<span class="pill">作者 {SITE_AUTHOR}</span>
 						<span class="pill"><FormattedDate date={pubDate} /></span>
 					</div>

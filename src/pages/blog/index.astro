@@ -46,7 +46,7 @@ const posts = (await getCollection('blog')).sort(
 							<li>
 								<a class="post-card" href={`/blog/${post.id}/`}>
 									{post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
-									<div><span class="pill">ETF研究</span><h2 class="title">{post.data.title}</h2></div>
+									<div><span class="pill">{post.data.category ?? 'ETF研究'}</span><h2 class="title">{post.data.title}</h2></div>
 									<p class="description">{post.data.description}</p>
 									<p class="date"><FormattedDate date={post.data.pubDate} /></p>
 								</a>
