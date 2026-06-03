@@ -1,0 +1,226 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+
+const title = 'ETF动量雷达｜双动量轮动策略';
+const description = '复刻并调整ETF双动量策略看板：使用 youth-online ETF接口，展示20日收益、均线趋势、绝对动量、推荐持仓和冰点研测联动。';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={title} description={description} />
+    <style>
+      .hero { padding: clamp(2.2rem, 6vw, 4.5rem) 0 1.4rem; }
+      .hero h1 { margin: 0.7rem 0 0.85rem; letter-spacing: -0.045em; }
+      .hero p { max-width: 860px; color: rgb(var(--gray)); font-size: 1.08rem; line-height: 1.75; }
+      .toolbar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; align-items: end; margin: 1.4rem 0; padding: 1rem; }
+      .field { display: grid; gap: 0.35rem; }
+      .field label { color: rgb(var(--gray)); font-size: 0.86rem; font-weight: 800; }
+      select, button { width: 100%; min-height: 2.65rem; border-radius: 14px; border: 1px solid var(--border); background: white; color: rgb(var(--black)); font-weight: 800; padding: 0.55rem 0.75rem; font: inherit; }
+      button.primary { background: rgb(var(--black)); color: white; cursor: pointer; }
+      button.primary:disabled { opacity: 0.65; cursor: wait; }
+      .checkline { display: flex; gap: 0.55rem; align-items: center; min-height: 2.65rem; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 14px; background: white; font-weight: 800; }
+      .checkline input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent-dark); }
+      .dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1rem; align-items: start; }
+      .panel { padding: 1rem; }
+      .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+      .panel-head h2, .panel-head h3 { margin: 0; }
+      .muted { color: rgb(var(--gray)); }
+      .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+      .metric { padding: 0.95rem; border: 1px solid var(--border); border-radius: 18px; background: var(--warm-2); }
+      .metric strong { display: block; font-size: 1.35rem; margin-top: 0.28rem; }
+      .rec-list { display: grid; gap: 0.75rem; }
+      .rec-card { padding: 1rem; border: 1px solid var(--border); border-radius: 20px; background: linear-gradient(135deg, white, var(--accent-soft)); }
+      .rec-top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.55rem; }
+      .rec-top h3 { margin: 0; }
+      .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
+      .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.22rem 0.55rem; font-size: 0.78rem; font-weight: 800; border: 1px solid var(--border); background: white; }
+      .tag.pass { color: #b42318; background: #fff1ef; border-color: #ffd6cf; }
+      .tag.fail { color: #137333; background: #eefaf1; border-color: #ccefd5; }
+      .tag.watch { color: #9a6700; background: #fff7d6; border-color: #ffe7a3; }
+      .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 20px; background: white; }
+      table { width: 100%; border-collapse: collapse; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
+      th, td { padding: 0.72rem 0.65rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+      th { position: sticky; top: 0; z-index: 1; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
+      td:first-child, th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: white; }
+      th:first-child { background: rgb(var(--black)); z-index: 3; }
+      tbody tr.recommended td { background: #fff8dc; }
+      tbody tr.recommended td:first-child { background: #fff8dc; }
+      .up { color: #c01616; font-weight: 900; }
+      .down { color: #188038; font-weight: 900; }
+      .side-stack { display: grid; gap: 1rem; }
+      .explain-list { display: grid; gap: 0.75rem; padding: 0; margin: 0; list-style: none; }
+      .explain-list li { padding: 0.8rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
+      .status-line { font-size: 0.9rem; color: rgb(var(--gray)); }
+      .error { color: #b42318; font-weight: 800; }
+      @media (max-width: 980px) { .dashboard-grid, .summary-grid { grid-template-columns: 1fr; } .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 560px) { .toolbar { grid-template-columns: 1fr; } .hero { padding-top: 1.6rem; } .panel { padding: 0.8rem; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="hero">
+        <span class="pill pill-red">🔴 ETF动量雷达</span>
+        <span class="pill">youth-online API</span>
+        <h1>双动量ETF轮动看板</h1>
+        <p>用原站ETF日线接口复刻并调整：保留20日收益、均线趋势、短期回撤和绝对动量，新增推荐原因、移动端横向表格、今日结论和冰点研测联动提示。</p>
+      </section>
+
+      <section class="toolbar card" aria-label="策略筛选">
+        <div class="field"><label for="type-filter">资产类型</label><select id="type-filter"><option value="全部">全部</option><option value="海外">海外</option><option value="宽基">宽基</option><option value="行业">行业</option><option value="商品">商品</option><option value="货币">货币</option></select></div>
+        <div class="field"><label for="sort-key">排序方式</label><select id="sort-key"><option value="ret20">20日收益</option><option value="ret10">10日收益</option><option value="ret3">3日收益</option></select></div>
+        <div class="field"><label for="ma-period">均线周期</label><select id="ma-period"><option value="10">10日均线</option><option value="20" selected>20日均线</option></select></div>
+        <label class="checkline"><input type="checkbox" id="absolute-only" />仅看动量通过</label>
+        <button class="primary" id="refresh-btn">刷新数据</button>
+      </section>
+
+      <section class="summary-grid" aria-label="今日策略摘要">
+        <div class="metric"><span class="muted">ETF池</span><strong id="metric-total">—</strong></div>
+        <div class="metric"><span class="muted">动量通过</span><strong id="metric-pass">—</strong></div>
+        <div class="metric"><span class="muted">推荐持仓</span><strong id="metric-rec">—</strong></div>
+        <div class="metric"><span class="muted">最后更新</span><strong id="metric-time">—</strong></div>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="panel card">
+          <div class="panel-head">
+            <div><h2>ETF池数据</h2><p class="status-line" id="status-line">准备加载数据…</p></div>
+            <span class="pill" id="date-pill">评估日期 —</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>名称</th><th>代码</th><th>类型</th><th>10日%</th><th>20日%</th><th>3日%</th><th>当前价</th><th id="ma-head">MA20</th><th id="ma-prev-head">MA20前值</th><th>价>均线</th><th>均线上升</th><th>3日>-5%</th><th>绝对动量</th></tr></thead>
+              <tbody id="etf-body"><tr><td colspan="13">加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="side-stack">
+          <div class="panel card">
+            <div class="panel-head"><h3>推荐持仓</h3><span class="pill pill-red">Top 2</span></div>
+            <div class="rec-list" id="recommendations"></div>
+          </div>
+          <div class="panel card">
+            <div class="panel-head"><h3>今日结论</h3><span class="pill">右侧雷达</span></div>
+            <ul class="explain-list" id="today-notes"></ul>
+          </div>
+          <div class="panel card">
+            <div class="panel-head"><h3>策略参数</h3></div>
+            <ul class="explain-list">
+              <li><strong>双动量：</strong>价格站上均线、均线向上、短期回撤受控，再按收益排序。</li>
+              <li><strong>短期阈值：</strong>3日收益大于 -5%。</li>
+              <li><strong>仓位：</strong>推荐2只，每只50%。</li>
+              <li><strong>用途：</strong>作为右侧趋势确认，和研测冰点信号交叉验证。</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <Footer />
+
+    <script>
+      const API_BASE = 'https://etf.youth-online.site/api/etf';
+      const ETF_POOL = [
+        { name: '纳指ETF', code: '159501', market: 'XSHE', type: '海外' },
+        { name: '芯片ETF', code: '512760', market: 'XSHG', type: '行业' },
+        { name: '创业板ETF', code: '159915', market: 'XSHE', type: '宽基' },
+        { name: '人工智能ETF', code: '159819', market: 'XSHE', type: '行业' },
+        { name: '机器人ETF', code: '562500', market: 'XSHG', type: '行业' },
+        { name: '标普500ETF', code: '513500', market: 'XSHG', type: '海外' },
+        { name: '科创50ETF', code: '588000', market: 'XSHG', type: '宽基' },
+        { name: '恒生科技ETF', code: '513180', market: 'XSHG', type: '海外' },
+        { name: '沪深300ETF', code: '510300', market: 'XSHG', type: '宽基' },
+        { name: '德国ETF', code: '513030', market: 'XSHG', type: '海外' },
+        { name: '中证A500ETF', code: '159339', market: 'XSHE', type: '宽基' },
+        { name: '银华日利ETF', code: '511880', market: 'XSHG', type: '货币' },
+        { name: '华宝添益ETF', code: '511990', market: 'XSHG', type: '货币' },
+        { name: '中证500ETF', code: '510500', market: 'XSHG', type: '宽基' },
+        { name: '红利低波ETF', code: '512890', market: 'XSHG', type: '行业' },
+        { name: '黄金ETF', code: '518880', market: 'XSHG', type: '商品' },
+        { name: '证券ETF', code: '512880', market: 'XSHG', type: '行业' },
+        { name: '有色金属ETF', code: '512400', market: 'XSHG', type: '行业' },
+        { name: '新能源ETF', code: '159875', market: 'XSHE', type: '行业' },
+        { name: '消费ETF', code: '159928', market: 'XSHE', type: '行业' },
+        { name: '医药ETF', code: '512010', market: 'XSHG', type: '行业' },
+        { name: '军工ETF', code: '512660', market: 'XSHG', type: '行业' },
+      ];
+      const $ = (id) => document.getElementById(id);
+      let rawRows = [];
+      const fmt = (v, digits = 2) => Number.isFinite(v) ? v.toFixed(digits) : '—';
+      const cls = (v) => v >= 0 ? 'up' : 'down';
+      const passTag = (ok) => `<span class="tag ${ok ? 'pass' : 'fail'}">${ok ? '通过' : '未过'}</span>`;
+      const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+      function dateBack(days) { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); }
+      async function fetchDaily(etf) {
+        const url = `${API_BASE}/${etf.market}/daily?ticker=${etf.code}&start_date=${dateBack(80)}&end_date=${new Date().toISOString().slice(0,10)}&columns=date,close,pre_close`;
+        const json = await fetch(url).then(r => r.json());
+        const data = (json.data || []).map(d => ({ date: d.date, close: Number(d.close), preClose: Number(d.pre_close) })).filter(d => Number.isFinite(d.close)).sort((a, b) => a.date.localeCompare(b.date));
+        if (data.length < 25) throw new Error(`${etf.code} 数据不足`);
+        return { ...etf, data };
+      }
+      function calc(item, maPeriod) {
+        const d = item.data;
+        const last = d[d.length - 1];
+        const price = last.close;
+        const ret = (n) => d.length > n ? (price / d[d.length - 1 - n].close - 1) * 100 : NaN;
+        const ma = avg(d.slice(-maPeriod).map(x => x.close));
+        const maPrev = avg(d.slice(-maPeriod - 5, -5).map(x => x.close));
+        const priceAboveMa = price > ma;
+        const maUp = ma > maPrev;
+        const shortOk = ret(3) > -5;
+        const absoluteMomentum = priceAboveMa && maUp && shortOk;
+        return { ...item, date: last.date, price, ret3: ret(3), ret10: ret(10), ret20: ret(20), ma, maPrev, priceAboveMa, maUp, shortOk, absoluteMomentum };
+      }
+      function render() {
+        const type = $('type-filter').value;
+        const sortKey = $('sort-key').value;
+        const maPeriod = Number($('ma-period').value);
+        $('ma-head').textContent = `MA${maPeriod}`;
+        $('ma-prev-head').textContent = `MA${maPeriod}前值`;
+        let rows = rawRows.map(r => calc(r, maPeriod));
+        rows.sort((a, b) => (b[sortKey] ?? -Infinity) - (a[sortKey] ?? -Infinity));
+        const recommendations = rows.filter(r => r.absoluteMomentum).slice(0, 2);
+        if (type !== '全部') rows = rows.filter(r => r.type === type);
+        if ($('absolute-only').checked) rows = rows.filter(r => r.absoluteMomentum);
+        const recCodes = new Set(recommendations.map(r => r.code));
+        $('metric-total').textContent = `${rows.length}只`;
+        $('metric-pass').textContent = `${rawRows.map(r => calc(r, maPeriod)).filter(r => r.absoluteMomentum).length}只`;
+        $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
+        $('metric-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        $('date-pill').textContent = `评估日期 ${recommendations[0]?.date || '—'}`;
+        $('status-line').textContent = `当前显示 ${rows.length} 只，排序：${$('sort-key').selectedOptions[0].textContent}，数据源：youth-online ETF daily API`;
+        $('etf-body').innerHTML = rows.map(r => `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">推荐</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma, 4)}</td><td>${fmt(r.maPrev, 4)}</td><td>${passTag(r.priceAboveMa)}</td><td>${passTag(r.maUp)}</td><td>${passTag(r.shortOk)}</td><td>${passTag(r.absoluteMomentum)}</td></tr>`).join('') || '<tr><td colspan="13">当前筛选下无ETF通过。</td></tr>';
+        $('recommendations').innerHTML = recommendations.map((r, i) => `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><span class="pill pill-red">${r.code}</span></div><p><strong>${$('sort-key').selectedOptions[0].textContent}：</strong><span class="${cls(r[sortKey])}">${fmt(r[sortKey])}%</span>；<strong>仓位：</strong>50%</p><div class="tags"><span class="tag">${r.type}</span><span class="tag pass">价格>均线</span><span class="tag pass">均线上升</span><span class="tag pass">短期回撤受控</span></div></div>`).join('') || '<p class="muted">当前无ETF满足绝对动量，按空仓策略看货币ETF。</p>';
+        const leader = rows[0];
+        const weak = [...rawRows.map(r => calc(r, maPeriod))].sort((a, b) => a.ret20 - b.ret20).slice(0, 3);
+        $('today-notes').innerHTML = [
+          leader ? `<li><strong>动量主线：</strong>${leader.name}（${leader.code}）当前按${$('sort-key').selectedOptions[0].textContent}领先，${sortKey === 'ret20' ? '适合作右侧趋势观察。' : '短线弹性较强。'}</li>` : '',
+          recommendations.length ? `<li><strong>推荐组合：</strong>${recommendations.map(r => `${r.name} ${r.code}`).join(' + ')}，每只50%。</li>` : '<li><strong>空仓策略：</strong>动量条件不足时看银华日利ETF 511880。</li>',
+          `<li><strong>弱势观察：</strong>${weak.map(r => `${r.name} ${fmt(r.ret20)}%`).join('，')}。</li>`,
+          '<li><strong>研测联动：</strong>动量通过代表右侧确认；冰点研测用于左侧低吸，两者共振时优先级最高。</li>'
+        ].join('');
+      }
+      async function load() {
+        $('refresh-btn').disabled = true;
+        $('refresh-btn').textContent = '刷新中…';
+        $('status-line').textContent = '正在拉取 youth-online ETF daily API…';
+        try {
+          rawRows = await Promise.all(ETF_POOL.map(fetchDaily));
+          render();
+        } catch (err) {
+          $('status-line').innerHTML = `<span class="error">加载失败：${err.message}</span>`;
+          $('etf-body').innerHTML = `<tr><td colspan="13">接口加载失败，请稍后刷新。</td></tr>`;
+        } finally {
+          $('refresh-btn').disabled = false;
+          $('refresh-btn').textContent = '刷新数据';
+        }
+      }
+      ['type-filter', 'sort-key', 'ma-period', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
+      $('refresh-btn').addEventListener('click', load);
+      load();
+    </script>
+  </body>
+</html>
