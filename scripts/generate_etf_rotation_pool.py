@@ -513,8 +513,8 @@ category: '研测'
 - 行情日期：{payload['latest_trade_date']}
 - 轮动池来源：{SOURCE_PAGE}
 - ETF名单同步：{payload.get('pool_source', 'youth-online')}
-- 实时行情：stock-api@2.7.2
-- K线数据：stock-api@2.7.2 优先，youth-online 备用
+- 实时行情：stock-api v2.7.2
+- K线数据：stock-api v2.7.2 优先，youth-online 备用
 - ETF池：{payload['summary']['universe_count']}只
 - 动量通过：{payload['summary']['core_count']}只
 - Top 3：{', '.join([f"{x['name']} {x['code']}({x.get('action','观察')})" for x in rec]) or '空仓/货币ETF'}
