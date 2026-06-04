@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Mirror the youth-online ETF rotation pool and refresh quotes via stock-api.
+"""Mirror the youth-online ETF rotation pool and refresh K-lines/quotes via stock-api.
 
 Source boundary:
-- Pool / strategy metrics come from https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f
-  and its public daily-bar API.
-- Realtime quote fields come from stock-api@2.7.2 CLI.
+- Pool / strategy metrics come from https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f.
+- Daily bars and realtime quote fields come from stock-api@2.7.2 CLI first.
+- youth-online daily-bar API is retained as a K-line fallback.
 - This script does not run its own all-market ETF screening.
 """
 from __future__ import annotations
@@ -271,6 +271,48 @@ def detect_market_regime(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def parse_stock_api_klines(raw_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    parsed: list[dict[str, Any]] = []
+    for row in raw_rows:
+        close = safe_float(row.get("close"))
+        date = row.get("date")
+        if not date or not math.isfinite(close):
+            continue
+        parsed.append(
+            {
+                "date": str(date),
+                "open": safe_float(row.get("open")),
+                "high": safe_float(row.get("high")),
+                "low": safe_float(row.get("low")),
+                "close": close,
+                "volume": safe_float(row.get("volume")),
+                "source": row.get("source") or "stock-api",
+            }
+        )
+    return sorted(parsed, key=lambda x: x["date"])
+
+
+def fetch_stock_api_klines(item: dict[str, Any], count: int = 90) -> list[dict[str, Any]]:
+    stock_code = f"{market_prefix(item['market'])}{item['code']}"
+    cmd = [
+        "npx",
+        "-y",
+        STOCK_API_PACKAGE,
+        "get-klines",
+        stock_code,
+        "--period",
+        "day",
+        "--count",
+        str(count),
+        "--adjust",
+        "none",
+        "--source",
+        "auto",
+    ]
+    proc = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, timeout=90, check=True)
+    return parse_stock_api_klines(json.loads(proc.stdout))
+
+
 def fetch_youth_daily(item: dict[str, Any]) -> list[dict[str, Any]]:
     params = {
         "ticker": item["code"],
@@ -287,8 +329,35 @@ def fetch_youth_daily(item: dict[str, Any]) -> list[dict[str, Any]]:
     for row in rows:
         close = safe_float(row.get("close"))
         if row.get("date") and math.isfinite(close):
-            parsed.append({"date": str(row["date"]), "close": close, "pre_close": safe_float(row.get("pre_close"))})
+            parsed.append(
+                {
+                    "date": str(row["date"]),
+                    "close": close,
+                    "pre_close": safe_float(row.get("pre_close")),
+                    "source": "youth-online",
+                }
+            )
     return sorted(parsed, key=lambda x: x["date"])
+
+
+def fetch_daily_bars(item: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
+    errors: list[str] = []
+    try:
+        bars = fetch_stock_api_klines(item)
+        if bars:
+            source = bars[-1].get("source") or "stock-api"
+            return bars, f"stock-api@2.7.2:{source}"
+        errors.append("stock-api K线为空")
+    except Exception as exc:
+        errors.append(f"stock-api K线失败：{exc}")
+    try:
+        bars = fetch_youth_daily(item)
+        if bars:
+            return bars, "youth-online-daily-fallback"
+        errors.append("youth-online K线为空")
+    except Exception as exc:
+        errors.append(f"youth-online K线失败：{exc}")
+    raise RuntimeError("；".join(errors))
 
 
 def fetch_stock_api_quotes(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -300,10 +369,13 @@ def fetch_stock_api_quotes(items: list[dict[str, Any]]) -> dict[str, dict[str, A
 
 
 def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> dict[str, Any]:
-    bars = fetch_youth_daily(item)
+    try:
+        bars, kline_source = fetch_daily_bars(item)
+    except Exception as exc:
+        return {**item, "status": "excluded", "exclude_reason": f"K线获取失败：{exc}", "bars_count": 0}
     required = PARAMS["ma_period"] + PARAMS["trend_window"] + 1
     if len(bars) < required:
-        return {**item, "status": "excluded", "exclude_reason": "youth-online K线不足", "bars_count": len(bars)}
+        return {**item, "status": "excluded", "exclude_reason": "K线不足", "bars_count": len(bars), "kline_source": kline_source}
     closes = [x["close"] for x in bars]
     daily_close = closes[-1]
     price = safe_float((quote or {}).get("now"))
@@ -326,7 +398,10 @@ def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> d
     ma20_above_ma60 = ma > ma60
     pass_dual = ret5 > 0 and slope20 > 0 and above_ma20
     pass_abs = above_ma20 and ma_rising and pass_short and pass_dual
-    volume_ratio = 1.0
+    recent_volumes = [safe_float(x.get("volume")) for x in bars[-5:-1]]
+    recent_volumes = [x for x in recent_volumes if math.isfinite(x) and x > 0]
+    latest_volume = safe_float(bars[-1].get("volume"))
+    volume_ratio = latest_volume / avg(recent_volumes) if recent_volumes and math.isfinite(latest_volume) and latest_volume > 0 else 1.0
     quote_high = safe_float((quote or {}).get("high"))
     quote_low = safe_float((quote or {}).get("low"))
     close_position = 0.5
@@ -361,6 +436,8 @@ def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> d
         "low": quote_low,
         "quote_name": (quote or {}).get("name"),
         "quote_source": (quote or {}).get("source") or "stock-api",
+        "kline_source": kline_source,
+        "bars_count": len(bars),
         "ret3_ref_close": round(closes[-1 - PARAMS["short_days"]], 4),
         "ret5_ref_close": round(closes[-6], 4),
         "ret10_ref_close": round(closes[-11], 4),
@@ -437,6 +514,7 @@ category: '研测'
 - 轮动池来源：{SOURCE_PAGE}
 - ETF名单同步：{payload.get('pool_source', 'youth-online')}
 - 实时行情：stock-api@2.7.2
+- K线数据：stock-api@2.7.2 优先，youth-online 备用
 - ETF池：{payload['summary']['universe_count']}只
 - 动量通过：{payload['summary']['core_count']}只
 - Top 3：{', '.join([f"{x['name']} {x['code']}({x.get('action','观察')})" for x in rec]) or '空仓/货币ETF'}
@@ -484,6 +562,7 @@ def main() -> int:
         "source_page": SOURCE_PAGE,
         "pool_source": pool_source,
         "quote_source": "stock-api@2.7.2",
+        "kline_source": "stock-api@2.7.2 primary; youth-online fallback",
         "params": PARAMS,
         "summary": {
             "universe_source": pool_source,
@@ -503,11 +582,11 @@ def main() -> int:
         "all_rows": rows,
     }
     write_json(PUBLIC_DATA / "etf-momentum-latest.json", payload)
-    write_json(PUBLIC_DATA / "etf-rotation-pool.json", {"generated_at": generated_at, "source_page": SOURCE_PAGE, "items": core})
+    write_json(PUBLIC_DATA / "etf-rotation-pool.json", {"generated_at": generated_at, "source_page": SOURCE_PAGE, "kline_source": payload["kline_source"], "items": core})
     write_json(PUBLIC_DATA / "etf-screening-report.json", payload)
     blog_path = write_blog(payload)
     elapsed = (now_cn() - start).total_seconds()
-    print(f"ETF轮动池镜像完成：{pool_source} {len(source_pool)}只，动量通过{len(core)}只，stock-api实时行情已更新，耗时{elapsed:.0f}s，博客 {blog_path.relative_to(ROOT)}")
+    print(f"ETF轮动池镜像完成：{pool_source} {len(source_pool)}只，动量通过{len(core)}只，stock-api K线/实时行情已更新，耗时{elapsed:.0f}s，博客 {blog_path.relative_to(ROOT)}")
     return 0
 
 

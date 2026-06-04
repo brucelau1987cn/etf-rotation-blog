@@ -84,8 +84,23 @@ def test_parse_js_object_array_extracts_youth_pool_items() -> None:
     ]
 
 
+def test_parse_stock_api_klines_normalizes_rows() -> None:
+    rows = gen.parse_stock_api_klines(
+        [
+            {"date": "2026-06-04", "open": 1.0, "high": 1.2, "low": 0.9, "close": 1.1, "volume": 1000, "source": "tencent"},
+            {"date": "2026-06-03", "close": 1.0, "source": "tencent"},
+            {"date": "2026-06-02", "close": None},
+        ]
+    )
+
+    assert [x["date"] for x in rows] == ["2026-06-03", "2026-06-04"]
+    assert rows[-1]["volume"] == 1000.0
+    assert rows[-1]["source"] == "tencent"
+
+
 if __name__ == "__main__":
     test_parse_js_object_array_extracts_youth_pool_items()
+    test_parse_stock_api_klines_normalizes_rows()
     test_calc_slope_momentum_detects_quality_trend()
     test_score_row_combines_dual_momentum_and_risk_adjustment()
     test_decide_action_and_regime_are_actionable()
