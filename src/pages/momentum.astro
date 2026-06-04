@@ -46,7 +46,8 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       .table-wrap { overflow: auto; max-height: 531px; border: 1px solid var(--border); border-radius: 20px; background: white; }
       table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
       th, td { padding: 0.72rem 0.65rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
-      thead th { position: sticky; top: 0; z-index: 5; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
+      thead { position: relative; z-index: 10; will-change: transform; }
+      thead th { position: relative; z-index: 5; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
       td:first-child, th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: white; }
       thead th:first-child { background: rgb(var(--black)); z-index: 6; }
       tbody tr.recommended td { background: #fff8dc; }
@@ -163,6 +164,13 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
           weak.length ? `<li><strong>弱势尾部：</strong>${weak.map(r => `${r.name} ${fmt(r.ret20)}%`).join('，')}。</li>` : '',
           '<li><strong>本站口径：</strong>轮动池和指标来自 youth-online 日线接口，实时价格由 stock-api 更新。</li>'
         ].join('');
+        pinTableHeader();
+      }
+      function pinTableHeader() {
+        const wrap = document.querySelector('.table-wrap');
+        const head = document.querySelector('thead');
+        if (!wrap || !head) return;
+        head.style.transform = `translateY(${wrap.scrollTop}px)`;
       }
       async function load() {
         $('refresh-btn').disabled = true;
@@ -183,6 +191,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       ['type-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
       $('ma-period').disabled = true;
       $('refresh-btn').addEventListener('click', load);
+      document.querySelector('.table-wrap').addEventListener('scroll', pinTableHeader, { passive: true });
       load();
       setInterval(load, 60000);
     </script>
