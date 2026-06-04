@@ -13,11 +13,12 @@ import concurrent.futures
 import datetime as dt
 import json
 import math
+import re
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urljoin, urlencode
 
 import requests
 
@@ -25,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DATA = ROOT / "public" / "data"
 RESEARCH_DIR = ROOT / "src" / "content" / "blog" / "research"
 SOURCE_PAGE = "https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f"
+YOUTH_ORIGIN = "https://etf.youth-online.site"
 YOUTH_DAILY = "https://etf.youth-online.site/api/etf/{market}/daily"
 STOCK_API_PACKAGE = "stock-api@2.7.2"
 
@@ -59,11 +61,65 @@ PARAMS = {
     "short_days": 3,
     "short_threshold": -5.0,
     "sort_period": 20,
-    "holding_count": 2,
+    "holding_count": 3,
+    "slope_short_window": 20,
+    "slope_long_window": 60,
 }
+
+BENCHMARK_BY_TYPE = {
+    "海外": "510300",
+    "宽基": "510300",
+    "行业": "510300",
+    "商品": "510300",
+    "货币": "511880",
+}
+
+DEFENSIVE_ASSETS = [
+    {"name": "银华日利 ETF", "code": "511880", "role": "现金替代"},
+    {"name": "华宝添益 ETF", "code": "511990", "role": "现金替代"},
+    {"name": "黄金 ETF", "code": "518880", "role": "避险资产"},
+    {"name": "红利低波 ETF", "code": "512890", "role": "权益防御"},
+]
 
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "Mozilla/5.0", "Referer": SOURCE_PAGE})
+
+
+def normalize_source_pool_item(item: dict[str, Any]) -> dict[str, str]:
+    return {
+        "name": str(item.get("name", "")).strip(),
+        "code": str(item.get("code", "")).strip(),
+        "market": str(item.get("exchange_code") or item.get("market") or "").strip(),
+        "type": str(item.get("asset_type") or item.get("type") or "").strip(),
+    }
+
+
+def parse_js_object_array(raw: str) -> list[dict[str, str]]:
+    normalized = re.sub(r"([,{])([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', raw)
+    normalized = normalized.replace("`", '"').replace("'", '"')
+    normalized = re.sub(r",\s*([}\]])", r"\1", normalized)
+    return json.loads(normalized)
+
+
+def fetch_youth_source_pool() -> list[dict[str, str]]:
+    page = SESSION.get(SOURCE_PAGE, timeout=20)
+    page.raise_for_status()
+    scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)', page.text)
+    for src in scripts:
+        js_url = urljoin(YOUTH_ORIGIN, src)
+        js = SESSION.get(js_url, timeout=20).text
+        match = re.search(r"ETF_POOL:\s*(\[\{.*?\}\])\s*,\s*etfData", js)
+        if not match:
+            continue
+        items = [normalize_source_pool_item(x) for x in parse_js_object_array(match.group(1))]
+        valid = [x for x in items if x["name"] and x["code"] and x["market"] in {"XSHG", "XSHE"} and x["type"]]
+        if valid:
+            return valid
+    raise RuntimeError("未能从 youth-online 页面脚本提取 ETF_POOL")
+
+
+def load_source_pool() -> tuple[list[dict[str, str]], str]:
+    return fetch_youth_source_pool(), "youth-online-page-js-etf-pool"
 
 
 def now_cn() -> dt.datetime:
@@ -97,6 +153,108 @@ def pct(a: float, b: float) -> float:
     return (a / b - 1) * 100 if b and math.isfinite(a) and math.isfinite(b) else math.nan
 
 
+def clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
+    if not math.isfinite(value):
+        return low
+    return max(low, min(high, value))
+
+
+def calc_slope_momentum(closes: list[float]) -> float:
+    valid = [x for x in closes if math.isfinite(x) and x > 0]
+    if len(valid) < 3:
+        return math.nan
+    logs = [math.log(x) for x in valid]
+    n = len(logs)
+    xs = list(range(1, n + 1))
+    mean_x = avg([float(x) for x in xs])
+    mean_y = avg(logs)
+    numerator = sum((x - mean_x) * (logs[i] - mean_y) for i, x in enumerate(xs))
+    denominator = sum((x - mean_x) ** 2 for x in xs)
+    if denominator == 0:
+        return math.nan
+    slope = numerator / denominator
+    intercept = mean_y - slope * mean_x
+    fitted = [intercept + slope * x for x in xs]
+    ss_res = sum((logs[i] - fitted[i]) ** 2 for i in range(n))
+    ss_tot = sum((y - mean_y) ** 2 for y in logs)
+    r2 = 0.0 if ss_tot == 0 else max(0.0, 1 - ss_res / ss_tot)
+    annualized_return = math.exp(slope * 250) - 1
+    return annualized_return * r2
+
+
+def score_signal(row: dict[str, Any]) -> float:
+    checks = row.get("checks", {})
+    ret5 = safe_float(row.get("ret5"))
+    slope20 = safe_float(row.get("slope20_score"))
+    slope60 = safe_float(row.get("slope60_score"))
+    volume_ratio = safe_float(row.get("volume_ratio"))
+    close_position = safe_float(row.get("close_position"))
+    relative_strength = safe_float(row.get("relative_strength"))
+    chip_ice = safe_float(row.get("chip_ice_score"))
+    risk_penalty = safe_float(row.get("risk_penalty"))
+
+    short_score = clamp((ret5 + 5) / 12 * 100)
+    slope20_score = clamp((slope20 + 0.2) / 1.6 * 100)
+    trend_score = 0.0
+    trend_score += 35 if checks.get("price_above_ma") else 0
+    trend_score += 35 if checks.get("ma20_above_ma60") else 0
+    trend_score += 20 if slope60 > 0 else 0
+    trend_score += 10 if relative_strength > 0 else 0
+    flow_score = clamp((volume_ratio - 0.7) / 1.0 * 100)
+    position_score = clamp(close_position * 100)
+    chip_score = clamp(chip_ice)
+    risk_score = clamp(100 - risk_penalty * 8)
+
+    return round(
+        short_score * 0.20
+        + slope20_score * 0.20
+        + trend_score * 0.15
+        + flow_score * 0.15
+        + position_score * 0.10
+        + chip_score * 0.10
+        + risk_score * 0.10,
+        2,
+    )
+
+
+def decide_action(row: dict[str, Any]) -> str:
+    score = safe_float(row.get("signal_score"))
+    rank = int(row.get("momentum_rank") or 999)
+    risks = row.get("risk_flags") or []
+    if score < 50 or rank > 15 or "跌破20日线" in risks:
+        return "退出"
+    if score < 60 or rank > 10 or any(x in risks for x in ["高溢价", "放量长上影"]):
+        return "减仓"
+    if score >= 80 and rank <= 3 and row.get("status") == "core":
+        return "加仓"
+    if score >= 65 and rank <= 5:
+        return "持有"
+    return "观察"
+
+
+def detect_market_regime(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    valid = [r for r in rows if math.isfinite(safe_float(r.get("signal_score")))]
+    strong_count = len([r for r in valid if safe_float(r.get("signal_score")) >= 70])
+    top5 = sorted(valid, key=lambda r: safe_float(r.get("signal_score")), reverse=True)[:5]
+    top5_avg = avg([safe_float(r.get("signal_score")) for r in top5]) if top5 else 0.0
+    if strong_count >= 8 and top5_avg >= 75:
+        state, equity, defense = "进攻", "50%-60%", "10%-20%"
+    elif strong_count >= 5 and top5_avg >= 65:
+        state, equity, defense = "震荡", "30%-50%", "30%-40%"
+    elif strong_count >= 2:
+        state, equity, defense = "防御", "10%-30%", "50%-70%"
+    else:
+        state, equity, defense = "极弱", "0%-10%", "80%-100%"
+    return {
+        "state": state,
+        "strong_count": strong_count,
+        "top5_avg_score": round(top5_avg, 2),
+        "equity_allocation": equity,
+        "defense_allocation": defense,
+        "defensive_assets": DEFENSIVE_ASSETS,
+    }
+
+
 def fetch_youth_daily(item: dict[str, Any]) -> list[dict[str, Any]]:
     params = {
         "ticker": item["code"],
@@ -127,7 +285,8 @@ def fetch_stock_api_quotes(items: list[dict[str, Any]]) -> dict[str, dict[str, A
 
 def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> dict[str, Any]:
     bars = fetch_youth_daily(item)
-    if len(bars) < PARAMS["ma_period"] + PARAMS["trend_window"] + 1:
+    required = PARAMS["ma_period"] + PARAMS["trend_window"] + 1
+    if len(bars) < required:
         return {**item, "status": "excluded", "exclude_reason": "youth-online K线不足", "bars_count": len(bars)}
     closes = [x["close"] for x in bars]
     daily_close = closes[-1]
@@ -138,14 +297,39 @@ def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> d
         price = daily_close
     ma = avg(closes[-PARAMS["ma_period"]:])
     ma_prev = avg(closes[-PARAMS["ma_period"] - PARAMS["trend_window"]:-PARAMS["trend_window"]])
+    ma60 = avg(closes[-60:])
     ret3 = pct(price, closes[-1 - PARAMS["short_days"]])
+    ret5 = pct(price, closes[-6])
     ret10 = pct(price, closes[-11])
     ret20 = pct(price, closes[-1 - PARAMS["sort_period"]])
+    slope20 = calc_slope_momentum(closes[-PARAMS["slope_short_window"]:])
+    slope60 = calc_slope_momentum(closes[-PARAMS["slope_long_window"]:])
     pass_short = ret3 > PARAMS["short_threshold"]
-    pass_abs = price > ma and ma > ma_prev and pass_short
-    score = ret20
+    above_ma20 = price > ma
+    ma_rising = ma > ma_prev
+    ma20_above_ma60 = ma > ma60
+    pass_dual = ret5 > 0 and slope20 > 0 and above_ma20
+    pass_abs = above_ma20 and ma_rising and pass_short and pass_dual
+    volume_ratio = 1.0
+    quote_high = safe_float((quote or {}).get("high"))
+    quote_low = safe_float((quote or {}).get("low"))
+    close_position = 0.5
+    if math.isfinite(quote_high) and math.isfinite(quote_low) and quote_high > quote_low:
+        close_position = (price - quote_low) / (quote_high - quote_low)
+    benchmark_code = BENCHMARK_BY_TYPE.get(item.get("type"), "510300")
+    benchmark_momentum = 0.0
+    relative_strength = ret20 - benchmark_momentum if math.isfinite(ret20) else math.nan
+    risk_flags: list[str] = []
+    if not above_ma20:
+        risk_flags.append("跌破20日线")
+    if close_position < 0.4:
+        risk_flags.append("收盘偏弱")
+    if ret5 > 10:
+        risk_flags.append("短线过热")
+    risk_penalty = len(risk_flags)
+    chip_ice_score = 50.0
     stock_code = f"{market_prefix(item['market'])}{item['code']}"
-    return {
+    row = {
         **item,
         "market": "sh" if item["market"] == "XSHG" else "sz",
         "source_market": item["market"],
@@ -157,32 +341,56 @@ def calc_metrics(item: dict[str, Any], quote: dict[str, Any] | None = None) -> d
         "daily_close": round(daily_close, 4),
         "prev_close": safe_float((quote or {}).get("yesterday")),
         "change_pct": round(safe_float((quote or {}).get("percent")) * 100, 2) if quote else None,
-        "high": safe_float((quote or {}).get("high")),
-        "low": safe_float((quote or {}).get("low")),
+        "high": quote_high,
+        "low": quote_low,
         "quote_name": (quote or {}).get("name"),
         "quote_source": (quote or {}).get("source") or "stock-api",
         "ret3_ref_close": round(closes[-1 - PARAMS["short_days"]], 4),
+        "ret5_ref_close": round(closes[-6], 4),
         "ret10_ref_close": round(closes[-11], 4),
         "ret20_ref_close": round(closes[-1 - PARAMS["sort_period"]], 4),
         "ret3": round(ret3, 2),
+        "ret5": round(ret5, 2),
         "ret10": round(ret10, 2),
         "ret20": round(ret20, 2),
         "ma20": round(ma, 4),
         "ma20_prev": round(ma_prev, 4),
-        "score": round(score, 2),
+        "ma60": round(ma60, 4),
+        "slope20_score": round(slope20, 4),
+        "slope60_score": round(slope60, 4),
+        "volume_ratio": round(volume_ratio, 2),
+        "close_position": round(clamp(close_position, 0, 1), 2),
+        "benchmark_code": benchmark_code,
+        "benchmark_momentum": round(benchmark_momentum, 2),
+        "relative_strength": round(relative_strength, 2),
+        "chip_ice_score": chip_ice_score,
+        "risk_flags": risk_flags,
+        "risk_penalty": risk_penalty,
         "checks": {
-            "price_above_ma": price > ma,
-            "ma_rising": ma > ma_prev,
+            "price_above_ma": above_ma20,
+            "ma_rising": ma_rising,
+            "ma20_above_ma60": ma20_above_ma60,
             "short_ok": pass_short,
+            "dual_momentum": pass_dual,
+            "relative_strength": relative_strength > 0,
             "momentum": pass_abs,
         },
     }
+    row["signal_score"] = score_signal(row)
+    row["score"] = row["signal_score"]
+    return row
 
 
 def assign_recommendations(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    selected = [dict(x) for x in rows if x.get("checks", {}).get("momentum")][: PARAMS["holding_count"]]
+    selected = [
+        dict(x)
+        for x in rows
+        if x.get("checks", {}).get("momentum") and safe_float(x.get("signal_score")) >= 60
+    ][: PARAMS["holding_count"]]
+    weights = [20, 15, 15]
     for idx, row in enumerate(selected):
-        row["recommended_weight"] = 50 if idx == 0 else 50
+        row["recommended_weight"] = weights[idx] if idx < len(weights) else 10
+        row["action"] = decide_action(row)
     return selected
 
 
@@ -198,7 +406,7 @@ def write_blog(payload: dict[str, Any]) -> Path:
     path = RESEARCH_DIR / f"{run_date}-etf-rotation-pool.md"
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
     def row_line(r: dict[str, Any]) -> str:
-        return f"- 🔴 {r['name']} `{r['code']}`：20日 {r['ret20']}%，10日 {r['ret10']}%，3日 {r['ret3']}%，实时价 {r['price']}，行情源 {r.get('quote_source','stock-api')}"
+        return f"- 🔴 {r['name']} `{r['code']}`：得分 {r.get('signal_score','—')}，动作 {r.get('action','观察')}，20日 {r['ret20']}%，5日 {r.get('ret5','—')}%，斜率R² {r.get('slope20_score','—')}，实时价 {r['price']}，行情源 {r.get('quote_source','stock-api')}"
     content = f"""---
 title: 'ETF轮动池镜像：{run_date}'
 description: '轮动池取自 youth-online 原网页，实时行情由 stock-api 更新。'
@@ -211,10 +419,12 @@ category: '研测'
 - 评估日期：{payload['evaluation_date']}
 - 行情日期：{payload['latest_trade_date']}
 - 轮动池来源：{SOURCE_PAGE}
+- ETF名单同步：{payload.get('pool_source', 'youth-online')}
 - 实时行情：stock-api@2.7.2
 - ETF池：{payload['summary']['universe_count']}只
 - 动量通过：{payload['summary']['core_count']}只
-- Top 2：{', '.join([f"{x['name']} {x['code']}" for x in rec]) or '空仓/货币ETF'}
+- Top 3：{', '.join([f"{x['name']} {x['code']}({x.get('action','观察')})" for x in rec]) or '空仓/货币ETF'}
+- 市场状态：{payload.get('market_regime', {}).get('state', '—')}，权益仓 {payload.get('market_regime', {}).get('equity_allocation', '—')}，防御仓 {payload.get('market_regime', {}).get('defense_allocation', '—')}
 
 ## Top 候选
 
@@ -222,7 +432,7 @@ category: '研测'
 
 ## 执行口径
 
-轮动池直接镜像 youth-online 原网页固定池与双动量参数；本站负责展示、排序、移动端阅读体验，并用 stock-api 刷新当前价和涨跌幅。
+轮动池 ETF 名单从 youth-online 页面脚本同步，双动量参数跟随源页；本站负责展示、排序、移动端阅读体验，并用 stock-api 刷新当前价和涨跌幅。
 """
     path.write_text(content, encoding="utf-8")
     return path
@@ -230,18 +440,23 @@ category: '研测'
 
 def main() -> int:
     start = now_cn()
-    quotes = fetch_stock_api_quotes(SOURCE_POOL)
+    source_pool, pool_source = load_source_pool()
+    quotes = fetch_stock_api_quotes(source_pool)
     rows: list[dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
-        futures = [ex.submit(calc_metrics, item, quotes.get(item["code"])) for item in SOURCE_POOL]
+        futures = [ex.submit(calc_metrics, item, quotes.get(item["code"])) for item in source_pool]
         for fut in concurrent.futures.as_completed(futures):
             rows.append(fut.result())
             time.sleep(0.05)
     rows.sort(key=lambda r: r.get("score", -999), reverse=True)
+    for idx, row in enumerate(rows, start=1):
+        row["momentum_rank"] = idx
+        row["action"] = decide_action(row)
     core = [x for x in rows if x.get("status") == "core"]
     watch = [x for x in rows if x.get("status") == "watch"]
     excluded = [x for x in rows if x.get("status") == "excluded"]
     recommendations = assign_recommendations(core)
+    market_regime = detect_market_regime(rows)
     generated_at = now_cn().strftime("%Y-%m-%d %H:%M:%S %Z")
     run_date = now_cn().date().isoformat()
     latest_trade_date = max((x.get("date", "") for x in rows), default="")
@@ -251,18 +466,20 @@ def main() -> int:
         "evaluation_date": local_today(),
         "latest_trade_date": latest_trade_date,
         "source_page": SOURCE_PAGE,
-        "pool_source": "youth-online-source-page",
+        "pool_source": pool_source,
         "quote_source": "stock-api@2.7.2",
         "params": PARAMS,
         "summary": {
-            "universe_source": "youth-online-source-page",
-            "universe_count": len(SOURCE_POOL),
+            "universe_source": pool_source,
+            "universe_count": len(source_pool),
             "valid_count": len([x for x in rows if "price" in x]),
             "core_count": len(core),
             "watch_count": len(watch),
             "excluded_count": len(excluded),
             "momentum_pass_count": len(core),
         },
+        "market_regime": market_regime,
+        "defensive_assets": DEFENSIVE_ASSETS,
         "recommendations": recommendations,
         "core_pool": core,
         "watch_pool": watch,
@@ -274,7 +491,7 @@ def main() -> int:
     write_json(PUBLIC_DATA / "etf-screening-report.json", payload)
     blog_path = write_blog(payload)
     elapsed = (now_cn() - start).total_seconds()
-    print(f"ETF轮动池镜像完成：youth-online池{len(SOURCE_POOL)}只，动量通过{len(core)}只，stock-api实时行情已更新，耗时{elapsed:.0f}s，博客 {blog_path.relative_to(ROOT)}")
+    print(f"ETF轮动池镜像完成：{pool_source} {len(source_pool)}只，动量通过{len(core)}只，stock-api实时行情已更新，耗时{elapsed:.0f}s，博客 {blog_path.relative_to(ROOT)}")
     return 0
 
 
