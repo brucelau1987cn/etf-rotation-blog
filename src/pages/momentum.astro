@@ -153,9 +153,19 @@ const description = '复刻并调整ETF双动量策略看板：使用 youth-onli
       const cls = (v) => v >= 0 ? 'up' : 'down';
       const passTag = (ok) => `<span class="tag ${ok ? 'pass' : 'fail'}">${ok ? '通过' : '未过'}</span>`;
       const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-      function dateBack(days) { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); }
+      const localToday = () => {
+        const now = new Date();
+        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+      };
+      function dateBack(days) {
+        const d = new Date();
+        d.setDate(d.getDate() - days);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 10);
+      }
       async function fetchDaily(etf) {
-        const url = `${API_BASE}/${etf.market}/daily?ticker=${etf.code}&start_date=${dateBack(80)}&end_date=${new Date().toISOString().slice(0,10)}&columns=date,close,pre_close`;
+        const url = `${API_BASE}/${etf.market}/daily?ticker=${etf.code}&start_date=${dateBack(80)}&end_date=${localToday()}&columns=date,close,pre_close`;
         const json = await fetch(url).then(r => r.json());
         const data = (json.data || []).map(d => ({ date: d.date, close: Number(d.close), preClose: Number(d.pre_close) })).filter(d => Number.isFinite(d.close)).sort((a, b) => a.date.localeCompare(b.date));
         if (data.length < 25) throw new Error(`${etf.code} 数据不足`);
@@ -190,7 +200,8 @@ const description = '复刻并调整ETF双动量策略看板：使用 youth-onli
         $('metric-pass').textContent = `${rawRows.map(r => calc(r, maPeriod)).filter(r => r.absoluteMomentum).length}只`;
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
         $('metric-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        $('date-pill').textContent = `评估日期 ${recommendations[0]?.date || '—'}`;
+        const latestTradeDate = recommendations[0]?.date || rawRows.map(r => calc(r, maPeriod).date).sort().at(-1) || '—';
+        $('date-pill').textContent = `评估日期 ${localToday()}｜行情 ${latestTradeDate}`;
         $('status-line').textContent = `当前显示 ${rows.length} 只，排序：${$('sort-key').selectedOptions[0].textContent}，数据源：youth-online ETF daily API`;
         $('etf-body').innerHTML = rows.map(r => `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">推荐</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma, 4)}</td><td>${fmt(r.maPrev, 4)}</td><td>${passTag(r.priceAboveMa)}</td><td>${passTag(r.maUp)}</td><td>${passTag(r.shortOk)}</td><td>${passTag(r.absoluteMomentum)}</td></tr>`).join('') || '<tr><td colspan="13">当前筛选下无ETF通过。</td></tr>';
         $('recommendations').innerHTML = recommendations.map((r, i) => `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><span class="pill pill-red">${r.code}</span></div><p><strong>${$('sort-key').selectedOptions[0].textContent}：</strong><span class="${cls(r[sortKey])}">${fmt(r[sortKey])}%</span>；<strong>仓位：</strong>50%</p><div class="tags"><span class="tag">${r.type}</span><span class="tag pass">价格>均线</span><span class="tag pass">均线上升</span><span class="tag pass">短期回撤受控</span></div></div>`).join('') || '<p class="muted">当前无ETF满足绝对动量，按空仓策略看货币ETF。</p>';
