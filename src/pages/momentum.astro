@@ -44,11 +44,11 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       .tag.fail { color: #b42318; background: #fff1ef; border-color: #ffd6cf; }
       .tag.watch { color: #9a6700; background: #fff7d6; border-color: #ffe7a3; }
       .table-wrap { overflow: auto; max-height: 531px; border: 1px solid var(--border); border-radius: 20px; background: white; }
-      table { width: 100%; border-collapse: collapse; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
       th, td { padding: 0.72rem 0.65rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
-      th { position: sticky; top: 0; z-index: 1; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
+      thead th { position: sticky; top: 0; z-index: 5; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
       td:first-child, th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: white; }
-      th:first-child { background: rgb(var(--black)); z-index: 3; }
+      thead th:first-child { background: rgb(var(--black)); z-index: 6; }
       tbody tr.recommended td { background: #fff8dc; }
       tbody tr.recommended td:first-child { background: #fff8dc; }
       .up { color: #c01616; font-weight: 900; }
