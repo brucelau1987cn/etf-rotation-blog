@@ -27,6 +27,7 @@ PUBLIC_DATA = ROOT / "public" / "data"
 RESEARCH_DIR = ROOT / "src" / "content" / "blog" / "research"
 SOURCE_PAGE = "https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f"
 YOUTH_ORIGIN = "https://etf.youth-online.site"
+YOUTH_POOL_PAGES = [SOURCE_PAGE, f"{YOUTH_ORIGIN}/"]
 YOUTH_DAILY = "https://etf.youth-online.site/api/etf/{market}/daily"
 STOCK_API_PACKAGE = "stock-api@2.7.2"
 
@@ -101,8 +102,8 @@ def parse_js_object_array(raw: str) -> list[dict[str, str]]:
     return json.loads(normalized)
 
 
-def fetch_youth_source_pool() -> list[dict[str, str]]:
-    page = SESSION.get(SOURCE_PAGE, timeout=20)
+def extract_pool_from_page(page_url: str) -> list[dict[str, str]]:
+    page = SESSION.get(page_url, timeout=20)
     page.raise_for_status()
     scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)', page.text)
     for src in scripts:
@@ -115,11 +116,26 @@ def fetch_youth_source_pool() -> list[dict[str, str]]:
         valid = [x for x in items if x["name"] and x["code"] and x["market"] in {"XSHG", "XSHE"} and x["type"]]
         if valid:
             return valid
-    raise RuntimeError("未能从 youth-online 页面脚本提取 ETF_POOL")
+    return []
+
+
+def fetch_youth_source_pool() -> tuple[list[dict[str, str]], str]:
+    errors: list[str] = []
+    for page_url in YOUTH_POOL_PAGES:
+        try:
+            pool = extract_pool_from_page(page_url)
+            if pool:
+                return pool, f"youth-online-page-js-etf-pool:{page_url}"
+            errors.append(f"{page_url}: 未提取到 ETF_POOL")
+        except Exception as exc:
+            errors.append(f"{page_url}: {exc}")
+    if SOURCE_POOL:
+        return SOURCE_POOL, "local-source-pool-fallback"
+    raise RuntimeError("未能同步 youth-online ETF_POOL；" + "；".join(errors))
 
 
 def load_source_pool() -> tuple[list[dict[str, str]], str]:
-    return fetch_youth_source_pool(), "youth-online-page-js-etf-pool"
+    return fetch_youth_source_pool()
 
 
 def now_cn() -> dt.datetime:

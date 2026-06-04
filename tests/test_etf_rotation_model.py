@@ -77,7 +77,15 @@ def test_decide_action_and_regime_are_actionable() -> None:
     assert defensive["state"] in {"防御", "极弱"}
 
 
+def test_parse_js_object_array_extracts_youth_pool_items() -> None:
+    raw = "[{name:`纳指 ETF`,code:`159501`,exchange_code:`XSHE`,asset_type:`海外`}]"
+    assert gen.parse_js_object_array(raw) == [
+        {"name": "纳指 ETF", "code": "159501", "exchange_code": "XSHE", "asset_type": "海外"}
+    ]
+
+
 if __name__ == "__main__":
+    test_parse_js_object_array_extracts_youth_pool_items()
     test_calc_slope_momentum_detects_quality_trend()
     test_score_row_combines_dual_momentum_and_risk_adjustment()
     test_decide_action_and_regime_are_actionable()

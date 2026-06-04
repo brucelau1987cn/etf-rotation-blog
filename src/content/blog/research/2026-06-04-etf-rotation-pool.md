@@ -10,7 +10,7 @@ category: '研测'
 - 评估日期：2026-06-04
 - 行情日期：2026-06-04
 - 轮动池来源：https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f
-- ETF名单同步：youth-online-page-js-etf-pool
+- ETF名单同步：youth-online-page-js-etf-pool:https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f
 - 实时行情：stock-api@2.7.2
 - ETF池：22只
 - 动量通过：3只
