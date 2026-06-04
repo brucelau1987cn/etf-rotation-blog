@@ -33,11 +33,12 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       .metric strong { display: block; font-size: 1.35rem; margin-top: 0.28rem; }
       .rec-list { display: grid; gap: 0.75rem; }
       .rec-card { padding: 1rem; border: 1px solid var(--border); border-radius: 20px; background: linear-gradient(135deg, white, var(--accent-soft)); }
-      .rec-top { display: grid; gap: 0.25rem; margin-bottom: 0.65rem; }
-      .rec-top h3 { margin: 0; }
-      .rec-code { color: rgb(var(--gray)); font-weight: 900; }
-      .rec-metrics { display: grid; gap: 0.35rem; line-height: 1.45; margin: 0; }
-      .rec-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; }
+      :global(.rec-top) { display: grid; gap: 0.25rem; margin-bottom: 0.65rem; }
+      :global(.rec-top h3) { margin: 0; }
+      :global(.rec-code) { color: rgb(var(--gray)); font-weight: 900; }
+      :global(.rec-metrics) { display: grid; gap: 0.35rem; line-height: 1.45; margin: 0; }
+      :global(.rec-metrics > span) { display: block; }
+      :global(.rec-tags) { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; }
       .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
       .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.22rem 0.55rem; font-size: 0.78rem; font-weight: 800; border: 1px solid var(--border); background: white; }
       .tag.pass { color: #137333; background: #eefaf1; border-color: #ccefd5; }
