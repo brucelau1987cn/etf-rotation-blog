@@ -26,6 +26,8 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       .dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1rem; align-items: start; }
       .panel { padding: 1rem; }
       .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+      .panel-actions { display: grid; gap: 0.5rem; justify-items: end; min-width: 220px; }
+      .compact-select { min-height: 2.2rem; border-radius: 999px; font-size: 0.86rem; padding: 0.35rem 0.65rem; }
       .panel-head h2, .panel-head h3 { margin: 0; }
       .muted { color: rgb(var(--gray)); }
       .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
@@ -88,7 +90,13 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
         <div class="panel card">
           <div class="panel-head">
             <div><h2>ETF池数据</h2><p class="status-line" id="status-line">准备加载数据…</p></div>
-            <span class="pill" id="date-pill">评估日期 —</span>
+            <div class="panel-actions">
+              <span class="pill" id="date-pill">评估日期 —</span>
+              <select id="table-range" class="compact-select" aria-label="ETF池显示范围">
+                <option value="top10" selected>显示前10只</option>
+                <option value="all">查看全部22只</option>
+              </select>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -140,16 +148,18 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
         if (type !== '全部') rows = rows.filter(r => r.type === type);
         if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core');
         const recCodes = new Set(recommendations.map(r => r.code));
+        const totalAfterFilter = rows.length;
+        if ($('table-range').value === 'top10') rows = rows.slice(0, 10);
         const summary = payload?.summary || {};
         $('metric-total').textContent = `${summary.universe_count || rows.length}只`;
         $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core').length}只`;
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
         $('metric-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}`;
-        $('status-line').textContent = `当前显示 ${rows.length} 只，动量通过 ${summary.core_count || 0} 只，轮动池来源：youth-online，实时行情：${payload?.quote_source || 'stock-api'}`;
+        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，轮动池来源：youth-online，实时行情：${payload?.quote_source || 'stock-api'}`;
         $('etf-body').innerHTML = rows.map(r => {
           const checks = r.checks || {};
-          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">推荐</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma20, 4)}</td><td>${fmt(r.ma20_prev, 4)}</td><td>${passTag(checks.price_above_ma ?? Number(r.price) > Number(r.ma20))}</td><td>${passTag(checks.ma_rising ?? Number(r.ma20) > Number(r.ma20_prev))}</td><td>${passTag(checks.short_ok ?? Number(r.ret3) > -5)}</td><td>${passTag(checks.momentum)}</td></tr>`;
+          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">🟢</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma20, 4)}</td><td>${fmt(r.ma20_prev, 4)}</td><td>${passTag(checks.price_above_ma ?? Number(r.price) > Number(r.ma20))}</td><td>${passTag(checks.ma_rising ?? Number(r.ma20) > Number(r.ma20_prev))}</td><td>${passTag(checks.short_ok ?? Number(r.ret3) > -5)}</td><td>${passTag(checks.momentum)}</td></tr>`;
         }).join('') || '<tr><td colspan="13">当前筛选下无ETF。</td></tr>';
         $('recommendations').innerHTML = recommendations.map((r, i) => `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><span class="pill pill-red">${r.code}</span></div><p><strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span>；<strong>10日：</strong><span class="${cls(r.ret10)}">${fmt(r.ret10)}%</span>；<strong>3日：</strong><span class="${cls(r.ret3)}">${fmt(r.ret3)}%</span>；<strong>仓位：</strong>${r.recommended_weight || 50}%</p><div class="tags"><span class="tag">${r.type}</span><span class="tag pass">价>${fmt(r.ma20, 4)}</span><span class="tag pass">MA20向上</span><span class="tag">${r.quote_source || 'stock-api'}</span></div></div>`).join('') || '<p class="muted">当前无ETF满足绝对动量，按空仓策略看货币ETF。</p>';
         const weak = [...rawRows].sort((a, b) => (Number(a.ret20) || Infinity) - (Number(b.ret20) || Infinity)).slice(0, 3);
@@ -176,7 +186,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
           $('refresh-btn').textContent = '刷新数据';
         }
       }
-      ['type-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
+      ['type-filter', 'sort-key', 'absolute-only', 'table-range'].forEach(id => $(id).addEventListener('change', render));
       $('ma-period').disabled = true;
       $('refresh-btn').addEventListener('click', load);
       load();
