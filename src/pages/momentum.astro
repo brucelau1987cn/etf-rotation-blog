@@ -37,8 +37,8 @@ const description = '复刻并调整ETF双动量策略看板：使用 youth-onli
       .rec-top h3 { margin: 0; }
       .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
       .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.22rem 0.55rem; font-size: 0.78rem; font-weight: 800; border: 1px solid var(--border); background: white; }
-      .tag.pass { color: #b42318; background: #fff1ef; border-color: #ffd6cf; }
-      .tag.fail { color: #137333; background: #eefaf1; border-color: #ccefd5; }
+      .tag.pass { color: #137333; background: #eefaf1; border-color: #ccefd5; }
+      .tag.fail { color: #b42318; background: #fff1ef; border-color: #ffd6cf; }
       .tag.watch { color: #9a6700; background: #fff7d6; border-color: #ffe7a3; }
       .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 20px; background: white; }
       table { width: 100%; border-collapse: collapse; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
@@ -151,7 +151,7 @@ const description = '复刻并调整ETF双动量策略看板：使用 youth-onli
       let rawRows = [];
       const fmt = (v, digits = 2) => Number.isFinite(v) ? v.toFixed(digits) : '—';
       const cls = (v) => v >= 0 ? 'up' : 'down';
-      const passTag = (ok) => `<span class="tag ${ok ? 'pass' : 'fail'}">${ok ? '通过' : '未过'}</span>`;
+      const passTag = (ok) => `<span class="tag ${ok ? 'pass' : 'fail'}">${ok ? '🟢 通过' : '🔴 未过'}</span>`;
       const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
       const localToday = () => {
         const now = new Date();
