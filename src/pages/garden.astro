@@ -1,0 +1,58 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const posts = (await getCollection('blog'))
+  .filter((post) => post.data.category === 'ETF花园' || post.id.startsWith('garden/'))
+  .sort((a, b) => (b.data.updatedDate?.valueOf() ?? b.data.pubDate.valueOf()) - (a.data.updatedDate?.valueOf() ?? a.data.pubDate.valueOf()));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`ETF花园 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <style>
+      .archive-head { padding: 3rem 0 1.5rem; max-width: 900px; }
+      .archive-head p { color: rgb(var(--gray)); font-size: 1.12rem; }
+      .garden-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; list-style: none; margin: 0; padding: 0; }
+      .garden-grid li:first-child { grid-column: 1 / -1; }
+      .post-card { display: grid; grid-template-columns: 1fr; gap: 0.8rem; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
+      .garden-grid li:first-child .post-card { min-height: 15rem; background: linear-gradient(135deg, #fff, #f0fff4); }
+      .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
+      .title { margin: 0; color: rgb(var(--black)); }
+      .date { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
+      .description { margin: 0; color: rgb(var(--gray)); }
+      @media (max-width: 820px) { .garden-grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="archive-head">
+        <span class="pill pill-amber">ETF花园</span>
+        <h1>种花与摘花轮动观察</h1>
+        <p>固定记录 71 只 ETF/LOF 的目标价轮动信号：准备种花、种花、准备摘花与摘花。每日更新写入同一篇文章，最新交易日置顶。</p>
+      </section>
+      <section>
+        <ul class="garden-grid">
+          {posts.map((post) => (
+            <li>
+              <a class="post-card" href={`/blog/${post.id}/`}>
+                {post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
+                <div><span class="pill pill-amber">{post.data.category ?? 'ETF花园'}</span><h2 class="title">{post.data.title}</h2></div>
+                <p class="description">{post.data.description}</p>
+                <p class="date">更新：<FormattedDate date={post.data.updatedDate ?? post.data.pubDate} /></p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>
