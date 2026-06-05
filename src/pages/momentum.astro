@@ -3,8 +3,8 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 
-const title = 'ETF动量雷达｜youth-online轮动池镜像';
-const description = 'ETF双动量策略看板：轮动池取自 youth-online 原网页，实时行情由 stock-api 刷新。';
+const title = 'ETF动量雷达｜ETF花园 71 池镜像';
+const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池（自选清单），实时行情由 stock-api v2.7.2 刷新。';
 ---
 
 <!doctype html>
@@ -69,9 +69,9 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
     <main>
       <section class="hero">
         <span class="pill pill-red">🔴 ETF动量雷达</span>
-        <span class="pill">youth-online池 + stock-api实时行情</span>
+        <span class="pill">ETF花园 71 池 + stock-api 实时行情</span>
         <h1>ETF轮动池实时看板</h1>
-        <p>轮动池直接取自 youth-online 原网页的22只ETF与双动量口径；本站只做镜像展示和体验优化，行情价格、涨跌幅、高低点由 stock-api 实时刷新。</p>
+        <p>轮动池来自 ETF花园 71 池（自选清单），覆盖宽基、海外、行业、商品、LOF 五大类；行情价格、涨跌幅、高低点由 stock-api v2.7.2 实时刷新，双动量口径跟随源页 22 项策略。</p>
       </section>
 
       <section class="toolbar card" aria-label="策略筛选">
@@ -105,7 +105,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
 
         <aside class="side-stack">
           <div class="panel card">
-            <div class="panel-head"><h3>推荐持仓</h3><span class="pill pill-red">Top 2</span></div>
+            <div class="panel-head"><h3>推荐持仓</h3><span class="pill pill-red">Top 5</span></div>
             <div class="rec-list" id="recommendations"></div>
           </div>
           <div class="panel card">
@@ -116,9 +116,9 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
             <div class="panel-head"><h3>策略参数</h3></div>
             <ul class="explain-list">
               <li><strong>双动量：</strong>价格站上均线、均线向上、短期回撤受控，再按20日收益排序。</li>
-              <li><strong>轮动池：</strong>直接镜像 youth-online 原网页22只ETF。</li>
-              <li><strong>行情：</strong>stock-api 2.7.2 实时刷新当前价、涨跌幅、高低点。</li>
-              <li><strong>仓位：</strong>推荐2只，默认50%/50%；和研测冰点信号交叉验证。</li>
+              <li><strong>轮动池：</strong>直接镜像 ETF花园 71 池（自选清单）。</li>
+              <li><strong>行情：</strong>stock-api v2.7.2 实时刷新当前价、涨跌幅、高低点。</li>
+              <li><strong>仓位：</strong>按信号强度推荐 3-5 只分散；和研测冰点信号交叉验证。</li>
             </ul>
           </div>
         </aside>
@@ -127,7 +127,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
     <Footer />
 
     <script>
-      const DATA_URL = '/data/etf-momentum-latest.json';
+      const DATA_URL = '/data/etf-garden-pool.json';
       const $ = (id) => document.getElementById(id);
       let payload = null;
       let rawRows = [];
@@ -141,7 +141,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
         $('ma-prev-head').textContent = 'MA20(5日前)';
         let rows = [...rawRows];
         rows.sort((a, b) => (Number(b[sortKey]) || -Infinity) - (Number(a[sortKey]) || -Infinity));
-        const recommendations = payload?.recommendations || rows.filter(r => r.status === 'core').slice(0, 2);
+        const recommendations = payload?.recommendations || rows.filter(r => r.status === 'core').slice(0, 5);
         if (type !== '全部') rows = rows.filter(r => r.type === type);
         if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core');
         const recCodes = new Set(recommendations.map(r => r.code));
@@ -152,7 +152,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
         $('metric-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}`;
-        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，轮动池来源：youth-online，实时行情：${payload?.quote_source || 'stock-api'}`;
+        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，轮动池来源：ETF花园 71 池，实时行情：${payload?.quote_source || 'stock-api'}`;
         $('etf-body').innerHTML = rows.map(r => {
           const checks = r.checks || {};
           return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">🟢</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma20, 4)}</td><td>${fmt(r.ma20_prev, 4)}</td><td>${passTag(checks.price_above_ma ?? Number(r.price) > Number(r.ma20))}</td><td>${passTag(checks.ma_rising ?? Number(r.ma20) > Number(r.ma20_prev))}</td><td>${passTag(checks.short_ok ?? Number(r.ret3) > -5)}</td><td>${passTag(checks.momentum)}</td></tr>`;
@@ -160,10 +160,10 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
         $('recommendations').innerHTML = recommendations.map((r, i) => `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><div class="rec-code">${r.code}</div></div><p class="rec-metrics"><span><strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span>；</span><span><strong>10日：</strong><span class="${cls(r.ret10)}">${fmt(r.ret10)}%</span>；</span><span><strong>3日：</strong><span class="${cls(r.ret3)}">${fmt(r.ret3)}%</span>；</span><span><strong>仓位：</strong>${r.recommended_weight || 50}%</span></p><div class="rec-tags"><span class="tag">${r.type}</span><span class="tag pass">价&gt;${fmt(r.ma20, 4)}</span><span class="tag pass">MA20向上</span><span class="tag">${r.quote_source || 'stock-api'}</span></div></div>`).join('') || '<p class="muted">当前无ETF满足绝对动量，按空仓策略看货币ETF。</p>';
         const weak = [...rawRows].sort((a, b) => (Number(a.ret20) || Infinity) - (Number(b.ret20) || Infinity)).slice(0, 3);
         $('today-notes').innerHTML = [
-          `<li><strong>源网页轮动池：</strong>固定镜像 youth-online 22只ETF，评估日期 ${payload?.evaluation_date || '—'}。</li>`,
-          recommendations.length ? `<li><strong>推荐组合：</strong>${recommendations.map(r => `${r.name} ${r.code}`).join(' + ')}，按源页双动量口径选前两名。</li>` : '<li><strong>空仓策略：</strong>绝对动量为空时看银华日利ETF 511880。</li>',
+          `<li><strong>ETF花园 71 池：</strong>覆盖宽基/海外/行业/商品/LOF 五大类，评估日期 ${payload?.evaluation_date || '—'}。</li>`,
+          recommendations.length ? `<li><strong>推荐组合：</strong>${recommendations.map(r => `${r.name} ${r.code}`).join(' + ')}，按双动量信号强度选前 ${recommendations.length} 名。</li>` : '<li><strong>空仓策略：</strong>绝对动量为空时看银华日利ETF 511880。</li>',
           weak.length ? `<li><strong>弱势尾部：</strong>${weak.map(r => `${r.name} ${fmt(r.ret20)}%`).join('，')}。</li>` : '',
-          '<li><strong>本站口径：</strong>轮动池和指标来自 youth-online 日线接口，实时价格由 stock-api 更新。</li>'
+          '<li><strong>本站口径：</strong>轮动池来自 ETF花园 71 池（自选清单），K线/价格由 stock-api v2.7.2 更新。</li>'
         ].join('');
         pinTableHeader();
       }
@@ -176,7 +176,7 @@ const description = 'ETF双动量策略看板：轮动池取自 youth-online 原
       async function load() {
         $('refresh-btn').disabled = true;
         $('refresh-btn').textContent = '刷新中…';
-        $('status-line').textContent = '正在读取 youth-online 轮动池镜像…';
+        $('status-line').textContent = '正在读取 ETF花园 71 池镜像…';
         try {
           payload = await fetch(`${DATA_URL}?t=${Date.now()}`).then(r => r.json());
           rawRows = payload.all_rows || [...(payload.core_pool || []), ...(payload.watch_pool || [])];
