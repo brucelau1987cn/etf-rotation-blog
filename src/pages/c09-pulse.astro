@@ -2,37 +2,33 @@
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const title = 'C09 竞价狙击 · 板块脉冲';
 const description = 'C09 实验室信号：当日 S/A 级 A 股相关新闻 + 6 维板块冲击星图。原始数据来自 nasa-drain-arthritis-figured.trycloudflare.com trycloudflare 隧道。';
 
-// Static import embeds the JSON into the build output. Vite supports
-// importing JSON from inside `src/`, and the resulting page HTML contains
-// the snapshot directly. The fetch_c09 cron re-runs `git add && git push`
-// after every refresh, so each deploy ships the latest snapshot.
-//
-// We keep a fallback via readFileSync(process.cwd() / public / data) so the
-// page renders sensibly even if the static import path is missing — Astro
-// build errors at import time otherwise, which we want to avoid.
-import signalData from '../data/c09-signal.json';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
-let signal: any = signalData;
-let resolvedPath = '<static import: src/data/c09-signal.json>';
+// Locate c09-signal.json at build time. Astro 6's prerender container runs
+// with `process.cwd()` at the Astro project root on every host we know:
+//   - local `astro build`           → cwd = repo root
+//   - local `astro preview`         → cwd = repo root
+//   - Cloudflare Pages build        → cwd = /opt/buildhome/repo (repo root)
+// We try multiple candidate paths so a future layout change still resolves.
+const CANDIDATE_DATA_PATHS = [
+  join(process.cwd(), 'public', 'data', 'c09-signal.json'),
+  join(process.cwd(), 'src', 'data', 'c09-signal.json'),
+];
+let signal: any = null;
 let readError = '';
-try {
-  const alt = JSON.parse(readFileSync(join(process.cwd(), 'public', 'data', 'c09-signal.json'), 'utf-8'));
-  // Trust the newer of the two: compare fetched_at
-  const a = (signalData as any)?.fetched_at || '';
-  const b = (alt as any)?.fetched_at || '';
-  if (b > a) {
-    signal = alt;
-    resolvedPath = '<runtime: public/data/c09-signal.json>';
+let resolvedPath = '';
+for (const p of CANDIDATE_DATA_PATHS) {
+  try {
+    signal = JSON.parse(readFileSync(p, 'utf-8'));
+    resolvedPath = p;
+    break;
+  } catch (e) {
+    readError = String(e);
   }
-} catch (e) {
-  readError = String(e);
-  // runtime alt not present — keep the static import
 }
 
 // Verdict pill styling
@@ -66,7 +62,17 @@ function relativeTime(iso: string) {
   try {
     const t = new Date(iso.replace(' ', 'T'));
     if (Number.isNaN(t.getTime())) return iso;
-    return t.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    // Pin the timezone to Asia/Shanghai so the rendered timestamp matches
+    // the +08:00 source clock — without this, Cloudflare Pages build
+    // containers (system TZ=UTC) would display the value shifted by 8 hours.
+    return t.toLocaleString('zh-CN', {
+      hour12: false,
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Shanghai',
+    });
   } catch { return iso; }
 }
 ---
@@ -127,7 +133,6 @@ function relativeTime(iso: string) {
           <span class="muted">实验室生成：{relativeTime(generatedAt)}</span>
           <span class="muted">本站拉取：{relativeTime(fetchedAt)}</span>
           {meta.next_refresh_at && <span class="muted">下次刷新：{relativeTime(meta.next_refresh_at)}</span>}
-          <span class="muted" style="font-size: 0.7rem; opacity: 0.6;">build=v2 src={resolvedPath ? resolvedPath.split('/').slice(-2).join('/') : 'MISS'}</span>
         </div>
       </section>
 
