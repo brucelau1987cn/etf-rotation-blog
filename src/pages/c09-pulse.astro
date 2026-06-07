@@ -123,6 +123,7 @@ function relativeTime(iso: string) {
           <span class="muted">实验室生成：{relativeTime(generatedAt)}</span>
           <span class="muted">本站拉取：{relativeTime(fetchedAt)}</span>
           {meta.next_refresh_at && <span class="muted">下次刷新：{relativeTime(meta.next_refresh_at)}</span>}
+          <span class="muted" style="font-size: 0.7rem; opacity: 0.6;">build=v2 cwd-resolved</span>
         </div>
       </section>
 
