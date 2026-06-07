@@ -186,6 +186,14 @@ def main() -> int:
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(OUTPUT)
 
+    # Also mirror to src/data/ for Astro static import (build-time embedding).
+    # The c09-pulse.astro page imports this directly so the snapshot is baked
+    # into the page HTML at build time, side-stepping `process.cwd()` quirks
+    # in Cloudflare Pages build containers.
+    src_mirror = ROOT / "src" / "data" / "c09-signal.json"
+    src_mirror.parent.mkdir(parents=True, exist_ok=True)
+    src_mirror.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
     # Compact one-line summary to stdout for cron logs
     print(
         f"[c09] trade_date={trade_date} status={status} "
