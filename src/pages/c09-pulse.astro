@@ -3,22 +3,43 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 const title = 'C09 竞价狙击 · 板块脉冲';
 const description = 'C09 实验室信号：当日 S/A 级 A 股相关新闻 + 6 维板块冲击星图。原始数据来自 nasa-drain-arthritis-figured.trycloudflare.com trycloudflare 隧道。';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataPath = join(__dirname, '..', 'public', 'data', 'c09-signal.json');
+// Locate c09-signal.json at build time. Astro 6's prerender container runs
+// with `process.cwd()` at the Astro project root on every host we know:
+//   - local `astro build`           → cwd = repo root
+//   - local `astro preview`         → cwd = repo root
+//   - Cloudflare Pages build        → cwd = /opt/buildhome/repo (repo root)
+// We try multiple candidate paths so a future layout change still resolves.
+const CANDIDATE_DATA_PATHS = [
+  join(process.cwd(), 'public', 'data', 'c09-signal.json'),
+  join(process.cwd(), 'src', 'data', 'c09-signal.json'),
+];
 let signal: any = null;
 let readError = '';
-try {
-  signal = JSON.parse(readFileSync(dataPath, 'utf-8'));
-} catch (e) {
-  readError = String(e);
+let resolvedPath = '';
+for (const p of CANDIDATE_DATA_PATHS) {
+  try {
+    signal = JSON.parse(readFileSync(p, 'utf-8'));
+    resolvedPath = p;
+    break;
+  } catch (e) {
+    readError = String(e);
+  }
 }
 
+// Verdict pill styling
+const verdictCls: Record<string, string> = {
+  '主升': 'pill-red',
+  '观察': 'pill-amber',
+  '谨慎观察': 'pill-amber',
+  '回避': '',
+};
+
+// Derived views from the loaded signal
 const important = signal?.important_news || [];
 const sectors = signal?.sector_stars || [];
 const top3 = signal?.top3 || [];
@@ -28,13 +49,6 @@ const tradeDate = signal?.trade_date || '—';
 const generatedAt = signal?.generated_at || '—';
 const fetchedAt = signal?.fetched_at || '—';
 
-// Verdict pill styling
-const verdictCls: Record<string, string> = {
-  '主升': 'pill-red',
-  '观察': 'pill-amber',
-  '谨慎观察': 'pill-amber',
-  '回避': '',
-};
 function fmtScore(v: number | null | undefined) {
   return Number.isFinite(Number(v)) ? Number(v).toFixed(1) : '—';
 }
