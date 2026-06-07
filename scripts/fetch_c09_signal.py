@@ -35,6 +35,13 @@ from pathlib import Path
 from typing import Any
 
 BASE = "https://nasa-drain-arthritis-figured.trycloudflare.com"
+# Staleness threshold: trycloudflare tunnels typically live 24-72h, but if we
+# can't fetch for >6h the URL is likely dead. Warn loudly so cron readers can
+# flag the channel in Telegram.
+STALE_HOURS = 6
+# When both endpoints are down AND the last snapshot is older than this, exit 1
+# so cron error-out and trigger a Telegram alert (one-line stderr is silent).
+STALE_FAIL_HOURS = 18
 LIVE_NEWS = f"{BASE}/api/live-news"
 CURRENT_SIGNAL = f"{BASE}/api/current-signal"
 TIMEOUT = 8  # seconds; C09 is on a tunnel, keep it short
@@ -91,10 +98,47 @@ def main() -> int:
     news_raw = _get_json(f"{LIVE_NEWS}?ts=0")
     sig_raw = _get_json(f"{CURRENT_SIGNAL}?ts=0")
 
+    # --- Staleness tracking ----------------------------------------------
+    # If we just refreshed, we know the snapshot is fresh. If we couldn't
+    # reach C09, read the previous snapshot to compute its age.
+    prev_age_hours: float | None = None
+    if OUTPUT.exists():
+        try:
+            prev = json.loads(OUTPUT.read_text(encoding="utf-8"))
+            prev_fa = (prev.get("fetched_at") or "").replace("", "")
+            if prev_fa:
+                # Accept "YYYY-MM-DD HH:MM:SS+0800" or ISO
+                try:
+                    prev_dt = dt.datetime.fromisoformat(prev_fa)
+                except ValueError:
+                    prev_dt = dt.datetime.strptime(prev_fa[:19], "%Y-%m-%d %H:%M:%S")
+                if prev_dt.tzinfo is None:
+                    prev_dt = prev_dt.replace(tzinfo=now.tzinfo)
+                prev_age_hours = (now - prev_dt).total_seconds() / 3600.0
+        except Exception:
+            prev_age_hours = None
+
     # If both endpoints fail, do not overwrite last-known-good; just warn and exit 0.
     if news_raw is None and sig_raw is None:
-        print("[c09] both endpoints down; keeping previous snapshot", file=sys.stderr)
+        age_msg = f"prev_age={prev_age_hours:.1f}h" if prev_age_hours is not None else "no_prev_snapshot"
+        print(f"[c09] WARN both endpoints down; keeping previous snapshot ({age_msg})", file=sys.stderr)
+        # Hard fail if previous snapshot is also too old — escalate to cron error.
+        if prev_age_hours is not None and prev_age_hours > STALE_FAIL_HOURS:
+            print(
+                f"[c09] ERROR snapshot stale >{STALE_FAIL_HOURS}h ({prev_age_hours:.1f}h); "
+                f"C09 tunnel likely dead, needs a new trycloudflare URL.",
+                file=sys.stderr,
+            )
+            return 1
         return 0
+
+    # Soft staleness warning even on success, so an unattended agent notices.
+    if prev_age_hours is not None and prev_age_hours > STALE_HOURS:
+        print(
+            f"[c09] NOTE prior snapshot was {prev_age_hours:.1f}h old (>{STALE_HOURS}h) "
+            f"before this refresh — tunnel may have been flaky.",
+            file=sys.stderr,
+        )
 
     important = _filter_a_share_s_news((news_raw or {}).get("important_news", []))
     sector_stars = _normalize_sector_stars((news_raw or {}).get("sector_stars"))
