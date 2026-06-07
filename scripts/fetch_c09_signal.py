@@ -34,7 +34,9 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-BASE = "https://nasa-drain-arthritis-figured.trycloudflare.com"
+# Allow override via env var so cron jobs / tests can point at a fresh tunnel
+# without code changes. Fall back to the original trycloudflare host.
+BASE = os.environ.get("C09_BASE", "https://nasa-drain-arthritis-figured.trycloudflare.com")
 # Staleness threshold: trycloudflare tunnels typically live 24-72h, but if we
 # can't fetch for >6h the URL is likely dead. Warn loudly so cron readers can
 # flag the channel in Telegram.
