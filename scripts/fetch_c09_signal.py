@@ -51,6 +51,23 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public" / "data" / "c09-signal.json"
 
 
+def _ensure_tz(ts: str) -> str:
+    """The C09 lab returns naive `YYYY-MM-DD HH:MM:SS` timestamps that we
+    know are local +08:00 wall-clock. Append the offset so JS `new Date(...)`
+    inside the Astro build (running on UTC CF Pages containers) parses them
+    correctly. Empty / already-suffixed strings pass through."""
+    if not ts or not isinstance(ts, str):
+        return ts
+    s = ts.strip()
+    # If it already has a +HH:MM / -HH:MM / Z suffix, leave it alone.
+    if len(s) >= 6 and s[-6] in "+-" and s[-3] == ":":
+        return s
+    if s.endswith("Z"):
+        return s
+    # Otherwise, treat as +08:00 wall clock
+    return s + "+0800"
+
+
 def _get_json(url: str, retries: int = 2) -> dict[str, Any] | None:
     """GET url and return JSON; None on any failure (with stderr warning)."""
     last_err = ""
@@ -164,7 +181,7 @@ def main() -> int:
     payload = {
         "source": "c09-trycloudflare",
         "trade_date": trade_date,
-        "generated_at": (sig_raw or news_raw or {}).get("generated_at", ""),
+        "generated_at": _ensure_tz((sig_raw or news_raw or {}).get("generated_at", "")),
         "fetched_at": fetched_at,
         "status": status,
         "important_news": important,
@@ -174,7 +191,7 @@ def main() -> int:
             "news_window_start": (news_raw or {}).get("window_start", ""),
             "news_window_end": (news_raw or {}).get("window_end", ""),
             "news_ttl_seconds": (news_raw or {}).get("ttl_seconds", 900),
-            "next_refresh_at": (news_raw or {}).get("next_refresh_at", ""),
+            "next_refresh_at": _ensure_tz((news_raw or {}).get("next_refresh_at", "")),
             "pool_size": (sig_raw or {}).get("pool_size", 80),
             "mode": (sig_raw or {}).get("mode", ""),
         },
