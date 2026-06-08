@@ -26,16 +26,13 @@ const latest = posts.slice(0, 6);
       .dashboard { padding: 1.1rem; }
       .dashboard-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
       .dashboard-title strong { font-size: 1rem; }
-      .dashboard-note { margin: -0.35rem 0 0.85rem; color: rgb(var(--gray)); font-size: 0.9rem; line-height: 1.55; }
-      .rank-list { display: grid; gap: 0.7rem; }
-      .rank-row { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 0.75rem; padding: 0.85rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
+      .rank-list { display: grid; gap: 0.6rem; }
+      .rank-row { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0.75rem; padding: 0.78rem 0.85rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
       .rank-row .num { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; border-radius: 999px; background: rgb(var(--black)); color: white; font-weight: 800; font-size: 0.85rem; }
       .rank-main { min-width: 0; }
       .rank-head { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; margin-bottom: 0.4rem; }
       .rank-head strong { font-size: 1.02rem; }
-      .rank-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.65rem; margin-top: 0.55rem; color: rgb(var(--gray)); font-size: 0.82rem; line-height: 1.45; }
-      .rank-details span { display: block; }
-      .rank-action { color: rgb(var(--black)); font-weight: 800; }
+
       .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 2.5rem 0 1rem; }
       .section-head h2 { margin: 0; }
       .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 1rem; margin: 1rem 0 2rem; }
@@ -47,7 +44,7 @@ const latest = posts.slice(0, 6);
       .post-card h3 { margin-top: 0.65rem; }
       .date { color: rgb(var(--gray)); margin: 0.35rem 0 0; font-size: 0.92rem; }
       @media (max-width: 860px) { .hero, .post-list, .cards { grid-template-columns: 1fr; } .hero { padding-top: 2.5rem; } }
-      @media (max-width: 520px) { .rank-details { grid-template-columns: 1fr; } .rank-head { align-items: flex-start; flex-direction: column; } }
+      @media (max-width: 520px) { .rank-head { align-items: flex-start; flex-direction: column; } }
     </style>
   </head>
   <body>
@@ -70,13 +67,12 @@ const latest = posts.slice(0, 6);
         </div>
         <aside class="dashboard card" aria-label="当前轮动观察">
           <div class="dashboard-title"><strong>当前观察队列</strong><span class="pill pill-red">下午/收盘修正</span></div>
-          <p class="dashboard-note">按 2026-06-08 15:46–15:47 stock-api / stock-price-query（腾讯行情）收盘复核：ETF花园71池仅4只通过动量，市场状态转为防御。机器人 562500/159770 收盘仍🔴（+0.43%/+0.50%）但较早盘高点回落；银行 512800、红利低波 512890 继续防守承接；煤炭 515220 收绿但20日强度仍居首，只做反抽观察；游戏/医药跌破关键线退出Top5，工业母机 159667 因仍通过动量过滤补入观察；芯片/半导体/科创50/通信AI/有色/军工/黄金继续降权。</p>
           <div class="rank-list">
-            <div class="rank-row"><span class="num">1</span><div class="rank-main"><div class="rank-head"><strong>机器人 / 自动化</strong><span class="pill pill-red">🔴 趋势延续，不追高</span></div><span class="etf-codes"><span class="code-pill">562500</span><span class="code-pill">159770</span></span><div class="rank-details"><span><b>15:46</b> 562500 +0.43%，159770 +0.50%</span><span class="rank-action">动作：回踩低吸确认</span><span><b>关键</b> 562500守1.15–1.16</span><span><b>降速</b> 跌破1.13</span></div></div></div>
-            <div class="rank-row"><span class="num">2</span><div class="rank-main"><div class="rank-head"><strong>银行 / 红利低波</strong><span class="pill pill-red">🔴 防守承接</span></div><span class="etf-codes"><span class="code-pill">512800</span><span class="code-pill">512890</span></span><div class="rank-details"><span><b>15:47</b> 512800 +0.64%，512890 +0.52%</span><span class="rank-action">动作：进攻线分歧时防守</span><span><b>关键</b> 512800守0.780–0.784</span><span><b>风险</b> 跌回0.774降权</span></div></div></div>
-            <div class="rank-row"><span class="num">3</span><div class="rank-main"><div class="rank-head"><strong>煤炭反抽观察</strong><span class="pill pill-amber">⚠️ 20日强但收绿</span></div><span class="etf-codes"><span class="code-pill">515220</span></span><div class="rank-details"><span><b>15:46</b> -0.43%，近20日+10.94%</span><span class="rank-action">动作：只看反抽，不追</span><span><b>升权</b> 重新站1.40–1.42</span><span><b>出队</b> 跌破1.36</span></div></div></div>
-            <div class="rank-row"><span class="num">4</span><div class="rank-main"><div class="rank-head"><strong>工业母机 / 高端制造</strong><span class="pill pill-amber">⚠️ 弹性观察</span></div><span class="etf-codes"><span class="code-pill">159667</span></span><div class="rank-details"><span><b>15:46</b> -1.62%，近5日+7.24%</span><span class="rank-action">动作：等承接/收复2.40</span><span><b>优势</b> 少数动量通过</span><span><b>风险</b> 缺少即时催化</span></div></div></div>
-            <div class="rank-row"><span class="num">5</span><div class="rank-main"><div class="rank-head"><strong>现金/防守优先</strong><span class="pill pill-amber">⚠️ 游戏医药仅修复观察</span></div><span class="etf-codes"><span class="code-pill">511880</span><span class="code-pill">511990</span><span class="code-pill">159869</span><span class="code-pill">512010</span></span><div class="rank-details"><span><b>15:47</b> 159869 -2.32%，512010 -1.53%</span><span class="rank-action">动作：防御仓位优先</span><span><b>确认</b> 游戏站回1.10</span><span><b>确认</b> 医药站回0.328–0.330</span></div></div></div>
+            <div class="rank-row"><span class="num">1</span><div class="rank-main"><div class="rank-head"><strong>机器人 / 自动化</strong></div><span class="etf-codes"><span class="code-pill">562500</span><span class="code-pill">159770</span></span></div></div>
+            <div class="rank-row"><span class="num">2</span><div class="rank-main"><div class="rank-head"><strong>银行 / 红利低波</strong></div><span class="etf-codes"><span class="code-pill">512800</span><span class="code-pill">512890</span></span></div></div>
+            <div class="rank-row"><span class="num">3</span><div class="rank-main"><div class="rank-head"><strong>煤炭</strong></div><span class="etf-codes"><span class="code-pill">515220</span></span></div></div>
+            <div class="rank-row"><span class="num">4</span><div class="rank-main"><div class="rank-head"><strong>工业母机 / 高端制造</strong></div><span class="etf-codes"><span class="code-pill">159667</span></span></div></div>
+            <div class="rank-row"><span class="num">5</span><div class="rank-main"><div class="rank-head"><strong>现金 / 防守</strong></div><span class="etf-codes"><span class="code-pill">511880</span><span class="code-pill">511990</span></span></div></div>
           </div>
         </aside>
       </section>
