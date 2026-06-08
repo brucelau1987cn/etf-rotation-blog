@@ -63,19 +63,8 @@ Check out [our documentation](https://docs.astro.build) or jump into our [Discor
 | Page | Source | Script |
 | --- | --- | --- |
 | `/momentum` ETF 动量雷达 | `public/data/etf-garden-pool.json` (stock-api v2.7.2 + youth-online mirror) | `scripts/generate_garden_pool.py` |
-| `/c09-pulse` C09 竞价狙击 | `public/data/c09-signal.json` (nasa-drain-arthritis-figured.trycloudflare.com trycloudflare tunnel) | `scripts/fetch_c09_signal.py` |
 | `/garden` ETF 花园 | `public/data/etf-garden-pool.json` | `scripts/generate_garden_pool.py` |
 | `/stocks` 个股深度 | `src/content/blog/stocks/*.md` | hand-written |
-
-### C09 实验室
-
-`scripts/fetch_c09_signal.py` 调 `trycloudflare.com` 临时隧道（24-72h 失效）拉 2 个端点：
-
-- `GET /api/live-news?ts=0` — 4 天窗口新闻 + S/A 评级 + 板块星图
-- `GET /api/current-signal?ts=0` — ORION 决策中枢 TOP3（仅交易日有信号）
-
-输出原子化写到 `public/data/c09-signal.json`，构建时由 `/c09-pulse` 页面读取并渲染。
-失败时**保留上次快照**（不覆盖），不破坏已部署的页面。
 
 ## Credit
 
