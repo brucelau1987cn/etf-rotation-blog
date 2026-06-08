@@ -29,7 +29,8 @@ const API_BASE = 'https://minimax.peekabo.cc';
       .quota-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin: 1rem 0; }
       .quota { padding: 1.1rem; border: 1px solid var(--border); border-radius: 20px; background: var(--warm-2); }
       .quota .label { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; color: rgb(var(--gray)); font-size: 0.86rem; font-weight: 800; }
-      .quota .value { display: block; font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 900; margin: 0.45rem 0 0; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+      .quota .value { display: block; font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 900; margin: 0.45rem 0 0.35rem; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+      .quota .detail { color: rgb(var(--gray-dark)); font-size: 0.88rem; line-height: 1.45; min-height: 1.25rem; }
       .quota.critical .value { color: #b42318; }
       .quota.warn .value { color: #b54708; }
       .quota.ok .value { color: #137333; }
@@ -60,10 +61,10 @@ const API_BASE = 'https://minimax.peekabo.cc';
 
       <!-- 4 quota cards -->
       <div class="quota-grid" id="quota-grid">
-        <div class="quota neutral"><div class="label">5h 限额<span class="pill">剩余</span></div><div class="value" data-quota="5h">—</div></div>
-        <div class="quota neutral"><div class="label">周限额<span class="pill">剩余</span></div><div class="value" data-quota="week">—</div></div>
-        <div class="quota neutral"><div class="label">总消费 token<span class="pill">累计</span></div><div class="value" data-quota="total">—</div></div>
-        <div class="quota neutral"><div class="label">排名分位<span class="pill">同期</span></div><div class="value" data-quota="rank">—</div></div>
+        <div class="quota neutral"><div class="label">5h 限额<span class="pill">剩余</span></div><div class="value" data-quota="5h">—</div><div class="detail" data-detail="5h">恢复：—</div></div>
+        <div class="quota neutral"><div class="label">周限额<span class="pill">剩余</span></div><div class="value" data-quota="week">—</div><div class="detail" data-detail="week">恢复：—</div></div>
+        <div class="quota neutral"><div class="label">总消费 token<span class="pill">累计</span></div><div class="value" data-quota="total">—</div><div class="detail">全量累计</div></div>
+        <div class="quota neutral"><div class="label">排名分位<span class="pill">同期</span></div><div class="value" data-quota="rank">—</div><div class="detail">越小越靠前</div></div>
       </div>
 
       <div id="err-box" class="error" style="display:none;"></div>
@@ -85,13 +86,24 @@ const API_BASE = 'https://minimax.peekabo.cc';
       const fmtSeconds = (s) => {
         if (s == null) return '—';
         s = Number(s);
-        if (s <= 0) return '已重置';
-        const h = Math.floor(s / 3600);
+        if (Number.isNaN(s)) return '—';
+        if (s <= 0) return '已恢复';
+        const d = Math.floor(s / 86400);
+        const h = Math.floor((s % 86400) / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
-        if (h >= 24) return Math.floor(h / 24) + 'd' + (h % 24) + 'h' + m + 'm';
-        if (h >= 1) return h + 'h' + m + 'm';
-        return m + 'm' + sec + 's';
+        if (d >= 1) return d + '天' + h + '小时' + m + '分';
+        if (h >= 1) return h + '小时' + m + '分';
+        return m + '分' + sec + '秒';
+      };
+      const secondsToNextMonday = () => {
+        const now = new Date();
+        const next = new Date(now);
+        const day = now.getDay();
+        const daysUntilMonday = day === 0 ? 1 : 8 - day;
+        next.setDate(now.getDate() + daysUntilMonday);
+        next.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
       };
       const fmtTs = (s) => {
         if (!s) return '—';
@@ -147,19 +159,24 @@ const API_BASE = 'https://minimax.peekabo.cc';
         if (general) {
           const p5 = general.current_interval_remaining_percent;
           const pw = general.current_weekly_remaining_percent;
-          const used = general.current_interval_used_percent ?? (100 - p5);
 
           const card5 = $('[data-quota="5h"]').closest('.quota');
+          const intervalSeconds = general.current_interval_remains_seconds;
           $('[data-quota="5h"]').textContent = fmtPct(p5);
+          $('[data-detail="5h"]').textContent = intervalSeconds == null ? '恢复：等待平台释放' : '恢复：' + fmtSeconds(intervalSeconds);
           setQuotaLevel(card5, p5);
 
           const cardW = $('[data-quota="week"]').closest('.quota');
+          const weeklySeconds = general.current_weekly_remains_seconds ?? general.current_weekly_reset_seconds ?? secondsToNextMonday();
           $('[data-quota="week"]').textContent = fmtPct(pw);
+          $('[data-detail="week"]').textContent = '恢复：' + fmtSeconds(weeklySeconds);
           setQuotaLevel(cardW, pw);
 
         } else {
           $('[data-quota="5h"]').textContent = '—';
+          $('[data-detail="5h"]').textContent = '恢复：—';
           $('[data-quota="week"]').textContent = '—';
+          $('[data-detail="week"]').textContent = '恢复：—';
         }
 
       }
