@@ -1,0 +1,310 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+
+const title = 'Token 用量看板｜MiniMax';
+const description = '实时拉取 MiniMax 平台 token 用量、5h/周限额剩余、排名、积分池。数据源：本机 127.0.0.1:8765 经 Cloudflare Tunnel 暴露为 minimax.peekabo.cc。';
+const API_BASE = 'https://minimax.peekabo.cc';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={title} description={description} />
+    <style>
+      .hero { padding: clamp(2.2rem, 6vw, 4.5rem) 0 1.4rem; }
+      .hero h1 { margin: 0.7rem 0 0.85rem; letter-spacing: -0.045em; }
+      .hero p { max-width: 820px; color: rgb(var(--gray)); font-size: 1.05rem; line-height: 1.75; }
+      .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin: 1.2rem 0 0.5rem; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 2.6rem; padding: 0.6rem 1.1rem; border-radius: 999px; font-weight: 800; font-size: 0.95rem; border: 1px solid var(--border); background: white; color: rgb(var(--black)); cursor: pointer; text-decoration: none; }
+      .btn.primary { background: rgb(var(--black)); color: white; border-color: rgb(var(--black)); }
+      .btn:disabled { opacity: 0.6; cursor: wait; }
+      .btn-ghost { background: transparent; }
+      .meta-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.5rem 0 1.4rem; color: rgb(var(--gray)); font-size: 0.92rem; }
+      .meta-bar .pill { font-size: 0.78rem; }
+      .loading-dot { display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); margin-right: 0.4rem; animation: pulse 1.4s infinite; }
+      @keyframes pulse { 0%,100%{opacity:0.35} 50%{opacity:1} }
+
+      /* 4-card grid: 5h / 周 / 总消费 / 排名 */
+      .quota-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin: 1rem 0; }
+      .quota { padding: 1.1rem; border: 1px solid var(--border); border-radius: 20px; background: var(--warm-2); }
+      .quota .label { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; color: rgb(var(--gray)); font-size: 0.86rem; font-weight: 800; }
+      .quota .value { display: block; font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 900; margin: 0.45rem 0 0.55rem; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+      .quota .detail { color: rgb(var(--gray-dark)); font-size: 0.88rem; line-height: 1.45; }
+      .quota.critical .value { color: #b42318; }
+      .quota.warn .value { color: #b54708; }
+      .quota.ok .value { color: #137333; }
+      .quota.neutral .value { color: rgb(var(--black)); }
+      .progress { display: block; height: 6px; border-radius: 999px; background: rgba(0,0,0,0.08); margin-top: 0.7rem; overflow: hidden; }
+      .progress > i { display: block; height: 100%; background: rgb(var(--black)); transition: width 0.4s ease; }
+      .quota.critical .progress > i { background: #b42318; }
+      .quota.warn .progress > i { background: #f79009; }
+      .quota.ok .progress > i { background: #12b76a; }
+
+      /* Models table */
+      .section { margin: 1.6rem 0; }
+      .section h2 { margin: 0 0 0.65rem; font-size: 1.15rem; letter-spacing: -0.01em; }
+      .section .lede { color: rgb(var(--gray)); font-size: 0.9rem; margin: 0 0 0.85rem; }
+      .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 18px; background: white; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: lining-nums tabular-nums; }
+      th, td { padding: 0.65rem 0.7rem; border-bottom: 1px solid var(--border); text-align: left; }
+      th:last-child, td:last-child { text-align: right; }
+      thead th { background: rgb(var(--black)); color: white; font-size: 0.82rem; }
+      tbody tr:last-child td { border-bottom: none; }
+      .badge { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.76rem; font-weight: 800; }
+      .badge-ok { background: #eefaf1; color: #137333; border: 1px solid #ccefd5; }
+      .badge-warn { background: #fff7d6; color: #9a6700; border: 1px solid #ffe7a3; }
+      .badge-bad { background: #fff1ef; color: #b42318; border: 1px solid #ffd6cf; }
+
+      /* Two-col: 5h detail + credit pool */
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+      .info-card { padding: 1rem; border: 1px solid var(--border); border-radius: 18px; background: white; }
+      .info-card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+      .info-card .row { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
+      .info-card .row:last-child { border-bottom: none; }
+      .info-card .row span:first-child { color: rgb(var(--gray)); }
+      .info-card .row span:last-child { font-weight: 800; font-variant-numeric: lining-nums tabular-nums; }
+
+      .error { padding: 1.2rem; border: 1px solid #ffd6cf; border-radius: 18px; background: #fff8f6; color: #b42318; }
+      .error code { background: #fff1ef; padding: 0.1rem 0.4rem; border-radius: 6px; }
+
+      @media (max-width: 860px) { .quota-grid { grid-template-columns: repeat(2, 1fr); } .pair { grid-template-columns: 1fr; } }
+      @media (max-width: 460px) { .quota-grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span class="pill pill-red">🟢 实时</span> <span class="pill">数据源：minimax.peekabo.cc (Tunnel)</span></div>
+        <h1>Token 用量看板</h1>
+        <p>实时拉取 <b>MiniMax</b> 平台 token 用量。4 个数据卡（5h 限额 / 周限额 / 总消费 / 排名）+ 模型级剩余 + 积分池 + 排名详情。点 🔄 强制刷新会重新登录拉取（60s 缓存防刷）。</p>
+        <div class="toolbar">
+          <button id="btn-refresh" class="btn primary">🔄 强制刷新</button>
+          <button id="btn-cache" class="btn">⏱️ 读缓存</button>
+          <a class="btn btn-ghost" href="https://platform.minimaxi.com/console/usage" target="_blank" rel="noreferrer">↗ MiniMax 官方控制台</a>
+        </div>
+        <div class="meta-bar">
+          <span id="meta-status"><span class="loading-dot"></span>首次加载中…</span>
+          <span class="pill" id="meta-user">user: —</span>
+          <span class="pill" id="meta-cache">cache: —</span>
+        </div>
+      </section>
+
+      <!-- 4 quota cards -->
+      <div class="quota-grid" id="quota-grid">
+        <div class="quota neutral"><div class="label">5h 限额（general）<span class="pill">滑动窗口</span></div><div class="value" data-quota="5h">—</div><div class="detail" data-detail="5h">首次加载</div><span class="progress"><i style="width:0%"></i></span></div>
+        <div class="quota neutral"><div class="label">周限额（general）<span class="pill">自然周</span></div><div class="value" data-quota="week">—</div><div class="detail" data-detail="week">首次加载</div><span class="progress"><i style="width:0%"></i></span></div>
+        <div class="quota neutral"><div class="label">总消费 token<span class="pill">累计</span></div><div class="value" data-quota="total">—</div><div class="detail" data-detail="total">首次加载</div></div>
+        <div class="quota neutral"><div class="label">排名分位<span class="pill">越小越靠前</span></div><div class="value" data-quota="rank">—</div><div class="detail" data-detail="rank">首次加载</div></div>
+      </div>
+
+      <!-- 5h reset + credit pool -->
+      <div class="pair">
+        <div class="info-card">
+          <h3>5h 限额详情（general）</h3>
+          <div class="row"><span>已用</span><span id="detail-5h-used">—</span></div>
+          <div class="row"><span>剩余</span><span id="detail-5h-remain">—</span></div>
+          <div class="row"><span>窗口总长</span><span id="detail-5h-total">—</span></div>
+          <div class="row"><span>距离重置</span><span id="detail-5h-reset">—</span></div>
+          <div class="row"><span>窗口结束</span><span id="detail-5h-end">—</span></div>
+        </div>
+        <div class="info-card">
+          <h3>积分池 / 套餐</h3>
+          <div class="row"><span>可用积分</span><span id="detail-credit">—</span></div>
+          <div class="row"><span>账户名</span><span id="detail-username">—</span></div>
+          <div class="row"><span>group_id</span><span id="detail-group">—</span></div>
+          <div class="row"><span>用户编号</span><span id="detail-subject">—</span></div>
+          <div class="row"><span>数据 fetched_at</span><span id="detail-fetched">—</span></div>
+        </div>
+      </div>
+
+      <!-- Model breakdown -->
+      <section class="section">
+        <h2>各模型剩余额度</h2>
+        <p class="lede">当前 coding_plan / token_plan 套餐下的每个模型（general / video / 5h + 周双窗口）。</p>
+        <div class="table-wrap">
+          <table id="tbl-models">
+            <thead><tr><th>模型</th><th>5h 剩余</th><th>周剩余</th><th>已用</th><th>5h 重置</th></tr></thead>
+            <tbody id="tbl-models-body">
+              <tr><td colspan="5" style="text-align:center; padding:1rem; color:rgb(var(--gray));">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div id="err-box" class="error" style="display:none;"></div>
+    </main>
+    <Footer />
+    <script is:inline define:vars={{ API_BASE }}>
+      const $ = (s) => document.querySelector(s);
+      const fmtPct = (x) => (x == null ? '—' : x + '%');
+      const fmtNum = (x) => {
+        if (x == null) return '—';
+        const n = Number(x);
+        if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+        if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+        return n.toLocaleString();
+      };
+      const fmtSeconds = (s) => {
+        if (s == null) return '—';
+        s = Number(s);
+        if (s <= 0) return '已重置';
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        if (h >= 24) return Math.floor(h / 24) + 'd' + (h % 24) + 'h' + m + 'm';
+        if (h >= 1) return h + 'h' + m + 'm';
+        return m + 'm' + sec + 's';
+      };
+      const fmtTs = (s) => {
+        if (!s) return '—';
+        const d = new Date(Number(s) * 1000);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
+
+      function setQuotaLevel(card, pct) {
+        card.classList.remove('critical', 'warn', 'ok', 'neutral');
+        if (pct == null) { card.classList.add('neutral'); return; }
+        if (pct < 20) card.classList.add('critical');
+        else if (pct < 50) card.classList.add('warn');
+        else card.classList.add('ok');
+      }
+
+      function render(data) {
+        const errBox = $('#err-box');
+        errBox.style.display = 'none';
+        errBox.innerHTML = '';
+        if (!data || data.error) {
+          errBox.style.display = 'block';
+          errBox.innerHTML = '❌ 拉取失败：<code>' + (data?.error || 'no data') + '</code>';
+          return;
+        }
+
+        const meta = $('#meta-status');
+        meta.innerHTML = '✅ ' + fmtTs(data.fetched_at) + ' 更新';
+        $('#meta-user').textContent = 'user: ' + (data.user_name || '—');
+        $('#meta-cache').textContent = 'fetched in ' + (data._latency_ms || '?') + 'ms';
+
+        const summary = data.endpoints.usage_summary || {};
+        const remains = data.endpoints.coding_plan_remains || {};
+        const credit = data.endpoints.token_plan_credit || {};
+        const plan = data.endpoints.token_plan_usage || {};
+
+        // Total
+        const total = summary.total_token_consumed ?? summary.total_tokens ?? plan.total;
+        const totalCard = $('[data-quota="total"]').closest('.quota');
+        $('[data-quota="total"]').textContent = fmtNum(total);
+        $('[data-detail="total"]').textContent = `区间 ${summary.current_interval_start || '—'} → ${summary.current_interval_end || '—'}`;
+        totalCard.classList.remove('critical', 'warn', 'ok', 'neutral');
+        totalCard.classList.add('neutral');
+
+        // Rank
+        const rank = summary.usage_ranking_percent;
+        const rankCard = $('[data-quota="rank"]').closest('.quota');
+        $('[data-quota="rank"]').textContent = rank == null ? '—' : ('前 ' + rank.toFixed(1) + '%');
+        const rankCtx = summary.usage_ranking_descendants_count;
+        $('[data-detail="rank"]').textContent = `超过 ${summary.usage_ranking_lag_count || '—'} 名用户（同期）`;
+        rankCard.classList.remove('critical', 'warn', 'ok', 'neutral');
+        if (rank != null && rank < 20) rankCard.classList.add('ok');
+        else if (rank != null && rank > 50) rankCard.classList.add('warn');
+        else rankCard.classList.add('neutral');
+
+        // Models table - find general
+        const models = remains.model_remains || [];
+        const general = models.find(m => /general/i.test(m.model_name || '')) || models[0];
+        if (general) {
+          const p5 = general.current_interval_remaining_percent;
+          const pw = general.current_weekly_remaining_percent;
+          const used = general.current_interval_used_percent ?? (100 - p5);
+          const total5 = general.current_interval_total_percent ?? 100;
+          const resetSec = general.current_interval_remains_seconds;
+          const resetEnd = general.current_interval_end;
+
+          const card5 = $('[data-quota="5h"]').closest('.quota');
+          $('[data-quota="5h"]').textContent = fmtPct(p5);
+          $('[data-detail="5h"]').textContent = `已用 ${used ?? '—'}% · 总 ${total5}% · ${fmtSeconds(resetSec)} 后重置`;
+          card5.querySelector('.progress > i').style.width = (p5 ?? 0) + '%';
+          setQuotaLevel(card5, p5);
+
+          const cardW = $('[data-quota="week"]').closest('.quota');
+          $('[data-quota="week"]').textContent = fmtPct(pw);
+          $('[data-detail="week"]').textContent = `周已用 ${(100 - (pw ?? 0))}% · 6天+ 滚动`;
+          cardW.querySelector('.progress > i').style.width = (pw ?? 0) + '%';
+          setQuotaLevel(cardW, pw);
+
+          // 5h detail panel
+          $('#detail-5h-used').textContent = used != null ? used + '%' : '—';
+          $('#detail-5h-remain').textContent = fmtPct(p5);
+          $('#detail-5h-total').textContent = total5 != null ? total5 + '%' : '100%';
+          $('#detail-5h-reset').textContent = fmtSeconds(resetSec);
+          $('#detail-5h-end').textContent = resetEnd ? new Date(resetEnd * 1000).toLocaleString('zh-CN') : '—';
+        } else {
+          $('[data-quota="5h"]').textContent = '—';
+          $('[data-detail="5h"]').textContent = '无 general 模型数据';
+          $('[data-quota="week"]').textContent = '—';
+          $('[data-detail="week"]').textContent = '无 general 模型数据';
+        }
+
+        // Models table
+        const tbody = $('#tbl-models-body');
+        if (models.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1rem; color:rgb(var(--gray));">无模型数据</td></tr>';
+        } else {
+          tbody.innerHTML = models.map(m => {
+            const p5 = m.current_interval_remaining_percent;
+            const pw = m.current_weekly_remaining_percent;
+            const used = m.current_interval_used_percent ?? (100 - p5);
+            const cls = p5 < 20 ? 'badge-bad' : p5 < 50 ? 'badge-warn' : 'badge-ok';
+            return `<tr>
+              <td><b>${m.model_name || '—'}</b></td>
+              <td><span class="badge ${cls}">${fmtPct(p5)}</span></td>
+              <td><span class="badge ${p5 != null && pw < 50 ? 'badge-warn' : 'badge-ok'}">${fmtPct(pw)}</span></td>
+              <td>${used != null ? used + '%' : '—'}</td>
+              <td>${fmtSeconds(m.current_interval_remains_seconds)}</td>
+            </tr>`;
+          }).join('');
+        }
+
+        // Credit + identity panel
+        $('#detail-credit').textContent = fmtNum(credit.credit || credit.current_credit || credit.remaining_credit || 0);
+        $('#detail-username').textContent = data.user_name || '—';
+        $('#detail-group').textContent = data.group_id || '—';
+        $('#detail-subject').textContent = '—'; // not in payload
+        $('#detail-fetched').textContent = fmtTs(data.fetched_at);
+      }
+
+      async function load(force) {
+        const url = API_BASE + '/api/minimax/usage' + (force ? '?refresh=1' : '');
+        const t0 = performance.now();
+        $('#btn-refresh').disabled = true;
+        $('#btn-cache').disabled = true;
+        $('#meta-status').innerHTML = '<span class="loading-dot"></span>拉取中…';
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          const dt = (performance.now() - t0).toFixed(0);
+          const data = await r.json();
+          data._latency_ms = dt;
+          render(data);
+        } catch (e) {
+          $('#err-box').style.display = 'block';
+          $('#err-box').innerHTML = '❌ 网络错误：<code>' + e.message + '</code>';
+          $('#meta-status').textContent = '❌ 失败';
+        } finally {
+          $('#btn-refresh').disabled = false;
+          $('#btn-cache').disabled = false;
+        }
+      }
+
+      // Initial load
+      load(false);
+      // Auto refresh every 90s
+      setInterval(() => load(false), 90_000);
+      $('#btn-refresh').addEventListener('click', () => load(true));
+      $('#btn-cache').addEventListener('click', () => load(false));
+    </script>
+  </body>
+</html>
