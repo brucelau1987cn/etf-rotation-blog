@@ -128,31 +128,99 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
 
     <script>
       const DATA_URL = '/data/etf-garden-pool.json';
+      const LIVE_URL = 'https://etf-live.peekabo.cc/api/etf-garden/live';
       const $ = (id) => document.getElementById(id);
       let payload = null;
       let rawRows = [];
+      let livePayload = null;
+      let liveTimer = null;
       const fmt = (v, digits = 2) => Number.isFinite(Number(v)) ? Number(v).toFixed(digits) : '—';
       const cls = (v) => Number(v) >= 0 ? 'up' : 'down';
       const passTag = (ok) => `<span class="tag ${ok ? 'pass' : 'fail'}">${ok ? '🟢' : '🔴'}</span>`;
+      function applyLiveRows(rows) {
+        const liveMap = new Map((livePayload?.items || []).map(x => [x.code, x]));
+        return rows.map(row => {
+          const live = liveMap.get(row.code);
+          if (!live || !Number.isFinite(Number(live.price))) return row;
+          const price = Number(live.price);
+          const base3 = Number(row.ret3);
+          const base10 = Number(row.ret10);
+          const base20 = Number(row.ret20);
+          const oldPrice = Number(row.price);
+          const adjustReturn = (base) => Number.isFinite(base) && Number.isFinite(oldPrice) && oldPrice > 0
+            ? (((1 + base / 100) * price / oldPrice) - 1) * 100
+            : base;
+          const ret3 = adjustReturn(base3);
+          const ret10 = adjustReturn(base10);
+          const ret20 = adjustReturn(base20);
+          const ma20 = Number(row.ma20);
+          const ma20Prev = Number(row.ma20_prev);
+          const priceAboveMa = Number.isFinite(ma20) ? price > ma20 : row.checks?.price_above_ma;
+          const maRising = Number.isFinite(ma20) && Number.isFinite(ma20Prev) ? ma20 > ma20Prev : row.checks?.ma_rising;
+          const shortOk = Number.isFinite(ret3) ? ret3 > -5 : row.checks?.short_ok;
+          const momentum = Boolean(priceAboveMa && maRising && shortOk);
+          return {
+            ...row,
+            price,
+            prev_close: live.prev_close ?? row.prev_close,
+            change_pct: live.change_pct ?? row.change_pct,
+            high: live.high ?? row.high,
+            low: live.low ?? row.low,
+            quote_source: live.source || row.quote_source,
+            ret3: Number.isFinite(ret3) ? Number(ret3.toFixed(2)) : row.ret3,
+            ret10: Number.isFinite(ret10) ? Number(ret10.toFixed(2)) : row.ret10,
+            ret20: Number.isFinite(ret20) ? Number(ret20.toFixed(2)) : row.ret20,
+            status: momentum ? 'core' : (row.status === 'cash' ? 'cash' : 'watch'),
+            checks: {
+              ...(row.checks || {}),
+              price_above_ma: priceAboveMa,
+              ma_rising: maRising,
+              short_ok: shortOk,
+              momentum,
+            },
+            live: true,
+          };
+        });
+      }
+      function buildLiveSummary(rows) {
+        const core = rows.filter(r => r.status === 'core');
+        return {
+          ...(payload?.summary || {}),
+          universe_count: rows.length,
+          valid_count: rows.filter(r => Number.isFinite(Number(r.price))).length,
+          core_count: core.length,
+          watch_count: rows.filter(r => r.status === 'watch').length,
+          momentum_pass_count: core.length,
+        };
+      }
+      function buildLiveRecommendations(rows) {
+        const weights = [25, 20, 15, 15, 10];
+        return [...rows]
+          .filter(r => r.status === 'core')
+          .sort((a, b) => (Number(b.ret20) || -Infinity) - (Number(a.ret20) || -Infinity))
+          .slice(0, 5)
+          .map((r, i) => ({ ...r, recommended_weight: weights[i] || 10, action: i === 0 ? '加仓' : '持有' }));
+      }
       function render() {
         const type = $('type-filter').value;
         const sortKey = $('sort-key').value;
         $('ma-head').textContent = 'MA20';
         $('ma-prev-head').textContent = 'MA20(5日前)';
-        let rows = [...rawRows];
+        let rows = applyLiveRows(rawRows);
         rows.sort((a, b) => (Number(b[sortKey]) || -Infinity) - (Number(a[sortKey]) || -Infinity));
-        const recommendations = payload?.recommendations || rows.filter(r => r.status === 'core').slice(0, 5);
+        const summary = buildLiveSummary(rows);
+        const recommendations = buildLiveRecommendations(rows);
         if (type !== '全部') rows = rows.filter(r => r.type === type);
         if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core');
         const recCodes = new Set(recommendations.map(r => r.code));
         const totalAfterFilter = rows.length;
-        const summary = payload?.summary || {};
+        const liveTime = livePayload?.generated_at ? livePayload.generated_at.replace(' UTC+08:00', '').slice(11, 16) : null;
         $('metric-total').textContent = `${summary.universe_count || rows.length}只`;
         $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core').length}只`;
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
-        $('metric-time').textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}`;
-        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，轮动池来源：ETF花园 71 池，实时行情：${payload?.quote_source || 'stock-api'}`;
+        $('metric-time').textContent = liveTime || new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}${liveTime ? `｜实时 ${liveTime}` : ''}`;
+        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，实时行情：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，延迟 ${livePayload.latency_ms}ms` : ''}`;
         $('etf-body').innerHTML = rows.map(r => {
           const checks = r.checks || {};
           return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">🟢</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma20, 4)}</td><td>${fmt(r.ma20_prev, 4)}</td><td>${passTag(checks.price_above_ma ?? Number(r.price) > Number(r.ma20))}</td><td>${passTag(checks.ma_rising ?? Number(r.ma20) > Number(r.ma20_prev))}</td><td>${passTag(checks.short_ok ?? Number(r.ret3) > -5)}</td><td>${passTag(checks.momentum)}</td></tr>`;
@@ -173,14 +241,28 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
         if (!wrap || !head) return;
         head.style.transform = `translateY(${wrap.scrollTop}px)`;
       }
+      async function loadLive() {
+        if (!payload) return;
+        try {
+          livePayload = await fetch(`${LIVE_URL}?t=${Date.now()}`, { cache: 'no-store' }).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          });
+          render();
+        } catch (err) {
+          $('status-line').innerHTML = `<span class="error">实时行情暂时不可用：${err.message}；已保留最新静态快照。</span>`;
+        }
+      }
       async function load() {
         $('refresh-btn').disabled = true;
         $('refresh-btn').textContent = '刷新中…';
-        $('status-line').textContent = '正在读取 ETF花园 71 池镜像…';
+        $('status-line').textContent = '正在读取 ETF花园 71 池基准快照…';
         try {
           payload = await fetch(`${DATA_URL}?t=${Date.now()}`).then(r => r.json());
           rawRows = payload.all_rows || [...(payload.core_pool || []), ...(payload.watch_pool || [])];
           render();
+          await loadLive();
+          if (!liveTimer) liveTimer = setInterval(loadLive, 3000);
         } catch (err) {
           $('status-line').innerHTML = `<span class="error">加载失败：${err.message}</span>`;
           $('etf-body').innerHTML = `<tr><td colspan="13">轮动池加载失败，请稍后刷新。</td></tr>`;
@@ -191,10 +273,9 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
       }
       ['type-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
       $('ma-period').disabled = true;
-      $('refresh-btn').addEventListener('click', load);
+      $('refresh-btn').addEventListener('click', loadLive);
       document.querySelector('.table-wrap').addEventListener('scroll', pinTableHeader, { passive: true });
       load();
-      setInterval(load, 60000);
     </script>
   </body>
 </html>
