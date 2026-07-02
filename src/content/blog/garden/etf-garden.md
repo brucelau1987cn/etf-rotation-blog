@@ -2,7 +2,7 @@
 title: 'ETF花园：种花与摘花轮动观察'
 description: '固定记录71只ETF/LOF花园池的准备种花、准备摘花与摘花信号，按交易日倒序每日更新。'
 pubDate: 2026-06-05
-updatedDate: 2026-07-01
+updatedDate: 2026-07-02
 category: 'ETF花园'
 ---
 
