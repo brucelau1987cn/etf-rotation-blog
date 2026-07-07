@@ -3,8 +3,8 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 
-const title = 'ETF动量雷达｜ETF花园 71 池镜像';
-const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池（自选清单），实时行情由 stock-api v2.7.2 刷新。';
+const title = 'ETF TradingAgents v2｜ETF花园 71 池';
+const description = 'ETF TradingAgents v2 多智能体轮动看板：动量、资金、风控、多空辩论与组合经理裁决。';
 ---
 
 <!doctype html>
@@ -28,7 +28,7 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
       .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
       .panel-head h2, .panel-head h3 { margin: 0; }
       .muted { color: rgb(var(--gray)); }
-      .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+      .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
       .metric { padding: 0.95rem; border: 1px solid var(--border); border-radius: 18px; background: var(--warm-2); }
       .metric strong { display: block; font-size: 1.35rem; margin-top: 0.28rem; }
       .rec-list { display: grid; gap: 0.75rem; }
@@ -44,6 +44,9 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
       .tag.pass { color: #137333; background: #eefaf1; border-color: #ccefd5; }
       .tag.fail { color: #b42318; background: #fff1ef; border-color: #ffd6cf; }
       .tag.watch { color: #9a6700; background: #fff7d6; border-color: #ffe7a3; }
+      .agent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; margin-top: 0.65rem; }
+      .agent-box { border: 1px solid var(--border); border-radius: 12px; padding: 0.45rem 0.55rem; background: rgba(255,255,255,0.72); font-size: 0.78rem; line-height: 1.35; }
+      .verdict { display: inline-flex; width: fit-content; margin-top: 0.55rem; border-radius: 999px; padding: 0.25rem 0.6rem; background: rgb(var(--black)); color: white; font-weight: 900; font-size: 0.78rem; }
       .table-wrap { overflow: auto; max-height: 531px; border: 1px solid var(--border); border-radius: 20px; background: white; }
       table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: lining-nums tabular-nums; min-width: 980px; }
       th, td { padding: 0.72rem 0.65rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
@@ -68,10 +71,10 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
     <Header />
     <main>
       <section class="hero">
-        <span class="pill pill-red">🔴 ETF动量雷达</span>
-        <span class="pill">ETF花园 71 池 + stock-api 实时行情</span>
-        <h1>ETF轮动池实时看板</h1>
-        <p>轮动池来自 ETF花园 71 池（自选清单），覆盖宽基、海外、行业、商品、LOF 五大类；行情价格、涨跌幅、高低点由 stock-api v2.7.2 实时刷新，双动量口径跟随源页 22 项策略。</p>
+        <span class="pill pill-red">🔴 TradingAgents v2</span>
+        <span class="pill">ETF花园 71 池 + 多Agent轮动裁决</span>
+        <h1>ETF多智能体轮动池</h1>
+        <p>轮动池来自 ETF花园 71 池，新增动量Agent、资金Agent、风险Agent、多头/空头研究员和组合经理裁决；用于把右侧动量、资金质量、位置风险和仓位动作合并成可执行队列。</p>
       </section>
 
       <section class="toolbar card" aria-label="策略筛选">
@@ -86,6 +89,7 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
         <div class="metric"><span class="muted">ETF池</span><strong id="metric-total">—</strong></div>
         <div class="metric"><span class="muted">动量通过</span><strong id="metric-pass">—</strong></div>
         <div class="metric"><span class="muted">推荐持仓</span><strong id="metric-rec">—</strong></div>
+        <div class="metric"><span class="muted">市场状态</span><strong id="metric-regime">—</strong></div>
         <div class="metric"><span class="muted">实时刷新</span><strong id="metric-time">—</strong></div>
       </section>
 
@@ -97,7 +101,7 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>名称</th><th>代码</th><th>类型</th><th>10日%</th><th>20日%</th><th>3日%</th><th>当前价</th><th id="ma-head">MA20</th><th id="ma-prev-head">MA20(5日前)</th><th>价>均线</th><th>均线上升</th><th>3日>-5%</th><th>绝对动量</th></tr></thead>
+              <thead><tr><th>名称</th><th>代码</th><th>类型</th><th>得分</th><th>动作</th><th>裁决</th><th>5日%</th><th>20日%</th><th>斜率R²</th><th>量比</th><th>位置</th><th>冷却</th><th>风险</th></tr></thead>
               <tbody id="etf-body"><tr><td colspan="13">加载中…</td></tr></tbody>
             </table>
           </div>
@@ -105,7 +109,7 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
 
         <aside class="side-stack">
           <div class="panel card">
-            <div class="panel-head"><h3>推荐持仓</h3><span class="pill pill-red">Top 5</span></div>
+            <div class="panel-head"><h3>组合经理裁决</h3><span class="pill pill-red">Top 5</span></div>
             <div class="rec-list" id="recommendations"></div>
           </div>
           <div class="panel card">
@@ -115,10 +119,10 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
           <div class="panel card">
             <div class="panel-head"><h3>策略参数</h3></div>
             <ul class="explain-list">
-              <li><strong>双动量：</strong>价格站上均线、均线向上、短期回撤受控，再按20日收益排序。</li>
-              <li><strong>轮动池：</strong>直接镜像 ETF花园 71 池（自选清单）。</li>
-              <li><strong>行情：</strong>stock-api v2.7.2 实时刷新当前价、涨跌幅、高低点。</li>
-              <li><strong>仓位：</strong>按信号强度推荐 3-5 只分散；和研测冰点信号交叉验证。</li>
+              <li><strong>动量Agent：</strong>近5日强度 + 20/60日斜率R²，过滤弱反抽。</li>
+              <li><strong>资金Agent：</strong>用成交量比代理资金质量，后续叠加MX主力净流入。</li>
+              <li><strong>风险Agent：</strong>高位过热、缩量冲高、跌破20日线进入冷却/降权。</li>
+              <li><strong>组合经理：</strong>输出加仓/持有/观察/减仓/退出与建议仓位。</li>
             </ul>
           </div>
         </aside>
@@ -183,7 +187,7 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
         });
       }
       function buildLiveSummary(rows) {
-        const core = rows.filter(r => r.status === 'core');
+        const core = rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察');
         return {
           ...(payload?.summary || {}),
           universe_count: rows.length,
@@ -196,10 +200,10 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
       function buildLiveRecommendations(rows) {
         const weights = [25, 20, 15, 15, 10];
         return [...rows]
-          .filter(r => r.status === 'core')
-          .sort((a, b) => (Number(b.ret20) || -Infinity) - (Number(a.ret20) || -Infinity))
+          .filter(r => r.status === 'core' && r.cooldown_state !== '止损观察')
+          .sort((a, b) => (Number(b.signal_score) || -Infinity) - (Number(a.signal_score) || -Infinity))
           .slice(0, 5)
-          .map((r, i) => ({ ...r, recommended_weight: weights[i] || 10, action: i === 0 ? '加仓' : '持有' }));
+          .map((r, i) => ({ ...r, recommended_weight: r.recommended_weight || r.suggested_weight || weights[i] || 10 }));
       }
       function render() {
         const type = $('type-filter').value;
@@ -207,31 +211,38 @@ const description = 'ETF双动量策略看板：轮动池取自 ETF花园 71 池
         $('ma-head').textContent = 'MA20';
         $('ma-prev-head').textContent = 'MA20(5日前)';
         let rows = applyLiveRows(rawRows);
-        rows.sort((a, b) => (Number(b[sortKey]) || -Infinity) - (Number(a[sortKey]) || -Infinity));
+        rows.sort((a, b) => (Number(b[sortKey === 'ret20' ? 'signal_score' : sortKey]) || -Infinity) - (Number(a[sortKey === 'ret20' ? 'signal_score' : sortKey]) || -Infinity));
         const summary = buildLiveSummary(rows);
         const recommendations = buildLiveRecommendations(rows);
         if (type !== '全部') rows = rows.filter(r => r.type === type);
-        if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core');
+        if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察');
         const recCodes = new Set(recommendations.map(r => r.code));
         const totalAfterFilter = rows.length;
         const liveTime = livePayload?.generated_at ? livePayload.generated_at.replace(' UTC+08:00', '').slice(11, 16) : null;
         $('metric-total').textContent = `${summary.universe_count || rows.length}只`;
-        $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core').length}只`;
+        $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察').length}只`;
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
+        $('metric-regime').textContent = payload?.market_regime?.state || '—';
         $('metric-time').textContent = liveTime || new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}${liveTime ? `｜实时 ${liveTime}` : ''}`;
         $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，实时行情：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，延迟 ${livePayload.latency_ms}ms` : ''}`;
         $('etf-body').innerHTML = rows.map(r => {
-          const checks = r.checks || {};
-          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">🟢</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td class="${cls(r.ret10)}">${fmt(r.ret10)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td class="${cls(r.ret3)}">${fmt(r.ret3)}</td><td>${fmt(r.price, 4)}</td><td>${fmt(r.ma20, 4)}</td><td>${fmt(r.ma20_prev, 4)}</td><td>${passTag(checks.price_above_ma ?? Number(r.price) > Number(r.ma20))}</td><td>${passTag(checks.ma_rising ?? Number(r.ma20) > Number(r.ma20_prev))}</td><td>${passTag(checks.short_ok ?? Number(r.ret3) > -5)}</td><td>${passTag(checks.momentum)}</td></tr>`;
+          const risks = (r.risk_flags || []).slice(0, 2).join(' / ') || '—';
+          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">🟢</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td>${fmt(r.signal_score)}</td><td>${r.action || '观察'}</td><td>${r.portfolio_verdict || '—'}</td><td class="${cls(r.ret5)}">${fmt(r.ret5)}</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}</td><td>${fmt(r.slope20_score, 3)}</td><td>${fmt(r.volume_ratio)}</td><td>${fmt(Number(r.close_position) * 100, 0)}%</td><td>${r.cooldown_state || '正常'}</td><td>${risks}</td></tr>`;
         }).join('') || '<tr><td colspan="13">当前筛选下无ETF。</td></tr>';
-        $('recommendations').innerHTML = recommendations.map((r, i) => `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><div class="rec-code">${r.code}</div></div><p class="rec-metrics"><span><strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span>；</span><span><strong>10日：</strong><span class="${cls(r.ret10)}">${fmt(r.ret10)}%</span>；</span><span><strong>3日：</strong><span class="${cls(r.ret3)}">${fmt(r.ret3)}%</span>；</span><span><strong>仓位：</strong>${r.recommended_weight || 50}%</span></p><div class="rec-tags"><span class="tag">${r.type}</span><span class="tag pass">价&gt;${fmt(r.ma20, 4)}</span><span class="tag pass">MA20向上</span><span class="tag">${r.quote_source || 'stock-api'}</span></div></div>`).join('') || '<p class="muted">当前无ETF满足绝对动量，按空仓策略看货币ETF。</p>';
+        $('recommendations').innerHTML = recommendations.map((r, i) => {
+          const scores = r.agent_scores || {};
+          const bull = (r.agent_bull || []).slice(0, 2).join('；');
+          const bear = (r.agent_bear || []).slice(0, 2).join('；');
+          return `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.name}</h3><div class="rec-code">${r.code}｜得分 ${fmt(r.signal_score)}｜${r.action || '观察'}</div></div><p class="rec-metrics"><span><strong>5日：</strong><span class="${cls(r.ret5)}">${fmt(r.ret5)}%</span>；<strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span></span><span><strong>仓位：</strong>${r.recommended_weight || r.suggested_weight || 0}%；<strong>冷却：</strong>${r.cooldown_state || '正常'}</span></p><div class="agent-grid"><div class="agent-box"><strong>多头：</strong>${bull}</div><div class="agent-box"><strong>空头：</strong>${bear}</div><div class="agent-box"><strong>动量/资金：</strong>${fmt(scores['动量Agent'])}/${fmt(scores['资金Agent'])}</div><div class="agent-box"><strong>风控/组合：</strong>${fmt(scores['风险Agent'])}/${fmt(scores['组合经理'])}</div></div><span class="verdict">${r.portfolio_verdict || '组合经理待确认'}</span><div class="rec-tags"><span class="tag">${r.type}</span><span class="tag pass">${r.quote_source || 'stock-api'}</span><span class="tag watch">${r.risk_level || '中'}风险</span></div></div>`;
+        }).join('') || '<p class="muted">当前无ETF满足TradingAgents v2准入，按空仓/防御策略处理。</p>';
         const weak = [...rawRows].sort((a, b) => (Number(a.ret20) || Infinity) - (Number(b.ret20) || Infinity)).slice(0, 3);
         $('today-notes').innerHTML = [
           `<li><strong>ETF花园 71 池：</strong>覆盖宽基/海外/行业/商品/LOF 五大类，评估日期 ${payload?.evaluation_date || '—'}。</li>`,
-          recommendations.length ? `<li><strong>推荐组合：</strong>${recommendations.map(r => `${r.name} ${r.code}`).join(' + ')}，按双动量信号强度选前 ${recommendations.length} 名。</li>` : '<li><strong>空仓策略：</strong>绝对动量为空时看银华日利ETF 511880。</li>',
+          recommendations.length ? `<li><strong>组合经理：</strong>${recommendations.map(r => `${r.name} ${r.code}(${r.action || '观察'})`).join(' + ')}，按多Agent综合得分选前 ${recommendations.length} 名。</li>` : '<li><strong>空仓策略：</strong>绝对动量为空时看银华日利ETF 511880。</li>',
           weak.length ? `<li><strong>弱势尾部：</strong>${weak.map(r => `${r.name} ${fmt(r.ret20)}%`).join('，')}。</li>` : '',
-          '<li><strong>本站口径：</strong>轮动池来自 ETF花园 71 池（自选清单），K线/价格由 stock-api v2.7.2 更新。</li>'
+          `<li><strong>市场状态：</strong>${payload?.market_regime?.state || '—'}，权益仓 ${payload?.market_regime?.equity_allocation || '—'}，防御仓 ${payload?.market_regime?.defense_allocation || '—'}。</li>`,
+          '<li><strong>本站口径：</strong>TradingAgents v2 多Agent评分；K线/价格由 stock-api v2.7.2 更新。</li>'
         ].join('');
         pinTableHeader();
       }

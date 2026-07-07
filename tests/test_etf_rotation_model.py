@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import generate_etf_rotation_pool as gen
+import generate_garden_pool as garden
 
 
 def approx(value: float, expected: float, tol: float = 1e-6) -> None:
@@ -77,6 +78,33 @@ def test_decide_action_and_regime_are_actionable() -> None:
     assert defensive["state"] in {"防御", "极弱"}
 
 
+def test_garden_trading_agent_decision_outputs_debate_and_cooldown() -> None:
+    strong = {
+        "ret3": 3.0,
+        "ret5": 6.0,
+        "ret20": 12.0,
+        "slope20_score": 0.8,
+        "slope60_score": 0.3,
+        "volume_ratio": 1.45,
+        "close_position": 0.82,
+        "status": "core",
+        "risk_flags": [],
+        "checks": {"price_above_ma": True, "ma_rising": True},
+    }
+    decision = garden.trading_agent_decision(strong)
+
+    assert decision["signal_score"] >= 70
+    assert decision["action"] in {"加仓", "持有"}
+    assert decision["agent_bull"]
+    assert decision["agent_bear"]
+    assert "组合经理" in decision["agent_scores"]
+
+    overheated = {**strong, "ret5": 12.0, "close_position": 0.96}
+    hot_decision = garden.trading_agent_decision(overheated)
+    assert hot_decision["cooldown_state"] == "止盈观察"
+    assert "高位过热" in hot_decision["risk_flags"]
+
+
 def test_parse_js_object_array_extracts_youth_pool_items() -> None:
     raw = "[{name:`纳指 ETF`,code:`159501`,exchange_code:`XSHE`,asset_type:`海外`}]"
     assert gen.parse_js_object_array(raw) == [
@@ -104,4 +132,5 @@ if __name__ == "__main__":
     test_calc_slope_momentum_detects_quality_trend()
     test_score_row_combines_dual_momentum_and_risk_adjustment()
     test_decide_action_and_regime_are_actionable()
+    test_garden_trading_agent_decision_outputs_debate_and_cooldown()
     print("ok")
