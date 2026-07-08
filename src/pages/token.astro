@@ -101,8 +101,9 @@ const API_BASE = 'https://minimax.peekabo.cc';
         if (v == null || v === '') return null;
         const n = Number(v);
         if (Number.isNaN(n)) return null;
-        // MiniMax remains_time / weekly_remains_time 返回毫秒；旧字段可能返回秒。
-        return n > 604800 ? Math.floor(n / 1000) : Math.floor(n);
+        // MiniMax remains_time / weekly_remains_time 返回毫秒（> 1000000 即判定为毫秒）。
+        // 比如 remains_time = 15637604 ms = 15637 秒 ≈ 4.3 小时。若不除以 1000 会被误当成秒渲染成 181 天。
+        return n > 1000000 ? Math.floor(n / 1000) : Math.floor(n);
       };
       const setCountdown = (key, selector, seconds) => {
         const el = $(selector);
