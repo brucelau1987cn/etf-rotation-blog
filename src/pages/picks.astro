@@ -6,27 +6,27 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { isEtfPickPost, isStockPost, sortByPubDateDesc } from '../lib/posts';
 
 const posts = (await getCollection('blog'))
-  .filter((post) => post.data.category === '研推' || post.id.startsWith('picks/'))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  .filter((post) => isEtfPickPost(post) && !isStockPost(post))
+  .sort(sortByPubDateDesc);
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`研推 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <BaseHead title={`ETF研推归档 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
     <style>
       .archive-head { padding: 3rem 0 1.5rem; max-width: 860px; }
       .archive-head p { color: rgb(var(--gray)); font-size: 1.12rem; }
       .picks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; list-style: none; margin: 0; padding: 0; }
-      .picks-grid li:first-child { grid-column: 1 / -1; }
       .post-card { display: grid; grid-template-columns: 1fr; gap: 0.8rem; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
-      .picks-grid li:first-child .post-card { min-height: 15rem; background: linear-gradient(135deg, #fff, var(--amber-soft)); }
       .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
       .title { margin: 0; color: rgb(var(--black)); }
       .date { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
       .description { margin: 0; color: rgb(var(--gray)); }
+      .notice { padding: 1rem 1.15rem; }
       @media (max-width: 820px) { .picks-grid { grid-template-columns: 1fr; } }
     </style>
   </head>
@@ -34,24 +34,28 @@ const posts = (await getCollection('blog'))
     <Header />
     <main>
       <section class="archive-head">
-        <span class="pill pill-amber">研推</span>
-        <h1>从ETF研测到个股推荐</h1>
-        <p>研推表示“研测推荐”：从研测筛出的ETF继续下钻前几大持仓，寻找更值得购入或跟踪的个股候选。</p>
+        <span class="pill pill-amber">历史研推</span>
+        <h1>ETF研推归档</h1>
+        <p>主站聚焦ETF花园。原研推链路已从导航隐藏，后续只保留ETF层面的研究沉淀。</p>
       </section>
-      <section>
-        <ul class="picks-grid">
-          {posts.map((post) => (
-            <li>
-              <a class="post-card" href={`/blog/${post.id}/`}>
-                {post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
-                <div><span class="pill pill-amber">{post.data.category ?? '研推'}</span><h2 class="title">{post.data.title}</h2></div>
-                <p class="description">{post.data.description}</p>
-                <p class="date"><FormattedDate date={post.data.pubDate} /></p>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {posts.length === 0 ? (
+        <section class="notice card"><strong>暂无公开ETF研推</strong><p>历史个股研推已从主归档中过滤，旧链接继续保留。</p></section>
+      ) : (
+        <section>
+          <ul class="picks-grid">
+            {posts.map((post) => (
+              <li>
+                <a class="post-card" href={`/blog/${post.id}/`}>
+                  {post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
+                  <div><span class="pill pill-amber">{post.data.category ?? 'ETF研推'}</span><h2 class="title">{post.data.title}</h2></div>
+                  <p class="description">{post.data.description}</p>
+                  <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
     <Footer />
   </body>

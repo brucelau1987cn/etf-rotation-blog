@@ -5,9 +5,11 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { isDailyReviewPost, isEtfPickPost, isEtfResearchPost, isPublicEtfPost, sortByPubDateDesc } from '../lib/posts';
 
-const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-const latest = posts.slice(0, 6);
+const allPosts = (await getCollection('blog')).filter(isPublicEtfPost).sort(sortByPubDateDesc);
+const latestDaily = allPosts.filter(isDailyReviewPost).slice(0, 4);
+const latestResearch = allPosts.filter((post) => isEtfResearchPost(post) || isEtfPickPost(post)).slice(0, 3);
 ---
 
 <!doctype html>
@@ -15,36 +17,34 @@ const latest = posts.slice(0, 6);
   <head>
     <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
     <style>
-      .hero { padding: clamp(3rem, 9vw, 6.5rem) 0 2.5rem; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 2rem; align-items: center; }
-      .eyebrow { margin-bottom: 0.9rem; }
+      .hero { padding: clamp(3rem, 9vw, 6.5rem) 0 2.5rem; display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 2rem; align-items: stretch; }
+      .eyebrow { margin-bottom: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
       .hero h1 { max-width: 820px; margin-bottom: 1rem; letter-spacing: -0.055em; }
-      .hero p { max-width: 680px; color: rgb(var(--gray)); font-size: clamp(1.05rem, 2vw, 1.24rem); line-height: 1.75; }
+      .hero p { max-width: 700px; color: rgb(var(--gray)); font-size: clamp(1.05rem, 2vw, 1.22rem); line-height: 1.75; }
       .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
       .button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.6rem; padding: 0.62rem 1rem; border-radius: 999px; font-weight: 800; text-decoration: none; }
       .button.primary { background: rgb(var(--black)); color: white; }
       .button.secondary { background: white; color: rgb(var(--black)); border: 1px solid var(--border); }
-      .dashboard { padding: 1.1rem; }
+      .dashboard { padding: 1.15rem; display: flex; flex-direction: column; }
       .dashboard-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-      .dashboard-title strong { font-size: 1rem; }
-      .rank-list { display: grid; gap: 0.6rem; }
-      .rank-row { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0.75rem; padding: 0.78rem 0.85rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
+      .rank-list { display: grid; gap: 0.65rem; }
+      .rank-row { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 0.75rem; padding: 0.82rem 0.9rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
       .rank-row .num { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; border-radius: 999px; background: rgb(var(--black)); color: white; font-weight: 800; font-size: 0.85rem; }
       .rank-main { min-width: 0; }
-      .rank-head { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; margin-bottom: 0.4rem; }
+      .rank-head { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; margin-bottom: 0.35rem; }
       .rank-head strong { font-size: 1.02rem; }
-      .rank-desc { margin: 0.35rem 0 0; color: rgb(var(--gray)); font-size: 0.84rem; line-height: 1.45; }
-
+      .rank-desc { margin: 0.35rem 0 0; color: rgb(var(--gray)); font-size: 0.85rem; line-height: 1.5; }
       .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 2.5rem 0 1rem; }
       .section-head h2 { margin: 0; }
-      .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 1rem; margin: 1rem 0 2rem; }
-      .card { padding: 1.15rem; }
-      .card strong { display: block; margin-bottom: 0.45rem; }
+      .systems { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 1rem; margin: 1rem 0 2rem; }
+      .system-card { padding: 1.15rem; }
+      .system-card strong { display: block; margin: 0.45rem 0; font-size: 1.05rem; }
       .post-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 1rem; padding: 0; list-style: none; margin: 0; }
-      .post-card { display: flex; flex-direction: column; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
+      .post-card { display: flex; flex-direction: column; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 12.5rem; }
       .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
       .post-card h3 { margin-top: 0.65rem; }
-      .date { color: rgb(var(--gray)); margin: 0.35rem 0 0; font-size: 0.92rem; }
-      @media (max-width: 860px) { .hero, .post-list, .cards { grid-template-columns: 1fr; } .hero { padding-top: 2.5rem; } }
+      .date { color: rgb(var(--gray)); margin: auto 0 0; font-size: 0.92rem; }
+      @media (max-width: 860px) { .hero, .post-list, .systems { grid-template-columns: 1fr; } .hero { padding-top: 2.5rem; } }
       @media (max-width: 520px) { .rank-head { align-items: flex-start; flex-direction: column; } }
     </style>
   </head>
@@ -53,51 +53,63 @@ const latest = posts.slice(0, 6);
     <main>
       <section class="hero">
         <div>
-          <div class="eyebrow"><span class="pill pill-red">🔴 A股ETF轮动</span> <span class="pill">作者 {SITE_AUTHOR}</span></div>
-          <h1>每日预测，次日复盘，持续修正权重。</h1>
-          <p>{SITE_DESCRIPTION} 核心看近3/5日强度、资金流向、收盘位置、成交放量、新闻催化和监管风险。</p>
+          <div class="eyebrow"><span class="pill pill-red">🔴 ETF花园</span><span class="pill pill-green">种花 / 摘花</span><span class="pill">作者 {SITE_AUTHOR}</span></div>
+          <h1>把ETF轮动收敛成一套花园信号系统。</h1>
+          <p>{SITE_DESCRIPTION} 现在主线只保留 ETF 花园、每日复盘、动量验证和策略框架；个股内容转入历史归档，主站聚焦ETF信号命中率。</p>
           <div class="hero-actions">
-            <a class="button primary" href="/blog">查看最新文章</a>
-            <a class="button secondary" href="/research">查看研测</a>
-            <a class="button secondary" href="/picks">查看研推</a>
-            <a class="button secondary" href="/garden">ETF花园</a>
-            <a class="button secondary" href="/stocks">查看个股</a>
+            <a class="button primary" href="/garden">进入ETF花园</a>
+            <a class="button secondary" href="/blog">查看每日复盘</a>
             <a class="button secondary" href="/momentum">动量雷达</a>
-            <a class="button secondary" href="/about">了解策略框架</a>
+            <a class="button secondary" href="/about">策略框架</a>
           </div>
         </div>
-        <aside class="dashboard card" aria-label="当前轮动观察">
-          <div class="dashboard-title"><strong>当前观察队列</strong><span class="pill pill-green">22:00 夜间最终整理</span></div>
+        <aside class="dashboard card" aria-label="ETF花园当前框架">
+          <div class="dashboard-title"><strong>当前花园框架</strong><span class="pill pill-green">ETF轮动已并入花园</span></div>
           <div class="rank-list">
-            <div class="rank-row"><span class="num">1</span><div class="rank-main"><div class="rank-head"><strong>恒生科技—港股独立反弹</strong><span class="pill pill-green">🟢 摘花</span></div><span class="etf-codes"><span class="code-pill">513180</span></span><p class="rank-desc">收盘🔴+4.72%，港股科技独立强势；按高位强反处理，仓位高者分批摘花，不追涨。</p></div></div>
-            <div class="rank-row"><span class="num">2</span><div class="rank-main"><div class="rank-head"><strong>标普生物—高位明确摘花</strong><span class="pill pill-green">🟢 摘花</span></div><span class="etf-codes"><span class="code-pill">159502</span></span><p class="rank-desc">收盘🔴+4.03%、位置1.00、ret20约+31.71%，强势但过热，继续按分批止盈跟踪。</p></div></div>
-            <div class="rank-row"><span class="num">3</span><div class="rank-main"><div class="rank-head"><strong>银行—极弱市防御底仓锚</strong><span class="pill pill-red">🔴 底仓</span></div><span class="etf-codes"><span class="code-pill">512800</span></span><p class="rank-desc">收盘🔴+1.45%且位置1.00，创业板走弱时提供低波承接；可持有底仓，不追高扩仓。</p></div></div>
-            <div class="rank-row"><span class="num">4</span><div class="rank-main"><div class="rank-head"><strong>科创50—承接观察</strong><span class="pill pill-amber">⚠️ 观察</span></div><span class="etf-codes"><span class="code-pill">588000</span><span class="code-pill">512480</span></span><p class="rank-desc">科创50🔴+0.89%、半导体🔴+0.22%，上午强冲但收盘回落；等2.18-2.20/1.35重新确认。</p></div></div>
-            <div class="rank-row"><span class="num">5</span><div class="rank-main"><div class="rank-head"><strong>通信—V反失败风险位</strong><span class="pill pill-green">🟢 减仓</span></div><span class="etf-codes"><span class="code-pill">515880</span></span><p class="rank-desc">上午+2.50%收盘🟢-0.53%，0.77支撑失守；按反抽减仓，不进绿色主名单。</p></div></div>
+            <div class="rank-row"><span class="num">1</span><div class="rank-main"><div class="rank-head"><strong>准备种花库</strong><span class="pill pill-red">🔴 观察</span></div><p class="rank-desc">低吸候选池，等待收盘位置、缩量和隔日确认。</p></div></div>
+            <div class="rank-row"><span class="num">2</span><div class="rank-main"><div class="rank-head"><strong>种花</strong><span class="pill pill-red">🔴 动作</span></div><p class="rank-desc">从准备种花库晋级，进入真正种花/持有观察动作。</p></div></div>
+            <div class="rank-row"><span class="num">3</span><div class="rank-main"><div class="rank-head"><strong>准备摘花</strong><span class="pill pill-green">🟢 观察</span></div><p class="rank-desc">来自种花库，靠近止盈区，重点看冲高滞涨和位置打满。</p></div></div>
+            <div class="rank-row"><span class="num">4</span><div class="rank-main"><div class="rank-head"><strong>摘花</strong><span class="pill pill-green">🟢 动作</span></div><p class="rank-desc">从种花库晋级到兑现动作，优先记录高位强势品种的收花窗口。</p></div></div>
+            <div class="rank-row"><span class="num">5</span><div class="rank-main"><div class="rank-head"><strong>每日复盘</strong><span class="pill">解释层</span></div><p class="rank-desc">原ETF轮动日报作为花园信号的盘中修正、收盘复盘和次日验证。</p></div></div>
           </div>
         </aside>
       </section>
 
-      <section class="cards">
-        <div class="card"><span class="pill">01</span><strong>每日预测</strong><p>收盘后给出次日ETF板块Top 5、关键条件和操作优先级。</p></div>
-        <div class="card"><span class="pill">02</span><strong>研测</strong><p>把筹码冰点、持仓弹性、候选池筛选单独沉淀成可回测文章。</p></div>
-        <div class="card"><span class="pill">03</span><strong>研推</strong><p>从研测ETF继续下钻持仓龙头，形成值得验证的个股候选。</p></div>
-        <div class="card"><span class="pill">04</span><strong>ETF花园</strong><p>记录71只ETF/LOF的准备种花、种花、准备摘花与摘花信号。</p></div>
-        <div class="card"><span class="pill">05</span><strong>个股</strong><p>把单票筹码、基本面、新闻和交易计划沉淀成深度报告。</p></div>
-        <div class="card"><span class="pill">06</span><strong>动量雷达</strong><p>用ETF日线接口做右侧趋势确认，和冰点研测交叉验证。</p></div>
-        <div class="card"><span class="pill">07</span><strong>策略框架</strong><p>把资金背离、监管风险、新闻催化纳入下一轮权重。</p></div>
+      <section class="systems">
+        <div class="system-card card"><span class="pill pill-red">01</span><strong>ETF花园</strong><p>唯一主入口，记录准备种花、种花、准备摘花、摘花与历史回测。</p></div>
+        <div class="system-card card"><span class="pill">02</span><strong>每日复盘</strong><p>原ETF轮动内容并入花园解释层，关注命中率、失误原因和明日验证。</p></div>
+        <div class="system-card card"><span class="pill pill-amber">03</span><strong>动量雷达</strong><p>用量价和趋势做右侧确认，过滤盘中假修复。</p></div>
       </section>
 
       <section>
         <div class="section-head">
-          <h2>最新文章</h2>
-          <a href="/blog">全部文章 →</a>
+          <h2>最新每日复盘</h2>
+          <a href="/blog">全部复盘 →</a>
         </div>
         <ul class="post-list">
-          {latest.map((post) => (
+          {latestDaily.map((post) => (
             <li>
               <a class="post-card" href={`/blog/${post.id}/`}>
-                <span class="pill pill-red">{post.data.category ?? 'ETF研究'}</span>
+                <span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>
+                <h3>{post.data.title}</h3>
+                <p>{post.data.description}</p>
+                <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>ETF研究沉淀</h2>
+          <a href="/research">研测归档 →</a>
+        </div>
+        <ul class="post-list">
+          {latestResearch.map((post) => (
+            <li>
+              <a class="post-card" href={`/blog/${post.id}/`}>
+                <span class="pill">{post.data.category ?? 'ETF研究'}</span>
                 <h3>{post.data.title}</h3>
                 <p>{post.data.description}</p>
                 <p class="date"><FormattedDate date={post.data.pubDate} /></p>

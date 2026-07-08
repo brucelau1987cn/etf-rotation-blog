@@ -1,6 +1,9 @@
 ---
 import { getEntry, render } from 'astro:content';
-import BlogPost from '../layouts/BlogPost.astro';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
 
 const post = await getEntry('blog', 'garden/etf-garden');
 
@@ -11,6 +14,62 @@ if (!post) {
 const { Content } = await render(post);
 ---
 
-<BlogPost {...post.data}>
-  <Content />
-</BlogPost>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`ETF花园 | ${SITE_TITLE}`} description={post.data.description} />
+    <style>
+      .garden-hero { padding: 3rem 0 1.5rem; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 1rem; align-items: stretch; }
+      .garden-hero p { color: rgb(var(--gray)); font-size: 1.12rem; }
+      .hero-card { padding: 1.15rem; }
+      .status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+      .status-card { padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--warm-2); }
+      .status-card strong { display: block; margin-bottom: 0.25rem; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 1.25rem; align-items: start; }
+      .content-card { padding: clamp(1rem, 2.8vw, 1.45rem); }
+      .toc { position: sticky; top: 5.75rem; padding: 1rem; }
+      .toc strong { display: block; margin-bottom: 0.6rem; }
+      .toc a { display: block; padding: 0.35rem 0; color: rgb(var(--gray-dark)); text-decoration: none; font-weight: 700; }
+      .toc a:hover { color: var(--accent-dark); }
+      @media (max-width: 900px) { .garden-hero, .layout { grid-template-columns: 1fr; } .toc { position: static; } }
+      @media (max-width: 560px) { .status-grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="garden-hero">
+        <div>
+          <span class="pill pill-red">ETF花园主入口</span>
+          <h1>{post.data.title}</h1>
+          <p>{post.data.description}</p>
+        </div>
+        <aside class="hero-card card">
+          <strong>状态库口径</strong>
+          <div class="status-grid">
+            <div class="status-card"><span class="pill pill-red">🔴</span><strong>准备种花库</strong><p>低吸观察池。</p></div>
+            <div class="status-card"><span class="pill pill-red">🔴</span><strong>种花</strong><p>从准备种花库晋级。</p></div>
+            <div class="status-card"><span class="pill pill-green">🟢</span><strong>准备摘花</strong><p>种花库里的止盈观察。</p></div>
+            <div class="status-card"><span class="pill pill-green">🟢</span><strong>摘花</strong><p>从种花库晋级兑现。</p></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="layout">
+        <article class="content-card card">
+          <Content />
+        </article>
+        <aside class="toc card">
+          <strong>花园索引</strong>
+          <a href="#当前操作看板">当前操作看板</a>
+          <a href="#近两次补录回测">近两次补录回测</a>
+          <a href="#7月8日上午盘中推荐etf分析博主补录">7月8日上午推荐</a>
+          <a href="#7月8日预测">7月8日预测</a>
+          <a href="/blog">每日复盘</a>
+          <a href="/momentum">动量雷达</a>
+        </aside>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>

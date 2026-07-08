@@ -6,10 +6,11 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { isEtfResearchPost, isStockPost, sortByPubDateDesc } from '../lib/posts';
 
 const posts = (await getCollection('blog'))
-  .filter((post) => post.data.category === '研测' || post.id.startsWith('research/'))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  .filter((post) => isEtfResearchPost(post) && !isStockPost(post))
+  .sort(sortByPubDateDesc);
 ---
 
 <!doctype html>

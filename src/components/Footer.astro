@@ -1,16 +1,17 @@
 ---
-import { SITE_AUTHOR } from '../consts';
+import { SITE_AUTHOR, SITE_TITLE } from '../consts';
 const today = new Date();
 ---
 
 <footer>
   <div class="site-shell footer-inner">
     <div>
-      <strong>A股ETF轮动笔记</strong>
-      <p>每日预测、次日复盘、权重修正，由 {SITE_AUTHOR} 维护。</p>
+      <strong>{SITE_TITLE}</strong>
+      <p>ETF花园信号、每日复盘、动量验证，由 {SITE_AUTHOR} 维护。</p>
     </div>
     <div class="footer-links">
-      <a href="/blog">文章归档</a>
+      <a href="/garden">ETF花园</a>
+      <a href="/blog">每日复盘</a>
       <a href="/about">策略框架</a>
       <a href="https://github.com/brucelau1987cn" target="_blank" rel="noreferrer">{SITE_AUTHOR}</a>
     </div>

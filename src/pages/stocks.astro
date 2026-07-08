@@ -5,25 +5,23 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { SITE_TITLE } from '../consts';
+import { isStockPost, sortByPubDateDesc } from '../lib/posts';
 
-const posts = (await getCollection('blog'))
-  .filter((post) => post.data.category === '个股' || post.id.startsWith('stocks/'))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const posts = (await getCollection('blog')).filter(isStockPost).sort(sortByPubDateDesc);
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`个股 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <BaseHead title={`历史个股归档 | ${SITE_TITLE}`} description="历史个股分析归档，主站已聚焦ETF花园。" />
     <style>
       .archive-head { padding: 3rem 0 1.5rem; max-width: 860px; }
       .archive-head p { color: rgb(var(--gray)); font-size: 1.12rem; }
+      .notice { margin: 1rem 0 1.5rem; padding: 1rem 1.15rem; }
       .stocks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; list-style: none; margin: 0; padding: 0; }
-      .stocks-grid li:first-child { grid-column: 1 / -1; }
-      .post-card { display: grid; grid-template-columns: 1fr; gap: 0.8rem; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
-      .stocks-grid li:first-child .post-card { min-height: 15rem; background: linear-gradient(135deg, #fff, var(--blue-soft)); }
-      .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
+      .post-card { display: grid; grid-template-columns: 1fr; gap: 0.8rem; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 12rem; opacity: 0.88; }
+      .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); opacity: 1; }
       .title { margin: 0; color: rgb(var(--black)); }
       .date { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
       .description { margin: 0; color: rgb(var(--gray)); }
@@ -34,9 +32,13 @@ const posts = (await getCollection('blog'))
     <Header />
     <main>
       <section class="archive-head">
-        <span class="pill pill-red">个股</span>
-        <h1>ETF研测延伸到个股深度报告</h1>
-        <p>个股板块用于沉淀从ETF轮动、筹码冰点和新闻催化延伸出的单票深度分析，链接规则为股票代码加日期。</p>
+        <span class="pill">历史归档</span>
+        <h1>个股分析已转入历史归档</h1>
+        <p>主站导航与首页聚焦ETF花园；个股文章保留旧链接，作为历史研究材料使用。</p>
+      </section>
+      <section class="notice card">
+        <strong>当前站点主线</strong>
+        <p>ETF花园负责信号库，每日复盘负责解释与验证，动量雷达负责右侧确认。</p>
       </section>
       <section>
         <ul class="stocks-grid">
@@ -44,7 +46,7 @@ const posts = (await getCollection('blog'))
             <li>
               <a class="post-card" href={`/blog/${post.id}/`}>
                 {post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
-                <div><span class="pill pill-red">{post.data.category ?? '个股'}</span><h2 class="title">{post.data.title}</h2></div>
+                <div><span class="pill">历史个股</span><h2 class="title">{post.data.title}</h2></div>
                 <p class="description">{post.data.description}</p>
                 <p class="date"><FormattedDate date={post.data.pubDate} /></p>
               </a>
