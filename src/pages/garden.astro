@@ -1,106 +1,44 @@
 ---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
+type Recommendation = {
+  status: string;
+  code: string;
+  name: string;
+  priority: string;
+  trigger: string;
+  action: string;
+};
+
+type WatchItem = { label: string; text: string };
+
+type GardenRecommendations = {
+  date: string;
+  updated_at: string;
+  market_state: string;
+  position: string;
+  mainline: string;
+  summary: string;
+  harvest: Recommendation[];
+  plant: Recommendation[];
+  watch: WatchItem[];
+};
+
+const dataPath = join(process.cwd(), 'public', 'data', 'garden-recommendations.json');
+const data = JSON.parse(readFileSync(dataPath, 'utf-8')) as GardenRecommendations;
+
 const pageTitle = `ETF花园｜今日推荐 | ${SITE_TITLE}`;
 const pageDescription = 'ETF花园今日推荐仪表盘：只展示摘花、准备摘花、种花、准备种花的高优先级名单，历史复盘移入独立页面。';
 
-const updatedAt = '2026-07-09 收盘后';
-
-const harvest = [
-  {
-    status: '准备摘花',
-    code: '515880',
-    name: '通信ETF国泰',
-    priority: '高',
-    trigger: '7/9 收盘 +6.61%，强修复后进入兑现观察。',
-    action: '冲高分批摘花；回踩 0.79-0.80 且承接强再保留底仓。',
-  },
-  {
-    status: '准备摘花',
-    code: '159915',
-    name: '创业板ETF易方达',
-    priority: '高',
-    trigger: '7/9 收盘 +4.47%，极弱后的弹性修复已打出。',
-    action: '继续冲高先收一部分；守住 3.98-4.00 再看延续。',
-  },
-  {
-    status: '准备摘花',
-    code: '159667',
-    name: '工业母机ETF国泰',
-    priority: '中高',
-    trigger: '7/9 收盘 +3.03%，新弹性分支成型。',
-    action: '放量延续可持有；缩量冲高转摘花。',
-  },
-  {
-    status: '摘花',
-    code: '159502',
-    name: '标普生物科技ETF嘉实',
-    priority: '中',
-    trigger: 'QDII 生物科技连续兑现，7/9 继续走弱。',
-    action: '按反弹高抛处理，等待重新回到低吸区。',
-  },
-  {
-    status: '准备摘花',
-    code: '159920',
-    name: '恒生ETF华夏',
-    priority: '中',
-    trigger: '港股宽基偏弱，仍在兑现节奏。',
-    action: '弱反弹减仓，等待重新出现低位承接。',
-  },
-];
-
-const plant = [
-  {
-    status: '种花',
-    code: '515790',
-    name: '光伏ETF华泰柏瑞',
-    priority: '中高',
-    trigger: '7/9 收盘 +1.56%，温和修复，尚未过热。',
-    action: '回踩目标区低吸；放量转强可升级。',
-  },
-  {
-    status: '种花',
-    code: '159326',
-    name: '电网设备ETF华夏',
-    priority: '中高',
-    trigger: '7/9 收盘 +1.28%，从极弱转修复。',
-    action: '低吸持有观察，跌回 7/9 低点下方降权。',
-  },
-  {
-    status: '准备种花',
-    code: '512580',
-    name: '环保ETF广发',
-    priority: '中',
-    trigger: '7/9 小红 +0.25%，修复刚起步。',
-    action: '等回踩目标区；放量站稳再升级为种花。',
-  },
-  {
-    status: '准备种花',
-    code: '159755',
-    name: '电池ETF广发',
-    priority: '观察',
-    trigger: '7/9 仍偏弱，新能源分支里弹性落后。',
-    action: '只做观察，转强前不加权。',
-  },
-  {
-    status: '准备种花',
-    code: '512400',
-    name: '有色金属ETF南方',
-    priority: '观察',
-    trigger: '目标触发但收盘一般，资金确认不足。',
-    action: '等待放量红盘确认。',
-  },
-];
-
-const watch = [
-  { label: '通信', text: '515880 守住 0.79-0.80 为强；冲高缩量转摘花。' },
-  { label: '创业板', text: '159915 守住 3.98-4.00，才算修复延续。' },
-  { label: '光伏/电网', text: '跟随修复能否升级为新能源主线。' },
-  { label: 'QDII', text: '159502 / 159920 继续按反弹兑现处理。' },
-];
+const updatedAt = data.updated_at || data.date;
+const harvest = data.harvest || [];
+const plant = data.plant || [];
+const watch = data.watch || [];
 ---
 
 <!doctype html>
@@ -153,7 +91,7 @@ const watch = [
         <div>
           <span class="pill pill-red">ETF花园主入口</span>
           <h1>今日推荐仪表盘</h1>
-          <p>主入口只保留可操作推荐：摘花 / 准备摘花、种花 / 准备种花。四窗口复盘和历史记录移到独立页面。</p>
+          <p>{data.summary || '主入口只保留可操作推荐：摘花 / 准备摘花、种花 / 准备种花。四窗口复盘和历史记录移到独立页面。'}</p>
           <div class="decision-tags">
             <span class="pill pill-red">🔴 种花 = 低吸 / 持有观察</span>
             <span class="pill pill-green">🟢 摘花 = 止盈 / 减仓观察</span>
@@ -161,9 +99,9 @@ const watch = [
           </div>
         </div>
         <aside class="strategy-card card">
-          <div class="metric"><span>市场状态</span><strong>修复扩散</strong></div>
-          <div class="metric"><span>仓位建议</span><strong>权益 30%-50%</strong></div>
-          <div class="metric"><span>今日主线</span><strong>通信强修复，光伏/电网跟随</strong></div>
+          <div class="metric"><span>市场状态</span><strong>{data.market_state}</strong></div>
+          <div class="metric"><span>仓位建议</span><strong>{data.position}</strong></div>
+          <div class="metric"><span>今日主线</span><strong>{data.mainline}</strong></div>
         </aside>
       </section>
 
