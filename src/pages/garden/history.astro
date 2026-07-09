@@ -1,0 +1,47 @@
+---
+import { getEntry, render } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+
+const post = await getEntry('blog', 'garden/etf-garden');
+
+if (!post) {
+  throw new Error('Missing ETF garden post: garden/etf-garden');
+}
+
+const { Content } = await render(post);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`ETF花园历史复盘 | ${SITE_TITLE}`} description="ETF花园四窗口对比、历史命中、明日验证和归档入口。" />
+    <style>
+      .history-hero { padding: 2.4rem 0 1rem; display: flex; justify-content: space-between; gap: 1rem; align-items: end; }
+      .history-hero p { margin: 0; color: rgb(var(--gray)); max-width: 62ch; }
+      .content-card { padding: clamp(1rem, 2.8vw, 1.55rem); }
+      .back-link { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.65rem 0.9rem; background: rgb(var(--black)); color: white; text-decoration: none; font-weight: 900; white-space: nowrap; }
+      .back-link:hover { color: white; transform: translateY(-1px); }
+      @media (max-width: 760px) { .history-hero { display: block; } .back-link { margin-top: 1rem; } }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="history-hero">
+        <div>
+          <span class="pill">历史复盘</span>
+          <h1>ETF花园历史记录</h1>
+          <p>这里保留四窗口对比、最近复盘命中、明日验证清单和旧入口；主入口 `/garden/` 只展示今日推荐。</p>
+        </div>
+        <a class="back-link" href="/garden/">返回今日推荐</a>
+      </section>
+      <article class="content-card card">
+        <Content />
+      </article>
+    </main>
+    <Footer />
+  </body>
+</html>

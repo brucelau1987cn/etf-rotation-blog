@@ -1,74 +1,237 @@
 ---
-import { getEntry, render } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
-const post = await getEntry('blog', 'garden/etf-garden');
+const pageTitle = `ETF花园｜今日推荐 | ${SITE_TITLE}`;
+const pageDescription = 'ETF花园今日推荐仪表盘：只展示摘花、准备摘花、种花、准备种花的高优先级名单，历史复盘移入独立页面。';
 
-if (!post) {
-  throw new Error('Missing ETF garden post: garden/etf-garden');
-}
+const updatedAt = '2026-07-09 收盘后';
 
-const { Content } = await render(post);
+const harvest = [
+  {
+    status: '准备摘花',
+    code: '515880',
+    name: '通信ETF国泰',
+    priority: '高',
+    trigger: '7/9 收盘 +6.61%，强修复后进入兑现观察。',
+    action: '冲高分批摘花；回踩 0.79-0.80 且承接强再保留底仓。',
+  },
+  {
+    status: '准备摘花',
+    code: '159915',
+    name: '创业板ETF易方达',
+    priority: '高',
+    trigger: '7/9 收盘 +4.47%，极弱后的弹性修复已打出。',
+    action: '继续冲高先收一部分；守住 3.98-4.00 再看延续。',
+  },
+  {
+    status: '准备摘花',
+    code: '159667',
+    name: '工业母机ETF国泰',
+    priority: '中高',
+    trigger: '7/9 收盘 +3.03%，新弹性分支成型。',
+    action: '放量延续可持有；缩量冲高转摘花。',
+  },
+  {
+    status: '摘花',
+    code: '159502',
+    name: '标普生物科技ETF嘉实',
+    priority: '中',
+    trigger: 'QDII 生物科技连续兑现，7/9 继续走弱。',
+    action: '按反弹高抛处理，等待重新回到低吸区。',
+  },
+  {
+    status: '准备摘花',
+    code: '159920',
+    name: '恒生ETF华夏',
+    priority: '中',
+    trigger: '港股宽基偏弱，仍在兑现节奏。',
+    action: '弱反弹减仓，等待重新出现低位承接。',
+  },
+];
+
+const plant = [
+  {
+    status: '种花',
+    code: '515790',
+    name: '光伏ETF华泰柏瑞',
+    priority: '中高',
+    trigger: '7/9 收盘 +1.56%，温和修复，尚未过热。',
+    action: '回踩目标区低吸；放量转强可升级。',
+  },
+  {
+    status: '种花',
+    code: '159326',
+    name: '电网设备ETF华夏',
+    priority: '中高',
+    trigger: '7/9 收盘 +1.28%，从极弱转修复。',
+    action: '低吸持有观察，跌回 7/9 低点下方降权。',
+  },
+  {
+    status: '准备种花',
+    code: '512580',
+    name: '环保ETF广发',
+    priority: '中',
+    trigger: '7/9 小红 +0.25%，修复刚起步。',
+    action: '等回踩目标区；放量站稳再升级为种花。',
+  },
+  {
+    status: '准备种花',
+    code: '159755',
+    name: '电池ETF广发',
+    priority: '观察',
+    trigger: '7/9 仍偏弱，新能源分支里弹性落后。',
+    action: '只做观察，转强前不加权。',
+  },
+  {
+    status: '准备种花',
+    code: '512400',
+    name: '有色金属ETF南方',
+    priority: '观察',
+    trigger: '目标触发但收盘一般，资金确认不足。',
+    action: '等待放量红盘确认。',
+  },
+];
+
+const watch = [
+  { label: '通信', text: '515880 守住 0.79-0.80 为强；冲高缩量转摘花。' },
+  { label: '创业板', text: '159915 守住 3.98-4.00，才算修复延续。' },
+  { label: '光伏/电网', text: '跟随修复能否升级为新能源主线。' },
+  { label: 'QDII', text: '159502 / 159920 继续按反弹兑现处理。' },
+];
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`ETF花园 | ${SITE_TITLE}`} description={post.data.description} />
+    <BaseHead title={pageTitle} description={pageDescription} />
     <style>
-      .garden-hero { padding: 3rem 0 1.5rem; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 1rem; align-items: stretch; }
-      .garden-hero p { color: rgb(var(--gray)); font-size: 1.12rem; }
-      .hero-card { padding: 1.15rem; }
-      .status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1rem; }
-      .status-card { padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--warm-2); }
-      .status-card strong { display: block; margin-bottom: 0.25rem; }
-      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 1.25rem; align-items: start; }
-      .content-card { padding: clamp(1rem, 2.8vw, 1.45rem); }
-      .toc { position: sticky; top: 5.75rem; padding: 1rem; }
-      .toc strong { display: block; margin-bottom: 0.6rem; }
-      .toc a { display: block; padding: 0.35rem 0; color: rgb(var(--gray-dark)); text-decoration: none; font-weight: 700; }
-      .toc a:hover { color: var(--accent-dark); }
-      @media (max-width: 900px) { .garden-hero, .layout { grid-template-columns: 1fr; } .toc { position: static; } }
-      @media (max-width: 560px) { .status-grid { grid-template-columns: 1fr; } }
+      .garden-shell { max-width: 1180px; }
+      .hero { padding: 2.5rem 0 1.25rem; display: grid; grid-template-columns: minmax(0, 1.1fr) 360px; gap: 1rem; align-items: stretch; }
+      .hero h1 { margin: 0.45rem 0 0.6rem; }
+      .hero p { color: rgb(var(--gray)); font-size: 1.08rem; max-width: 60ch; }
+      .strategy-card { padding: 1rem; display: grid; gap: 0.75rem; }
+      .metric { padding: 0.85rem 0.95rem; border-radius: 14px; background: var(--warm-2); border: 1px solid var(--border); }
+      .metric span { display: block; color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; }
+      .metric strong { font-size: 1.2rem; }
+      .section-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 1.25rem 0 0.8rem; }
+      .section-head h2 { margin: 0; }
+      .section-head p { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
+      .recommend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
+      .recommend-card { position: relative; overflow: hidden; padding: 1rem; border-radius: 18px; background: var(--paper); border: 1px solid var(--border); box-shadow: var(--box-shadow); }
+      .recommend-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent); }
+      .recommend-card.green::before { background: var(--green); }
+      .recommend-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.8rem; }
+      .ticker { display: grid; gap: 0.1rem; }
+      .ticker code { width: fit-content; font-size: 1rem; font-weight: 900; background: #fff; }
+      .ticker strong { font-size: 1.05rem; }
+      .priority { font-size: 0.76rem; font-weight: 900; padding: 0.22rem 0.55rem; border-radius: 999px; background: var(--warm); color: rgb(var(--gray-dark)); border: 1px solid var(--border); white-space: nowrap; }
+      .recommend-card p { margin: 0.45rem 0; color: rgb(var(--gray-dark)); }
+      .recommend-card .label { color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 900; margin-right: 0.25rem; }
+      .watch-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+      .watch { padding: 0.95rem; border-radius: 16px; background: var(--paper); border: 1px solid var(--border); box-shadow: var(--box-shadow); }
+      .watch strong { display: block; margin-bottom: 0.35rem; }
+      .links-panel { margin-top: 1.5rem; padding: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
+      .links-panel p { margin: 0; color: rgb(var(--gray)); }
+      .button-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+      .button { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 0.68rem 0.95rem; text-decoration: none; font-weight: 900; background: rgb(var(--black)); color: #fff; }
+      .button.secondary { background: var(--warm); color: rgb(var(--black)); border: 1px solid var(--border); }
+      .button:hover { color: #fff; transform: translateY(-1px); }
+      .button.secondary:hover { color: rgb(var(--black)); }
+      @media (max-width: 900px) {
+        .hero, .recommend-grid, .watch-grid { grid-template-columns: 1fr; }
+        main { width: min(100% - 1rem, 1180px); }
+      }
     </style>
   </head>
   <body>
     <Header />
-    <main>
-      <section class="garden-hero">
+    <main class="garden-shell">
+      <section class="hero">
         <div>
           <span class="pill pill-red">ETF花园主入口</span>
-          <h1>{post.data.title}</h1>
-          <p>{post.data.description}</p>
-        </div>
-        <aside class="hero-card card">
-          <strong>状态库口径</strong>
-          <div class="status-grid">
-            <div class="status-card"><span class="pill pill-red">🔴</span><strong>准备种花库</strong><p>低吸观察池。</p></div>
-            <div class="status-card"><span class="pill pill-red">🔴</span><strong>种花</strong><p>从准备种花库晋级。</p></div>
-            <div class="status-card"><span class="pill pill-green">🟢</span><strong>准备摘花</strong><p>种花库里的止盈观察。</p></div>
-            <div class="status-card"><span class="pill pill-green">🟢</span><strong>摘花</strong><p>从种花库晋级兑现。</p></div>
+          <h1>今日推荐仪表盘</h1>
+          <p>主入口只保留可操作推荐：摘花 / 准备摘花、种花 / 准备种花。四窗口复盘和历史记录移到独立页面。</p>
+          <div class="decision-tags">
+            <span class="pill pill-red">🔴 种花 = 低吸 / 持有观察</span>
+            <span class="pill pill-green">🟢 摘花 = 止盈 / 减仓观察</span>
+            <span class="pill">更新时间：{updatedAt}</span>
           </div>
+        </div>
+        <aside class="strategy-card card">
+          <div class="metric"><span>市场状态</span><strong>修复扩散</strong></div>
+          <div class="metric"><span>仓位建议</span><strong>权益 30%-50%</strong></div>
+          <div class="metric"><span>今日主线</span><strong>通信强修复，光伏/电网跟随</strong></div>
         </aside>
       </section>
 
-      <section class="layout">
-        <article class="content-card card">
-          <Content />
-        </article>
-        <aside class="toc card">
-          <strong>花园索引</strong>
-          <a href="#今日结论">今日结论</a>
-          <a href="#每日四窗口对比">四窗口对比</a>
-          <a href="#最新信号池">最新信号池</a>
-          <a href="#最近复盘命中">最近复盘命中</a>
-          <a href="#明日验证清单">明日验证清单</a>
-          <a href="/blog">每日复盘</a>
-          <a href="/momentum">动量雷达</a>
-        </aside>
+      <section>
+        <div class="section-head">
+          <div>
+            <span class="pill pill-green">🟢 高抛区</span>
+            <h2>摘花 / 准备摘花</h2>
+          </div>
+          <p>只保留需要优先减仓或兑现观察的方向</p>
+        </div>
+        <div class="recommend-grid">
+          {harvest.map((item) => (
+            <article class="recommend-card green">
+              <div class="recommend-top">
+                <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
+                <span class="priority">{item.status}｜{item.priority}</span>
+              </div>
+              <p><span class="label">理由</span>{item.trigger}</p>
+              <p><span class="label">动作</span>{item.action}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <div>
+            <span class="pill pill-red">🔴 低吸区</span>
+            <h2>种花 / 准备种花</h2>
+          </div>
+          <p>优先看主线弹性和目标价触发，弱分支降权</p>
+        </div>
+        <div class="recommend-grid">
+          {plant.map((item) => (
+            <article class="recommend-card red">
+              <div class="recommend-top">
+                <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
+                <span class="priority">{item.status}｜{item.priority}</span>
+              </div>
+              <p><span class="label">理由</span>{item.trigger}</p>
+              <p><span class="label">动作</span>{item.action}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <div>
+            <span class="pill pill-amber">明日验证</span>
+            <h2>只看 4 个条件</h2>
+          </div>
+        </div>
+        <div class="watch-grid">
+          {watch.map((item) => (
+            <div class="watch"><strong>{item.label}</strong><span>{item.text}</span></div>
+          ))}
+        </div>
+      </section>
+
+      <section class="links-panel card">
+        <p>四窗口过程、历史命中和完整归档已移入历史页。</p>
+        <div class="button-row">
+          <a class="button" href="/garden/history/">查看历史复盘</a>
+          <a class="button secondary" href="/momentum/">动量雷达</a>
+          <a class="button secondary" href="/blog/">每日复盘</a>
+        </div>
       </section>
     </main>
     <Footer />
