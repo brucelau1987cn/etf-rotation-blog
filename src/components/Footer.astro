@@ -2,30 +2,32 @@
 import { SITE_AUTHOR, SITE_TITLE } from '../consts';
 const today = new Date();
 ---
-
 <footer>
   <div class="site-shell footer-inner">
-    <div>
+    <div class="footer-brand">
       <strong>{SITE_TITLE}</strong>
-      <p>ETF花园信号、每日复盘、动量验证，由 {SITE_AUTHOR} 维护。</p>
+      <p>ETF低吸、高抛、复盘与验证。</p>
     </div>
-    <div class="footer-links">
-      <a href="/garden">ETF花园</a>
+    <nav class="footer-links" aria-label="页脚导航">
+      <a href="/garden">今日推荐</a>
       <a href="/blog">每日复盘</a>
-      <a href="/about">策略框架</a>
-      <a href="https://github.com/brucelau1987cn" target="_blank" rel="noreferrer">{SITE_AUTHOR}</a>
-    </div>
+      <a href="/momentum">动量雷达</a>
+      <a href="/research">策略研究</a>
+      <a href="/garden/history">花园历史</a>
+      <a href="/about">方法说明</a>
+      <a href="/token">工具</a>
+    </nav>
   </div>
-  <div class="site-shell copyright">© {today.getFullYear()} {SITE_AUTHOR}. Research notes only.</div>
+  <div class="site-shell copyright">© {today.getFullYear()} {SITE_AUTHOR} · 个人研究记录</div>
 </footer>
 <style>
-  footer { padding: 2.5rem 0 4rem; color: rgb(var(--gray)); background: var(--warm); border-top: 1px solid var(--border); }
+  footer { padding: 2.2rem 0 3.2rem; color: rgb(var(--gray)); background: var(--warm); border-top: 1px solid var(--border); }
   .footer-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; }
   footer strong { color: rgb(var(--black)); }
-  footer p { margin: 0.35rem 0 0; font-size: 0.92rem; }
-  .footer-links { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; }
-  .footer-links a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.92rem; font-weight: 700; }
+  footer p { margin: 0.3rem 0 0; font-size: 0.88rem; }
+  .footer-links { display: flex; max-width: 600px; gap: 0.45rem 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
+  .footer-links a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.86rem; font-weight: 750; }
   .footer-links a:hover { color: var(--accent); }
-  .copyright { margin-top: 1.5rem; font-size: 0.82rem; color: rgb(var(--gray)); }
+  .copyright { margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.78rem; color: rgb(var(--gray)); }
   @media (max-width: 720px) { .footer-inner { flex-direction: column; } .footer-links { justify-content: flex-start; } }
 </style>

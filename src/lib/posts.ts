@@ -15,3 +15,9 @@ export const isPublicEtfPost = (post: BlogPost) => !isStockPost(post) && !isGard
 export const isDailyReviewPost = (post: BlogPost) => isPublicEtfPost(post) && !isEtfResearchPost(post) && !isEtfPickPost(post);
 
 export const sortByPubDateDesc = (a: BlogPost, b: BlogPost) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+
+export const cleanDescription = (text: string) => text
+  .replace(/\bgenerated_at=[^，。]+[，,]\s*/gi, '')
+  .replace(/\blatest_trade_date=[^，。]+[，,]\s*/gi, '')
+  .replace(/\s+/g, ' ')
+  .trim();

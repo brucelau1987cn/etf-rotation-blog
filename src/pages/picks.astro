@@ -1,62 +1,14 @@
 ---
-import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
-import { isEtfPickPost, isStockPost, sortByPubDateDesc } from '../lib/posts';
-
-const posts = (await getCollection('blog'))
-  .filter((post) => isEtfPickPost(post) && !isStockPost(post))
-  .sort(sortByPubDateDesc);
+import { cleanDescription, isEtfPickPost, isStockPost, sortByPubDateDesc } from '../lib/posts';
+const posts = (await getCollection('blog')).filter((post) => isEtfPickPost(post) && !isStockPost(post)).sort(sortByPubDateDesc);
 ---
-
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <BaseHead title={`ETF研推归档 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
-    <style>
-      .archive-head { padding: 3rem 0 1.5rem; max-width: 860px; }
-      .archive-head p { color: rgb(var(--gray)); font-size: 1.12rem; }
-      .picks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; list-style: none; margin: 0; padding: 0; }
-      .post-card { display: grid; grid-template-columns: 1fr; gap: 0.8rem; padding: 1.2rem; color: rgb(var(--gray-dark)); text-decoration: none; min-height: 13rem; }
-      .post-card:hover { transform: translateY(-2px); transition: transform 0.18s ease; color: rgb(var(--gray-dark)); }
-      .title { margin: 0; color: rgb(var(--black)); }
-      .date { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
-      .description { margin: 0; color: rgb(var(--gray)); }
-      .notice { padding: 1rem 1.15rem; }
-      @media (max-width: 820px) { .picks-grid { grid-template-columns: 1fr; } }
-    </style>
-  </head>
-  <body>
-    <Header />
-    <main>
-      <section class="archive-head">
-        <span class="pill pill-amber">历史研推</span>
-        <h1>ETF研推归档</h1>
-        <p>主站聚焦ETF花园。原研推链路已从导航隐藏，后续只保留ETF层面的研究沉淀。</p>
-      </section>
-      {posts.length === 0 ? (
-        <section class="notice card"><strong>暂无公开ETF研推</strong><p>历史个股研推已从主归档中过滤，旧链接继续保留。</p></section>
-      ) : (
-        <section>
-          <ul class="picks-grid">
-            {posts.map((post) => (
-              <li>
-                <a class="post-card" href={`/blog/${post.id}/`}>
-                  {post.data.heroImage && <Image width={720} height={360} src={post.data.heroImage} alt="" />}
-                  <div><span class="pill pill-amber">{post.data.category ?? 'ETF研推'}</span><h2 class="title">{post.data.title}</h2></div>
-                  <p class="description">{post.data.description}</p>
-                  <p class="date"><FormattedDate date={post.data.pubDate} /></p>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </main>
-    <Footer />
-  </body>
-</html>
+<!doctype html><html lang="zh-CN"><head><BaseHead title={`ETF研推归档 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} /></head><body><Header /><main>
+<section class="page-intro"><div class="kicker"><span class="pill pill-amber">研推归档</span><span class="pill">持仓下钻</span></div><h1>ETF研推与持仓弹性研究</h1><p>这里保留ETF层面的持仓下钻与专题研推，作为花园推荐的证据补充。</p></section>
+{posts.length === 0 ? <section class="notice card"><strong>当前暂无公开研推</strong><p>新的ETF专题研推会在这里归档。</p></section> : <section><div class="section-heading"><h2>研推归档</h2><span class="pill">共 {posts.length} 篇</span></div><ul class="archive-grid">{posts.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div><span class="pill pill-amber">{post.data.category ?? 'ETF研推'}</span></div><h2>{post.data.title}</h2><p class="description">{cleanDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}</ul></section>}
+</main><Footer /></body></html>

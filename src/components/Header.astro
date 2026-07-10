@@ -1,22 +1,23 @@
 ---
-import { SITE_AUTHOR, SITE_TITLE } from '../consts';
+import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
+const isHome = Astro.url.pathname === '/';
 ---
 
 <header>
-  <nav class="site-shell">
-    <a class="brand" href="/" aria-label={SITE_TITLE}>
+  <nav class="site-shell" aria-label="主导航">
+    <a class:list={['brand', { active: isHome }]} href="/" aria-label={`${SITE_TITLE}首页`}>
       <span class="mark">ETF</span>
-      <span>{SITE_TITLE}</span>
+      <span class="brand-copy"><strong>{SITE_TITLE}</strong><small>低吸 · 高抛 · 复盘</small></span>
     </a>
-    <div class="internal-links">
-      <HeaderLink href="/">首页</HeaderLink>
-      <HeaderLink href="/garden">ETF花园</HeaderLink>
-      <HeaderLink href="/blog">每日复盘</HeaderLink>
-      <HeaderLink href="/momentum">动量雷达</HeaderLink>
-      <HeaderLink href="/about">策略框架</HeaderLink>
-      <HeaderLink href="/token">Token</HeaderLink>
-      <a class="author" href="https://github.com/brucelau1987cn" target="_blank" rel="noreferrer">{SITE_AUTHOR}</a>
+    <div class="nav-scroll">
+      <div class="internal-links">
+        <HeaderLink href="/garden">今日推荐</HeaderLink>
+        <HeaderLink href="/blog">每日复盘</HeaderLink>
+        <HeaderLink href="/momentum">动量雷达</HeaderLink>
+        <HeaderLink href="/research">策略研究</HeaderLink>
+        <HeaderLink class="utility" href="/token" title="Token 用量工具">工具</HeaderLink>
+      </div>
     </div>
   </nav>
 </header>
@@ -24,24 +25,32 @@ import HeaderLink from './HeaderLink.astro';
   header {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 20;
     margin: 0;
-    padding: 0.75rem 0;
-    background: rgba(255, 255, 255, 0.84);
+    padding: 0.62rem 0;
+    background: rgba(250, 250, 247, 0.91);
     border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(18px);
   }
   nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .brand { display: inline-flex; align-items: center; gap: 0.65rem; color: rgb(var(--black)); font-weight: 800; text-decoration: none; }
-  .mark { display: inline-flex; align-items: center; justify-content: center; width: 2.45rem; height: 2.45rem; border-radius: 12px; background: rgb(var(--black)); color: white; font-size: 0.78rem; letter-spacing: 0.04em; }
-  .internal-links { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
-  nav a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.92rem; font-weight: 700; padding: 0.55rem 0.75rem; border-radius: 999px; }
-  nav a.active { color: var(--accent-dark); background: var(--accent-soft); }
-  nav a:hover { background: var(--warm); color: rgb(var(--black)); }
-  .author { background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(0, 117, 222, 0.12); }
+  .brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 0.65rem; color: rgb(var(--black)); text-decoration: none; }
+  .mark { display: inline-flex; align-items: center; justify-content: center; width: 2.35rem; height: 2.35rem; border-radius: 11px; background: rgb(var(--black)); color: white; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.04em; }
+  .brand-copy { display: grid; line-height: 1.15; }
+  .brand-copy strong { font-size: 0.96rem; }
+  .brand-copy small { margin-top: 0.2rem; color: rgb(var(--gray)); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; }
+  .nav-scroll { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-scroll::-webkit-scrollbar { display: none; }
+  .internal-links { display: flex; align-items: center; gap: 0.25rem; width: max-content; margin-left: auto; }
+  nav :global(a) { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.88rem; font-weight: 750; padding: 0.5rem 0.68rem; border-radius: 999px; white-space: nowrap; }
+  nav :global(a.active) { color: var(--accent-dark); background: var(--accent-soft); }
+  nav :global(a:hover) { background: var(--warm); color: rgb(var(--black)); }
+  nav :global(a.utility) { color: rgb(var(--gray)); border-left: 1px solid var(--border); border-radius: 0; margin-left: 0.2rem; }
   @media (max-width: 720px) {
-    header { position: static; }
-    nav { align-items: flex-start; flex-direction: column; }
-    .internal-links { justify-content: flex-start; }
+    header { padding: 0.48rem 0; }
+    nav.site-shell { width: min(100% - 0.75rem, 1120px); gap: 0.55rem; }
+    .brand-copy small { display: none; }
+    .mark { width: 2.15rem; height: 2.15rem; }
+    .internal-links { gap: 0.1rem; }
+    nav :global(a) { padding: 0.48rem 0.58rem; font-size: 0.84rem; }
   }
 </style>
