@@ -327,7 +327,7 @@ def fetch_klines(item: dict[str, str], count: int = 90) -> list[dict[str, Any]]:
         "--count",
         str(count),
         "--adjust",
-        "none",
+        "qfq",
         "--source",
         "auto",
     ]
