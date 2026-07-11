@@ -32,8 +32,8 @@ type GardenRecommendations = {
 const dataPath = join(process.cwd(), 'public', 'data', 'garden-recommendations.json');
 const data = JSON.parse(readFileSync(dataPath, 'utf-8')) as GardenRecommendations;
 
-const pageTitle = `ETF花园｜今日推荐 | ${SITE_TITLE}`;
-const pageDescription = 'ETF花园今日推荐仪表盘：只展示摘花、准备摘花、种花、准备种花的高优先级名单，历史复盘移入独立页面。';
+const pageTitle = `A股ETF花园｜今日推荐 | ${SITE_TITLE}`;
+const pageDescription = 'A股ETF花园今日推荐仪表盘：只展示摘花、准备摘花、种花、准备种花的高优先级名单，历史复盘移入独立页面。';
 
 const updatedAt = data.updated_at || data.date;
 const harvest = data.harvest || [];
@@ -90,8 +90,8 @@ const watch = data.watch || [];
     <main class="garden-shell">
       <section class="hero">
         <div>
-          <span class="pill pill-red">ETF花园主入口</span>
-          <h1>今日推荐仪表盘</h1>
+          <span class="pill pill-red">A股ETF花园主入口</span>
+          <h1>A股ETF今日推荐</h1>
           <p>{data.summary || '主入口只保留可操作推荐：摘花 / 准备摘花、种花 / 准备种花。四窗口复盘和历史记录移到独立页面。'}</p>
           <div class="decision-tags">
             <span class="pill pill-red">🔴 种花 = 低吸 / 持有观察</span>

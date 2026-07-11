@@ -13,7 +13,7 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`每日复盘 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <BaseHead title={`A股ETF每日复盘 | ${SITE_TITLE}`} description={`A股ETF每日复盘：${SITE_DESCRIPTION}`} />
     <style>
       .latest-note { display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center; margin: 0 0 1rem; padding: 0.85rem 1rem; }
       .latest-note p { margin: 0; color: rgb(var(--gray)); font-size: 0.9rem; }
@@ -24,8 +24,8 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
     <Header />
     <main>
       <section class="page-intro">
-        <div class="kicker"><span class="pill pill-red">每日复盘</span><span class="pill">预测 → 修正 → 收盘 → 验证</span></div>
-        <h1>每天一篇，按时间追踪判断变化</h1>
+        <div class="kicker"><span class="pill pill-red">A股ETF复盘</span><span class="pill">预测 → 修正 → 收盘 → 验证</span></div>
+        <h1>A股ETF每日复盘</h1>
         <p>每篇文章先给核心结论和动作清单，再展开资金、量价、关键位、风险与次日验证。最新文章置顶，历史观点完整保留。</p>
       </section>
       <section class="latest-note card">
