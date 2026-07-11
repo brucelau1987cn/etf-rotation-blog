@@ -3,8 +3,8 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
-<!doctype html><html lang="zh-CN"><head><BaseHead title="美股ETF趋势雷达｜67池" description="美股ETF趋势雷达：相对SPY强度、交易风险、行业广度、交易状态和主题代表观察池。" /></head><body><Header /><main class="site-shell">
-<section class="hero"><span class="pill">🇺🇸 US ETF · 67 POOL</span><h1>美股ETF趋势雷达</h1><p>45只跨资产核心 + 22只行业细分。趋势确认工具，不是买入推荐榜；Top池同主题最多一只。</p></section>
+<!doctype html><html lang="zh-CN"><head><BaseHead title="美股雷达｜67池" description="美股雷达：相对SPY强度、交易风险、行业广度、交易状态和主题代表观察池。" /></head><body><Header /><main class="site-shell">
+<section class="hero"><span class="pill">🇺🇸 US ETF · 67 POOL</span><h1>美股雷达</h1><p>45只跨资产核心 + 22只行业细分。趋势确认工具，不是买入推荐榜；Top池同主题最多一只。</p></section>
 <section class="board card"><div><span>市场状态</span><strong id="regime">—</strong></div><div><span>趋势通过</span><strong id="pass">—</strong></div><div><span>有效数据</span><strong id="valid">—</strong></div><div><span>模型日期</span><strong id="model-date">—</strong></div><p id="source">正在加载数据…</p></section>
 <section class="toolbar card"><label>资产类型<select id="type"><option value="全部">全部</option><option>宽基</option><option>行业</option><option>主题</option><option>海外</option><option>债券</option><option>商品</option><option>现金</option><option>宏观</option></select></label><label>交易状态<select id="state"><option value="全部">全部</option><option>可持有</option><option>回踩候选</option><option>禁止追高</option><option>观察</option><option>退出</option></select></label><label>排序<select id="sort"><option value="trend_score">趋势评分</option><option value="relative_spy20">相对SPY</option><option value="ret20">20日收益</option><option value="trading_risk_score">交易风险</option></select></label><label class="check"><input id="pass-only" type="checkbox"/>仅看趋势通过</label></section>
 <section><div class="heading"><div><span>THEME REPRESENTATIVES</span><h2>主题代表观察池</h2></div><a href="/us-garden/">查看今日动作 →</a></div><div id="top" class="top-grid"><p>加载中…</p></div></section>

@@ -9,7 +9,7 @@ import { cleanDescription, isStockPost, sortByPubDateDesc } from '../lib/posts';
 const posts = (await getCollection('blog')).filter(isStockPost).sort(sortByPubDateDesc);
 ---
 <!doctype html><html lang="zh-CN"><head><BaseHead title={`历史个股归档 | ${SITE_TITLE}`} description="历史个股分析归档，主站聚焦ETF罗盘。" /></head><body><Header /><main>
-<section class="page-intro"><div class="kicker"><span class="pill">历史资料</span><span class="pill">个股分析</span></div><h1>个股分析归档</h1><p>个股文章作为历史研究材料保留。当前交易系统以ETF罗盘、每日复盘和动量雷达为主线。</p></section>
-<section class="notice card"><strong>当前站点主线</strong><p>今日推荐负责动作清单，每日复盘负责解释和验证，动量雷达负责右侧确认。</p></section>
+<section class="page-intro"><div class="kicker"><span class="pill">历史资料</span><span class="pill">个股分析</span></div><h1>个股分析归档</h1><p>个股文章作为历史研究材料保留。当前交易系统以ETF罗盘、每日复盘和A股雷达为主线。</p></section>
+<section class="notice card"><strong>当前站点主线</strong><p>今日推荐负责动作清单，每日复盘负责解释和验证，A股雷达负责右侧确认。</p></section>
 <section><div class="section-heading"><h2>历史文章</h2><span class="pill">共 {posts.length} 篇</span></div><ul class="archive-grid">{posts.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div><span class="pill">历史个股</span></div><h2>{post.data.title}</h2><p class="description">{cleanDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}</ul></section>
 </main><Footer /></body></html>
