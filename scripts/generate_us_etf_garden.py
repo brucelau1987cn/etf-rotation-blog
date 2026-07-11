@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_POOL = ROOT / "public/data/us-etf-pool.json"
 OUT_GARDEN = ROOT / "public/data/us-etf-garden.json"
 OUT_BACKTEST = ROOT / "public/data/us-etf-backtest.json"
+OUT_FLOWER_HISTORY = ROOT / "public/data/us-etf-flower-history.json"
 NY = ZoneInfo("America/New_York")
 USER_AGENT = "Mozilla/5.0 ETF-Garden/1.0"
 
@@ -168,7 +169,7 @@ def evaluate(item: tuple[str, str, str, str], data: dict[str, Any], spy_adj: lis
     if not momentum: flags.append("趋势未通过")
     return {
         "symbol": symbol, "name": name, "asset_type": asset_type, "theme": theme, "trade_date": rows[-1]["date"],
-        "price": round(raw[-1], 2), "adjusted_close": round(adj[-1], 4), "ret3": r3, "ret5": r5, "ret20": r20, "ret60": r60,
+        "price": round(raw[-1], 2), "day_high": round(finite(last["high"]), 2), "day_low": round(finite(last["low"]), 2), "adjusted_close": round(adj[-1], 4), "ret3": r3, "ret5": r5, "ret20": r20, "ret60": r60,
         "relative_spy20": relative20, "relative_spy60": relative60, "ma20": round(ma20 * raw[-1] / adj[-1], 2), "ma60": round(ma60 * raw[-1] / adj[-1], 2),
         "volume_ratio": vol_ratio, "close_position": round(close_pos, 3), "max_drawdown20": round(max_dd, 2), "volatility20": round(volatility, 2),
         "trend_score": trend_score, "strength_level": strength, "trading_risk_score": risk_score, "risk_level": risk, "trade_state": state,
@@ -187,7 +188,57 @@ def atomic_write(path: Path, payload: Any) -> None:
         if os.path.exists(tmp): os.unlink(tmp)
 
 
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return default
+
+
+def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Build ready/triggered flower signals; triggers use prior snapshot levels."""
+    buckets: dict[str, list[dict[str, Any]]] = {k: [] for k in ("ready_plant", "plant", "ready_harvest", "harvest", "exit")}
+    for row in rows:
+        if row["symbol"] == "SGOV":
+            continue
+        support_gap = round((row["price"] / row["support"] - 1) * 100, 2) if row["support"] else 999
+        target_gap = round((row["target"] / row["price"] - 1) * 100, 2) if row["price"] else 999
+        keys = ("symbol", "name", "theme", "price", "support", "target", "stop", "strength_level", "trend_score", "risk_level", "trade_state", "ret20", "relative_spy20")
+        base = {k: row[k] for k in keys}
+        base.update({"support_gap": support_gap, "target_gap": target_gap, "trade_date": row["trade_date"]})
+        old = previous.get(row["symbol"])
+        old_target_gap = 999.0
+        if old:
+            old_target_gap = round((finite(old.get("target")) / row["price"] - 1) * 100, 2) if row["price"] else 999
+            if row["day_low"] <= finite(old.get("stop")):
+                buckets["exit"].append({**base, "signal": "失效退出", "trigger_level": old["stop"], "trigger_basis": "当日最低价≤前一快照失效线"})
+            elif row["day_high"] >= finite(old.get("target")):
+                buckets["harvest"].append({**base, "signal": "摘花", "trigger_level": old["target"], "trigger_basis": "当日最高价≥前一快照目标位"})
+            elif row["day_low"] <= finite(old.get("support")) and row["price"] > finite(old.get("stop")) and row["momentum_pass"] and row["risk_level"] != "高":
+                buckets["plant"].append({**base, "signal": "种花", "trigger_level": old["support"], "trigger_basis": "当日最低价≤前一快照回踩位且未失效"})
+        if row["momentum_pass"] and row["risk_level"] != "高" and row["trade_state"] in {"可持有", "回踩候选"} and 0 <= support_gap <= 3:
+            buckets["ready_plant"].append({**base, "signal": "准备种花", "trigger_level": row["support"], "trigger_basis": "距回踩位3%以内"})
+        if (old and 0 <= old_target_gap <= 3 and row["momentum_pass"]) or (row["ret20"] >= 15 and row["risk_level"] in {"中", "高"}):
+            buckets["ready_harvest"].append({**base, "signal": "准备摘花", "trigger_level": row["target"], "trigger_basis": "距目标3%以内或20日过热"})
+    for key in ("ready_plant", "ready_harvest"):
+        sort_key = "support_gap" if key == "ready_plant" else "target_gap"
+        buckets[key].sort(key=lambda x: (x[sort_key], -x["trend_score"]))
+        seen: set[str] = set(); deduped = []
+        for item in buckets[key]:
+            if item["theme"] in seen:
+                continue
+            deduped.append(item); seen.add(item["theme"])
+            if len(deduped) == 8:
+                break
+        buckets[key] = deduped
+    for key in ("plant", "harvest", "exit"):
+        buckets[key].sort(key=lambda x: x["symbol"])
+    return buckets
+
+
 def main() -> None:
+    prior_pool = read_json(OUT_POOL, {})
+    previous_rows = {r["symbol"]: r for r in prior_pool.get("rows", [])}
     results: dict[str, dict[str, Any]] = {}; failures: dict[str, str] = {}
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(fetch, item[0]): item[0] for item in UNIVERSE}
@@ -231,8 +282,11 @@ def main() -> None:
             "state": breadth_state,
         })
     breadth.sort(key=lambda x: (x["ratio"], x["avg_relative_spy20"]), reverse=True)
-    pool_payload = {"market": "US", "model_version": "US ETF Garden v2 · 67池", "generated_at": now.isoformat(), "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API", "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"}, "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)}, "recommendations": selected, "breadth_groups": breadth, "rows": rows, "failures": failures, "realtime_scope": ["当前价", "当日涨跌", "关键位触发"], "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态", "行业广度"]}
-    garden_payload = {"market": "US", "date": latest, "updated_at": now.isoformat(), "stage": "美股收盘版", "summary": f"{regime}市场，权益参考{equity}；67池覆盖跨资产核心与行业细分，Top池同主题最多一只。", "market_regime": pool_payload["market_regime"], "recommendations": selected, "breadth_groups": breadth, "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。"}
+    trigger_previous = previous_rows if prior_pool.get("model_date", "") < latest else {}
+    flowers = flower_signals(rows, trigger_previous)
+    flower_counts = {key: len(value) for key, value in flowers.items()}
+    pool_payload = {"market": "US", "model_version": "US ETF Garden v3 · Flower Signals", "generated_at": now.isoformat(), "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API", "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"}, "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)}, "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth, "rows": rows, "failures": failures, "realtime_scope": ["当前价", "当日涨跌", "关键位触发"], "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态", "行业广度", "准备信号"]}
+    garden_payload = {"market": "US", "date": latest, "updated_at": now.isoformat(), "stage": "美股收盘版", "summary": f"{regime}市场，权益参考{equity}；种花/摘花触发使用前一快照关键位，准备信号按当前关键位计算。", "market_regime": pool_payload["market_regime"], "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth, "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。"}
     # Lightweight historical directional validation: current universe, rolling MA20 signal, next-day return.
     evaluated = hits = 0
     for item in UNIVERSE:
@@ -244,8 +298,14 @@ def main() -> None:
             if adj[i] > ma and ma > prev:
                 evaluated += 1; hits += int(adj[i+1] >= adj[i])
     backtest_payload = {"market": "US", "generated_at": now.isoformat(), "basis": "adjusted_close", "benchmark": "SPY", "sample_count": evaluated, "next_day_direction_hits": hits, "next_day_direction_rate": round(hits/evaluated*100, 1) if evaluated else None, "note": "趋势通过后的次日方向验证，不等同于实际收益。"}
-    atomic_write(OUT_POOL, pool_payload); atomic_write(OUT_GARDEN, garden_payload); atomic_write(OUT_BACKTEST, backtest_payload)
-    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "regime": regime, "top": [x["symbol"] for x in selected], "backtest_samples": evaluated}, ensure_ascii=False))
+    history_payload = read_json(OUT_FLOWER_HISTORY, {"market": "US", "version": 1, "records": []})
+    history_record = {"date": latest, "generated_at": now.isoformat(), "market_regime": pool_payload["market_regime"], "counts": flower_counts, "signals": flowers}
+    history_payload["records"] = [x for x in history_payload.get("records", []) if x.get("date") != latest]
+    history_payload["records"].append(history_record)
+    history_payload["records"] = sorted(history_payload["records"], key=lambda x: x["date"], reverse=True)[:260]
+    history_payload["updated_at"] = now.isoformat()
+    atomic_write(OUT_POOL, pool_payload); atomic_write(OUT_GARDEN, garden_payload); atomic_write(OUT_BACKTEST, backtest_payload); atomic_write(OUT_FLOWER_HISTORY, history_payload)
+    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "regime": regime, "top": [x["symbol"] for x in selected], "flowers": flower_counts, "backtest_samples": evaluated}, ensure_ascii=False))
 
 
 if __name__ == "__main__": main()
