@@ -469,6 +469,28 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
     ma = avg(closes[-PARAMS["ma_period"]:])
     ma_prev = avg(closes[-PARAMS["ma_period"] - PARAMS["trend_window"]: -PARAMS["trend_window"]])
     ma60 = avg(closes[-60:])
+
+    # 关键价位统一使用 qfq 日线计算，避免把自然语言中的数字误当成交易位。
+    # ATR14 为真实波幅均值；前一收盘参与跳空波幅计算。
+    true_ranges: list[float] = []
+    for i in range(max(1, len(klines) - 14), len(klines)):
+        high_i = safe_float(klines[i].get("high"))
+        low_i = safe_float(klines[i].get("low"))
+        prev_i = safe_float(klines[i - 1].get("close"))
+        if all(math.isfinite(x) for x in (high_i, low_i, prev_i)):
+            true_ranges.append(max(high_i - low_i, abs(high_i - prev_i), abs(low_i - prev_i)))
+    atr14 = avg(true_ranges)
+    if math.isfinite(atr14) and atr14 > 0:
+        support = round(max(ma, price - 1.5 * atr14), 3)
+        stop = round(min(ma, price - 2.0 * atr14), 3)
+        target = round(price + 1.5 * atr14, 3)
+        support_gap = round(pct(price, support), 2)
+        target_gap = round(pct(target, price), 2)
+        stop_gap = round(pct(price, stop), 2)
+    else:
+        atr14 = support = stop = target = math.nan
+        support_gap = target_gap = stop_gap = math.nan
+
     ret3 = pct(price, closes[-1 - PARAMS["short_days"]])
     ret5 = pct(price, closes[-6])
     ret10 = pct(price, closes[-11])
@@ -523,6 +545,15 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
         "ma20": round(ma, 4),
         "ma20_prev": round(ma_prev, 4),
         "ma60": round(ma60, 4),
+        "atr14": round(atr14, 4) if math.isfinite(atr14) else None,
+        "support": support if math.isfinite(support) else None,
+        "target": target if math.isfinite(target) else None,
+        "stop": stop if math.isfinite(stop) else None,
+        "support_gap": support_gap if math.isfinite(support_gap) else None,
+        "target_gap": target_gap if math.isfinite(target_gap) else None,
+        "stop_gap": stop_gap if math.isfinite(stop_gap) else None,
+        "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+        "level_model_version": "A ETF Garden Levels v1",
         "slope20_score": round(slope20, 4),
         "slope60_score": round(slope60, 4),
         "volume_ratio": round(volume_ratio, 2),

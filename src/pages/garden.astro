@@ -13,10 +13,19 @@ type Recommendation = {
   priority: string;
   trigger: string;
   action: string;
+  price?: number | null;
+  support?: number | null;
+  target?: number | null;
+  stop?: number | null;
+  action_level?: number | null;
+  action_level_label?: string | null;
+  distance_pct?: number | null;
+  trend_level?: string | null;
+  risk_level?: string | null;
+  price_date?: string | null;
+  level_basis?: string | null;
 };
-
 type WatchItem = { label: string; text: string };
-
 type GardenRecommendations = {
   date: string;
   updated_at: string;
@@ -27,18 +36,26 @@ type GardenRecommendations = {
   harvest: Recommendation[];
   plant: Recommendation[];
   watch: WatchItem[];
+  level_model_version?: string;
+  level_data_as_of?: string;
 };
 
-const dataPath = join(process.cwd(), 'public', 'data', 'garden-recommendations.json');
-const data = JSON.parse(readFileSync(dataPath, 'utf-8')) as GardenRecommendations;
-
-const pageTitle = `A股ETF花园｜今日推荐 | ${SITE_TITLE}`;
-const pageDescription = 'A股ETF花园今日推荐仪表盘：只展示摘花、准备摘花、种花、准备种花的高优先级名单，历史复盘移入独立页面。';
-
-const updatedAt = data.updated_at || data.date;
+const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf-8')) as GardenRecommendations;
 const harvest = data.harvest || [];
 const plant = data.plant || [];
 const watch = data.watch || [];
+const priorityRank: Record<string, number> = { 高: 4, 中高: 3, 中: 2, 观察: 1 };
+const topAction = [...harvest, ...plant].sort((a, b) => (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0))[0];
+const counts = {
+  harvest: harvest.filter((item) => item.status === '摘花').length,
+  readyHarvest: harvest.filter((item) => item.status === '准备摘花').length,
+  plant: plant.filter((item) => item.status === '种花').length,
+  readyPlant: plant.filter((item) => item.status === '准备种花').length,
+};
+const formatPrice = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '待更新';
+const formatDistance = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? `${Math.abs(value).toFixed(1)}%` : '待更新';
+const pageTitle = `A股ETF花园｜今日推荐 | ${SITE_TITLE}`;
+const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结论、种花摘花动作、当前价、关键位、目标位与失效线。';
 ---
 
 <!doctype html>
@@ -46,136 +63,169 @@ const watch = data.watch || [];
   <head>
     <BaseHead title={pageTitle} description={pageDescription} />
     <style>
-      .garden-shell { max-width: 1180px; }
-      .hero { padding: 2.5rem 0 1.25rem; display: grid; grid-template-columns: minmax(0, 1.1fr) 360px; gap: 1rem; align-items: stretch; }
-      .hero h1 { margin: 0.45rem 0 0.6rem; }
-      .hero p { color: rgb(var(--gray)); font-size: 1.08rem; max-width: 60ch; }
-      .strategy-card { padding: 1rem; display: grid; gap: 0.75rem; }
-      .metric { padding: 0.85rem 0.95rem; border-radius: 14px; background: var(--warm-2); border: 1px solid var(--border); }
-      .metric span { display: block; color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; }
-      .metric strong { font-size: 1.2rem; }
-      .section-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 1.25rem 0 0.8rem; }
-      .section-head h2 { margin: 0; }
-      .section-head p { margin: 0; color: rgb(var(--gray)); font-size: 0.92rem; }
-      .recommend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
-      .recommend-card { position: relative; overflow: hidden; padding: 1rem; border-radius: 18px; background: var(--paper); border: 1px solid var(--border); box-shadow: var(--box-shadow); }
-      .recommend-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent); }
-      .recommend-card.green::before { background: var(--green); }
-      .recommend-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.8rem; }
-      .ticker { display: grid; gap: 0.1rem; }
-      .ticker code { width: fit-content; font-size: 1rem; font-weight: 900; background: #fff; }
-      .ticker strong { font-size: 1.05rem; }
-      .priority { font-size: 0.76rem; font-weight: 900; padding: 0.22rem 0.55rem; border-radius: 999px; background: var(--warm); color: rgb(var(--gray-dark)); border: 1px solid var(--border); white-space: nowrap; }
-      .recommend-card p { margin: 0.45rem 0; color: rgb(var(--gray-dark)); }
-      .recommend-card .label { color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 900; margin-right: 0.25rem; }
-      .watch-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
-      .watch { padding: 0.95rem; border-radius: 16px; background: var(--paper); border: 1px solid var(--border); box-shadow: var(--box-shadow); }
-      .watch strong { display: block; margin-bottom: 0.35rem; }
-      .links-panel { margin-top: 1.5rem; padding: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
-      .links-panel p { margin: 0; color: rgb(var(--gray)); }
-      .button-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-      .button { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 0.68rem 0.95rem; text-decoration: none; font-weight: 900; background: rgb(var(--black)); color: #fff; }
-      .button.secondary { background: var(--warm); color: rgb(var(--black)); border: 1px solid var(--border); }
-      .button:hover { color: #fff; transform: translateY(-1px); }
-      .button.secondary:hover { color: rgb(var(--black)); }
-      .risk-note { margin: 1.2rem 0 0; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--amber-soft); color: rgb(var(--gray-dark)); font-size: 0.85rem; line-height: 1.6; }
-      @media (max-width: 900px) {
-        .hero, .recommend-grid, .watch-grid { grid-template-columns: 1fr; }
-        main { width: min(100% - 1rem, 1180px); }
+      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1.25rem 0 3rem; }
+      .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
+      .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+      .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); }
+      .hero-copy p { margin: 0; max-width: 72ch; color: rgb(var(--gray-dark)); line-height: 1.6; }
+      .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 440px; }
+      .count-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin-top: 1rem; }
+      .count { padding: .7rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: #fff; }
+      .count span { display: block; color: rgb(var(--gray)); font-size: .76rem; font-weight: 800; }
+      .count strong { font-size: 1.35rem; }
+      .count.harvest strong { color: var(--green); }
+      .count.plant strong { color: var(--accent); }
+      .decision-grid { display: grid; grid-template-columns: 1.15fr repeat(3, minmax(0, .8fr)); gap: .65rem; margin-top: .7rem; }
+      .decision-box { padding: .78rem .85rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); }
+      .decision-box span { display: block; color: rgb(var(--gray)); font-size: .73rem; font-weight: 850; letter-spacing: .03em; }
+      .decision-box strong { display: block; margin-top: .18rem; font-size: .92rem; line-height: 1.45; }
+      .top-action { margin-top: .7rem; padding: .85rem 1rem; border-radius: 14px; background: rgb(var(--black)); color: #fff; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75rem; align-items: center; }
+      .top-action .rank { font-size: 1.25rem; }
+      .top-action span, .top-action strong { color: #fff; }
+      .top-action small { display: block; opacity: .7; }
+      .section-head { display: flex; justify-content: space-between; align-items: end; gap: .8rem; margin: 1.5rem 0 .7rem; }
+      .section-head h2 { margin: .25rem 0 0; }
+      .section-head p { margin: 0; color: rgb(var(--gray)); font-size: .84rem; }
+      .signal-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .75rem; }
+      .signal-card { grid-column: span 2; position: relative; overflow: hidden; padding: .9rem; border-left: 5px solid var(--accent); }
+      .signal-grid > .signal-card:nth-last-child(2):nth-child(3n+1),
+      .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 3; }
+      .signal-card.harvest { border-left-color: var(--green); }
+      .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .55rem; }
+      .identity { min-width: 0; }
+      .identity code { font-size: .9rem; font-weight: 900; background: transparent; border: 0; padding: 0; }
+      .identity h3 { margin: .12rem 0 0; font-size: 1rem; }
+      .badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; }
+      .status, .priority { white-space: nowrap; border-radius: 999px; padding: .18rem .45rem; font-size: .7rem; font-weight: 900; }
+      .status { background: var(--accent-soft); color: var(--accent-dark); }
+      .harvest .status { background: var(--green-soft); color: var(--green); }
+      .priority { background: var(--warm); border: 1px solid var(--border); }
+      .level-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin: .72rem 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+      .level { padding: .55rem .38rem; text-align: center; background: var(--warm-2); border-right: 1px solid var(--border); }
+      .level:last-child { border: 0; }
+      .level.active { background: var(--accent-soft); }
+      .harvest .level.active { background: var(--green-soft); }
+      .level span { display: block; font-size: .66rem; color: rgb(var(--gray)); white-space: nowrap; }
+      .level b { font-size: .9rem; }
+      .distance { display: flex; justify-content: space-between; gap: .5rem; font-size: .73rem; color: rgb(var(--gray)); margin: -.25rem 0 .55rem; }
+      .action-copy { margin: 0; padding: .62rem .7rem; border-radius: 10px; background: var(--accent-soft); font-size: .86rem; line-height: 1.5; }
+      .harvest .action-copy { background: var(--green-soft); }
+      .reason { margin: .55rem 0 0; color: rgb(var(--gray-dark)); font-size: .8rem; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .watch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+      .watch { padding: .85rem; }
+      .watch strong { display: block; margin-bottom: .2rem; }
+      .watch span { font-size: .84rem; color: rgb(var(--gray-dark)); }
+      .risk-note { margin: 1rem 0; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--amber-soft); font-size: .8rem; }
+      .links-panel { padding: .9rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .7rem; }
+      .links-panel p { margin: 0; color: rgb(var(--gray)); font-size: .84rem; }
+      .button-row { display: flex; flex-wrap: wrap; gap: .45rem; }
+      .button { display: inline-flex; padding: .55rem .75rem; border-radius: 999px; background: var(--warm); border: 1px solid var(--border); text-decoration: none; font-size: .8rem; font-weight: 900; color: rgb(var(--black)); }
+      .button.primary { background: rgb(var(--black)); color: #fff; }
+      @media (max-width: 940px) {
+        .hero-top { display: grid; }
+        .meta-line { justify-content: flex-start; max-width: none; }
+        .signal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        .signal-card,
+        .signal-grid > .signal-card:nth-last-child(2):nth-child(3n+1),
+        .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 1; }
+        .decision-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      }
+      @media (max-width: 620px) {
+        main { width: min(100% - 1rem, 1180px); padding-top: .7rem; }
+        .dashboard-hero { padding: .85rem; }
+        .hero-copy h1 { font-size: 1.8rem; }
+        .hero-copy p { font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .count-strip { grid-template-columns: repeat(4, minmax(66px,1fr)); gap: .3rem; overflow-x: auto; }
+        .count { padding: .55rem .45rem; }
+        .count strong { font-size: 1.1rem; }
+        .decision-grid, .signal-grid, .watch-grid { grid-template-columns: 1fr; }
+        .decision-box:not(:first-child) { padding: .6rem .7rem; }
+        .top-action { grid-template-columns: auto 1fr; padding: .7rem .8rem; }
+        .section-head { align-items: flex-start; margin-top: 1.15rem; }
+        .section-head p { display: none; }
+        .level-grid { grid-template-columns: repeat(2, 1fr); }
+        .level:nth-child(2) { border-right: 0; }
+        .level:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+        .links-panel { display: grid; }
+        .button-row { display: grid; grid-template-columns: repeat(2, 1fr); }
+        .button { justify-content: center; }
       }
     </style>
   </head>
   <body>
     <Header />
-    <main class="garden-shell">
-      <section class="hero">
-        <div>
-          <span class="pill pill-red">A股ETF花园主入口</span>
-          <h1>A股ETF今日推荐</h1>
-          <p>{data.summary || '主入口只保留可操作推荐：摘花 / 准备摘花、种花 / 准备种花。四窗口复盘和历史记录移到独立页面。'}</p>
-          <div class="decision-tags">
-            <span class="pill pill-red">🔴 种花 = 低吸 / 持有观察</span>
-            <span class="pill pill-green">🟢 摘花 = 止盈 / 减仓观察</span>
-            <span class="pill pill-amber">适用交易日：{data.date}</span>
-            <span class="pill">数据截止：{updatedAt}</span>
+    <main>
+      <section class="dashboard-hero card" aria-labelledby="page-title">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <span class="pill pill-red">A股ETF交易仪表盘</span>
+            <h1 id="page-title">A股ETF今日推荐</h1>
+            <p>{data.summary}</p>
+          </div>
+          <div class="meta-line" aria-label="数据元信息">
+            <span class="pill pill-amber">适用：{data.date}</span>
+            <span class="pill">截止：{data.updated_at}</span>
+            <span class="pill">{data.level_model_version || '关键位待更新'}</span>
           </div>
         </div>
-        <aside class="strategy-card card">
-          <div class="metric"><span>市场状态</span><strong>{data.market_state}</strong></div>
-          <div class="metric"><span>仓位建议</span><strong>{data.position}</strong></div>
-          <div class="metric"><span>今日主线</span><strong>{data.mainline}</strong></div>
-        </aside>
+        <div class="count-strip" aria-label="今日动作数量">
+          <div class="count harvest"><span>🟢 摘花</span><strong>{counts.harvest}</strong></div>
+          <div class="count harvest"><span>🟢 准备摘花</span><strong>{counts.readyHarvest}</strong></div>
+          <div class="count plant"><span>🔴 种花</span><strong>{counts.plant}</strong></div>
+          <div class="count plant"><span>🔴 准备种花</span><strong>{counts.readyPlant}</strong></div>
+        </div>
+        <div class="decision-grid">
+          <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
+          <div class="decision-box"><span>仓位建议</span><strong>{data.position}</strong></div>
+          <div class="decision-box"><span>今日主线</span><strong>{data.mainline}</strong></div>
+          <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong></div>
+        </div>
+        {topAction && <div class="top-action" aria-label="最高优先级动作"><span class="rank">⚡</span><div><small>第一优先级｜{topAction.status} · {topAction.priority}</small><strong>{topAction.code} {topAction.name}：{topAction.action}</strong></div></div>}
       </section>
 
-      <section>
-        <div class="section-head">
-          <div>
-            <span class="pill pill-green">🟢 高抛区</span>
-            <h2>摘花 / 准备摘花</h2>
-          </div>
-          <p>只保留需要优先减仓或兑现观察的方向</p>
-        </div>
-        <div class="recommend-grid">
-          {harvest.map((item) => (
-            <article class="recommend-card green" id={`etf-${item.code}`}>
-              <div class="recommend-top">
-                <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
-                <span class="priority">{item.status}｜{item.priority}</span>
-              </div>
-              <p><span class="label">理由</span>{item.trigger}</p>
-              <p><span class="label">动作</span>{item.action}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div class="section-head">
-          <div>
-            <span class="pill pill-red">🔴 低吸区</span>
-            <h2>种花 / 准备种花</h2>
-          </div>
-          <p>优先看主线弹性和目标价触发，弱分支降权</p>
-        </div>
-        <div class="recommend-grid">
-          {plant.map((item) => (
-            <article class="recommend-card red" id={`etf-${item.code}`}>
-              <div class="recommend-top">
-                <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
-                <span class="priority">{item.status}｜{item.priority}</span>
-              </div>
-              <p><span class="label">理由</span>{item.trigger}</p>
-              <p><span class="label">动作</span>{item.action}</p>
-            </article>
-          ))}
+      <section aria-labelledby="harvest-title">
+        <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">摘花 / 准备摘花</h2></div><p>先处理兑现和失效风险，再考虑新增仓位</p></div>
+        <div class="signal-grid">
+          {harvest.map((item) => <article class="signal-card harvest card" id={`etf-${item.code}`}>
+            <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span></div></div>
+            <div class="level-grid" aria-label={`${item.name}关键价位`}>
+              <div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div>
+              <div class="level active"><span>{item.action_level_label || '动作位'}</span><b>{formatPrice(item.action_level)}</b></div>
+              <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
+              <div class="level"><span>失效线</span><b>{formatPrice(item.stop)}</b></div>
+            </div>
+            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+            <p class="action-copy"><strong>动作：</strong>{item.action}</p>
+            <p class="reason"><strong>依据：</strong>{item.trigger}</p>
+          </article>)}
         </div>
       </section>
 
-      <section>
-        <div class="section-head">
-          <div>
-            <span class="pill pill-amber">明日验证</span>
-            <h2>只看 4 个条件</h2>
-          </div>
-        </div>
-        <div class="watch-grid">
-          {watch.map((item) => (
-            <div class="watch"><strong>{item.label}</strong><span>{item.text}</span></div>
-          ))}
+      <section aria-labelledby="plant-title">
+        <div class="section-head"><div><span class="pill pill-red">🔴 低吸区</span><h2 id="plant-title">种花 / 准备种花</h2></div><p>执行回踩位和失效线，不追高开</p></div>
+        <div class="signal-grid">
+          {plant.map((item) => <article class="signal-card card" id={`etf-${item.code}`}>
+            <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span></div></div>
+            <div class="level-grid" aria-label={`${item.name}关键价位`}>
+              <div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div>
+              <div class="level active"><span>{item.action_level_label || '动作位'}</span><b>{formatPrice(item.action_level)}</b></div>
+              <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
+              <div class="level"><span>失效线</span><b>{formatPrice(item.stop)}</b></div>
+            </div>
+            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+            <p class="action-copy"><strong>动作：</strong>{item.action}</p>
+            <p class="reason"><strong>依据：</strong>{item.trigger}</p>
+          </article>)}
         </div>
       </section>
 
-      <p class="risk-note"><strong>风险提示：</strong>页面动作仅用于个人研究和策略复盘。行情与资金数据可能延迟、缺失或错误；历史表现不代表未来收益。种花、摘花均需结合个人仓位和触发条件独立决策。</p>
-
-      <section class="links-panel card">
-        <p>四窗口过程、历史命中和历史策略验证均保留独立归档。</p>
-        <div class="button-row">
-          <a class="button" href="/garden/history/">查看历史复盘</a>
-          <a class="button secondary" href="/momentum/">动量雷达</a>
-          <a class="button secondary" href="/blog/">每日复盘</a>
-          <a class="button secondary" href="/research/">策略验证档案</a>
-        </div>
+      <section aria-labelledby="watch-title">
+        <div class="section-head"><div><span class="pill pill-amber">下一窗口验证</span><h2 id="watch-title">只看 {watch.length} 个条件</h2></div></div>
+        <div class="watch-grid">{watch.map((item) => <div class="watch card"><strong>{item.label}</strong><span>{item.text}</span></div>)}</div>
       </section>
+
+      <p class="risk-note"><strong>风险提示：</strong>ATR关键位来自qfq日线模型，用于统一执行口径，不替代盘中资金、成交和个人仓位判断；行情可能延迟，历史表现不代表未来收益。</p>
+      <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/garden/history/">历史复盘</a><a class="button" href="/momentum/">A股雷达</a><a class="button" href="/blog/">每日复盘</a><a class="button" href="/research/">策略档案</a></div></section>
     </main>
     <Footer />
   </body>
