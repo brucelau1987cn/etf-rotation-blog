@@ -1,0 +1,80 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/paper-trading.json'), 'utf8'));
+const accounts = Object.values(data.accounts) as any[];
+const money = (n: number, c: string) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: c, maximumFractionDigits: 2 }).format(n || 0);
+const pct = (n: number) => `${((n || 0) * 100).toFixed(2)}%`;
+const tone = (n: number) => n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral';
+const formatTime = (value?: string) => value ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(value)) : '尚未开始';
+const label = (market: string) => market === 'A' ? '🇨🇳 A股账户' : '🇺🇸 美股账户';
+const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) => ({ ...e, currency: a.currency }))).sort((a: any, b: any) => b.timestamp.localeCompare(a.timestamp)).slice(0, 20);
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title="ETF 虚拟交易账户" description="A股与美股ETF规则化虚拟交易、持仓、净值和前向验证记录。" />
+    <style>
+      main{width:min(1120px,calc(100% - 1rem));padding:1rem 0 3rem}.card{border:1px solid var(--border);box-shadow:0 10px 30px rgba(26,36,30,.05)}
+      .hero{padding:1.1rem;background:linear-gradient(135deg,#eef7f1,#fffaf1)}h1{margin:.3rem 0}.hero p{margin:.35rem 0}.muted{color:rgb(var(--gray));font-size:.8rem}
+      .accounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;margin-top:1rem}.account{padding:1rem}.account-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}.account h2{margin:.1rem 0}.account-head small{color:rgb(var(--gray))}
+      .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin:.8rem 0}.metric{padding:.65rem;background:var(--warm-2);border-radius:10px}.metric span{display:block;font-size:.68rem;color:rgb(var(--gray));margin-bottom:.16rem}.metric b{font-size:.94rem}.positive{color:#b42318}.negative{color:#137547}.neutral{color:rgb(var(--gray))}
+      .subhead{display:flex;justify-content:space-between;align-items:center;margin:1rem 0 .35rem}.subhead h3{margin:0}.position,.pending{display:grid;grid-template-columns:1fr auto;gap:.25rem .65rem;padding:.65rem 0;border-top:1px solid var(--border)}.position small,.pending small{display:block;color:rgb(var(--gray));margin-top:.18rem}.position .levels{grid-column:1/-1;font-size:.72rem;color:rgb(var(--gray))}
+      .empty{padding:.8rem;background:var(--warm-2);border-radius:10px;color:rgb(var(--gray));font-size:.82rem}.history{margin-top:.85rem;overflow-x:auto}.history table{width:100%;border-collapse:collapse;font-size:.76rem}.history th,.history td{padding:.48rem .35rem;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}.history th:first-child,.history td:first-child{text-align:left}
+      .events{margin-top:1rem;padding:1rem}.event{display:grid;grid-template-columns:7rem 1fr auto;gap:.6rem;padding:.58rem 0;border-top:1px solid var(--border);font-size:.8rem}.event time{color:rgb(var(--gray));font-size:.72rem}.disclaimer{margin-top:1rem;padding:.85rem;border:1px dashed #d99a00;background:#fff8e8;border-radius:12px;font-size:.8rem}
+      @media(max-width:760px){.accounts{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.event{grid-template-columns:1fr auto}.event time{grid-column:1/-1}.hero,.account,.events{padding:.85rem}}
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="hero card">
+        <span class="pill">PAPER TRADING · FORWARD TEST</span>
+        <h1>ETF 虚拟交易验证</h1>
+        <p>严格按花园正式信号撮合；“准备”信号不成交。同一根K线同时触发时，先按失效处理。</p>
+        <small class="muted">更新：{formatTime(data.updated_at)}（北京时间） · A股 ¥150,000｜美股 US$20,000</small>
+      </section>
+
+      <div class="accounts">
+        {accounts.map((a: any) => (
+          <section class="account card" id={a.market === 'A' ? 'a-share' : 'us'}>
+            <div class="account-head"><div><h2>{label(a.market)}</h2><small>起始 {a.inception_date || '待首次运行'} · 持仓 {Object.keys(a.positions || {}).length}/10</small></div><a href={a.market === 'A' ? '/garden/' : '/us-garden/'}>返回花园 →</a></div>
+            <div class="metrics">
+              <div class="metric"><span>账户权益</span><b>{money(a.equity,a.currency)}</b></div>
+              <div class="metric"><span>当日收益</span><b class={tone(a.daily_return)}>{pct(a.daily_return)}</b></div>
+              <div class="metric"><span>累计收益</span><b class={tone(a.cumulative_return)}>{pct(a.cumulative_return)}</b></div>
+              <div class="metric"><span>最大回撤</span><b class="negative">{pct(a.max_drawdown)}</b></div>
+              <div class="metric"><span>可用现金</span><b>{money(a.cash,a.currency)}</b></div>
+              <div class="metric"><span>现金占比</span><b>{pct(a.cash_ratio ?? (a.cash/a.equity))}</b></div>
+            </div>
+
+            <div class="subhead"><h3>当前持仓</h3><small>未实现 {money(a.unrealized_pnl,a.currency)}</small></div>
+            {Object.values(a.positions || {}).length ? Object.values(a.positions).map((p: any) => (
+              <div class="position"><div><b>{p.symbol} · {p.name}</b><small>{p.quantity}份 · 成本 {p.entry_price} · 现价 {p.last_price}</small></div><b>{money(p.quantity*p.last_price,a.currency)}</b><div class="levels">目标 {p.target ?? '—'}｜失效 {p.stop ?? '—'}｜信号日 {p.signal_date ?? '—'}</div></div>
+            )) : <p class="empty">暂无持仓，等待正式种花信号触发。</p>}
+
+            <div class="subhead"><h3>待触发</h3><small>{(a.pending_signals || []).length}项</small></div>
+            {(a.pending_signals || []).length ? (a.pending_signals || []).map((p: any) => (
+              <div class="pending"><div><b>{p.symbol} · {p.name}</b><small>回踩 {p.support ?? '—'}｜目标 {p.target ?? '—'}｜失效 {p.stop ?? '—'}</small></div><span>观察</span></div>
+            )) : <p class="empty">当前没有正式待成交信号；准备信号不会进入订单。</p>}
+
+            <div class="subhead"><h3>每日净值</h3><small>前向记录</small></div>
+            {(a.history || []).length ? <div class="history"><table><thead><tr><th>日期</th><th>权益</th><th>当日</th><th>累计</th><th>回撤</th></tr></thead><tbody>{a.history.slice(-10).reverse().map((h: any) => <tr><td>{h.date}</td><td>{money(h.equity,a.currency)}</td><td>{pct(h.daily_return)}</td><td>{pct(h.cumulative_return)}</td><td>{pct(h.max_drawdown)}</td></tr>)}</tbody></table></div> : <p class="empty">首个交易日收盘后开始形成净值序列。</p>}
+          </section>
+        ))}
+      </div>
+
+      <section class="events card">
+        <h2>最近虚拟成交</h2>
+        {recentEvents.map((e: any) => <div class="event"><b>{e.side === 'buy' ? '🪴 买入' : e.reason === 'stop' ? '🛑 退出' : '✂️ 卖出'} {e.symbol}</b><span>{e.quantity}份 × {money(e.price,e.currency)} · {e.reason}</span><time>{e.timestamp}</time></div>)}
+        {!recentEvents.length && <p class="empty">暂无成交。系统只执行正式信号，不追溯伪造成交。</p>}
+      </section>
+      <p class="disclaimer">⚠️ {data.disclaimer} 页面展示的是虚拟撮合结果，不代表任何券商账户或真实订单。</p>
+    </main>
+    <Footer />
+  </body>
+</html>

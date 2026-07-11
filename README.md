@@ -64,7 +64,27 @@ Check out [our documentation](https://docs.astro.build) or jump into our [Discor
 | --- | --- | --- |
 | `/momentum` ETF 动量雷达 | `public/data/etf-garden-pool.json` (stock-api v2.7.2 + youth-online mirror) | `scripts/generate_garden_pool.py` |
 | `/garden` ETF 花园 | `public/data/etf-garden-pool.json` | `scripts/generate_garden_pool.py` |
+| `/paper` ETF 虚拟交易 | `public/data/paper-trading.json`（运行态位于仓库外） | `scripts/paper_trade_runner.py` |
 | `/stocks` 个股深度 | `src/content/blog/stocks/*.md` | hand-written |
+
+## Paper trading
+
+The stdlib-only runner keeps private mutable state outside the repository and exports a public snapshot for `/paper/`.
+
+```sh
+# Initialize one account (A: CNY 150,000; US: USD 20,000)
+python3 scripts/paper_trade_runner.py --market A --mode init
+# Poll during market hours; close marks NAV/history and exports public JSON
+python3 scripts/paper_trade_runner.py --market A --mode intraday
+python3 scripts/paper_trade_runner.py --market A --mode close
+# Safe local checks
+python3 scripts/paper_trade_runner.py --self-test
+python3 -m unittest discover -s tests -v
+```
+
+Use `--state PATH`, `--now ISO_TIMESTAMP`, or `--dry-run` as needed. Default state is `/root/.hermes/state/etf-paper-trading.json`, written atomically under `flock`. A-share quotes use Tencent; US quotes use Yahoo Finance 5-minute bars. `scripts/publish_paper_trading.py --market A|US` performs close/export/build and then stages, commits only when the public snapshot changed, and pushes; its side effects are intentional, so use it only in publishing automation.
+
+Rules: maximum 10% per position and 10 positions; cash reserves are 20% (A) and 15% (US); A shares use 100-unit lots, US shares integers. Only exact formal plant signals buy, ready signals never trade, held positions retain entry-time target/stop, and same-bar stop risk precedes targets and source exits. Simulated costs are A 0.025% commission (minimum CNY5) plus 0.05% slippage and US minimum USD1 commission plus 0.05% slippage.
 
 ## Credit
 
