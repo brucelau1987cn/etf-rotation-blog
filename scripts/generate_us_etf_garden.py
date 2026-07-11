@@ -49,7 +49,44 @@ UNIVERSE: list[tuple[str, str, str, str]] = [
     ("GLD", "SPDR Gold Shares", "商品", "黄金"), ("SLV", "iShares Silver Trust", "商品", "贵金属"),
     ("USO", "United States Oil Fund", "商品", "原油"), ("DBC", "Invesco DB Commodity Index", "商品", "综合商品"),
     ("UUP", "Invesco DB US Dollar Bullish", "宏观", "美元"),
+    # 行业深度扩展池：参与模型，但同主题最多一只进入Top观察池。
+    ("XSD", "SPDR S&P Semiconductor ETF", "主题", "半导体"),
+    ("FDN", "First Trust Dow Jones Internet", "主题", "互联网"),
+    ("SKYY", "First Trust Cloud Computing", "主题", "云计算"),
+    ("HACK", "Amplify Cybersecurity ETF", "主题", "网络安全"),
+    ("XRT", "SPDR S&P Retail ETF", "行业", "零售"),
+    ("ITB", "iShares U.S. Home Construction", "行业", "房屋建筑"),
+    ("DRIV", "Global X Autonomous & Electric Vehicles", "主题", "智能汽车"),
+    ("IHI", "iShares U.S. Medical Devices", "行业", "医疗器械"),
+    ("IHF", "iShares U.S. Healthcare Providers", "行业", "医疗服务"),
+    ("KRE", "SPDR S&P Regional Banking", "行业", "区域银行"),
+    ("KIE", "SPDR S&P Insurance", "行业", "保险"),
+    ("XAR", "SPDR S&P Aerospace & Defense", "主题", "国防"),
+    ("IYT", "iShares Transportation Average", "行业", "运输"),
+    ("PAVE", "Global X U.S. Infrastructure Development", "主题", "基础设施"),
+    ("XOP", "SPDR S&P Oil & Gas Exploration & Production", "行业", "油气勘探"),
+    ("OIH", "VanEck Oil Services", "行业", "油服"),
+    ("ICLN", "iShares Global Clean Energy", "主题", "清洁能源"),
+    ("XME", "SPDR S&P Metals & Mining", "行业", "金属矿业"),
+    ("GDX", "VanEck Gold Miners", "行业", "黄金矿业"),
+    ("COPX", "Global X Copper Miners", "行业", "铜矿"),
+    ("VNQ", "Vanguard Real Estate ETF", "行业", "房地产"),
+    ("XHB", "SPDR S&P Homebuilders", "行业", "房屋建筑"),
 ]
+
+BREADTH_GROUPS: dict[str, list[str]] = {
+    "科技": ["XLK", "QQQ", "IGV", "FDN", "SKYY"],
+    "半导体": ["SMH", "SOXX", "XSD"],
+    "网络安全": ["CIBR", "HACK"],
+    "医疗": ["XLV", "IHI", "IHF", "XBI", "IBB"],
+    "金融": ["XLF", "KRE", "KIE"],
+    "能源": ["XLE", "XOP", "OIH"],
+    "国防": ["ITA", "XAR"],
+    "房屋建筑": ["ITB", "XHB"],
+    "新能源": ["TAN", "ICLN", "LIT"],
+    "材料矿业": ["XLB", "XME", "GDX", "COPX"],
+    "房地产": ["XLRE", "VNQ"],
+}
 
 
 def finite(v: Any, default: float = 0.0) -> float:
@@ -158,7 +195,7 @@ def main() -> None:
             symbol = futures[future]
             try: results[symbol] = future.result()
             except Exception as exc: failures[symbol] = str(exc)
-    if "SPY" not in results or len(results) < 40:
+    if "SPY" not in results or len(results) < 60:
         raise RuntimeError(f"insufficient data: {len(results)}/{len(UNIVERSE)}, failures={failures}")
     spy_adj = [finite(x["adj"]) for x in results["SPY"]["rows"]]
     rows = [evaluate(item, results[item[0]], spy_adj) for item in UNIVERSE if item[0] in results]
@@ -174,8 +211,28 @@ def main() -> None:
         selected.append(row); themes.add(row["theme"])
         if len(selected) == 5: break
     now = datetime.now(NY); latest = max(x["trade_date"] for x in rows)
-    pool_payload = {"market": "US", "model_version": "US ETF Garden v1", "generated_at": now.isoformat(), "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API", "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"}, "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)}, "recommendations": selected, "rows": rows, "failures": failures, "realtime_scope": ["当前价", "当日涨跌", "关键位触发"], "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态"]}
-    garden_payload = {"market": "US", "date": latest, "updated_at": now.isoformat(), "stage": "美股收盘版", "summary": f"{regime}市场，权益参考{equity}；趋势强度与交易风险分开，不把强势等同于可追涨。", "market_regime": pool_payload["market_regime"], "recommendations": selected, "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。"}
+    row_map = {row["symbol"]: row for row in rows}
+    breadth = []
+    for group, symbols in BREADTH_GROUPS.items():
+        members = [row_map[s] for s in symbols if s in row_map]
+        passed = sum(bool(r["momentum_pass"]) for r in members)
+        ratio = round(passed / len(members) * 100, 1) if members else 0.0
+        avg_relative = round(statistics.fmean(r["relative_spy20"] for r in members), 2) if members else 0.0
+        if ratio >= 80:
+            breadth_state = "全面扩散" if avg_relative > 0 else "同步通过·相对偏弱"
+        elif ratio >= 60:
+            breadth_state = "多数确认" if avg_relative > 0 else "多数通过·相对偏弱"
+        else:
+            breadth_state = "局部走强" if ratio > 0 else "整体偏弱"
+        breadth.append({
+            "group": group, "members": [r["symbol"] for r in members], "passed": passed,
+            "total": len(members), "ratio": ratio,
+            "avg_relative_spy20": avg_relative,
+            "state": breadth_state,
+        })
+    breadth.sort(key=lambda x: (x["ratio"], x["avg_relative_spy20"]), reverse=True)
+    pool_payload = {"market": "US", "model_version": "US ETF Garden v2 · 67池", "generated_at": now.isoformat(), "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API", "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"}, "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)}, "recommendations": selected, "breadth_groups": breadth, "rows": rows, "failures": failures, "realtime_scope": ["当前价", "当日涨跌", "关键位触发"], "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态", "行业广度"]}
+    garden_payload = {"market": "US", "date": latest, "updated_at": now.isoformat(), "stage": "美股收盘版", "summary": f"{regime}市场，权益参考{equity}；67池覆盖跨资产核心与行业细分，Top池同主题最多一只。", "market_regime": pool_payload["market_regime"], "recommendations": selected, "breadth_groups": breadth, "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。"}
     # Lightweight historical directional validation: current universe, rolling MA20 signal, next-day return.
     evaluated = hits = 0
     for item in UNIVERSE:
