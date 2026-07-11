@@ -23,8 +23,8 @@ def now_iso(value=None):
 
 def new_account(market, ts=None):
     c=CONFIG[market]
-    inception=now_iso(ts)[:10]
-    return {"market":market,"currency":c["currency"],"initial_capital":c["initial"],"inception_date":inception,"cash":c["initial"],"positions":{},"equity":c["initial"],"realized_pnl":0.0,"unrealized_pnl":0.0,"daily_return":0.0,"cumulative_return":0.0,"max_drawdown":0.0,"peak_equity":c["initial"],"cash_ratio":1.0,"history":[],"events":[],"pending_signals":[],"benchmark":{"symbol":"510300" if market=="A" else "SPY","cumulative_return":None,"excess_return":None},"processed_event_ids":[]}
+    inception=market_day(market, now_iso(ts))
+    return {"market":market,"currency":c["currency"],"initial_capital":c["initial"],"inception_date":inception,"cash":c["initial"],"positions":{},"equity":c["initial"],"realized_pnl":0.0,"unrealized_pnl":0.0,"daily_return":0.0,"cumulative_return":0.0,"max_drawdown":0.0,"peak_equity":c["initial"],"cash_ratio":1.0,"history":[],"events":[],"pending_signals":[],"benchmark":{"symbol":"510300" if market=="A" else "SPY","cumulative_return":None,"excess_return":None},"processed_event_ids":[],"consumed_signal_ids":[],"armed_signals":{}}
 
 def parse_now(value=None):
     return dt.datetime.fromisoformat(now_iso(value))
@@ -45,6 +45,15 @@ def quote_day(market, bar):
         return f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}" if len(digits)>=8 else None
     try: return dt.datetime.fromtimestamp(float(stamp),dt.timezone.utc).astimezone(TZ[market]).date().isoformat()
     except (TypeError,ValueError,OSError): return None
+
+def quote_age_seconds(market, bar, now):
+    try:
+        if market=="A":
+            digits="".join(ch for ch in str(bar.get("timestamp") or "") if ch.isdigit())
+            local=dt.datetime.strptime(digits[:14],"%Y%m%d%H%M%S").replace(tzinfo=TZ[market])
+        else: local=dt.datetime.fromtimestamp(float(bar["timestamp"]),dt.timezone.utc)
+        return max(0.0,(parse_now(now)-local.astimezone(dt.timezone.utc)).total_seconds())
+    except (TypeError,ValueError,OSError): return float("inf")
 
 
 def new_state(ts=None):
@@ -87,24 +96,42 @@ def execute(account, symbol, name, side, price, qty, ts, reason, eid, target=Non
     account["processed_event_ids"]=account["processed_event_ids"][-5000:]
     return event
 
-def normalize_signals(market, data):
+def normalize_signals(market,data):
+    source_date=data.get("date")
     if market=="A":
-        buys=[dict(x,symbol=x["code"]) for x in data.get("plant",[]) if x.get("status")=="种花"]
-        sells=[dict(x,symbol=x["code"],kind="harvest") for x in data.get("harvest",[]) if x.get("status")=="摘花"]
+        buys=[dict(x,symbol=x.get("code"),kind="plant",_source_date=source_date) for x in data.get("plant",[]) if x.get("status")=="种花"]
+        sells=[dict(x,symbol=x.get("code"),kind="harvest",_source_date=source_date) for x in data.get("harvest",[]) if x.get("status")=="摘花"]
     else:
-        fs=data.get("flower_signals",{}); buys=[dict(x,kind="plant") for x in fs.get("plant",[])]
-        sells=[dict(x,kind="exit") for x in fs.get("exit",[])]+[dict(x,kind="harvest") for x in fs.get("harvest",[])]
+        fs=data.get("flower_signals",{})
+        buys=[dict(x,kind="plant",_source_date=source_date) for x in fs.get("plant",[]) if x.get("signal")=="种花"]
+        sells=[dict(x,kind="exit",_source_date=source_date) for x in fs.get("exit",[]) if x.get("signal")=="失效退出"]+[dict(x,kind="harvest",_source_date=source_date) for x in fs.get("harvest",[]) if x.get("signal")=="摘花"]
+    for x in buys+sells:
+        x["_signal_id"]=f"{market}:{x.get('symbol')}:{x.get('_source_date')}:{x.get('kind')}:{x.get('support')}:{x.get('target')}:{x.get('stop')}"
     return buys,sells
+
+def valid_signals(market, signals, today):
+    """A signals are explicitly dated for that session; US close signals live for the next session only."""
+    out=[]; now_day=dt.datetime.strptime(today,"%Y-%m-%d").date()
+    for sig in signals:
+        try: source=dt.datetime.strptime(str(sig.get("_source_date")),"%Y-%m-%d").date()
+        except (TypeError,ValueError): continue
+        age=(now_day-source).days
+        if (market=="A" and age==0) or (market=="US" and 1 <= age <= 4): out.append(sig)
+    return out
+
+def signal_key(market, sig):
+    return sig.get("_signal_id") or f"{market}:{sig.get('symbol')}:{sig.get('_source_date') or sig.get('price_date') or sig.get('trade_date')}:{sig.get('kind','plant')}:{sig.get('support')}:{sig.get('target')}:{sig.get('stop')}"
+
 
 def eligible_buys(account, buys, quotes, ts):
     """Arm new signals first so an earlier session low can never create a retrospective fill."""
-    armed=account.setdefault("armed_signals",{}); eligible=[]; live={x["symbol"] for x in buys}
+    armed=account.setdefault("armed_signals",{}); consumed=set(account.setdefault("consumed_signal_ids",[])); eligible=[]; live={x["symbol"] for x in buys}
     for symbol in list(armed):
         if symbol not in live or symbol in account["positions"]: armed.pop(symbol,None)
     for sig in buys:
-        symbol=sig["symbol"]; bar=quotes.get(symbol); trigger=sig.get("support",sig.get("action_level"))
-        if not bar or trigger is None or symbol in account["positions"]: continue
-        fingerprint=f"{trigger}:{sig.get('target')}:{sig.get('stop')}:{sig.get('price_date') or sig.get('trade_date')}"
+        symbol=sig["symbol"]; bar=quotes.get(symbol); trigger=sig.get("support",sig.get("action_level")); signal_id=signal_key(account["market"],sig)
+        if not bar or trigger is None or symbol in account["positions"] or not signal_id or signal_id in consumed: continue
+        fingerprint=signal_id
         low=float(bar.get("low",bar["price"])); current=float(bar["price"]); item=armed.get(symbol)
         if not item or item.get("fingerprint")!=fingerprint:
             armed[symbol]={"fingerprint":fingerprint,"armed_at":ts,"baseline_low":low}
@@ -117,7 +144,7 @@ def eligible_buys(account, buys, quotes, ts):
 
 def process_bar(account, signals, quotes, ts):
     """Risk exits first, then formal source sells, then buys. Pure and idempotent."""
-    trades=[]; buys,sells=signals; sellmap={x["symbol"]:x for x in sells}
+    trades=[]; buys,sells=signals; sellmap={x["symbol"]:x for x in sells}; exited=set(); consumed=set(account.setdefault("consumed_signal_ids",[]))
     for symbol,pos in list(account["positions"].items()):
         bar=quotes.get(symbol)
         if not bar: continue
@@ -130,17 +157,18 @@ def process_bar(account, signals, quotes, ts):
         if reason:
             eid=event_id(account["market"],symbol,"sell",bar,reason)
             ev=execute(account,symbol,pos["name"],"sell",px,pos["quantity"],ts,reason,eid)
-            if ev: trades.append(ev)
+            if ev: trades.append(ev); exited.add(symbol)
     for sig in buys:
-        symbol=sig["symbol"]; bar=quotes.get(symbol)
-        if not bar or symbol in account["positions"]: continue
+        symbol=sig["symbol"]; bar=quotes.get(symbol); signal_id=signal_key(account["market"],sig)
+        if not bar or symbol in account["positions"] or symbol in exited or not signal_id or signal_id in consumed: continue
         trigger=sig.get("support",sig.get("action_level"))
         if trigger is None or float(bar.get("low",bar["price"])) > float(trigger): continue
         price=min(float(trigger),float(bar["price"])); qty=size_order(account["market"],account.get("equity",account["cash"]),account["cash"],price,len(account["positions"]))
         if not qty: continue
         eid=event_id(account["market"],symbol,"buy",bar,"plant")
         ev=execute(account,symbol,sig.get("name",symbol),"buy",price,qty,ts,"plant",eid,sig.get("target"),sig.get("stop"),sig.get("level_basis") or sig.get("trigger_price_basis"),sig.get("price_date") or sig.get("trade_date"))
-        if ev: trades.append(ev)
+        if ev:
+            trades.append(ev); consumed.add(signal_id); account["consumed_signal_ids"]=list(consumed)[-5000:]; account.setdefault("armed_signals",{}).pop(symbol,None)
     return trades
 
 def mark(account, quotes, ts, close=False):
@@ -154,9 +182,9 @@ def mark(account, quotes, ts, close=False):
     prior_rows=[row for row in account["history"] if row["date"] != day]
     prior=prior_rows[-1]["equity"] if prior_rows else account["initial_capital"]
     account["daily_return"]=round(equity/prior-1,8)
-    account["peak_equity"]=max(account.get("peak_equity",equity),equity)
-    dd=equity/account["peak_equity"]-1; account["max_drawdown"]=round(min(account.get("max_drawdown",0),dd),8)
     if close:
+        account["peak_equity"]=max(account.get("peak_equity",equity),equity)
+        dd=equity/account["peak_equity"]-1; account["max_drawdown"]=round(min(account.get("max_drawdown",0),dd),8)
         row={"date":day,"equity":round(equity,6),"cash":round(account["cash"],6),"daily_return":account["daily_return"],"cumulative_return":account["cumulative_return"],"max_drawdown":account["max_drawdown"]}
         if account["history"] and account["history"][-1]["date"]==day: account["history"][-1]=row
         else: account["history"].append(row)
@@ -170,7 +198,7 @@ def fetch_a(symbols):
         if '="' not in row: continue
         fields=row.split('="',1)[1].rstrip('"').split("~")
         if len(fields)>34:
-            sym=fields[2]; out[sym]={"price":float(fields[3]),"high":float(fields[33]),"low":float(fields[34]),"timestamp":fields[30]}
+            sym=fields[2]; price=float(fields[3]); out[sym]={"price":price,"high":price,"low":price,"timestamp":fields[30]}
     return out
 
 def fetch_us(symbols):
@@ -178,7 +206,7 @@ def fetch_us(symbols):
     for sym in symbols:
         url=f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}?interval=5m&range=1d"
         req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"}); obj=json.load(urllib.request.urlopen(req,timeout=12))["chart"]["result"][0]
-        q=obj["indicators"]["quote"][0]; valid=[i for i,x in enumerate(q["close"]) if x is not None]
+        q=obj["indicators"]["quote"][0]; valid=[i for i,x in enumerate(q["close"]) if x is not None and q["high"][i] is not None and q["low"][i] is not None]
         if valid:
             i=valid[-1]; out[sym]={"price":q["close"][i],"high":q["high"][i],"low":q["low"][i],"timestamp":obj["timestamp"][i]}
     return out
@@ -202,6 +230,7 @@ def public_view(state):
     for a in out["accounts"].values():
         a.pop("processed_event_ids",None)
         a.pop("armed_signals",None)
+        a.pop("consumed_signal_ids",None)
     return out
 
 def self_test():
@@ -222,10 +251,11 @@ def format_trade_notice(market, trades, account):
     return "\n".join(lines)
 
 def format_close_notice(market, account, trades):
-    unit="¥" if market=="A" else "$"; title="A股" if market=="A" else "美股"
+    unit="¥" if market=="A" else "$"; title="A股" if market=="A" else "美股"; day=account.get("history",[{}])[-1].get("date") if account.get("history") else None
+    today_trades=sum(1 for x in account.get("events",[]) if market_day(market,x.get("timestamp"))==day) if day else len(trades)
     return (f"📊 {title}ETF虚拟账户收盘｜权益 {unit}{account['equity']:,.2f}｜"
             f"当日 {account['daily_return']*100:+.2f}%｜累计 {account['cumulative_return']*100:+.2f}%｜"
-            f"最大回撤 {account['max_drawdown']*100:.2f}%｜持仓 {len(account['positions'])}｜今日成交 {len(trades)}\n"
+            f"最大回撤 {account['max_drawdown']*100:.2f}%｜持仓 {len(account['positions'])}｜今日成交 {today_trades}\n"
             "⚠️ 虚拟交易，不是实盘订单。")
 
 def main(argv=None):
@@ -240,19 +270,25 @@ def main(argv=None):
         if args.mode=="init":
             state["accounts"][args.market]=new_account(args.market,ts); trades=[]
         else:
-            data=json.loads(SOURCES[args.market].read_text()); signals=normalize_signals(args.market,data)
+            data=json.loads(SOURCES[args.market].read_text()); raw_signals=normalize_signals(args.market,data)
             account=state["accounts"][args.market]
-            symbols={x["symbol"] for group in signals for x in group}|set(account["positions"])
-            quotes=(fetch_a if args.market=="A" else fetch_us)(sorted(symbols))
+            account.setdefault("consumed_signal_ids",[]); account.setdefault("armed_signals",{}); account.setdefault("processed_event_ids",[])
             today=market_day(args.market,ts)
-            quotes={symbol:bar for symbol,bar in quotes.items() if quote_day(args.market,bar)==today}
-            # Holidays, stale endpoints and serious feed failures must never create synthetic fills.
-            if symbols and not quotes: return
-            trade_signals=(eligible_buys(account,signals[0],quotes,ts),signals[1])
-            trades=process_bar(account,trade_signals,quotes,ts)
+            signals=(valid_signals(args.market,raw_signals[0],today),valid_signals(args.market,raw_signals[1],today))
+            held=set(account["positions"])
+            symbols=held if args.mode=="close" else ({x["symbol"] for group in signals for x in group}|held)
+            quotes=(fetch_a if args.market=="A" else fetch_us)(sorted(symbols))
+            max_age=(1200 if args.market=="A" else 3600) if args.mode=="close" else (180 if args.market=="A" else 900)
+            quotes={symbol:bar for symbol,bar in quotes.items() if quote_day(args.market,bar)==today and quote_age_seconds(args.market,bar,ts)<=max_age}
+            # A close snapshot is valid only when every held position has a fresh quote.
+            if held-set(quotes): return
+            if args.mode=="intraday":
+                trade_signals=(eligible_buys(account,signals[0],quotes,ts),signals[1])
+                trades=process_bar(account,trade_signals,quotes,ts)
+            else: trades=[]
             mark(account,quotes,ts,args.mode=="close")
             held=set(account["positions"])
-            account["pending_signals"]=[{"symbol":x["symbol"],"name":x.get("name",x["symbol"]),"support":x.get("support"),"target":x.get("target"),"stop":x.get("stop")} for x in signals[0] if x["symbol"] not in held]
+            account["pending_signals"]=[{"symbol":x["symbol"],"name":x.get("name",x["symbol"]),"support":x.get("support"),"target":x.get("target"),"stop":x.get("stop"),"signal_date":x.get("_source_date")} for x in signals[0] if x["symbol"] not in held and x.get("_signal_id") not in account["consumed_signal_ids"]]
         state["updated_at"]=ts
         if not args.dry_run:
             atomic_write(args.state,state)

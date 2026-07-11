@@ -68,6 +68,40 @@ class PaperTradingTests(unittest.TestCase):
         fresh_touch = {"510000": {"price": 1.01, "low": .97, "high": 1.05, "timestamp": "20260713144000"}}
         self.assertEqual(len(paper.eligible_buys(account, [signal], fresh_touch, "t3")), 1)
 
+    def test_stopped_position_cannot_reenter_same_signal(self):
+        account = paper.new_account("US")
+        signal = {"symbol": "SPY", "name": "SPY", "support": 95, "target": 110, "stop": 90, "trade_date": "2026-07-10", "_signal_id": "US:SPY:2026-07-10:plant"}
+        buy_bar = {"SPY": {"price": 95, "low": 95, "high": 96, "timestamp": 1}}
+        self.assertEqual(len(paper.process_bar(account, ([signal], []), buy_bar, "2026-07-13T14:00:00+00:00")), 1)
+        stop_bar = {"SPY": {"price": 89, "low": 89, "high": 96, "timestamp": 2}}
+        trades = paper.process_bar(account, ([signal], []), stop_bar, "2026-07-13T14:05:00+00:00")
+        self.assertEqual([(x["side"], x["reason"]) for x in trades], [("sell", "stop")])
+        self.assertNotIn("SPY", account["positions"])
+        later = {"SPY": {"price": 94, "low": 94, "high": 95, "timestamp": 3}}
+        self.assertEqual(paper.process_bar(account, ([signal], []), later, "2026-07-13T14:10:00+00:00"), [])
+
+    def test_signal_status_dates_and_quote_age_guards(self):
+        us = paper.normalize_signals("US", {"date": "2026-07-10", "flower_signals": {"plant": [
+            {"symbol": "BAD", "signal": "准备种花"}, {"symbol": "GOOD", "signal": "种花"}]}})
+        self.assertEqual([x["symbol"] for x in us[0]], ["GOOD"])
+        self.assertEqual(len(paper.valid_signals("US", us[0], "2026-07-13")), 1)
+        self.assertEqual(paper.valid_signals("US", us[0], "2026-07-15"), [])
+        a = paper.normalize_signals("A", {"date": "2026-07-13", "plant": [{"code": "510000", "status": "种花"}]})
+        self.assertEqual(len(paper.valid_signals("A", a[0], "2026-07-13")), 1)
+        self.assertEqual(paper.valid_signals("A", a[0], "2026-07-14"), [])
+        bar = {"timestamp": "20260713100000"}
+        self.assertEqual(paper.quote_age_seconds("A", bar, "2026-07-13T02:02:00+00:00"), 120)
+
+    def test_public_export_strips_internal_lifecycle(self):
+        state = paper.new_state("2026-07-11T00:00:00+00:00")
+        state["accounts"]["A"]["processed_event_ids"] = ["x"]
+        state["accounts"]["A"]["consumed_signal_ids"] = ["y"]
+        state["accounts"]["A"]["armed_signals"] = {"z": {}}
+        public = paper.public_view(state)["accounts"]["A"]
+        self.assertNotIn("processed_event_ids", public)
+        self.assertNotIn("consumed_signal_ids", public)
+        self.assertNotIn("armed_signals", public)
+
     def test_market_windows_and_quote_freshness(self):
         self.assertTrue(paper.intraday_window("A", "2026-07-13T02:00:00+00:00"))  # 10:00 CST
         self.assertFalse(paper.intraday_window("A", "2026-07-13T04:00:00+00:00"))  # lunch
