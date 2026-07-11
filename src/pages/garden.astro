@@ -60,7 +60,7 @@ const counts = {
 };
 const formatPrice = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '待更新';
 const formatDistance = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? `${Math.abs(value).toFixed(1)}%` : '待更新';
-const pageTitle = `A股ETF罗盘｜今日推荐 | ${SITE_TITLE}`;
+const pageTitle = `A股ETF罗盘｜今日动作 | ${SITE_TITLE}`;
 const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结论、伏击兑现动作、当前价、关键位、兑现位与防守线。';
 ---
 
@@ -165,7 +165,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         <div class="hero-top">
           <div class="hero-copy">
             <span class="pill pill-red">A股ETF交易仪表盘</span>
-            <h1 id="page-title">A股ETF今日推荐</h1>
+            <h1 id="page-title">A股ETF罗盘</h1>
             <p>{data.summary}</p>
           </div>
           <div class="meta-line" aria-label="数据元信息">
@@ -231,7 +231,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       </section>
 
       <p class="risk-note"><strong>风险提示：</strong>ATR关键位来自qfq日线模型，用于统一执行口径，不替代盘中资金、成交和个人仓位判断；行情可能延迟，历史表现不代表未来收益。</p>
-      <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/paper/">模拟交易</a><a class="button" href="/garden/history/">历史复盘</a><a class="button" href="/momentum/">A股雷达</a><a class="button" href="/blog/">每日复盘</a><a class="button" href="/research/">策略档案</a></div></section>
+      <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/paper/">模拟交易</a><a class="button" href="/garden/history/">历史复盘</a><a class="button" href="/momentum/">A股雷达</a><a class="button" href="/blog/">A股复盘</a><a class="button" href="/research/">策略档案</a></div></section>
     </main>
     <Footer />
   </body>

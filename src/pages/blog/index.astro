@@ -13,7 +13,7 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`A股ETF每日复盘 | ${SITE_TITLE}`} description={`A股ETF每日复盘：${SITE_DESCRIPTION}`} />
+    <BaseHead title={`A股ETF复盘 | ${SITE_TITLE}`} description={`A股ETF复盘：${SITE_DESCRIPTION}`} />
     <style>
       .latest-note { display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center; margin: 0 0 1rem; padding: 0.85rem 1rem; }
       .latest-note p { margin: 0; color: rgb(var(--gray)); font-size: 0.9rem; }
@@ -25,13 +25,13 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
     <main>
       <section class="page-intro">
         <div class="kicker"><span class="pill pill-red">A股ETF复盘</span><span class="pill">预测 → 修正 → 收盘 → 验证</span></div>
-        <h1>A股ETF每日复盘</h1>
+        <h1>A股ETF复盘</h1>
         <p>每篇文章先给核心结论和动作清单，再展开资金、量价、关键位、风险与次日验证。最新文章置顶，历史观点完整保留。</p>
       </section>
       <section class="latest-note card">
         <span class="pill pill-amber">阅读建议</span>
         <p>先看最新一篇的“当前生效结论”和“次日执行清单”，再查看四窗口观点演变。</p>
-        <a href="/garden">直接看今日推荐 →</a>
+        <a href="/garden">直接看A股罗盘 →</a>
       </section>
       <section>
         <div class="section-heading"><h2>复盘归档</h2><span class="pill">共 {posts.length} 篇</span></div>

@@ -86,10 +86,10 @@ const plant = garden.plant.slice(0, 3);
         <div class="hero-copy">
           <div class="eyebrow"><span class="pill pill-red">🔴 低吸伏击</span><span class="pill pill-green">🟢 高抛兑现</span></div>
           <h1>先看今日动作，再读复盘逻辑。</h1>
-          <p>ETF罗盘把盘前预测、盘中修正、收盘验证收敛成一张可执行清单。首页给结论，罗盘给动作，每日复盘解释胜负。</p>
+          <p>ETF罗盘把盘前预测、盘中修正、收盘验证收敛成一张可执行清单。首页给结论，罗盘给动作，A股复盘解释胜负。</p>
           <div class="hero-actions">
-            <a class="button primary" href="/garden">查看今日推荐</a>
-            <a class="button" href="/blog">阅读最新复盘</a>
+            <a class="button primary" href="/garden">打开A股罗盘</a>
+            <a class="button" href="/blog">阅读A股复盘</a>
             <a class="button" href="/momentum">打开A股雷达</a>
           </div>
         </div>
@@ -125,14 +125,14 @@ const plant = garden.plant.slice(0, 3);
       <section>
         <div class="section-heading"><h2>三步阅读</h2></div>
         <div class="read-path">
-          <a class="path-card card" href="/garden"><span class="pill pill-red">01</span><strong>今日推荐</strong><p>先确认兑现、伏击和执行关键位。</p></a>
-          <a class="path-card card" href="/blog"><span class="pill">02</span><strong>每日复盘</strong><p>再看资金、量价、错因和次日验证。</p></a>
+          <a class="path-card card" href="/garden"><span class="pill pill-red">01</span><strong>A股罗盘</strong><p>先确认兑现、伏击和执行关键位。</p></a>
+          <a class="path-card card" href="/blog"><span class="pill">02</span><strong>A股复盘</strong><p>再看资金、量价、错因和次日验证。</p></a>
           <a class="path-card card" href="/momentum"><span class="pill pill-amber">03</span><strong>A股雷达</strong><p>最后用71池确认相对强弱与风险。</p></a>
         </div>
       </section>
 
       <section>
-        <div class="section-heading"><h2>最新每日复盘</h2><a href="/blog">全部复盘 →</a></div>
+        <div class="section-heading"><h2>最新A股复盘</h2><a href="/blog">全部A股复盘 →</a></div>
         <ul class="archive-grid">
           {latestDaily.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div><h3>{displayTerms(post.data.title)}</h3><p class="description">{displayTerms(summarizeDescription(post.data.description))}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}
         </ul>
