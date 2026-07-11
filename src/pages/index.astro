@@ -28,7 +28,14 @@ interface GardenData {
   harvest: RecommendationItem[];
   plant: RecommendationItem[];
 }
-const garden = JSON.parse(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf8')) as GardenData;
+const renameStrategyTerms = (raw: string) => raw
+  .replaceAll('准备种花', '候场').replaceAll('准备摘花', '止盈观察')
+  .replaceAll('种花', '伏击').replaceAll('摘花', '兑现')
+  .replaceAll('ETF花园', 'ETF罗盘');
+const garden = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf8'))) as GardenData;
+const displayTerms = (value: string) => value
+  .replaceAll('ETF花园', 'ETF罗盘').replaceAll('准备种花', '候场').replaceAll('准备摘花', '止盈观察')
+  .replaceAll('种花', '伏击').replaceAll('摘花', '兑现');
 const allPosts = (await getCollection('blog')).filter(isPublicEtfPost).sort(sortByPubDateDesc);
 const latestDaily = allPosts.filter(isDailyReviewPost).slice(0, 3);
 const latestResearch = allPosts.filter(isEtfResearchPost).slice(0, 1);
@@ -77,9 +84,9 @@ const plant = garden.plant.slice(0, 3);
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <div class="eyebrow"><span class="pill pill-red">🔴 低吸种花</span><span class="pill pill-green">🟢 高抛摘花</span></div>
+          <div class="eyebrow"><span class="pill pill-red">🔴 低吸伏击</span><span class="pill pill-green">🟢 高抛兑现</span></div>
           <h1>先看今日动作，再读复盘逻辑。</h1>
-          <p>ETF花园把盘前预测、盘中修正、收盘验证收敛成一张可执行清单。首页给结论，花园给动作，每日复盘解释胜负。</p>
+          <p>ETF罗盘把盘前预测、盘中修正、收盘验证收敛成一张可执行清单。首页给结论，罗盘给动作，每日复盘解释胜负。</p>
           <div class="hero-actions">
             <a class="button primary" href="/garden">查看今日推荐</a>
             <a class="button" href="/blog">阅读最新复盘</a>
@@ -101,13 +108,13 @@ const plant = garden.plant.slice(0, 3);
         <div class="section-heading"><h2>今日动作</h2><a href="/garden">完整清单与关键位 →</a></div>
         <div class="signal-columns">
           <div class="signal-panel card">
-            <div class="signal-panel-head"><h3>🟢 摘花 / 准备摘花</h3><span class="pill pill-green">高抛</span></div>
+            <div class="signal-panel-head"><h3>🟢 兑现 / 止盈观察</h3><span class="pill pill-green">高抛</span></div>
             <div class="mini-list">
               {harvest.map((item) => <a class="mini-signal" href={`/garden/#etf-${item.code}`}><div><strong>{item.code} {item.name}</strong><p>{item.action}</p></div><span class="pill pill-green">{item.status}</span></a>)}
             </div>
           </div>
           <div class="signal-panel card">
-            <div class="signal-panel-head"><h3>🔴 种花 / 准备种花</h3><span class="pill pill-red">低吸</span></div>
+            <div class="signal-panel-head"><h3>🔴 伏击 / 候场</h3><span class="pill pill-red">低吸</span></div>
             <div class="mini-list">
               {plant.map((item) => <a class="mini-signal" href={`/garden/#etf-${item.code}`}><div><strong>{item.code} {item.name}</strong><p>{item.action}</p></div><span class="pill pill-red">{item.status}</span></a>)}
             </div>
@@ -118,7 +125,7 @@ const plant = garden.plant.slice(0, 3);
       <section>
         <div class="section-heading"><h2>三步阅读</h2></div>
         <div class="read-path">
-          <a class="path-card card" href="/garden"><span class="pill pill-red">01</span><strong>今日推荐</strong><p>先确认摘花、种花和执行关键位。</p></a>
+          <a class="path-card card" href="/garden"><span class="pill pill-red">01</span><strong>今日推荐</strong><p>先确认兑现、伏击和执行关键位。</p></a>
           <a class="path-card card" href="/blog"><span class="pill">02</span><strong>每日复盘</strong><p>再看资金、量价、错因和次日验证。</p></a>
           <a class="path-card card" href="/momentum"><span class="pill pill-amber">03</span><strong>动量雷达</strong><p>最后用71池确认相对强弱与风险。</p></a>
         </div>
@@ -127,14 +134,14 @@ const plant = garden.plant.slice(0, 3);
       <section>
         <div class="section-heading"><h2>最新每日复盘</h2><a href="/blog">全部复盘 →</a></div>
         <ul class="archive-grid">
-          {latestDaily.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div><h3>{post.data.title}</h3><p class="description">{summarizeDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}
+          {latestDaily.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div><h3>{displayTerms(post.data.title)}</h3><p class="description">{displayTerms(summarizeDescription(post.data.description))}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}
         </ul>
       </section>
 
       <section>
         <div class="section-heading"><h2>历史策略验证</h2><a href="/research">查看档案 →</a></div>
         <div class="research-row">
-          {latestResearch.map((post) => <a class="archive-card card" href={`/blog/${post.id}/`}><span class="pill">历史研测</span><h3>{post.data.title}</h3><p class="description">{summarizeDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a>)}
+          {latestResearch.map((post) => <a class="archive-card card" href={`/blog/${post.id}/`}><span class="pill">历史研测</span><h3>{displayTerms(post.data.title)}</h3><p class="description">{displayTerms(summarizeDescription(post.data.description))}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a>)}
         </div>
       </section>
     </main>

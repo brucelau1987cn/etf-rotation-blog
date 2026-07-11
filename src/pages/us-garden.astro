@@ -20,13 +20,19 @@ type GardenData = {
   breadth_groups: Breadth[];
   disclaimer: string;
 };
-const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-garden.json'), 'utf8')) as GardenData;
+const renameStrategyTerms = (raw: string) => raw
+  .replaceAll('准备种花', '候场').replaceAll('准备摘花', '止盈观察')
+  .replaceAll('种花', '伏击').replaceAll('摘花', '兑现')
+  .replaceAll('失效退出', '破位撤退').replaceAll('回踩位', '伏击位')
+  .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
+  .replaceAll('ETF花园', 'ETF罗盘');
+const data = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/us-etf-garden.json'), 'utf8'))) as GardenData;
 const sections = [
-  { key: 'exit', icon: '🛑', title: '失效退出', note: '触及前一快照失效线，风险动作最高优先', tone: 'exit' },
-  { key: 'harvest', icon: '✂️', title: '摘花触发', note: '盘中触及前一快照目标位', tone: 'harvest' },
-  { key: 'plant', icon: '🪴', title: '种花触发', note: '触及回踩位且趋势未失效', tone: 'plant' },
-  { key: 'ready_harvest', icon: '🌼', title: '准备摘花', note: '距目标3%以内或短期过热', tone: 'ready' },
-  { key: 'ready_plant', icon: '🌱', title: '准备种花', note: '距回踩位3%以内，等待分批进入', tone: 'ready' },
+  { key: 'exit', icon: '🛑', title: '破位撤退', note: '触及前一快照防守线，风险动作最高优先', tone: 'exit' },
+  { key: 'harvest', icon: '✂️', title: '兑现触发', note: '盘中触及前一快照兑现位', tone: 'harvest' },
+  { key: 'plant', icon: '🪴', title: '伏击触发', note: '触及伏击位且趋势未失效', tone: 'plant' },
+  { key: 'ready_harvest', icon: '🌼', title: '止盈观察', note: '距目标3%以内或短期过热', tone: 'ready' },
+  { key: 'ready_plant', icon: '🌱', title: '候场', note: '距伏击位3%以内，等待分批进入', tone: 'ready' },
 ];
 const activeSections = sections.map((section) => ({ ...section, items: data.flower_signals[section.key] || [] })).filter((section) => section.items.length > 0);
 const firstAction = activeSections[0]?.items[0];
@@ -35,11 +41,11 @@ const secondaryRecommendations = (data.recommendations || []).filter((item) => !
 const topBreadth = (data.breadth_groups || []).slice(0, 3);
 const formatPrice = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? `$${value.toFixed(2)}` : '—';
 const formatTime = (value: string) => value ? value.replace('T', ' ').replace(/\.\d+/, '').replace(/([+-]\d\d:\d\d|Z)$/, '') : '—';
-const activeLabel = (key: string) => key === 'exit' ? '失效线' : key.includes('harvest') ? '目标位' : '回踩位';
+const activeLabel = (key: string) => key === 'exit' ? '防守线' : key.includes('harvest') ? '兑现位' : '伏击位';
 const actionCopy = (key: string) => ({
   exit: '立即退出并复核失效条件',
   harvest: '分批兑现，不等回落确认',
-  plant: '触发后分批种花，不一次打满',
+  plant: '触发后分批伏击，不一次打满',
   ready_harvest: '不追高，进入分批兑现观察',
   ready_plant: '只挂条件，不提前追价',
 }[key] || '按触发条件执行');
@@ -48,7 +54,7 @@ const actionCopy = (key: string) => ({
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title="美股ETF花园｜今日动作" description="美股ETF交易仪表盘：优先展示退出、摘花、种花动作及现价、回踩位、目标位和失效线。" />
+    <BaseHead title="美股ETF罗盘｜今日动作" description="美股ETF交易仪表盘：优先展示退出、兑现、伏击动作及现价、伏击位、兑现位和防守线。" />
     <style>
       main { width: min(1180px, calc(100% - 1.5rem)); padding: 1.25rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #f3f8ff, #fff); }
@@ -157,16 +163,16 @@ const actionCopy = (key: string) => ({
         {firstAction ? <div class="top-action"><span>⚡</span><div><small>第一优先级｜{activeSections[0].title}</small><strong>{firstAction.symbol} · {actionCopy(activeSections[0].key)}</strong></div></div> : <div class="top-action"><span>✓</span><div><small>今日动作</small><strong>没有触发类信号，保持观察，不机械凑数。</strong></div></div>}
       </section>
 
-      <section aria-label="美股ETF花朵信号">
+      <section aria-label="美股ETF战术信号">
         <div class="section-head"><div><span class="pill us-pill">ACTION QUEUE</span><h2>今日待办</h2></div><a href="/us-momentum/">进入完整趋势雷达 →</a></div>
-        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><span class="icon">{section.icon}</span><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state">{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div><div class={`level ${activeLabel(section.key) === '回踩位' ? 'active' : ''}`}><span>回踩位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '目标位' ? 'active' : ''}`}><span>目标位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '失效线' ? 'active' : ''}`}><span>失效线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
+        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><span class="icon">{section.icon}</span><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state">{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
       </section>
 
-      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card"><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距回踩位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><div class="secondary-price"><span>现价</span><b>{formatPrice(item.price)}</b></div></article>)}</div></section>}
+      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card"><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><div class="secondary-price"><span>现价</span><b>{formatPrice(item.price)}</b></div></article>)}</div></section>}
 
       <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">SECTOR BREADTH</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
-      <details class="method card"><summary>如何理解趋势、风险与花朵信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与摘花优先于新增种花。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟交易</a><a href="/us-momentum/">趋势雷达</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF花园</a></div></details>
+      <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟交易</a><a href="/us-momentum/">趋势雷达</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
     </main>
     <Footer />
   </body>

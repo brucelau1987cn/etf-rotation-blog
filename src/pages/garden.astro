@@ -40,22 +40,28 @@ type GardenRecommendations = {
   level_data_as_of?: string;
 };
 
-const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf-8')) as GardenRecommendations;
+const renameStrategyTerms = (raw: string) => raw
+  .replaceAll('准备种花', '候场').replaceAll('准备摘花', '止盈观察')
+  .replaceAll('种花', '伏击').replaceAll('摘花', '兑现')
+  .replaceAll('失效退出', '破位撤退').replaceAll('回踩位', '伏击位')
+  .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
+  .replaceAll('ETF花园', 'ETF罗盘');
+const data = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf-8'))) as GardenRecommendations;
 const harvest = data.harvest || [];
 const plant = data.plant || [];
 const watch = data.watch || [];
 const priorityRank: Record<string, number> = { 高: 4, 中高: 3, 中: 2, 观察: 1 };
 const topAction = [...harvest, ...plant].sort((a, b) => (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0))[0];
 const counts = {
-  harvest: harvest.filter((item) => item.status === '摘花').length,
-  readyHarvest: harvest.filter((item) => item.status === '准备摘花').length,
-  plant: plant.filter((item) => item.status === '种花').length,
-  readyPlant: plant.filter((item) => item.status === '准备种花').length,
+  harvest: harvest.filter((item) => item.status === '兑现').length,
+  readyHarvest: harvest.filter((item) => item.status === '止盈观察').length,
+  plant: plant.filter((item) => item.status === '伏击').length,
+  readyPlant: plant.filter((item) => item.status === '候场').length,
 };
 const formatPrice = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '待更新';
 const formatDistance = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? `${Math.abs(value).toFixed(1)}%` : '待更新';
-const pageTitle = `A股ETF花园｜今日推荐 | ${SITE_TITLE}`;
-const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结论、种花摘花动作、当前价、关键位、目标位与失效线。';
+const pageTitle = `A股ETF罗盘｜今日推荐 | ${SITE_TITLE}`;
+const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结论、伏击兑现动作、当前价、关键位、兑现位与防守线。';
 ---
 
 <!doctype html>
@@ -169,10 +175,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           </div>
         </div>
         <div class="count-strip" aria-label="今日动作数量">
-          <div class="count harvest"><span>🟢 摘花</span><strong>{counts.harvest}</strong></div>
-          <div class="count harvest"><span>🟢 准备摘花</span><strong>{counts.readyHarvest}</strong></div>
-          <div class="count plant"><span>🔴 种花</span><strong>{counts.plant}</strong></div>
-          <div class="count plant"><span>🔴 准备种花</span><strong>{counts.readyPlant}</strong></div>
+          <div class="count harvest"><span>🟢 兑现</span><strong>{counts.harvest}</strong></div>
+          <div class="count harvest"><span>🟢 止盈观察</span><strong>{counts.readyHarvest}</strong></div>
+          <div class="count plant"><span>🔴 伏击</span><strong>{counts.plant}</strong></div>
+          <div class="count plant"><span>🔴 候场</span><strong>{counts.readyPlant}</strong></div>
         </div>
         <div class="decision-grid">
           <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
@@ -184,7 +190,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       </section>
 
       <section aria-labelledby="harvest-title">
-        <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">摘花 / 准备摘花</h2></div><p>先处理兑现和失效风险，再考虑新增仓位</p></div>
+        <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">兑现 / 止盈观察</h2></div><p>先处理兑现和失效风险，再考虑新增仓位</p></div>
         <div class="signal-grid">
           {harvest.map((item) => <article class="signal-card harvest card" id={`etf-${item.code}`}>
             <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span></div></div>
@@ -192,7 +198,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
               <div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div>
               <div class="level active"><span>{item.action_level_label || '动作位'}</span><b>{formatPrice(item.action_level)}</b></div>
               <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-              <div class="level"><span>失效线</span><b>{formatPrice(item.stop)}</b></div>
+              <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
             </div>
             <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
             <p class="action-copy"><strong>动作：</strong>{item.action}</p>
@@ -202,7 +208,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       </section>
 
       <section aria-labelledby="plant-title">
-        <div class="section-head"><div><span class="pill pill-red">🔴 低吸区</span><h2 id="plant-title">种花 / 准备种花</h2></div><p>执行回踩位和失效线，不追高开</p></div>
+        <div class="section-head"><div><span class="pill pill-red">🔴 低吸区</span><h2 id="plant-title">伏击 / 候场</h2></div><p>执行伏击位和防守线，不追高开</p></div>
         <div class="signal-grid">
           {plant.map((item) => <article class="signal-card card" id={`etf-${item.code}`}>
             <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span></div></div>
@@ -210,7 +216,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
               <div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div>
               <div class="level active"><span>{item.action_level_label || '动作位'}</span><b>{formatPrice(item.action_level)}</b></div>
               <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-              <div class="level"><span>失效线</span><b>{formatPrice(item.stop)}</b></div>
+              <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
             </div>
             <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
             <p class="action-copy"><strong>动作：</strong>{item.action}</p>

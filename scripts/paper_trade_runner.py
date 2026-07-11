@@ -243,9 +243,10 @@ def format_trade_notice(market, trades, account):
     if not trades: return ""
     unit="¥" if market=="A" else "$"; lines=[f"{'🇨🇳 A股' if market=='A' else '🇺🇸 美股'}ETF虚拟交易"]
     for x in trades:
-        action="买入" if x["side"]=="buy" else "卖出"
-        icon="🪴" if x["side"]=="buy" else ("🛑" if x["reason"]=="stop" else "✂️")
-        lines.append(f"{icon} {action} {x['symbol']}｜{x['quantity']}份 × {unit}{x['price']:.3f}｜费用 {unit}{x['cost']:.2f}｜{x['reason']}")
+        action="伏击" if x["side"]=="buy" else ("撤退" if x["reason"]=="stop" else "兑现")
+        reason={"plant":"正式伏击信号","target":"触及兑现位","stop":"跌破防守线"}.get(x["reason"],x["reason"])
+        icon="🎯" if x["side"]=="buy" else ("🛑" if x["reason"]=="stop" else "✅")
+        lines.append(f"{icon} {action} {x['symbol']}｜{x['quantity']}份 × {unit}{x['price']:.3f}｜费用 {unit}{x['cost']:.2f}｜{reason}")
     lines.append(f"账户权益 {unit}{account['equity']:,.2f}｜现金占比 {account.get('cash_ratio',1)*100:.1f}%")
     lines.append("⚠️ 虚拟交易，不是实盘订单。")
     return "\n".join(lines)

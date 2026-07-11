@@ -28,17 +28,17 @@ import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
     <main>
       <section class="intro">
         <span class="pill pill-red">由 {SITE_AUTHOR} 维护</span>
-        <h1>ETF花园策略框架</h1>
-        <p>站点现在以ETF花园为主系统：花园负责信号库，每日复盘解释信号迁移，动量雷达负责右侧确认。个股分析保留为历史归档，主线聚焦ETF。</p>
+        <h1>ETF罗盘策略框架</h1>
+        <p>站点现在以ETF罗盘为主系统：罗盘负责信号库，每日复盘解释信号迁移，动量雷达负责右侧确认。个股分析保留为历史归档，主线聚焦ETF。</p>
       </section>
 
       <section>
-        <h2>花园状态库</h2>
+        <h2>罗盘状态库</h2>
         <div class="flow">
-          <div class="flow-row"><span class="pill pill-red">准备种花库</span><p>低吸观察池，重点看弱20日基础、回踩承接、收盘位置和隔日确认。</p></div>
-          <div class="flow-row"><span class="pill pill-red">种花</span><p>从准备种花库晋级，代表真正种花/持有观察动作。</p></div>
-          <div class="flow-row"><span class="pill pill-green">准备摘花</span><p>来自种花库，进入止盈观察，重点看位置打满、冲高滞涨和高位强势。</p></div>
-          <div class="flow-row"><span class="pill pill-green">摘花</span><p>从种花库晋级，代表兑现/减仓动作。</p></div>
+          <div class="flow-row"><span class="pill pill-red">候场库</span><p>低吸观察池，重点看弱20日基础、回踩承接、收盘位置和隔日确认。</p></div>
+          <div class="flow-row"><span class="pill pill-red">伏击</span><p>从候场库晋级，代表真正伏击/持有观察动作。</p></div>
+          <div class="flow-row"><span class="pill pill-green">止盈观察</span><p>来自伏击库，进入止盈观察，重点看位置打满、冲高滞涨和高位强势。</p></div>
+          <div class="flow-row"><span class="pill pill-green">兑现</span><p>从伏击库晋级，代表兑现/减仓动作。</p></div>
         </div>
       </section>
 
@@ -57,28 +57,28 @@ import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
       <section class="two-col">
         <div class="card">
           <h2>三类机会</h2>
-          <h3>低位种花</h3>
-          <p>准备种花库里的弱势回踩品种，等待收盘确认和隔日承接。</p>
-          <h3>持有摘花</h3>
-          <p>种花库里的高位强势品种，靠近目标价后分批兑现。</p>
+          <h3>低位伏击</h3>
+          <p>候场库里的弱势回踩品种，等待收盘确认和隔日承接。</p>
+          <h3>持有兑现</h3>
+          <p>伏击库里的高位强势品种，靠近目标价后分批兑现。</p>
           <h3>轮动迁移</h3>
           <p>红转绿、绿转红和准备态晋级动作，是命中率复盘的核心样本。</p>
         </div>
         <div class="card">
           <h2>复盘方法</h2>
           <ol>
-            <li>记录花园预测与盘中推荐。</li>
+            <li>记录罗盘预测与盘中推荐。</li>
             <li>收盘后拉取实际涨跌幅和位置。</li>
-            <li>统计准备种花 → 种花、准备摘花 → 摘花的迁移。</li>
+            <li>统计候场 → 伏击、止盈观察 → 兑现的迁移。</li>
             <li>检查新闻遗漏、资金背离、高位过热和低位补跌。</li>
-            <li>更新下一轮花园权重。</li>
+            <li>更新下一轮罗盘权重。</li>
           </ol>
         </div>
       </section>
 
       <section class="notice">
         <strong>每日同步约定</strong>
-        <p>预测、盘中修正和收盘复盘进入正式结论后，同步写入ETF花园或每日复盘；首页跟随最新交易窗口更新。</p>
+        <p>预测、盘中修正和收盘复盘进入正式结论后，同步写入ETF罗盘或每日复盘；首页跟随最新交易窗口更新。</p>
       </section>
 
       <section class="notice">
