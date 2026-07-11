@@ -7,7 +7,7 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
-import { isDailyReviewPost, isEtfPickPost, isEtfResearchPost, isPublicEtfPost, sortByPubDateDesc, summarizeDescription } from '../lib/posts';
+import { isDailyReviewPost, isEtfResearchPost, isPublicEtfPost, sortByPubDateDesc, summarizeDescription } from '../lib/posts';
 
 interface RecommendationItem {
   code: string;
@@ -31,7 +31,7 @@ interface GardenData {
 const garden = JSON.parse(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf8')) as GardenData;
 const allPosts = (await getCollection('blog')).filter(isPublicEtfPost).sort(sortByPubDateDesc);
 const latestDaily = allPosts.filter(isDailyReviewPost).slice(0, 3);
-const latestResearch = allPosts.filter((post) => isEtfResearchPost(post) || isEtfPickPost(post)).slice(0, 2);
+const latestResearch = allPosts.filter(isEtfResearchPost).slice(0, 1);
 const harvest = garden.harvest.slice(0, 3);
 const plant = garden.plant.slice(0, 3);
 ---
@@ -67,7 +67,7 @@ const plant = garden.plant.slice(0, 3);
       .path-card { padding: 1rem; }
       .path-card strong { display: block; margin: 0.45rem 0 0.25rem; }
       .path-card p { margin: 0; color: rgb(var(--gray)); font-size: 0.88rem; }
-      .research-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+      .research-row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
       @media (max-width: 900px) { .hero, .signal-columns { grid-template-columns: 1fr; } .hero { padding-top: 2rem; } }
       @media (max-width: 720px) { .read-path, .research-row { grid-template-columns: 1fr; } .hero h1 { font-size: clamp(2rem, 11vw, 3rem); } }
     </style>
@@ -132,9 +132,9 @@ const plant = garden.plant.slice(0, 3);
       </section>
 
       <section>
-        <div class="section-heading"><h2>策略研究</h2><a href="/research">全部研究 →</a></div>
+        <div class="section-heading"><h2>历史策略验证</h2><a href="/research">查看档案 →</a></div>
         <div class="research-row">
-          {latestResearch.map((post) => <a class="archive-card card" href={`/blog/${post.id}/`}><span class="pill">{post.data.category ?? 'ETF研究'}</span><h3>{post.data.title}</h3><p class="description">{summarizeDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a>)}
+          {latestResearch.map((post) => <a class="archive-card card" href={`/blog/${post.id}/`}><span class="pill">历史研测</span><h3>{post.data.title}</h3><p class="description">{summarizeDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a>)}
         </div>
       </section>
     </main>

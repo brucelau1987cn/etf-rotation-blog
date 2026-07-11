@@ -4,11 +4,79 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 import { cleanDescription, isEtfResearchPost, isStockPost, sortByPubDateDesc } from '../lib/posts';
-const posts = (await getCollection('blog')).filter((post) => isEtfResearchPost(post) && !isStockPost(post)).sort(sortByPubDateDesc);
+
+const posts = (await getCollection('blog'))
+  .filter((post) => isEtfResearchPost(post) && !isStockPost(post))
+  .sort(sortByPubDateDesc);
 ---
-<!doctype html><html lang="zh-CN"><head><BaseHead title={`研测 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} /></head><body><Header /><main>
-<section class="page-intro"><div class="kicker"><span class="pill pill-red">研测</span><span class="pill">策略实验</span></div><h1>把临盘发现沉淀成可验证规则</h1><p>这里收录筹码冰点、候选池筛选、持仓弹性与回测实验。每篇文章都围绕假设、证据、结论和后续验证展开。</p></section>
-<section><div class="section-heading"><h2>研究归档</h2><span class="pill">共 {posts.length} 篇</span></div><ul class="archive-grid">{posts.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div><span class="pill pill-red">{post.data.category ?? '研测'}</span></div><h2>{post.data.title}</h2><p class="description">{cleanDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}</ul></section>
-</main><Footer /></body></html>
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead
+      title="策略验证档案 | ETF花园"
+      description="ETF花园历史策略验证档案，保留筹码冰点、候选池筛选与轮动实验；当前操作以A股ETF花园和趋势雷达为准。"
+    />
+    <style>
+      .archive-note { margin-bottom: 1.1rem; padding: 1rem; }
+      .archive-note p { margin: 0.35rem 0 0; color: rgb(var(--gray)); }
+      .topic-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; margin-bottom: 1.4rem; padding: 1rem; }
+      .topic-card h2 { margin: 0.45rem 0 0.35rem; }
+      .topic-card p { margin: 0; color: rgb(var(--gray)); }
+      .topic-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+      .topic-links a { padding: 0.58rem 0.78rem; border-radius: 999px; background: var(--warm); border: 1px solid var(--border); text-decoration: none; font-weight: 850; white-space: nowrap; }
+      @media (max-width: 720px) {
+        .topic-card { grid-template-columns: 1fr; }
+        .topic-links { justify-content: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section class="page-intro">
+        <div class="kicker"><span class="pill pill-red">历史研究</span><span class="pill">策略验证档案</span></div>
+        <h1>策略验证档案</h1>
+        <p>保存已经完成的筹码冰点、候选池和轮动实验，记录规则从提出到验证的过程。这里不再承担日常推荐，当前操作以A股ETF花园和趋势雷达为准。</p>
+      </section>
+
+      <section class="archive-note card" aria-label="档案说明">
+        <strong>当前定位：历史方法与验证记录</strong>
+        <p>档案保留原始发布日期、数据口径和结论，方便追溯观点演变；不代表当前仍然生效的交易信号。</p>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>专题整理</h2><span class="pill pill-amber">历史验证</span></div>
+        <article class="topic-card card">
+          <div>
+            <span class="pill pill-red">筹码冰点专题</span>
+            <h2>ETF筹码冰点：从候选筛选到汽车ETF共振</h2>
+            <p>串联159530样本、516110候选筛选及成分股共振验证，保留代理筹码模型的适用条件与局限。</p>
+          </div>
+          <div class="topic-links">
+            <a href="/blog/research/2026-06-02/">① 候选筛选</a>
+            <a href="/blog/research/2026-06-03/">② 共振验证</a>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>历史研究归档</h2><span class="pill">共 {posts.length} 篇</span></div>
+        <ul class="archive-grid">
+          {posts.map((post) => (
+            <li>
+              <a class="archive-card card" href={`/blog/${post.id}/`}>
+                <div><span class="pill">历史研测</span></div>
+                <h2>{post.data.title}</h2>
+                <p class="description">{cleanDescription(post.data.description)}</p>
+                <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>
