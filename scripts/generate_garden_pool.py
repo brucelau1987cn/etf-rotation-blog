@@ -175,12 +175,51 @@ def calc_slope_momentum(closes: list[float]) -> float:
     return annualized_return * r2
 
 
-def risk_level(score: float) -> str:
-    if score >= 80:
-        return "低"
-    if score >= 65:
-        return "中"
-    return "高"
+def trading_risk(row: dict[str, Any], risk_flags: list[str]) -> tuple[float, str]:
+    """交易风险与趋势强度解耦：高动量不能自动等于低风险。"""
+    ret3 = safe_float(row.get("ret3"))
+    ret5 = safe_float(row.get("ret5"))
+    ret20 = safe_float(row.get("ret20"))
+    close_position = safe_float(row.get("close_position"))
+    volume_ratio = safe_float(row.get("volume_ratio"))
+    ma20 = safe_float(row.get("ma20"))
+    price = safe_float(row.get("price"))
+    distance_ma20 = pct(price, ma20) if math.isfinite(ma20) and ma20 > 0 else 0.0
+
+    risk = 18.0
+    risk += clamp(max(ret3 - 4, 0) * 3.0, 0, 18)
+    risk += clamp(max(ret5 - 7, 0) * 2.4, 0, 18)
+    risk += clamp(max(ret20 - 18, 0) * 1.1, 0, 24)
+    risk += clamp(max(distance_ma20 - 8, 0) * 1.4, 0, 18)
+    if close_position < 0.25:
+        risk += 12
+    elif close_position < 0.4:
+        risk += 7
+    if volume_ratio < 0.75 and ret3 > 2:
+        risk += 10
+    if not row.get("checks", {}).get("price_above_ma"):
+        risk += 16
+    risk += min(len(set(risk_flags)) * 5, 20)
+    risk = round(clamp(risk), 1)
+    level = "高" if risk >= 60 else ("中" if risk >= 35 else "低")
+    return risk, level
+
+
+def trade_state(row: dict[str, Any], risk_level: str, risk_flags: list[str]) -> tuple[str, str, int]:
+    score = safe_float(row.get("signal_score"))
+    status = row.get("status")
+    cooldown = "止盈观察" if ("高位过热" in risk_flags or "缩量冲高" in risk_flags) else (
+        "止损观察" if ("破位加速" in risk_flags or "跌破20日线" in risk_flags) else "正常"
+    )
+    if status != "core":
+        return ("退出" if score < 48 else "观察", cooldown, 0)
+    if risk_level == "高" or cooldown == "止盈观察":
+        return "禁止追高", "止盈观察", 0
+    if risk_level == "中":
+        return "回踩候选", cooldown, 0
+    if score >= 76:
+        return "可持有", cooldown, 15
+    return "观察", cooldown, 0
 
 
 def trading_agent_decision(row: dict[str, Any]) -> dict[str, Any]:
@@ -244,40 +283,31 @@ def trading_agent_decision(row: dict[str, Any]) -> dict[str, Any]:
     if ret3 < -5:
         bear.append("近3日回撤较深，惯性风险仍在")
 
-    if score >= 82 and row.get("status") == "core" and len(risk_flags) <= 1:
-        action, stance, weight = "加仓", "多头占优", 20
-    elif score >= 68 and row.get("status") == "core":
-        action, stance, weight = "持有", "多头占优", 15
-    elif score >= 58:
-        action, stance, weight = "观察", "分歧观察", 0
-    elif score >= 48:
-        action, stance, weight = "减仓", "风控占优", 0
-    else:
-        action, stance, weight = "退出", "空头占优", 0
-
-    if "高位过热" in risk_flags or "缩量冲高" in risk_flags:
-        cooldown = "止盈观察"
-    elif "破位加速" in risk_flags or "跌破20日线" in risk_flags:
-        cooldown = "止损观察"
-    else:
-        cooldown = "正常"
+    # 趋势强度和交易风险分别计算，动作由两者共同决定。
+    strength_level = "A" if score >= 78 else ("B" if score >= 65 else ("C" if score >= 52 else "D"))
+    risk_value, risk_name = trading_risk({**row, "signal_score": score}, risk_flags)
+    action, cooldown, weight = trade_state({**row, "signal_score": score}, risk_name, risk_flags)
+    stance = "趋势占优" if row.get("status") == "core" else ("分歧观察" if score >= 48 else "风控占优")
 
     return {
         "signal_score": score,
         "score": score,
+        "strength_level": strength_level,
+        "trading_risk_score": risk_value,
         "action": action,
+        "trade_state": action,
         "suggested_weight": weight,
         "cooldown_state": cooldown,
         "agent_bull": bull[:3] or ["暂无明确多头优势"],
         "agent_bear": bear[:3] or ["暂无主要空头压制"],
-        "risk_flags": risk_flags,
-        "risk_penalty": len(risk_flags),
-        "risk_level": risk_level(score),
-        "portfolio_verdict": f"{stance}｜{action}｜风险{risk_level(score)}",
+        "risk_flags": list(dict.fromkeys(risk_flags)),
+        "risk_penalty": len(set(risk_flags)),
+        "risk_level": risk_name,
+        "portfolio_verdict": f"趋势{strength_level}｜{action}｜交易风险{risk_name}",
         "agent_scores": {
             "动量Agent": round((short_score + trend_quality) / 2, 1),
-            "资金Agent": round(flow_quality, 1),
-            "风险Agent": round(risk_score, 1),
+            "量能Agent": round(flow_quality, 1),
+            "风险Agent": round(100 - risk_value, 1),
             "组合经理": score,
         },
     }
@@ -558,14 +588,38 @@ def main() -> int:
     cash = [x for x in rows if x.get("status") == "cash"]
 
     recommendations: list[dict[str, Any]] = []
-    weights = [25, 20, 15, 15, 10]
-    actionable = [r for r in core if safe_float(r.get("signal_score")) >= 58 and r.get("cooldown_state") != "止损观察"]
-    for idx, r in enumerate(actionable[: PARAMS["holding_count"]]):
+    actionable = [
+        r for r in core
+        if safe_float(r.get("signal_score")) >= 52
+        and r.get("trade_state") in {"可持有", "回踩候选", "观察"}
+    ]
+    # 主题去重：同一大主题最多一只，避免Top池被科技Beta重复占满。
+    def theme(row: dict[str, Any]) -> str:
+        name = str(row.get("name", ""))
+        groups = {
+            "科技": ("半导体", "科技", "科创", "信息技术", "计算机", "软件", "人工智能", "电子", "数字经济", "通信", "机器人"),
+            "医药": ("医药", "医疗", "创新药", "生物"),
+            "防御": ("银行", "煤炭", "红利", "电力", "黄金"),
+            "消费": ("消费", "酒", "家电", "旅游"),
+            "海外": ("恒生", "纳指", "标普", "道琼斯", "德国", "法国", "日经", "沙特", "印度", "东南亚"),
+            "新能源制造": ("电池", "光伏", "汽车", "电网", "工业母机", "军工", "航空航天"),
+        }
+        for label, keys in groups.items():
+            if any(key in name for key in keys):
+                return label
+        return str(row.get("type") or "其他")
+
+    used_themes: set[str] = set()
+    for r in actionable:
+        label = theme(r)
+        if label in used_themes:
+            continue
         rec = dict(r)
-        rec["recommended_weight"] = min(rec.get("suggested_weight") or 0, weights[idx] if idx < len(weights) else 10)
-        if rec["recommended_weight"] <= 0:
-            rec["recommended_weight"] = weights[idx] if idx < len(weights) else 10
+        rec["theme"] = label
         recommendations.append(rec)
+        used_themes.add(label)
+        if len(recommendations) >= PARAMS["holding_count"]:
+            break
 
     latest_trade_date = max((x.get("date", "") for x in rows if x.get("date")), default="2026-06-05")
     generated_at = now_cn().strftime("%Y-%m-%d %H:%M:%S UTC+08:00")
@@ -590,8 +644,10 @@ def main() -> int:
             "momentum_pass_count": len(core),
         },
         "market_regime": detect_market_regime(rows),
-        "strategy_version": "Bruce ETF TradingAgents v2",
-        "agent_pipeline": ["动量Agent", "资金Agent", "风险Agent", "多头研究员", "空头研究员", "组合经理"],
+        "strategy_version": "Bruce ETF Trend Radar v3",
+        "realtime_scope": ["当前价", "涨跌幅", "3/10/20日收益估算", "MA20趋势通过"],
+        "snapshot_scope": ["综合分", "交易风险", "交易状态", "量能质量", "市场状态", "仓位区间"],
+        "agent_pipeline": ["动量Agent", "量能Agent", "风险Agent", "多头研究员", "空头研究员", "组合经理"],
         "defensive_assets": DEFENSIVE_ASSETS,
         "recommendations": recommendations,
         "core_pool": core,

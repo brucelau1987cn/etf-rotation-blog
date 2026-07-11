@@ -3,8 +3,8 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 
-const title = 'ETF动量雷达｜ETF花园 71 池';
-const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选，再展开完整数据。';
+const title = 'ETF趋势雷达｜ETF花园 71 池';
+const description = 'ETF花园71池趋势确认工具：趋势强度、交易风险、交易状态与行情快照分开呈现。';
 ---
 
 <!doctype html>
@@ -28,7 +28,7 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
       .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
       .panel-head h2, .panel-head h3 { margin: 0; }
       .muted { color: rgb(var(--gray)); }
-      .summary-grid { display: grid; grid-template-columns: 0.8fr 0.8fr 2fr 0.8fr 0.8fr; gap: 0.65rem; margin: 0.85rem 0; }
+      .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.65rem; margin: 0.85rem 0; }
       .metric { padding: 0.8rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
       .metric strong { display: block; font-size: 1.12rem; margin-top: 0.22rem; line-height: 1.3; overflow-wrap: anywhere; }
       .metric.danger { background: #fff1ef; border-color: #ffd6cf; }
@@ -76,6 +76,7 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
       .explain-list { display: grid; gap: 0.75rem; padding: 0; margin: 0; list-style: none; }
       .explain-list li { padding: 0.8rem; border: 1px solid var(--border); border-radius: 16px; background: var(--warm-2); }
       .status-line { font-size: 0.9rem; color: rgb(var(--gray)); }
+      .scope-note { margin: 0.75rem 0 0; padding: 0.75rem 0.85rem; border-left: 4px solid #9a6700; background: #fff7d6; border-radius: 12px; color: #604400; font-size: 0.9rem; }
       .error { color: #b42318; font-weight: 800; }
       .data-details { border-radius: 20px; }
       .data-details > summary { cursor: pointer; list-style: none; padding: 1rem; font-weight: 900; }
@@ -93,9 +94,9 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
     <main>
       <section class="hero">
         <span class="pill pill-red">🔴 ETF花园 71 池</span>
-        <span class="pill">TradingAgents v2</span>
-        <h1>ETF动量雷达</h1>
-        <p>先看市场状态、操作结论和Top候选；需要下钻时再展开完整71池。动量、资金、位置和风险统一收敛成一张强弱表。</p>
+        <span class="pill">Trend Radar v3</span>
+        <h1>ETF趋势雷达</h1>
+        <p>这是趋势确认工具，不是买入推荐榜。趋势强度、交易风险和当前状态分别展示，先判断能否持有，再判断是否值得追。</p>
       </section>
 
       <section class="decision-board card" aria-label="今日决策看板">
@@ -109,12 +110,13 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
           <div id="decision-risk">风险：等待数据</div>
           <div id="decision-source">数据：加载中</div>
         </div>
+        <p class="scope-note" id="scope-note">模型分数、风险和仓位来自基准快照；盘中只更新价格、收益估算和MA20状态。</p>
       </section>
 
       <section class="toolbar card" aria-label="策略筛选">
         <div class="field"><label for="type-filter">资产类型</label><select id="type-filter"><option value="全部">全部</option><option value="海外">海外</option><option value="宽基">宽基</option><option value="行业">行业</option><option value="商品">商品</option><option value="货币">货币</option></select></div>
-        <div class="field"><label for="sort-key">排序方式</label><select id="sort-key"><option value="ret20">20日收益</option><option value="ret10">10日收益</option><option value="ret3">3日收益</option></select></div>
-        <div class="field"><label for="ma-period">均线周期</label><select id="ma-period"><option value="10">10日均线</option><option value="20" selected>20日均线</option></select></div>
+        <div class="field"><label for="state-filter">交易状态</label><select id="state-filter"><option value="全部">全部</option><option value="可持有">可持有</option><option value="回踩候选">回踩候选</option><option value="禁止追高">禁止追高</option><option value="观察">观察</option><option value="退出">退出</option></select></div>
+        <div class="field"><label for="sort-key">排序方式</label><select id="sort-key"><option value="signal_score">综合评分</option><option value="ret20">20日收益</option><option value="ret10">10日收益</option><option value="ret3">3日收益</option><option value="trading_risk_score">交易风险</option></select></div>
         <label class="checkline"><input type="checkbox" id="absolute-only" />仅看动量通过</label>
         <button class="primary" id="refresh-btn">刷新数据</button>
       </section>
@@ -122,13 +124,13 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
       <section class="summary-grid" aria-label="今日策略摘要">
         <div class="metric"><span class="muted">ETF池</span><strong id="metric-total">—</strong></div>
         <div class="metric"><span class="muted">动量通过</span><strong id="metric-pass">—</strong></div>
-        <div class="metric"><span class="muted">推荐持仓</span><strong id="metric-rec">—</strong></div>
+        <div class="metric"><span class="muted">代表观察</span><strong id="metric-rec">—</strong></div>
         <div class="metric"><span class="muted">市场状态</span><strong id="metric-regime">—</strong></div>
         <div class="metric"><span class="muted">实时刷新</span><strong id="metric-time">—</strong></div>
       </section>
 
       <section class="top-panel card" aria-label="组合经理Top5">
-        <div class="panel-head"><h2>组合经理 Top 5</h2><span class="pill pill-red">相对强势观察池</span></div>
+        <div class="panel-head"><h2>主题代表观察池</h2><span class="pill pill-red">同主题最多一只</span></div>
         <div class="rec-list" id="recommendations"></div>
       </section>
 
@@ -142,7 +144,7 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>名称</th><th>代码</th><th>类型</th><th>得分</th><th>动作</th><th>5日%</th><th>20日%</th><th>位置</th><th>冷却</th><th>风险</th></tr></thead>
+                <thead><tr><th>名称</th><th>代码</th><th>类型</th><th>趋势</th><th>状态</th><th>5日%</th><th>20日%</th><th>位置</th><th>交易风险</th><th>风险提示</th></tr></thead>
                 <tbody id="etf-body"><tr><td colspan="10">加载中…</td></tr></tbody>
               </table>
             </div>
@@ -158,7 +160,7 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
             <div class="panel-head"><h3>策略参数</h3></div>
             <ul class="explain-list">
               <li><strong>动量Agent：</strong>近5日强度 + 20/60日斜率R²，过滤弱反抽。</li>
-              <li><strong>资金Agent：</strong>用成交量比代理资金质量，后续叠加MX主力净流入。</li>
+              <li><strong>量能Agent：</strong>用成交量比衡量参与度；当前不等同于主力净流入。</li>
               <li><strong>风险Agent：</strong>高位过热、缩量冲高、跌破20日线进入冷却/降权。</li>
               <li><strong>组合经理：</strong>输出加仓/持有/观察/减仓/退出与建议仓位。</li>
             </ul>
@@ -237,60 +239,87 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
           momentum_pass_count: core.length,
         };
       }
+      const themeOf = (row) => {
+        const name = String(row.name || '');
+        const groups = [
+          ['科技', ['半导体', '科技', '科创', '信息技术', '计算机', '软件', '人工智能', '电子', '数字经济', '通信', '机器人']],
+          ['医药', ['医药', '医疗', '创新药', '生物']],
+          ['防御', ['银行', '煤炭', '红利', '电力', '黄金']],
+          ['消费', ['消费', '酒ETF', '家电', '旅游']],
+          ['海外', ['恒生', '纳指', '标普', '道琼斯', '德国', '法国', '日经', '沙特', '印度', '东南亚']],
+          ['新能源制造', ['电池', '光伏', '汽车', '电网', '工业母机', '军工', '航空航天']],
+        ];
+        return groups.find(([, keys]) => keys.some(key => name.includes(key)))?.[0] || row.type || '其他';
+      };
       function buildLiveRecommendations(rows) {
-        const weights = [25, 20, 15, 15, 10];
-        return [...rows]
-          .filter(r => r.status === 'core' && r.cooldown_state !== '止损观察')
-          .sort((a, b) => (Number(b.signal_score) || -Infinity) - (Number(a.signal_score) || -Infinity))
-          .slice(0, 5)
-          .map((r, i) => ({ ...r, recommended_weight: r.recommended_weight || r.suggested_weight || weights[i] || 10 }));
+        const candidates = [...rows]
+          .filter(r => r.status === 'core' && Number(r.signal_score) >= 52 && ['可持有', '回踩候选', '观察'].includes(r.trade_state || r.action))
+          .sort((a, b) => (Number(b.signal_score) || -Infinity) - (Number(a.signal_score) || -Infinity));
+        const selected = [];
+        const themes = new Set();
+        for (const row of candidates) {
+          const theme = themeOf(row);
+          if (themes.has(theme)) continue;
+          selected.push({ ...row, theme });
+          themes.add(theme);
+          if (selected.length >= 5) break;
+        }
+        return selected;
       }
       function render() {
         const type = $('type-filter').value;
+        const stateFilter = $('state-filter').value;
         const sortKey = $('sort-key').value;
-        // TradingAgents v2 表头已固定，不再动态切换均线列。
         let rows = applyLiveRows(rawRows);
-        rows.sort((a, b) => (Number(b[sortKey === 'ret20' ? 'signal_score' : sortKey]) || -Infinity) - (Number(a[sortKey === 'ret20' ? 'signal_score' : sortKey]) || -Infinity));
+        rows.sort((a, b) => (Number(b[sortKey]) || -Infinity) - (Number(a[sortKey]) || -Infinity));
         const summary = buildLiveSummary(rows);
         const recommendations = buildLiveRecommendations(rows);
         if (type !== '全部') rows = rows.filter(r => r.type === type);
+        if (stateFilter !== '全部') rows = rows.filter(r => (r.trade_state || r.action) === stateFilter);
         if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察');
         const recCodes = new Set(recommendations.map(r => r.code));
         const totalAfterFilter = rows.length;
         const liveTime = livePayload?.generated_at ? livePayload.generated_at.replace(' UTC+08:00', '').slice(11, 16) : null;
+        const generatedDate = livePayload?.generated_at?.slice(0, 10);
+        const tradeDate = payload?.latest_trade_date;
+        const isSnapshot = Boolean(generatedDate && tradeDate && generatedDate !== tradeDate);
+        const quoteState = isSnapshot ? '休市快照' : (livePayload ? '盘中行情' : '基准快照');
         const weak = [...rawRows].sort((a, b) => (Number(a.ret20) || Infinity) - (Number(b.ret20) || Infinity)).slice(0, 3);
         $('metric-total').textContent = `${summary.universe_count || rows.length}只`;
         $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察').length}只`;
         $('metric-rec').textContent = recommendations.map(r => r.code).join(' / ') || '空仓';
         $('metric-regime').textContent = payload?.market_regime?.state || '—';
-        $('metric-time').textContent = liveTime || new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        $('metric-time').textContent = `${quoteState}${liveTime ? ` ${liveTime}` : ''}`;
         const regime = payload?.market_regime || {};
         const state = regime.state || '—';
         const recNames = recommendations.slice(0, 3).map(r => `${r.code} ${r.name.replace(/ETF.*/, 'ETF')}`).join(' / ') || '空仓观察';
-        $('decision-title').textContent = `${state}市场｜${recommendations.length ? '相对强势观察' : '空仓防御'}｜动量通过 ${summary.core_count || 0}/${summary.universe_count || rows.length}`;
+        $('decision-title').textContent = `${state}市场｜${recommendations.length ? '主题代表观察' : '空仓防御'}｜趋势通过 ${summary.core_count || 0}/${summary.universe_count || rows.length}`;
         $('decision-subtitle').textContent = `Top候选：${recNames}。${actionHint(state)}。`;
-        $('decision-badges').innerHTML = [`<span class="badge-state ${stateClass(state)}">市场 ${state}</span>`, `<span class="badge-state">权益 ${regime.equity_allocation || '—'}</span>`, `<span class="badge-state">防御 ${regime.defense_allocation || '—'}</span>`, `<span class="badge-state">实时 ${liveTime || '—'}</span>`].join('');
+        $('decision-badges').innerHTML = [`<span class="badge-state ${stateClass(state)}">市场 ${state}</span>`, `<span class="badge-state">权益 ${regime.equity_allocation || '—'}</span>`, `<span class="badge-state">防御 ${regime.defense_allocation || '—'}</span>`, `<span class="badge-state">${quoteState} ${liveTime || '—'}</span>`].join('');
         $('decision-action').textContent = `操作：${actionHint(state)}`;
         $('decision-risk').textContent = `风险：${weak.length ? weak.map(r => r.code).join(' / ') : '暂无尾部数据'}`;
-        $('decision-source').textContent = `数据：${livePayload?.source || payload?.quote_source || 'stock-api'}｜${payload?.latest_trade_date || '—'}`;
-        $('date-pill').textContent = `评估 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${payload?.latest_trade_date || '—'}${liveTime ? `｜实时 ${liveTime}` : ''}`;
-        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，动量通过 ${summary.core_count || 0} 只，实时行情：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，延迟 ${livePayload.latency_ms}ms` : ''}`;
+        $('decision-source').textContent = `模型评估：${payload?.evaluation_date || '—'}｜行情交易日：${tradeDate || '—'}｜接口检查：${generatedDate || '—'} ${liveTime || ''}`;
+        $('date-pill').textContent = `模型 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${tradeDate || '—'}｜${quoteState}${liveTime ? ` ${liveTime}` : ''}`;
+        $('scope-note').textContent = `实时重算：${(payload?.realtime_scope || ['当前价', '收益估算', 'MA20状态']).join('、')}。快照字段：${(payload?.snapshot_scope || ['综合分', '交易风险', '交易状态', '市场状态']).join('、')}。`;
+        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，趋势通过 ${summary.core_count || 0} 只，${quoteState}：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，接口延迟 ${livePayload.latency_ms}ms` : ''}`;
         $('etf-body').innerHTML = rows.map(r => {
           const risks = (r.risk_flags || []).slice(0, 2).join(' / ') || '—';
-          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">Top</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td><strong>${fmt(r.signal_score)}</strong></td><td><span class="tag ${r.action === '减仓' || r.action === '退出' ? 'fail' : (r.action === '加仓' ? 'pass' : 'watch')}">${r.action || '观察'}</span></td><td class="${cls(r.ret5)}">${fmt(r.ret5)}%</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}%</td><td>${fmt(Number(r.close_position) * 100, 0)}%</td><td>${r.cooldown_state || '正常'}</td><td>${risks}</td></tr>`;
+          const tradeState = r.trade_state || r.action || '观察';
+          return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">代表</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td><strong>${r.strength_level || '—'} / ${fmt(r.signal_score)}</strong></td><td><span class="tag ${tradeState === '禁止追高' || tradeState === '退出' ? 'fail' : (tradeState === '可持有' ? 'pass' : 'watch')}">${tradeState}</span></td><td class="${cls(r.ret5)}">${fmt(r.ret5)}%</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}%</td><td>${fmt(Number(r.close_position) * 100, 0)}%</td><td><strong>${r.risk_level || '—'}</strong> / ${fmt(r.trading_risk_score, 0)}</td><td>${risks}</td></tr>`;
         }).join('') || '<tr><td colspan="13">当前筛选下无ETF。</td></tr>';
         $('recommendations').innerHTML = recommendations.map((r, i) => {
           const scores = r.agent_scores || {};
           const bull = (r.agent_bull || []).slice(0, 2).join('；');
           const bear = (r.agent_bear || []).slice(0, 2).join('；');
-          return `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.code} ${r.name}</h3><div class="rec-code">得分 ${fmt(r.signal_score)}｜${r.action || '观察'}｜${r.risk_level || '中'}风险</div></div><p class="rec-metrics"><span><strong>5日：</strong><span class="${cls(r.ret5)}">${fmt(r.ret5)}%</span>　<strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span></span><span><strong>仓位：</strong>${r.recommended_weight || r.suggested_weight || 0}%　<strong>位置：</strong>${fmt(Number(r.close_position) * 100, 0)}%</span></p><div class="agent-box"><strong>看点：</strong>${bull || '相对强势观察'}；<strong>风险：</strong>${bear || '暂无'}</div><div class="rec-tags"><span class="tag ${r.action === '减仓' || r.action === '退出' ? 'fail' : (r.action === '加仓' ? 'pass' : 'watch')}">${r.action || '观察'}</span><span class="tag ${r.risk_level === '高' ? 'fail' : 'watch'}">${r.risk_level || '中'}风险</span><span class="tag">${r.type}</span></div></div>`;
-        }).join('') || '<p class="muted">当前无ETF满足TradingAgents v2准入，按空仓/防御策略处理。</p>';
+          const tradeState = r.trade_state || r.action || '观察';
+          return `<div class="rec-card"><div class="rec-top"><h3>${i + 1}. ${r.code} ${r.name}</h3><div class="rec-code">趋势 ${r.strength_level || '—'} / ${fmt(r.signal_score)}｜交易风险 ${r.risk_level || '中'} / ${fmt(r.trading_risk_score, 0)}</div></div><p class="rec-metrics"><span><strong>5日：</strong><span class="${cls(r.ret5)}">${fmt(r.ret5)}%</span>　<strong>20日：</strong><span class="${cls(r.ret20)}">${fmt(r.ret20)}%</span></span><span><strong>状态：</strong>${tradeState}　<strong>位置：</strong>${fmt(Number(r.close_position) * 100, 0)}%</span></p><div class="agent-box"><strong>看点：</strong>${bull || '相对强势观察'}；<strong>风险：</strong>${bear || '暂无'}</div><div class="rec-tags"><span class="tag ${tradeState === '禁止追高' || tradeState === '退出' ? 'fail' : (tradeState === '可持有' ? 'pass' : 'watch')}">${tradeState}</span><span class="tag ${r.risk_level === '高' ? 'fail' : 'watch'}">${r.risk_level || '中'}风险</span><span class="tag">${r.theme || themeOf(r)}</span></div></div>`;
+        }).join('') || '<p class="muted">当前无ETF满足趋势强度与交易风险双重准入，按空仓/防御策略处理。</p>';
         $('today-notes').innerHTML = [
           `<li><strong>ETF花园 71 池：</strong>覆盖宽基/海外/行业/商品/LOF 五大类，评估日期 ${payload?.evaluation_date || '—'}。</li>`,
           recommendations.length ? `<li><strong>操作结论：</strong>${state}市场，${actionHint(state)}。</li><li><strong>Top观察：</strong>${recommendations.map(r => `${r.code} ${r.name}(${r.action || '观察'})`).join(' / ')}。</li>` : '<li><strong>空仓策略：</strong>绝对动量为空时看银华日利ETF 511880。</li>',
           weak.length ? `<li><strong>弱势尾部：</strong>${weak.map(r => `${r.name} ${fmt(r.ret20)}%`).join('，')}。</li>` : '',
           `<li><strong>市场状态：</strong>${payload?.market_regime?.state || '—'}，权益仓 ${payload?.market_regime?.equity_allocation || '—'}，防御仓 ${payload?.market_regime?.defense_allocation || '—'}。</li>`,
-          '<li><strong>本站口径：</strong>TradingAgents v2 多Agent评分；K线/价格由 stock-api v2.7.2 更新。</li>'
+          '<li><strong>本站口径：</strong>Trend Radar v3 将趋势强度、交易风险和交易状态分开；K线/价格由 stock-api v2.7.2 更新。</li>'
         ].join('');
         pinTableHeader();
       }
@@ -330,8 +359,7 @@ const description = 'ETF花园71池强弱雷达：先看市场状态和Top候选
           $('refresh-btn').textContent = '刷新数据';
         }
       }
-      ['type-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
-      $('ma-period').disabled = true;
+      ['type-filter', 'state-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
       $('refresh-btn').addEventListener('click', loadLive);
       document.querySelector('.table-wrap').addEventListener('scroll', pinTableHeader, { passive: true });
       load();
