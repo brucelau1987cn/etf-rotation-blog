@@ -9,13 +9,27 @@ import { SITE_AUTHOR } from '../consts';
 import { cleanDescription } from '../lib/posts';
 
 type Props = CollectionEntry<'blog'>['data'];
-const { title, description, pubDate, updatedDate, heroImage, category } = Astro.props;
+const { title, description, pubDate, updatedDate, appliesTo, dataAsOf, stage, heroImage, category } = Astro.props;
 const readableDescription = cleanDescription(description);
+const articleUrl = new URL(Astro.url.pathname, Astro.site);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description: readableDescription,
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate ?? pubDate).toISOString(),
+  author: { '@type': 'Person', name: SITE_AUTHOR },
+  publisher: { '@type': 'Organization', name: 'ETF花园' },
+  mainEntityOfPage: articleUrl.toString(),
+  inLanguage: 'zh-CN',
+};
 ---
 
 <html lang="zh-CN">
   <head>
-    <BaseHead title={title} description={description} />
+    <BaseHead title={title} description={readableDescription} type="article" />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <style>
       main { width: min(1080px, calc(100% - 2rem)); }
       .hero-image { width: 100%; margin-top: 1rem; }
@@ -40,6 +54,9 @@ const readableDescription = cleanDescription(description);
       .toc a.sub { padding-left: 1rem; font-size: 0.8rem; font-weight: 620; }
       .disclaimer { margin-top: 0.8rem; padding: 0.75rem; border-radius: 12px; background: var(--amber-soft); color: rgb(var(--gray-dark)); font-size: 0.8rem; line-height: 1.5; }
       .back-top { display: block; margin-top: 0.7rem; color: rgb(var(--gray)); font-size: 0.8rem; text-align: center; text-decoration: none; }
+      .status-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
+      .prose > h2:first-child { margin-top: 0; padding: 1rem 1.1rem 0; border: 1px solid rgba(214,61,46,.22); border-bottom: 0; border-radius: 18px 18px 0 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
+      .prose > h2:first-child + blockquote { margin-top: 0; border-radius: 0 0 18px 18px; border: 1px solid rgba(214,61,46,.22); border-top: 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
       @media (max-width: 960px) {
         .article-shell { grid-template-columns: 1fr; gap: 1rem; }
         .sidebar { position: static; order: -1; }
@@ -66,7 +83,12 @@ const readableDescription = cleanDescription(description);
           </div>
           <h1>{title}</h1>
           <p class="description">{readableDescription}</p>
-          {updatedDate && <div class="last-updated-on">更新于 <FormattedDate date={updatedDate} /></div>}
+          {(appliesTo || dataAsOf || stage) && <div class="status-meta">
+            {appliesTo && <span class="pill pill-red">适用交易日：{appliesTo}</span>}
+            {dataAsOf && <span class="pill">数据截止：{dataAsOf}</span>}
+            {stage && <span class="pill pill-amber">{stage}</span>}
+          </div>}
+          {updatedDate && <div class="last-updated-on">最后更新：<FormattedDate date={updatedDate} /></div>}
           <nav class="article-nav" aria-label="文章快捷导航"><a href="/garden">← 今日推荐</a><a href="/blog">全部复盘</a><a href="/momentum">动量雷达</a></nav>
         </header>
         <div class="article-shell">
@@ -75,7 +97,7 @@ const readableDescription = cleanDescription(description);
             <details open>
               <summary>本文目录</summary>
               <nav class="toc" id="article-toc"><span class="last-updated-on">正在生成目录…</span></nav>
-              <div class="disclaimer">个人研究记录，用于复盘ETF轮动框架，不构成投资建议。</div>
+              <div class="disclaimer">仅供个人研究与策略复盘，不构成投资建议。数据可能延迟、缺失或错误；历史表现不代表未来收益，交易风险由使用者自行承担。</div>
               <a class="back-top" href="#top">返回顶部 ↑</a>
             </details>
           </aside>

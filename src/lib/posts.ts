@@ -21,3 +21,8 @@ export const cleanDescription = (text: string) => text
   .replace(/\blatest_trade_date=[^，。]+[，,]\s*/gi, '')
   .replace(/\s+/g, ' ')
   .trim();
+
+export const summarizeDescription = (text: string, maxLength = 110) => {
+  const clean = cleanDescription(text);
+  return clean.length > maxLength ? `${clean.slice(0, maxLength).replace(/[，、；：\s]+$/u, '')}…` : clean;
+};

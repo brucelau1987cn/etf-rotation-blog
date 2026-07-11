@@ -15,9 +15,11 @@ const today = new Date();
       <a href="/research">策略研究</a>
       <a href="/garden/history">花园历史</a>
       <a href="/about">方法说明</a>
+      <a href="/rss.xml">RSS订阅</a>
       <a href="/token">工具</a>
     </nav>
   </div>
+  <div class="site-shell disclaimer">本站仅用于个人研究和策略复盘，不构成投资建议。数据可能延迟、缺失或错误；历史表现不代表未来收益，交易风险由使用者自行承担。</div>
   <div class="site-shell copyright">© {today.getFullYear()} {SITE_AUTHOR} · 个人研究记录</div>
 </footer>
 <style>
@@ -29,5 +31,7 @@ const today = new Date();
   .footer-links a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.86rem; font-weight: 750; }
   .footer-links a:hover { color: var(--accent); }
   .copyright { margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.78rem; color: rgb(var(--gray)); }
+  .disclaimer { margin-top: 1.35rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(255,255,255,.48); border: 1px solid var(--border); font-size: 0.78rem; line-height: 1.6; }
+  .disclaimer + .copyright { margin-top: 0.7rem; }
   @media (max-width: 720px) { .footer-inner { flex-direction: column; } .footer-links { justify-content: flex-start; } }
 </style>

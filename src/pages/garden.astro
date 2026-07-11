@@ -78,6 +78,7 @@ const watch = data.watch || [];
       .button.secondary { background: var(--warm); color: rgb(var(--black)); border: 1px solid var(--border); }
       .button:hover { color: #fff; transform: translateY(-1px); }
       .button.secondary:hover { color: rgb(var(--black)); }
+      .risk-note { margin: 1.2rem 0 0; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--amber-soft); color: rgb(var(--gray-dark)); font-size: 0.85rem; line-height: 1.6; }
       @media (max-width: 900px) {
         .hero, .recommend-grid, .watch-grid { grid-template-columns: 1fr; }
         main { width: min(100% - 1rem, 1180px); }
@@ -95,7 +96,8 @@ const watch = data.watch || [];
           <div class="decision-tags">
             <span class="pill pill-red">🔴 种花 = 低吸 / 持有观察</span>
             <span class="pill pill-green">🟢 摘花 = 止盈 / 减仓观察</span>
-            <span class="pill">更新时间：{updatedAt}</span>
+            <span class="pill pill-amber">适用交易日：{data.date}</span>
+            <span class="pill">数据截止：{updatedAt}</span>
           </div>
         </div>
         <aside class="strategy-card card">
@@ -115,7 +117,7 @@ const watch = data.watch || [];
         </div>
         <div class="recommend-grid">
           {harvest.map((item) => (
-            <article class="recommend-card green">
+            <article class="recommend-card green" id={`etf-${item.code}`}>
               <div class="recommend-top">
                 <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
                 <span class="priority">{item.status}｜{item.priority}</span>
@@ -137,7 +139,7 @@ const watch = data.watch || [];
         </div>
         <div class="recommend-grid">
           {plant.map((item) => (
-            <article class="recommend-card red">
+            <article class="recommend-card red" id={`etf-${item.code}`}>
               <div class="recommend-top">
                 <div class="ticker"><code>{item.code}</code><strong>{item.name}</strong></div>
                 <span class="priority">{item.status}｜{item.priority}</span>
@@ -162,6 +164,8 @@ const watch = data.watch || [];
           ))}
         </div>
       </section>
+
+      <p class="risk-note"><strong>风险提示：</strong>页面动作仅用于个人研究和策略复盘。行情与资金数据可能延迟、缺失或错误；历史表现不代表未来收益。种花、摘花均需结合个人仓位和触发条件独立决策。</p>
 
       <section class="links-panel card">
         <p>四窗口过程、历史命中和完整归档已移入历史页。</p>

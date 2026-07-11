@@ -5,7 +5,7 @@ import Footer from '../../components/Footer.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
-import { cleanDescription, isDailyReviewPost, sortByPubDateDesc } from '../../lib/posts';
+import { isDailyReviewPost, sortByPubDateDesc, summarizeDescription } from '../../lib/posts';
 
 const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortByPubDateDesc);
 ---
@@ -30,7 +30,7 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
       </section>
       <section class="latest-note card">
         <span class="pill pill-amber">阅读建议</span>
-        <p>先看最新一篇的“结论先行”和“今日推荐队列”，再按时间查看盘中修正。</p>
+        <p>先看最新一篇的“当前生效结论”和“次日执行清单”，再查看四窗口观点演变。</p>
         <a href="/garden">直接看今日推荐 →</a>
       </section>
       <section>
@@ -39,9 +39,9 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
           {posts.map((post) => (
             <li>
               <a class="archive-card card" href={`/blog/${post.id}/`}>
-                <div><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span></div>
+                <div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div>
                 <h2>{post.data.title}</h2>
-                <p class="description">{cleanDescription(post.data.description)}</p>
+                <p class="description">{summarizeDescription(post.data.description)}</p>
                 <p class="date"><FormattedDate date={post.data.pubDate} /></p>
               </a>
             </li>

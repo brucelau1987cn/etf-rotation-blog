@@ -1,5 +1,7 @@
 ---
 import { getEntry, render } from 'astro:content';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
@@ -12,6 +14,16 @@ if (!post) {
 }
 
 const { Content } = await render(post);
+const backtestRaw = readFileSync(join(process.cwd(), 'public/data/etf-garden-backtest.json'), 'utf8');
+const backtest = JSON.parse(backtestRaw.replace(/\bNaN\b/g, 'null'));
+const overall = backtest.summary.overall;
+const recentDates = Object.entries(backtest.summary.by_date)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .slice(-20) as [string, { count: number; next1_hit_rate: number; next3_hit_rate: number }][];
+const recentCount = recentDates.reduce((sum, [, item]) => sum + item.count, 0);
+const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
+  ? recentDates.reduce((sum, [, item]) => sum + item[key] * item.count, 0) / recentCount
+  : 0;
 ---
 
 <!doctype html>
@@ -24,7 +36,13 @@ const { Content } = await render(post);
       .content-card { padding: clamp(1rem, 2.8vw, 1.55rem); }
       .back-link { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.65rem 0.9rem; background: rgb(var(--black)); color: white; text-decoration: none; font-weight: 900; white-space: nowrap; }
       .back-link:hover { color: white; transform: translateY(-1px); }
+      .score-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 0.8rem 0 1.2rem; }
+      .score { padding: 0.95rem; }
+      .score span { display: block; color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 800; }
+      .score strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }
+      .score-note { margin: 0 0 1.3rem; color: rgb(var(--gray)); font-size: 0.84rem; line-height: 1.6; }
       @media (max-width: 760px) { .history-hero { display: block; } .back-link { margin-top: 1rem; } }
+      @media (max-width: 760px) { .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     </style>
   </head>
   <body>
@@ -37,6 +55,16 @@ const { Content } = await render(post);
           <p>这里保留四窗口对比、最近复盘命中、明日验证清单和旧入口；主入口 `/garden/` 只展示今日推荐。</p>
         </div>
         <a class="back-link" href="/garden/">返回今日推荐</a>
+      </section>
+      <section aria-labelledby="score-title">
+        <div class="section-heading"><h2 id="score-title">公开成绩单</h2><span class="pill">前复权 qfq · {backtest.generated_at}</span></div>
+        <div class="score-grid">
+          <div class="score card"><span>已验证历史信号</span><strong>{overall.count}</strong></div>
+          <div class="score card"><span>全样本次日方向</span><strong>{overall.next1_hit_rate.toFixed(1)}%</strong></div>
+          <div class="score card"><span>近20交易日次日方向</span><strong>{weighted('next1_hit_rate').toFixed(1)}%</strong></div>
+          <div class="score card"><span>近20交易日三日方向</span><strong>{weighted('next3_hit_rate').toFixed(1)}%</strong></div>
+        </div>
+        <p class="score-note">统计覆盖最近 {recentDates.length} 个有信号交易日、{recentCount} 条信号。方向命中只衡量后续涨跌方向，目标触发、真实可执行和收益验证分开统计；历史表现不代表未来收益。<a href="/data/etf-garden-backtest.json">查看完整机器可读数据</a></p>
       </section>
       <article class="content-card card prose">
         <Content />
