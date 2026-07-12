@@ -1,5 +1,5 @@
 ---
-title: 'ETF轮动池镜像：2026-06-04'
+title: 'ETF雷达池镜像：2026-06-04'
 description: '轮动池取自 youth-online 原网页，实时行情由 stock-api 更新。'
 pubDate: 2026-06-04
 category: '研测'

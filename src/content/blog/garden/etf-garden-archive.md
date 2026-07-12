@@ -1,5 +1,5 @@
 ---
-title: 'ETF花园历史详细归档'
+title: 'ETF雷达历史详细归档'
 description: 'ETF花园固定页压缩前的历史详细预测、推荐与实际信号记录。'
 pubDate: 2026-07-07
 updatedDate: 2026-07-07
