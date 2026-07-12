@@ -141,7 +141,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
-        .hero-copy p { font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .hero-copy p { font-size: .88rem; }
         .count-strip { grid-template-columns: repeat(4, minmax(66px,1fr)); gap: .3rem; overflow-x: auto; }
         .count { padding: .55rem .45rem; }
         .count strong { font-size: 1.1rem; }
@@ -173,6 +173,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           <div class="meta-line" aria-label="数据元信息">
             <span class="pill pill-amber">适用：{data.date}</span>
             <span class="pill">截止：{data.updated_at}</span>
+            <span class="pill">行情：{data.level_data_as_of || '待更新'}</span>
             <span class="pill">{data.level_model_version || '关键位待更新'}</span>
           </div>
         </div>
@@ -202,7 +203,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
               <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
               <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
             </div>
-            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>行情{item.price_date || data.level_data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
             <p class="action-copy"><strong>动作：</strong>{item.action}</p>
             <p class="reason"><strong>依据：</strong>{item.trigger}</p>
           </article>)}
@@ -220,7 +221,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
               <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
               <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
             </div>
-            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+            <div class="distance"><span>距动作位 {formatDistance(item.distance_pct)}</span><span>行情{item.price_date || data.level_data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
             <p class="action-copy"><strong>动作：</strong>{item.action}</p>
             <p class="reason"><strong>依据：</strong>{item.trigger}</p>
           </article>)}
@@ -233,7 +234,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       </section>
 
       <p class="risk-note"><strong>风险提示：</strong>ATR关键位来自qfq日线模型，用于统一执行口径，不替代盘中资金、成交和个人仓位判断；行情可能延迟，历史表现不代表未来收益。</p>
-      <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/paper/">模拟交易</a><a class="button" href="/momentum/">A股趋势风控雷达</a><a class="button" href="/blog/">A股盘后复盘</a><a class="button" href="/garden/history/">历史复盘</a><a class="button" href="/research/">策略档案</a></div></section>
+      <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/paper/">模拟盘</a><a class="button" href="/momentum/">A股趋势风控雷达</a><a class="button" href="/blog/">A股盘后复盘</a><a class="button" href="/garden/history/">历史复盘</a><a class="button" href="/research/">策略档案</a></div></section>
     </main>
     <Footer />
   </body>

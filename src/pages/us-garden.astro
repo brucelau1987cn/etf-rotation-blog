@@ -26,7 +26,8 @@ const renameStrategyTerms = (raw: string) => raw
   .replaceAll('种花', '伏击').replaceAll('摘花', '兑现')
   .replaceAll('失效退出', '破位撤退').replaceAll('回踩位', '伏击位')
   .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
-  .replaceAll('ETF花园', 'ETF罗盘');
+  .replaceAll('ETF花园', 'ETF罗盘')
+  .replaceAll('US ETF Garden', 'US ETF Compass').replaceAll('Flower Signals', 'Compass Signals');
 const data = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/us-etf-garden.json'), 'utf8'))) as GardenData;
 const macro = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-macro-dashboard.json'), 'utf8'));
 const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tight' ? '🟠' : macro.risk.key === 'slightly-tight' ? '🟡' : '🟢';
@@ -168,7 +169,7 @@ const actionCopy = (key: string) => ({
     <main>
       <UsSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
-        <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Garden v3'}</span></div></div>
+        <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Compass v3'}</span></div></div>
         <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span>{section.icon} {section.title}</span><strong>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
         <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
         <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
@@ -184,7 +185,7 @@ const actionCopy = (key: string) => ({
 
       <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">SECTOR BREADTH</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
-      <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟交易</a><a href="/us-momentum/">美股雷达</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
+      <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
     </main>
     <Footer />
   </body>

@@ -17,7 +17,7 @@ const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title="ETF 虚拟交易账户" description="A股与美股ETF规则化虚拟交易、持仓、净值和前向验证记录。" />
+    <BaseHead title="ETF模拟盘｜前向交易验证" description="A股与美股ETF模拟盘的规则化交易、持仓、净值和前向验证记录。" />
     <style>
       main{width:min(1120px,calc(100% - 1rem));padding:1rem 0 3rem}.card{border:1px solid var(--border);box-shadow:0 10px 30px rgba(26,36,30,.05)}
       .hero{padding:1.1rem;background:linear-gradient(135deg,#eef7f1,#fffaf1)}h1{margin:.3rem 0}.hero p{margin:.35rem 0}.muted{color:rgb(var(--gray));font-size:.8rem}
@@ -34,7 +34,7 @@ const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) 
     <main>
       <section class="hero card">
         <span class="pill">PAPER TRADING · FORWARD TEST</span>
-        <h1>ETF 虚拟交易验证</h1>
+        <h1>ETF模拟盘</h1>
         <p>严格按罗盘正式信号撮合；“准备”信号不成交。同一根K线同时触发时，先按失效处理。</p>
         <small class="muted">更新：{formatTime(data.updated_at)}（北京时间） · A股 ¥150,000｜美股 US$20,000</small>
       </section>

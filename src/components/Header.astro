@@ -6,7 +6,7 @@ const isHome = Astro.url.pathname === '/';
 
 <header>
   <nav class="site-shell" aria-label="主导航">
-    <a class:list={['brand', { active: isHome }]} href="/" aria-label={`${SITE_TITLE}首页`}>
+    <a class:list={['brand', { active: isHome }]} href="/" aria-label={`${SITE_TITLE}首页`} aria-current={isHome ? 'page' : undefined}>
       <span class="mark">ETF</span>
       <span class="brand-copy"><strong>{SITE_TITLE}</strong><small>伏击 · 兑现 · 复盘</small></span>
     </a>
