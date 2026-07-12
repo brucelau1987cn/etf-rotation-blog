@@ -151,7 +151,7 @@ def fomc_events(today: date) -> list[dict[str, Any]]:
         if end < today:
             continue
         found.append({
-            "date": start.isoformat(), "end_date": end.isoformat(), "time_et": "14:00",
+            "date": end.isoformat(), "start_date": start.isoformat(), "end_date": end.isoformat(), "time_et": "14:00",
             "title": "FOMC利率决议", "importance": "高", "tone": "warning",
             "symbols": ["SPY", "QQQ", "TLT", "XLF"],
             "discipline": "决议前不追高，保留现金应对波动",
@@ -200,7 +200,9 @@ def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
     if len(unemployment_rows) >= 15:
         averages = [(unemployment_rows[i][0], sum(value for _, value in unemployment_rows[i-2:i+1]) / 3) for i in range(2, len(unemployment_rows))]
         current_date, current_average = averages[-1]; prior_low = min(value for _, value in averages[-13:-1])
-        output["sahm"] = {"value": round(current_average - prior_low, 2), "date": current_date, "change": 0,
+        current_sahm = current_average - prior_low
+        previous_sahm = averages[-2][1] - min(value for _, value in averages[-14:-2]) if len(averages) >= 14 else None
+        output["sahm"] = {"value": round(current_sahm, 2), "date": current_date, "change": round(current_sahm - previous_sahm, 2) if previous_sahm is not None else None,
                           "source": "BLS unemployment · calculated Sahm rule", "series": "LNS14000000", "frequency": "月频", "unit": "百分点", "stale": False}
     return output
 
@@ -219,8 +221,10 @@ def treasury_fallback(today: date) -> dict[str, dict[str, Any]]:
         value = float(rows[-1][column]); previous = float(rows[-2][column])
         output[key] = {"value": value, "date": datetime.strptime(rows[-1]["Date"], "%m/%d/%Y").date().isoformat(), "change": round(value - previous, 4),
                        "previous": previous, "source": "U.S. Department of the Treasury", "series": column, "frequency": "日频", "unit": "%", "stale": False}
-    output["curve_10y2y"] = {"value": round(output["yield_10y"]["value"] - output["yield_2y"]["value"], 4), "date": output["yield_10y"]["date"],
-                              "change": 0, "source": "U.S. Department of the Treasury", "series": "10Y-2Y", "frequency": "日频", "unit": "%", "stale": False}
+    curve = output["yield_10y"]["value"] - output["yield_2y"]["value"]
+    previous_curve = output["yield_10y"]["previous"] - output["yield_2y"]["previous"]
+    output["curve_10y2y"] = {"value": round(curve, 4), "date": output["yield_10y"]["date"],
+                              "change": round(curve - previous_curve, 4), "source": "U.S. Department of the Treasury", "series": "10Y-2Y", "frequency": "日频", "unit": "%", "stale": False}
     return output
 
 
@@ -294,6 +298,9 @@ def main() -> None:
     for key, item in previous_snapshot.get("official", {}).items():
         if key not in official:
             official[key] = {**item, "stale": True}
+    for key, item in previous_snapshot.get("market", {}).items():
+        if key not in market:
+            market[key] = {**item, "stale": True}
 
     def val(group: dict[str, dict[str, Any]], key: str) -> float | None:
         item = group.get(key)
@@ -308,7 +315,7 @@ def main() -> None:
     curve = val(official, "curve_10y2y")
     if curve is None and y10 is not None and y2 is not None:
         curve = round(y10 - y2, 4)
-    curve_10y30y = round(y10 - y30, 4) if y10 is not None and y30 is not None else None
+    curve_10y30y = y30 - y10 if y10 is not None and y30 is not None else None
     score = 0
     notes = []
     if vix is not None:
