@@ -180,7 +180,7 @@ def evaluate(item: tuple[str, str, str, str], data: dict[str, Any], spy_adj: lis
     if not momentum: flags.append("趋势未通过")
     return {
         "symbol": symbol, "name": name, "asset_type": asset_type, "theme": theme, "trade_date": rows[-1]["date"],
-        "price": round(raw[-1], 2), "day_high": round(finite(last["high"]), 2), "day_low": round(finite(last["low"]), 2), "adjusted_close": round(adj[-1], 4), "ret3": r3, "ret5": r5, "ret20": r20, "ret60": r60,
+        "price": round(raw[-1], 2), "day_open": round(finite(last["open"]), 2), "day_high": round(finite(last["high"]), 2), "day_low": round(finite(last["low"]), 2), "adjusted_close": round(adj[-1], 4), "ret3": r3, "ret5": r5, "ret20": r20, "ret60": r60,
         "relative_spy20": relative20, "relative_spy60": relative60, "ma20": round(ma20 * raw[-1] / adj[-1], 2), "ma60": round(ma60 * raw[-1] / adj[-1], 2),
         "volume_ratio": vol_ratio, "close_position": round(close_pos, 3), "max_drawdown20": round(max_dd, 2), "volatility20": round(volatility, 2),
         "trend_score": trend_score, "strength_level": strength, "trading_risk_score": risk_score, "risk_level": risk, "trade_state": state,
