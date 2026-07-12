@@ -4,6 +4,7 @@ import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
+import AStockSubnav from '../../components/AStockSubnav.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 import { isDailyReviewPost, sortByPubDateDesc, summarizeDescription } from '../../lib/posts';
 
@@ -15,6 +16,7 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
   <head>
     <BaseHead title={`A股ETF复盘 | ${SITE_TITLE}`} description={`A股ETF复盘：${SITE_DESCRIPTION}`} />
     <style>
+      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 4rem; }
       .latest-note { display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center; margin: 0 0 1rem; padding: 0.85rem 1rem; }
       .latest-note p { margin: 0; color: rgb(var(--gray)); font-size: 0.9rem; }
       @media (max-width: 680px) { .latest-note { grid-template-columns: 1fr; } }
@@ -23,6 +25,7 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
   <body>
     <Header />
     <main>
+      <AStockSubnav active="review" />
       <section class="page-intro">
         <div class="kicker"><span class="pill pill-red">A股ETF复盘</span><span class="pill">预测 → 修正 → 收盘 → 验证</span></div>
         <h1>A股ETF复盘</h1>

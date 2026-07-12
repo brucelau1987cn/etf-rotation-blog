@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import AStockSubnav from '../components/AStockSubnav.astro';
 import { SITE_TITLE } from '../consts';
 
 type Recommendation = {
@@ -69,7 +70,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
   <head>
     <BaseHead title={pageTitle} description={pageDescription} />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1.25rem 0 3rem; }
+      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
       .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); }
@@ -137,7 +138,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .decision-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       }
       @media (max-width: 620px) {
-        main { width: min(100% - 1rem, 1180px); padding-top: .7rem; }
+        main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -161,6 +162,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
   <body>
     <Header />
     <main>
+      <AStockSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
           <div class="hero-copy">
