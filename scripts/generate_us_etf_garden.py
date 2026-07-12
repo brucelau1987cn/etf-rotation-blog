@@ -73,6 +73,14 @@ UNIVERSE: list[tuple[str, str, str, str]] = [
     ("COPX", "Global X Copper Miners", "行业", "铜矿"),
     ("VNQ", "Vanguard Real Estate ETF", "行业", "房地产"),
     ("XHB", "SPDR S&P Homebuilders", "行业", "房屋建筑"),
+    # 东岳看台候选扩展：补足量子、非美、因子、综合债券与加密资产。
+    ("QTUM", "Defiance Quantum ETF", "主题", "量子计算"),
+    ("VXUS", "Vanguard Total International Stock ETF", "海外", "全球除美国"),
+    ("SCHD", "Schwab U.S. Dividend Equity ETF", "因子", "红利价值"),
+    ("SPMO", "Invesco S&P 500 Momentum ETF", "因子", "动量"),
+    ("FBND", "Fidelity Total Bond ETF", "债券", "综合债券"),
+    ("IBIT", "iShares Bitcoin Trust ETF", "加密资产", "比特币"),
+    ("ETHA", "iShares Ethereum Trust ETF", "加密资产", "以太坊"),
 ]
 
 BREADTH_GROUPS: dict[str, list[str]] = {
@@ -87,6 +95,9 @@ BREADTH_GROUPS: dict[str, list[str]] = {
     "新能源": ["TAN", "ICLN", "LIT"],
     "材料矿业": ["XLB", "XME", "GDX", "COPX"],
     "房地产": ["XLRE", "VNQ"],
+    "量子计算": ["QTUM"],
+    "红利与动量因子": ["SCHD", "SPMO"],
+    "加密资产": ["IBIT", "ETHA"],
 }
 
 
