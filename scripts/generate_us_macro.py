@@ -14,6 +14,7 @@ import math
 import os
 import re
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from datetime import date, datetime, timezone
@@ -26,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public/data/us-macro-dashboard.json"
 NY = ZoneInfo("America/New_York")
 UA = "Mozilla/5.0 ETF-Compass-Macro/1.0"
+POLL_DELAY_SECONDS = 2.0
 FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 
 FRED_META = {
@@ -374,13 +376,16 @@ def main() -> None:
     official: dict[str, dict[str, Any]] = {}
     now = datetime.now(NY)
     previous_snapshot = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
-    for key, symbol in {
+    yahoo_symbols = {
         "vix": "^VIX", "move": "^MOVE", "yield_10y_proxy": "^TNX", "yield_2y_proxy": "2YY=F",
         "spy": "SPY", "rsp": "RSP", "hyg": "HYG", "lqd": "LQD",
         "dollar": "DX-Y.NYB", "oil": "USO", "gold": "GLD", "copper": "COPX",
-    }.items():
+    }
+    for index, (key, symbol) in enumerate(yahoo_symbols.items()):
         try: market[key] = yahoo(symbol)
         except Exception as exc: failures[key] = str(exc)
+        if index < len(yahoo_symbols) - 1:
+            time.sleep(POLL_DELAY_SECONDS)
     for source_key, loader in {
         "bls": lambda: bls_fallback(now.date()),
         "treasury_yields": lambda: treasury_fallback(now.date()),
@@ -389,6 +394,7 @@ def main() -> None:
             official.update(loader())
         except Exception as exc:
             failures[source_key] = str(exc)
+        time.sleep(POLL_DELAY_SECONDS)
     for key, loader in {
         "sofr": nyfed_sofr,
         "rrp": lambda: nyfed_rrp(now.date()),
@@ -400,6 +406,7 @@ def main() -> None:
             official[key] = loader()
         except Exception as exc:
             failures[f"{key}_primary"] = str(exc)
+        time.sleep(POLL_DELAY_SECONDS)
 
     fred_available = True
     fred_series = {
@@ -421,6 +428,7 @@ def main() -> None:
             failures[key] = str(exc)
             if isinstance(exc, (TimeoutError, urllib.error.URLError)):
                 fred_available = False
+        time.sleep(POLL_DELAY_SECONDS)
     for key, item in previous_snapshot.get("official", {}).items():
         if key not in official:
             official[key] = {**item, "stale": True}
@@ -442,7 +450,16 @@ def main() -> None:
         if item.get("stale"):
             continue
         age = business_days_old(item.get("date"))
-        limit = 3 if key in daily_official else 8 if key == "fed_assets" else 10 if key == "gdpnow" else 35
+        if key in daily_official:
+            limit = 3
+        elif key == "fed_assets":
+            limit = 8
+        elif key == "gdpnow":
+            limit = 10
+        elif item.get("frequency") == "月频":
+            limit = 55  # Observation dates are period dates; releases can lag by several weeks.
+        else:
+            limit = 35
         item["stale"] = age > limit
         item["age_business_days"] = age
     for item in market.values():
