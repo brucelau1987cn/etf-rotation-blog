@@ -63,10 +63,10 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
       .agent-grid { display: grid; gap: 0.3rem; margin-top: 0.45rem; }
       .agent-box { border: 1px solid var(--border); border-radius: 12px; padding: 0.38rem 0.5rem; background: rgba(255,255,255,0.72); font-size: 0.74rem; line-height: 1.32; }
       .verdict { display: inline-flex; width: fit-content; margin-top: 0.5rem; border-radius: 999px; padding: 0.24rem 0.58rem; background: rgb(var(--black)); color: white; font-weight: 900; font-size: 0.76rem; }
-      .table-wrap { overflow: auto; max-height: 531px; border: 1px solid var(--border); border-radius: 20px; background: white; }
+      .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 20px; background: white; }
       table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: lining-nums tabular-nums; min-width: 900px; display: table; }
       th, td { padding: 0.72rem 0.65rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
-      thead { position: relative; z-index: 10; will-change: transform; }
+      thead { position: relative; z-index: 10; }
       thead th { position: relative; z-index: 5; background: rgb(var(--black)); color: white; font-size: 0.82rem; }
       td:first-child, th:first-child { text-align: left; position: sticky; left: 0; z-index: 2; background: white; }
       thead th:first-child { background: rgb(var(--black)); z-index: 6; }
@@ -80,6 +80,19 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
       .status-line { font-size: 0.9rem; color: rgb(var(--gray)); }
       .scope-note { margin: 0.75rem 0 0; padding: 0.75rem 0.85rem; border-left: 4px solid #9a6700; background: #fff7d6; border-radius: 12px; color: #604400; font-size: 0.9rem; }
       .error { color: #b42318; font-weight: 800; }
+      .mobile-pool { display: none; gap: .65rem; }
+      .mobile-etf { padding: .8rem; border: 1px solid var(--border); border-radius: 15px; background: #fff; }
+      .mobile-etf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .65rem; }
+      .mobile-etf-head h3 { margin: 0; font-size: .95rem; }
+      .mobile-etf-head p { margin: .18rem 0 0; color: rgb(var(--gray)); font-size: .74rem; }
+      .mobile-etf-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .4rem; margin-top: .65rem; }
+      .mobile-etf-grid div { padding: .48rem; border-radius: 10px; background: var(--warm-2); }
+      .mobile-etf-grid span { display: block; color: rgb(var(--gray)); font-size: .68rem; }
+      .mobile-etf-grid b { font-size: .8rem; }
+      .pager { display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-top: .75rem; }
+      .pager-controls,.page-numbers { display: flex; align-items: center; gap: .35rem; }
+      .pager button { min-width: 2.25rem; min-height: 2.25rem; padding: .4rem .65rem; }
+      .page-numbers button.active { background: rgb(var(--black)); color: #fff; }
       .data-details { border-radius: 20px; }
       .data-details > summary { cursor: pointer; list-style: none; padding: 1rem; font-weight: 900; }
       .data-details > summary::-webkit-details-marker { display: none; }
@@ -88,6 +101,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
       .data-details .panel { border: 0; box-shadow: none; padding-top: 0; }
       @media (max-width: 1100px) { .rec-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 980px) { .dashboard-grid, .summary-grid, .decision-board, .side-stack { grid-template-columns: 1fr; } .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 720px) { .table-wrap { display: none; } .mobile-pool { display: grid; } .page-numbers { display: none; } .pager { align-items: flex-start; } }
       @media (max-width: 560px) { .toolbar, .rec-list { grid-template-columns: 1fr; } .hero { padding-top: 1rem; } .panel { padding: 0.8rem; } .summary-grid { grid-template-columns: 1fr; } }
     </style>
   </head>
@@ -120,6 +134,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
         <div class="field"><label for="type-filter">资产类型</label><select id="type-filter"><option value="全部">全部</option><option value="海外">海外</option><option value="宽基">宽基</option><option value="行业">行业</option><option value="商品">商品</option><option value="货币">货币</option></select></div>
         <div class="field"><label for="state-filter">交易状态</label><select id="state-filter"><option value="全部">全部</option><option value="可持有">可持有</option><option value="回踩候选">回踩候选</option><option value="禁止追高">禁止追高</option><option value="观察">观察</option><option value="退出">退出</option></select></div>
         <div class="field"><label for="sort-key">排序方式</label><select id="sort-key"><option value="signal_score">综合评分</option><option value="ret20">20日收益</option><option value="ret10">10日收益</option><option value="ret3">3日收益</option><option value="trading_risk_score">交易风险</option></select></div>
+        <div class="field"><label for="page-size">每页数量</label><select id="page-size"><option value="10">10只</option><option value="20">20只</option><option value="all">全部</option></select></div>
         <label class="checkline"><input type="checkbox" id="absolute-only" />仅看动量通过</label>
         <button class="primary" id="refresh-btn">刷新数据</button>
       </section>
@@ -151,6 +166,11 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
                 <tbody id="etf-body"><tr><td colspan="10">加载中…</td></tr></tbody>
               </table>
             </div>
+            <div class="mobile-pool" id="mobile-pool"><p>加载中…</p></div>
+            <nav class="pager" aria-label="A股ETF池分页">
+              <span id="page-info">加载中…</span>
+              <div class="pager-controls"><button type="button" id="prev-page">上一页</button><div class="page-numbers" id="page-numbers"></div><button type="button" id="next-page">下一页</button></div>
+            </nav>
           </div>
         </details>
 
@@ -182,6 +202,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
       let livePayload = null;
       let liveTimer = null;
       let liveLoading = false;
+      let currentPage = 1;
       const fmt = (v, digits = 2) => Number.isFinite(Number(v)) ? Number(v).toFixed(digits) : '—';
       const cls = (v) => Number(v) >= 0 ? 'up' : 'down';
       const stateClass = (state) => state === '极弱' || state === '防御' ? 'danger' : (state === '震荡' ? 'warn' : 'good');
@@ -283,6 +304,12 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
         if ($('absolute-only').checked) rows = rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察');
         const recCodes = new Set(recommendations.map(r => r.code));
         const totalAfterFilter = rows.length;
+        const pageSizeValue = $('page-size').value;
+        const pageSize = pageSizeValue === 'all' ? Math.max(totalAfterFilter, 1) : Number(pageSizeValue);
+        const totalPages = Math.max(1, Math.ceil(totalAfterFilter / pageSize));
+        currentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const pageStart = (currentPage - 1) * pageSize;
+        const shownRows = rows.slice(pageStart, pageStart + pageSize);
         const liveTime = livePayload?.generated_at ? livePayload.generated_at.replace(' UTC+08:00', '').slice(11, 16) : null;
         const generatedDate = livePayload?.generated_at?.slice(0, 10);
         const tradeDate = payload?.latest_trade_date;
@@ -305,12 +332,25 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
         $('decision-source').textContent = `模型评估：${payload?.evaluation_date || '—'}｜行情交易日：${tradeDate || '—'}｜接口检查：${generatedDate || '—'} ${liveTime || ''}`;
         $('date-pill').textContent = `模型 ${payload?.evaluation_date || payload?.run_date || '—'}｜行情 ${tradeDate || '—'}｜${quoteState}${liveTime ? ` ${liveTime}` : ''}`;
         $('scope-note').textContent = `实时重算：${(payload?.realtime_scope || ['当前价', '收益估算', 'MA20状态']).join('、')}。快照字段：${(payload?.snapshot_scope || ['综合分', '交易风险', '交易状态', '市场状态']).join('、')}。`;
-        $('status-line').textContent = `当前显示 ${rows.length}/${totalAfterFilter} 只，趋势通过 ${summary.core_count || 0} 只，${quoteState}：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，接口延迟 ${livePayload.latency_ms}ms` : ''}`;
-        $('etf-body').innerHTML = rows.map(r => {
+        const firstShown = totalAfterFilter ? pageStart + 1 : 0;
+        const lastShown = Math.min(pageStart + shownRows.length, totalAfterFilter);
+        $('status-line').textContent = `当前显示 ${firstShown}–${lastShown}/${totalAfterFilter} 只，趋势通过 ${summary.core_count || 0} 只，${quoteState}：${livePayload?.source || payload?.quote_source || 'stock-api'}${livePayload?.latency_ms ? `，接口延迟 ${livePayload.latency_ms}ms` : ''}`;
+        const rowMarkup = (r) => {
           const risks = (r.risk_flags || []).slice(0, 2).join(' / ') || '—';
           const tradeState = r.trade_state || r.action || '观察';
           return `<tr class="${recCodes.has(r.code) ? 'recommended' : ''}"><td><strong>${r.name}</strong>${recCodes.has(r.code) ? ' <span class="tag pass">代表</span>' : ''}</td><td>${r.code}</td><td>${r.type}</td><td><strong>${r.strength_level || '—'} / ${fmt(r.signal_score)}</strong></td><td><span class="tag ${tradeState === '禁止追高' || tradeState === '退出' ? 'fail' : (tradeState === '可持有' ? 'pass' : 'watch')}">${tradeState}</span></td><td class="${cls(r.ret5)}">${fmt(r.ret5)}%</td><td class="${cls(r.ret20)}">${fmt(r.ret20)}%</td><td>${fmt(Number(r.close_position) * 100, 0)}%</td><td><strong>${r.risk_level || '—'}</strong> / ${fmt(r.trading_risk_score, 0)}</td><td>${risks}</td></tr>`;
-        }).join('') || '<tr><td colspan="13">当前筛选下无ETF。</td></tr>';
+        };
+        $('etf-body').innerHTML = shownRows.map(rowMarkup).join('') || '<tr><td colspan="10">当前筛选下无ETF。</td></tr>';
+        $('mobile-pool').innerHTML = shownRows.map(r => {
+          const tradeState = r.trade_state || r.action || '观察';
+          const risks = (r.risk_flags || []).slice(0, 2).join(' / ') || '暂无风险提示';
+          return `<article class="mobile-etf"><div class="mobile-etf-head"><div><h3>${r.code} · ${r.name}</h3><p>${r.type} · ${risks}</p></div><span class="tag ${tradeState === '禁止追高' || tradeState === '退出' ? 'fail' : (tradeState === '可持有' ? 'pass' : 'watch')}">${tradeState}</span></div><div class="mobile-etf-grid"><div><span>趋势</span><b>${r.strength_level || '—'} / ${fmt(r.signal_score)}</b></div><div><span>交易风险</span><b>${r.risk_level || '—'} / ${fmt(r.trading_risk_score, 0)}</b></div><div><span>5日</span><b class="${cls(r.ret5)}">${fmt(r.ret5)}%</b></div><div><span>20日</span><b class="${cls(r.ret20)}">${fmt(r.ret20)}%</b></div><div><span>收盘位置</span><b>${fmt(Number(r.close_position) * 100, 0)}%</b></div><div><span>现价</span><b>${fmt(r.price, 3)}</b></div></div></article>`;
+        }).join('') || '<p>当前筛选下无ETF。</p>';
+        $('page-info').textContent = pageSizeValue === 'all' ? `显示全部 ${totalAfterFilter}只` : `显示 ${firstShown}–${lastShown} / 共${totalAfterFilter}只 · 第${currentPage}/${totalPages}页`;
+        $('prev-page').disabled = currentPage <= 1;
+        $('next-page').disabled = currentPage >= totalPages;
+        $('page-numbers').innerHTML = pageSizeValue === 'all' ? '' : Array.from({ length: totalPages }, (_, i) => i + 1).map(page => `<button type="button" data-page="${page}" class="${page === currentPage ? 'active' : ''}" aria-label="第${page}页">${page}</button>`).join('');
+        $('page-numbers').querySelectorAll('button').forEach(button => button.addEventListener('click', () => goPage(Number(button.dataset.page))));
         $('recommendations').innerHTML = recommendations.map((r, i) => {
           const scores = r.agent_scores || {};
           const bull = (r.agent_bull || []).slice(0, 2).join('；');
@@ -325,13 +365,11 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
           `<li><strong>市场状态：</strong>${payload?.market_regime?.state || '—'}，权益仓 ${payload?.market_regime?.equity_allocation || '—'}，防御仓 ${payload?.market_regime?.defense_allocation || '—'}。</li>`,
           '<li><strong>本站口径：</strong>Trend Radar v3 将趋势强度、交易风险和交易状态分开；K线/价格由 stock-api v2.7.2 更新。</li>'
         ].join('');
-        pinTableHeader();
       }
-      function pinTableHeader() {
-        const wrap = document.querySelector('.table-wrap');
-        const head = document.querySelector('thead');
-        if (!wrap || !head) return;
-        head.style.transform = `translateY(${wrap.scrollTop}px)`;
+      function goPage(page) {
+        currentPage = page;
+        render();
+        document.querySelector('.data-details').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       async function loadLive() {
         if (!payload || liveLoading) return;
@@ -361,14 +399,17 @@ const description = 'A股趋势风控雷达：通过ETF罗盘71池的趋势强�
         } catch (err) {
           $('status-line').innerHTML = `<span class="error">加载失败：${err.message}</span>`;
           $('etf-body').innerHTML = `<tr><td colspan="10">71池加载失败，请稍后刷新。</td></tr>`;
+          $('mobile-pool').innerHTML = '<p>71池加载失败，请点击“刷新数据”重试。</p>';
+          $('page-info').textContent = '数据不可用';
         } finally {
           $('refresh-btn').disabled = false;
           $('refresh-btn').textContent = '刷新数据';
         }
       }
-      ['type-filter', 'state-filter', 'sort-key', 'absolute-only'].forEach(id => $(id).addEventListener('change', render));
+      ['type-filter', 'state-filter', 'sort-key', 'absolute-only', 'page-size'].forEach(id => $(id).addEventListener('change', () => { currentPage = 1; render(); }));
+      $('prev-page').addEventListener('click', () => { if (currentPage > 1) goPage(currentPage - 1); });
+      $('next-page').addEventListener('click', () => goPage(currentPage + 1));
       $('refresh-btn').addEventListener('click', load);
-      document.querySelector('.table-wrap').addEventListener('scroll', pinTableHeader, { passive: true });
       load();
     </script>
   </body>
