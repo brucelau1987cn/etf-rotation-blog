@@ -20,6 +20,20 @@ import UsSubnav from '../components/UsSubnav.astro';
     @media(max-width:900px){.matrix{grid-template-columns:repeat(2,1fr)}.line-tabs{display:grid}.split{grid-template-columns:1fr}.line-panel[hidden]{display:none}.hero-top{display:grid}.hero-meta{text-align:left}.command{grid-template-columns:auto 1fr}.macro-chip{grid-column:1/-1}.macro-row{grid-template-columns:100px 1fr 1fr}.macro-row em{grid-column:2/-1}}
     @media(max-width:620px){main{width:min(100% - 1rem,1180px);padding-top:1rem}.terminal-hero{padding:1rem}.hero-top h1{font-size:2rem}.hero-meta span:nth-child(2){display:none}.command{gap:.65rem;padding:.75rem}.command-icon{font-size:1.45rem}.command strong{font-size:1.04rem}.matrix{grid-template-columns:1fr}.toolbar{overflow:auto}.macro-row{grid-template-columns:80px 1fr}.macro-row span:nth-child(3){grid-column:2}.rank-item summary{grid-template-columns:42px 1fr;padding:.7rem}.rank-item .right{grid-column:2;text-align:left;display:flex;gap:.45rem}.rank-detail{grid-template-columns:repeat(3,1fr)}.section-head{align-items:flex-start}.table-wrap{display:none}.mobile-cards{display:block}.pager{display:grid;justify-content:stretch;text-align:center}.pager>div{justify-content:space-between}.page-numbers{display:none}.pager button{flex:1}.toolbar{padding:.7rem}.toolbar select{min-width:112px}}
   </style>
+  <style is:global>
+    .panel-list .rank-item{overflow:hidden;border:1px solid #dce4ee;border-radius:14px;background:#fff;transition:border-color .2s,box-shadow .2s}
+    .panel-list .rank-item[open]{border-color:#9ccfc9;box-shadow:0 8px 22px rgba(15,139,131,.09)}
+    .risk-line .rank-item[open]{border-color:#efb77f;box-shadow:0 8px 22px rgba(201,106,19,.09)}
+    .panel-list .rank-item summary{display:grid;grid-template-columns:48px 1fr auto;gap:.65rem;align-items:center;padding:.78rem;cursor:pointer;list-style:none}
+    .panel-list .rank-item summary::-webkit-details-marker{display:none}
+    .panel-list .rank-symbol{font-size:1rem}.panel-list .rank-main b{display:block}.panel-list .rank-main p{margin:.15rem 0;color:#64748b;font-size:.72rem}
+    .panel-list .rank-item .right{text-align:right}.panel-list .rank-item .right b{display:block}.panel-list .rank-item .right small{color:#64748b}
+    .panel-list .rank-item .open-label{display:none}.panel-list .rank-item[open] .closed-label{display:none}.panel-list .rank-item[open] .open-label{display:inline}
+    .panel-list .rank-detail{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;padding:.7rem .78rem .8rem;border-top:1px solid #dce4ee;border-left:3px solid #0f8b83;background:#eef8f6}
+    .risk-line .rank-detail{border-left-color:#c96a13;background:#fff6eb}.panel-list .rank-detail div{min-width:0}.panel-list .rank-detail span{display:block;color:#64748b;font-size:.65rem}.panel-list .rank-detail b{display:block;margin-top:.12rem;font-size:.76rem}.panel-list .rank-detail .discipline{grid-column:1/-1;padding-top:.45rem;border-top:1px dashed #dce4ee;color:#142033;line-height:1.45}
+    .panel-list .tag{display:inline-flex;padding:.18rem .4rem;border-radius:999px;background:#edf7f6;color:#0f8b83;font-size:.65rem;font-weight:900}.panel-list .tag.warn{background:#fff4e8;color:#c96a13}.panel-list .up{color:#16803c}.panel-list .down{color:#c5221f}
+    @media(max-width:620px){.panel-list .rank-item summary{grid-template-columns:42px 1fr;padding:.7rem}.panel-list .rank-item .right{grid-column:2;text-align:left;display:flex;gap:.45rem}.panel-list .rank-detail{grid-template-columns:repeat(3,1fr)}}
+  </style>
 </head>
 <body><Header /><main><UsSubnav active="trend" />
   <section class="terminal-hero card">
