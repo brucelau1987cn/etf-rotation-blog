@@ -9,6 +9,6 @@ import { cleanDescription, isEtfPickPost, isStockPost, sortByPubDateDesc } from 
 const posts = (await getCollection('blog')).filter((post) => isEtfPickPost(post) && !isStockPost(post)).sort(sortByPubDateDesc);
 ---
 <!doctype html><html lang="zh-CN"><head><BaseHead title={`ETF研推归档 | ${SITE_TITLE}`} description={SITE_DESCRIPTION} /></head><body><Header /><main>
-<section class="page-intro"><div class="kicker"><span class="pill pill-amber">研推归档</span><span class="pill">持仓下钻</span></div><h1>ETF研推与持仓弹性研究</h1><p>这里保留ETF层面的持仓下钻与专题研推，作为花园推荐的证据补充。</p></section>
+<section class="page-intro"><div class="kicker"><span class="pill pill-amber">研推归档</span><span class="pill">持仓下钻</span></div><h1>ETF研推与持仓弹性研究</h1><p>这里保留ETF层面的持仓下钻与专题研推，作为ETF罗盘动作的证据补充。</p></section>
 {posts.length === 0 ? <section class="notice card"><strong>当前暂无公开研推</strong><p>新的ETF专题研推会在这里归档。</p></section> : <section><div class="section-heading"><h2>研推归档</h2><span class="pill">共 {posts.length} 篇</span></div><ul class="archive-grid">{posts.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div><span class="pill pill-amber">{post.data.category ?? 'ETF研推'}</span></div><h2>{post.data.title}</h2><p class="description">{cleanDescription(post.data.description)}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}</ul></section>}
 </main><Footer /></body></html>
