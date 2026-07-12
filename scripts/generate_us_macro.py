@@ -17,6 +17,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from datetime import date, datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -29,6 +30,9 @@ NY = ZoneInfo("America/New_York")
 UA = "Mozilla/5.0 ETF-Compass-Macro/1.0"
 POLL_DELAY_SECONDS = 2.0
 FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+BEA_CORE_PCE_URL = "https://www.bea.gov/data/personal-consumption-expenditures-price-index-excluding-food-and-energy"
+CENSUS_MARTS_URL = "https://www.census.gov/econ_getzippedfile/?programCode=MARTS"
+BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
 
 FRED_META = {
     "DGS2": ("日频", "%"), "DGS10": ("日频", "%"), "DGS30": ("日频", "%"),
@@ -328,6 +332,109 @@ def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
     return output
 
 
+def bea_core_pce() -> dict[str, Any]:
+    """Read BEA's no-key Core PCE indicator page."""
+    request = urllib.request.Request(BEA_CORE_PCE_URL, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        html = response.read().decode("utf-8", "replace")
+    parser = TextExtractor(); parser.feed(html); text = " ".join(parser.parts)
+    matches = re.findall(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s+([+-]?\d+(?:\.\d+)?)%",
+        text,
+    )
+    month_numbers = {name: number for number, name in enumerate(
+        ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    )}
+    rows = sorted(dict((date(int(year), month_numbers[month], 1).isoformat(), float(raw)) for month, year, raw in matches).items())
+    if len(rows) < 2:
+        raise RuntimeError("BEA Core PCE page has insufficient observations")
+    observation_date, value = rows[-1]; previous = rows[-2][1]
+    return {
+        "value": value, "date": observation_date, "change": round(value - previous, 2),
+        "previous": previous, "change_yoy_pct": value,
+        "source": "U.S. Bureau of Economic Analysis", "source_url": BEA_CORE_PCE_URL,
+        "series": "Core PCE price index · change from month one year ago",
+        "frequency": "月频", "unit": "% YoY", "stale": False,
+    }
+
+
+def _csv_section(lines: list[str], title: str) -> list[dict[str, str]]:
+    try:
+        start = lines.index(title) + 1
+    except ValueError as exc:
+        raise RuntimeError(f"MARTS section missing: {title}") from exc
+    end = start
+    while end < len(lines) and lines[end].strip():
+        end += 1
+    return list(csv.DictReader(io.StringIO("\n".join(lines[start:end]))))
+
+
+def _bls_cpi_sa(start_year: int, end_year: int) -> dict[str, float]:
+    body = json.dumps({"seriesid": ["CUSR0000SA0"], "startyear": str(start_year), "endyear": str(end_year)}).encode()
+    request = urllib.request.Request(BLS_API_URL, data=body, headers={"User-Agent": UA, "Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        payload = json.load(response)
+    if payload.get("status") != "REQUEST_SUCCEEDED":
+        raise RuntimeError(f"BLS CPI status {payload.get('status')}")
+    output: dict[str, float] = {}
+    for item in payload["Results"]["series"][0].get("data", []):
+        if re.fullmatch(r"M\d{2}", item.get("period", "")):
+            output[f"{item['year']}-{item['period'][1:]}"] = float(item["value"])
+    return output
+
+
+def census_real_retail() -> dict[str, Any]:
+    """Reconstruct real retail sales from Census MARTS SA sales and BLS SA CPI-U."""
+    request = urllib.request.Request(CENSUS_MARTS_URL, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=45) as response:
+        archive = response.read()
+    with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+        member = next((name for name in bundle.namelist() if name.endswith("MARTS-mf.csv")), None)
+        if not member:
+            raise RuntimeError("MARTS archive missing MARTS-mf.csv")
+        lines = bundle.read(member).decode("utf-8-sig", "replace").splitlines()
+    categories = _csv_section(lines, "CATEGORIES")
+    data_types = _csv_section(lines, "DATA TYPES")
+    geographies = _csv_section(lines, "GEO LEVELS")
+    periods = _csv_section(lines, "TIME PERIODS")
+    data_rows = _csv_section(lines, "DATA")
+    cat_idx = next(row["cat_idx"] for row in categories if row["cat_code"] == "44X72")
+    dt_idx = next(row["dt_idx"] for row in data_types if row["dt_code"] == "SM")
+    geo_idx = next(row["geo_idx"] for row in geographies if row["geo_code"] == "US")
+    period_names = {row["per_idx"]: row["per_name"] for row in periods}
+    sales: list[tuple[str, float]] = []
+    for row in data_rows:
+        if (row.get("cat_idx"), row.get("dt_idx"), row.get("et_idx"), row.get("geo_idx"), row.get("is_adj")) != (cat_idx, dt_idx, "0", geo_idx, "1"):
+            continue
+        raw_period = period_names.get(row.get("per_idx", ""))
+        if not raw_period or row.get("val") in {None, "", "NA", "Z"}:
+            continue
+        observed = datetime.strptime(raw_period, "%b-%Y").date().replace(day=1)
+        sales.append((observed.isoformat(), numeric(row["val"])))
+    sales.sort()
+    if len(sales) < 4:
+        raise RuntimeError("MARTS has insufficient adjusted retail observations")
+    cpi = _bls_cpi_sa(int(sales[-4][0][:4]), int(sales[-1][0][:4]))
+    real_rows: list[tuple[str, float, float, float]] = []
+    for observation_date, nominal in sales[-6:]:
+        cpi_value = cpi.get(observation_date[:7])
+        if cpi_value:
+            real_rows.append((observation_date, nominal / cpi_value * 100, nominal, cpi_value))
+    if len(real_rows) < 4:
+        raise RuntimeError("Census/BLS month alignment has insufficient observations")
+    observation_date, value, nominal, cpi_value = real_rows[-1]
+    previous = real_rows[-2][1]; three_month = real_rows[-4][1]
+    return {
+        "value": round(value, 2), "date": observation_date,
+        "change": round(value - previous, 2), "previous": round(previous, 2),
+        "change_3m_pct": round((value / three_month - 1) * 100, 2),
+        "nominal_sales_millions": nominal, "cpi_sa": cpi_value,
+        "source": "U.S. Census Bureau MARTS ÷ U.S. BLS CPI-U",
+        "source_url": CENSUS_MARTS_URL, "series": "Official-data reconstruction of real retail and food-services sales",
+        "frequency": "月频", "unit": "百万实际美元（1982-84=100）", "stale": False,
+    }
+
+
 def treasury_fallback(today: date) -> dict[str, dict[str, Any]]:
     url = ("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
            f"daily-treasury-rates.csv/{today.year}/all?type=daily_treasury_yield_curve&field_tdr_date_value={today.year}&page&_format=csv")
@@ -389,6 +496,8 @@ def main() -> None:
     for source_key, loader in {
         "bls": lambda: bls_fallback(now.date()),
         "treasury_yields": lambda: treasury_fallback(now.date()),
+        "bea_core_pce": lambda: {"core_pce": bea_core_pce()},
+        "census_real_retail": lambda: {"real_retail": census_real_retail()},
     }.items():
         try:
             official.update(loader())
@@ -557,7 +666,8 @@ def main() -> None:
         return {
             "key": key, "title": title, "value": display_value, "detail": detail,
             "as_of": item.get("date"), "frequency": item.get("frequency", "按来源"),
-            "source": item.get("source", "FRED"), "tone": "warning" if item.get("stale") else "neutral",
+            "source": item.get("source", "FRED"), "source_url": item.get("source_url"),
+            "tone": "warning" if item.get("stale") else "neutral",
             "stale": bool(item.get("stale")),
         }
 
