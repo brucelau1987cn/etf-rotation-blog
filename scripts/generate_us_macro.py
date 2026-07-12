@@ -11,10 +11,12 @@ import io
 import json
 import math
 import os
+import re
 import tempfile
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -23,6 +25,29 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public/data/us-macro-dashboard.json"
 NY = ZoneInfo("America/New_York")
 UA = "Mozilla/5.0 ETF-Compass-Macro/1.0"
+FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+
+FRED_META = {
+    "DGS2": ("日频", "%"), "DGS10": ("日频", "%"), "DGS30": ("日频", "%"),
+    "T10Y2Y": ("日频", "%"), "SOFR": ("日频", "%"),
+    "WALCL": ("周频", "百万美元"), "WTREGEN": ("周频", "百万美元"),
+    "RRPONTSYD": ("日频", "十亿美元"), "CPIAUCSL": ("月频", "指数"),
+    "CPILFESL": ("月频", "指数"), "PCEPILFE": ("月频", "指数"),
+    "UNRATE": ("月频", "%"), "PAYEMS": ("月频", "千人"),
+    "SAHMREALTIME": ("月频", "百分点"), "RRSFS": ("月频", "百万实际美元"),
+    "GDPNOW": ("季频滚动更新", "% SAAR"),
+}
+
+
+class TextExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        value = " ".join(data.split())
+        if value:
+            self.parts.append(value)
 
 
 def atomic_write(path: Path, payload: Any) -> None:
@@ -83,9 +108,134 @@ def fred(series: str) -> dict[str, Any]:
             continue
     if len(rows) < 2:
         raise RuntimeError(f"{series}: insufficient observations")
-    date, value = rows[-1]
+    observation_date, value = rows[-1]
     previous = rows[-2][1]
-    return {"value": round(value, 4), "date": date, "change": round(value - previous, 4), "source": "FRED", "series": series}
+    frequency, unit = FRED_META.get(series, ("按来源", ""))
+    result = {
+        "value": round(value, 4), "date": observation_date, "change": round(value - previous, 4),
+        "previous": round(previous, 4), "source": "FRED", "series": series,
+        "frequency": frequency, "unit": unit, "stale": False,
+    }
+    if len(rows) >= 13 and frequency == "月频":
+        year_ago = rows[-13][1]
+        result["change_yoy_pct"] = round((value / year_ago - 1) * 100, 2) if year_ago else None
+    if len(rows) >= 4 and frequency == "月频":
+        three_month = rows[-4][1]
+        result["change_3m_pct"] = round((value / three_month - 1) * 100, 2) if three_month else None
+    return result
+
+
+def fomc_events(today: date) -> list[dict[str, Any]]:
+    req = urllib.request.Request(FOMC_URL, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=25) as response:
+        html = response.read().decode("utf-8", "replace")
+    parser = TextExtractor()
+    parser.feed(html)
+    text = " ".join(parser.parts)
+    marker = f"{today.year} FOMC Meetings"
+    if marker not in text:
+        raise RuntimeError(f"FOMC calendar missing {today.year}")
+    section = text.split(marker, 1)[1].split(f"{today.year - 1} FOMC Meetings", 1)[0]
+    months = {name: number for number, name in enumerate(
+        ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    )}
+    found: list[dict[str, Any]] = []
+    for month, start_raw, end_raw in re.findall(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:-(\d{1,2}))?\*?",
+        section,
+    ):
+        start_day = int(start_raw)
+        end_day = int(end_raw or start_raw)
+        start = date(today.year, months[month], start_day)
+        end = date(today.year, months[month], end_day)
+        if end < today:
+            continue
+        found.append({
+            "date": start.isoformat(), "end_date": end.isoformat(), "time_et": "14:00",
+            "title": "FOMC利率决议", "importance": "高", "tone": "warning",
+            "symbols": ["SPY", "QQQ", "TLT", "XLF"],
+            "discipline": "决议前不追高，保留现金应对波动",
+            "source": "Federal Reserve", "source_url": FOMC_URL,
+        })
+    if not found:
+        raise RuntimeError("no future FOMC meeting parsed")
+    return found[:4]
+
+
+def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
+    series_map = {"unemployment": "LNS14000000", "payrolls": "CES0000000001", "cpi": "CUUR0000SA0", "core_cpi": "CUUR0000SA0L1E"}
+    body = json.dumps({"seriesid": list(series_map.values()), "startyear": str(today.year - 1), "endyear": str(today.year)}).encode()
+    request = urllib.request.Request("https://api.bls.gov/publicAPI/v2/timeseries/data/", data=body, headers={"User-Agent": UA, "Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        payload = json.load(response)
+    if payload.get("status") != "REQUEST_SUCCEEDED":
+        raise RuntimeError(f"BLS status {payload.get('status')}")
+    reverse = {value: key for key, value in series_map.items()}
+    output: dict[str, dict[str, Any]] = {}
+    unemployment_rows: list[tuple[str, float]] = []
+    for block in payload["Results"]["series"]:
+        key = reverse.get(block.get("seriesID"))
+        if not key:
+            continue
+        rows = []
+        for item in block.get("data", []):
+            if not re.fullmatch(r"M\d{2}", item.get("period", "")):
+                continue
+            try:
+                rows.append((f"{item['year']}-{item['period'][1:]}-01", float(item["value"])))
+            except (KeyError, TypeError, ValueError):
+                continue
+        rows.sort()
+        if len(rows) < 2:
+            continue
+        observation_date, value = rows[-1]; previous = rows[-2][1]
+        unit = "%" if key == "unemployment" else "千人" if key == "payrolls" else "指数"
+        result = {"value": value, "date": observation_date, "change": round(value - previous, 4), "previous": previous,
+                  "source": "U.S. Bureau of Labor Statistics", "series": block["seriesID"], "frequency": "月频", "unit": unit, "stale": False}
+        if len(rows) >= 13 and key in {"cpi", "core_cpi"}:
+            result["change_yoy_pct"] = round((value / rows[-13][1] - 1) * 100, 2)
+        output[key] = result
+        if key == "unemployment":
+            unemployment_rows = rows
+    if len(unemployment_rows) >= 15:
+        averages = [(unemployment_rows[i][0], sum(value for _, value in unemployment_rows[i-2:i+1]) / 3) for i in range(2, len(unemployment_rows))]
+        current_date, current_average = averages[-1]; prior_low = min(value for _, value in averages[-13:-1])
+        output["sahm"] = {"value": round(current_average - prior_low, 2), "date": current_date, "change": 0,
+                          "source": "BLS unemployment · calculated Sahm rule", "series": "LNS14000000", "frequency": "月频", "unit": "百分点", "stale": False}
+    return output
+
+
+def treasury_fallback(today: date) -> dict[str, dict[str, Any]]:
+    url = ("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
+           f"daily-treasury-rates.csv/{today.year}/all?type=daily_treasury_yield_curve&field_tdr_date_value={today.year}&page&_format=csv")
+    request = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        rows = list(csv.DictReader(io.StringIO(response.read().decode("utf-8", "replace"))))
+    rows = [row for row in rows if row.get("Date")]; rows.sort(key=lambda row: datetime.strptime(row["Date"], "%m/%d/%Y"))
+    if len(rows) < 2:
+        raise RuntimeError("Treasury yield curve has insufficient rows")
+    output = {}
+    for key, column in {"yield_2y": "2 Yr", "yield_10y": "10 Yr", "yield_30y": "30 Yr"}.items():
+        value = float(rows[-1][column]); previous = float(rows[-2][column])
+        output[key] = {"value": value, "date": datetime.strptime(rows[-1]["Date"], "%m/%d/%Y").date().isoformat(), "change": round(value - previous, 4),
+                       "previous": previous, "source": "U.S. Department of the Treasury", "series": column, "frequency": "日频", "unit": "%", "stale": False}
+    output["curve_10y2y"] = {"value": round(output["yield_10y"]["value"] - output["yield_2y"]["value"], 4), "date": output["yield_10y"]["date"],
+                              "change": 0, "source": "U.S. Department of the Treasury", "series": "10Y-2Y", "frequency": "日频", "unit": "%", "stale": False}
+    return output
+
+
+def gdpnow_fallback() -> dict[str, Any]:
+    url = "https://www.atlantafed.org/research-and-data/data/gdpnow"
+    request = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        html = response.read().decode("utf-8", "replace")
+    parser = TextExtractor(); parser.feed(html); text = " ".join(parser.parts)
+    value_match = re.search(r"([-+]?\d+(?:\.\d+)?)%\s+Latest GDPNow Estimate", text)
+    date_match = re.search(r"Updated:\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})", text)
+    if not value_match or not date_match:
+        raise RuntimeError("GDPNow value or update date not found")
+    return {"value": float(value_match.group(1)), "date": datetime.strptime(date_match.group(1), "%B %d, %Y").date().isoformat(), "change": 0,
+            "source": "Federal Reserve Bank of Atlanta", "series": "GDPNow", "frequency": "季频滚动更新", "unit": "% SAAR", "stale": False}
 
 
 def level(score: int) -> tuple[str, str]:
@@ -99,6 +249,8 @@ def main() -> None:
     failures: dict[str, str] = {}
     market: dict[str, dict[str, Any]] = {}
     official: dict[str, dict[str, Any]] = {}
+    now = datetime.now(NY)
+    previous_snapshot = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
     for key, symbol in {
         "vix": "^VIX", "move": "^MOVE", "yield_10y_proxy": "^TNX", "yield_2y_proxy": "2YY=F",
         "spy": "SPY", "rsp": "RSP", "hyg": "HYG", "lqd": "LQD",
@@ -106,32 +258,57 @@ def main() -> None:
     }.items():
         try: market[key] = yahoo(symbol)
         except Exception as exc: failures[key] = str(exc)
+    for source_key, loader in {
+        "bls": lambda: bls_fallback(now.date()),
+        "treasury": lambda: treasury_fallback(now.date()),
+    }.items():
+        try:
+            official.update(loader())
+        except Exception as exc:
+            failures[source_key] = str(exc)
+    try:
+        official["gdpnow"] = gdpnow_fallback()
+    except Exception as exc:
+        failures["gdpnow_atlanta"] = str(exc)
+
     fred_available = True
     fred_series = {
-        "yield_2y": "DGS2", "yield_10y": "DGS10", "curve_10y2y": "T10Y2Y", "sofr": "SOFR",
+        "yield_2y": "DGS2", "yield_10y": "DGS10", "yield_30y": "DGS30", "curve_10y2y": "T10Y2Y", "sofr": "SOFR",
         "fed_assets": "WALCL", "tga": "WTREGEN", "rrp": "RRPONTSYD",
-        "cpi": "CPIAUCSL", "core_pce": "PCEPILFE", "unemployment": "UNRATE", "payrolls": "PAYEMS",
+        "cpi": "CPIAUCSL", "core_cpi": "CPILFESL", "core_pce": "PCEPILFE",
+        "unemployment": "UNRATE", "payrolls": "PAYEMS", "sahm": "SAHMREALTIME",
+        "real_retail": "RRSFS", "gdpnow": "GDPNOW",
     }
     for key, series in fred_series.items():
-        if not fred_available:
-            failures[key] = "FRED本轮不可达，已跳过"
+        if key in official:
             continue
-        try: official[key] = fred(series)
+        if not fred_available:
+            failures[key] = "FRED本轮不可达；等待下轮更新"
+            continue
+        try:
+            official[key] = fred(series)
         except Exception as exc:
             failures[key] = str(exc)
             if isinstance(exc, (TimeoutError, urllib.error.URLError)):
                 fred_available = False
+    for key, item in previous_snapshot.get("official", {}).items():
+        if key not in official:
+            official[key] = {**item, "stale": True}
 
     def val(group: dict[str, dict[str, Any]], key: str) -> float | None:
         item = group.get(key)
+        if item and item.get("stale"):
+            return None
         return float(item["value"]) if item and math.isfinite(float(item["value"])) else None
 
     vix = val(market, "vix")
     y10 = val(official, "yield_10y") or val(market, "yield_10y_proxy")
     y2 = val(official, "yield_2y") or val(market, "yield_2y_proxy")
+    y30 = val(official, "yield_30y")
     curve = val(official, "curve_10y2y")
     if curve is None and y10 is not None and y2 is not None:
         curve = round(y10 - y2, 4)
+    curve_10y30y = round(y10 - y30, 4) if y10 is not None and y30 is not None else None
     score = 0
     notes = []
     if vix is not None:
@@ -166,7 +343,7 @@ def main() -> None:
             "key": "rates", "title": "利率与曲线", "state": "承压" if y10 and y10 >= 4.5 else "中性",
             "tone": "warning" if y10 and y10 >= 4.5 else "neutral",
             "headline": f"10Y {y10:.2f}%" if y10 is not None else "10Y N/A",
-            "detail": f"2Y {y2:.2f}% · 2s10s {curve:+.2f}%" if y2 is not None and curve is not None else "收益率数据不完整",
+            "detail": f"2Y {y2:.2f}% · 30Y {y30:.2f}% · 2s10s {curve:+.2f}% · 10s30s {curve_10y30y:+.2f}%" if y2 is not None and y30 is not None and curve is not None and curve_10y30y is not None else "收益率数据不完整",
             "impact": "成长ETF禁止追高" if y10 and y10 >= 4.5 else "估值压力暂不升级",
             "symbols": ["QQQ", "XLK", "SMH", "TLT"], "as_of": (official.get("yield_10y") or market.get("yield_10y_proxy") or {}).get("date"),
         },
@@ -187,6 +364,31 @@ def main() -> None:
         },
     ]
 
+    def fundamental(key: str, title: str, formatter: str, detail: str) -> dict[str, Any]:
+        item = official.get(key)
+        if not item:
+            return {"key": key, "title": title, "value": "数据待更新", "detail": detail, "as_of": None, "frequency": "—", "source": "FRED", "tone": "missing"}
+        try:
+            display_value = formatter.format(**item)
+        except (KeyError, TypeError, ValueError):
+            display_value = f"{item.get('value', '—')} {item.get('unit', '')}".strip()
+        return {
+            "key": key, "title": title, "value": display_value, "detail": detail,
+            "as_of": item.get("date"), "frequency": item.get("frequency", "按来源"),
+            "source": item.get("source", "FRED"), "tone": "warning" if item.get("stale") else "neutral",
+            "stale": bool(item.get("stale")),
+        }
+
+    fundamentals = [
+        fundamental("sahm", "萨姆规则", "{value:.2f}pp", "≥0.50pp才触发衰退信号"),
+        fundamental("unemployment", "失业率", "{value:.1f}%", "就业温度计，不用单月波动机械交易"),
+        fundamental("payrolls", "非农就业", "{change:+.0f}千人", "较前月就业人数变化"),
+        fundamental("core_cpi", "核心CPI", "同比 {change_yoy_pct:.2f}%", "剔除食品与能源后的价格趋势"),
+        fundamental("core_pce", "核心PCE", "同比 {change_yoy_pct:.2f}%", "美联储重点通胀口径"),
+        fundamental("real_retail", "实际零售销售", "3月 {change_3m_pct:+.2f}%", "消费动能的三个月变化"),
+        fundamental("gdpnow", "GDPNow", "{value:.2f}%", "当前季度实际GDP年化即时估计"),
+    ]
+
     impacts = []
     if y10 is not None:
         impacts.append({"driver": "10Y收益率偏高" if y10 >= 4.5 else "利率压力温和", "benefit": ["XLF" if y10 >= 4.5 else "QQQ"], "pressure": ["QQQ", "ARKK", "TLT"] if y10 >= 4.5 else ["UUP"], "discipline": "成长方向只等伏击位，不追高" if y10 >= 4.5 else "不改变正常伏击纪律"})
@@ -196,18 +398,20 @@ def main() -> None:
         impacts.append({"driver": "等权落后" if breadth_relative < -1 else "上涨扩散", "benefit": ["SPY", "QQQ"] if breadth_relative < -1 else ["RSP", "IWM"], "pressure": ["RSP", "IWM"] if breadth_relative < -1 else [], "discipline": "警惕指数强、内部弱" if breadth_relative < -1 else "轮动参与度改善"})
 
     now = datetime.now(NY)
-    events = [
-        {"date": "2026-07-28", "end_date": "2026-07-29", "time_et": "14:00", "title": "FOMC利率决议", "importance": "高", "tone": "danger", "symbols": ["SPY", "QQQ", "TLT", "XLF"], "discipline": "决议前不追高，保留现金应对波动", "source": "Federal Reserve"},
-    ]
-    events = [event for event in events if event["end_date"] >= now.date().isoformat()]
+    try:
+        events = fomc_events(now.date())
+    except Exception as exc:
+        failures["fomc_calendar"] = str(exc)
+        previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+        events = [event for event in previous.get("events", []) if event.get("end_date", "") >= now.date().isoformat()]
     payload = {
-        "version": 1, "generated_at": now.isoformat(), "timezone": "America/New_York",
+        "version": 2, "generated_at": now.isoformat(), "timezone": "America/New_York",
         "risk": {"key": risk_key, "label": risk_label, "score": score, "headline": " · ".join(notes[:2]) or "核心数据暂缺", "equity_constraint": "暂停新增伏击" if score >= 7 else "新增伏击减半" if score >= 5 else "禁止追高、按关键位执行" if score >= 3 else "允许正常伏击与持仓"},
-        "dimensions": dimensions, "impacts": impacts[:3],
+        "dimensions": dimensions, "fundamentals": fundamentals, "impacts": impacts[:3],
         "events": events,
         "market": market, "official": official,
         "data_quality": {"failed": len(failures), "failures": failures, "note": "免费公开源；不同序列频率不同，卡片显示各自观察日期。"},
-        "sources": ["Yahoo Chart API", "Federal Reserve Economic Data (FRED)"],
+        "sources": ["Yahoo Chart API", "U.S. Department of the Treasury", "U.S. Bureau of Labor Statistics", "Federal Reserve Bank of Atlanta GDPNow", "Federal Reserve Economic Data (FRED)", "Federal Reserve FOMC Calendar"],
     }
     if len(dimensions) < 4 or (not market and not official):
         raise RuntimeError("insufficient macro data")
