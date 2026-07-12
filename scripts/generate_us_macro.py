@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Generate the free, read-only US macro risk snapshot used by /us-garden/.
+"""Generate the free, read-only US macro risk snapshot used by /us-macro/.
 
-Sources: Yahoo Chart API for market proxies and FRED CSV for official macro series.
+Primary official sources: Federal Reserve Board, New York Fed, Treasury, BLS and Atlanta Fed.
+FRED is retained only as a last-resort fallback for series without a reachable primary source.
 Failures never overwrite the last good snapshot.
 """
 from __future__ import annotations
@@ -50,6 +51,42 @@ class TextExtractor(HTMLParser):
             self.parts.append(value)
 
 
+class TableRowsExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.rows: list[list[str]] = []
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tr":
+            self._row = []
+        elif tag in {"td", "th"} and self._row is not None:
+            self._cell = []
+
+    def handle_data(self, data: str) -> None:
+        if self._cell is not None:
+            self._cell.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"td", "th"} and self._cell is not None and self._row is not None:
+            self._row.append(" ".join(" ".join(self._cell).split()))
+            self._cell = None
+        elif tag == "tr" and self._row is not None:
+            if self._row:
+                self.rows.append(self._row)
+            self._row = None
+
+
+def numeric(raw: Any) -> float:
+    text = str(raw).strip().replace(",", "").replace(" ", "")
+    if not text or text.lower() == "null":
+        raise ValueError("missing numeric value")
+    if text.startswith("(") and text.endswith(")"):
+        text = f"-{text[1:-1]}"
+    return float(text)
+
+
 def atomic_write(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".tmp")
@@ -95,7 +132,7 @@ def yahoo(symbol: str) -> dict[str, Any]:
 def fred(series: str) -> dict[str, Any]:
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=25) as response:
+    with urllib.request.urlopen(req, timeout=10) as response:
         text = response.read().decode("utf-8", "replace")
     rows = []
     for row in csv.DictReader(io.StringIO(text)):
@@ -160,6 +197,88 @@ def fomc_events(today: date) -> list[dict[str, Any]]:
     if not found:
         raise RuntimeError("no future FOMC meeting parsed")
     return found[:4]
+
+
+def nyfed_sofr() -> dict[str, Any]:
+    payload = request_json("https://markets.newyorkfed.org/api/rates/secured/sofr/last/2.json")
+    rows = payload.get("refRates", [])
+    if len(rows) < 2:
+        raise RuntimeError("New York Fed SOFR has insufficient observations")
+    current, previous = rows[0], rows[1]
+    value, prior = numeric(current["percentRate"]), numeric(previous["percentRate"])
+    return {
+        "value": value, "date": current["effectiveDate"], "change": round(value - prior, 4), "previous": prior,
+        "volume_billions": numeric(current["volumeInBillions"]), "source": "Federal Reserve Bank of New York",
+        "series": "SOFR", "frequency": "日频", "unit": "%", "stale": False,
+    }
+
+
+def nyfed_rrp(today: date) -> dict[str, Any]:
+    start = date.fromordinal(today.toordinal() - 20).isoformat()
+    url = ("https://markets.newyorkfed.org/api/rp/reverserepo/propositions/search.json"
+           f"?startDate={start}&endDate={today.isoformat()}")
+    rows = request_json(url).get("repo", {}).get("operations", [])
+    rows = sorted((row for row in rows if row.get("operationDate") and row.get("totalAmtAccepted") is not None),
+                  key=lambda row: row["operationDate"], reverse=True)
+    if len(rows) < 2:
+        raise RuntimeError("New York Fed ON RRP has insufficient observations")
+    value = numeric(rows[0]["totalAmtAccepted"]) / 1_000_000_000
+    previous = numeric(rows[1]["totalAmtAccepted"]) / 1_000_000_000
+    return {
+        "value": round(value, 4), "date": rows[0]["operationDate"], "change": round(value - previous, 4),
+        "previous": round(previous, 4), "source": "Federal Reserve Bank of New York",
+        "series": "ON RRP accepted amount", "frequency": "日频", "unit": "十亿美元", "stale": False,
+    }
+
+
+def fiscal_tga() -> dict[str, Any]:
+    url = ("https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts/operating_cash_balance"
+           "?filter=account_type:eq:Treasury%20General%20Account%20(TGA)%20Closing%20Balance"
+           "&sort=-record_date&page%5Bsize%5D=5")
+    rows = request_json(url).get("data", [])
+    parsed: list[tuple[str, float]] = []
+    for row in rows:
+        for field in ("close_today_bal", "open_today_bal"):
+            try:
+                parsed.append((row["record_date"], numeric(row.get(field))))
+                break
+            except (KeyError, TypeError, ValueError):
+                continue
+    if len(parsed) < 2:
+        raise RuntimeError("Treasury TGA has insufficient observations")
+    observation_date, value = parsed[0]; previous = parsed[1][1]
+    return {
+        "value": value, "date": observation_date, "change": round(value - previous, 4), "previous": previous,
+        "source": "U.S. Department of the Treasury Fiscal Data", "series": "TGA Closing Balance",
+        "frequency": "日频", "unit": "百万美元", "stale": False,
+    }
+
+
+def fed_h41_assets() -> dict[str, Any]:
+    url = "https://www.federalreserve.gov/releases/h41/current/"
+    request = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        html = response.read().decode("utf-8", "replace")
+    text_parser = TextExtractor(); text_parser.feed(html)
+    text = " ".join(text_parser.parts)
+    release = re.search(r"Release Date:\s*([A-Z][a-z]+\s+\d{1,2},\s+\d{4})", text)
+    if not release:
+        raise RuntimeError("H.4.1 release date not found")
+    released = datetime.strptime(release.group(1), "%B %d, %Y").date()
+    observation = released
+    while observation.weekday() != 2:  # H.4.1 balance-sheet observation is Wednesday.
+        observation = date.fromordinal(observation.toordinal() - 1)
+    table_parser = TableRowsExtractor(); table_parser.feed(html)
+    candidates = [row for row in table_parser.rows if row and row[0].strip() == "Total assets" and len(row) == 5]
+    if not candidates:
+        raise RuntimeError("H.4.1 total-assets row not found")
+    row = max(candidates, key=lambda candidate: numeric(candidate[2]))
+    value = numeric(row[2]); weekly_change = numeric(row[3]); yearly_change = numeric(row[4])
+    return {
+        "value": value, "date": observation.isoformat(), "change": weekly_change, "previous": value - weekly_change,
+        "change_yoy": yearly_change, "release_date": released.isoformat(), "source": "Board of Governors of the Federal Reserve System",
+        "series": "H.4.1 Total assets", "frequency": "周频", "unit": "百万美元", "stale": False,
+    }
 
 
 def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
@@ -264,16 +383,23 @@ def main() -> None:
         except Exception as exc: failures[key] = str(exc)
     for source_key, loader in {
         "bls": lambda: bls_fallback(now.date()),
-        "treasury": lambda: treasury_fallback(now.date()),
+        "treasury_yields": lambda: treasury_fallback(now.date()),
     }.items():
         try:
             official.update(loader())
         except Exception as exc:
             failures[source_key] = str(exc)
-    try:
-        official["gdpnow"] = gdpnow_fallback()
-    except Exception as exc:
-        failures["gdpnow_atlanta"] = str(exc)
+    for key, loader in {
+        "sofr": nyfed_sofr,
+        "rrp": lambda: nyfed_rrp(now.date()),
+        "tga": fiscal_tga,
+        "fed_assets": fed_h41_assets,
+        "gdpnow": gdpnow_fallback,
+    }.items():
+        try:
+            official[key] = loader()
+        except Exception as exc:
+            failures[f"{key}_primary"] = str(exc)
 
     fred_available = True
     fred_series = {
@@ -301,6 +427,29 @@ def main() -> None:
     for key, item in previous_snapshot.get("market", {}).items():
         if key not in market:
             market[key] = {**item, "stale": True}
+
+    def business_days_old(raw_date: str | None) -> int:
+        if not raw_date:
+            return 999
+        observed = date.fromisoformat(raw_date)
+        if observed >= now.date():
+            return 0
+        return sum(1 for ordinal in range(observed.toordinal() + 1, now.date().toordinal() + 1)
+                   if date.fromordinal(ordinal).weekday() < 5)
+
+    daily_official = {"sofr", "rrp", "tga", "yield_2y", "yield_10y", "yield_30y", "curve_10y2y"}
+    for key, item in official.items():
+        if item.get("stale"):
+            continue
+        age = business_days_old(item.get("date"))
+        limit = 3 if key in daily_official else 8 if key == "fed_assets" else 10 if key == "gdpnow" else 35
+        item["stale"] = age > limit
+        item["age_business_days"] = age
+    for item in market.values():
+        if not item.get("stale"):
+            age = business_days_old(item.get("date"))
+            item["stale"] = age > 3
+            item["age_business_days"] = age
 
     def val(group: dict[str, dict[str, Any]], key: str) -> float | None:
         item = group.get(key)
@@ -336,6 +485,12 @@ def main() -> None:
     if market.get("spy", {}).get("change_5d_pct") is not None and market.get("rsp", {}).get("change_5d_pct") is not None:
         breadth_relative = round(float(market["rsp"]["change_5d_pct"]) - float(market["spy"]["change_5d_pct"]), 2)
     risk_key, risk_label = level(score)
+    sofr_value = val(official, "sofr")
+    fed_assets_value = val(official, "fed_assets")
+    tga_value = val(official, "tga")
+    rrp_value = val(official, "rrp")
+    liquidity_proxy = (fed_assets_value - tga_value - rrp_value * 1000
+                       if fed_assets_value is not None and tga_value is not None and rrp_value is not None else None)
 
     dimensions = [
         {
@@ -355,10 +510,13 @@ def main() -> None:
             "symbols": ["QQQ", "XLK", "SMH", "TLT"], "as_of": (official.get("yield_10y") or market.get("yield_10y_proxy") or {}).get("date"),
         },
         {
-            "key": "liquidity", "title": "资金与流动性", "state": "数据待更新" if val(official, "sofr") is None else "观察", "tone": "missing" if val(official, "sofr") is None else "neutral",
-            "headline": f"SOFR {val(official, 'sofr'):.2f}%" if val(official, "sofr") is not None else "官方数据待更新",
-            "detail": "FRED本轮不可达；不对缺失数据作风险判断" if val(official, "sofr") is None else "Fed资产 / TGA / ON RRP为低频公开数据",
-            "impact": "本维度暂不计入风险分" if val(official, "sofr") is None else "仅作仓位闸门，不作盘中触发",
+            "key": "liquidity", "title": "资金与流动性",
+            "state": "数据待更新" if liquidity_proxy is None or sofr_value is None else "观察",
+            "tone": "missing" if liquidity_proxy is None or sofr_value is None else "neutral",
+            "headline": f"SOFR {sofr_value:.2f}%" if sofr_value is not None else "官方数据待更新",
+            "detail": (f"净流动性代理 {liquidity_proxy / 1_000_000:.2f}万亿美元 · Fed周频 / TGA与ON RRP日频"
+                       if liquidity_proxy is not None else "纽约联储 / 美联储H.4.1 / 财政部数据不完整"),
+            "impact": "仅作风险预算闸门，不替代ETF价格触发",
             "symbols": ["SPY", "QQQ", "TLT"], "as_of": official.get("sofr", {}).get("date"),
         },
         {
@@ -385,6 +543,20 @@ def main() -> None:
             "source": item.get("source", "FRED"), "tone": "warning" if item.get("stale") else "neutral",
             "stale": bool(item.get("stale")),
         }
+
+    def liquidity_card(key: str, title: str, scale: float, suffix: str, detail: str) -> dict[str, Any]:
+        card = fundamental(key, title, "{value}", detail)
+        item = official.get(key)
+        if item and item.get("value") is not None:
+            card["value"] = f"{float(item['value']) / scale:.2f}{suffix}"
+        return card
+
+    liquidity_components = [
+        liquidity_card("sofr", "SOFR", 1, "%", "纽约联储担保隔夜融资利率"),
+        liquidity_card("fed_assets", "Fed总资产", 1_000_000, "万亿美元", "美联储H.4.1周度资产负债表"),
+        liquidity_card("tga", "财政部TGA", 1_000, "十亿美元", "财政部每日现金余额；上升通常回笼市场流动性"),
+        liquidity_card("rrp", "ON RRP", 1, "十亿美元", "纽约联储隔夜逆回购实际使用量"),
+    ]
 
     fundamentals = [
         fundamental("sahm", "萨姆规则", "{value:.2f}pp", "≥0.50pp才触发衰退信号"),
@@ -414,11 +586,11 @@ def main() -> None:
     payload = {
         "version": 2, "generated_at": now.isoformat(), "timezone": "America/New_York",
         "risk": {"key": risk_key, "label": risk_label, "score": score, "headline": " · ".join(notes[:2]) or "核心数据暂缺", "equity_constraint": "暂停新增伏击" if score >= 7 else "新增伏击减半" if score >= 5 else "禁止追高、按关键位执行" if score >= 3 else "允许正常伏击与持仓"},
-        "dimensions": dimensions, "fundamentals": fundamentals, "impacts": impacts[:3],
+        "dimensions": dimensions, "liquidity_components": liquidity_components, "fundamentals": fundamentals, "impacts": impacts[:3],
         "events": events,
         "market": market, "official": official,
         "data_quality": {"failed": len(failures), "failures": failures, "note": "免费公开源；不同序列频率不同，卡片显示各自观察日期。"},
-        "sources": ["Yahoo Chart API", "U.S. Department of the Treasury", "U.S. Bureau of Labor Statistics", "Federal Reserve Bank of Atlanta GDPNow", "Federal Reserve Economic Data (FRED)", "Federal Reserve FOMC Calendar"],
+        "sources": ["Yahoo Chart API", "Federal Reserve Bank of New York", "Board of Governors H.4.1", "U.S. Treasury Fiscal Data", "U.S. Department of the Treasury", "U.S. Bureau of Labor Statistics", "Federal Reserve Bank of Atlanta GDPNow", "Federal Reserve FOMC Calendar", "FRED (fallback only)"],
     }
     if len(dimensions) < 4 or (not market and not official):
         raise RuntimeError("insufficient macro data")
