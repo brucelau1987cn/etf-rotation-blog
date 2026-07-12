@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import UsSubnav from '../components/UsSubnav.astro';
 
 type UsSignal = {
   symbol: string; name: string; theme: string; price: number; support: number; target: number; stop: number;
@@ -27,6 +28,8 @@ const renameStrategyTerms = (raw: string) => raw
   .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
   .replaceAll('ETF花园', 'ETF罗盘');
 const data = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/us-etf-garden.json'), 'utf8'))) as GardenData;
+const macro = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-macro-dashboard.json'), 'utf8'));
+const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tight' ? '🟠' : macro.risk.key === 'slightly-tight' ? '🟡' : '🟢';
 const sections = [
   { key: 'exit', icon: '🛑', title: '破位撤退', note: '触及前一快照防守线，风险动作最高优先', tone: 'exit' },
   { key: 'harvest', icon: '✂️', title: '兑现触发', note: '盘中触及前一快照兑现位', tone: 'harvest' },
@@ -79,6 +82,11 @@ const actionCopy = (key: string) => ({
       .top-action { margin-top: .65rem; padding: .8rem .9rem; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .7rem; background: #152238; color: #fff; border-radius: 14px; }
       .top-action strong, .top-action span { color: #fff; }
       .top-action small { display: block; opacity: .72; }
+      .macro-gate { margin-top: .65rem; padding: .7rem .85rem; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .65rem; border: 1px solid #cddbed; border-radius: 13px; background: #f6f9fd; }
+      .macro-gate > span { font-size: 1.15rem; }
+      .macro-gate strong { display: block; font-size: .84rem; }
+      .macro-gate small { display: block; color: rgb(var(--gray)); margin-top: .08rem; }
+      .macro-gate a { padding: .35rem .55rem; border-radius: 9px; background: #14243b; color: #fff; text-decoration: none; font-size: .72rem; font-weight: 850; white-space: nowrap; }
       .section-head { display: flex; justify-content: space-between; align-items: end; gap: .7rem; margin: 1.45rem 0 .7rem; }
       .section-head h2 { margin: .2rem 0 0; }
       .section-head a { font-size: .82rem; font-weight: 850; }
@@ -150,16 +158,20 @@ const actionCopy = (key: string) => ({
         .level:nth-child(2) { border-right: 0; }
         .level:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
         .section-head { align-items: flex-start; }
+        .macro-gate { grid-template-columns: auto 1fr; }
+        .macro-gate a { grid-column: 1/-1; text-align: center; }
       }
     </style>
   </head>
   <body>
     <Header />
     <main>
+      <UsSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
         <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Garden v3'}</span></div></div>
         <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span>{section.icon} {section.title}</span><strong>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
         <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
+        <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
         {firstAction ? <div class="top-action"><span>⚡</span><div><small>第一优先级｜{activeSections[0].title}</small><strong>{firstAction.symbol} · {actionCopy(activeSections[0].key)}</strong></div></div> : <div class="top-action"><span>✓</span><div><small>今日动作</small><strong>没有触发类信号，保持观察，不机械凑数。</strong></div></div>}
       </section>
 

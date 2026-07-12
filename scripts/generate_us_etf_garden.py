@@ -305,7 +305,14 @@ def main() -> None:
     history_payload["records"] = sorted(history_payload["records"], key=lambda x: x["date"], reverse=True)[:260]
     history_payload["updated_at"] = now.isoformat()
     atomic_write(OUT_POOL, pool_payload); atomic_write(OUT_GARDEN, garden_payload); atomic_write(OUT_BACKTEST, backtest_payload); atomic_write(OUT_FLOWER_HISTORY, history_payload)
-    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "regime": regime, "top": [x["symbol"] for x in selected], "flowers": flower_counts, "backtest_samples": evaluated}, ensure_ascii=False))
+    macro_status = "ok"
+    try:
+        from generate_us_macro import main as generate_us_macro
+        generate_us_macro()
+    except Exception as exc:
+        # Macro refresh is a sidecar: retain its last good snapshot without failing the trading dashboard.
+        macro_status = f"retained: {type(exc).__name__}"
+    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "regime": regime, "top": [x["symbol"] for x in selected], "flowers": flower_counts, "backtest_samples": evaluated, "macro": macro_status}, ensure_ascii=False))
 
 
 if __name__ == "__main__": main()
