@@ -59,7 +59,7 @@ const actionCopy = (key: string) => ({
   <head>
     <BaseHead title="美股ETF罗盘｜今日动作" description="美股ETF交易仪表盘：优先展示退出、兑现、伏击动作及现价、伏击位、兑现位和防守线。" />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1.25rem 0 3rem; }
+      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #f3f8ff, #fff); }
       .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero-copy h1 { margin: .35rem 0; font-size: clamp(1.85rem, 5vw, 2.8rem); }
@@ -144,7 +144,7 @@ const actionCopy = (key: string) => ({
         .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 1; }
       }
       @media (max-width: 620px) {
-        main { width: min(100% - 1rem, 1180px); padding-top: .7rem; }
+        main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
