@@ -4,13 +4,14 @@ import { join } from 'node:path';
 import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import UsSubnav from '../../components/UsSubnav.astro';
 const backtest = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-backtest.json'), 'utf8'));
 const flowerHistory = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-flower-history.json'), 'utf8'));
 const records = flowerHistory.records || [];
 const total = (key: string) => records.reduce((sum: number, r: any) => sum + (r.counts?.[key] || 0), 0);
 const labels: Record<string,string> = { ready_plant:'候场', plant:'伏击', ready_harvest:'止盈观察', harvest:'兑现', exit:'破位撤退' };
 ---
-<!doctype html><html lang="zh-CN"><head><BaseHead title="美股ETF罗盘｜信号历史与成绩" description="美股ETF伏击兑现信号历史、方向验证及统计口径。" /></head><body><Header /><main class="site-shell">
+<!doctype html><html lang="zh-CN"><head><BaseHead title="美股ETF罗盘｜信号历史与成绩" description="美股ETF伏击兑现信号历史、方向验证及统计口径。" /></head><body><Header /><main class="site-shell"><UsSubnav active="history" />
 <section class="hero"><span class="pill">🇺🇸 US ETF COMPASS HISTORY</span><h1>美股ETF罗盘历史成绩</h1><p>伏击、兑现与失效信号按交易日留档；准备信号和实际触发分开统计。</p></section>
 <section class="score"><article><span>记录交易日</span><strong>{records.length}天</strong></article><article><span>伏击触发</span><strong>{total('plant')}次</strong></article><article><span>兑现触发</span><strong>{total('harvest')}次</strong></article><article><span>破位撤退</span><strong>{total('exit')}次</strong></article></section>
 <section class="card"><h2>罗盘信号时间线</h2>{records.length ? <div class="timeline">{records.map((record:any) => <article><div class="date"><strong>{record.date}</strong><small>{record.market_regime?.state} · 权益参考{record.market_regime?.equity_allocation}</small></div><div class="counts">{Object.entries(record.counts || {}).map(([key,value]:any) => <span>{labels[key]} <b>{value}</b></span>)}</div><div class="symbols">{Object.entries(record.signals || {}).flatMap(([key,items]:any) => items.map((x:any) => <span><b>{labels[key]}</b> {x.symbol} · ${x.trigger_level}</span>))}</div></article>)}</div> : <p>尚未生成首个交易日记录。</p>}</section>
