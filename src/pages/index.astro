@@ -1,154 +1,79 @@
 ---
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import FormattedDate from '../components/FormattedDate.astro';
 import { SITE_TITLE } from '../consts';
-import { isPublicEtfPost, sortByPubDateDesc, summarizeDescription } from '../lib/posts';
 
-interface RecommendationItem { code: string; name: string; status: string; action: string; }
-interface GardenData { date: string; updated_at: string; level_data_as_of?: string; market_state: string; position: string; mainline: string; summary: string; harvest: RecommendationItem[]; plant: RecommendationItem[]; }
-interface UsSignal { symbol: string; name: string; theme: string; price: number; trade_state: string; strength_level: string; }
-interface UsData { date: string; updated_at: string; summary: string; market_regime: { state: string; equity_allocation: string; benchmark: string }; recommendations: UsSignal[]; flower_signals: Record<string, UsSignal[]>; flower_counts: Record<string, number>; }
+type AAction = { code:string; name:string; status:string; action:string; price?:number; support?:number; target?:number; stop?:number; action_level?:number; action_level_label?:string; distance_pct?:number; risk_level?:string; price_date?:string };
+type GardenData = { date:string; updated_at:string; level_data_as_of?:string; market_state:string; position:string; mainline:string; summary:string; harvest:AAction[]; plant:AAction[] };
+type UsAction = { symbol:string; name:string; price:number; support:number; target:number; stop:number; trade_state:string; signal:string; trigger_level:number; support_gap?:number; target_gap?:number; risk_level:string; trade_date:string };
+type UsData = { date:string; updated_at:string; summary:string; market_regime:{state:string;equity_allocation:string}; flower_signals:Record<string,UsAction[]>; flower_counts:Record<string,number> };
 
-const readJson = (file: string) => JSON.parse(readFileSync(join(process.cwd(), `public/data/${file}`), 'utf8'));
-const renameStrategyTerms = (raw: string) => raw
-  .replaceAll('准备种花', '候场').replaceAll('准备摘花', '止盈观察')
-  .replaceAll('种花', '伏击').replaceAll('摘花', '兑现')
-  .replaceAll('失效退出', '破位撤退').replaceAll('回踩位', '伏击位')
-  .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
-  .replaceAll('ETF花园', 'ETF罗盘').replaceAll('US ETF Garden', 'US ETF Compass').replaceAll('Flower Signals', 'Compass Signals');
-const displayTerms = (value: string) => renameStrategyTerms(value);
-const garden = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf8'))) as GardenData;
-const us = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/us-etf-garden.json'), 'utf8'))) as UsData;
-const macro = readJson('us-macro-dashboard.json');
-const paper = readJson('paper-trading.json');
-const aBacktest = readJson('etf-garden-backtest.json');
-const usBacktest = readJson('us-etf-backtest.json');
-const allPosts = (await getCollection('blog')).filter(isPublicEtfPost).sort(sortByPubDateDesc);
-const latestPosts = allPosts.slice(0, 6);
-const aActions = [...garden.harvest.slice(0, 2), ...garden.plant.slice(0, 2)].slice(0, 4);
-const usPriority = ['exit', 'harvest', 'plant', 'ready_harvest', 'ready_plant'];
-const usActions = usPriority.flatMap((key) => us.flower_signals[key] || []).slice(0, 4);
-const usActiveCount = Object.values(us.flower_counts || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+const rename = (raw:string) => raw.replaceAll('准备种花','候场').replaceAll('准备摘花','止盈观察').replaceAll('种花','伏击').replaceAll('摘花','兑现').replaceAll('失效退出','破位撤退').replaceAll('回踩位','伏击位').replaceAll('目标位','兑现位').replaceAll('失效线','防守线').replaceAll('ETF花园','ETF罗盘').replaceAll('US ETF Garden','US ETF Compass').replaceAll('Flower Signals','Compass Signals');
+const dataPath = (name:string) => join(process.cwd(),`public/data/${name}`);
+const garden = JSON.parse(rename(readFileSync(dataPath('garden-recommendations.json'),'utf8'))) as GardenData;
+const aPool = JSON.parse(readFileSync(dataPath('etf-garden-pool.json'),'utf8'));
+const us = JSON.parse(rename(readFileSync(dataPath('us-etf-garden.json'),'utf8'))) as UsData;
+const usPool = JSON.parse(readFileSync(dataPath('us-etf-pool.json'),'utf8'));
+const macro = JSON.parse(readFileSync(dataPath('us-macro-dashboard.json'),'utf8'));
+const aActions = [...garden.harvest.slice(0,2),...garden.plant.slice(0,2)].slice(0,4);
+const usPriority = ['exit','harvest','plant','ready_harvest','ready_plant'];
+const usActions = usPriority.flatMap(key => us.flower_signals[key] || []).slice(0,4);
+const usFormalCount = ['exit','harvest','plant'].reduce((n,key)=>n+(us.flower_signals[key]?.length||0),0);
+const usReadyCount = ['ready_harvest','ready_plant'].reduce((n,key)=>n+(us.flower_signals[key]?.length||0),0);
 const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tight' ? '🟠' : macro.risk.key === 'slightly-tight' ? '🟡' : '🟢';
-const aAccount = paper.accounts.A;
-const usAccount = paper.accounts.US;
-const money = (n: number, c: string) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n || 0);
-const pct = (n: number) => `${((n || 0) * 100).toFixed(2)}%`;
-const usActionLabel = (state: string) => state.includes('退出') ? '撤退' : state.includes('兑现') ? '兑现' : state.includes('候场') || state.includes('回踩') ? '候场' : state;
+const number = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(v >= 100 ? 2 : 3).replace(/0+$/,'').replace(/\.$/,'') : 'N/A';
+const distance = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? `${v>0?'+':''}${v.toFixed(1)}%` : 'N/A';
+const aTone = (status:string) => status.includes('兑现') ? 'sell' : status.includes('撤退') ? 'exit' : 'buy';
+const usLabel = (item:UsAction) => item.signal || item.trade_state;
+const usTone = (item:UsAction) => item.signal?.includes('兑现') ? 'sell' : item.signal?.includes('撤退') ? 'exit' : 'buy';
 ---
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={SITE_TITLE} description="ETF罗盘双市场首页：汇总A股与美股今日动作、趋势风控、宏观风险、模拟盘和最新策略复盘。" />
+    <BaseHead title={SITE_TITLE} description="ETF罗盘双市场今日仪表盘：集中展示A股与美股市场结论、仓位建议、趋势风控、宏观风险和优先动作。" />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 4rem; }
-      section { margin-top: 1.45rem; }
-      .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); gap: .9rem; align-items: stretch; }
-      .hero-main { padding: clamp(1.2rem, 4vw, 2.15rem); background: linear-gradient(135deg,#fff4ef 0%,#fff 55%,#f1f7ff 100%); }
-      .eyebrow,.meta,.hero-actions,.market-links { display:flex; flex-wrap:wrap; gap:.45rem; align-items:center; }
-      .hero h1 { max-width: 760px; margin: .7rem 0; font-size: clamp(2rem, 5vw, 3.45rem); letter-spacing: -.055em; text-wrap: balance; }
-      .hero-main > p { max-width: 690px; color: rgb(var(--gray)); font-size: clamp(.96rem,2vw,1.1rem); line-height: 1.75; }
-      .hero-actions { margin-top: 1.1rem; }
-      .market-overview { padding: .9rem; display:grid; gap:.65rem; background:#fff; }
-      .market-mini { display:block; padding:.85rem; border:1px solid var(--border); border-radius:14px; color:rgb(var(--gray-dark)); text-decoration:none; }
-      .market-mini.a { background:linear-gradient(135deg,#fff7f3,#fff); }
-      .market-mini.us { background:linear-gradient(135deg,#f1f7ff,#fff); }
-      .mini-head,.metric-head,.section-heading,.account-head { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; }
-      .market-mini h2 { margin:.25rem 0; font-size:1.22rem; }
-      .market-mini p { margin:0; color:rgb(var(--gray)); font-size:.8rem; line-height:1.5; }
-      .mini-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; margin-top:.6rem; }
-      .mini-facts div { padding:.5rem .6rem; border-radius:9px; background:rgba(255,255,255,.82); border:1px solid var(--border-soft); }
-      .mini-facts span,.stat span,.account-metrics span { display:block; color:rgb(var(--gray)); font-size:.68rem; font-weight:750; }
-      .mini-facts strong { font-size:.82rem; }
-      .section-heading { align-items:end; margin-bottom:.7rem; }
-      .section-heading h2 { margin:0; }
-      .section-heading p { margin:0; color:rgb(var(--gray)); font-size:.82rem; }
-      .market-grid,.account-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem; }
-      .market-card { padding:1rem; position:relative; overflow:hidden; }
-      .market-card.a { border-top:4px solid var(--accent); }
-      .market-card.us { border-top:4px solid #1a65b8; }
-      .market-card h3 { margin:.3rem 0 .2rem; font-size:1.25rem; }
-      .market-card > p { color:rgb(var(--gray)); font-size:.86rem; min-height:2.9em; }
-      .stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin:.7rem 0; }
-      .stat { padding:.6rem; background:var(--warm-2); border:1px solid var(--border-soft); border-radius:10px; }
-      .stat strong { display:block; margin-top:.1rem; font-size:.88rem; }
-      .action-list { display:grid; gap:.42rem; margin-top:.65rem; }
-      .action-row { display:grid; grid-template-columns:auto 1fr auto; gap:.55rem; align-items:center; padding:.55rem .6rem; border:1px solid var(--border); border-radius:11px; color:rgb(var(--gray-dark)); text-decoration:none; background:#fff; }
-      .action-row code { min-width:4.2rem; text-align:center; background:var(--warm); }
-      .action-row strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
-      .action-row small { color:rgb(var(--gray)); white-space:nowrap; }
-      .market-links { margin-top:.75rem; }
-      .market-links a { font-size:.78rem; font-weight:800; }
-      .nav-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.7rem; }
-      .nav-card { padding:.9rem; color:rgb(var(--gray-dark)); text-decoration:none; }
-      .nav-card strong { display:block; margin:.35rem 0 .18rem; }
-      .nav-card p { margin:0; color:rgb(var(--gray)); font-size:.78rem; line-height:1.45; }
-      .nav-card.us { background:#f7faff; }
-      .nav-card.account { background:#fff9ef; }
-      .archive-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
-      .archive-card .description { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-      .account-card { padding:1rem; }
-      .account-card h3 { margin:.2rem 0; }
-      .account-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin:.7rem 0; }
-      .account-metrics div { padding:.55rem; background:var(--warm-2); border-radius:9px; }
-      .account-metrics strong { font-size:.85rem; }
-      .validation { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; margin-top:.8rem; }
-      .validation a { padding:.8rem; border:1px dashed var(--border); border-radius:12px; text-decoration:none; color:rgb(var(--gray-dark)); }
-      .validation strong { display:block; }
-      .validation small { color:rgb(var(--gray)); }
-      @media(max-width:900px){ .hero,.market-grid,.account-grid { grid-template-columns:1fr; } .nav-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .archive-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media(max-width:620px){ main{width:min(100% - 1rem,1180px)} .hero-main,.market-card,.account-card{padding:.85rem} .hero h1{font-size:clamp(1.9rem,11vw,2.7rem)} .hero-actions .button{flex:1 1 45%;text-align:center} .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.nav-grid,.archive-grid,.validation{grid-template-columns:1fr}.action-row{grid-template-columns:auto 1fr}.action-row small{grid-column:2}.section-heading{align-items:flex-start;flex-direction:column}.account-metrics{grid-template-columns:repeat(2,minmax(0,1fr))} }
+      main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}.dashboard-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border)}
+      .dashboard-head h1{margin:.25rem 0;font-size:clamp(1.8rem,4.5vw,2.75rem)}.dashboard-head p{margin:0;color:rgb(var(--gray));max-width:700px}.dates{display:grid;grid-template-columns:repeat(2,auto);gap:.32rem}.dates span{padding:.34rem .55rem;border:1px solid var(--border);border-radius:9px;background:#fff;font-size:.7rem;white-space:nowrap;color:rgb(var(--gray))}
+      .markets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem;margin-top:.9rem}.market{padding:1rem;overflow:hidden}.market.a{border-top:5px solid var(--accent)}.market.us{border-top:5px solid #1b67b2;background:linear-gradient(180deg,#f7fbff 0,#fff 20%)}
+      .market-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem}.market-title{display:flex;gap:.55rem;align-items:center}.market-title h2{margin:0;font-size:1.35rem}.market-date{text-align:right;color:rgb(var(--gray));font-size:.7rem}.market-date strong{display:block;font-size:.8rem}
+      .verdict{margin:.75rem 0;padding:.8rem;border-radius:13px;background:var(--warm-2);border:1px solid var(--border)}.verdict-head{display:flex;justify-content:space-between;gap:.7rem;align-items:center}.verdict h3{margin:0;font-size:1.12rem}.verdict p{margin:.42rem 0 0;color:rgb(var(--gray));font-size:.82rem;line-height:1.55}.allocation{font-weight:850;font-size:.76rem;padding:.25rem .55rem;border-radius:999px;background:#fff;border:1px solid var(--border)}
+      .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.42rem;margin:.7rem 0}.metric{padding:.58rem;background:#fff;border:1px solid var(--border);border-radius:10px;min-width:0}.metric span{display:block;font-size:.65rem;color:rgb(var(--gray));font-weight:750}.metric strong{display:block;margin-top:.1rem;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.metric.wide{grid-column:span 2}
+      .actions-head{display:flex;justify-content:space-between;align-items:center;margin:.9rem 0 .48rem}.actions-head h3{margin:0;font-size:1rem}.actions-head small{color:rgb(var(--gray))}.action-list{display:grid;gap:.5rem}.action{padding:.7rem;border:1px solid var(--border);border-radius:12px;background:#fff}.action.sell{border-left:4px solid var(--green)}.action.buy{border-left:4px solid var(--accent)}.action.exit{border-left:4px solid #991b1b}.action-top{display:flex;justify-content:space-between;gap:.55rem;align-items:flex-start}.identity{min-width:0}.identity strong{display:block;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.identity small{display:block;color:rgb(var(--gray));font-size:.68rem}.state{padding:.18rem .46rem;border-radius:999px;font-size:.66rem;font-weight:850;white-space:nowrap}.sell .state{background:var(--green-soft);color:var(--green)}.buy .state{background:var(--accent-soft);color:var(--accent-dark)}.exit .state{background:#fee2e2;color:#991b1b}
+      .levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.3rem;margin-top:.55rem}.level{padding:.42rem .3rem;text-align:center;background:var(--warm-2);border-radius:8px;min-width:0}.level span{display:block;color:rgb(var(--gray));font-size:.59rem;white-space:nowrap}.level strong{display:block;font-size:.72rem;overflow:hidden;text-overflow:ellipsis}.action-copy{margin:.46rem 0 0;color:rgb(var(--gray));font-size:.72rem;line-height:1.45}
+      .market-links{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)}.market-links a{flex:1;text-align:center;padding:.46rem .55rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;font-weight:850;text-decoration:none;white-space:nowrap}
+      @media(max-width:960px){.markets{grid-template-columns:1fr}.dashboard-head{align-items:flex-start}.dates{grid-template-columns:1fr}}
+      @media(max-width:620px){main{width:min(100% - 1rem,1180px);padding-top:.55rem}.dashboard-head{display:block}.dashboard-head p{font-size:.82rem}.dates{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.65rem}.dates span{white-space:normal}.market{padding:.8rem}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric.wide{grid-column:span 2}.levels{grid-template-columns:repeat(4,minmax(0,1fr))}.level:last-child{grid-column:span 4}.market-links a{flex:1 1 42%}}
     </style>
   </head>
   <body>
     <Header />
     <main>
-      <section class="hero">
-        <div class="hero-main card">
-          <div class="eyebrow"><span class="pill pill-red">🇨🇳 A股罗盘</span><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股罗盘</span><span class="pill pill-amber">📒 模拟盘验证</span></div>
-          <h1>两个市场，一套从判断到验证的ETF决策系统。</h1>
-          <p>首页汇总A股与美股的今日动作、趋势风控和账户验证；博客保留每天的观点、复盘与策略演进。先看结论，再进入对应市场执行。</p>
-          <div class="hero-actions"><a class="button primary" href="/garden/">进入A股罗盘</a><a class="button" href="/us-garden/">进入美股罗盘</a><a class="button" href="/paper/">查看模拟盘</a><a class="button" href="/blog/">阅读最新复盘</a></div>
-        </div>
-        <aside class="market-overview card" aria-label="双市场摘要">
-          <a class="market-mini a" href="/garden/"><div class="mini-head"><span class="pill pill-red">A股 · {garden.date}</span><small>行情 {garden.level_data_as_of || '待更新'}</small></div><h2>{garden.market_state}</h2><p>{garden.summary}</p><div class="mini-facts"><div><span>仓位建议</span><strong>{garden.position}</strong></div><div><span>当前主线</span><strong>{garden.mainline}</strong></div></div></a>
-          <a class="market-mini us" href="/us-garden/"><div class="mini-head"><span class="pill" style="background:#eaf3ff;color:#174ea6">美股 · {us.date}</span><small>{macroIcon} {macro.risk.label}</small></div><h2>{us.market_regime.state} · 权益{us.market_regime.equity_allocation}</h2><p>{us.summary}</p><div class="mini-facts"><div><span>动作/候场</span><strong>{usActiveCount}项</strong></div><div><span>宏观闸门</span><strong>{macro.risk.headline}</strong></div></div></a>
-        </aside>
-      </section>
+      <header class="dashboard-head">
+        <div><span class="pill">DAILY ETF COMPASS</span><h1>双市场今日仪表盘</h1><p>A股与美股的市场状态、仓位建议、风险闸门和优先动作。风险动作优先；候场不等于买入，正式触发才进入执行。</p></div>
+        <div class="dates"><span>A股计划 {garden.date}</span><span>A股行情 {garden.level_data_as_of||'待更新'}</span><span>美股行情 {us.date}</span><span>美股更新 {us.updated_at.replace('T',' ').slice(0,16)}</span></div>
+      </header>
 
-      <section>
-        <div class="section-heading"><div><h2>双市场今日仪表盘</h2><p>风险动作优先；候场不等于买入，正式触发才进入执行。</p></div><a href="/paper/">查看前向验证 →</a></div>
-        <div class="market-grid">
-          <article class="market-card a card"><div class="metric-head"><div><span class="pill pill-red">🇨🇳 A股</span><h3>今日动作</h3></div><small>{garden.updated_at}</small></div><p>{garden.summary}</p><div class="stats"><div class="stat"><span>兑现侧</span><strong>{garden.harvest.length}只</strong></div><div class="stat"><span>伏击侧</span><strong>{garden.plant.length}只</strong></div><div class="stat"><span>市场状态</span><strong>{garden.market_state}</strong></div></div><div class="action-list">{aActions.map((item) => <a class="action-row" href={`/garden/#etf-${item.code}`}><code>{item.code}</code><strong>{item.name}</strong><small>{item.status}</small></a>)}</div><div class="market-links"><a href="/garden/">今日动作 →</a><a href="/momentum/">趋势风控 →</a><a href="/blog/">盘后复盘 →</a></div></article>
-          <article class="market-card us card"><div class="metric-head"><div><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股</span><h3>今日动作</h3></div><small>{us.updated_at.replace('T',' ').slice(0,16)}</small></div><p>{us.summary}</p><div class="stats"><div class="stat"><span>动作/候场</span><strong>{usActiveCount}项</strong></div><div class="stat"><span>市场结构</span><strong>{us.market_regime.state}</strong></div><div class="stat"><span>风险预算</span><strong>{macro.risk.label}</strong></div></div><div class="action-list">{usActions.map((item) => <a class="action-row" href="/us-garden/"><code>{item.symbol}</code><strong>{item.name}</strong><small>{usActionLabel(item.trade_state)}</small></a>)}</div><div class="market-links"><a href="/us-garden/">今日动作 →</a><a href="/us-momentum/">趋势风控 →</a><a href="/us-macro/">宏观雷达 →</a><a href="/us-garden/history/">历史成绩 →</a></div></article>
-        </div>
-      </section>
+      <section class="markets" aria-label="双市场今日仪表盘">
+        <article class="market a card">
+          <div class="market-top"><div class="market-title"><span class="pill pill-red">🇨🇳 A股</span><h2>今日决策</h2></div><div class="market-date"><strong>行情 {garden.level_data_as_of||'待更新'}</strong>计划 {garden.date}</div></div>
+          <div class="verdict"><div class="verdict-head"><h3>{garden.market_state}</h3><span class="allocation">仓位 {garden.position}</span></div><p>{garden.summary}</p></div>
+          <div class="metrics"><div class="metric"><span>兑现侧</span><strong>{garden.harvest.length}只</strong></div><div class="metric"><span>伏击侧</span><strong>{garden.plant.length}只</strong></div><div class="metric"><span>趋势通过</span><strong>{aPool.summary.momentum_pass_count}/{aPool.summary.universe_count}</strong></div><div class="metric"><span>风险状态</span><strong>{garden.market_state}</strong></div><div class="metric wide"><span>当前主线</span><strong>{garden.mainline}</strong></div><div class="metric wide"><span>数据截止</span><strong>{garden.updated_at}</strong></div></div>
+          <div class="actions-head"><h3>优先动作</h3><small>现价与关键位均为行情日快照</small></div>
+          <div class="action-list">{aActions.map(item=><div class={`action ${aTone(item.status)}`}><div class="action-top"><div class="identity"><strong>{item.code} · {item.name}</strong><small>风险 {item.risk_level||'N/A'} · 行情 {item.price_date||garden.level_data_as_of||'待更新'}</small></div><span class="state">{item.status}</span></div><div class="levels"><div class="level"><span>现价</span><strong>{number(item.price)}</strong></div><div class="level"><span>伏击位</span><strong>{number(item.support)}</strong></div><div class="level"><span>兑现位</span><strong>{number(item.target)}</strong></div><div class="level"><span>防守线</span><strong>{number(item.stop)}</strong></div><div class="level"><span>距动作位</span><strong>{distance(item.distance_pct)}</strong></div></div><p class="action-copy">{item.action}</p></div>)}</div>
+          <nav class="market-links" aria-label="A股功能"><a href="/garden/">今日动作</a><a href="/momentum/">趋势风控</a><a href="/blog/">盘后复盘</a></nav>
+        </article>
 
-      <section>
-        <div class="section-heading"><div><h2>功能入口</h2><p>先选择市场，再进入动作、风控、复盘或成绩页面。</p></div></div>
-        <div class="nav-grid">
-          <a class="nav-card card" href="/garden/"><span class="pill pill-red">A股</span><strong>今日动作</strong><p>伏击、持有、兑现与防守线。</p></a><a class="nav-card card" href="/momentum/"><span class="pill pill-amber">A股</span><strong>趋势风控</strong><p>71池强弱、结构与交易风险。</p></a><a class="nav-card card" href="/blog/"><span class="pill">A股</span><strong>盘后复盘</strong><p>资金、量价、错因与次日计划。</p></a>
-          <a class="nav-card us card" href="/us-garden/"><span class="pill">美股</span><strong>今日动作</strong><p>动作位、目标位和防守线。</p></a><a class="nav-card us card" href="/us-momentum/"><span class="pill">美股</span><strong>趋势风控</strong><p>67池趋势等级与相对SPY强度。</p></a><a class="nav-card us card" href="/us-macro/"><span class="pill">美股</span><strong>宏观雷达</strong><p>宏观环境控制风险预算和总仓位。</p></a><a class="nav-card us card" href="/us-garden/history/"><span class="pill">美股</span><strong>历史成绩</strong><p>方向、触发和可执行表现。</p></a>
-          <a class="nav-card account card" href="/paper/"><span class="pill pill-amber">账户</span><strong>ETF模拟盘</strong><p>A股15万元与美股2万美元前向验证。</p></a>
-        </div>
-      </section>
-
-      <section>
-        <div class="section-heading"><div><h2>最新博客文章</h2><p>保留观点演进：盘前假设、盘后验证和策略研究都可追溯。</p></div><a href="/blog/">全部文章 →</a></div>
-        <ul class="archive-grid">{latestPosts.map((post) => <li><a class="archive-card card" href={`/blog/${post.id}/`}><div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF研究'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div><h3>{displayTerms(post.data.title)}</h3><p class="description">{displayTerms(summarizeDescription(post.data.description))}</p><p class="date"><FormattedDate date={post.data.pubDate} /></p></a></li>)}</ul>
-      </section>
-
-      <section>
-        <div class="section-heading"><div><h2>模拟盘与历史验证</h2><p>策略信号、账户结果与样本命中分开统计，不用历史数据冒充真实成交。</p></div><a href="/paper/">进入模拟盘 →</a></div>
-        <div class="account-grid">
-          <article class="account-card card"><div class="account-head"><div><span class="pill pill-red">🇨🇳 A股账户</span><h3>{money(aAccount.equity,'CNY')}</h3></div><strong>{pct(aAccount.cumulative_return)}</strong></div><div class="account-metrics"><div><span>现金占比</span><strong>{pct(aAccount.cash_ratio)}</strong></div><div><span>持仓</span><strong>{Object.keys(aAccount.positions || {}).length}/10</strong></div><div><span>验证样本</span><strong>{aBacktest.summary.overall.count}</strong></div></div><div class="validation"><a href="/garden/history/"><strong>次日方向 {aBacktest.summary.overall.next1_hit_rate}%</strong><small>历史样本，不代表实际收益</small></a><a href="/paper/#a-share"><strong>查看账户明细</strong><small>持仓、现金和净值记录</small></a></div></article>
-          <article class="account-card card"><div class="account-head"><div><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股账户</span><h3>{money(usAccount.equity,'USD')}</h3></div><strong>{pct(usAccount.cumulative_return)}</strong></div><div class="account-metrics"><div><span>现金占比</span><strong>{pct(usAccount.cash_ratio)}</strong></div><div><span>持仓</span><strong>{Object.keys(usAccount.positions || {}).length}/10</strong></div><div><span>验证样本</span><strong>{usBacktest.sample_count}</strong></div></div><div class="validation"><a href="/us-garden/history/"><strong>次日方向 {usBacktest.next_day_direction_rate}%</strong><small>{usBacktest.note}</small></a><a href="/paper/#us"><strong>查看账户明细</strong><small>持仓、现金和净值记录</small></a></div></article>
-        </div>
+        <article class="market us card">
+          <div class="market-top"><div class="market-title"><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股</span><h2>今日决策</h2></div><div class="market-date"><strong>行情 {us.date}</strong>{macroIcon} {macro.risk.label}</div></div>
+          <div class="verdict"><div class="verdict-head"><h3>{us.market_regime.state}</h3><span class="allocation">权益 {us.market_regime.equity_allocation}</span></div><p>{us.summary}</p></div>
+          <div class="metrics"><div class="metric"><span>正式动作</span><strong>{usFormalCount}项</strong></div><div class="metric"><span>候场观察</span><strong>{usReadyCount}项</strong></div><div class="metric"><span>趋势通过</span><strong>{usPool.summary.momentum_pass}/{usPool.summary.universe}</strong></div><div class="metric"><span>宏观闸门</span><strong>{macro.risk.label}</strong></div><div class="metric wide"><span>风险预算</span><strong>{macro.risk.equity_constraint}</strong></div><div class="metric wide"><span>宏观信号</span><strong>{macro.risk.headline}</strong></div></div>
+          <div class="actions-head"><h3>优先动作</h3><small>正式动作优先，其次候场观察</small></div>
+          <div class="action-list">{usActions.map(item=><div class={`action ${usTone(item)}`}><div class="action-top"><div class="identity"><strong>{item.symbol} · {item.name}</strong><small>风险 {item.risk_level} · 行情 {item.trade_date}</small></div><span class="state">{usLabel(item)}</span></div><div class="levels"><div class="level"><span>现价</span><strong>${number(item.price)}</strong></div><div class="level"><span>伏击位</span><strong>${number(item.support)}</strong></div><div class="level"><span>兑现位</span><strong>${number(item.target)}</strong></div><div class="level"><span>防守线</span><strong>${number(item.stop)}</strong></div><div class="level"><span>距动作位</span><strong>{distance(item.signal?.includes('兑现') ? item.target_gap : item.support_gap)}</strong></div></div><p class="action-copy">{item.trade_state}</p></div>)}</div>
+          <nav class="market-links" aria-label="美股功能"><a href="/us-garden/">今日动作</a><a href="/us-momentum/">趋势风控</a><a href="/us-macro/">宏观雷达</a><a href="/us-garden/history/">历史成绩</a></nav>
+        </article>
       </section>
     </main>
     <Footer />
