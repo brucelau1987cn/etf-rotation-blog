@@ -128,13 +128,14 @@ PARAMS = {
 }
 
 DEFENSIVE_ASSETS = [
-    {"name": "银华日利 ETF", "code": "511880", "role": "现金替代"},
-    {"name": "华宝添益 ETF", "code": "511990", "role": "现金替代"},
-    {"name": "黄金 ETF", "code": "518880", "role": "避险资产"},
+    {"name": "十年国债ETF国泰", "code": "511260", "role": "利率防守"},
+    {"name": "公司债ETF易方达", "code": "511110", "role": "信用债防守"},
+    {"name": "黄金ETF华安", "code": "518880", "role": "避险资产"},
+    {"name": "红利低波ETF华泰柏瑞", "code": "512890", "role": "权益防守"},
 ]
 
-# 正式池中可作为货币替代的两个场内货基（如有）
-GARDEN_CASH = {"511880", "511990"}
+# 正式池中的债券/防守观察代码；货币基金不在91正式池内。
+GARDEN_CASH = {"511260", "511110"}
 
 
 def market_prefix(market: str) -> str:
