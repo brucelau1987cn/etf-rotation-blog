@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-14 00:14:16 CST",
+  "timezone": "Asia/Shanghai",
+  "market": "CN",
+  "model_version": "A-share Mid-Macro Constraint v1",
+  "factors": [
+    {
+      "key": "rates_fixed_income",
+      "label": "加息预期/固收相对强弱",
+      "state": "逆风",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+2.77pp",
+      "reasons": [
+        "固收5日相对沪深300超额+2.77pp",
+        "固收20日相对偏强+1.88pp"
+      ],
+      "metrics": {
+        "bond_ret5": 0.04,
+        "bond_ret20": 0.34,
+        "equity_ret5": -2.73,
+        "equity_ret20": -1.54,
+        "bond_vs_equity_5d_pp": 2.77,
+        "bond_vs_equity_20d_pp": 1.88
+      },
+      "details": {
+        "511260": {
+          "ret5": 0.06,
+          "ret20": 0.45,
+          "last": 134.918,
+          "date": "2026-07-13"
+        },
+        "511010": {
+          "ret5": 0.02,
+          "ret20": 0.3,
+          "last": 140.775,
+          "date": "2026-07-13"
+        },
+        "511110": {
+          "ret5": 0.05,
+          "ret20": 0.27,
+          "last": 102.891,
+          "date": "2026-07-13"
+        },
+        "510300": {
+          "ret5": -2.73,
+          "ret20": -1.54,
+          "last": 4.744,
+          "date": "2026-07-13"
+        }
+      },
+      "as_of": "2026-07-13"
+    },
+    {
+      "key": "overseas_deleveraging",
+      "label": "国际市场ETF去杠杆压力",
+      "state": "逆风",
+      "score": 2.5,
+      "headline": "海外映射ETF 5日均值-3.45%",
+      "reasons": [
+        "海外映射ETF 5日均值-3.45%",
+        "2只核心海外ETF 5日跌超2%",
+        "海外相关池弱化占比88%"
+      ],
+      "metrics": {
+        "proxy_ret5_avg": -3.45,
+        "proxy_ret20_avg": 5.27,
+        "proxy_weak_count_5d": 2,
+        "overseas_pool_count": 8,
+        "overseas_weak_share": 0.875
+      },
+      "details": {
+        "159941": {
+          "ret5": -1.05,
+          "ret20": 0.63,
+          "last": 1.608,
+          "date": "2026-07-13"
+        },
+        "513500": {
+          "ret5": 0.44,
+          "ret20": 0.28,
+          "last": 2.522,
+          "date": "2026-07-13"
+        },
+        "159502": {
+          "ret5": -5.3,
+          "ret20": 20.9,
+          "last": 1.591,
+          "date": "2026-07-13"
+        },
+        "513520": {
+          "ret5": -7.89,
+          "ret20": -0.74,
+          "last": 2.275,
+          "date": "2026-07-13"
+        }
+      },
+      "as_of": "2026-07-13"
+    },
+    {
+      "key": "margin_financing",
+      "label": "两融余额趋势",
+      "state": "逆风",
+      "score": 2.0,
+      "headline": "两融余额5日-1.94%",
+      "reasons": [
+        "两融余额5日-1.94%",
+        "连续5日净回落"
+      ],
+      "metrics": {
+        "rzye": 2922804420696.0,
+        "rzye_yi": 29228.04,
+        "rzyezb": 2.853391,
+        "chg5_pct": -1.94,
+        "chg10_pct": -2.23,
+        "chg20_pct": 2.46,
+        "down_streak": 5,
+        "as_of": "2026-07-10"
+      },
+      "details": {
+        "latest": {
+          "date": "2026-07-10",
+          "rzye": 2922804420696.0,
+          "rzyezb": 2.853391,
+          "rzmre": 321201334912
+        },
+        "points": [
+          {
+            "date": "2026-06-25",
+            "rzye": 3010196826710.0,
+            "rzyezb": 2.809927,
+            "rzmre": 388914644621
+          },
+          {
+            "date": "2026-06-26",
+            "rzye": 2989540228324.0,
+            "rzyezb": 2.865168,
+            "rzmre": 355042003438
+          },
+          {
+            "date": "2026-06-29",
+            "rzye": 2980905340469.0,
+            "rzyezb": 2.837754,
+            "rzmre": 336812341878
+          },
+          {
+            "date": "2026-06-30",
+            "rzye": 2997093245604.0,
+            "rzyezb": 2.820507,
+            "rzmre": 335529398165
+          },
+          {
+            "date": "2026-07-01",
+            "rzye": 3006990647719.0,
+            "rzyezb": 2.81728,
+            "rzmre": 392849086967
+          },
+          {
+            "date": "2026-07-02",
+            "rzye": 3000457833938.0,
+            "rzyezb": 2.877713,
+            "rzmre": 324387724852
+          },
+          {
+            "date": "2026-07-03",
+            "rzye": 2980723557643.0,
+            "rzyezb": 2.843354,
+            "rzmre": 296897316175
+          },
+          {
+            "date": "2026-07-06",
+            "rzye": 2970152549523.0,
+            "rzyezb": 2.849129,
+            "rzmre": 281676465768
+          },
+          {
+            "date": "2026-07-07",
+            "rzye": 2957035665877.0,
+            "rzyezb": 2.880267,
+            "rzmre": 228976847766
+          },
+          {
+            "date": "2026-07-08",
+            "rzye": 2938114539211.0,
+            "rzyezb": 2.891307,
+            "rzmre": 227729413506
+          },
+          {
+            "date": "2026-07-09",
+            "rzye": 2934164208427.0,
+            "rzyezb": 2.834422,
+            "rzmre": 279223386114
+          },
+          {
+            "date": "2026-07-10",
+            "rzye": 2922804420696.0,
+            "rzyezb": 2.853391,
+            "rzmre": 321201334912
+          }
+        ]
+      },
+      "as_of": "2026-07-10"
+    }
+  ],
+  "constraint": {
+    "headwind_level": 3,
+    "headwind_count": 3,
+    "watch_count": 0,
+    "score_total": 6.5,
+    "label": "强逆风",
+    "allow_chase": false,
+    "allow_new_offense": false,
+    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_equity_band": {
+      "low": 0,
+      "high": 10
+    },
+    "constrained_equity_band": {
+      "low": 0,
+      "high": 10
+    },
+    "position": "权益0%-10%；防御/现金90%-100%",
+    "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
+    "execution_rules": [
+      "关键位触发仍由价格/资金决定",
+      "本层只压缩权益上限与追高资格",
+      "QDII红盘不得单独上调A股总仓",
+      "两融下行时反弹默认按修复处理"
+    ]
+  },
+  "source_audit": {
+    "rates_proxies": [
+      "511260",
+      "511010",
+      "511110",
+      "510300"
+    ],
+    "overseas_proxies": [
+      "159941",
+      "513500",
+      "159502",
+      "513520"
+    ],
+    "margin_source": "eastmoney RPTA_RZRQ_LSHJ",
+    "price_source": "tencent qfq day bars",
+    "failures": {}
+  },
+  "disclaimer": "中观约束只压缩权益风险预算与追高资格，不替代ETF关键位触发。"
+}

@@ -119,6 +119,7 @@ def pending_public_changes(day: str) -> bool:
         "public/data/model-lab/a-share-shadow.json",
         "public/data/etf-garden-pool.json",
         "public/data/garden-recommendations.json",
+        "public/data/a-share-mid-macro.json",
         f"src/content/blog/{day}.md",
     ]
     result = subprocess.run(["git", "diff", "--quiet", "--", *paths], cwd=ROOT, check=False)

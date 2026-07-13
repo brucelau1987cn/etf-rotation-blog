@@ -8,9 +8,9 @@
   "model_version": "Bruce ETF Trend Radar v3",
   "idempotency_key": "CN+2026-07-13+22:00+Bruce ETF Trend Radar v3",
   "market_state": "防御",
-  "position": "权益10%-30%；防御/现金50%-70%",
+  "position": "权益0%-10%；防御/现金90%-100%",
   "mainline": "中药冲高止盈、豆粕独立α、银行底仓；科技与航天破位撤退",
-  "summary": "91池仅9涨82跌、动量通过5/91。科技与航天价格资金双弱；中药、银行逆势但资金背离，豆粕是核心复核中唯一价格与资金同向的独立α；22:01终检未改变动作。",
+  "summary": "91池仅9涨82跌、动量通过5/91。科技与航天价格资金双弱；中药、银行逆势但资金背离，豆粕是核心复核中唯一价格与资金同向的独立α；22:01终检未改变动作；中观强逆风（权益上限已压缩）。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
@@ -124,7 +124,8 @@
       "actual_trigger": "触及0.765伏击区并收回",
       "direction_result": "防御上涨命中",
       "executable_result": "可执行命中",
-      "return_result": "按0.765触发位至收盘毛收益+1.83%，未计费率与滑点"
+      "return_result": "按0.765触发位至收盘毛收益+1.83%，未计费率与滑点",
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
     },
     {
       "status": "种花",
@@ -132,7 +133,7 @@
       "name": "红利ETF易方达",
       "priority": "中",
       "trigger": "盘中回踩1.315且守住1.30，收盘位置0.71。",
-      "action": "仅保留小仓；仍低于1.334模型支撑，不升级。",
+      "action": "仅保留小仓；仍低于1.334模型支撑，不升级；中观约束：禁止追高，只按伏击位分批。",
       "price": 1.327,
       "support": 1.334,
       "target": 1.365,
@@ -142,7 +143,8 @@
       "actual_trigger": "守住1.30并收回前收附近",
       "direction_result": "相对抗跌命中",
       "executable_result": "小仓可执行",
-      "return_result": "以前收为基准收涨0.30%"
+      "return_result": "以前收为基准收涨0.30%",
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
     }
   ],
   "watch": [
@@ -190,5 +192,37 @@
       "stop": null,
       "return_basis": "qfq"
     }
-  ]
+  ],
+  "mid_macro": {
+    "generated_at": "2026-07-14 00:14:16 CST",
+    "headwind_level": 3,
+    "label": "强逆风",
+    "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
+    "allow_chase": false,
+    "allow_new_offense": false,
+    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "factors": [
+      {
+        "key": "rates_fixed_income",
+        "label": "加息预期/固收相对强弱",
+        "state": "逆风",
+        "score": 2.0,
+        "headline": "固收5日相对沪深300超额+2.77pp"
+      },
+      {
+        "key": "overseas_deleveraging",
+        "label": "国际市场ETF去杠杆压力",
+        "state": "逆风",
+        "score": 2.5,
+        "headline": "海外映射ETF 5日均值-3.45%"
+      },
+      {
+        "key": "margin_financing",
+        "label": "两融余额趋势",
+        "state": "逆风",
+        "score": 2.0,
+        "headline": "两融余额5日-1.94%"
+      }
+    ]
+  }
 }

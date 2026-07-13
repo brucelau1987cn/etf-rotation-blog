@@ -40,6 +40,16 @@ type GardenRecommendations = {
   watch: WatchItem[];
   level_model_version?: string;
   level_data_as_of?: string;
+  mid_macro?: {
+    generated_at?: string;
+    headwind_level?: number;
+    label?: string;
+    equity_constraint?: string;
+    allow_chase?: boolean;
+    allow_new_offense?: boolean;
+    base_position?: string;
+    factors?: Array<{ key: string; label: string; state: string; score: number; headline: string }>;
+  };
 };
 
 const renameStrategyTerms = (raw: string) => raw
@@ -49,6 +59,32 @@ const renameStrategyTerms = (raw: string) => raw
   .replaceAll('目标位', '兑现位').replaceAll('失效线', '防守线')
   .replaceAll('ETF花园', 'ETF罗盘');
 const data = JSON.parse(renameStrategyTerms(readFileSync(join(process.cwd(), 'public/data/garden-recommendations.json'), 'utf-8'))) as GardenRecommendations;
+let midMacro: any = data.mid_macro || null;
+try {
+  midMacro = midMacro || JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-share-mid-macro.json'), 'utf-8'));
+  if (midMacro?.constraint && !data.mid_macro) {
+    midMacro = {
+      generated_at: midMacro.generated_at,
+      headwind_level: midMacro.constraint.headwind_level,
+      label: midMacro.constraint.label,
+      equity_constraint: midMacro.constraint.equity_constraint,
+      allow_chase: midMacro.constraint.allow_chase,
+      allow_new_offense: midMacro.constraint.allow_new_offense,
+      base_position: midMacro.constraint.base_position,
+      factors: (midMacro.factors || []).map((f: any) => ({
+        key: f.key, label: f.label, state: f.state, score: f.score, headline: f.headline,
+      })),
+    };
+  }
+} catch {
+  midMacro = data.mid_macro || null;
+}
+const midLevel = Number(midMacro?.headwind_level ?? midMacro?.constraint?.headwind_level ?? 0);
+const midLabel = midMacro?.label || midMacro?.constraint?.label || '中性';
+const midConstraint = midMacro?.equity_constraint || midMacro?.constraint?.equity_constraint || '按关键位正常执行';
+const midFactors = (midMacro?.factors || []) as Array<{ label: string; state: string; headline: string; score?: number }>;
+const midTone = midLevel >= 3 ? 'danger' : midLevel >= 2 ? 'warn' : midLevel >= 1 ? 'watch' : 'ok';
+const midIcon = midLevel >= 3 ? '🔴' : midLevel >= 2 ? '🟠' : midLevel >= 1 ? '🟡' : '🟢';
 const harvest = data.harvest || [];
 const plant = data.plant || [];
 const watch = data.watch || [];
@@ -98,6 +134,21 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .top-action .rank { font-size: 1.25rem; }
       .top-action span, .top-action strong { color: #fff; }
       .top-action small { display: block; opacity: .7; }
+      .macro-gate { margin-top: .7rem; padding: .8rem .9rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; display: grid; gap: .55rem; }
+      .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
+      .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }
+      .macro-gate.warn { border-color: #f0b27a; background: #fff6ef; }
+      .macro-gate.danger { border-color: #f0b0a8; background: #fff5f3; }
+      .macro-gate-head { display: grid; grid-template-columns: auto 1fr auto; gap: .65rem; align-items: center; }
+      .macro-gate-head > span { font-size: 1.2rem; }
+      .macro-gate-head strong { display: block; font-size: .9rem; }
+      .macro-gate-head small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .75rem; line-height: 1.45; }
+      .macro-gate-head b { font-size: .78rem; padding: .28rem .5rem; border-radius: 999px; background: #fff; border: 1px solid var(--border); white-space: nowrap; }
+      .macro-factors { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .45rem; }
+      .macro-factor { padding: .55rem .6rem; border-radius: 10px; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.04); }
+      .macro-factor span { display: block; color: rgb(var(--gray)); font-size: .68rem; font-weight: 850; }
+      .macro-factor strong { display: block; margin-top: .12rem; font-size: .78rem; }
+      .macro-factor em { display: block; margin-top: .18rem; font-style: normal; color: rgb(var(--gray-dark)); font-size: .72rem; line-height: 1.4; }
       .section-head { display: flex; justify-content: space-between; align-items: end; gap: .8rem; margin: 1.5rem 0 .7rem; }
       .section-head h2 { margin: .25rem 0 0; }
       .section-head p { margin: 0; color: rgb(var(--gray)); font-size: .84rem; }
@@ -153,6 +204,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .signal-grid > .signal-card:nth-last-child(2):nth-child(3n+1),
         .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 1; }
         .decision-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
         main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
@@ -165,6 +217,8 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .decision-grid, .signal-grid, .watch-grid { grid-template-columns: 1fr; }
         .decision-box:not(:first-child) { padding: .6rem .7rem; }
         .top-action { grid-template-columns: auto 1fr; padding: .7rem .8rem; }
+        .macro-gate-head { grid-template-columns: auto 1fr; }
+        .macro-gate-head b { grid-column: 1/-1; justify-self: start; }
         .section-head { align-items: flex-start; margin-top: 1.15rem; }
         .section-head p { display: none; }
         .level-grid { grid-template-columns: repeat(2, 1fr); }
@@ -207,6 +261,29 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           <div class="decision-box"><span>今日主线</span><strong>{data.mainline}</strong></div>
           <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong></div>
         </div>
+        {midMacro && (
+          <div class={`macro-gate ${midTone}`} aria-label="中观三因子约束">
+            <div class="macro-gate-head">
+              <span>{midIcon}</span>
+              <div>
+                <strong>中观约束：{midLabel} · 逆风等级 {midLevel}/3</strong>
+                <small>{midConstraint}{midMacro.base_position ? `｜微观原建议 ${midMacro.base_position}` : ''}</small>
+              </div>
+              <b>{midMacro.allow_chase ? '允许按位执行' : midMacro.allow_new_offense === false ? '停开进攻仓' : '禁止追高'}</b>
+            </div>
+            {midFactors.length > 0 && (
+              <div class="macro-factors">
+                {midFactors.map((factor) => (
+                  <article class="macro-factor">
+                    <span>{factor.label}</span>
+                    <strong>{factor.state}</strong>
+                    <em>{factor.headline}</em>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {topAction && <div class="top-action" aria-label="最高优先级动作"><span class="rank">⚡</span><div><small>第一优先级｜{topAction.status} · {topAction.priority}</small><strong>{topAction.code} {topAction.name}：{topAction.action}</strong></div></div>}
       </section>
 

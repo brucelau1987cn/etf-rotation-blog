@@ -13,11 +13,23 @@ type UsData = { date:string; updated_at:string; summary:string; market_regime:{s
 
 const rename = (raw:string) => raw.replaceAll('准备种花','候场').replaceAll('准备摘花','止盈观察').replaceAll('种花','伏击').replaceAll('摘花','兑现').replaceAll('失效退出','破位撤退').replaceAll('回踩位','伏击位').replaceAll('目标位','兑现位').replaceAll('失效线','防守线').replaceAll('ETF花园','ETF罗盘').replaceAll('US ETF Garden','US ETF Compass').replaceAll('Flower Signals','Compass Signals');
 const dataPath = (name:string) => join(process.cwd(),`public/data/${name}`);
-const garden = JSON.parse(rename(readFileSync(dataPath('garden-recommendations.json'),'utf8'))) as GardenData;
+const garden = JSON.parse(rename(readFileSync(dataPath('garden-recommendations.json'),'utf8'))) as GardenData & { mid_macro?: any };
 const aPool = JSON.parse(readFileSync(dataPath('etf-garden-pool.json'),'utf8'));
 const us = JSON.parse(rename(readFileSync(dataPath('us-etf-garden.json'),'utf8'))) as UsData;
 const usPool = JSON.parse(readFileSync(dataPath('us-etf-pool.json'),'utf8'));
 const macro = JSON.parse(readFileSync(dataPath('us-macro-dashboard.json'),'utf8'));
+let aMid: any = garden.mid_macro || null;
+try {
+  const midFile = JSON.parse(readFileSync(dataPath('a-share-mid-macro.json'),'utf8'));
+  aMid = aMid || {
+    label: midFile.constraint?.label,
+    equity_constraint: midFile.constraint?.equity_constraint,
+    headwind_level: midFile.constraint?.headwind_level,
+    allow_chase: midFile.constraint?.allow_chase,
+  };
+} catch {}
+const aMidLabel = aMid?.label || '中性';
+const aMidConstraint = aMid?.equity_constraint || '按关键位正常执行';
 const aActions = [...garden.harvest.slice(0,2),...garden.plant.slice(0,2)].slice(0,4);
 const usPriority = ['exit','harvest','plant','ready_harvest','ready_plant'];
 const usActions = usPriority.flatMap(key => us.flower_signals[key] || []).slice(0,4);
@@ -60,7 +72,7 @@ const usTone = (item:UsAction) => item.signal?.includes('兑现') ? 'sell' : ite
         <article class="market a card">
           <div class="market-top"><div class="market-title"><span class="pill pill-red">🇨🇳 A股</span><h2>今日决策</h2></div><div class="market-date"><strong>行情 {garden.level_data_as_of||'待更新'}</strong>计划 {garden.date}</div></div>
           <div class="verdict"><div class="verdict-head"><h3>{garden.market_state}</h3><span class="allocation">仓位 {garden.position}</span></div><p>{garden.summary}</p></div>
-          <div class="metrics"><div class="metric"><span>兑现侧</span><strong>{garden.harvest.length}只</strong></div><div class="metric"><span>伏击侧</span><strong>{garden.plant.length}只</strong></div><div class="metric"><span>趋势通过</span><strong>{aPool.summary.momentum_pass_count}/{aPool.summary.universe_count}</strong></div><div class="metric"><span>风险状态</span><strong>{garden.market_state}</strong></div><div class="metric wide"><span>当前主线</span><strong>{garden.mainline}</strong></div><div class="metric wide"><span>数据截止</span><strong>{garden.updated_at}</strong></div></div>
+          <div class="metrics"><div class="metric"><span>兑现侧</span><strong>{garden.harvest.length}只</strong></div><div class="metric"><span>伏击侧</span><strong>{garden.plant.length}只</strong></div><div class="metric"><span>趋势通过</span><strong>{aPool.summary.momentum_pass_count}/{aPool.summary.universe_count}</strong></div><div class="metric"><span>中观约束</span><strong>{aMidLabel}</strong></div><div class="metric wide"><span>当前主线</span><strong>{garden.mainline}</strong></div><div class="metric wide"><span>中观闸门</span><strong>{aMidConstraint}</strong></div></div>
           <div class="actions-head"><h3>优先动作</h3><small>现价与关键位均为行情日快照</small></div>
           <div class="action-list">{aActions.map(item=><div class={`action ${aTone(item.status)}`}><div class="action-top"><div class="identity"><strong>{item.code} · {item.name}</strong><small>风险 {item.risk_level||'N/A'} · 行情 {item.price_date||garden.level_data_as_of||'待更新'}</small></div><span class="state">{item.status}</span></div><div class="levels"><div class="level"><span>现价</span><strong>{number(item.price)}</strong></div><div class="level"><span>伏击位</span><strong>{number(item.support)}</strong></div><div class="level"><span>兑现位</span><strong>{number(item.target)}</strong></div><div class="level"><span>防守线</span><strong>{number(item.stop)}</strong></div><div class="level"><span>距动作位</span><strong>{distance(item.distance_pct)}</strong></div></div><p class="action-copy">{item.action}</p></div>)}</div>
           <nav class="market-links" aria-label="A股功能"><a href="/garden/">今日动作</a><a href="/momentum/">趋势风控</a><a href="/blog/">盘后复盘</a></nav>
