@@ -329,7 +329,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           }
           updated += 1;
         }
-        setStatus(`${quoteMode} ${time} · ${updated}/${liveCards.length} · ${displaySource(payload.source)}`, 'online');
+        setStatus(`${quoteMode} ${time} · ${updated}/${liveCards.length}`, 'online');
       }
       async function loadLive() {
         if (liveLoading || document.hidden) return;
