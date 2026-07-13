@@ -7,7 +7,7 @@ Pool source: session_20260605_214833 三张表去重后的 71 个 ETF/LOF 清单
 Output:
 - public/data/etf-garden-pool.json
 
-K线 / 行情来自 stock-api package v2.7.2，结构与 etf-momentum-latest.json 保持一致，
+K线 / 行情来自 stock-api package v2.7.3，结构与 etf-momentum-latest.json 保持一致，
 方便 momentum.astro 切换 DATA_URL。
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ from etf_bar_cache import connect as cache_connect, get_bars as cache_get_bars, 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DATA = ROOT / "public" / "data"
 OUT_JSON = PUBLIC_DATA / "etf-garden-pool.json"
-STOCK_API_PACKAGE = "stock-api@2.7.2"
+STOCK_API_PACKAGE = "stock-api@2.7.3"
 
 # 71 个 ETF/LOF 花园池（按三张表累计去重顺序）
 # 来源：session_20260605_214833_548581.json [99][103][107] 三段汇总
@@ -655,7 +655,7 @@ def main() -> int:
         "latest_trade_date": latest_trade_date,
         "source_page": "etf-garden-pool-local",
         "pool_source": "ETF罗盘 71 池 (本地SQLite点时缓存, iWenCai qfq主补全)",
-        "quote_source": "stock-api package v2.7.2",
+        "quote_source": "stock-api package v2.7.3",
         "kline_source": "local SQLite cache (iWenCai qfq → stock-api → Tencent)",
         "params": PARAMS,
         "summary": {

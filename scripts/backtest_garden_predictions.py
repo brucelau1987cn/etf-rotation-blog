@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BLOG_DIR = ROOT / "src" / "content" / "blog"
 OUT_JSON = ROOT / "public" / "data" / "etf-garden-backtest.json"
 OUT_MD = ROOT / "public" / "data" / "etf-garden-backtest.md"
-STOCK_API_PACKAGE = "stock-api@2.7.2"
+STOCK_API_PACKAGE = "stock-api@2.7.3"
 
 spec = importlib.util.spec_from_file_location("generate_garden_pool", ROOT / "scripts" / "generate_garden_pool.py")
 if spec is None or spec.loader is None:
@@ -303,7 +303,7 @@ def render_md(payload: dict[str, Any]) -> str:
     lines = [
         "# ETF花园预测回测 v1",
         "",
-        f"> 生成时间：{now}；样本来自 ETF花园归档与每日复盘 Markdown；行情源：stock-api package v2.7.2。",
+        f"> 生成时间：{now}；样本来自 ETF花园归档与每日复盘 Markdown；行情源：stock-api package v2.7.3。",
         "",
         "## 总览",
         "",

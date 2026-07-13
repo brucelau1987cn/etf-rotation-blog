@@ -3,7 +3,7 @@
 
 Source boundary:
 - Pool / strategy metrics come from https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f.
-- Daily bars and realtime quote fields come from stock-api@2.7.2 CLI first.
+- Daily bars and realtime quote fields come from stock-api@2.7.3 CLI first.
 - youth-online daily-bar API is retained as a K-line fallback.
 - This script does not run its own all-market ETF screening.
 """
@@ -29,7 +29,7 @@ SOURCE_PAGE = "https://etf.youth-online.site/3a3ff0cb1d02b1ac6bfcb87e59173b0f"
 YOUTH_ORIGIN = "https://etf.youth-online.site"
 YOUTH_POOL_PAGES = [SOURCE_PAGE, f"{YOUTH_ORIGIN}/"]
 YOUTH_DAILY = "https://etf.youth-online.site/api/etf/{market}/daily"
-STOCK_API_PACKAGE = "stock-api@2.7.2"
+STOCK_API_PACKAGE = "stock-api@2.7.3"
 
 SOURCE_POOL = [
     {"name": "纳指 ETF", "code": "159501", "market": "XSHE", "type": "海外"},
@@ -346,7 +346,7 @@ def fetch_daily_bars(item: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
         bars = fetch_stock_api_klines(item)
         if bars:
             source = bars[-1].get("source") or "stock-api"
-            return bars, f"stock-api@2.7.2:{source}"
+            return bars, f"stock-api@2.7.3:{source}"
         errors.append("stock-api K线为空")
     except Exception as exc:
         errors.append(f"stock-api K线失败：{exc}")
@@ -513,8 +513,8 @@ category: '研测'
 - 行情日期：{payload['latest_trade_date']}
 - 轮动池来源：{SOURCE_PAGE}
 - ETF名单同步：{payload.get('pool_source', 'youth-online')}
-- 实时行情：stock-api v2.7.2
-- K线数据：stock-api v2.7.2 优先，youth-online 备用
+- 实时行情：stock-api v2.7.3
+- K线数据：stock-api v2.7.3 优先，youth-online 备用
 - ETF池：{payload['summary']['universe_count']}只
 - 动量通过：{payload['summary']['core_count']}只
 - Top 3：{', '.join([f"{x['name']} {x['code']}({x.get('action','观察')})" for x in rec]) or '空仓/货币ETF'}
@@ -561,8 +561,8 @@ def main() -> int:
         "latest_trade_date": latest_trade_date,
         "source_page": SOURCE_PAGE,
         "pool_source": pool_source,
-        "quote_source": "stock-api@2.7.2",
-        "kline_source": "stock-api@2.7.2 primary; youth-online fallback",
+        "quote_source": "stock-api@2.7.3",
+        "kline_source": "stock-api@2.7.3 primary; youth-online fallback",
         "params": PARAMS,
         "summary": {
             "universe_source": pool_source,
