@@ -255,6 +255,20 @@ const actionCopy = (key: string) => ({
         ready_harvest: '接近兑现位，保持止盈观察',
         ready_plant: '等待价格进入伏击区',
       };
+      const realtimeBasisCopy = {
+        exit: '实时价≤防守线',
+        harvest: '实时价≥兑现位',
+        plant: '实时价≤伏击位且高于防守线',
+        ready_harvest: '距兑现位3%以内或短期过热',
+        ready_plant: '距伏击位3%以内，等待分批进入',
+      };
+      const sectionLabel = {
+        exit: '防守线',
+        harvest: '兑现位',
+        plant: '伏击位',
+        ready_harvest: '兑现位',
+        ready_plant: '伏击位',
+      };
       function moveUsCard(card, nextSection) {
         if (!card.dataset.originSection || card.dataset.currentSection === nextSection) return;
         const grid = document.getElementById(`us-grid-${nextSection}`);
@@ -263,6 +277,11 @@ const actionCopy = (key: string) => ({
         card.dataset.currentSection = nextSection;
         card.classList.remove('exit', 'harvest', 'plant', 'ready');
         card.classList.add(sectionTone[nextSection] || 'ready');
+        const basisNode = card.querySelector('.basis');
+        if (basisNode) {
+          const label = sectionLabel[nextSection] || '关键位';
+          basisNode.innerHTML = `<strong>${label}触发：</strong>${realtimeBasisCopy[nextSection] || '按实时价格重判'}`;
+        }
       }
       function refreshUsSections() {
         for (const key of sectionPriority) {

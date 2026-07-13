@@ -206,10 +206,40 @@ def read_json(path: Path, default: Any) -> Any:
         return default
 
 
+def session_label(now: datetime, trade_date: str) -> tuple[str, str]:
+    """Return (session_state, stage_label) for the model trade date."""
+    model_day = datetime.fromisoformat(trade_date).date()
+    today = now.date()
+    minutes = now.hour * 60 + now.minute
+    if model_day < today:
+        return "closed", "美股收盘版"
+    if model_day > today:
+        return "preopen", "美股盘前快照"
+    if minutes < 9 * 60 + 30:
+        return "preopen", "美股盘前快照"
+    if minutes >= 16 * 60 + 5:
+        return "closed", "美股收盘版"
+    return "open", "美股盘中快照"
+
+
 def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    """Build ready/triggered flower signals; triggers use prior snapshot levels."""
+    """Build ready/triggered action signals; triggers use prior snapshot levels.
+
+    Each symbol enters only one bucket, priority:
+    exit > harvest > plant > ready_harvest > ready_plant.
+    """
     buckets: dict[str, list[dict[str, Any]]] = {k: [] for k in ("ready_plant", "plant", "ready_harvest", "harvest", "exit")}
-    for row in rows:
+    claimed: set[str] = set()
+
+    def claim(key: str, item: dict[str, Any]) -> None:
+        symbol = item["symbol"]
+        if symbol in claimed:
+            return
+        buckets[key].append(item)
+        claimed.add(symbol)
+
+    ranked = sorted(rows, key=lambda x: (-x["trend_score"], x["symbol"]))
+    for row in ranked:
         if row["symbol"] == "SGOV":
             continue
         support_gap = round((row["price"] / row["support"] - 1) * 100, 2) if row["support"] else 999
@@ -222,15 +252,27 @@ def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any
         if old:
             old_target_gap = round((finite(old.get("target")) / row["price"] - 1) * 100, 2) if row["price"] else 999
             if row["day_low"] <= finite(old.get("stop")):
-                buckets["exit"].append({**base, "signal": "失效退出", "trigger_level": old["stop"], "trigger_basis": "当日最低价≤前一快照失效线"})
-            elif row["day_high"] >= finite(old.get("target")):
-                buckets["harvest"].append({**base, "signal": "摘花", "trigger_level": old["target"], "trigger_basis": "当日最高价≥前一快照目标位"})
-            elif row["day_low"] <= finite(old.get("support")) and row["price"] > finite(old.get("stop")) and row["momentum_pass"] and row["risk_level"] != "高":
-                buckets["plant"].append({**base, "signal": "种花", "trigger_level": old["support"], "trigger_basis": "当日最低价≤前一快照回踩位且未失效"})
+                claim("exit", {**base, "signal": "破位撤退", "trigger_level": old["stop"], "trigger_basis": "当日最低价≤前一快照防守线"})
+                continue
+            if row["day_high"] >= finite(old.get("target")) and row["trade_state"] != "退出":
+                claim("harvest", {**base, "signal": "兑现触发", "trigger_level": old["target"], "trigger_basis": "当日最高价≥前一快照兑现位"})
+                continue
+            if (
+                row["day_low"] <= finite(old.get("support"))
+                and row["price"] > finite(old.get("stop"))
+                and row["momentum_pass"]
+                and row["risk_level"] != "高"
+                and row["trade_state"] != "退出"
+            ):
+                claim("plant", {**base, "signal": "伏击触发", "trigger_level": old["support"], "trigger_basis": "当日最低价≤前一快照伏击位且未破位"})
+                continue
+        if (old and 0 <= old_target_gap <= 3 and row["momentum_pass"] and row["trade_state"] != "退出") or (
+            row["ret20"] >= 15 and row["risk_level"] in {"中", "高"} and row["trade_state"] != "退出"
+        ):
+            claim("ready_harvest", {**base, "signal": "止盈观察", "trigger_level": row["target"], "trigger_basis": "距兑现位3%以内或20日过热"})
+            continue
         if row["momentum_pass"] and row["risk_level"] != "高" and row["trade_state"] in {"可持有", "回踩候选"} and 0 <= support_gap <= 3:
-            buckets["ready_plant"].append({**base, "signal": "准备种花", "trigger_level": row["support"], "trigger_basis": "距回踩位3%以内"})
-        if (old and 0 <= old_target_gap <= 3 and row["momentum_pass"]) or (row["ret20"] >= 15 and row["risk_level"] in {"中", "高"}):
-            buckets["ready_harvest"].append({**base, "signal": "准备摘花", "trigger_level": row["target"], "trigger_basis": "距目标3%以内或20日过热"})
+            claim("ready_plant", {**base, "signal": "候场", "trigger_level": row["support"], "trigger_basis": "距伏击位3%以内"})
     for key in ("ready_plant", "ready_harvest"):
         sort_key = "support_gap" if key == "ready_plant" else "target_gap"
         buckets[key].sort(key=lambda x: (x[sort_key], -x["trend_score"]))
@@ -243,7 +285,7 @@ def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any
                 break
         buckets[key] = deduped
     for key in ("plant", "harvest", "exit"):
-        buckets[key].sort(key=lambda x: x["symbol"])
+        buckets[key].sort(key=lambda x: (-x["trend_score"], x["symbol"]))
     return buckets
 
 
@@ -296,8 +338,28 @@ def main() -> None:
     trigger_previous = previous_rows if prior_pool.get("model_date", "") < latest else {}
     flowers = flower_signals(rows, trigger_previous)
     flower_counts = {key: len(value) for key, value in flowers.items()}
-    pool_payload = {"market": "US", "model_version": "US ETF Garden v3 · Flower Signals", "generated_at": now.isoformat(), "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API", "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"}, "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)}, "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth, "rows": rows, "failures": failures, "realtime_scope": ["当前价", "当日涨跌", "关键位触发"], "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态", "行业广度", "准备信号"]}
-    garden_payload = {"market": "US", "date": latest, "updated_at": now.isoformat(), "stage": "美股收盘版", "model_version": pool_payload["model_version"], "data_source": pool_payload["data_source"], "summary": f"{regime}市场，权益参考{equity}；种花/摘花触发使用前一快照关键位，准备信号按当前关键位计算。", "market_regime": pool_payload["market_regime"], "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth, "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。"}
+    session_state, stage = session_label(now, latest)
+    action_note = "伏击/兑现触发使用前一快照关键位，准备信号按当前关键位计算" if session_state == "closed" else "当前为盘中未完成日K，关键位与触发仅作参考，收盘后定版"
+    pool_payload = {
+        "market": "US", "model_version": "US ETF Garden v3 · Flower Signals", "generated_at": now.isoformat(),
+        "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API",
+        "session_state": session_state, "stage": stage,
+        "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"},
+        "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)},
+        "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth,
+        "rows": rows, "failures": failures,
+        "realtime_scope": ["当前价", "当日涨跌", "关键位触发"],
+        "snapshot_scope": ["趋势分", "交易风险", "交易状态", "市场状态", "行业广度", "准备信号"],
+    }
+    garden_payload = {
+        "market": "US", "date": latest, "updated_at": now.isoformat(), "stage": stage,
+        "session_state": session_state, "model_version": pool_payload["model_version"],
+        "data_source": pool_payload["data_source"],
+        "summary": f"{regime}市场，权益参考{equity}；{action_note}。",
+        "market_regime": pool_payload["market_regime"], "recommendations": selected,
+        "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth,
+        "disclaimer": "个人研究记录，不构成投资建议。美股上涨用绿色、下跌用红色。",
+    }
     # Lightweight historical directional validation: current universe, rolling MA20 signal, next-day return.
     evaluated = hits = 0
     for item in UNIVERSE:
@@ -323,7 +385,7 @@ def main() -> None:
     except Exception as exc:
         # Macro refresh is a sidecar: retain its last good snapshot without failing the trading dashboard.
         macro_status = f"retained: {type(exc).__name__}"
-    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "regime": regime, "top": [x["symbol"] for x in selected], "flowers": flower_counts, "backtest_samples": evaluated, "macro": macro_status}, ensure_ascii=False))
+    print(json.dumps({"valid": len(rows), "failed": len(failures), "trade_date": latest, "session_state": session_state, "stage": stage, "regime": regime, "top": [x["symbol"] for x in selected], "flowers": flower_counts, "backtest_samples": evaluated, "macro": macro_status}, ensure_ascii=False))
 
 
 if __name__ == "__main__": main()
