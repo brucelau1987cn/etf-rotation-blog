@@ -38,7 +38,8 @@ const sections = [
   { key: 'ready_harvest', status: 'take-profit', title: '止盈观察', note: '距目标3%以内或短期过热', tone: 'ready' },
   { key: 'ready_plant', status: 'watch', title: '候场', note: '距伏击位3%以内，等待分批进入', tone: 'ready' },
 ];
-const activeSections = sections.map((section) => ({ ...section, items: data.flower_signals[section.key] || [] })).filter((section) => section.items.length > 0);
+const displaySections = sections.map((section) => ({ ...section, items: data.flower_signals[section.key] || [] }));
+const activeSections = displaySections.filter((section) => section.items.length > 0);
 const firstAction = activeSections[0]?.items[0];
 const signalSymbols = new Set(Object.values(data.flower_signals).flat().map((item) => item.symbol));
 const secondaryRecommendations = (data.recommendations || []).filter((item) => !signalSymbols.has(item.symbol)).slice(0, 3);
@@ -194,15 +195,15 @@ const actionCopy = (key: string) => ({
       <UsSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
         <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Compass v3'}</span><span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span></div></div>
-        <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
+        <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong id={`us-count-${section.key}`} data-base-count={data.flower_counts[section.key] || 0}>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
         <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
         <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
-        {firstAction ? <div class="top-action"><span>⚡</span><div><small>第一优先级｜{activeSections[0].title}</small><strong>{firstAction.symbol} · {actionCopy(activeSections[0].key)}</strong></div></div> : <div class="top-action"><span>✓</span><div><small>今日动作</small><strong>没有触发类信号，保持观察，不机械凑数。</strong></div></div>}
+        <div class="top-action" id="us-top-action"><span>⚡</span><div><small id="us-top-action-label">{firstAction ? `第一优先级｜${activeSections[0].title}` : '今日动作'}</small><strong id="us-top-action-text">{firstAction ? `${firstAction.symbol} · ${actionCopy(activeSections[0].key)}` : '没有触发类信号，保持观察，不机械凑数。'}</strong></div></div>
       </section>
 
       <section aria-label="美股ETF战术信号">
         <div class="section-head"><div><span class="pill us-pill">ACTION QUEUE</span><h2>今日待办</h2></div><a href="/us-momentum/">进入趋势风控 →</a></div>
-        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></button><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
+        {displaySections.map((section) => <section id={`us-section-${section.key}`} class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`} hidden={section.items.length === 0} data-section-key={section.key} data-section-title={section.title}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b id={`us-section-count-${section.key}`}>{section.items.length}只</b></div><div class="signal-grid" id={`us-grid-${section.key}`}>{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-origin-section={section.key} data-current-section={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></button><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
       </section>
 
       {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
@@ -245,6 +246,42 @@ const actionCopy = (key: string) => ({
         usLiveStatus.classList.toggle('online', state === 'online');
         usLiveStatus.classList.toggle('error', state === 'error');
       };
+      const sectionPriority = ['exit', 'harvest', 'plant', 'ready_harvest', 'ready_plant'];
+      const sectionTone = { exit: 'exit', harvest: 'harvest', plant: 'plant', ready_harvest: 'ready', ready_plant: 'ready' };
+      const realtimeActionCopy = {
+        exit: '实时跌破防守线，优先撤退并复核',
+        harvest: '实时达到兑现位，进入分批兑现',
+        plant: '实时进入伏击区，按计划分批确认',
+        ready_harvest: '接近兑现位，保持止盈观察',
+        ready_plant: '等待价格进入伏击区',
+      };
+      function moveUsCard(card, nextSection) {
+        if (!card.dataset.originSection || card.dataset.currentSection === nextSection) return;
+        const grid = document.getElementById(`us-grid-${nextSection}`);
+        if (!grid) return;
+        grid.appendChild(card);
+        card.dataset.currentSection = nextSection;
+        card.classList.remove('exit', 'harvest', 'plant', 'ready');
+        card.classList.add(sectionTone[nextSection] || 'ready');
+      }
+      function refreshUsSections() {
+        for (const key of sectionPriority) {
+          const grid = document.getElementById(`us-grid-${key}`);
+          const section = document.getElementById(`us-section-${key}`);
+          const count = grid ? grid.querySelectorAll(':scope > [data-us-live-card]').length : 0;
+          if (section) section.hidden = count === 0;
+          const sectionCount = document.getElementById(`us-section-count-${key}`);
+          if (sectionCount) sectionCount.textContent = `${count}只`;
+          const topCount = document.getElementById(`us-count-${key}`);
+          if (topCount) topCount.textContent = String(count);
+        }
+        const firstKey = sectionPriority.find((key) => document.querySelector(`#us-grid-${key} > [data-us-live-card]`));
+        const firstCard = firstKey ? document.querySelector(`#us-grid-${firstKey} > [data-us-live-card]`) : null;
+        const label = document.getElementById('us-top-action-label');
+        const text = document.getElementById('us-top-action-text');
+        if (label) label.textContent = firstKey ? `第一优先级｜${document.getElementById(`us-section-${firstKey}`)?.dataset.sectionTitle || ''}` : '今日动作';
+        if (text) text.textContent = firstCard ? `${firstCard.dataset.symbol} · ${realtimeActionCopy[firstKey]}` : '没有触发类信号，保持观察。';
+      }
       function applyUsLive(payload) {
         const liveMap = new Map((payload.items || []).map(item => [String(item.symbol), item]));
         const mode = isUsTradingWindow() ? '盘中实时' : '最新快照';
@@ -271,24 +308,30 @@ const actionCopy = (key: string) => ({
               : `${mode} ${quoteClock} ET${changeText}`;
           }
           if (triggerNode) {
-            const side = card.dataset.side || '';
+            const origin = card.dataset.originSection || card.dataset.side || '';
             const support = num(card.dataset.support);
             const target = num(card.dataset.target);
             const stop = num(card.dataset.stop);
+            let nextSection = origin;
             let triggerText = triggerNode.textContent || '观察';
             if (stop !== null && price <= stop) {
+              nextSection = 'exit';
               triggerText = '破位撤退';
-            } else if (side.includes('harvest') && target !== null) {
+            } else if (origin.includes('harvest') && target !== null) {
               const gap = (price / target - 1) * 100;
+              if (price >= target) nextSection = 'harvest';
               triggerText = price >= target ? '达到兑现位' : (Math.abs(gap) <= 3 ? '距兑现位≤3%' : '等待兑现');
-            } else if (side.includes('plant') && support !== null) {
+            } else if (origin.includes('plant') && support !== null) {
               const gap = (price / support - 1) * 100;
+              if (price <= support) nextSection = 'plant';
               triggerText = price <= support ? '进入伏击区' : (Math.abs(gap) <= 3 ? '距伏击位≤3%' : '等待伏击');
             }
+            moveUsCard(card, nextSection);
             triggerNode.textContent = triggerText;
           }
           updated += 1;
         }
+        refreshUsSections();
         setUsLiveStatus(`${mode} ${statusTime} ET · ${updated}/${usLiveCards.length}`, 'online');
       }
       async function loadUsLive() {
