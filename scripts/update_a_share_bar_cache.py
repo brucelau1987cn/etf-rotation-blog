@@ -22,7 +22,7 @@ RAW_ROOT = ROOT / "data" / "local" / "raw" / "iwencai"
 sys.path.insert(0, str(ROOT / "scripts"))
 from etf_bar_cache import DEFAULT_DB, audit, connect, upsert_bars, upsert_instruments, utc_now  # noqa: E402
 
-FIELD_RE = re.compile(r"^(开盘价|最高价|最低价|收盘价|成交量|成交额)(?:_前复权)?\[(\d{8})\]$")
+FIELD_RE = re.compile(r"^(?:基金@)?(开盘价|最高价|最低价|收盘价|成交量|成交额)(?:(?:_|:)前复权)?\[(\d{8})\]$")
 FIELD_MAP = {"开盘价": "open", "最高价": "high", "最低价": "low", "收盘价": "close", "成交量": "volume", "成交额": "amount"}
 CN = ZoneInfo("Asia/Shanghai")
 
@@ -128,6 +128,19 @@ def main() -> int:
             raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         except Exception as exc:
             errors.append(f"repair {start // 4 + 1}: {type(exc).__name__}: {exc}")
+    # Some newer ETFs are recognized individually but not when four codes share one
+    # natural-language query. Give the final missing set a singleton retry.
+    remaining = [x for x in universe if x["code"] not in succeeded]
+    for index, item in enumerate(remaining, 1):
+        try:
+            payload = query_batch([item], args.days)
+            bars, symbols = parse_payload(payload, item_map)
+            all_bars.extend(bars); succeeded.update(symbols)
+            raw_path = RAW_ROOT / f"{run_id}-singleton-{index:02d}.json"
+            raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        except Exception as exc:
+            errors.append(f"singleton {item['code']}: {type(exc).__name__}: {exc}")
+    failed_symbols = [x["code"] for x in universe if x["code"] not in succeeded]
     elapsed = int((time.monotonic() - t0) * 1000)
     with connect(args.db) as db:
         upsert_instruments(db, full_universe)
@@ -136,7 +149,7 @@ def main() -> int:
               requested=len(universe), succeeded=len(succeeded), failed=len(universe) - len(succeeded),
               adjustment="qfq", latency_ms=elapsed,
               status="ok" if len(succeeded) == len(universe) else "partial",
-              detail={"bars_written": written, "errors": errors})
+              detail={"bars_written": written, "errors": errors, "failed_symbols": failed_symbols})
     backup_dir = args.db.parent / "backups"; backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"etf-compass-{datetime.now(CN).date().isoformat()}.db"
     with sqlite3.connect(args.db) as source, sqlite3.connect(backup_path) as target:
@@ -146,7 +159,8 @@ def main() -> int:
         if old.stat().st_mtime < backup_cutoff:
             old.unlink()
     result = {"run_id": run_id, "requested": len(universe), "succeeded": len(succeeded),
-              "failed": len(universe) - len(succeeded), "bars_written": len(all_bars),
+              "failed": len(universe) - len(succeeded), "failed_symbols": failed_symbols,
+              "bars_written": len(all_bars),
               "latency_ms": elapsed, "errors": errors}
     print(json.dumps(result, ensure_ascii=False))
     required = math.ceil(len(universe) * 0.90)

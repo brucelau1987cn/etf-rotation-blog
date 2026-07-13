@@ -59,3 +59,22 @@ def test_iwencai_wide_table_is_normalized():
         "adjustment": "qfq", "source": "iwencai", "is_final": True,
         "open": 3.0, "high": 3.1, "low": 2.9, "close": 3.05, "volume": 123.0,
     }]
+
+
+def test_iwencai_prefixed_fields_are_normalized():
+    importer = load_importer()
+    payload = {"datas": [{
+        "基金代码": "560080.SH",
+        "基金@开盘价:前复权[20260713]": "0.936",
+        "基金@最高价[20260713]": "0.975",
+        "基金@最低价[20260713]": "0.936",
+        "基金@收盘价[20260713]": "0.974",
+        "基金@成交量[20260713]": "12345",
+        "基金@成交额[20260713]": "67890",
+    }]}
+    bars, symbols = importer.parse_payload(payload, {"560080": {"code": "560080", "market": "XSHG"}})
+    assert symbols == {"560080"}
+    assert len(bars) == 1
+    assert bars[0]["open"] == 0.936
+    assert bars[0]["close"] == 0.974
+    assert bars[0]["amount"] == 67890.0
