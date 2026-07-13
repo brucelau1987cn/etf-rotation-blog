@@ -84,8 +84,9 @@ const actionCopy = (key: string) => ({
       .market-strip strong { display: block; font-size: .9rem; white-space: nowrap; }
       .secondary-card { padding: .8rem; display: grid; grid-template-columns: 1fr auto; gap: .45rem .8rem; align-items: center; opacity: .8; }
       .secondary-card h3 { margin: .1rem 0; font-size: .9rem; min-width: 0; }
-      .secondary-card .secondary-price { grid-row: span 2; text-align: right; }
+      .secondary-card .secondary-price { grid-row: span 2; text-align: right; min-width: 7rem; }
       .secondary-card .secondary-price span { display: block; color: rgb(var(--gray)); font-size: .65rem; }
+      .secondary-card .secondary-price .live-quote-meta { display: block; margin-top: .12rem; font-size: .61rem; white-space: nowrap; }
       .secondary-card .secondary-distance { color: rgb(var(--gray)); font-size: .73rem; }
       .top-action { margin-top: .65rem; padding: .8rem .9rem; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .7rem; background: #152238; color: #fff; border-radius: 14px; }
       .top-action strong, .top-action span { color: #fff; }
@@ -258,7 +259,10 @@ const actionCopy = (key: string) => ({
           const change = num(quote?.change_pct);
           if (metaNode) {
             const changeText = change === null ? '' : ` · <span class="${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</span>`;
-            metaNode.innerHTML = `${mode} ${nyTime(quote?.quote_time)} ET${changeText}`;
+            const quoteClock = nyTime(quote?.quote_time);
+            metaNode.innerHTML = card.classList.contains('secondary-card')
+              ? `${quoteClock.slice(0, 5)} ET${changeText}`
+              : `${mode} ${quoteClock} ET${changeText}`;
           }
           if (triggerNode) {
             const side = card.dataset.side || '';
