@@ -65,7 +65,11 @@ const actionCopy = (key: string) => ({
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #f3f8ff, #fff); }
       .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero-copy h1 { margin: .35rem 0; font-size: clamp(1.85rem, 5vw, 2.8rem); }
-      .hero-copy p { margin: 0; max-width: 72ch; line-height: 1.6; }
+      .hero-copy p { margin: 0; max-width: 72ch; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .hero-copy details { margin-top: .35rem; }
+      .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
+      .hero-copy summary::-webkit-details-marker { display: none; }
+      .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
       .us-pill { background: #e8f2ff; color: #174ea6; }
       .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 620px; }
       .count-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-top: 1rem; }
@@ -108,14 +112,17 @@ const actionCopy = (key: string) => ({
       .signal-heading h2 { margin: 0; font-size: 1.12rem; }
       .signal-heading small { display: block; color: rgb(var(--gray)); }
       .signal-heading b { padding: .2rem .55rem; border-radius: 999px; background: var(--warm); font-size: .75rem; }
-      .signal-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: .7rem; }
-      .signal-card { grid-column: span 2; padding: .85rem; border-left: 5px solid #d99a00; }
-      .signal-card:only-child { grid-column: 1 / -1; }
-      .signal-grid > .signal-card:nth-last-child(2):nth-child(3n+1),
-      .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 3; }
+      .signal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: .7rem; }
+      .signal-card { padding: .85rem; border-left: 5px solid #d99a00; min-width: 0; }
       .signal-card.exit { border-left-color: #c5221f; }
       .signal-card.harvest { border-left-color: #ed7d00; }
       .signal-card.plant { border-left-color: #137547; }
+      .signal-section.collapsible .signal-grid { display: none; }
+      .signal-section.collapsible[open] .signal-grid { display: grid; }
+      .signal-section.collapsible > summary.signal-heading { list-style: none; cursor: pointer; }
+      .signal-section.collapsible > summary.signal-heading::-webkit-details-marker { display: none; }
+      .signal-section.collapsible > summary.signal-heading::after { content: '展开'; font-size: .72rem; color: rgb(var(--gray)); font-weight: 800; }
+      .signal-section.collapsible[open] > summary.signal-heading::after { content: '收起'; }
       .card-top { display: flex; justify-content: space-between; gap: .5rem; align-items: flex-start; }
       .identity h3 { margin: 0; font-size: 1rem; }
       .identity small { display: block; color: rgb(var(--gray)); margin-top: .1rem; }
@@ -129,7 +136,7 @@ const actionCopy = (key: string) => ({
       .level span { display: block; color: rgb(var(--gray)); font-size: .64rem; white-space: nowrap; }
       .level b { font-size: .85rem; }
       .signal-meta { display: flex; justify-content: space-between; gap: .5rem; font-size: .72rem; color: rgb(var(--gray)); }
-      .basis { margin: .55rem 0 0; padding: .55rem .6rem; border-radius: 9px; background: var(--warm); font-size: .8rem; line-height: 1.5; }
+      .basis { margin: .55rem 0 0; padding: .55rem .6rem; border-radius: 9px; background: var(--warm); font-size: .8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .zero-strip { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0 1.2rem; padding: .65rem; }
       .zero-strip strong { margin-right: .2rem; }
       .zero-strip span { padding: .18rem .48rem; border-radius: 999px; background: var(--warm); color: rgb(var(--gray)); font-size: .74rem; }
@@ -163,19 +170,15 @@ const actionCopy = (key: string) => ({
       @media (max-width: 940px) {
         .hero-top { display: grid; }
         .meta-line { justify-content: flex-start; max-width: none; }
-        .signal-grid, .secondary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-        .signal-card,
-        .signal-card:only-child,
-        .signal-grid > .signal-card:nth-last-child(2):nth-child(3n+1),
-        .signal-grid > .signal-card:last-child:nth-child(3n+2) { grid-column: span 1; }
+        .signal-grid, .secondary-grid { grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); }
       }
       @media (max-width: 620px) {
         main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
-        .count-strip { grid-template-columns: repeat(5, minmax(70px,1fr)); overflow-x: auto; gap: .3rem; }
-        .count { padding: .5rem .4rem; }
+        .count-strip { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .4rem; }
+        .count { padding: .55rem .5rem; }
         .market-strip, .signal-grid, .secondary-grid, .breadth-strip, .rules { grid-template-columns: 1fr; }
         .market-strip { gap: .35rem; }
         .market-strip div { padding: .55rem .65rem; }
@@ -194,21 +197,97 @@ const actionCopy = (key: string) => ({
     <main>
       <UsSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
-        <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Compass v3'}</span><span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span></div></div>
-        <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong id={`us-count-${section.key}`} data-base-count={data.flower_counts[section.key] || 0}>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
-        <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
-        <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
-        <div class="top-action" id="us-top-action"><span>⚡</span><div><small id="us-top-action-label">{firstAction ? `第一优先级｜${activeSections[0].title}` : '今日动作'}</small><strong id="us-top-action-text">{firstAction ? `${firstAction.symbol} · ${actionCopy(activeSections[0].key)}` : '没有触发类信号，保持观察，不机械凑数。'}</strong></div></div>
-      </section>
+              <div class="hero-top">
+                <div class="hero-copy">
+                  <span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span>
+                  <h1 id="us-page-title">美股ETF今日动作</h1>
+                  <details>
+                    <p>{data.summary}</p>
+                    <summary>展开完整结论</summary>
+                  </details>
+                </div>
+                <div class="meta-line">
+                  <span class="pill us-pill">{data.stage}</span>
+                  <span class="pill">交易日 {data.date}</span>
+                  <span class="pill">截止 {formatTime(data.updated_at)}</span>
+                  <span class="pill">{data.model_version || 'US ETF Compass v3'}</span>
+                  <span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span>
+                </div>
+              </div>
+              <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong id={`us-count-${section.key}`} data-base-count={data.flower_counts[section.key] || 0}>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
+              <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
+              <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
+              <div class="top-action" id="us-top-action"><span>⚡</span><div><small id="us-top-action-label">{firstAction ? `第一优先级｜${activeSections[0].title}` : '今日动作'}</small><strong id="us-top-action-text">{firstAction ? `${firstAction.symbol} · ${actionCopy(activeSections[0].key)}` : '没有触发类信号，保持观察，不机械凑数。'}</strong></div></div>
+            </section>
 
-      <section aria-label="美股ETF战术信号">
-        <div class="section-head"><div><span class="pill us-pill">ACTION QUEUE</span><h2>今日待办</h2></div><a href="/us-momentum/">进入趋势风控 →</a></div>
-        {displaySections.map((section) => <section id={`us-section-${section.key}`} class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`} hidden={section.items.length === 0} data-section-key={section.key} data-section-title={section.title}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b id={`us-section-count-${section.key}`}>{section.items.length}只</b></div><div class="signal-grid" id={`us-grid-${section.key}`}>{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-origin-section={section.key} data-current-section={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></button><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
-      </section>
+            <section aria-label="美股ETF战术信号">
+              <div class="section-head"><div><span class="pill us-pill">今日队列</span><h2>今日待办</h2></div><a href="/us-momentum/">进入趋势风控 →</a></div>
+              {displaySections.map((section) => {
+                const collapse = section.key === 'ready_harvest' && section.items.length > 3;
+                const HeadingTag = collapse ? 'summary' : 'div';
+                const SectionTag = collapse ? 'details' : 'section';
+                return (
+                  <SectionTag
+                    id={`us-section-${section.key}`}
+                    class={`signal-section ${section.tone}${collapse ? ' collapsible' : ''}`}
+                    aria-labelledby={`signal-${section.key}`}
+                    hidden={section.items.length === 0}
+                    data-section-key={section.key}
+                    data-section-title={section.title}
+                  >
+                    <HeadingTag class="signal-heading">
+                      <div>
+                        <i class={`status-dot ${section.status}`} aria-hidden="true"></i>
+                        <div>
+                          <h2 id={`signal-${section.key}`}>{section.title}</h2>
+                          <small>{section.note}</small>
+                        </div>
+                      </div>
+                      <b id={`us-section-count-${section.key}`}>{section.items.length}只</b>
+                    </HeadingTag>
+                    <div class="signal-grid" id={`us-grid-${section.key}`}>
+                      {section.items.map((item) => (
+                        <article
+                          class={`signal-card card ${section.tone}`}
+                          data-us-live-card
+                          data-symbol={item.symbol}
+                          data-side={section.key}
+                          data-origin-section={section.key}
+                          data-current-section={section.key}
+                          data-support={item.support}
+                          data-target={item.target}
+                          data-stop={item.stop}
+                        >
+                          <div class="card-top">
+                            <div class="identity">
+                              <h3>{item.symbol} · {item.name}</h3>
+                              <small>{item.theme}</small>
+                            </div>
+                            <span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span>
+                          </div>
+                          <div class="level-grid" aria-label={`${item.symbol}关键价位`}>
+                            <button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}>
+                              <span>实时现价 · 点击更新</span>
+                              <b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b>
+                            </button>
+                            <div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div>
+                            <div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div>
+                            <div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
+                          </div>
+                          <div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div>
+                          <div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div>
+                          <p class="basis" id={`us-live-basis-${item.symbol}`}><strong>动作：</strong>{actionCopy(section.key)} · {item.trigger_basis}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </SectionTag>
+                );
+              })}
+            </section>
 
-      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
+            {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">次级观察</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
 
-      <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">SECTOR BREADTH</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
+            <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">行业广度</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
       <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
     </main>
