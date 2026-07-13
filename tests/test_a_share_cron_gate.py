@@ -11,6 +11,7 @@ def gate(stage: str, at: str, **kwargs):
         stage=stage,
         now=datetime.fromisoformat(at).replace(tzinfo=CN),
         trading_day=kwargs.get("trading_day", True),
+        pending_publish=kwargs.get("pending_publish", False),
         article_stage_rank=kwargs.get("article_stage_rank", 0),
         pool_count=kwargs.get("pool_count", 91),
         valid_count=kwargs.get("valid_count", 91),
@@ -43,6 +44,7 @@ def test_idempotency_precedes_window_and_stage_parser():
     assert stage_rank("22:00夜间最终版") == 4
     assert stage_rank("14:30尾盘操作版") == 3
     assert gate("11:30", "2026-07-14T20:00:00", article_stage_rank=4)[0] == "idempotent"
+    assert gate("22:00", "2026-07-14T20:00:00", article_stage_rank=4, pending_publish=True)[0] == "run"
 
 
 def test_stage_window_is_enforced():

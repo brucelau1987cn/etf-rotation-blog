@@ -8,6 +8,7 @@ import io
 import json
 import re
 import sqlite3
+import subprocess
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, time
@@ -35,6 +36,7 @@ class GateInput:
     stage: str
     now: datetime
     trading_day: bool | None
+    pending_publish: bool
     article_stage_rank: int
     pool_count: int
     valid_count: int
@@ -65,7 +67,7 @@ def evaluate_gate(data: GateInput) -> tuple[str, str]:
         return "idempotent", "exchange calendar is closed"
     if data.trading_day is None:
         return "blocked", "exchange calendar unavailable"
-    if data.article_stage_rank >= target:
+    if data.article_stage_rank >= target and not (data.stage == "22:00" and data.pending_publish):
         return "idempotent", "article stage already complete"
     start, end = WINDOWS[data.stage]
     current = data.now.timetz().replace(tzinfo=None)
@@ -112,6 +114,17 @@ def is_trading_day(day: str) -> bool | None:
         return None
 
 
+def pending_public_changes(day: str) -> bool:
+    paths = [
+        "public/data/model-lab/a-share-shadow.json",
+        "public/data/etf-garden-pool.json",
+        "public/data/garden-recommendations.json",
+        f"src/content/blog/{day}.md",
+    ]
+    result = subprocess.run(["git", "diff", "--quiet", "--", *paths], cwd=ROOT, check=False)
+    return result.returncode == 1
+
+
 def qfq_state() -> tuple[str | None, int]:
     with sqlite3.connect(DB) as db:
         latest = db.execute(
@@ -143,6 +156,7 @@ def main() -> int:
         stage=args.stage,
         now=now,
         trading_day=is_trading_day(day),
+        pending_publish=pending_public_changes(day),
         article_stage_rank=stage_rank(article_stage),
         pool_count=int(summary.get("universe_count") or 0),
         valid_count=int(summary.get("valid_count") or 0),
