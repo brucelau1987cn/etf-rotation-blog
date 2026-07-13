@@ -142,6 +142,16 @@ const actionCopy = (key: string) => ({
       .links { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .8rem; }
       .links a { padding: .45rem .65rem; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: .78rem; font-weight: 850; }
       .us-up { color: #137547; } .us-down { color: #c5221f; }
+      .live-status { display: inline-flex; align-items: center; gap: .38rem; background: #fff7df; color: #8a5a00; }
+      .live-status::before { content: ''; width: .48rem; height: .48rem; border-radius: 50%; background: #d99a00; box-shadow: 0 0 0 3px rgb(217 154 0 / 12%); }
+      .live-status.online { background: #edf9f1; color: #137547; }
+      .live-status.online::before { background: #137547; }
+      .live-status.error { background: #fff0ef; color: #a3201d; }
+      .live-status.error::before { background: #c5221f; }
+      .live-price.updated { color: #174ea6; }
+      .live-quote-meta { margin-top: .45rem; color: rgb(var(--gray)); font-size: .7rem; }
+      .live-quote-meta .up { color: #137547; font-weight: 850; }
+      .live-quote-meta .down { color: #c5221f; font-weight: 850; }
       @media (max-width: 940px) {
         .hero-top { display: grid; }
         .meta-line { justify-content: flex-start; max-width: none; }
@@ -176,7 +186,7 @@ const actionCopy = (key: string) => ({
     <main>
       <UsSubnav active="garden" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
-        <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Compass v3'}</span></div></div>
+        <div class="hero-top"><div class="hero-copy"><span class="pill us-pill">🇺🇸 美股ETF交易仪表盘</span><h1 id="us-page-title">美股ETF今日动作</h1><p>{data.summary}</p></div><div class="meta-line"><span class="pill us-pill">{data.stage}</span><span class="pill">交易日 {data.date}</span><span class="pill">截止 {formatTime(data.updated_at)}</span><span class="pill">{data.model_version || 'US ETF Compass v3'}</span><span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span></div></div>
         <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
         <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
         <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
@@ -185,15 +195,111 @@ const actionCopy = (key: string) => ({
 
       <section aria-label="美股ETF战术信号">
         <div class="section-head"><div><span class="pill us-pill">ACTION QUEUE</span><h2>今日待办</h2></div><a href="/us-momentum/">进入趋势风控 →</a></div>
-        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state">{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><div class="level"><span>现价</span><b>{formatPrice(item.price)}</b></div><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
+        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><div class="level"><span>实时现价</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></div><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
       </section>
 
-      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card"><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><div class="secondary-price"><span>现价</span><b>{formatPrice(item.price)}</b></div></article>)}</div></section>}
+      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><div class="secondary-price"><span>实时现价</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></div></article>)}</div></section>}
 
       <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">SECTOR BREADTH</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
       <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
     </main>
     <Footer />
+    <script is:inline>
+      const US_LIVE_URL = 'https://etf-live.peekabo.cc/api/us-etf-garden/live';
+      const usLiveStatus = document.getElementById('us-live-status');
+      const usLiveCards = [...document.querySelectorAll('[data-us-live-card]')];
+      let usLiveLoading = false;
+      const num = (value) => {
+        if (value === null || value === undefined || value === '') return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const nyClock = () => {
+        const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+        }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+        return { weekday: parts.weekday, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
+      };
+      const isUsTradingWindow = () => {
+        const { weekday, minutes } = nyClock();
+        return !['Sat', 'Sun'].includes(weekday) && minutes >= 9 * 60 + 30 && minutes <= 16 * 60 + 5;
+      };
+      const nyTime = (value) => {
+        const date = value ? new Date(value) : new Date();
+        if (Number.isNaN(date.getTime())) return '刚刚';
+        return new Intl.DateTimeFormat('zh-CN', {
+          timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+        }).format(date);
+      };
+      const setUsLiveStatus = (text, state = '') => {
+        if (!usLiveStatus) return;
+        usLiveStatus.textContent = text;
+        usLiveStatus.classList.toggle('online', state === 'online');
+        usLiveStatus.classList.toggle('error', state === 'error');
+      };
+      function applyUsLive(payload) {
+        const liveMap = new Map((payload.items || []).map(item => [String(item.symbol), item]));
+        const mode = isUsTradingWindow() ? '盘中实时' : '最新快照';
+        const statusTime = nyTime(payload.generated_at);
+        let updated = 0;
+        for (const card of usLiveCards) {
+          const symbol = card.dataset.symbol;
+          const quote = liveMap.get(symbol);
+          const price = num(quote?.price);
+          if (price === null) continue;
+          const priceNode = document.getElementById(`us-live-price-${symbol}`);
+          const metaNode = document.getElementById(`us-live-meta-${symbol}`);
+          const triggerNode = document.getElementById(`us-live-trigger-${symbol}`);
+          if (priceNode) {
+            priceNode.textContent = `$${price.toFixed(2)}`;
+            priceNode.classList.add('updated');
+          }
+          const change = num(quote?.change_pct);
+          if (metaNode) {
+            const changeText = change === null ? '' : ` · <span class="${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</span>`;
+            metaNode.innerHTML = `${mode} ${nyTime(quote?.quote_time)} ET${changeText}`;
+          }
+          if (triggerNode) {
+            const side = card.dataset.side || '';
+            const support = num(card.dataset.support);
+            const target = num(card.dataset.target);
+            const stop = num(card.dataset.stop);
+            let triggerText = triggerNode.textContent || '观察';
+            if (stop !== null && price <= stop) {
+              triggerText = '破位撤退';
+            } else if (side.includes('harvest') && target !== null) {
+              const gap = (price / target - 1) * 100;
+              triggerText = price >= target ? '达到兑现位' : (Math.abs(gap) <= 3 ? '距兑现位≤3%' : '等待兑现');
+            } else if (side.includes('plant') && support !== null) {
+              const gap = (price / support - 1) * 100;
+              triggerText = price <= support ? '进入伏击区' : (Math.abs(gap) <= 3 ? '距伏击位≤3%' : '等待伏击');
+            }
+            triggerNode.textContent = triggerText;
+          }
+          updated += 1;
+        }
+        setUsLiveStatus(`${mode} ${statusTime} ET · ${updated}/${usLiveCards.length}`, 'online');
+      }
+      async function loadUsLive() {
+        if (usLiveLoading || document.hidden) return;
+        usLiveLoading = true;
+        try {
+          const response = await fetch(`${US_LIVE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          if (!payload.ok || !Array.isArray(payload.items)) throw new Error('行情格式异常');
+          applyUsLive(payload);
+        } catch (error) {
+          setUsLiveStatus('实时行情暂不可用 · 保留收盘快照', 'error');
+          console.warn('US ETF live quote overlay failed', error);
+        } finally {
+          usLiveLoading = false;
+        }
+      }
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) void loadUsLive(); });
+      void loadUsLive();
+      window.setInterval(loadUsLive, 30_000);
+    </script>
   </body>
 </html>
