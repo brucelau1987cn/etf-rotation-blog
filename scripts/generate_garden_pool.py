@@ -344,85 +344,46 @@ def local_today() -> str:
     return now_cn().date().isoformat()
 
 
-def fetch_klines(item: dict[str, str], count: int = 90) -> list[dict[str, Any]]:
+def _stock_api_klines(item: dict[str, str], count: int, adjust: str, source: str, attempts: int = 1) -> list[dict[str, Any]]:
     stock_code = f"{market_prefix(item['market'])}{item['code']}"
-    cmd = [
-        "npx",
-        "-y",
-        STOCK_API_PACKAGE,
-        "get-klines",
-        stock_code,
-        "--period",
-        "day",
-        "--count",
-        str(count),
-        "--adjust",
-        "qfq",
-        "--source",
-        "auto",
-    ]
-    # 最多重试 2 次，应对 npx 并发时偶发返回异常
-    for attempt in range(3):
+    cmd = ["npx", "-y", STOCK_API_PACKAGE, "get-klines", stock_code,
+           "--period", "day", "--count", str(count), "--adjust", adjust, "--source", source]
+    for attempt in range(attempts):
         try:
-            proc = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, timeout=90)
-        except Exception:
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        if proc.returncode != 0 or not proc.stdout.strip():
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        try:
+            proc = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, timeout=45)
+            if proc.returncode != 0 or not proc.stdout.strip():
+                raise RuntimeError(proc.stderr.strip() or "empty stock-api response")
             out = json.loads(proc.stdout)
+            raw = out if isinstance(out, list) else (out.get("klines") or out.get("data") or out.get("rows") or []) if isinstance(out, dict) else []
+            if raw and all(isinstance(row, dict) for row in raw):
+                parsed = []
+                for row in raw:
+                    close = safe_float(row.get("close")); observed = row.get("date")
+                    if observed and math.isfinite(close):
+                        parsed.append({
+                            "date": str(observed), "open": safe_float(row.get("open")),
+                            "high": safe_float(row.get("high")), "low": safe_float(row.get("low")),
+                            "close": close, "volume": safe_float(row.get("volume")),
+                            "source": row.get("source") or f"stock-api/{source}", "adjustment": adjust,
+                        })
+                if parsed:
+                    return sorted(parsed, key=lambda row: row["date"])
         except Exception:
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        # 拍平并判断有效性
-        if isinstance(out, list):
-            klines_raw = out
-        elif isinstance(out, dict):
-            klines_raw = out.get("klines") or out.get("data") or out.get("rows") or []
-        else:
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        if not klines_raw:
-            time.sleep(0.5 * (attempt + 1))
-            continue
-        # 必须是 list of dict；如果是 list of list 或其他就重试
-        if all(isinstance(x, dict) for x in klines_raw) and klines_raw:
-            break
-        time.sleep(0.5 * (attempt + 1))
-    else:
-        return []
-    out = klines_raw
-    # 兼容多种返回：list / {"klines": [...]} / {"data": [...]} / 嵌套 list
-    if isinstance(out, list):
-        klines = out
-    elif isinstance(out, dict):
-        klines = out.get("klines") or out.get("data") or out.get("rows") or []
-    else:
-        klines = []
-    # 拍平一层：如果外层是 list-of-list，取首层
-    if klines and isinstance(klines[0], list):
-        klines = klines[0] if klines and isinstance(klines[0], list) and klines[0] and isinstance(klines[0][0], (dict, list)) else klines
-    parsed: list[dict[str, Any]] = []
-    for k in klines:
-        if not isinstance(k, dict):
-            continue
-        c = safe_float(k.get("close"))
-        d = k.get("date")
-        if d and math.isfinite(c):
-            parsed.append(
-                {
-                    "date": str(d),
-                    "open": safe_float(k.get("open")),
-                    "high": safe_float(k.get("high")),
-                    "low": safe_float(k.get("low")),
-                    "close": c,
-                    "volume": safe_float(k.get("volume")),
-                    "source": k.get("source") or "stock-api",
-                }
-            )
-    return sorted(parsed, key=lambda x: x["date"])
+            if attempt + 1 < attempts:
+                time.sleep(0.5 * (attempt + 1))
+    return []
+
+
+def fetch_klines(item: dict[str, str], count: int = 90) -> list[dict[str, Any]]:
+    """Use qfq first, then a labelled raw Tencent fallback for coverage.
+
+    The fallback stays explicit in every row so mixed-basis coverage is visible and
+    can never be described as a fully qfq universe.
+    """
+    qfq = _stock_api_klines(item, count, "qfq", "auto", attempts=2)
+    if qfq:
+        return qfq
+    return _stock_api_klines(item, count, "none", "tencent", attempts=1)
 
 
 def fetch_quotes(items: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
@@ -537,6 +498,7 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
         "quote_name": (quote or {}).get("name"),
         "quote_source": (quote or {}).get("source") or "stock-api",
         "kline_source": klines[-1].get("source") or "stock-api",
+        "return_basis": klines[-1].get("adjustment") or "unknown",
         "bars_count": len(klines),
         "ret3": round(ret3, 2),
         "ret5": round(ret5, 2),
@@ -552,7 +514,7 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
         "support_gap": support_gap if math.isfinite(support_gap) else None,
         "target_gap": target_gap if math.isfinite(target_gap) else None,
         "stop_gap": stop_gap if math.isfinite(stop_gap) else None,
-        "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+        "level_basis": f"{klines[-1].get('adjustment') or 'unknown'}日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
         "level_model_version": "A ETF Garden Levels v1",
         "slope20_score": round(slope20, 4),
         "slope60_score": round(slope60, 4),
@@ -575,10 +537,10 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
 
 def main() -> int:
     start = now_cn()
-    print(f"开始生成 ETF花园 71 池数据，共 {len(GARDEN_POOL)} 只")
+    print(f"开始生成 ETF罗盘 71 池数据，共 {len(GARDEN_POOL)} 只")
 
     kline_map: dict[str, list[dict[str, Any]]] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
         futs = {ex.submit(fetch_klines, item): item["code"] for item in GARDEN_POOL}
         for f in concurrent.futures.as_completed(futs):
             code = futs[f]
@@ -661,14 +623,16 @@ def main() -> int:
         "evaluation_date": local_today(),
         "latest_trade_date": latest_trade_date,
         "source_page": "etf-garden-pool-local",
-        "pool_source": "ETF花园 71 池 (session_20260605_214833 筛选池, stock-api package v2.7.2)",
+        "pool_source": "ETF罗盘 71 池 (session_20260605_214833 筛选池, stock-api package v2.7.2)",
         "quote_source": "stock-api package v2.7.2",
         "kline_source": "stock-api package v2.7.2",
         "params": PARAMS,
         "summary": {
-            "universe_source": "ETF花园 71 池",
+            "universe_source": "ETF罗盘 71 池",
             "universe_count": len(GARDEN_POOL),
             "valid_count": len([x for x in rows if "price" in x]),
+            "qfq_count": len([x for x in rows if x.get("return_basis") == "qfq"]),
+            "raw_fallback_count": len([x for x in rows if x.get("return_basis") == "none"]),
             "core_count": len(core),
             "watch_count": len(watch),
             "excluded_count": len(excluded),
