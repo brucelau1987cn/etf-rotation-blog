@@ -335,7 +335,28 @@ def main() -> None:
             "state": breadth_state,
         })
     breadth.sort(key=lambda x: (x["ratio"], x["avg_relative_spy20"]), reverse=True)
-    trigger_previous = previous_rows if prior_pool.get("model_date", "") < latest else {}
+    prior_model_date = str(prior_pool.get("model_date") or "")
+    if prior_model_date and prior_model_date < latest:
+        trigger_previous = previous_rows
+        trigger_base_date = prior_model_date
+    elif prior_pool.get("trigger_base_rows"):
+        trigger_previous = prior_pool["trigger_base_rows"]
+        trigger_base_date = prior_pool.get("trigger_base_date")
+    else:
+        trigger_previous = {}
+        trigger_base_date = None
+    trigger_base_rows = {
+        symbol: {
+            "symbol": symbol,
+            "support": row.get("support"),
+            "target": row.get("target"),
+            "stop": row.get("stop"),
+            "price": row.get("price"),
+            "trade_date": row.get("trade_date") or trigger_base_date,
+        }
+        for symbol, row in trigger_previous.items()
+        if isinstance(row, dict)
+    }
     flowers = flower_signals(rows, trigger_previous)
     flower_counts = {key: len(value) for key, value in flowers.items()}
     session_state, stage = session_label(now, latest)
@@ -344,6 +365,7 @@ def main() -> None:
         "market": "US", "model_version": "US ETF Garden v3 · Flower Signals", "generated_at": now.isoformat(),
         "model_date": latest, "quote_trade_date": latest, "timezone": "America/New_York", "data_source": "Yahoo Chart API",
         "session_state": session_state, "stage": stage,
+        "trigger_base_date": trigger_base_date, "trigger_base_rows": trigger_base_rows,
         "market_regime": {"state": regime, "equity_allocation": equity, "benchmark": "SPY"},
         "summary": {"universe": len(UNIVERSE), "valid": len(rows), "momentum_pass": sum(x["momentum_pass"] for x in rows)},
         "recommendations": selected, "flower_signals": flowers, "flower_counts": flower_counts, "breadth_groups": breadth,
