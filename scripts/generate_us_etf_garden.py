@@ -6,6 +6,7 @@ The script writes atomically and preserves the last good snapshot on failure.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
 import os
@@ -121,7 +122,36 @@ def slope(values: list[float], n: int = 20) -> float:
     return sum((i - xm) * (v - ym) for i, v in enumerate(y)) / denom / ym * 100 if ym and denom else 0.0
 
 
-def fetch(symbol: str) -> dict[str, Any]:
+def load_cache_module():
+    path = Path(__file__).resolve().parent / "us_etf_bar_cache.py"
+    spec = importlib.util.spec_from_file_location("us_etf_bar_cache", path)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def fetch_from_cache(symbol: str, min_rows: int = 80) -> dict[str, Any] | None:
+    cache = load_cache_module()
+    if cache is None:
+        return None
+    try:
+        with cache.connect() as db:
+            bars = cache.get_bars(db, symbol, source="yahoo", limit=520, final_only=False)
+        rows = cache.bars_to_generator_rows(bars)
+        if len(rows) < min_rows:
+            return None
+        return {"rows": rows, "meta": {"source": "local-us-etf-compass.db", "symbol": symbol}}
+    except Exception:
+        return None
+
+
+def fetch(symbol: str, *, prefer_cache: bool = True) -> dict[str, Any]:
+    if prefer_cache:
+        cached = fetch_from_cache(symbol)
+        if cached is not None:
+            return cached
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=2y&interval=1d&events=div%2Csplits"
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=20) as response:
@@ -132,9 +162,11 @@ def fetch(symbol: str) -> dict[str, Any]:
     for i, ts in enumerate(result["timestamp"]):
         vals = [quote[k][i] for k in ("open", "high", "low", "close", "volume")]
         adj = adjusted[i] if i < len(adjusted) else quote["close"][i]
-        if any(v is None for v in vals[:4]) or adj is None: continue
+        if any(v is None for v in vals[:4]) or adj is None:
+            continue
         rows.append({"date": datetime.fromtimestamp(ts, timezone.utc).astimezone(NY).date().isoformat(), "open": vals[0], "high": vals[1], "low": vals[2], "close": vals[3], "volume": vals[4] or 0, "adj": adj})
-    if len(rows) < 80: raise RuntimeError(f"{symbol}: only {len(rows)} rows")
+    if len(rows) < 80:
+        raise RuntimeError(f"{symbol}: only {len(rows)} rows")
     return {"rows": rows, "meta": result.get("meta", {})}
 
 
