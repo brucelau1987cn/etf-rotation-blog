@@ -22,6 +22,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from etf_bar_cache import connect as cache_connect, get_bars as cache_get_bars, upsert_bars as cache_upsert_bars, upsert_instruments
+
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DATA = ROOT / "public" / "data"
 OUT_JSON = PUBLIC_DATA / "etf-garden-pool.json"
@@ -386,6 +388,29 @@ def fetch_klines(item: dict[str, str], count: int = 90) -> list[dict[str, Any]]:
     return _stock_api_klines(item, count, "none", "tencent", attempts=1)
 
 
+def cached_klines(db: Any, item: dict[str, str], count: int = 90) -> list[dict[str, Any]]:
+    rows = cache_get_bars(db, item["market"], item["code"], "qfq", count)
+    return [{
+        "date": row["trade_date"], "open": safe_float(row.get("open")),
+        "high": safe_float(row.get("high")), "low": safe_float(row.get("low")),
+        "close": safe_float(row.get("close")), "volume": safe_float(row.get("volume")),
+        "source": f"{row.get('source')}-cache", "adjustment": "qfq",
+    } for row in rows]
+
+
+def store_remote_klines(db: Any, item: dict[str, str], rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        return
+    cache_upsert_bars(db, [{
+        "market": item["market"], "symbol": item["code"], "trade_date": row["date"],
+        "open": row.get("open"), "high": row.get("high"), "low": row.get("low"),
+        "close": row["close"], "volume": row.get("volume"),
+        "adjustment": row.get("adjustment") or "none",
+        "source": "stock-api" if row.get("adjustment") == "qfq" else "tencent",
+        "is_final": True,
+    } for row in rows])
+
+
 def fetch_quotes(items: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
     codes = [f"{market_prefix(x['market'])}{x['code']}" for x in items]
     cmd = ["npx", "-y", STOCK_API_PACKAGE, "get-stocks", *codes]
@@ -540,26 +565,32 @@ def main() -> int:
     print(f"开始生成 ETF罗盘 71 池数据，共 {len(GARDEN_POOL)} 只")
 
     kline_map: dict[str, list[dict[str, Any]]] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-        futs = {ex.submit(fetch_klines, item): item["code"] for item in GARDEN_POOL}
-        for f in concurrent.futures.as_completed(futs):
-            code = futs[f]
-            try:
-                kline_map[code] = f.result()
-            except Exception as exc:
-                print(f"  K线失败 {code}: {exc}")
-                kline_map[code] = []
-            time.sleep(0.05)
-    failed = [c for c, ks in kline_map.items() if not ks]
-    if failed:
-        print(f"⚠️ 初次失败 {len(failed)} 只：{failed[:10]}{'...' if len(failed)>10 else ''}")
-        # 串行重试失败项
+    with cache_connect() as db:
+        upsert_instruments(db, GARDEN_POOL)
         for item in GARDEN_POOL:
-            if item["code"] in failed:
-                kline_map[item["code"]] = fetch_klines(item)
-                time.sleep(0.1)
+            cached = cached_klines(db, item)
+            if len(cached) >= PARAMS["ma_period"] + PARAMS["trend_window"] + 1:
+                kline_map[item["code"]] = cached
+    cache_hit_count = len(kline_map)
+    misses = [item for item in GARDEN_POOL if item["code"] not in kline_map]
+    if misses:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            futs = {ex.submit(fetch_klines, item): item for item in misses}
+            for f in concurrent.futures.as_completed(futs):
+                item = futs[f]; code = item["code"]
+                try:
+                    kline_map[code] = f.result()
+                except Exception as exc:
+                    print(f"  K线失败 {code}: {exc}")
+                    kline_map[code] = []
+        with cache_connect() as db:
+            for item in misses:
+                store_remote_klines(db, item, kline_map.get(item["code"], []))
+    failed = [item["code"] for item in GARDEN_POOL if not kline_map.get(item["code"])]
+    if failed:
+        print(f"⚠️ 多源失败 {len(failed)} 只：{failed[:10]}{'...' if len(failed)>10 else ''}")
 
-    print(f"K线拉取完成，尝试批量拉行情（{len(GARDEN_POOL)} 只）")
+    print(f"K线准备完成：本地缓存 {cache_hit_count}，远程补充 {len(misses)}；尝试批量拉行情（{len(GARDEN_POOL)} 只）")
     quotes = fetch_quotes(GARDEN_POOL)
 
     rows: list[dict[str, Any]] = []
@@ -623,9 +654,9 @@ def main() -> int:
         "evaluation_date": local_today(),
         "latest_trade_date": latest_trade_date,
         "source_page": "etf-garden-pool-local",
-        "pool_source": "ETF罗盘 71 池 (session_20260605_214833 筛选池, stock-api package v2.7.2)",
+        "pool_source": "ETF罗盘 71 池 (本地SQLite点时缓存, iWenCai qfq主补全)",
         "quote_source": "stock-api package v2.7.2",
-        "kline_source": "stock-api package v2.7.2",
+        "kline_source": "local SQLite cache (iWenCai qfq → stock-api → Tencent)",
         "params": PARAMS,
         "summary": {
             "universe_source": "ETF罗盘 71 池",
@@ -633,6 +664,8 @@ def main() -> int:
             "valid_count": len([x for x in rows if "price" in x]),
             "qfq_count": len([x for x in rows if x.get("return_basis") == "qfq"]),
             "raw_fallback_count": len([x for x in rows if x.get("return_basis") == "none"]),
+            "cache_hit_count": cache_hit_count,
+            "remote_fetch_count": len(misses),
             "core_count": len(core),
             "watch_count": len(watch),
             "excluded_count": len(excluded),

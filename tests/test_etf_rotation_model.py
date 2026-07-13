@@ -94,7 +94,7 @@ def test_garden_trading_agent_decision_outputs_debate_and_cooldown() -> None:
     decision = garden.trading_agent_decision(strong)
 
     assert decision["signal_score"] >= 70
-    assert decision["action"] in {"加仓", "持有"}
+    assert decision["action"] in {"可持有", "回踩候选", "观察"}
     assert decision["agent_bull"]
     assert decision["agent_bear"]
     assert "组合经理" in decision["agent_scores"]
