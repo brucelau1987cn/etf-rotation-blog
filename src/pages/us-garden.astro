@@ -150,6 +150,12 @@ const actionCopy = (key: string) => ({
       .live-status.error { background: #fff0ef; color: #a3201d; }
       .live-status.error::before { background: #c5221f; }
       .live-price.updated { color: #174ea6; }
+      .live-refresh-button { font: inherit; color: inherit; cursor: pointer; appearance: none; }
+      .level.live-refresh-button { border: 0; border-right: 1px solid var(--border); }
+      .secondary-price.live-refresh-button { border: 0; padding: .2rem; background: transparent; border-radius: 9px; }
+      .live-refresh-button:hover, .live-refresh-button:focus-visible { background: #eaf3ff; outline: 2px solid #78a7dc; outline-offset: -2px; }
+      .live-refresh-button.loading { opacity: .58; cursor: wait; }
+      .live-refresh-button.loading .live-price::after { content: ' ↻'; }
       .live-quote-meta { margin-top: .45rem; color: rgb(var(--gray)); font-size: .7rem; }
       .live-quote-meta .up { color: #137547; font-weight: 850; }
       .live-quote-meta .down { color: #c5221f; font-weight: 850; }
@@ -196,10 +202,10 @@ const actionCopy = (key: string) => ({
 
       <section aria-label="美股ETF战术信号">
         <div class="section-head"><div><span class="pill us-pill">ACTION QUEUE</span><h2>今日待办</h2></div><a href="/us-momentum/">进入趋势风控 →</a></div>
-        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><div class="level"><span>实时现价</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></div><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
+        {activeSections.map((section) => <section class={`signal-section ${section.tone}`} aria-labelledby={`signal-${section.key}`}><div class="signal-heading"><div><i class={`status-dot ${section.status}`} aria-hidden="true"></i><div><h2 id={`signal-${section.key}`}>{section.title}</h2><small>{section.note}</small></div></div><b>{section.items.length}只</b></div><div class="signal-grid">{section.items.map((item) => <article class={`signal-card card ${section.tone}`} data-us-live-card data-symbol={item.symbol} data-side={section.key} data-support={item.support} data-target={item.target} data-stop={item.stop}><div class="card-top"><div class="identity"><h3>{item.symbol} · {item.name}</h3><small>{item.theme}</small></div><span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span></div><div class="level-grid" aria-label={`${item.symbol}关键价位`}><button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b></button><div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div><div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div><div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div></div><div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div><div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div><p class="basis"><strong>{activeLabel(section.key)}触发：</strong>{item.trigger_basis}</p></article>)}</div></section>)}
       </section>
 
-      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><div class="secondary-price"><span>实时现价</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></div></article>)}</div></section>}
+      {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">SECONDARY WATCH</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
 
       <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">SECTOR BREADTH</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
@@ -301,6 +307,32 @@ const actionCopy = (key: string) => ({
           usLiveLoading = false;
         }
       }
+      async function refreshUsSymbol(symbol, button) {
+        if (!symbol || button.classList.contains('loading')) return;
+        button.classList.add('loading');
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        setUsLiveStatus(`正在更新 ${symbol}…`);
+        try {
+          const response = await fetch(`${US_LIVE_URL}?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          if (!payload.ok || payload.count !== 1 || !Array.isArray(payload.items)) throw new Error('单股行情格式异常');
+          applyUsLive(payload);
+          const quote = payload.items[0];
+          setUsLiveStatus(`${symbol} 已更新 ${nyTime(quote.quote_time)} ET`, 'online');
+        } catch (error) {
+          setUsLiveStatus(`${symbol} 更新失败 · 保留现有价格`, 'error');
+          console.warn('US ETF single quote refresh failed', error);
+        } finally {
+          button.classList.remove('loading');
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+        }
+      }
+      document.querySelectorAll('[data-live-refresh]').forEach((button) => {
+        button.addEventListener('click', () => void refreshUsSymbol(button.dataset.liveRefresh, button));
+      });
       document.addEventListener('visibilitychange', () => { if (!document.hidden) void loadUsLive(); });
       void loadUsLive();
       window.setInterval(loadUsLive, 30_000);
