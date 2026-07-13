@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Generate the 71-ETF ETF Garden pool data for the momentum radar page.
+"""Generate the 91-ETF formal compass pool from the canonical 121-ETF research universe.
 
-Pool source: session_20260605_214833 三张表去重后的 71 个 ETF/LOF 清单
-（详见 etf-garden.md 顶部固定页说明；不复用 youth-online 网络源）。
+The canonical universe lives in data/etf-universe.json: 91 formal + 30 research-only.
 
 Output:
 - public/data/etf-garden-pool.json
@@ -29,8 +28,7 @@ PUBLIC_DATA = ROOT / "public" / "data"
 OUT_JSON = PUBLIC_DATA / "etf-garden-pool.json"
 STOCK_API_PACKAGE = "stock-api@2.7.3"
 
-# 71 个 ETF/LOF 花园池（按三张表累计去重顺序）
-# 来源：session_20260605_214833_548581.json [99][103][107] 三段汇总
+# 71只基础池；加载规范研究宇宙后会扩展为91只正式池。
 GARDEN_POOL: list[dict[str, str]] = [
     # 第一张 28
     {"name": "上证50ETF华夏", "code": "510050", "market": "XSHG", "type": "宽基"},
@@ -108,6 +106,16 @@ GARDEN_POOL: list[dict[str, str]] = [
     {"name": "光伏ETF华泰柏瑞", "code": "515790", "market": "XSHG", "type": "行业"},
 ]
 
+UNIVERSE_PATH = ROOT / "data" / "etf-universe.json"
+UNIVERSE = json.loads(UNIVERSE_PATH.read_text(encoding="utf-8"))
+RESEARCH_POOL: list[dict[str, Any]] = UNIVERSE["items"]
+FORMAL_POOL: list[dict[str, Any]] = [item for item in RESEARCH_POOL if item["tier"] == "formal"]
+_base_codes = {item["code"] for item in GARDEN_POOL}
+_expected_base_codes = {item["code"] for item in RESEARCH_POOL if item["origin"] == "base71"}
+if _base_codes != _expected_base_codes:
+    raise RuntimeError("base71 list and canonical ETF universe diverged")
+GARDEN_POOL = FORMAL_POOL
+
 PARAMS = {
     "ma_period": 20,
     "trend_window": 5,
@@ -125,7 +133,7 @@ DEFENSIVE_ASSETS = [
     {"name": "黄金 ETF", "code": "518880", "role": "避险资产"},
 ]
 
-# 在 71 池中可作为货币替代的两个场内货基（如有）
+# 正式池中可作为货币替代的两个场内货基（如有）
 GARDEN_CASH = {"511880", "511990"}
 
 
@@ -562,7 +570,7 @@ def calc_row(item: dict[str, str], klines: list[dict[str, Any]], quote: dict[str
 
 def main() -> int:
     start = now_cn()
-    print(f"开始生成 ETF罗盘 71 池数据，共 {len(GARDEN_POOL)} 只")
+    print(f"开始生成 ETF罗盘正式池数据，共 {len(GARDEN_POOL)} 只；完整研究池 {len(RESEARCH_POOL)} 只")
 
     kline_map: dict[str, list[dict[str, Any]]] = {}
     with cache_connect() as db:
@@ -596,16 +604,24 @@ def main() -> int:
     rows: list[dict[str, Any]] = []
     for item in GARDEN_POOL:
         row = calc_row(item, kline_map.get(item["code"], []), quotes.get(item["code"]))
+        row["asset_layer"] = item.get("asset_layer", "rotation")
+        row["universe_tier"] = item.get("tier", "formal")
+        row["category"] = item.get("category", item.get("type", "行业"))
+        row["theme"] = item.get("theme", item.get("type", "其他"))
         rows.append(row)
 
-    # 货币替代单独归类
+    # 防守资产采用独立观察层；权益轮动排名保持同口径。
     for r in rows:
-        if r.get("code") in GARDEN_CASH:
+        if r.get("asset_layer") == "defense":
+            r["status"] = "defense"
+        elif r.get("code") in GARDEN_CASH:
             r["status"] = "cash"
 
-    rows.sort(key=lambda r: safe_float(r.get("signal_score")), reverse=True)
-    for idx, row in enumerate(rows, start=1):
+    rows.sort(key=lambda r: (r.get("asset_layer") == "defense", -safe_float(r.get("signal_score"))))
+    rotation_rows = [r for r in rows if r.get("asset_layer") == "rotation"]
+    for idx, row in enumerate(rotation_rows, start=1):
         row["momentum_rank"] = idx
+    defense = [x for x in rows if x.get("status") == "defense"]
     core = [x for x in rows if x.get("status") == "core"]
     watch = [x for x in rows if x.get("status") == "watch"]
     excluded = [x for x in rows if x.get("status") == "excluded"]
@@ -631,7 +647,7 @@ def main() -> int:
         for label, keys in groups.items():
             if any(key in name for key in keys):
                 return label
-        return str(row.get("type") or "其他")
+        return str(row.get("theme") or row.get("category") or row.get("type") or "其他")
 
     used_themes: set[str] = set()
     for r in actionable:
@@ -654,13 +670,16 @@ def main() -> int:
         "evaluation_date": local_today(),
         "latest_trade_date": latest_trade_date,
         "source_page": "etf-garden-pool-local",
-        "pool_source": "ETF罗盘 71 池 (本地SQLite点时缓存, iWenCai qfq主补全)",
+        "pool_source": "ETF罗盘91只正式池（121只完整研究宇宙；本地SQLite点时缓存，iWenCai qfq主补全）",
         "quote_source": "stock-api package v2.7.3",
         "kline_source": "local SQLite cache (iWenCai qfq → stock-api → Tencent)",
         "params": PARAMS,
         "summary": {
-            "universe_source": "ETF罗盘 71 池",
+            "universe_source": "ETF罗盘91只正式池 / 121只完整研究池",
             "universe_count": len(GARDEN_POOL),
+            "research_universe_count": len(RESEARCH_POOL),
+            "rotation_count": len([x for x in GARDEN_POOL if x.get("asset_layer") == "rotation"]),
+            "defense_count": len(defense),
             "valid_count": len([x for x in rows if "price" in x]),
             "qfq_count": len([x for x in rows if x.get("return_basis") == "qfq"]),
             "raw_fallback_count": len([x for x in rows if x.get("return_basis") == "none"]),
@@ -671,7 +690,7 @@ def main() -> int:
             "excluded_count": len(excluded),
             "momentum_pass_count": len(core),
         },
-        "market_regime": detect_market_regime(rows),
+        "market_regime": detect_market_regime(rotation_rows),
         "strategy_version": "Bruce ETF Trend Radar v3",
         "realtime_scope": ["当前价", "涨跌幅", "3/10/20日收益估算", "MA20趋势通过"],
         "snapshot_scope": ["综合分", "交易风险", "交易状态", "量能质量", "市场状态", "仓位区间"],
@@ -681,6 +700,7 @@ def main() -> int:
         "core_pool": core,
         "watch_pool": watch,
         "cash_pool": cash,
+        "defense_pool": defense,
         "excluded_sample": excluded,
         "all_rows": rows,
     }
@@ -689,7 +709,7 @@ def main() -> int:
     OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     elapsed = (now_cn() - start).total_seconds()
     print(
-        f"✅ 完成：71 池中有效 {payload['summary']['valid_count']}，动量通过 {len(core)}，"
+        f"✅ 完成：{len(GARDEN_POOL)}只正式池中有效 {payload['summary']['valid_count']}，动量通过 {len(core)}，"
         f"推荐 {len(recommendations)}，耗时 {elapsed:.0f}s，输出 {OUT_JSON.relative_to(ROOT)}"
     )
     return 0

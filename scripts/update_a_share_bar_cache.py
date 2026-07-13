@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import re
 import sqlite3
 import subprocess
@@ -148,7 +149,7 @@ def main() -> int:
               "failed": len(universe) - len(succeeded), "bars_written": len(all_bars),
               "latency_ms": elapsed, "errors": errors}
     print(json.dumps(result, ensure_ascii=False))
-    required = min(60, len(universe))
+    required = math.ceil(len(universe) * 0.90)
     return 0 if len(succeeded) >= required else 2
 
 

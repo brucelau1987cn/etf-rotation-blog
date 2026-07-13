@@ -165,6 +165,21 @@ def execution_estimate(metric: dict[str, Any], order_cny: float) -> dict[str, An
 def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180) -> dict[str, Any]:
     frames, names = load_frames(db_path, limit)
     metrics = {symbol: symbol_metrics(df) for symbol, df in frames.items()}
+    formal_count = len(metrics)
+    defense_monitor: list[dict[str, Any]] = []
+    universe_path = ROOT / "data/etf-universe.json"
+    if universe_path.exists():
+        universe = json.loads(universe_path.read_text(encoding="utf-8"))
+        rotation_codes = {x["code"] for x in universe["items"] if x["tier"] == "formal" and x["asset_layer"] == "rotation"}
+        defense_codes = {x["code"] for x in universe["items"] if x["tier"] == "formal" and x["asset_layer"] == "defense"}
+        if db_path.resolve() == DEFAULT_DB.resolve():
+            formal_count = universe["counts"]["formal"]
+            defense_monitor = [
+                {"symbol": symbol, "name": names.get(symbol, symbol), **metrics[symbol]}
+                for symbol in sorted(set(metrics) & defense_codes)
+            ]
+            frames = {symbol: frame for symbol, frame in frames.items() if symbol in rotation_codes}
+            metrics = {symbol: metric for symbol, metric in metrics.items() if symbol in rotation_codes}
     table = pd.DataFrame(metrics).T
     for col in ("ret20", "ret60", "technical_vote", "hv20_annualized", "max_drawdown60"):
         table[col] = pd.to_numeric(table[col], errors="coerce")
@@ -193,6 +208,9 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "latest_trade_date": max((x["trade_date"] for x in metrics.values()), default=None),
         "universe_count": len(items),
+        "formal_universe_count": formal_count,
+        "rotation_universe_count": len(items),
+        "defense_monitor": defense_monitor,
         "minimum_observations": 60,
         "factor_definition": {
             "ret20": .35, "ret60": .25, "technical_vote": .20,
@@ -237,7 +255,7 @@ def main() -> int:
         "status": "ok", "mode": snapshot["mode"], "universe": snapshot["universe_count"],
         "trade_date": snapshot["latest_trade_date"], "top12": snapshot["shadow_top12"],
     }, ensure_ascii=False))
-    return 0 if snapshot["universe_count"] >= 60 else 2
+    return 0 if snapshot["universe_count"] >= 82 else 2
 
 
 if __name__ == "__main__":
