@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-14 11:44:05 CST",
+  "generated_at": "2026-07-14 14:35:02 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Mid-Macro Constraint v1",
@@ -8,44 +8,44 @@
     {
       "key": "rates_fixed_income",
       "label": "加息预期/固收相对强弱",
-      "state": "逆风",
-      "score": 2.0,
-      "headline": "固收5日相对沪深300超额+2.01pp",
+      "state": "中性",
+      "score": 0.5,
+      "headline": "固收/权益5日相对中性-0.04pp",
       "reasons": [
-        "固收5日相对沪深300超额+2.01pp",
-        "固收20日相对偏强+4.12pp"
+        "固收/权益5日相对中性-0.04pp",
+        "固收20日相对偏强+2.12pp"
       ],
       "metrics": {
-        "bond_ret5": 0.02,
-        "bond_ret20": 0.28,
-        "equity_ret5": -1.99,
-        "equity_ret20": -3.84,
-        "bond_vs_equity_5d_pp": 2.01,
-        "bond_vs_equity_20d_pp": 4.12
+        "bond_ret5": 0.04,
+        "bond_ret20": 0.31,
+        "equity_ret5": 0.08,
+        "equity_ret20": -1.81,
+        "bond_vs_equity_5d_pp": -0.04,
+        "bond_vs_equity_20d_pp": 2.12
       },
       "details": {
         "511260": {
-          "ret5": 0.02,
-          "ret20": 0.36,
-          "last": 134.88,
+          "ret5": 0.03,
+          "ret20": 0.37,
+          "last": 134.9,
           "date": "2026-07-14"
         },
         "511010": {
-          "ret5": 0.02,
-          "ret20": 0.28,
-          "last": 140.77,
+          "ret5": 0.04,
+          "ret20": 0.31,
+          "last": 140.81,
           "date": "2026-07-14"
         },
         "511110": {
-          "ret5": 0.01,
-          "ret20": 0.21,
-          "last": 102.87,
+          "ret5": 0.04,
+          "ret20": 0.24,
+          "last": 102.9,
           "date": "2026-07-14"
         },
         "510300": {
-          "ret5": -1.99,
-          "ret20": -3.84,
-          "last": 4.73,
+          "ret5": 0.08,
+          "ret20": -1.81,
+          "last": 4.83,
           "date": "2026-07-14"
         }
       },
@@ -55,43 +55,43 @@
       "key": "overseas_deleveraging",
       "label": "国际市场ETF去杠杆压力",
       "state": "逆风",
-      "score": 2.5,
-      "headline": "海外映射ETF 5日均值-3.74%",
+      "score": 2.0,
+      "headline": "海外映射ETF 5日偏弱-2.32%",
       "reasons": [
-        "海外映射ETF 5日均值-3.74%",
-        "3只核心海外ETF 5日跌超2%",
+        "海外映射ETF 5日偏弱-2.32%",
+        "2只核心海外ETF 5日跌超2%",
         "海外相关池弱化占比88%"
       ],
       "metrics": {
-        "proxy_ret5_avg": -3.74,
-        "proxy_ret20_avg": -0.34,
-        "proxy_weak_count_5d": 3,
+        "proxy_ret5_avg": -2.32,
+        "proxy_ret20_avg": 1.13,
+        "proxy_weak_count_5d": 2,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.875
       },
       "details": {
         "159941": {
-          "ret5": -2.09,
-          "ret20": -5.19,
-          "last": 1.59,
+          "ret5": -0.86,
+          "ret20": -4.0,
+          "last": 1.61,
           "date": "2026-07-14"
         },
         "513500": {
-          "ret5": -0.32,
-          "ret20": -2.1,
-          "last": 2.52,
+          "ret5": 0.47,
+          "ret20": -1.32,
+          "last": 2.54,
           "date": "2026-07-14"
         },
         "159502": {
-          "ret5": -5.62,
-          "ret20": 14.36,
-          "last": 1.545,
+          "ret5": -4.34,
+          "ret20": 15.91,
+          "last": 1.566,
           "date": "2026-07-14"
         },
         "513520": {
-          "ret5": -6.93,
-          "ret20": -8.41,
-          "last": 2.243,
+          "ret5": -4.56,
+          "ret20": -6.08,
+          "last": 2.3,
           "date": "2026-07-14"
         }
       },
@@ -203,11 +203,11 @@
     }
   ],
   "constraint": {
-    "headwind_level": 3,
-    "headwind_count": 3,
+    "headwind_level": 2,
+    "headwind_count": 2,
     "watch_count": 0,
-    "score_total": 6.5,
-    "label": "强逆风",
+    "score_total": 4.5,
+    "label": "逆风",
     "allow_chase": false,
     "allow_new_offense": false,
     "base_position": "权益0%-10%；防御/现金90%-100%",
@@ -220,7 +220,7 @@
       "high": 10
     },
     "position": "权益0%-10%；防御/现金90%-100%",
-    "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
+    "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
       "本层只压缩权益上限与追高资格",
