@@ -25,6 +25,8 @@ type Recommendation = {
   risk_level?: string | null;
   price_date?: string | null;
   level_basis?: string | null;
+  level_status?: string | null;
+  eligibility?: string | null;
 };
 type WatchItem = { label?: string; text?: string; code?: string; name?: string; action?: string };
 type GardenRecommendations = {
@@ -189,8 +191,11 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .level b { font-size: .9rem; }
       .distance { display: flex; justify-content: space-between; gap: .5rem; font-size: .73rem; color: rgb(var(--gray)); margin: -.25rem 0 .55rem; }
       .action-copy { margin: 0; padding: .62rem .7rem; border-radius: 10px; background: var(--accent-soft); font-size: .86rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-      .harvest .action-copy { background: var(--green-soft); }
-      .reason { margin: .55rem 0 0; color: rgb(var(--gray-dark)); font-size: .8rem; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .harvest .action-copy { background: var(--green-soft); }
+            .reason { margin: 0; color: rgb(var(--gray)); font-size: .8rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .signal-card.blocked { opacity: .92; border-style: dashed; }
+            .signal-card.level-invalid { border-color: #f0c36d; }
+            .empty-signal { padding: 1rem; color: rgb(var(--gray-dark)); font-size: .92rem; }
       .watch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
       .watch { padding: .85rem; }
       .watch strong { display: block; margin-bottom: .2rem; }
@@ -296,40 +301,44 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       </section>
 
       <section aria-labelledby="harvest-title">
-        <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">兑现 / 止盈观察</h2></div><p>先处理兑现和失效风险，再考虑新增仓位</p></div>
-        <div class="signal-grid">
-          {harvest.map((item) => <article class="signal-card harvest card" id={`etf-${item.code}`} data-live-card data-side="harvest" data-code={item.code} data-action-level={actionLevelFor(item, 'harvest')} data-stop={item.stop} data-snapshot-price={item.price}>
-            <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span><span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
-            <div class="level-grid" aria-label={`${item.name}关键价位`}>
-              <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
-              <div class="level active"><span>{actionLabelFor(item, 'harvest')}</span><b>{formatPrice(actionLevelFor(item, 'harvest'))}</b></div>
-              <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-              <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
-            </div>
-            <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'harvest'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
-            <p class="action-copy"><strong>动作：</strong>{item.action}</p>
-            <p class="reason"><strong>依据：</strong>{item.trigger}</p>
-          </article>)}
-        </div>
-      </section>
+              <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">{counts.harvest > 0 ? `兑现 ${counts.harvest}` : '兑现 0'}{counts.readyHarvest > 0 ? ` · 止盈观察 ${counts.readyHarvest}` : ''}</h2></div><p>先处理兑现和失效风险；关键位无效仅观察</p></div>
+              <div class="signal-grid">
+                {harvest.map((item) => <article class={`signal-card harvest card${item.level_status === 'invalid' ? ' level-invalid' : ''}`} id={`etf-${item.code}`} data-live-card data-side="harvest" data-code={item.code} data-action-level={actionLevelFor(item, 'harvest')} data-stop={item.stop} data-snapshot-price={item.price}>
+                  <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span>{item.level_status === 'invalid' && <span class="status">关键位无效</span>}<span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
+                  <div class="level-grid" aria-label={`${item.name}关键价位`}>
+                    <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
+                    <div class="level active"><span>{actionLabelFor(item, 'harvest')}</span><b>{formatPrice(actionLevelFor(item, 'harvest'))}</b></div>
+                    <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
+                    <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
+                  </div>
+                  <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'harvest'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+                  <p class="action-copy"><strong>动作：</strong>{item.action}</p>
+                  <p class="reason"><strong>依据：</strong>{item.trigger}</p>
+                </article>)}
+              </div>
+            </section>
 
-      <section aria-labelledby="plant-title">
-        <div class="section-head"><div><span class="pill pill-red">🔴 低吸区</span><h2 id="plant-title">伏击 / 候场</h2></div><p>执行伏击位和防守线，不追高开</p></div>
-        <div class="signal-grid">
-          {plant.map((item) => <article class="signal-card card" id={`etf-${item.code}`} data-live-card data-side="plant" data-code={item.code} data-action-level={actionLevelFor(item, 'plant')} data-stop={item.stop} data-snapshot-price={item.price}>
-            <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span><span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
-            <div class="level-grid" aria-label={`${item.name}关键价位`}>
-              <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
-              <div class="level active"><span>{actionLabelFor(item, 'plant')}</span><b>{formatPrice(actionLevelFor(item, 'plant'))}</b></div>
-              <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-              <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
-            </div>
-            <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'plant'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
-            <p class="action-copy"><strong>动作：</strong>{item.action}</p>
-            <p class="reason"><strong>依据：</strong>{item.trigger}</p>
-          </article>)}
-        </div>
-      </section>
+            <section aria-labelledby="plant-title">
+              <div class="section-head"><div><span class="pill pill-red">🔴 低吸区</span><h2 id="plant-title">{counts.plant > 0 ? `正式伏击 ${counts.plant}` : '正式伏击 0'}{counts.readyPlant > 0 ? ` · 候场 ${counts.readyPlant}` : ''}</h2></div><p>{counts.plant > 0 ? '执行伏击位和防守线，不追高开' : '今日无正式伏击；下方仅候场观察，中观强逆风不新开'}</p></div>
+              {plant.length === 0 ? (
+                <div class="empty-signal card">今日无候场/伏击标的。中观约束下不机械凑数。</div>
+              ) : (
+              <div class="signal-grid">
+                {plant.map((item) => <article class={`signal-card card${item.eligibility === 'blocked' ? ' blocked' : ''}`} id={`etf-${item.code}`} data-live-card data-side="plant" data-code={item.code} data-action-level={actionLevelFor(item, 'plant')} data-stop={item.stop} data-snapshot-price={item.price}>
+                  <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span>{item.eligibility === 'blocked' && <span class="status">不可执行</span>}<span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
+                  <div class="level-grid" aria-label={`${item.name}关键价位`}>
+                    <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
+                    <div class="level active"><span>{actionLabelFor(item, 'plant')}</span><b>{formatPrice(actionLevelFor(item, 'plant'))}</b></div>
+                    <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
+                    <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
+                  </div>
+                  <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'plant'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
+                  <p class="action-copy"><strong>动作：</strong>{item.action}</p>
+                  <p class="reason"><strong>依据：</strong>{item.trigger}</p>
+                </article>)}
+              </div>
+              )}
+            </section>
 
       <section aria-labelledby="watch-title">
         <div class="section-head"><div><span class="pill pill-amber">下一窗口验证</span><h2 id="watch-title">只看 {watch.length} 个条件</h2></div></div>
