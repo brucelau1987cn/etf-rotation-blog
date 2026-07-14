@@ -9,6 +9,21 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 import { isDailyReviewPost, sortByPubDateDesc, summarizeDescription } from '../../lib/posts';
 
 const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortByPubDateDesc);
+const latest = posts[0];
+const recent = posts.slice(1, 5);
+const archive = posts.slice(5);
+const monthFormatter = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' });
+const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const archiveGroups = Object.values(archive.reduce((groups, post) => {
+  const key = monthKey(post.data.pubDate);
+  if (!groups[key]) groups[key] = { key, label: monthFormatter.format(post.data.pubDate), posts: [] as typeof posts };
+  groups[key].posts.push(post);
+  return groups;
+}, {} as Record<string, { key: string; label: string; posts: typeof posts }>));
+const shortTitle = (title: string) => title
+  .replace(/^A股ETF(?:罗盘|雷达)(?:每日)?(?:复盘|笔记|预测\+盘中修正)?[：｜:]?\s*/u, '')
+  .replace(/\s*[：｜:]?\s*2026[-年]\d{1,2}[-月]\d{1,2}(?:日)?(?:.*)?$/u, '')
+  .trim() || title;
 ---
 
 <!doctype html>
@@ -16,40 +31,128 @@ const posts = (await getCollection('blog')).filter(isDailyReviewPost).sort(sortB
   <head>
     <BaseHead title={`A股ETF复盘 | ${SITE_TITLE}`} description={`A股ETF复盘：${SITE_DESCRIPTION}`} />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 4rem; }
-      .latest-note { display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center; margin: 0 0 1rem; padding: 0.85rem 1rem; }
-      .latest-note p { margin: 0; color: rgb(var(--gray)); font-size: 0.9rem; }
-      @media (max-width: 680px) { .latest-note { grid-template-columns: 1fr; } }
+      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
+      .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
+      .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+      .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); letter-spacing: -.045em; }
+      .hero-copy p { margin: 0; max-width: 70ch; color: rgb(var(--gray-dark)); line-height: 1.6; }
+      .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 440px; }
+      .count-strip { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .55rem; margin-top: 1rem; }
+      .count { padding: .72rem .8rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.15rem; }
+      .count span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; }
+      .count strong { display: block; margin-top: .25rem; font-size: 1.35rem; line-height: 1.1; }
+      .count:first-child { background: linear-gradient(180deg,#fff7f5,#fff); border-color: rgba(214,61,46,.14); }
+      .count:first-child strong { color: var(--accent); }
+      .latest-card { margin-top: .7rem; display: grid; grid-template-columns: minmax(0,1.35fr) minmax(250px,.65fr); overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+      .latest-main { padding: 1rem; }
+      .latest-main .kicker { display: flex; flex-wrap: wrap; gap: .3rem; }
+      .latest-main h2 { margin: .55rem 0 .45rem; font-size: clamp(1.25rem,3vw,1.7rem); line-height: 1.3; }
+      .latest-main h2 a { color: rgb(var(--black)); text-decoration: none; }
+      .latest-main p { margin: 0; color: rgb(var(--gray-dark)); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .latest-side { padding: 1rem; display: grid; align-content: center; gap: .55rem; background: var(--warm-2); border-left: 1px solid var(--border); }
+      .latest-side span { color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; }
+      .latest-side strong { font-size: .9rem; line-height: 1.45; }
+      .button-row { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .2rem; }
+      .button { display: inline-flex; align-items: center; justify-content: center; padding: .52rem .7rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--black)); text-decoration: none; font-size: .78rem; font-weight: 900; }
+      .button.primary { background: rgb(var(--black)); color: #fff; }
+      .section-head { display: flex; justify-content: space-between; align-items: end; gap: .8rem; margin: 1.5rem 0 .7rem; }
+      .section-head h2 { margin: .25rem 0 0; }
+      .section-head p { margin: 0; color: rgb(var(--gray)); font-size: .82rem; }
+      .recent-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .7rem; }
+      .recent-card { display: grid; grid-template-columns: 7rem minmax(0,1fr); min-height: 9.2rem; overflow: hidden; text-decoration: none; color: rgb(var(--black)); transition: transform .16s ease, box-shadow .16s ease; }
+      .recent-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(30,35,40,.08); }
+      .recent-date { padding: .85rem; background: var(--warm-2); border-right: 1px solid var(--border); display: grid; align-content: center; text-align: center; }
+      .recent-date strong { font-size: 1.2rem; }
+      .recent-date span { color: rgb(var(--gray)); font-size: .7rem; }
+      .recent-copy { padding: .85rem; min-width: 0; }
+      .recent-copy .kicker { display: flex; flex-wrap: wrap; gap: .25rem; }
+      .recent-copy h3 { margin: .45rem 0 .35rem; font-size: .98rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .recent-copy p { margin: 0; color: rgb(var(--gray-dark)); font-size: .78rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .archive-shell { padding: .9rem 1rem; }
+      .archive-month + .archive-month { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+      .archive-month > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: .7rem; margin-bottom: .35rem; }
+      .archive-month > summary::-webkit-details-marker { display: none; }
+      .archive-month > summary::after { content: '展开 ↓'; color: rgb(var(--gray)); font-size: .7rem; font-weight: 800; }
+      .archive-month[open] > summary::after { content: '收起 ↑'; }
+      .month-head { display: flex; align-items: center; gap: .5rem; }
+      .month-head h3 { margin: 0; font-size: .95rem; }
+      .month-head span { color: rgb(var(--gray)); font-size: .72rem; }
+      .archive-list { list-style: none; padding: 0; margin: 0; }
+      .archive-row { display: grid; grid-template-columns: 6.1rem minmax(0,1fr) auto; gap: .7rem; align-items: center; padding: .62rem .15rem; border-top: 1px solid rgba(0,0,0,.055); }
+      .archive-row:first-child { border-top: 0; }
+      .archive-row time { color: rgb(var(--gray)); font-size: .74rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .archive-row a { min-width: 0; color: rgb(var(--black)); text-decoration: none; font-size: .86rem; font-weight: 850; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .archive-row a:hover { color: var(--accent-dark); }
+      .archive-row .stage { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: .2rem .48rem; background: var(--warm-2); border: 1px solid var(--border); color: rgb(var(--gray-dark)); font-size: .68rem; font-weight: 800; }
+      @media (max-width: 820px) { .hero-top,.latest-card { display: grid; grid-template-columns: 1fr; } .meta-line { justify-content: flex-start; max-width: none; } .latest-side { border-left: 0; border-top: 1px solid var(--border); } .recent-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 620px) { main { width: min(100% - 1rem,1180px); } .dashboard-hero { padding: .85rem; } .count-strip { grid-template-columns: repeat(2,minmax(0,1fr)); } .count:last-child { grid-column: 1/-1; } .recent-card { grid-template-columns: 5.4rem minmax(0,1fr); } .archive-row { grid-template-columns: 4.8rem minmax(0,1fr); } .archive-row .stage { display: none; } .section-head p { display: none; } }
     </style>
   </head>
   <body>
     <Header />
     <main>
       <AStockSubnav active="review" />
-      <section class="page-intro">
-        <div class="kicker"><span class="pill pill-red">A股ETF复盘</span><span class="pill">预测 → 修正 → 收盘 → 验证</span></div>
-        <h1>A股ETF复盘</h1>
-        <p>每篇文章先给核心结论和动作清单，再展开资金、量价、关键位、风险与次日验证。最新文章置顶，历史观点完整保留。</p>
+      <section class="dashboard-hero card" aria-labelledby="page-title">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <span class="pill pill-red">A股ETF复盘档案</span>
+            <h1 id="page-title">盘后复盘</h1>
+            <p>记录盘前判断、盘中修正、收盘定版与次日验证。最新结论优先，历史观点按时间完整保留。</p>
+          </div>
+          <div class="meta-line">
+            <span class="pill pill-amber">最新：{latest ? <FormattedDate date={latest.data.pubDate} /> : '待更新'}</span>
+            <span class="pill">预测 → 修正 → 收盘 → 验证</span>
+          </div>
+        </div>
+        <div class="count-strip">
+          <div class="count"><span>复盘总数</span><strong>{posts.length}</strong></div>
+          <div class="count"><span>近期更新</span><strong>{Math.min(posts.length, 5)}</strong></div>
+          <div class="count"><span>归档月份</span><strong>{archiveGroups.length}</strong></div>
+        </div>
+        {latest && (
+          <article class="latest-card" aria-label="最新复盘">
+            <div class="latest-main">
+              <div class="kicker"><span class="pill pill-red">最新复盘</span>{latest.data.stage && <span class="pill pill-amber">{latest.data.stage}</span>}</div>
+              <h2><a href={`/blog/${latest.id}/`}>{latest.data.title}</a></h2>
+              <p>{summarizeDescription(latest.data.description, 180)}</p>
+            </div>
+            <div class="latest-side">
+              <span>阅读顺序</span>
+              <strong>先看当前生效结论和执行清单，再展开资金、量价、关键位与窗口演变。</strong>
+              <div class="button-row"><a class="button primary" href={`/blog/${latest.id}/`}>阅读最新复盘 →</a><a class="button" href="/garden/">查看今日动作</a></div>
+            </div>
+          </article>
+        )}
       </section>
-      <section class="latest-note card">
-        <span class="pill pill-amber">阅读建议</span>
-        <p>先看最新一篇的“当前生效结论”和“次日执行清单”，再查看四窗口观点演变。</p>
-        <a href="/garden">直接看A股罗盘 →</a>
-      </section>
-      <section>
-        <div class="section-heading"><h2>复盘归档</h2><span class="pill">共 {posts.length} 篇</span></div>
-        <ul class="archive-grid">
-          {posts.map((post) => (
-            <li>
-              <a class="archive-card card" href={`/blog/${post.id}/`}>
-                <div class="kicker"><span class="pill pill-red">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div>
-                <h2>{post.data.title}</h2>
-                <p class="description">{summarizeDescription(post.data.description)}</p>
-                <p class="date"><FormattedDate date={post.data.pubDate} /></p>
+
+      {recent.length > 0 && (
+        <section aria-labelledby="recent-title">
+          <div class="section-head"><div><span class="pill pill-red">近期更新</span><h2 id="recent-title">最近复盘</h2></div><p>快速回看最近四个交易日的结论变化</p></div>
+          <div class="recent-grid">
+            {recent.map((post) => (
+              <a class="recent-card card" href={`/blog/${post.id}/`}>
+                <div class="recent-date"><strong>{String(post.data.pubDate.getDate()).padStart(2, '0')}</strong><span>{post.data.pubDate.getMonth() + 1}月 · {post.data.pubDate.getFullYear()}</span></div>
+                <div class="recent-copy"><div class="kicker"><span class="pill">{post.data.category ?? 'ETF复盘'}</span>{post.data.stage && <span class="pill pill-amber">{post.data.stage}</span>}</div><h3>{shortTitle(post.data.title)}</h3><p>{summarizeDescription(post.data.description, 95)}</p></div>
               </a>
-            </li>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section aria-labelledby="archive-title">
+        <div class="section-head"><div><span class="pill">历史档案</span><h2 id="archive-title">按月归档</h2></div><p>共 {archive.length} 篇历史复盘</p></div>
+        <div class="archive-shell card">
+          {archiveGroups.map((group, index) => (
+            <details class="archive-month" open={index === 0}>
+              <summary><div class="month-head"><h3>{group.label}</h3><span>{group.posts.length} 篇</span></div></summary>
+              <ul class="archive-list">
+                {group.posts.map((post) => (
+                  <li class="archive-row"><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toISOString().slice(0, 10)}</time><a href={`/blog/${post.id}/`}>{shortTitle(post.data.title)}</a><span class="stage">{post.data.stage || post.data.category || 'ETF复盘'}</span></li>
+                ))}
+              </ul>
+            </details>
           ))}
-        </ul>
+        </div>
       </section>
     </main>
     <Footer />
