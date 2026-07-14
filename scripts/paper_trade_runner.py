@@ -128,8 +128,18 @@ def valid_signals(market, signals, today):
     for sig in signals:
         try: source=dt.datetime.strptime(str(sig.get("_source_date")),"%Y-%m-%d").date()
         except (TypeError,ValueError): continue
-        age=(now_day-source).days
-        if (market=="A" and age==0) or (market=="US" and 1 <= age <= 4): out.append(sig)
+        if market=="A" and now_day==source:
+            out.append(sig)
+        elif market=="US":
+            # The close snapshot is executable in one following weekday
+            # session. This weekend-aware fallback avoids carrying Friday's
+            # signal into Tuesday; the quote freshness/date guards still
+            # protect holidays where no live bar exists.
+            next_session=source+dt.timedelta(days=1)
+            while next_session.weekday()>=5:
+                next_session+=dt.timedelta(days=1)
+            if now_day==next_session:
+                out.append(sig)
     return out
 
 def signal_key(market, sig):

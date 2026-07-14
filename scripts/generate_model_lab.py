@@ -8,7 +8,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sqlite3
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +22,20 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "data/local/etf-compass.db"
 DEFAULT_OUT = ROOT / "public/data/model-lab/a-share-shadow.json"
 DEFAULT_HISTORY = ROOT / "data/local/model-lab/a-share-shadow-history.jsonl"
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def finite(value: Any, digits: int = 4) -> float | None:
@@ -225,8 +241,9 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180
             "required_checks": ["rank_ic", "hit_rate", "max_drawdown", "turnover", "net_of_cost_increment"],
         },
     }
+    # Prepare both destinations before publishing either artifact. The public
+    # snapshot is replaced last, after the matching history row is durable.
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     history_path.parent.mkdir(parents=True, exist_ok=True)
     history: list[dict[str, Any]] = []
     if history_path.exists():
@@ -239,7 +256,10 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180
                 continue
     history.append(snapshot)
     history = sorted(history, key=lambda x: x.get("latest_trade_date") or "")[-500:]
-    history_path.write_text("".join(json.dumps(x, ensure_ascii=False, separators=(",", ":")) + "\n" for x in history), encoding="utf-8")
+    snapshot_text = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"))
+    history_text = "".join(json.dumps(x, ensure_ascii=False, separators=(",", ":")) + "\n" for x in history)
+    atomic_write_text(history_path, history_text)
+    atomic_write_text(out_path, snapshot_text)
     return snapshot
 
 

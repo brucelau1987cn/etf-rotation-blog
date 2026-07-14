@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "test": "python3 -m pytest -q",
+    "check": "npm run test && npm run build",
     "preview": "astro preview",
     "astro": "astro"
   },

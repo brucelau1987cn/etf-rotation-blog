@@ -108,6 +108,7 @@ class PaperTradingTests(unittest.TestCase):
             {"symbol": "BAD", "signal": "准备种花"}, {"symbol": "GOOD", "signal": "种花"}]}})
         self.assertEqual([x["symbol"] for x in us[0]], ["GOOD"])
         self.assertEqual(len(paper.valid_signals("US", us[0], "2026-07-13")), 1)
+        self.assertEqual(paper.valid_signals("US", us[0], "2026-07-14"), [])
         self.assertEqual(paper.valid_signals("US", us[0], "2026-07-15"), [])
         a = paper.normalize_signals("A", {"date": "2026-07-13", "plant": [{"code": "510000", "status": "种花"}]})
         self.assertEqual(len(paper.valid_signals("A", a[0], "2026-07-13")), 1)

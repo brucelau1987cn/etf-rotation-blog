@@ -280,19 +280,25 @@ def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any
         base = {k: row[k] for k in keys}
         base.update({"support_gap": support_gap, "target_gap": target_gap, "trade_date": row["trade_date"]})
         old = previous.get(row["symbol"])
+        old_levels = None
+        if isinstance(old, dict):
+            levels = tuple(finite(old.get(key)) for key in ("support", "target", "stop"))
+            if all(level > 0 for level in levels):
+                old_levels = levels
         old_target_gap = 999.0
-        if old:
-            old_target_gap = round((finite(old.get("target")) / row["price"] - 1) * 100, 2) if row["price"] else 999
-            if row["day_low"] <= finite(old.get("stop")):
-                claim("exit", {**base, "signal": "破位撤退", "trigger_level": old["stop"], "trigger_basis": "当日最低价≤前一快照防守线"})
+        if old_levels:
+            old_support, old_target, old_stop = old_levels
+            old_target_gap = round((old_target / row["price"] - 1) * 100, 2) if row["price"] else 999
+            if row["day_low"] <= old_stop:
+                claim("exit", {**base, "signal": "破位撤退", "trigger_level": old_stop, "trigger_basis": "当日最低价≤前一快照防守线"})
                 continue
-            if row["day_high"] >= finite(old.get("target")) and row["trade_state"] != "退出":
-                claim("harvest", {**base, "signal": "兑现触发", "trigger_level": old["target"], "trigger_basis": "当日最高价≥前一快照兑现位"})
+            if row["day_high"] >= old_target and row["trade_state"] != "退出":
+                claim("harvest", {**base, "signal": "兑现触发", "trigger_level": old_target, "trigger_basis": "当日最高价≥前一快照兑现位"})
                 continue
             if (
-                row["day_low"] <= finite(old.get("support"))
-                and row["price"] > finite(old.get("stop"))
-                and row["price"] >= finite(old.get("support"))  # reclaim confirmation: close back on/above support
+                row["day_low"] <= old_support
+                and row["price"] > old_stop
+                and row["price"] >= old_support  # reclaim confirmation: close back on/above support
                 and row["momentum_pass"]
                 and row["risk_level"] != "高"
                 and row["trade_state"] != "退出"
@@ -303,12 +309,12 @@ def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any
                     {
                         **base,
                         "signal": "伏击触发",
-                        "trigger_level": old["support"],
+                        "trigger_level": old_support,
                         "trigger_basis": "当日最低价≤前一快照伏击位，且收盘重新站回伏击位、未破位",
                     },
                 )
                 continue
-        if (old and 0 <= old_target_gap <= 3 and row["momentum_pass"] and row["trade_state"] != "退出") or (
+        if (old_levels and 0 <= old_target_gap <= 3 and row["momentum_pass"] and row["trade_state"] != "退出") or (
             row["ret20"] >= 15 and row["risk_level"] in {"中", "高"} and row["trade_state"] != "退出"
         ):
             claim("ready_harvest", {**base, "signal": "止盈观察", "trigger_level": row["target"], "trigger_basis": "距兑现位3%以内或20日过热"})

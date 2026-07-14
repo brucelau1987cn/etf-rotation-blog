@@ -51,3 +51,16 @@ def test_generate_shadow_snapshot(tmp_path: Path):
     assert snapshot["correlation"]["highest_pairs"]
     assert out.exists() and history.exists()
     assert all(item["execution"]["estimated_impact_bps"] for item in snapshot["items"])
+
+
+def test_history_destination_failure_does_not_publish_snapshot(tmp_path: Path):
+    db = tmp_path / "lab.db"; out = tmp_path / "shadow.json"
+    seed_db(db)
+    history = Path("/proc/etf-model-lab/history.jsonl")
+    try:
+        lab.generate(db, out, history)
+    except OSError:
+        pass
+    else:
+        raise AssertionError("expected history destination failure")
+    assert not out.exists()
