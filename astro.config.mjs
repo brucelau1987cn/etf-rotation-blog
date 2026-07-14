@@ -2,6 +2,7 @@
 
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
+import { unified } from '@astrojs/markdown-remark';
 import { defineConfig, fontProviders } from 'astro/config';
 import { sanitizePublicText } from './src/lib/sanitizePublicText.mjs';
 
@@ -35,7 +36,7 @@ export default defineConfig({
   site: 'https://etf.peekabo.cc',
   integrations: [mdx(), sitemap()],
   markdown: {
-    rehypePlugins: [rehypePublicText],
+    processor: unified({ rehypePlugins: [rehypePublicText] }),
   },
   fonts: [
     {

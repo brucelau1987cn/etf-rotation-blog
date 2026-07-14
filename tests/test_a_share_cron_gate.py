@@ -1,6 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from scripts import check_a_share_cron_gate as cron_gate
 from scripts.check_a_share_cron_gate import GateInput, evaluate_gate, stage_rank
 
 CN = ZoneInfo("Asia/Shanghai")
@@ -62,3 +63,33 @@ def test_exchange_calendar_controls_execution():
 def test_stage_rank_prefers_0830_preopen():
     assert stage_rank("08:30盘前版") == 1
     assert stage_rank("07:30早盘版") == 1
+
+
+def test_quote_timestamp_degrades_to_none_on_network_error(monkeypatch):
+    def fail(*args, **kwargs):
+        raise OSError("offline")
+
+    monkeypatch.setattr(cron_gate.urllib.request, "urlopen", fail)
+    assert cron_gate.quote_timestamp() is None
+
+
+def test_pending_public_changes_detects_staged_only_change(tmp_path, monkeypatch):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True)
+    path = tmp_path / "src/content/blog/2026-07-14.md"
+    path.parent.mkdir(parents=True)
+    path.write_text("old\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+    path.write_text("new\n", encoding="utf-8")
+    subprocess.run(["git", "add", str(path.relative_to(tmp_path))], cwd=tmp_path, check=True)
+    monkeypatch.setattr(cron_gate, "ROOT", tmp_path)
+    assert cron_gate.pending_public_changes("2026-07-14") is True
+
+
+def test_qfq_state_degrades_when_database_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(cron_gate, "DB", tmp_path / "missing" / "etf-compass.db")
+    assert cron_gate.qfq_state() == (None, 0)

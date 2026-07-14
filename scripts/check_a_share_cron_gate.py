@@ -97,11 +97,14 @@ def read_article_stage(day: str) -> str | None:
 
 
 def quote_timestamp() -> str | None:
-    request = urllib.request.Request("https://qt.gtimg.cn/q=sh510300", headers={"User-Agent": "Mozilla/5.0"})
-    raw = urllib.request.urlopen(request, timeout=15).read().decode("gbk", errors="replace")
-    parts = raw.split("~")
-    value = parts[30] if len(parts) > 30 else ""
-    return value if re.fullmatch(r"\d{14}", value) else None
+    try:
+        request = urllib.request.Request("https://qt.gtimg.cn/q=sh510300", headers={"User-Agent": "Mozilla/5.0"})
+        raw = urllib.request.urlopen(request, timeout=15).read().decode("gbk", errors="replace")
+        parts = raw.split("~")
+        value = parts[30] if len(parts) > 30 else ""
+        return value if re.fullmatch(r"\d{14}", value) else None
+    except (OSError, TimeoutError):
+        return None
 
 
 def is_trading_day(day: str) -> bool | None:
@@ -127,20 +130,31 @@ def pending_public_changes(day: str) -> bool:
         "public/data/a-share-mid-macro.json",
         f"src/content/blog/{day}.md",
     ]
-    result = subprocess.run(["git", "diff", "--quiet", "--", *paths], cwd=ROOT, check=False)
-    return result.returncode == 1
+    # Include staged and untracked files. `git diff --quiet` only sees
+    # unstaged changes and can miss a generated snapshot already in the index.
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=normal", "--", *paths],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    return result.returncode != 0 or bool(result.stdout.strip())
 
 
 def qfq_state() -> tuple[str | None, int]:
-    with sqlite3.connect(DB) as db:
-        latest = db.execute(
-            "SELECT max(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1"
-        ).fetchone()[0]
-        coverage = db.execute(
-            "SELECT count(distinct symbol) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 AND trade_date=?",
-            (latest,),
-        ).fetchone()[0]
-    return latest, int(coverage)
+    try:
+        with sqlite3.connect(DB) as db:
+            latest = db.execute(
+                "SELECT max(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1"
+            ).fetchone()[0]
+            coverage = db.execute(
+                "SELECT count(distinct symbol) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 AND trade_date=?",
+                (latest,),
+            ).fetchone()[0]
+        return latest, int(coverage)
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        return None, 0
 
 
 def main() -> int:
