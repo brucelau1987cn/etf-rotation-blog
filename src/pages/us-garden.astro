@@ -421,6 +421,8 @@ const countTone = (section: { key: string; tone: string }) => {
           if (section) section.hidden = count === 0;
           const sectionCount = document.getElementById(`us-section-count-${key}`);
           if (sectionCount) sectionCount.textContent = `${count}只`;
+          const sectionHeading = document.getElementById(`signal-${key}`);
+          if (sectionHeading) sectionHeading.textContent = `${section?.dataset.sectionTitle || ''} ${count}`;
           const topCount = document.getElementById(`us-count-${key}`);
           if (topCount) topCount.textContent = String(count);
         }
