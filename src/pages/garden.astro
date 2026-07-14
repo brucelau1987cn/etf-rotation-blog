@@ -119,14 +119,16 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
     <style>
       main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
-      .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+      .hero-top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; align-items: flex-start; }
+      .hero-copy { grid-column: 1 / 3; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); }
       .hero-copy p { margin: 0; max-width: 72ch; color: rgb(var(--gray-dark)); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
       .hero-copy details { margin-top: .35rem; }
       .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
-      .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 440px; }
+      .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; }
+      .meta-line :global(.market-clock) { width: 100%; flex-basis: 100%; }
       .count-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin-top: 1rem; }
       .count { padding: .75rem .8rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.4rem; display: flex; flex-direction: column; justify-content: space-between; }
       .count span { display: block; color: rgb(var(--gray)); font-size: .74rem; font-weight: 800; letter-spacing: .02em; }
@@ -214,7 +216,8 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .button { display: inline-flex; padding: .55rem .75rem; border-radius: 999px; background: var(--warm); border: 1px solid var(--border); text-decoration: none; font-size: .8rem; font-weight: 900; color: rgb(var(--black)); }
       .button.primary { background: rgb(var(--black)); color: #fff; }
       @media (max-width: 940px) {
-        .hero-top { display: grid; }
+        .hero-top { grid-template-columns: 1fr; gap: .8rem; }
+        .hero-copy, .meta-line { grid-column: 1; }
         .meta-line { justify-content: flex-start; max-width: none; }
         .signal-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
         .decision-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
