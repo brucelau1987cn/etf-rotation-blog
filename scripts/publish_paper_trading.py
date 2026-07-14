@@ -33,14 +33,22 @@ def sync_before_publish():
     branch = run(["git", "branch", "--show-current"]).stdout.strip()
     if branch != "main":
         raise RuntimeError(f"paper publisher requires main branch, got {branch!r}")
-    if run(["git", "status", "--porcelain"]).stdout.strip():
-        raise RuntimeError("paper publisher requires a clean worktree/index")
+    # The publisher owns only PAPER_JSON. Unrelated generated files may be dirty
+    # (for example selector shadow data), but no pre-staged content may exist and
+    # the paper snapshot itself must start clean. The later --only commit keeps
+    # unrelated work out of the publication commit.
+    if run(["git", "diff", "--cached", "--quiet"], check=False).returncode != 0:
+        raise RuntimeError("paper publisher requires a clean git index")
+    if run(["git", "diff", "--quiet", "--", PAPER_JSON], check=False).returncode != 0:
+        raise RuntimeError("paper snapshot already has uncommitted changes")
     run(["git", "fetch", "origin", "main"])
     if is_ancestor("origin/main", "HEAD"):
         # Retry a commit stranded by an earlier failed push before creating another snapshot.
         if run(["git", "rev-list", "--count", "origin/main..HEAD"]).stdout.strip() != "0":
             run(["git", "push", "origin", "HEAD:main"])
     elif is_ancestor("HEAD", "origin/main"):
+        # Fast-forward can coexist with unrelated local modifications unless the
+        # remote changed the same path; Git will safely refuse that collision.
         run(["git", "merge", "--ff-only", "origin/main"])
     else:
         raise RuntimeError("main and origin/main diverged; manual reconciliation required")
