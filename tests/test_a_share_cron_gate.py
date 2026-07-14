@@ -49,9 +49,16 @@ def test_idempotency_precedes_window_and_stage_parser():
 
 def test_stage_window_is_enforced():
     assert gate("14:30", "2026-07-14T15:10:00")[0] == "blocked"
+    assert gate("08:30", "2026-07-14T08:30:00", quote_date="2026-07-13")[0] == "run"
+    # Legacy alias still accepted during migration.
     assert gate("07:30", "2026-07-14T08:30:00", quote_date="2026-07-13")[0] == "run"
 
 
 def test_exchange_calendar_controls_execution():
-    assert gate("07:30", "2026-07-14T08:30:00", trading_day=False)[0] == "idempotent"
-    assert gate("07:30", "2026-07-14T08:30:00", trading_day=None)[0] == "blocked"
+    assert gate("08:30", "2026-07-14T08:30:00", trading_day=False)[0] == "idempotent"
+    assert gate("08:30", "2026-07-14T08:30:00", trading_day=None)[0] == "blocked"
+
+
+def test_stage_rank_prefers_0830_preopen():
+    assert stage_rank("08:30盘前版") == 1
+    assert stage_rank("07:30早盘版") == 1

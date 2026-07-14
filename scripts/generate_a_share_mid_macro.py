@@ -453,17 +453,76 @@ def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str,
             for f in factors
         ],
     }
-    # Annotate plant actions when chase is disallowed.
-    if not constraint["allow_chase"]:
-        plants = reco.get("plant")
-        if isinstance(plants, list):
-            for item in plants:
-                if not isinstance(item, dict):
+
+    # Plant eligibility gate: mid-macro + trend quality.
+    # Status vocabulary: 候场 / 伏击 (legacy 准备种花 / 种花 still accepted).
+    plants = reco.get("plant")
+    demoted = 0
+    kept = 0
+    if isinstance(plants, list):
+        filtered: list[dict[str, Any]] = []
+        for item in plants:
+            if not isinstance(item, dict):
+                continue
+            status = str(item.get("status") or "")
+            trend = str(item.get("trend_level") or item.get("strength_level") or "")
+            risk = str(item.get("risk_level") or "")
+            level_status = str(item.get("level_status") or "")
+            action = str(item.get("action") or "")
+            # Normalize residual garden labels if present.
+            if status in {"准备种花", "候场"}:
+                status = "候场"
+            elif status in {"种花", "伏击"}:
+                status = "伏击"
+            item["status"] = status
+
+            hard_block = (
+                level_status == "invalid"
+                or risk == "高"
+                or trend in {"D", "E"}
+                or constraint["headwind_level"] >= 3
+                or (constraint["headwind_level"] >= 2 and not constraint.get("allow_new_offense", True) and trend not in {"A", "B"})
+            )
+            if hard_block:
+                if status == "伏击":
+                    item["status"] = "候场"
+                    demoted += 1
+                elif status == "候场" and constraint["headwind_level"] >= 3 and trend in {"D", "E"}:
+                    # Keep only as watch-grade note, not executable plant list.
+                    demoted += 1
+                    item["eligibility"] = "blocked"
+                    item["eligibility_reason"] = "中观强逆风 + 趋势过弱，移出可执行伏击名单"
+                    note = "中观强逆风：仅观察，不新开伏击"
+                    if note not in action:
+                        item["action"] = (action.rstrip("。") + f"；{note}。").lstrip("；")
+                    # Still show, but mark non-executable.
+                    filtered.append(item)
                     continue
-                action = str(item.get("action") or "")
+                item["eligibility"] = "blocked" if constraint["headwind_level"] >= 3 else "watch_only"
+                item["eligibility_reason"] = constraint["equity_constraint"]
+                note = "中观约束：停开新伏击" if constraint["headwind_level"] >= 3 else "中观约束：禁止追高，只按伏击位分批"
+                if note not in action and "不追" not in action and "禁止追高" not in action:
+                    item["action"] = (action.rstrip("。") + f"；{note}。").lstrip("；")
+                item["mid_macro_constraint"] = constraint["equity_constraint"]
+                filtered.append(item)
+                continue
+
+            if not constraint["allow_chase"]:
                 if "不追" not in action and "禁止追高" not in action:
                     item["action"] = (action.rstrip("。") + "；中观约束：禁止追高，只按伏击位分批。").lstrip("；")
                 item["mid_macro_constraint"] = constraint["equity_constraint"]
+            item["eligibility"] = "ok"
+            kept += 1
+            filtered.append(item)
+        # Under headwind 3, drop fully blocked D/E names from plant if action says only observe
+        # but keep max 2 defensive watch items for transparency.
+        if constraint["headwind_level"] >= 3:
+            watch = [x for x in filtered if x.get("eligibility") == "blocked"]
+            ok_items = [x for x in filtered if x.get("eligibility") != "blocked"]
+            reco["plant"] = (ok_items + watch)[:2]
+        else:
+            reco["plant"] = filtered
+
     if constraint["headwind_level"] >= 2:
         summary = str(reco.get("summary") or "")
         tag = f"中观{constraint['label']}（权益上限已压缩）"
@@ -475,6 +534,9 @@ def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str,
         "position_before": original_position,
         "position_after": reco.get("position"),
         "headwind_level": constraint["headwind_level"],
+        "plant_kept": kept,
+        "plant_demoted": demoted,
+        "plant_count": len(reco.get("plant") or []),
     }
 
 

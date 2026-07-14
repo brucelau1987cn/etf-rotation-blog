@@ -22,8 +22,11 @@ DB = ROOT / "data/local/etf-compass.db"
 CN = ZoneInfo("Asia/Shanghai")
 EXPECTED_FORMAL = 91
 MINIMUM_COVERAGE = 82
-STAGE_ORDER = {"07:30": 1, "11:30": 2, "14:30": 3, "22:00": 4}
+# Canonical stage keys. "07:30" remains accepted as a legacy alias of the
+# 08:30 pre-open plan so old prompts/tests keep working during migration.
+STAGE_ORDER = {"08:30": 1, "07:30": 1, "11:30": 2, "14:30": 3, "22:00": 4}
 WINDOWS = {
+    "08:30": (time(7, 0), time(9, 20)),
     "07:30": (time(7, 0), time(9, 20)),
     "11:30": (time(11, 30), time(12, 59, 59)),
     "14:30": (time(14, 25), time(15, 0)),
@@ -47,10 +50,12 @@ class GateInput:
 
 def stage_rank(value: str | None) -> int:
     text = value or ""
-    for key, rank in STAGE_ORDER.items():
+    # Prefer longer/more specific keys first so "08:30盘前版" ranks before
+    # any residual "07:30" text that may still appear in old bodies.
+    for key, rank in sorted(STAGE_ORDER.items(), key=lambda item: -len(item[0])):
         if key in text:
             return rank
-    if "早盘" in text:
+    if "盘前" in text or "早盘" in text:
         return 1
     if "上午收盘" in text:
         return 2

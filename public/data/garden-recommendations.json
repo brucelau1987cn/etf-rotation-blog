@@ -4,13 +4,13 @@
   "applies_to": "2026-07-14",
   "data_as_of": "history baseline 2026-07-13 close qfq; pool 2026-07-14 08:30 CST; MX fund 08:31 CST; overnight US 2026-07-13",
   "level_data_as_of": "2026-07-13",
-  "stage": "07:30早盘版",
+  "stage": "08:30盘前版",
   "model_version": "Bruce ETF Trend Radar v3",
   "idempotency_key": "CN+2026-07-14+07:30+Bruce ETF Trend Radar v3",
   "market_state": "防御",
   "position": "权益0%-10%；防御/现金90%-100%",
   "mainline": "中药止盈、豆粕独立α、银行/红利回踩伏击；科技与航天破位撤退；隔夜SOX二次冲击禁止新开进攻仓",
-  "summary": "07:30准备信号：基线为7/13缩量普跌（91池9涨82跌、动量5/91）。隔夜纳指-1.55%、费城半导体约-4.8%。中观强逆风压缩权益至0%-10%。中药高位止盈，豆粕持有不追，银行/红利仅回踩伏击，科技/航天/半导体设备不抄底。",
+  "summary": "08:30准备信号：基线为7/13缩量普跌（91池9涨82跌、动量5/91）。隔夜纳指-1.55%、费城半导体约-4.8%。中观强逆风压缩权益至0%-10%。中药高位止盈，豆粕持有不追，银行/红利仅回踩伏击，科技/航天/半导体设备不抄底。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
@@ -33,7 +33,7 @@
   },
   "harvest": [
     {
-      "status": "准备摘花",
+      "status": "止盈观察",
       "code": "560080",
       "name": "中药ETF汇添富",
       "priority": "高",
@@ -51,7 +51,7 @@
       "return_result": "自今日开盘起计",
       "action_level": 1.019,
       "trigger_level": 1.019,
-      "action_level_label": "目标位",
+      "action_level_label": "兑现位",
       "distance_pct": 4.62,
       "trend_level": "C",
       "risk_level": "低",
@@ -62,7 +62,7 @@
       "level_status": "ready"
     },
     {
-      "status": "摘花",
+      "status": "兑现",
       "code": "588000",
       "name": "科创50ETF华夏",
       "priority": "高",
@@ -80,7 +80,7 @@
       "return_result": "风险规避信号，待盘中",
       "action_level": 2.296,
       "trigger_level": 2.296,
-      "action_level_label": "目标位",
+      "action_level_label": "兑现位",
       "distance_pct": 9.33,
       "trend_level": "B",
       "risk_level": "中",
@@ -91,12 +91,12 @@
       "level_status": "ready"
     },
     {
-      "status": "摘花",
+      "status": "止盈观察",
       "code": "512480",
       "name": "半导体ETF国联安",
       "priority": "高",
       "trigger": "7/13收跌5.62%、位置0.11，主力-3.24亿；隔夜费城半导体约-4.8%。",
-      "action": "不新增仓位；未收复1.327前不做趋势恢复。",
+      "action": "不新增仓位；未收复1.327前不做趋势恢复；关键位无效（non-positive level），仅观察不执行。",
       "price": 1.292,
       "support": 1.327,
       "target": 2.345,
@@ -107,25 +107,26 @@
       "direction_result": "待验证",
       "executable_result": "准备：破位撤退",
       "return_result": "风险规避信号，待盘中",
-      "action_level": 2.345,
-      "trigger_level": 2.345,
-      "action_level_label": "目标位",
-      "distance_pct": 81.5,
+      "action_level": null,
+      "trigger_level": null,
+      "action_level_label": "兑现位",
+      "distance_pct": null,
       "trend_level": "C",
       "risk_level": "高",
       "price_date": "2026-07-13",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready"
+      "level_status": "invalid",
+      "level_invalid_reason": "non-positive level"
     },
     {
-      "status": "摘花",
+      "status": "止盈观察",
       "code": "515880",
       "name": "通信ETF国泰",
       "priority": "中高",
       "trigger": "7/13收跌5.26%、位置0.13，主力-5.18亿。",
-      "action": "反抽减仓，不进伏击名单。",
+      "action": "反抽减仓，不进伏击名单；关键位无效（non-positive level），仅观察不执行。",
       "price": 0.738,
       "support": 0.843,
       "target": 1.457,
@@ -136,27 +137,28 @@
       "direction_result": "待验证",
       "executable_result": "准备：破位撤退",
       "return_result": "待盘中",
-      "action_level": 1.457,
-      "trigger_level": 1.457,
-      "action_level_label": "目标位",
-      "distance_pct": 97.43,
+      "action_level": null,
+      "trigger_level": null,
+      "action_level_label": "兑现位",
+      "distance_pct": null,
       "trend_level": "D",
       "risk_level": "中",
       "price_date": "2026-07-13",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready"
+      "level_status": "invalid",
+      "level_invalid_reason": "non-positive level"
     }
   ],
   "plant": [
     {
-      "status": "准备种花",
+      "status": "候场",
       "code": "512800",
       "name": "银行ETF华宝",
       "priority": "高",
       "trigger": "7/13收0.779、位置0.89，但主力-4454万；仅回踩伏击。",
-      "action": "0.763附近缩量分批伏击，不追昨收；资金转正才加仓。",
+      "action": "0.763附近缩量分批伏击，不追昨收；资金转正才加仓；中观强逆风：仅观察，不新开伏击。",
       "price": 0.779,
       "support": 0.763,
       "target": 0.803,
@@ -170,7 +172,7 @@
       "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
       "action_level": 0.763,
       "trigger_level": 0.763,
-      "action_level_label": "回踩位",
+      "action_level_label": "伏击位",
       "distance_pct": -2.05,
       "trend_level": "D",
       "risk_level": "低",
@@ -178,15 +180,17 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready"
+      "level_status": "ready",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单"
     },
     {
-      "status": "准备种花",
+      "status": "候场",
       "code": "515180",
       "name": "红利ETF易方达",
       "priority": "中",
       "trigger": "7/13+0.30%、位置0.71，主力-1940万；仍贴近MA20。",
-      "action": "小仓候场；回踩1.30–1.334企稳才分批，禁止追高。",
+      "action": "小仓候场；回踩1.30–1.334企稳才分批，禁止追高；中观强逆风：仅观察，不新开伏击。",
       "price": 1.327,
       "support": 1.334,
       "target": 1.365,
@@ -200,7 +204,7 @@
       "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
       "action_level": 1.334,
       "trigger_level": 1.334,
-      "action_level_label": "回踩位",
+      "action_level_label": "伏击位",
       "distance_pct": 0.53,
       "trend_level": "D",
       "risk_level": "中",
@@ -208,7 +212,9 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready"
+      "level_status": "ready",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单"
     }
   ],
   "watch": [
@@ -258,7 +264,7 @@
     }
   ],
   "mid_macro": {
-    "generated_at": "2026-07-14 08:33:01 CST",
+    "generated_at": "2026-07-14 09:05:47 CST",
     "headwind_level": 3,
     "label": "强逆风",
     "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
@@ -285,11 +291,12 @@
         "label": "两融余额趋势",
         "state": "逆风",
         "score": 2.0,
-        "headline": "两融余额5日-1.94%"
+        "headline": "两融余额5日-2.73%"
       }
     ]
   },
-  "level_model_version": "A ETF Garden Levels v1",
+  "level_model_version": "A ETF Compass Levels v2",
   "level_generated_at": "2026-07-14 08:30:28 UTC+08:00",
-  "level_source": "stock-api package v2.7.3"
+  "level_source": "stock-api package v2.7.3",
+  "level_invalid_count": 2
 }

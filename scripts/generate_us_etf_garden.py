@@ -292,18 +292,34 @@ def flower_signals(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any
             if (
                 row["day_low"] <= finite(old.get("support"))
                 and row["price"] > finite(old.get("stop"))
+                and row["price"] >= finite(old.get("support"))  # reclaim confirmation: close back on/above support
                 and row["momentum_pass"]
                 and row["risk_level"] != "高"
                 and row["trade_state"] != "退出"
+                and row["strength_level"] in {"A", "B", "C"}
             ):
-                claim("plant", {**base, "signal": "伏击触发", "trigger_level": old["support"], "trigger_basis": "当日最低价≤前一快照伏击位且未破位"})
+                claim(
+                    "plant",
+                    {
+                        **base,
+                        "signal": "伏击触发",
+                        "trigger_level": old["support"],
+                        "trigger_basis": "当日最低价≤前一快照伏击位，且收盘重新站回伏击位、未破位",
+                    },
+                )
                 continue
         if (old and 0 <= old_target_gap <= 3 and row["momentum_pass"] and row["trade_state"] != "退出") or (
             row["ret20"] >= 15 and row["risk_level"] in {"中", "高"} and row["trade_state"] != "退出"
         ):
             claim("ready_harvest", {**base, "signal": "止盈观察", "trigger_level": row["target"], "trigger_basis": "距兑现位3%以内或20日过热"})
             continue
-        if row["momentum_pass"] and row["risk_level"] != "高" and row["trade_state"] in {"可持有", "回踩候选"} and 0 <= support_gap <= 3:
+        if (
+            row["momentum_pass"]
+            and row["risk_level"] != "高"
+            and row["trade_state"] in {"可持有", "回踩候选"}
+            and row["strength_level"] in {"A", "B", "C"}
+            and 0 <= support_gap <= 3
+        ):
             claim("ready_plant", {**base, "signal": "候场", "trigger_level": row["support"], "trigger_basis": "距伏击位3%以内"})
     for key in ("ready_plant", "ready_harvest"):
         sort_key = "support_gap" if key == "ready_plant" else "target_gap"

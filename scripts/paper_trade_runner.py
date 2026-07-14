@@ -99,15 +99,28 @@ def execute(account, symbol, name, side, price, qty, ts, reason, eid, target=Non
 def normalize_signals(market,data):
     source_date=data.get("date")
     if market=="A":
-        buys=[dict(x,symbol=x.get("code"),kind="plant",_source_date=source_date) for x in data.get("plant",[]) if x.get("status")=="种花"]
-        sells=[dict(x,symbol=x.get("code"),kind="harvest",_source_date=source_date) for x in data.get("harvest",[]) if x.get("status")=="摘花"]
+        # Compass terms are canonical; legacy garden labels still accepted.
+        buy_ok={"伏击","种花"}
+        sell_ok={"兑现","摘花"}
+        wait_ok={"候场","准备种花"}
+        buys=[dict(x,symbol=x.get("code"),kind="plant",_source_date=source_date) for x in data.get("plant",[]) if x.get("status") in buy_ok and x.get("level_status")!="invalid" and x.get("eligibility")!="blocked"]
+        waits=[dict(x,symbol=x.get("code"),kind="ready_plant",_source_date=source_date) for x in data.get("plant",[]) if x.get("status") in wait_ok and x.get("level_status")!="invalid"]
+        sells=[dict(x,symbol=x.get("code"),kind="harvest",_source_date=source_date) for x in data.get("harvest",[]) if x.get("status") in sell_ok and x.get("level_status")!="invalid"]
     else:
         fs=data.get("flower_signals",{})
-        buys=[dict(x,kind="plant",_source_date=source_date) for x in fs.get("plant",[]) if x.get("signal")=="种花"]
-        sells=[dict(x,kind="exit",_source_date=source_date) for x in fs.get("exit",[]) if x.get("signal")=="失效退出"]+[dict(x,kind="harvest",_source_date=source_date) for x in fs.get("harvest",[]) if x.get("signal")=="摘花"]
-    for x in buys+sells:
+        buy_ok={"伏击触发","种花","伏击"}
+        sell_ok={"兑现触发","摘花","兑现"}
+        exit_ok={"破位撤退","失效退出"}
+        wait_ok={"候场","准备种花"}
+        buys=[dict(x,kind="plant",_source_date=source_date) for x in fs.get("plant",[]) if x.get("signal") in buy_ok]
+        waits=[dict(x,kind="ready_plant",_source_date=source_date) for x in fs.get("ready_plant",[]) if x.get("signal") in wait_ok]
+        sells=[dict(x,kind="exit",_source_date=source_date) for x in fs.get("exit",[]) if x.get("signal") in exit_ok]+[dict(x,kind="harvest",_source_date=source_date) for x in fs.get("harvest",[]) if x.get("signal") in sell_ok]
+    for x in buys+sells+waits:
         x["_signal_id"]=f"{market}:{x.get('symbol')}:{x.get('_source_date')}:{x.get('kind')}:{x.get('support')}:{x.get('target')}:{x.get('stop')}"
-    return buys,sells
+    # Attach waits on the buy channel metadata; process_bar only fills formal buys.
+    for x in waits:
+        x["pending_only"]="1"
+    return buys+waits,sells
 
 def valid_signals(market, signals, today):
     """A signals are explicitly dated for that session; US close signals live for the next session only."""
@@ -129,6 +142,8 @@ def eligible_buys(account, buys, quotes, ts):
     for symbol in list(armed):
         if symbol not in live or symbol in account["positions"]: armed.pop(symbol,None)
     for sig in buys:
+        if sig.get("pending_only") or sig.get("kind") == "ready_plant":
+            continue
         symbol=sig["symbol"]; bar=quotes.get(symbol); trigger=sig.get("support",sig.get("action_level")); signal_id=signal_key(account["market"],sig)
         if not bar or trigger is None or symbol in account["positions"] or not signal_id or signal_id in consumed: continue
         fingerprint=signal_id
@@ -159,6 +174,8 @@ def process_bar(account, signals, quotes, ts):
             ev=execute(account,symbol,pos["name"],"sell",px,pos["quantity"],ts,reason,eid)
             if ev: trades.append(ev); exited.add(symbol)
     for sig in buys:
+        if sig.get("pending_only") or sig.get("kind") == "ready_plant":
+            continue
         symbol=sig["symbol"]; bar=quotes.get(symbol); signal_id=signal_key(account["market"],sig)
         if not bar or symbol in account["positions"] or symbol in exited or not signal_id or signal_id in consumed: continue
         trigger=sig.get("support",sig.get("action_level"))
@@ -289,7 +306,7 @@ def main(argv=None):
             else: trades=[]
             mark(account,quotes,ts,args.mode=="close")
             held=set(account["positions"])
-            account["pending_signals"]=[{"symbol":x["symbol"],"name":x.get("name",x["symbol"]),"support":x.get("support"),"target":x.get("target"),"stop":x.get("stop"),"signal_date":x.get("_source_date")} for x in signals[0] if x["symbol"] not in held and x.get("_signal_id") not in account["consumed_signal_ids"]]
+            account["pending_signals"]=[{"symbol":x["symbol"],"name":x.get("name",x["symbol"]),"support":x.get("support"),"target":x.get("target"),"stop":x.get("stop"),"signal_date":x.get("_source_date"),"kind":x.get("kind","plant"),"status":("候场" if x.get("kind")=="ready_plant" or x.get("pending_only") else "伏击")} for x in signals[0] if x["symbol"] not in held and x.get("_signal_id") not in account["consumed_signal_ids"]]
         state["updated_at"]=ts
         if not args.dry_run:
             atomic_write(args.state,state)

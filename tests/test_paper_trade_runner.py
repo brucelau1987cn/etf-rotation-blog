@@ -25,9 +25,32 @@ class PaperTradingTests(unittest.TestCase):
 
     def test_ready_never_trades(self):
         data = {"plant": [{"status": "准备种花", "code": "510000"}], "harvest": [{"status": "准备摘花", "code": "510001"}]}
-        self.assertEqual(paper.normalize_signals("A", data), ([], []))
-        us = {"flower_signals": {"ready_plant": [{"symbol": "SPY"}], "ready_harvest": [{"symbol": "QQQ"}]}}
-        self.assertEqual(paper.normalize_signals("US", us), ([], []))
+        buys, sells = paper.normalize_signals("A", data)
+        self.assertEqual(sells, [])
+        self.assertEqual(len(buys), 1)
+        self.assertEqual(buys[0]["kind"], "ready_plant")
+        self.assertEqual(buys[0].get("pending_only"), "1")
+        # Pending-only ready signals must not fill.
+        account = paper.new_account("A")
+        quotes = {"510000": {"price": 1, "low": 0.9, "high": 1.1, "timestamp": "t"}}
+        self.assertEqual(paper.process_bar(account, (buys, sells), quotes, "t"), [])
+        us = {"flower_signals": {"ready_plant": [{"symbol": "SPY", "signal": "候场"}], "ready_harvest": [{"symbol": "QQQ", "signal": "止盈观察"}]}}
+        us_buys, us_sells = paper.normalize_signals("US", us)
+        self.assertEqual(us_sells, [])
+        self.assertEqual(len(us_buys), 1)
+        self.assertEqual(us_buys[0]["kind"], "ready_plant")
+        self.assertEqual(paper.process_bar(paper.new_account("US"), (us_buys, us_sells), {"SPY": {"price": 100, "low": 99, "high": 101, "timestamp": "t"}}, "t"), [])
+
+    def test_formal_plant_status_aliases(self):
+        for status in ("伏击", "种花"):
+            buys, sells = paper.normalize_signals("A", {"plant": [{"status": status, "code": "510000", "support": 1, "target": 1.1, "stop": 0.9}], "harvest": []})
+            self.assertEqual(len(buys), 1)
+            self.assertEqual(buys[0]["kind"], "plant")
+            self.assertFalse(buys[0].get("pending_only"))
+        for status in ("兑现", "摘花"):
+            buys, sells = paper.normalize_signals("A", {"plant": [], "harvest": [{"status": status, "code": "510001"}]})
+            self.assertEqual(len(sells), 1)
+            self.assertEqual(sells[0]["kind"], "harvest")
 
     def test_same_bar_stop_first(self):
         account = paper.new_account("US")

@@ -4,17 +4,32 @@
 The prose recommendation file remains the editorial source of truth. Numeric levels
 come only from generate_garden_pool.py and are never inferred from prose. Writes are
 atomic; malformed or insufficient pool data leaves the previous output untouched.
+
+Also normalizes legacy garden statuses to compass terms and marks invalid levels.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from compass_action_labels import (  # noqa: E402
+    STATUS_HARVEST,
+    STATUS_PLANT,
+    STATUS_READY_HARVEST,
+    STATUS_WAIT,
+    levels_valid,
+    normalize_stage,
+    normalize_status,
+    rewrite_garden_terms,
+)
+
 RECOMMENDATIONS = ROOT / "public/data/garden-recommendations.json"
 POOL = ROOT / "public/data/etf-garden-pool.json"
 SECTIONS = ("harvest", "plant")
@@ -56,6 +71,17 @@ def gap(price: float | None, level: float | None) -> float | None:
     return round((level / price - 1) * 100, 2)
 
 
+def normalize_item_status(item: dict[str, Any], section: str) -> None:
+    status = normalize_status(item.get("status"))
+    if status is None:
+        status = STATUS_READY_HARVEST if section == "harvest" else STATUS_WAIT
+    if section == "plant" and status in {STATUS_HARVEST, STATUS_READY_HARVEST}:
+        status = STATUS_WAIT
+    if section == "harvest" and status in {STATUS_PLANT, STATUS_WAIT}:
+        status = STATUS_READY_HARVEST
+    item["status"] = status
+
+
 def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tuple[dict[str, Any], int]:
     rows = pool.get("all_rows")
     if not isinstance(rows, list):
@@ -66,7 +92,14 @@ def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tupl
     row_map = {str(row["code"]): row for row in valid_rows}
 
     result = json.loads(json.dumps(recommendations, ensure_ascii=False))
+    if "stage" in result:
+        result["stage"] = normalize_stage(result.get("stage")) or result.get("stage")
+    for prose_key in ("summary", "mainline", "position", "market_state"):
+        if isinstance(result.get(prose_key), str):
+            result[prose_key] = rewrite_garden_terms(result[prose_key])
+
     matched = 0
+    invalid = 0
     for section in SECTIONS:
         items = result.get(section)
         if not isinstance(items, list):
@@ -74,6 +107,10 @@ def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tupl
         for item in items:
             if not isinstance(item, dict) or not item.get("code"):
                 raise ValueError(f"invalid item in {section}")
+            normalize_item_status(item, section)
+            for prose_key in ("action", "trigger"):
+                if isinstance(item.get(prose_key), str):
+                    item[prose_key] = rewrite_garden_terms(item[prose_key])
             row = row_map.get(str(item["code"]))
             if not row:
                 for key in ("price", "support", "target", "stop", "action_level", "trigger_level", "distance_pct"):
@@ -84,6 +121,36 @@ def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tupl
             is_harvest = section == "harvest"
             price = numeric(row.get("price"))
             support, target, stop, basis, level_version = technical_levels(row)
+            ok, reason = levels_valid(price, support, target, stop)
+            if not ok:
+                invalid += 1
+                item.update({
+                    "price": price,
+                    "support": support,
+                    "target": target,
+                    "stop": stop,
+                    "action_level": None,
+                    "trigger_level": None,
+                    "action_level_label": "兑现位" if is_harvest else "伏击位",
+                    "distance_pct": None,
+                    "trend_level": row.get("strength_level"),
+                    "risk_level": row.get("risk_level"),
+                    "price_date": row.get("date"),
+                    "level_basis": basis,
+                    "model_version": level_version,
+                    "data_source": row.get("quote_source") or pool.get("quote_source"),
+                    "level_status": "invalid",
+                    "level_invalid_reason": reason,
+                })
+                if item.get("status") == STATUS_PLANT:
+                    item["status"] = STATUS_WAIT
+                if item.get("status") == STATUS_HARVEST:
+                    item["status"] = STATUS_READY_HARVEST
+                action = str(item.get("action") or "")
+                note = f"关键位无效（{reason}），仅观察不执行"
+                if note not in action:
+                    item["action"] = (action.rstrip("。") + f"；{note}。").lstrip("；")
+                continue
             action_level = target if is_harvest else support
             distance = gap(price, action_level)
             item.update({
@@ -93,7 +160,7 @@ def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tupl
                 "stop": stop,
                 "action_level": action_level,
                 "trigger_level": action_level,
-                "action_level_label": "目标位" if is_harvest else "回踩位",
+                "action_level_label": "兑现位" if is_harvest else "伏击位",
                 "distance_pct": distance,
                 "trend_level": row.get("strength_level"),
                 "risk_level": row.get("risk_level"),
@@ -103,10 +170,12 @@ def build_payload(recommendations: dict[str, Any], pool: dict[str, Any]) -> tupl
                 "data_source": row.get("quote_source") or pool.get("quote_source"),
                 "level_status": "ready" if all(v is not None for v in (price, support, target, stop)) else "partial",
             })
-    result["level_model_version"] = "A ETF Garden Levels v1"
+            item.pop("level_invalid_reason", None)
+    result["level_model_version"] = "A ETF Compass Levels v2"
     result["level_data_as_of"] = pool.get("latest_trade_date")
     result["level_generated_at"] = pool.get("generated_at")
     result["level_source"] = pool.get("quote_source")
+    result["level_invalid_count"] = invalid
     return result, matched
 
 
@@ -137,7 +206,14 @@ def main() -> int:
     if not args.validate:
         atomic_write(RECOMMENDATIONS, payload)
     mode = "validated" if args.validate else "enriched"
-    print(json.dumps({"status": mode, "matched": matched, "total": total, "level_date": payload.get("level_data_as_of")}, ensure_ascii=False))
+    print(json.dumps({
+        "status": mode,
+        "matched": matched,
+        "total": total,
+        "level_date": payload.get("level_data_as_of"),
+        "invalid": payload.get("level_invalid_count"),
+        "stage": payload.get("stage"),
+    }, ensure_ascii=False))
     return 0
 
 
