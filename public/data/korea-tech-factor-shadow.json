@@ -1,0 +1,1419 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-14T10:01:59+00:00",
+  "mode": "shadow_research_only",
+  "production_weights_changed": false,
+  "point_in_time": "for A-share date D, every external component uses the latest completed observation strictly before D",
+  "factor": {
+    "name": "Korea Tech Factor",
+    "decision_date": "2026-07-14",
+    "score": 18.2937,
+    "regime": "weak",
+    "components": {
+      "hynix_relative": 25.0,
+      "samsung_relative": 5.9524,
+      "soxx_trend": 5.9524,
+      "kospi_trend": 0.3968,
+      "won_strength": 80.5556
+    },
+    "source_cutoffs": {
+      "hynix_relative": "2026-07-13",
+      "samsung_relative": "2026-07-13",
+      "soxx_trend": "2026-07-13",
+      "kospi_trend": "2026-07-13",
+      "won_strength": "2026-07-12"
+    },
+    "weights": {
+      "hynix_relative": 0.3,
+      "samsung_relative": 0.2,
+      "soxx_trend": 0.25,
+      "kospi_trend": 0.15,
+      "won_strength": 0.1
+    }
+  },
+  "universe": [
+    {
+      "code": "512480",
+      "name": "半导体ETF"
+    },
+    {
+      "code": "561980",
+      "name": "半导体设备ETF"
+    },
+    {
+      "code": "515880",
+      "name": "通信ETF"
+    },
+    {
+      "code": "515000",
+      "name": "科技ETF"
+    },
+    {
+      "code": "513310",
+      "name": "中韩半导体ETF"
+    },
+    {
+      "code": "159995",
+      "name": "芯片ETF"
+    },
+    {
+      "code": "588000",
+      "name": "科创50ETF"
+    }
+  ],
+  "backtest": {
+    "horizons": {
+      "t1": {
+        "basket_rank_ic": 0.051768,
+        "basket_pearson_ic": 0.033194,
+        "pooled_rank_ic": 0.043368,
+        "strong_minus_weak": 0.003027,
+        "all": {
+          "n": 7076,
+          "mean": 0.00102,
+          "median": 0.0,
+          "win_rate": 0.487422
+        }
+      },
+      "t5": {
+        "basket_rank_ic": 0.113022,
+        "basket_pearson_ic": 0.042508,
+        "pooled_rank_ic": 0.089208,
+        "strong_minus_weak": 0.008617,
+        "all": {
+          "n": 7076,
+          "mean": 0.004953,
+          "median": 0.000829,
+          "win_rate": 0.503533
+        }
+      },
+      "t20": {
+        "basket_rank_ic": -0.008825,
+        "basket_pearson_ic": -0.072117,
+        "pooled_rank_ic": 0.007351,
+        "strong_minus_weak": -0.015792,
+        "all": {
+          "n": 7076,
+          "mean": 0.017463,
+          "median": 0.001483,
+          "win_rate": 0.504664
+        }
+      }
+    },
+    "regimes": {
+      "strong": {
+        "t1": {
+          "n": 1572,
+          "mean": 0.002556,
+          "median": 0.001941,
+          "win_rate": 0.541349
+        },
+        "t5": {
+          "n": 1572,
+          "mean": 0.011073,
+          "median": 0.00831,
+          "win_rate": 0.585242
+        },
+        "t20": {
+          "n": 1572,
+          "mean": 0.008249,
+          "median": 0.0076,
+          "win_rate": 0.538168
+        }
+      },
+      "neutral": {
+        "t1": {
+          "n": 4121,
+          "mean": 0.000935,
+          "median": -0.0008,
+          "win_rate": 0.476098
+        },
+        "t5": {
+          "n": 4121,
+          "mean": 0.003457,
+          "median": 0.000594,
+          "win_rate": 0.500849
+        },
+        "t20": {
+          "n": 4121,
+          "mean": 0.01877,
+          "median": 0.002463,
+          "win_rate": 0.509828
+        }
+      },
+      "weak": {
+        "t1": {
+          "n": 1383,
+          "mean": -0.000472,
+          "median": -0.000993,
+          "win_rate": 0.45987
+        },
+        "t5": {
+          "n": 1383,
+          "mean": 0.002455,
+          "median": -0.007174,
+          "win_rate": 0.418655
+        },
+        "t20": {
+          "n": 1383,
+          "mean": 0.024041,
+          "median": -0.010395,
+          "win_rate": 0.451193
+        }
+      }
+    },
+    "targets": {
+      "512480": {
+        "t1": {
+          "all": {
+            "n": 1111,
+            "mean": 0.000703,
+            "median": 0.0,
+            "win_rate": 0.481548
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.002421,
+            "median": 0.001834,
+            "win_rate": 0.532787
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.001123,
+            "median": -0.000795,
+            "win_rate": 0.450893
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 1111,
+            "mean": 0.004134,
+            "median": -0.001403,
+            "win_rate": 0.486049
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.010868,
+            "median": 0.006689,
+            "win_rate": 0.565574
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.001953,
+            "median": -0.011481,
+            "win_rate": 0.388393
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 1111,
+            "mean": 0.012281,
+            "median": -0.005081,
+            "win_rate": 0.473447
+          },
+          "strong": {
+            "n": 244,
+            "mean": -0.001438,
+            "median": -0.005519,
+            "win_rate": 0.438525
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.018848,
+            "median": -0.015511,
+            "win_rate": 0.424107
+          }
+        }
+      },
+      "561980": {
+        "t1": {
+          "all": {
+            "n": 673,
+            "mean": 0.002101,
+            "median": 0.0,
+            "win_rate": 0.482912
+          },
+          "strong": {
+            "n": 151,
+            "mean": 0.00377,
+            "median": 0.002172,
+            "win_rate": 0.529801
+          },
+          "weak": {
+            "n": 124,
+            "mean": -0.000614,
+            "median": -0.001367,
+            "win_rate": 0.435484
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 673,
+            "mean": 0.008473,
+            "median": 0.0,
+            "win_rate": 0.493314
+          },
+          "strong": {
+            "n": 151,
+            "mean": 0.016702,
+            "median": 0.006966,
+            "win_rate": 0.536424
+          },
+          "weak": {
+            "n": 124,
+            "mean": 0.007164,
+            "median": -0.009074,
+            "win_rate": 0.403226
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 673,
+            "mean": 0.024654,
+            "median": 0.010297,
+            "win_rate": 0.528975
+          },
+          "strong": {
+            "n": 151,
+            "mean": -0.019746,
+            "median": 0.014493,
+            "win_rate": 0.562914
+          },
+          "weak": {
+            "n": 124,
+            "mean": 0.046421,
+            "median": -0.021893,
+            "win_rate": 0.41129
+          }
+        }
+      },
+      "515880": {
+        "t1": {
+          "all": {
+            "n": 1111,
+            "mean": 0.001084,
+            "median": 0.000921,
+            "win_rate": 0.511251
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.000671,
+            "median": 0.003484,
+            "win_rate": 0.569672
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.000879,
+            "median": 0.000936,
+            "win_rate": 0.504464
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 1111,
+            "mean": 0.005626,
+            "median": 0.00545,
+            "win_rate": 0.547255
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.002449,
+            "median": 0.014697,
+            "win_rate": 0.631148
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.00687,
+            "median": 0.0,
+            "win_rate": 0.495536
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 1111,
+            "mean": 0.016831,
+            "median": 0.010811,
+            "win_rate": 0.540954
+          },
+          "strong": {
+            "n": 244,
+            "mean": -0.016228,
+            "median": 0.02488,
+            "win_rate": 0.635246
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.030965,
+            "median": -0.001033,
+            "win_rate": 0.491071
+          }
+        }
+      },
+      "515000": {
+        "t1": {
+          "all": {
+            "n": 1111,
+            "mean": 0.000645,
+            "median": 0.0,
+            "win_rate": 0.477048
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.002327,
+            "median": 0.002012,
+            "win_rate": 0.540984
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.00082,
+            "median": -0.001274,
+            "win_rate": 0.433036
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 1111,
+            "mean": 0.001103,
+            "median": 0.0,
+            "win_rate": 0.49505
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.010074,
+            "median": 0.009402,
+            "win_rate": 0.606557
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.00072,
+            "median": -0.005947,
+            "win_rate": 0.392857
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 1111,
+            "mean": 0.003909,
+            "median": -0.003754,
+            "win_rate": 0.478848
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.022491,
+            "median": 0.013783,
+            "win_rate": 0.590164
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.009972,
+            "median": -0.021399,
+            "win_rate": 0.401786
+          }
+        }
+      },
+      "513310": {
+        "t1": {
+          "all": {
+            "n": 848,
+            "mean": 0.002365,
+            "median": 0.000808,
+            "win_rate": 0.517689
+          },
+          "strong": {
+            "n": 201,
+            "mean": 0.005522,
+            "median": 0.002494,
+            "win_rate": 0.562189
+          },
+          "weak": {
+            "n": 139,
+            "mean": 0.000686,
+            "median": 0.000883,
+            "win_rate": 0.517986
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 848,
+            "mean": 0.012288,
+            "median": 0.006415,
+            "win_rate": 0.569575
+          },
+          "strong": {
+            "n": 201,
+            "mean": 0.024535,
+            "median": 0.010536,
+            "win_rate": 0.621891
+          },
+          "weak": {
+            "n": 139,
+            "mean": 0.007572,
+            "median": 0.002387,
+            "win_rate": 0.52518
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 848,
+            "mean": 0.050376,
+            "median": 0.028186,
+            "win_rate": 0.660377
+          },
+          "strong": {
+            "n": 201,
+            "mean": 0.061037,
+            "median": 0.032333,
+            "win_rate": 0.711443
+          },
+          "weak": {
+            "n": 139,
+            "mean": 0.044556,
+            "median": 0.023858,
+            "win_rate": 0.661871
+          }
+        }
+      },
+      "159995": {
+        "t1": {
+          "all": {
+            "n": 1111,
+            "mean": 0.000596,
+            "median": -0.000885,
+            "win_rate": 0.470747
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.00224,
+            "median": 0.00143,
+            "win_rate": 0.520492
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.001135,
+            "median": -0.00161,
+            "win_rate": 0.450893
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 1111,
+            "mean": 0.003679,
+            "median": -0.002904,
+            "win_rate": 0.476148
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.009791,
+            "median": 0.007094,
+            "win_rate": 0.561475
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.0018,
+            "median": -0.013053,
+            "win_rate": 0.370536
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 1111,
+            "mean": 0.013601,
+            "median": -0.00484,
+            "win_rate": 0.473447
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.010922,
+            "median": -0.006152,
+            "win_rate": 0.467213
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.015132,
+            "median": -0.012646,
+            "win_rate": 0.4375
+          }
+        }
+      },
+      "588000": {
+        "t1": {
+          "all": {
+            "n": 1111,
+            "mean": 0.000392,
+            "median": -0.000653,
+            "win_rate": 0.476148
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.001925,
+            "median": 0.001292,
+            "win_rate": 0.532787
+          },
+          "weak": {
+            "n": 224,
+            "mean": -0.0008,
+            "median": -0.002687,
+            "win_rate": 0.4375
+          }
+        },
+        "t5": {
+          "all": {
+            "n": 1111,
+            "mean": 0.00249,
+            "median": -0.002695,
+            "win_rate": 0.468947
+          },
+          "strong": {
+            "n": 244,
+            "mean": 0.007608,
+            "median": 0.004968,
+            "win_rate": 0.561475
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.002656,
+            "median": -0.010249,
+            "win_rate": 0.388393
+          }
+        },
+        "t20": {
+          "all": {
+            "n": 1111,
+            "mean": 0.011214,
+            "median": -0.01508,
+            "win_rate": 0.423042
+          },
+          "strong": {
+            "n": 244,
+            "mean": -0.000665,
+            "median": -0.016501,
+            "win_rate": 0.401639
+          },
+          "weak": {
+            "n": 224,
+            "mean": 0.020168,
+            "median": -0.016689,
+            "win_rate": 0.392857
+          }
+        }
+      }
+    }
+  },
+  "coverage": {
+    "factor_start": "2021-11-11",
+    "factor_end": "2026-07-14",
+    "factor_days": 1131,
+    "observation_rows": 7076
+  },
+  "history_tail": [
+    {
+      "date": "2026-05-19",
+      "score": 80.6349,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 93.6508,
+        "samsung_relative": 70.2381,
+        "soxx_trend": 88.4921,
+        "kospi_trend": 89.2857,
+        "won_strength": 29.7619
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-18",
+        "samsung_relative": "2026-05-18",
+        "soxx_trend": "2026-05-18",
+        "kospi_trend": "2026-05-18",
+        "won_strength": "2026-05-18"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-20",
+      "score": 80.7937,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 92.8571,
+        "samsung_relative": 76.5873,
+        "soxx_trend": 87.6984,
+        "kospi_trend": 83.7302,
+        "won_strength": 31.3492
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-19",
+        "samsung_relative": "2026-05-19",
+        "soxx_trend": "2026-05-19",
+        "kospi_trend": "2026-05-19",
+        "won_strength": "2026-05-19"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-21",
+      "score": 81.4881,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 88.0952,
+        "samsung_relative": 84.127,
+        "soxx_trend": 91.2698,
+        "kospi_trend": 81.3492,
+        "won_strength": 32.1429
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-20",
+        "samsung_relative": "2026-05-20",
+        "soxx_trend": "2026-05-20",
+        "kospi_trend": "2026-05-20",
+        "won_strength": "2026-05-20"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-22",
+      "score": 84.2262,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 90.4762,
+        "samsung_relative": 88.8889,
+        "soxx_trend": 90.0794,
+        "kospi_trend": 92.8571,
+        "won_strength": 28.5714
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-21",
+        "samsung_relative": "2026-05-21",
+        "soxx_trend": "2026-05-21",
+        "kospi_trend": "2026-05-21",
+        "won_strength": "2026-05-21"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-25",
+      "score": 80.3175,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 91.2698,
+        "samsung_relative": 81.3492,
+        "soxx_trend": 86.5079,
+        "kospi_trend": 92.0635,
+        "won_strength": 12.3016
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-22",
+        "samsung_relative": "2026-05-22",
+        "soxx_trend": "2026-05-22",
+        "kospi_trend": "2026-05-22",
+        "won_strength": "2026-05-24"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-26",
+      "score": 80.0794,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 91.2698,
+        "samsung_relative": 81.3492,
+        "soxx_trend": 86.5079,
+        "kospi_trend": 92.0635,
+        "won_strength": 9.9206
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-22",
+        "samsung_relative": "2026-05-22",
+        "soxx_trend": "2026-05-22",
+        "kospi_trend": "2026-05-22",
+        "won_strength": "2026-05-25"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-27",
+      "score": 81.9841,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 95.6349,
+        "samsung_relative": 71.0317,
+        "soxx_trend": 92.8571,
+        "kospi_trend": 95.2381,
+        "won_strength": 15.873
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-26",
+        "samsung_relative": "2026-05-26",
+        "soxx_trend": "2026-05-26",
+        "kospi_trend": "2026-05-26",
+        "won_strength": "2026-05-26"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-28",
+      "score": 88.7103,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 100.0,
+        "samsung_relative": 83.7302,
+        "soxx_trend": 94.0476,
+        "kospi_trend": 96.0317,
+        "won_strength": 40.4762
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-27",
+        "samsung_relative": "2026-05-27",
+        "soxx_trend": "2026-05-27",
+        "kospi_trend": "2026-05-27",
+        "won_strength": "2026-05-27"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-05-29",
+      "score": 85.1389,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 98.8095,
+        "samsung_relative": 73.4127,
+        "soxx_trend": 92.8571,
+        "kospi_trend": 94.0476,
+        "won_strength": 34.9206
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-28",
+        "samsung_relative": "2026-05-28",
+        "soxx_trend": "2026-05-28",
+        "kospi_trend": "2026-05-28",
+        "won_strength": "2026-05-28"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-01",
+      "score": 86.0913,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 98.0159,
+        "samsung_relative": 89.2857,
+        "soxx_trend": 91.2698,
+        "kospi_trend": 96.4286,
+        "won_strength": 15.4762
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-05-29",
+        "samsung_relative": "2026-05-29",
+        "soxx_trend": "2026-05-29",
+        "kospi_trend": "2026-05-29",
+        "won_strength": "2026-05-31"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-02",
+      "score": 87.7976,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 97.619,
+        "samsung_relative": 98.0159,
+        "soxx_trend": 90.873,
+        "kospi_trend": 97.619,
+        "won_strength": 15.4762
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-01",
+        "samsung_relative": "2026-06-01",
+        "soxx_trend": "2026-06-01",
+        "kospi_trend": "2026-06-01",
+        "won_strength": "2026-06-01"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-03",
+      "score": 88.631,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 97.2222,
+        "samsung_relative": 100.0,
+        "soxx_trend": 95.2381,
+        "kospi_trend": 98.0159,
+        "won_strength": 9.5238
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-02",
+        "samsung_relative": "2026-06-02",
+        "soxx_trend": "2026-06-02",
+        "kospi_trend": "2026-06-02",
+        "won_strength": "2026-06-02"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-04",
+      "score": 87.123,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 97.2222,
+        "samsung_relative": 100.0,
+        "soxx_trend": 92.8571,
+        "kospi_trend": 98.0159,
+        "won_strength": 0.3968
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-02",
+        "samsung_relative": "2026-06-02",
+        "soxx_trend": "2026-06-03",
+        "kospi_trend": "2026-06-02",
+        "won_strength": "2026-06-03"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-05",
+      "score": 81.4683,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 85.3175,
+        "samsung_relative": 99.6032,
+        "soxx_trend": 87.3016,
+        "kospi_trend": 93.6508,
+        "won_strength": 0.7937
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-04",
+        "samsung_relative": "2026-06-04",
+        "soxx_trend": "2026-06-04",
+        "kospi_trend": "2026-06-04",
+        "won_strength": "2026-06-04"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-08",
+      "score": 62.4008,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 70.2381,
+        "samsung_relative": 82.9365,
+        "soxx_trend": 64.2857,
+        "kospi_trend": 57.5397,
+        "won_strength": 0.3968
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-05",
+        "samsung_relative": "2026-06-05",
+        "soxx_trend": "2026-06-05",
+        "kospi_trend": "2026-06-05",
+        "won_strength": "2026-06-07"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-09",
+      "score": 52.381,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 65.873,
+        "samsung_relative": 68.254,
+        "soxx_trend": 65.0794,
+        "kospi_trend": 14.2857,
+        "won_strength": 5.5556
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-08",
+        "samsung_relative": "2026-06-08",
+        "soxx_trend": "2026-06-08",
+        "kospi_trend": "2026-06-08",
+        "won_strength": "2026-06-08"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-10",
+      "score": 58.1944,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 75.7937,
+        "samsung_relative": 76.9841,
+        "soxx_trend": 44.8413,
+        "kospi_trend": 46.0317,
+        "won_strength": 19.4444
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-09",
+        "samsung_relative": "2026-06-09",
+        "soxx_trend": "2026-06-09",
+        "kospi_trend": "2026-06-09",
+        "won_strength": "2026-06-09"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-11",
+      "score": 41.2897,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 52.381,
+        "samsung_relative": 57.9365,
+        "soxx_trend": 42.4603,
+        "kospi_trend": 10.3175,
+        "won_strength": 18.254
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-10",
+        "samsung_relative": "2026-06-10",
+        "soxx_trend": "2026-06-10",
+        "kospi_trend": "2026-06-10",
+        "won_strength": "2026-06-10"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-12",
+      "score": 52.004,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 59.5238,
+        "samsung_relative": 50.7937,
+        "soxx_trend": 69.4444,
+        "kospi_trend": 21.4286,
+        "won_strength": 34.127
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-11",
+        "samsung_relative": "2026-06-11",
+        "soxx_trend": "2026-06-11",
+        "kospi_trend": "2026-06-11",
+        "won_strength": "2026-06-11"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-15",
+      "score": 53.1548,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 36.9048,
+        "samsung_relative": 71.4286,
+        "soxx_trend": 74.6032,
+        "kospi_trend": 27.381,
+        "won_strength": 50.3968
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-12",
+        "samsung_relative": "2026-06-12",
+        "soxx_trend": "2026-06-12",
+        "kospi_trend": "2026-06-12",
+        "won_strength": "2026-06-14"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-16",
+      "score": 58.0952,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 46.8254,
+        "samsung_relative": 56.3492,
+        "soxx_trend": 90.4762,
+        "kospi_trend": 40.4762,
+        "won_strength": 40.873
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-15",
+        "samsung_relative": "2026-06-15",
+        "soxx_trend": "2026-06-15",
+        "kospi_trend": "2026-06-15",
+        "won_strength": "2026-06-15"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-17",
+      "score": 73.5119,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 63.0952,
+        "samsung_relative": 73.4127,
+        "soxx_trend": 87.3016,
+        "kospi_trend": 78.1746,
+        "won_strength": 63.4921
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-16",
+        "samsung_relative": "2026-06-16",
+        "soxx_trend": "2026-06-16",
+        "kospi_trend": "2026-06-16",
+        "won_strength": "2026-06-16"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-18",
+      "score": 68.2143,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 70.2381,
+        "samsung_relative": 48.4127,
+        "soxx_trend": 88.4921,
+        "kospi_trend": 81.3492,
+        "won_strength": 31.3492
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-17",
+        "samsung_relative": "2026-06-17",
+        "soxx_trend": "2026-06-17",
+        "kospi_trend": "2026-06-17",
+        "won_strength": "2026-06-17"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-22",
+      "score": 73.2341,
+      "regime": "strong",
+      "components": {
+        "hynix_relative": 84.127,
+        "samsung_relative": 35.3175,
+        "soxx_trend": 89.6825,
+        "kospi_trend": 94.0476,
+        "won_strength": 44.0476
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-19",
+        "samsung_relative": "2026-06-19",
+        "soxx_trend": "2026-06-18",
+        "kospi_trend": "2026-06-19",
+        "won_strength": "2026-06-21"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-23",
+      "score": 69.2262,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 84.9206,
+        "samsung_relative": 29.7619,
+        "soxx_trend": 90.4762,
+        "kospi_trend": 77.381,
+        "won_strength": 35.7143
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-22",
+        "samsung_relative": "2026-06-22",
+        "soxx_trend": "2026-06-22",
+        "kospi_trend": "2026-06-22",
+        "won_strength": "2026-06-22"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-24",
+      "score": 54.4841,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 77.381,
+        "samsung_relative": 30.1587,
+        "soxx_trend": 71.0317,
+        "kospi_trend": 32.9365,
+        "won_strength": 25.3968
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-23",
+        "samsung_relative": "2026-06-23",
+        "soxx_trend": "2026-06-23",
+        "kospi_trend": "2026-06-23",
+        "won_strength": "2026-06-23"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-25",
+      "score": 52.9167,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 73.0159,
+        "samsung_relative": 64.2857,
+        "soxx_trend": 45.6349,
+        "kospi_trend": 35.7143,
+        "won_strength": 13.8889
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-24",
+        "samsung_relative": "2026-06-24",
+        "soxx_trend": "2026-06-24",
+        "kospi_trend": "2026-06-24",
+        "won_strength": "2026-06-24"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-26",
+      "score": 58.1746,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 70.2381,
+        "samsung_relative": 62.6984,
+        "soxx_trend": 66.6667,
+        "kospi_trend": 48.4127,
+        "won_strength": 6.3492
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-25",
+        "samsung_relative": "2026-06-25",
+        "soxx_trend": "2026-06-25",
+        "kospi_trend": "2026-06-25",
+        "won_strength": "2026-06-25"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-29",
+      "score": 48.5317,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 59.9206,
+        "samsung_relative": 73.4127,
+        "soxx_trend": 36.9048,
+        "kospi_trend": 25.0,
+        "won_strength": 28.9683
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-26",
+        "samsung_relative": "2026-06-26",
+        "soxx_trend": "2026-06-26",
+        "kospi_trend": "2026-06-26",
+        "won_strength": "2026-06-28"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-06-30",
+      "score": 42.4206,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 58.7302,
+        "samsung_relative": 34.5238,
+        "soxx_trend": 55.1587,
+        "kospi_trend": 10.7143,
+        "won_strength": 25.0
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-29",
+        "samsung_relative": "2026-06-29",
+        "soxx_trend": "2026-06-29",
+        "kospi_trend": "2026-06-29",
+        "won_strength": "2026-06-29"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-01",
+      "score": 43.7698,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 63.0952,
+        "samsung_relative": 19.0476,
+        "soxx_trend": 71.4286,
+        "kospi_trend": 5.5556,
+        "won_strength": 23.4127
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-06-30",
+        "samsung_relative": "2026-06-30",
+        "soxx_trend": "2026-06-30",
+        "kospi_trend": "2026-06-30",
+        "won_strength": "2026-06-30"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-02",
+      "score": 27.1032,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 59.5238,
+        "samsung_relative": 2.381,
+        "soxx_trend": 15.873,
+        "kospi_trend": 3.1746,
+        "won_strength": 43.254
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-01",
+        "samsung_relative": "2026-07-01",
+        "soxx_trend": "2026-07-01",
+        "kospi_trend": "2026-07-01",
+        "won_strength": "2026-07-01"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-03",
+      "score": 18.75,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 39.6825,
+        "samsung_relative": 1.9841,
+        "soxx_trend": 1.9841,
+        "kospi_trend": 1.5873,
+        "won_strength": 57.1429
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-02",
+        "samsung_relative": "2026-07-02",
+        "soxx_trend": "2026-07-02",
+        "kospi_trend": "2026-07-02",
+        "won_strength": "2026-07-02"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-06",
+      "score": 32.6389,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 66.6667,
+        "samsung_relative": 6.3492,
+        "soxx_trend": 1.9841,
+        "kospi_trend": 12.6984,
+        "won_strength": 89.6825
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-03",
+        "samsung_relative": "2026-07-03",
+        "soxx_trend": "2026-07-02",
+        "kospi_trend": "2026-07-03",
+        "won_strength": "2026-07-05"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-07",
+      "score": 38.9286,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 59.9206,
+        "samsung_relative": 21.4286,
+        "soxx_trend": 9.5238,
+        "kospi_trend": 47.619,
+        "won_strength": 71.4286
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-06",
+        "samsung_relative": "2026-07-06",
+        "soxx_trend": "2026-07-06",
+        "kospi_trend": "2026-07-06",
+        "won_strength": "2026-07-06"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-08",
+      "score": 28.5714,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 34.9206,
+        "samsung_relative": 11.5079,
+        "soxx_trend": 28.9683,
+        "kospi_trend": 4.3651,
+        "won_strength": 78.9683
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-07",
+        "samsung_relative": "2026-07-07",
+        "soxx_trend": "2026-07-07",
+        "kospi_trend": "2026-07-07",
+        "won_strength": "2026-07-07"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-09",
+      "score": 28.254,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 41.2698,
+        "samsung_relative": 13.8889,
+        "soxx_trend": 14.6825,
+        "kospi_trend": 3.5714,
+        "won_strength": 88.8889
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-08",
+        "samsung_relative": "2026-07-08",
+        "soxx_trend": "2026-07-08",
+        "kospi_trend": "2026-07-08",
+        "won_strength": "2026-07-08"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-10",
+      "score": 36.8651,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 49.6032,
+        "samsung_relative": 17.8571,
+        "soxx_trend": 38.8889,
+        "kospi_trend": 3.9683,
+        "won_strength": 80.9524
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-09",
+        "samsung_relative": "2026-07-09",
+        "soxx_trend": "2026-07-09",
+        "kospi_trend": "2026-07-09",
+        "won_strength": "2026-07-09"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-13",
+      "score": 37.8373,
+      "regime": "neutral",
+      "components": {
+        "hynix_relative": 47.619,
+        "samsung_relative": 6.746,
+        "soxx_trend": 55.1587,
+        "kospi_trend": 2.381,
+        "won_strength": 80.5556
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-10",
+        "samsung_relative": "2026-07-10",
+        "soxx_trend": "2026-07-10",
+        "kospi_trend": "2026-07-10",
+        "won_strength": "2026-07-12"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-07-14",
+      "score": 18.2937,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 25.0,
+        "samsung_relative": 5.9524,
+        "soxx_trend": 5.9524,
+        "kospi_trend": 0.3968,
+        "won_strength": 80.5556
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-07-13",
+        "samsung_relative": "2026-07-13",
+        "soxx_trend": "2026-07-13",
+        "kospi_trend": "2026-07-13",
+        "won_strength": "2026-07-12"
+      },
+      "available_weight": 1.0
+    }
+  ],
+  "notes": [
+    "First version uses liquid market proxies. Official monthly Korean semiconductor exports will be added only after release-date alignment.",
+    "Common factor IC is a time-series basket/pooled IC, not a same-day cross-sectional stock-picking IC.",
+    "Research-only; formal rankings, key levels, positions and ambush eligibility remain unchanged."
+  ],
+  "forward_test": {
+    "frozen_samples": 1,
+    "history_path": "data/local/korea-tech-factor-forward.json"
+  }
+}
