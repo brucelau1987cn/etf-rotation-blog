@@ -7,7 +7,7 @@ import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
 type AAction = { code:string; name:string; status:string; action:string; price?:number; support?:number; target?:number; stop?:number; action_level?:number; action_level_label?:string; distance_pct?:number; risk_level?:string; price_date?:string };
-type GardenData = { date:string; updated_at:string; level_data_as_of?:string; market_state:string; position:string; mainline:string; summary:string; harvest:AAction[]; plant:AAction[] };
+type GardenData = { date:string; updated_at:string; stage?:string; level_data_as_of?:string; market_state:string; position:string; mainline:string; summary:string; harvest:AAction[]; plant:AAction[] };
 type UsAction = { symbol:string; name:string; price:number; support:number; target:number; stop:number; trade_state:string; signal:string; trigger_level:number; support_gap?:number; target_gap?:number; risk_level:string; trade_date:string };
 type UsData = { date:string; updated_at:string; summary:string; market_regime:{state:string;equity_allocation:string}; flower_signals:Record<string,UsAction[]>; flower_counts:Record<string,number> };
 
@@ -43,6 +43,15 @@ const usLabel = (item:UsAction) => item.signal || item.trade_state;
 const usTone = (item:UsAction) => item.signal?.includes('兑现') ? 'sell' : item.signal?.includes('撤退') ? 'exit' : 'buy';
 const actionLevel = (item:AAction) => item.action_level ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? item.target : item.support);
 const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? '兑现位' : '伏击位');
+// Decision date = trade plan day. Quote date = latest action snapshot (intraday/close),
+// not the qfq key-level baseline (level_data_as_of), which often lags one session.
+const aQuoteDates = [...garden.harvest, ...garden.plant]
+  .map((item) => item.price_date)
+  .filter((value): value is string => Boolean(value));
+const aQuoteDate = aQuoteDates.sort().at(-1) || garden.date || garden.level_data_as_of || '待更新';
+const aUpdatedShort = (garden.updated_at || '').replace('T', ' ').replace(' CST', '').slice(0, 16) || '待更新';
+const aStage = (garden as any).stage || '';
+const aLevelBaseline = garden.level_data_as_of || '';
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -131,7 +140,8 @@ const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.stat
         </div>
         <div class="dates">
           <span>A股计划 {garden.date}</span>
-          <span>A股行情 {garden.level_data_as_of||'待更新'}</span>
+          <span>A股行情 {aQuoteDate}</span>
+          <span>A股更新 {aUpdatedShort}</span>
           <span>美股行情 {us.date}</span>
           <span>美股更新 {us.updated_at.replace('T',' ').slice(0,16)}</span>
         </div>
@@ -141,7 +151,7 @@ const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.stat
         <article class="market a card">
           <div class="market-top">
             <div class="market-title"><span class="pill pill-red">🇨🇳 A股</span><h2>今日决策</h2></div>
-            <div class="market-date"><strong>行情 {garden.level_data_as_of||'待更新'}</strong>计划 {garden.date}</div>
+            <div class="market-date"><strong>行情 {aQuoteDate}</strong>{aStage || `更新 ${aUpdatedShort}`}</div>
           </div>
           <div class="verdict">
             <div class="verdict-head"><h3>{garden.market_state}</h3><span class="allocation" title={`仓位 ${garden.position}`}>仓位 {garden.position}</span></div>
@@ -158,14 +168,14 @@ const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.stat
             <div class="metric wide"><span>当前主线</span><strong>{garden.mainline}</strong></div>
             <div class="metric wide"><span>中观闸门</span><strong>{aMidConstraint}</strong></div>
           </div>
-          <div class="actions-head"><h3>优先动作</h3><small>Top 3 · 快照价</small></div>
+          <div class="actions-head"><h3>优先动作</h3><small>Top 3 · {aQuoteDate} 行情</small></div>
           <div class="action-list">
             {aActions.map(item => (
               <div class={`action ${aTone(item.status)}`}>
                 <div class="action-top">
                   <div class="identity">
                     <strong>{item.code} · {item.name}</strong>
-                    <small>风险 {item.risk_level||'N/A'} · 行情 {item.price_date||garden.level_data_as_of||'待更新'}</small>
+                    <small>风险 {item.risk_level||'N/A'} · 行情 {item.price_date||aQuoteDate}</small>
                   </div>
                   <span class="state">{item.status}</span>
                 </div>
