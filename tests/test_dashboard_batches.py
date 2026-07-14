@@ -69,11 +69,24 @@ def test_consistent_cross_market_batches_pass(tmp_path):
     assert result.batches["us"]["date"] == "2026-07-13"
 
 
-def test_a_share_mixed_batch_is_blocked(tmp_path):
+def test_a_share_final_mixed_batch_is_blocked(tmp_path):
     write_fixtures(tmp_path, lambda p: p["etf-garden-pool.json"].update(latest_trade_date="2026-07-13"))
     result = validate(tmp_path)
     assert result.status == "error"
-    assert any("A-share batch mismatch" in error for error in result.errors)
+    assert any("A-share baseline batch mismatch" in error or "A 22:00 final stage" in error for error in result.errors)
+
+
+def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
+    def mutate(payloads):
+        payloads["garden-recommendations.json"].update(stage="14:30尾盘操作版", level_data_as_of="2026-07-13")
+        payloads["garden-recommendations.json"]["plant"].append({
+            **payloads["garden-recommendations.json"]["plant"][0], "code": "510500", "price_date": "2026-07-13",
+        })
+        payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "ok"
 
 
 def test_us_macro_mixed_batch_is_blocked(tmp_path):

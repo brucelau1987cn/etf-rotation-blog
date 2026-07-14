@@ -229,18 +229,36 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         for item in garden.get(section, []) if isinstance(item, dict)
         if (parsed := date_prefix(item.get("price_date")))
     })
-    a_expected = [x for x in (a_date, a_applies, a_level, pool_eval, pool_latest, mid_generated, shadow_latest) if x]
-    if len(set(a_expected)) > 1:
+    # Plan/intraday files share the target session date. Historical qfq levels
+    # and the shadow model may legitimately remain on the previous final close.
+    plan_dates = [x for x in (a_date, a_applies, pool_eval, mid_generated) if x]
+    if len(set(plan_dates)) > 1:
         errors.append(
-            "A-share batch mismatch: "
-            f"recommendations={a_date}, applies_to={a_applies}, levels={a_level}, "
-            f"pool_evaluation={pool_eval}, pool_latest={pool_latest}, mid_macro={mid_generated}, shadow={shadow_latest}"
+            "A-share plan batch mismatch: "
+            f"recommendations={a_date}, applies_to={a_applies}, pool_evaluation={pool_eval}, mid_macro={mid_generated}"
         )
-    if action_dates and (len(action_dates) != 1 or action_dates[0] != a_date):
-        errors.append(f"A action price dates mismatch: recommendation={a_date}, actions={action_dates}")
+    baseline_dates = [x for x in (a_level, pool_latest, shadow_latest) if x]
+    if len(set(baseline_dates)) > 1:
+        errors.append(
+            "A-share baseline batch mismatch: "
+            f"levels={a_level}, pool_latest={pool_latest}, shadow={shadow_latest}"
+        )
     stage = str(garden.get("stage") or "")
-    if stage.startswith("22:00") and a_date != pool_latest:
-        errors.append(f"A 22:00 final stage requires final pool date {a_date}, got {pool_latest}")
+    allowed_action_dates = {date for date in (a_date, pool_latest) if date}
+    unexpected_action_dates = [date for date in action_dates if date not in allowed_action_dates]
+    if unexpected_action_dates:
+        errors.append(
+            f"A action price dates outside plan/baseline batches: allowed={sorted(allowed_action_dates)}, actions={action_dates}"
+        )
+    if stage.startswith("22:00"):
+        final_dates = [x for x in (a_date, a_level, pool_latest, shadow_latest) if x]
+        if len(set(final_dates)) > 1:
+            errors.append(
+                "A 22:00 final stage requires one final date: "
+                f"recommendations={a_date}, levels={a_level}, pool_latest={pool_latest}, shadow={shadow_latest}"
+            )
+        if action_dates and action_dates != [a_date]:
+            errors.append(f"A 22:00 final action dates must equal {a_date}: {action_dates}")
 
     us_date = require_date(errors, "US garden date", us.get("date"))
     us_model = require_date(errors, "US pool model_date", us_pool.get("model_date"))
