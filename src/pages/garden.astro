@@ -127,19 +127,25 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
       .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 440px; }
       .count-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin-top: 1rem; }
-      .count { padding: .7rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: #fff; }
-      .count span { display: block; color: rgb(var(--gray)); font-size: .76rem; font-weight: 800; }
-      .count strong { font-size: 1.35rem; }
+      .count { padding: .75rem .8rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.4rem; display: flex; flex-direction: column; justify-content: space-between; }
+      .count span { display: block; color: rgb(var(--gray)); font-size: .74rem; font-weight: 800; letter-spacing: .02em; }
+      .count strong { font-size: 1.55rem; line-height: 1; margin-top: .35rem; }
+      .count.harvest { background: linear-gradient(180deg, #f3fbf6, #fff); border-color: rgba(31,122,78,.16); }
+      .count.plant { background: linear-gradient(180deg, #fff7f5, #fff); border-color: rgba(214,61,46,.14); }
       .count.harvest strong { color: var(--green); }
       .count.plant strong { color: var(--accent); }
-      .decision-grid { display: grid; grid-template-columns: 1.15fr repeat(3, minmax(0, .8fr)); gap: .65rem; margin-top: .7rem; }
-      .decision-box { padding: .78rem .85rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); }
-      .decision-box span { display: block; color: rgb(var(--gray)); font-size: .73rem; font-weight: 850; letter-spacing: .03em; }
-      .decision-box strong { display: block; margin-top: .18rem; font-size: .92rem; line-height: 1.45; }
+      .count .count-note { margin-top: .28rem; font-size: .68rem; color: rgb(var(--gray)); font-weight: 700; }
+      .decision-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin-top: .7rem; }
+      .decision-box { padding: .72rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); min-height: 4.1rem; }
+      .decision-box span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; letter-spacing: .03em; }
+      .decision-box strong { display: block; margin-top: .22rem; font-size: .95rem; line-height: 1.35; }
+      .decision-box.mainline { grid-column: 1 / -1; background: #fff; min-height: auto; }
+      .decision-box.mainline strong { font-size: .88rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .top-action { margin-top: .7rem; padding: .85rem 1rem; border-radius: 14px; background: rgb(var(--black)); color: #fff; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75rem; align-items: center; }
       .top-action .rank { font-size: 1.25rem; }
       .top-action span, .top-action strong { color: #fff; }
       .top-action small { display: block; opacity: .7; }
+      .top-action strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
       .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }
@@ -149,7 +155,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-gate summary::-webkit-details-marker { display: none; }
       .macro-gate summary > span { font-size: 1.2rem; }
       .macro-gate summary strong { display: block; font-size: .9rem; }
-      .macro-gate summary small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .75rem; line-height: 1.45; }
+      .macro-gate summary small { margin-top: .12rem; color: rgb(var(--gray)); font-size: .75rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
       .macro-gate summary b { font-size: .78rem; padding: .28rem .5rem; border-radius: 999px; background: #fff; border: 1px solid var(--border); white-space: nowrap; }
       .macro-gate .macro-more { margin-top: .55rem; display: grid; gap: .45rem; }
       .macro-factors { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .45rem; }
@@ -191,11 +197,11 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .level b { font-size: .9rem; }
       .distance { display: flex; justify-content: space-between; gap: .5rem; font-size: .73rem; color: rgb(var(--gray)); margin: -.25rem 0 .55rem; }
       .action-copy { margin: 0; padding: .62rem .7rem; border-radius: 10px; background: var(--accent-soft); font-size: .86rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-            .harvest .action-copy { background: var(--green-soft); }
-            .reason { margin: 0; color: rgb(var(--gray)); font-size: .8rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-            .signal-card.blocked { opacity: .92; border-style: dashed; }
-            .signal-card.level-invalid { border-color: #f0c36d; }
-            .empty-signal { padding: 1rem; color: rgb(var(--gray-dark)); font-size: .92rem; }
+      .harvest .action-copy { background: var(--green-soft); }
+      .reason { margin: .45rem 0 0; color: rgb(var(--gray-dark)); font-size: .8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .signal-card.blocked { opacity: .94; border-style: dashed; }
+      .signal-card.level-invalid { border-color: #f0c36d; }
+      .empty-signal { padding: 1rem; color: rgb(var(--gray-dark)); font-size: .92rem; }
       .watch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
       .watch { padding: .85rem; }
       .watch strong { display: block; margin-bottom: .2rem; }
@@ -210,7 +216,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .hero-top { display: grid; }
         .meta-line { justify-content: flex-start; max-width: none; }
         .signal-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-        .decision-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        .decision-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
         .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
@@ -219,10 +225,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
         .count-strip { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .4rem; }
-        .count { padding: .55rem .55rem; }
-        .count strong { font-size: 1.15rem; }
+        .count { padding: .55rem .55rem; min-height: 3.8rem; }
+        .count strong { font-size: 1.25rem; }
         .decision-grid, .signal-grid, .watch-grid { grid-template-columns: 1fr; }
-        .decision-box:not(:first-child) { padding: .6rem .7rem; }
+        .decision-box.mainline strong { -webkit-line-clamp: 3; }
         .top-action { grid-template-columns: auto 1fr; padding: .7rem .8rem; }
         .macro-gate summary { grid-template-columns: auto 1fr; }
         .macro-gate summary b { grid-column: 1/-1; justify-self: start; }
@@ -260,16 +266,16 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           </div>
         </div>
         <div class="count-strip" aria-label="今日动作数量">
-          <div class="count harvest"><span>🟢 兑现</span><strong>{counts.harvest}</strong></div>
-          <div class="count harvest"><span>🟢 止盈观察</span><strong>{counts.readyHarvest}</strong></div>
-          <div class="count plant"><span>🔴 伏击</span><strong>{counts.plant}</strong></div>
-          <div class="count plant"><span>🔴 候场</span><strong>{counts.readyPlant}</strong></div>
+          <div class="count harvest"><span>🟢 兑现</span><strong>{counts.harvest}</strong><em class="count-note">正式减仓</em></div>
+          <div class="count harvest"><span>🟢 止盈观察</span><strong>{counts.readyHarvest}</strong><em class="count-note">接近兑现位</em></div>
+          <div class="count plant"><span>🔴 正式伏击</span><strong>{counts.plant}</strong><em class="count-note">可执行低吸</em></div>
+          <div class="count plant"><span>🔴 候场</span><strong>{counts.readyPlant}</strong><em class="count-note">仅观察</em></div>
         </div>
         <div class="decision-grid">
           <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
           <div class="decision-box"><span>仓位建议</span><strong>{data.position}</strong></div>
-          <div class="decision-box"><span>今日主线</span><strong>{data.mainline}</strong></div>
           <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong></div>
+          <div class="decision-box mainline"><span>今日主线</span><strong title={data.mainline}>{data.mainline}</strong></div>
         </div>
         {midMacro && (
           <details class={`macro-gate ${midTone}`} aria-label="中观三因子约束">
