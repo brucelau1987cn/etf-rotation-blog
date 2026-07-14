@@ -34,9 +34,9 @@ const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tig
 const sections = [
   { key: 'exit', status: 'exit', title: '破位撤退', note: '触及前一快照防守线，风险动作最高优先', tone: 'exit' },
   { key: 'harvest', status: 'harvest', title: '兑现触发', note: '盘中触及前一快照兑现位', tone: 'harvest' },
-  { key: 'plant', status: 'plant', title: '伏击触发', note: '触及伏击位且趋势未失效', tone: 'plant' },
-  { key: 'ready_harvest', status: 'take-profit', title: '止盈观察', note: '距目标3%以内或短期过热', tone: 'ready' },
-  { key: 'ready_plant', status: 'watch', title: '候场', note: '距伏击位3%以内，等待分批进入', tone: 'ready' },
+  { key: 'plant', status: 'plant', title: '正式伏击', note: '触及伏击位且收盘站回，可执行', tone: 'plant' },
+  { key: 'ready_harvest', status: 'take-profit', title: '止盈观察', note: '距兑现位3%以内或短期过热', tone: 'ready' },
+  { key: 'ready_plant', status: 'watch', title: '候场', note: '距伏击位3%以内，仅观察不提前追', tone: 'watch' },
 ];
 const displaySections = sections.map((section) => ({ ...section, items: data.flower_signals[section.key] || [] }));
 const activeSections = displaySections.filter((section) => section.items.length > 0);
@@ -50,10 +50,22 @@ const activeLabel = (key: string) => key === 'exit' ? '防守线' : key.includes
 const actionCopy = (key: string) => ({
   exit: '立即退出并复核失效条件',
   harvest: '分批兑现，不等回落确认',
-  plant: '触发后分批伏击，不一次打满',
+  plant: '正式伏击触发，分批低吸不打满',
   ready_harvest: '不追高，进入分批兑现观察',
-  ready_plant: '只挂条件，不提前追价',
+  ready_plant: '候场观察，只挂条件不提前追',
 }[key] || '按触发条件执行');
+const countNote = (key: string) => ({
+  exit: '最高优先',
+  harvest: '正式兑现',
+  plant: '可执行低吸',
+  ready_harvest: '接近兑现位',
+  ready_plant: '仅观察',
+}[key] || '观察');
+const countTone = (section: { key: string; tone: string }) => {
+  if (section.key === 'ready_plant') return 'watch';
+  if (section.key === 'ready_harvest') return 'ready';
+  return section.tone;
+};
 ---
 
 <!doctype html>
@@ -73,9 +85,15 @@ const actionCopy = (key: string) => ({
       .us-pill { background: #e8f2ff; color: #174ea6; }
       .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 620px; }
       .count-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-top: 1rem; }
-      .count { padding: .65rem .7rem; border: 1px solid var(--border); border-radius: 13px; background: #fff; }
-      .count span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 800; }
-      .count strong { font-size: 1.25rem; }
+      .count { padding: .7rem .65rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.5rem; display: flex; flex-direction: column; justify-content: space-between; }
+      .count.exit { background: linear-gradient(180deg, #fff5f4, #fff); border-color: rgba(197,34,31,.14); }
+      .count.harvest { background: linear-gradient(180deg, #fff7ef, #fff); border-color: rgba(237,125,0,.14); }
+      .count.plant { background: linear-gradient(180deg, #f2faf5, #fff); border-color: rgba(19,117,71,.14); }
+      .count.ready { background: linear-gradient(180deg, #fffaf0, #fff); border-color: rgba(217,154,0,.14); }
+      .count.watch { background: linear-gradient(180deg, #f3f8ff, #fff); border-color: rgba(39,116,200,.14); }
+      .count span { display: block; color: rgb(var(--gray)); font-size: .7rem; font-weight: 800; }
+      .count strong { font-size: 1.4rem; line-height: 1; margin-top: .28rem; }
+      .count .count-note { margin-top: .28rem; font-size: .64rem; color: rgb(var(--gray)); font-weight: 700; font-style: normal; }
       .status-label { display: inline-flex !important; align-items: center; gap: .38rem; }
       .status-dot { display: inline-block; width: .62rem; height: .62rem; border-radius: 50%; flex: 0 0 auto; background: #2774c8; box-shadow: 0 0 0 3px rgb(39 116 200 / 12%); }
       .status-dot.exit { background: #c5221f; box-shadow: 0 0 0 3px rgb(197 34 31 / 12%); }
@@ -84,9 +102,13 @@ const actionCopy = (key: string) => ({
       .status-dot.take-profit { background: #d99a00; box-shadow: 0 0 0 3px rgb(217 154 0 / 13%); }
       .status-dot.watch { background: #2774c8; box-shadow: 0 0 0 3px rgb(39 116 200 / 12%); }
       .market-strip { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .55rem; margin-top: .65rem; }
-      .market-strip div { padding: .7rem .8rem; background: var(--warm-2); border: 1px solid var(--border); border-radius: 12px; }
+      .market-strip div { padding: .7rem .8rem; background: var(--warm-2); border: 1px solid var(--border); border-radius: 12px; min-height: 4rem; }
       .market-strip span { display: block; font-size: .72rem; color: rgb(var(--gray)); font-weight: 850; }
-      .market-strip strong { display: block; font-size: .9rem; white-space: nowrap; }
+      .market-strip strong { display: block; margin-top: .18rem; font-size: .92rem; line-height: 1.35; }
+      .market-strip .mainline { grid-column: 1 / -1; background: #fff; min-height: auto; }
+      .market-strip .mainline strong { font-size: .86rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; }
+      .top-action strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+      .macro-gate small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
       .secondary-card { padding: .8rem; display: grid; grid-template-columns: 1fr auto; gap: .45rem .8rem; align-items: center; opacity: .8; }
       .secondary-card h3 { margin: .1rem 0; font-size: .9rem; min-width: 0; }
       .secondary-card .secondary-price { grid-row: span 2; text-align: right; min-width: 7rem; }
@@ -178,8 +200,10 @@ const actionCopy = (key: string) => ({
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
         .count-strip { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .4rem; }
-        .count { padding: .55rem .5rem; }
+        .count { padding: .55rem .5rem; min-height: 3.9rem; }
+        .count strong { font-size: 1.2rem; }
         .market-strip, .signal-grid, .secondary-grid, .breadth-strip, .rules { grid-template-columns: 1fr; }
+        .market-strip .mainline strong { -webkit-line-clamp: 3; }
         .market-strip { gap: .35rem; }
         .market-strip div { padding: .55rem .65rem; }
         .signal-heading small { display: none; }
@@ -214,8 +238,21 @@ const actionCopy = (key: string) => ({
                   <span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span>
                 </div>
               </div>
-              <div class="count-strip" aria-label="今日五类动作数量">{sections.map((section) => <div class="count"><span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span><strong id={`us-count-${section.key}`} data-base-count={data.flower_counts[section.key] || 0}>{data.flower_counts[section.key] || 0}</strong></div>)}</div>
-              <div class="market-strip"><div><span>市场状态</span><strong>{data.market_regime.state}</strong></div><div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div><div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div></div>
+              <div class="count-strip" aria-label="今日五类动作数量">
+                {sections.map((section) => (
+                  <div class={`count ${countTone(section)}`}>
+                    <span class="status-label"><i class={`status-dot ${section.status}`} aria-hidden="true"></i>{section.title}</span>
+                    <strong id={`us-count-${section.key}`} data-base-count={data.flower_counts[section.key] || 0}>{data.flower_counts[section.key] || 0}</strong>
+                    <em class="count-note">{countNote(section.key)}</em>
+                  </div>
+                ))}
+              </div>
+              <div class="market-strip">
+                <div><span>市场状态</span><strong>{data.market_regime.state}</strong></div>
+                <div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div>
+                <div><span>颜色口径</span><strong><span class="us-up">绿涨</span> · <span class="us-down">红跌</span></strong></div>
+                <div class="mainline"><span>今日主线</span><strong title={data.summary}>{data.summary}</strong></div>
+              </div>
               <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
               <div class="top-action" id="us-top-action"><span>⚡</span><div><small id="us-top-action-label">{firstAction ? `第一优先级｜${activeSections[0].title}` : '今日动作'}</small><strong id="us-top-action-text">{firstAction ? `${firstAction.symbol} · ${actionCopy(activeSections[0].key)}` : '没有触发类信号，保持观察，不机械凑数。'}</strong></div></div>
             </section>
@@ -231,7 +268,7 @@ const actionCopy = (key: string) => ({
                     id={`us-section-${section.key}`}
                     class={`signal-section ${section.tone}${collapse ? ' collapsible' : ''}`}
                     aria-labelledby={`signal-${section.key}`}
-                    hidden={section.items.length === 0}
+                    hidden={section.items.length === 0 && section.key !== 'plant'}
                     data-section-key={section.key}
                     data-section-title={section.title}
                   >
@@ -239,12 +276,15 @@ const actionCopy = (key: string) => ({
                       <div>
                         <i class={`status-dot ${section.status}`} aria-hidden="true"></i>
                         <div>
-                          <h2 id={`signal-${section.key}`}>{section.title}</h2>
-                          <small>{section.note}</small>
+                          <h2 id={`signal-${section.key}`}>{section.title} {section.items.length}</h2>
+                          <small>{section.key === 'plant' && section.items.length === 0 ? '今日无正式伏击；下方候场仅观察' : section.note}</small>
                         </div>
                       </div>
                       <b id={`us-section-count-${section.key}`}>{section.items.length}只</b>
                     </HeadingTag>
+                    {section.key === 'plant' && section.items.length === 0 ? (
+                      <div class="zero-strip card"><strong>正式伏击 0</strong><span>今日无收盘站回确认的可执行伏击；候场名单见下方</span></div>
+                    ) : (
                     <div class="signal-grid" id={`us-grid-${section.key}`}>
                       {section.items.map((item) => (
                         <article
@@ -280,6 +320,7 @@ const actionCopy = (key: string) => ({
                         </article>
                       ))}
                     </div>
+                    )}
                   </SectionTag>
                 );
               })}
