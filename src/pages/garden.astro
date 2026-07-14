@@ -365,6 +365,8 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       const liveStatus = document.getElementById('live-quote-status');
       let liveLoading = false;
       const liveCards = [...document.querySelectorAll('[data-live-card]')];
+      const liveCodes = [...new Set(liveCards.map(card => card.dataset.code).filter(Boolean))];
+      const LIVE_QUERY_URL = liveCodes.length ? `${LIVE_URL}?codes=${encodeURIComponent(liveCodes.join(','))}` : LIVE_URL;
       const numberOf = (value) => {
         if (value === null || value === undefined || value === '') return null;
         const parsed = Number(value);
@@ -440,7 +442,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         if (liveLoading || document.hidden) return;
         liveLoading = true;
         try {
-          const response = await fetch(`${LIVE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+          const response = await fetch(LIVE_QUERY_URL);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const payload = await response.json();
           if (!payload.ok || !Array.isArray(payload.items)) throw new Error('行情格式异常');

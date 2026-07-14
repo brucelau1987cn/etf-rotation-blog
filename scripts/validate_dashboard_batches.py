@@ -11,6 +11,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data"
+A_STAGES = {"08:30盘前版", "11:30上午收盘修正版", "14:30尾盘操作版", "22:00夜间最终版"}
+A_STATUSES = {"候场", "伏击", "止盈观察", "兑现", "破位撤退"}
+A_RISKS = {"低", "中", "高"}
+A_STRENGTHS = {"A", "B", "C", "D"}
+A_TRADE_STATES = {"可持有", "回踩候选", "观察", "退出"}
+US_STAGES = {"美股盘前快照", "美股盘中快照", "美股收盘版"}
+US_SESSIONS = {"preopen", "open", "closed"}
+US_SIGNALS = {"候场", "伏击触发", "止盈观察", "兑现触发", "破位撤退"}
 
 
 @dataclass
@@ -57,6 +65,140 @@ def require_date(errors: list[str], label: str, value: Any) -> str | None:
     return parsed
 
 
+def number(value: Any) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed == parsed and abs(parsed) != float("inf") else None
+
+
+def require_fields(errors: list[str], label: str, payload: dict[str, Any], fields: tuple[str, ...]) -> None:
+    missing = [field for field in fields if payload.get(field) in (None, "")]
+    if missing:
+        errors.append(f"{label} missing fields: {', '.join(missing)}")
+
+
+def validate_levels(
+    findings: list[str], label: str, item: dict[str, Any], *, allow_invalid: bool = False,
+    require_target_above_support: bool = True,
+) -> None:
+    values = {key: number(item.get(key)) for key in ("price", "support", "target", "stop")}
+    if any(value is None for value in values.values()):
+        findings.append(f"{label} has non-numeric price levels")
+        return
+    if allow_invalid and item.get("level_status") == "invalid" and item.get("level_invalid_reason"):
+        return
+    numeric = {key: value for key, value in values.items() if value is not None}
+    if any(value <= 0 for value in numeric.values()):
+        findings.append(f"{label} has non-positive price levels")
+        return
+    stop, support, target = numeric["stop"], numeric["support"], numeric["target"]
+    if not stop < support:
+        findings.append(f"{label} requires stop < support")
+    if require_target_above_support and not target > support:
+        findings.append(f"{label} requires target > support")
+
+
+def validate_runtime_schema(
+    errors: list[str], warnings: list[str], garden: dict[str, Any], a_pool: dict[str, Any], a_mid: dict[str, Any],
+    shadow: dict[str, Any], us: dict[str, Any], us_pool: dict[str, Any], us_macro: dict[str, Any],
+) -> None:
+    require_fields(errors, "garden-recommendations", garden, ("date", "updated_at", "stage", "market_state", "position", "summary"))
+    if garden.get("stage") not in A_STAGES:
+        errors.append(f"garden-recommendations invalid stage: {garden.get('stage')!r}")
+    seen_codes: set[str] = set()
+    for section in ("plant", "harvest"):
+        rows = garden.get(section)
+        if not isinstance(rows, list):
+            errors.append(f"garden-recommendations {section} must be an array")
+            continue
+        for index, item in enumerate(rows):
+            label = f"garden-recommendations {section}[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{label} must be an object")
+                continue
+            require_fields(errors, label, item, ("code", "name", "status", "action"))
+            code = str(item.get("code") or "")
+            if code in seen_codes:
+                errors.append(f"garden-recommendations duplicate action code: {code}")
+            seen_codes.add(code)
+            if item.get("status") not in A_STATUSES:
+                errors.append(f"{label} invalid status: {item.get('status')!r}")
+            if item.get("risk_level") not in (None, *A_RISKS):
+                errors.append(f"{label} invalid risk_level: {item.get('risk_level')!r}")
+            require_target = item.get("status") not in {"破位撤退"}
+            validate_levels(errors, label, item, allow_invalid=True, require_target_above_support=require_target)
+            if item.get("status") == "伏击" and item.get("eligibility") == "blocked":
+                errors.append(f"{label} blocked item cannot be formal 伏击")
+
+    summary = a_pool.get("summary") or {}
+    rows = a_pool.get("all_rows")
+    if not isinstance(rows, list) or not rows:
+        errors.append("etf-garden-pool all_rows must be a non-empty array")
+    else:
+        row_count = len(rows)
+        if int(summary.get("universe_count") or 0) != row_count:
+            errors.append(f"etf-garden-pool universe_count {summary.get('universe_count')} differs from rows {row_count}")
+        codes = [str(item.get("code") or "") for item in rows if isinstance(item, dict)]
+        if len(codes) != len(set(codes)):
+            errors.append("etf-garden-pool contains duplicate codes")
+        for index, item in enumerate(rows):
+            label = f"etf-garden-pool all_rows[{index}]"
+            require_fields(errors, label, item, ("code", "name", "date", "trade_state", "strength_level", "risk_level"))
+            if item.get("trade_state") not in A_TRADE_STATES:
+                errors.append(f"{label} invalid trade_state: {item.get('trade_state')!r}")
+            if item.get("strength_level") not in A_STRENGTHS:
+                errors.append(f"{label} invalid strength_level: {item.get('strength_level')!r}")
+            if item.get("risk_level") not in A_RISKS:
+                errors.append(f"{label} invalid risk_level: {item.get('risk_level')!r}")
+            # Pool-wide levels are research diagnostics. Rows in 观察/退出 can
+            # carry inverted or legacy bands; surface them without blocking the
+            # build. Executable recommendation rows above remain strict.
+            validate_levels(
+                errors if item.get("trade_state") in {"可持有", "回踩候选"} else warnings,
+                label, item, allow_invalid=True,
+            )
+
+    require_fields(errors, "a-share-mid-macro", a_mid, ("version", "generated_at", "market", "factors", "constraint"))
+    if a_mid.get("market") != "CN" or not isinstance(a_mid.get("factors"), list) or len(a_mid.get("factors")) != 3:
+        errors.append("a-share-mid-macro requires market=CN and exactly 3 factors")
+    if shadow.get("mode") != "shadow_research_only" or shadow.get("production_weights_changed") is not False:
+        errors.append("a-share-shadow must remain shadow_research_only with unchanged production weights")
+
+    require_fields(errors, "us-etf-garden", us, ("date", "updated_at", "stage", "session_state", "market_regime", "flower_signals"))
+    if us.get("stage") not in US_STAGES:
+        errors.append(f"us-etf-garden invalid stage: {us.get('stage')!r}")
+    if us.get("session_state") not in US_SESSIONS:
+        errors.append(f"us-etf-garden invalid session_state: {us.get('session_state')!r}")
+    for section, items in (us.get("flower_signals") or {}).items():
+        if section not in {"ready_plant", "plant", "ready_harvest", "harvest", "exit"} or not isinstance(items, list):
+            errors.append(f"us-etf-garden invalid signal section: {section!r}")
+            continue
+        for index, item in enumerate(items):
+            label = f"us-etf-garden {section}[{index}]"
+            require_fields(errors, label, item, ("symbol", "name", "signal", "trade_state", "risk_level", "trade_date"))
+            if item.get("signal") not in US_SIGNALS:
+                errors.append(f"{label} invalid signal: {item.get('signal')!r}")
+            if item.get("trade_state") not in A_TRADE_STATES:
+                errors.append(f"{label} invalid trade_state: {item.get('trade_state')!r}")
+            if item.get("risk_level") not in A_RISKS:
+                errors.append(f"{label} invalid risk_level: {item.get('risk_level')!r}")
+            validate_levels(
+                errors, label, item,
+                require_target_above_support=item.get("signal") != "破位撤退",
+            )
+
+    us_rows = us_pool.get("rows")
+    if not isinstance(us_rows, list) or not us_rows:
+        errors.append("us-etf-pool rows must be a non-empty array")
+    else:
+        symbols = [str(item.get("symbol") or "") for item in us_rows if isinstance(item, dict)]
+        if len(symbols) != len(set(symbols)):
+            errors.append("us-etf-pool contains duplicate symbols")
+    require_fields(errors, "us-macro-dashboard", us_macro, ("version", "generated_at", "risk", "market", "data_quality"))
+
+
 def validate(data_dir: Path = DATA) -> CheckResult:
     errors: list[str] = []
     warnings: list[str] = []
@@ -71,6 +213,8 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         us_macro = load_json(data_dir / "us-macro-dashboard.json")
     except ValueError as exc:
         return CheckResult("error", [str(exc)], warnings, batches)
+
+    validate_runtime_schema(errors, warnings, garden, a_pool, a_mid, shadow, us, us_pool, us_macro)
 
     a_date = require_date(errors, "A recommendations date", garden.get("date"))
     a_applies = require_date(errors, "A recommendations applies_to", garden.get("applies_to"))
