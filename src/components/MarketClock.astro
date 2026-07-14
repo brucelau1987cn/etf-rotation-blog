@@ -1,0 +1,151 @@
+---
+interface Props {
+  market: 'a-share' | 'us';
+}
+
+const { market } = Astro.props;
+const config = market === 'a-share'
+  ? {
+      label: '北京时间',
+      zone: 'Asia/Shanghai',
+      zoneNote: 'CST · UTC+8',
+      sessions: '开盘 09:30–11:30 · 13:00–15:00',
+      aria: 'A股市场北京时间时钟',
+    }
+  : {
+      label: '纽约时间',
+      zone: 'America/New_York',
+      zoneNote: 'ET · 自动适配夏令时',
+      sessions: '开盘 09:30 · 收盘 16:00',
+      aria: '美股市场纽约时间时钟',
+    };
+---
+
+<div
+  class="market-clock"
+  data-market-clock
+  data-market={market}
+  data-time-zone={config.zone}
+  role="timer"
+  aria-label={config.aria}
+  aria-live="off"
+>
+  <div class="clock-face" aria-hidden="true">
+    <i class="clock-hand hour" data-clock-hour></i>
+    <i class="clock-hand minute" data-clock-minute></i>
+    <i class="clock-hand second" data-clock-second></i>
+    <b></b>
+  </div>
+  <div class="clock-copy">
+    <div class="clock-heading"><strong>{config.label}</strong><span data-clock-sync>网络校时中</span></div>
+    <time data-clock-time>--:--:--</time>
+    <small data-clock-date>----</small>
+  </div>
+  <div class="clock-market">
+    <strong data-clock-market-state>判断交易时段</strong>
+    <span>{config.sessions}</span>
+    <small>{config.zoneNote} · 常规交易日</small>
+  </div>
+</div>
+
+<style>
+  .market-clock { flex: 1 0 100%; min-width: min(100%, 390px); display: grid; grid-template-columns: auto minmax(0,.72fr) minmax(190px,1.28fr); gap: .7rem; align-items: center; padding: .68rem .75rem; border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(135deg,#fff,var(--warm-2)); box-shadow: 0 8px 22px rgba(30,35,40,.045); }
+  .clock-face { position: relative; width: 2.8rem; height: 2.8rem; border: 2px solid rgb(var(--black)); border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 3px var(--warm-2); }
+  .clock-face::before,.clock-face::after { content: ''; position: absolute; background: rgba(0,0,0,.14); }
+  .clock-face::before { width: 1px; height: 100%; left: 50%; top: 0; }
+  .clock-face::after { height: 1px; width: 100%; top: 50%; left: 0; }
+  .clock-hand { position: absolute; left: 50%; bottom: 50%; width: 2px; border-radius: 99px; background: rgb(var(--black)); transform-origin: 50% 100%; transform: translateX(-50%) rotate(0deg); z-index: 2; }
+  .clock-hand.hour { height: .72rem; width: 3px; }
+  .clock-hand.minute { height: .98rem; }
+  .clock-hand.second { height: 1.08rem; width: 1px; background: var(--accent); z-index: 3; }
+  .clock-face b { position: absolute; left: 50%; top: 50%; width: .28rem; height: .28rem; border-radius: 50%; background: var(--accent); transform: translate(-50%,-50%); z-index: 4; }
+  .clock-copy,.clock-market { min-width: 0; }
+  .clock-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+  .clock-heading strong { font-size: .74rem; }
+  .clock-heading span { padding: .12rem .34rem; border-radius: 999px; background: #fff7df; color: #8a5a00; font-size: .62rem; font-weight: 850; }
+  .clock-heading span.synced { background: #edf9f1; color: #137547; }
+  .clock-copy time { display: block; margin-top: .14rem; font: 900 1.22rem/1.1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
+  .clock-copy small,.clock-market small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .65rem; line-height: 1.35; }
+  .clock-market { padding-left: .7rem; border-left: 1px solid var(--border); }
+  .clock-market strong { display: block; font-size: .78rem; }
+  .clock-market strong.open { color: #137547; }
+  .clock-market strong.break { color: #9a6700; }
+  .clock-market span { display: block; margin-top: .14rem; font-size: .7rem; font-weight: 800; line-height: 1.4; }
+  @media (max-width: 620px) {
+    .market-clock { grid-template-columns: auto 1fr; min-width: 0; gap: .55rem; padding: .62rem; }
+    .clock-face { width: 2.55rem; height: 2.55rem; }
+    .clock-market { grid-column: 1/-1; padding: .52rem 0 0; border-left: 0; border-top: 1px solid var(--border); }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const clocks = [...document.querySelectorAll('[data-market-clock]')];
+    if (!clocks.length) return;
+    let offsetMs = 0;
+    let synchronized = false;
+
+    const partsFor = (date, timeZone) => Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+      timeZone, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).formatToParts(date).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+
+    const marketState = (market, parts) => {
+      if (['Sat', 'Sun'].includes(parts.weekday)) return { text: '周末休市', tone: '' };
+      const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+      if (market === 'a-share') {
+        if ((minutes >= 570 && minutes < 690) || (minutes >= 780 && minutes < 900)) return { text: 'A股常规交易中', tone: 'open' };
+        if (minutes >= 690 && minutes < 780) return { text: 'A股午间休市', tone: 'break' };
+        if (minutes < 570) return { text: 'A股等待开盘', tone: '' };
+        return { text: 'A股已收盘', tone: '' };
+      }
+      if (minutes >= 570 && minutes < 960) return { text: '美股常规交易中', tone: 'open' };
+      if (minutes < 570) return { text: '美股等待开盘', tone: '' };
+      return { text: '美股已收盘', tone: '' };
+    };
+
+    const render = () => {
+      const date = new Date(Date.now() + offsetMs);
+      for (const clock of clocks) {
+        const zone = clock.dataset.timeZone;
+        const parts = partsFor(date, zone);
+        const hour = Number(parts.hour), minute = Number(parts.minute), second = Number(parts.second);
+        clock.querySelector('[data-clock-time]').textContent = `${parts.hour}:${parts.minute}:${parts.second}`;
+        clock.querySelector('[data-clock-date]').textContent = `${parts.year}-${parts.month}-${parts.day} · ${parts.weekday}`;
+        clock.querySelector('[data-clock-hour]').style.transform = `translateX(-50%) rotate(${(hour % 12) * 30 + minute * .5}deg)`;
+        clock.querySelector('[data-clock-minute]').style.transform = `translateX(-50%) rotate(${minute * 6 + second * .1}deg)`;
+        clock.querySelector('[data-clock-second]').style.transform = `translateX(-50%) rotate(${second * 6}deg)`;
+        const state = marketState(clock.dataset.market, parts);
+        const stateNode = clock.querySelector('[data-clock-market-state]');
+        stateNode.textContent = state.text;
+        stateNode.className = state.tone;
+        const syncNode = clock.querySelector('[data-clock-sync]');
+        syncNode.textContent = synchronized ? '网络已校时' : '本机时间';
+        syncNode.classList.toggle('synced', synchronized);
+      }
+    };
+
+    const calibrate = async () => {
+      const started = Date.now();
+      try {
+        const response = await fetch(`${location.pathname}?clock-sync=${started}`, { method: 'HEAD', cache: 'no-store' });
+        const serverDate = response.headers.get('date');
+        const ended = Date.now();
+        const serverMs = serverDate ? Date.parse(serverDate) : NaN;
+        if (!response.ok || !Number.isFinite(serverMs)) throw new Error('network time unavailable');
+        offsetMs = serverMs - Math.round((started + ended) / 2);
+        synchronized = true;
+      } catch {
+        offsetMs = 0;
+        synchronized = false;
+      }
+      render();
+    };
+
+    render();
+    void calibrate();
+    window.setInterval(render, 1000);
+    window.setInterval(calibrate, 10 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) void calibrate(); });
+  })();
+</script>

@@ -5,6 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import UsSubnav from '../components/UsSubnav.astro';
+import MarketClock from '../components/MarketClock.astro';
 
 type UsSignal = {
   symbol: string; name: string; theme: string; price: number; support: number; target: number; stop: number;
@@ -240,10 +241,11 @@ const countTone = (section: { key: string; tone: string }) => {
                 </div>
                 <div class="meta-line">
                   <span class="pill us-pill">{data.stage}</span>
-                  <span class="pill">交易日 {data.date}</span>
-                  <span class="pill">截止 {formatTime(data.updated_at)}</span>
+                  <span class="pill">信号交易日 {data.date}</span>
+                  <span class="pill">数据截止 {formatTime(data.updated_at)}</span>
                   <span class="pill">{data.model_version || 'US ETF Compass v3'}</span>
                   <span id="us-live-status" class="pill live-status" aria-live="polite">实时行情连接中…</span>
+                  <MarketClock market="us" />
                 </div>
               </div>
               <div class="count-strip" aria-label="今日五类动作数量">

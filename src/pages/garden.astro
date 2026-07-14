@@ -5,6 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
+import MarketClock from '../components/MarketClock.astro';
 import { SITE_TITLE } from '../consts';
 
 type Recommendation = {
@@ -263,6 +264,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
             <span class="pill">策略基线：{data.level_data_as_of || data.data_as_of || '待更新'}</span>
             <span class="pill">{data.level_model_version || '关键位静态冻结'}</span>
             <span class="pill live-pill" id="live-quote-status" role="status" aria-live="polite">实时行情连接中</span>
+            <MarketClock market="a-share" />
           </div>
         </div>
         <div class="count-strip" aria-label="今日动作数量">
