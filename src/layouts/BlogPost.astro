@@ -6,16 +6,19 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_AUTHOR } from '../consts';
-import { cleanDescription } from '../lib/posts';
+import { cleanDescription, renameCompassTerms } from '../lib/posts';
 
 type Props = CollectionEntry<'blog'>['data'];
 const { title, description, pubDate, updatedDate, appliesTo, dataAsOf, stage, heroImage, category } = Astro.props;
+const displayTitle = renameCompassTerms(title);
 const readableDescription = cleanDescription(description);
+const displayStage = stage ? renameCompassTerms(stage) : stage;
+const displayCategory = category ? renameCompassTerms(category) : category;
 const articleUrl = new URL(Astro.url.pathname, Astro.site);
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
-  headline: title,
+  headline: displayTitle,
   description: readableDescription,
   datePublished: pubDate.toISOString(),
   dateModified: (updatedDate ?? pubDate).toISOString(),
@@ -28,7 +31,7 @@ const jsonLd = {
 
 <html lang="zh-CN">
   <head>
-    <BaseHead title={title} description={readableDescription} type="article" />
+    <BaseHead title={displayTitle} description={readableDescription} type="article" />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <style>
       main { width: min(1080px, calc(100% - 2rem)); }
@@ -77,16 +80,16 @@ const jsonLd = {
         {heroImage && <div class="hero-image"><Image width={1020} height={510} src={heroImage} alt="" /></div>}
         <header class="title">
           <div class="meta">
-            <span class="pill pill-red">{category ?? 'ETF研究'}</span>
+            <span class="pill pill-red">{displayCategory ?? 'ETF研究'}</span>
             <span class="pill"><FormattedDate date={pubDate} /></span>
             <span class="pill">{SITE_AUTHOR}</span>
           </div>
-          <h1>{title}</h1>
+          <h1>{displayTitle}</h1>
           <p class="description">{readableDescription}</p>
-          {(appliesTo || dataAsOf || stage) && <div class="status-meta">
+          {(appliesTo || dataAsOf || displayStage) && <div class="status-meta">
             {appliesTo && <span class="pill pill-red">适用交易日：{appliesTo}</span>}
             {dataAsOf && <span class="pill">数据截止：{dataAsOf}</span>}
-            {stage && <span class="pill pill-amber">{stage}</span>}
+            {displayStage && <span class="pill pill-amber">{displayStage}</span>}
           </div>}
           {updatedDate && <div class="last-updated-on">最后更新：<FormattedDate date={updatedDate} /></div>}
           <nav class="article-nav" aria-label="文章快捷导航"><a href="/garden">← A股罗盘</a><a href="/blog">全部A股复盘</a><a href="/momentum">A股趋势风控雷达</a></nav>
@@ -106,7 +109,32 @@ const jsonLd = {
     </main>
     <Footer />
     <script>
+      const renameCompassTerms = (text) => text
+        .replaceAll('观察不种', '仅观察不升级')
+        .replaceAll('准备种花', '候场')
+        .replaceAll('准备摘花', '止盈观察')
+        .replaceAll('失效退出', '破位撤退')
+        .replaceAll('07:30早盘版', '08:30盘前版')
+        .replaceAll('07:30 早盘预测', '08:30 盘前预测')
+        .replaceAll('07:30早盘预测', '08:30盘前预测')
+        .replaceAll('07:30准备信号', '08:30准备信号')
+        .replaceAll('ETF花园', 'ETF罗盘')
+        .replaceAll('花园信号', '罗盘信号')
+        .replaceAll('回踩位', '伏击位')
+        .replaceAll('目标位', '兑现位')
+        .replaceAll('失效线', '防守线')
+        .replaceAll('种花', '伏击')
+        .replaceAll('摘花', '兑现');
       const content = document.querySelector('#article-content');
+      if (content) {
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        for (const node of nodes) {
+          const next = renameCompassTerms(node.nodeValue || '');
+          if (next !== node.nodeValue) node.nodeValue = next;
+        }
+      }
       const toc = document.querySelector('#article-toc');
       if (content && toc) {
         const headings = [...content.querySelectorAll('h2, h3')].filter((heading) => heading.id);
