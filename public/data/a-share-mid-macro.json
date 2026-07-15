@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-15 08:35:47 CST",
+  "generated_at": "2026-07-15 11:44:52 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Mid-Macro Constraint v1",
@@ -10,126 +10,119 @@
       "label": "加息预期/固收相对强弱",
       "state": "中性",
       "score": 0.5,
-      "headline": "固收/权益5日相对中性-0.20pp",
+      "headline": "固收/权益5日相对中性-0.87pp",
       "reasons": [
-        "固收/权益5日相对中性-0.20pp",
-        "固收20日相对偏强+1.96pp"
+        "固收/权益5日相对中性-0.87pp",
+        "固收20日相对偏强+1.67pp"
       ],
       "metrics": {
-        "bond_ret5": 0.03,
-        "bond_ret20": 0.29,
-        "equity_ret5": 0.23,
-        "equity_ret20": -1.67,
-        "bond_vs_equity_5d_pp": -0.2,
-        "bond_vs_equity_20d_pp": 1.96
+        "bond_ret5": 0.01,
+        "bond_ret20": 0.24,
+        "equity_ret5": 0.88,
+        "equity_ret20": -1.43,
+        "bond_vs_equity_5d_pp": -0.87,
+        "bond_vs_equity_20d_pp": 1.67
       },
       "details": {
         "511260": {
-          "ret5": 0.03,
-          "ret20": 0.37,
-          "last": 134.893,
-          "date": "2026-07-14"
+          "ret5": 0.02,
+          "ret20": 0.28,
+          "last": 134.94,
+          "date": "2026-07-15"
         },
         "511010": {
-          "ret5": 0.04,
-          "ret20": 0.3,
-          "last": 140.798,
-          "date": "2026-07-14"
+          "ret5": 0.01,
+          "ret20": 0.22,
+          "last": 140.81,
+          "date": "2026-07-15"
         },
         "511110": {
           "ret5": 0.01,
-          "ret20": 0.21,
-          "last": 102.865,
-          "date": "2026-07-14"
+          "ret20": 0.23,
+          "last": 102.88,
+          "date": "2026-07-15"
         },
         "510300": {
-          "ret5": 0.23,
-          "ret20": -1.67,
-          "last": 4.837,
-          "date": "2026-07-14"
+          "ret5": 0.88,
+          "ret20": -1.43,
+          "last": 4.84,
+          "date": "2026-07-15"
         }
       },
-      "as_of": "2026-07-14"
+      "as_of": "2026-07-15"
     },
     {
       "key": "overseas_deleveraging",
       "label": "国际市场ETF去杠杆压力",
-      "state": "逆风",
-      "score": 1.5,
-      "headline": "海外映射ETF 5日偏弱-2.26%",
+      "state": "中性",
+      "score": 0.0,
+      "headline": "海外映射ETF 5日-0.99%",
       "reasons": [
-        "海外映射ETF 5日偏弱-2.26%",
-        "2只核心海外ETF 5日跌超2%"
+        "海外映射ETF 5日-0.99%"
       ],
       "metrics": {
-        "proxy_ret5_avg": -2.26,
-        "proxy_ret20_avg": 1.19,
-        "proxy_weak_count_5d": 2,
+        "proxy_ret5_avg": -0.99,
+        "proxy_ret20_avg": 1.45,
+        "proxy_weak_count_5d": 1,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.375
       },
       "details": {
         "159941": {
-          "ret5": -0.68,
-          "ret20": -3.82,
-          "last": 1.613,
-          "date": "2026-07-14"
+          "ret5": 1.57,
+          "ret20": -4.26,
+          "last": 1.62,
+          "date": "2026-07-15"
         },
         "513500": {
-          "ret5": 0.47,
-          "ret20": -1.32,
-          "last": 2.54,
-          "date": "2026-07-14"
+          "ret5": 1.88,
+          "ret20": -1.39,
+          "last": 2.55,
+          "date": "2026-07-15"
         },
         "159502": {
-          "ret5": -4.28,
-          "ret20": 15.99,
-          "last": 1.567,
-          "date": "2026-07-14"
+          "ret5": -6.52,
+          "ret20": 16.89,
+          "last": 1.592,
+          "date": "2026-07-15"
         },
         "513520": {
-          "ret5": -4.56,
-          "ret20": -6.08,
-          "last": 2.3,
-          "date": "2026-07-14"
+          "ret5": -0.9,
+          "ret20": -5.46,
+          "last": 2.322,
+          "date": "2026-07-15"
         }
       },
-      "as_of": "2026-07-14"
+      "as_of": "2026-07-15"
     },
     {
       "key": "margin_financing",
       "label": "两融余额趋势",
       "state": "逆风",
       "score": 2.0,
-      "headline": "两融余额5日-2.73%",
+      "headline": "两融余额5日-2.67%",
       "reasons": [
-        "两融余额5日-2.73%",
+        "两融余额5日-2.67%",
         "连续5日净回落"
       ],
       "metrics": {
-        "rzye": 2889133187702.0,
-        "rzye_yi": 28891.33,
-        "rzyezb": 2.900999,
-        "chg5_pct": -2.73,
-        "chg10_pct": -3.08,
-        "chg20_pct": 1.29,
+        "rzye": 2878117822739.0,
+        "rzye_yi": 28781.18,
+        "rzyezb": 2.840855,
+        "chg5_pct": -2.67,
+        "chg10_pct": -3.97,
+        "chg20_pct": 0.06,
         "down_streak": 5,
-        "as_of": "2026-07-13"
+        "as_of": "2026-07-14"
       },
       "details": {
         "latest": {
-          "date": "2026-07-13",
-          "rzye": 2889133187702.0,
-          "rzyezb": 2.900999,
-          "rzmre": 232741702229
+          "date": "2026-07-14",
+          "rzye": 2878117822739.0,
+          "rzyezb": 2.840855,
+          "rzmre": 241284214334
         },
         "points": [
-          {
-            "date": "2026-06-26",
-            "rzye": 2989540228324.0,
-            "rzyezb": 2.865168,
-            "rzmre": 355042003438
-          },
           {
             "date": "2026-06-29",
             "rzye": 2980905340469.0,
@@ -195,31 +188,37 @@
             "rzye": 2889133187702.0,
             "rzyezb": 2.900999,
             "rzmre": 232741702229
+          },
+          {
+            "date": "2026-07-14",
+            "rzye": 2878117822739.0,
+            "rzyezb": 2.840855,
+            "rzmre": 241284214334
           }
         ]
       },
-      "as_of": "2026-07-13"
+      "as_of": "2026-07-14"
     }
   ],
   "constraint": {
-    "headwind_level": 2,
-    "headwind_count": 2,
+    "headwind_level": 1,
+    "headwind_count": 1,
     "watch_count": 0,
-    "score_total": 4.0,
-    "label": "逆风",
+    "score_total": 2.5,
+    "label": "偏逆风",
     "allow_chase": false,
-    "allow_new_offense": false,
-    "base_position": "权益10%-30%；防御/现金70%-90%",
+    "allow_new_offense": true,
+    "base_position": "权益0%-10%；防御/现金90%-100%",
     "base_equity_band": {
-      "low": 10,
-      "high": 30
+      "low": 0,
+      "high": 10
     },
     "constrained_equity_band": {
       "low": 0,
       "high": 10
     },
     "position": "权益0%-10%；防御/现金90%-100%",
-    "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+    "equity_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
       "本层只压缩权益上限与追高资格",
