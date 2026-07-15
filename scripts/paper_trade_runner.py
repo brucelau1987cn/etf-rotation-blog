@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic, stateful A-share/US ETF paper trader (stdlib only)."""
 from __future__ import annotations
-import argparse, copy, datetime as dt, fcntl, json, math, os, tempfile, urllib.parse, urllib.request
+import argparse, copy, datetime as dt, fcntl, json, math, os, tempfile, time, urllib.parse, urllib.request
 from contextlib import contextmanager
 from decimal import Decimal, ROUND_DOWN
 from pathlib import Path
@@ -232,10 +232,19 @@ def fetch_us(symbols):
     out={}
     for sym in symbols:
         url=f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}?interval=5m&range=1d"
-        req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"}); obj=json.load(urllib.request.urlopen(req,timeout=12))["chart"]["result"][0]
-        q=obj["indicators"]["quote"][0]; valid=[i for i,x in enumerate(q["close"]) if x is not None and q["high"][i] is not None and q["low"][i] is not None]
-        if valid:
-            i=valid[-1]; out[sym]={"price":q["close"][i],"high":q["high"][i],"low":q["low"][i],"timestamp":obj["timestamp"][i]}
+        for attempt in range(3):
+            try:
+                req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+                obj=json.load(urllib.request.urlopen(req,timeout=12))["chart"]["result"][0]
+                q=obj["indicators"]["quote"][0]
+                valid=[i for i,x in enumerate(q["close"]) if x is not None and q["high"][i] is not None and q["low"][i] is not None]
+                if valid:
+                    i=valid[-1]
+                    out[sym]={"price":q["close"][i],"high":q["high"][i],"low":q["low"][i],"timestamp":obj["timestamp"][i]}
+                break
+            except Exception:
+                if attempt < 2:
+                    time.sleep(1)
     return out
 
 @contextmanager
