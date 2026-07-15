@@ -9,6 +9,7 @@ import json
 import re
 import sqlite3
 import subprocess
+import time as time_module
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, time
@@ -108,18 +109,27 @@ def quote_timestamp() -> str | None:
 
 
 def is_trading_day(day: str) -> bool | None:
-    try:
-        import baostock as bs  # type: ignore[import-not-found]
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            login = bs.login()
-            if login.error_code != "0":
-                return None
-            result = bs.query_trade_dates(start_date=day, end_date=day)
-            row = result.get_row_data() if result.error_code == "0" and result.next() else None
-            bs.logout()
-        return bool(row and len(row) > 1 and row[1] == "1")
-    except Exception:
-        return None
+    for attempt in range(3):
+        try:
+            import baostock as bs  # type: ignore[import-not-found]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                login = bs.login()
+                if login.error_code != "0":
+                    result = None
+                else:
+                    result = bs.query_trade_dates(start_date=day, end_date=day)
+                if login.error_code == "0":
+                    row = result.get_row_data() if result and result.error_code == "0" and result.next() else None
+                    bs.logout()
+                else:
+                    row = None
+            if row:
+                return bool(len(row) > 1 and row[1] == "1")
+        except Exception:
+            pass
+        if attempt < 2:
+            time_module.sleep(1)
+    return None
 
 
 def pending_public_changes(day: str) -> bool:
