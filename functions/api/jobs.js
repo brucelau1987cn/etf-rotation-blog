@@ -1,4 +1,4 @@
-import { json, requireUser } from '../../_lib/auth.js';
+import { json, requireUser } from '../_lib/auth.js';
 
 export async function onRequestGet({ request, env }) {
   const result = await requireUser(request, env);
