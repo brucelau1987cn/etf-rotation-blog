@@ -237,11 +237,20 @@ def validate(data_dir: Path = DATA) -> CheckResult:
             "A-share plan batch mismatch: "
             f"recommendations={a_date}, applies_to={a_applies}, pool_evaluation={pool_eval}, mid_macro={mid_generated}"
         )
-    baseline_dates = [x for x in (a_level, pool_latest, shadow_latest) if x]
+    # Intraday plans may combine the previous final-close baseline with a
+    # same-day shadow model produced after the current session closes. The
+    # executable levels and pool remain tied to the previous baseline.
+    baseline_dates = [x for x in (a_level, pool_latest) if x]
     if len(set(baseline_dates)) > 1:
         errors.append(
             "A-share baseline batch mismatch: "
-            f"levels={a_level}, pool_latest={pool_latest}, shadow={shadow_latest}"
+            f"levels={a_level}, pool_latest={pool_latest}"
+        )
+    shadow_allowed_dates = {date for date in (a_level, pool_latest, a_date) if date}
+    if shadow_latest and shadow_latest not in shadow_allowed_dates:
+        errors.append(
+            "A-share shadow date outside plan/baseline batches: "
+            f"allowed={sorted(shadow_allowed_dates)}, shadow={shadow_latest}"
         )
     stage = str(garden.get("stage") or "")
     allowed_action_dates = {date for date in (a_date, pool_latest) if date}
