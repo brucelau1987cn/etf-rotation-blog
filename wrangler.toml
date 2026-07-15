@@ -1,0 +1,12 @@
+name = "etf-rotation-blog"
+compatibility_date = "2026-07-15"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "etf-compass-auth"
+database_id = "REPLACE_AFTER_D1_CREATE"
+
+[vars]
+SESSION_TTL_DAYS = "14"
+MAX_UPLOAD_BYTES = "1048576"

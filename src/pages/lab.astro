@@ -1,0 +1,55 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <BaseHead title="回测实验室｜ETF罗盘" description="上传ETF名单并查看回测任务。" />
+  <style>
+    main { width: min(980px, calc(100% - 1.5rem)); margin: auto; padding: 2rem 0 5rem; }
+    .hero, .panel { padding: clamp(1.1rem, 3vw, 1.7rem); border: 1px solid var(--border); border-radius: 18px; background: var(--paper); box-shadow: var(--box-shadow); }
+    .hero { background: linear-gradient(135deg, #122033, #244666); color: white; }
+    .kicker { color: #b9dfdc; font-size: .72rem; font-weight: 900; letter-spacing: .12em; }
+    h1 { margin: .45rem 0 .5rem; font-size: clamp(1.8rem, 5vw, 2.8rem); letter-spacing: -.04em; }
+    .hero p { margin: 0; color: #dceaf1; }
+    .grid { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); gap: 1rem; margin-top: 1rem; }
+    h2 { margin: 0 0 .8rem; font-size: 1.05rem; }
+    input[type=file] { width: 100%; box-sizing: border-box; padding: .8rem; border: 1px dashed var(--border); border-radius: 12px; background: #fff; }
+    button { margin-top: .9rem; padding: .68rem .9rem; border: 0; border-radius: 10px; background: #14243b; color: #fff; font: inherit; font-weight: 850; cursor: pointer; }
+    .secondary { margin-left: .45rem; background: #e9eef1; color: #23384b; }
+    .status { min-height: 1.35rem; margin-top: .7rem; color: rgb(var(--gray)); font-size: .9rem; }
+    .jobs { display: grid; gap: .6rem; }
+    .job { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1rem; padding: .75rem; border: 1px solid var(--border); border-radius: 12px; }
+    .job strong { overflow-wrap: anywhere; }
+    .meta { color: rgb(var(--gray)); font-size: .8rem; }
+    .empty { color: rgb(var(--gray)); }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <Header />
+  <main>
+    <section class="hero"><span class="kicker">ETF COMPASS LAB</span><h1>回测实验室</h1><p id="welcome">正在读取登录状态…</p></section>
+    <div class="grid">
+      <section class="panel"><h2>上传名单</h2><form id="upload-form"><input name="file" type="file" accept=".csv,text/csv" required /><button type="submit">上传并排队</button><button class="secondary" type="button" id="logout">退出登录</button></form><div class="status" id="status" role="status" aria-live="polite"></div></section>
+      <section class="panel"><h2>我的任务</h2><div class="jobs" id="jobs"><div class="empty">正在读取…</div></div></section>
+    </div>
+  </main>
+  <Footer />
+  <script>
+    const welcome = document.querySelector('#welcome'); const status = document.querySelector('#status'); const jobs = document.querySelector('#jobs');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    async function load() {
+      const me = await fetch('/api/auth/me'); if (!me.ok) { location.href = '/login/'; return; }
+      const user = await me.json(); welcome.textContent = `已登录：${user.user.username} · ${user.user.role === 'admin' ? '管理员' : '用户'}`;
+      const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
+      jobs.innerHTML = data.jobs.length ? data.jobs.map(job => `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span></div>`).join('') : '<div class="empty">还没有上传任务。</div>';
+    }
+    document.querySelector('#upload-form').addEventListener('submit', async event => { event.preventDefault(); status.textContent = '上传中…'; const response = await fetch('/api/upload', { method: 'POST', body: new FormData(event.currentTarget) }); const data = await response.json().catch(() => ({})); status.textContent = response.ok ? `已排队：${data.filename}（${data.count}行）` : (data.error || '上传失败'); if (response.ok) { event.currentTarget.reset(); load(); } });
+    document.querySelector('#logout').addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login/'; });
+    load();
+  </script>
+</body>
+</html>
