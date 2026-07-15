@@ -24,6 +24,8 @@ import Footer from '../components/Footer.astro';
     .job { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1rem; padding: .75rem; border: 1px solid var(--border); border-radius: 12px; }
     .job strong { overflow-wrap: anywhere; }
     .meta { color: rgb(var(--gray)); font-size: .8rem; }
+    .summary { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin-top: .25rem; color: rgb(var(--gray-dark)); font-size: .8rem; }
+    .summary span { padding: .2rem .45rem; border-radius: 6px; background: #eef3f4; }
     .empty { color: rgb(var(--gray)); }
     @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
   </style>
@@ -45,7 +47,7 @@ import Footer from '../components/Footer.astro';
       const me = await fetch('/api/auth/me'); if (!me.ok) { location.href = '/login/'; return; }
       const user = await me.json(); welcome.textContent = `已登录：${user.user.username} · ${user.user.role === 'admin' ? '管理员' : '用户'}`;
       const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
-      jobs.innerHTML = data.jobs.length ? data.jobs.map(job => `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span></div>`).join('') : '<div class="empty">还没有上传任务。</div>';
+      jobs.innerHTML = data.jobs.length ? data.jobs.map(job => { const summary = job.result?.by_category || {}; const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈'],['兑现','兑现']].map(([key,label]) => summary[key] ? `<span>${label} ${summary[key].count}只 · T+1 ${summary[key].t1_hit_rate ?? '待定'}%</span>` : '').join(''); return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || job.result?.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`; }).join('') : '<div class="empty">还没有上传任务。</div>';
     }
     document.querySelector('#upload-form').addEventListener('submit', async event => { event.preventDefault(); status.textContent = '上传中…'; const response = await fetch('/api/upload', { method: 'POST', body: new FormData(event.currentTarget) }); const data = await response.json().catch(() => ({})); status.textContent = response.ok ? `已排队：${data.filename}（${data.count}行）` : (data.error || '上传失败'); if (response.ok) { event.currentTarget.reset(); load(); } });
     document.querySelector('#logout').addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login/'; });
