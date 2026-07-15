@@ -51,9 +51,9 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       --history-red: #c5221f;
       --history-amber: #a46c00;
     }
-    main { width: min(1180px, calc(100% - 1.5rem)); margin: auto; padding: 1rem 0 3.5rem; }
-    .card { background: #fff; border: 1px solid var(--history-line); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
-    .history-hero { position: relative; overflow: hidden; padding: clamp(1.1rem, 3vw, 1.7rem); color: #fff; background: linear-gradient(135deg, var(--history-terminal), var(--history-terminal-2) 68%, #285b7c); }
+    main.history-page { width: min(1180px, calc(100% - 1.5rem)); max-width: none; margin: auto; padding: 1rem 0 3.5rem; }
+    .history-page .card { background: #fff; border: 1px solid var(--history-line); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+    .history-page .history-hero { position: relative; min-height: 343px; box-sizing: border-box; overflow: hidden; padding: clamp(1.1rem, 3vw, 1.7rem); color: #fff; background: linear-gradient(135deg, #122033, #1b304a 65%, #244666); }
     .history-hero::after { content: ''; position: absolute; width: 360px; height: 360px; right: -150px; top: -185px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255,255,255,.025), 0 0 0 110px rgba(255,255,255,.02); }
     .hero-top, .hero-command { position: relative; z-index: 1; }
     .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
@@ -157,8 +157,8 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       .signal-list { padding-left: 125px; }
     }
     @media (max-width: 620px) {
-      main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
-      .history-hero { padding: 1rem; }
+      main.history-page { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
+      .history-page .history-hero { min-height: 0; padding: 1rem; }
       .hero-copy h1 { font-size: 2rem; }
       .hero-meta span:nth-child(2) { display: none; }
       .hero-command { gap: .65rem; padding: .75rem; }
@@ -182,7 +182,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
 </head>
 <body>
   <Header />
-  <main class="site-shell">
+  <main class="site-shell history-page">
     <UsSubnav active="history" />
 
     <section class="history-hero card">
@@ -249,11 +249,11 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       <p>{records.length ? `${records.length} 个交易日 · 点击展开明细` : '等待记录'}</p>
     </div>
     <section class="timeline-shell card">
-      {records.length ? records.map((record: any, index: number) => {
+      {records.length ? records.map((record: any) => {
         const signals = signalEntries(record);
         const formalCount = (record.counts?.plant || 0) + (record.counts?.harvest || 0) + (record.counts?.exit || 0);
         return (
-          <details class="timeline-day" open={index === 0}>
+          <details class="timeline-day">
             <summary>
               <div class="day-date"><strong>{record.date}</strong><small>{record.market_regime?.state || '状态待定'} · 权益参考 {record.market_regime?.equity_allocation || '—'}</small></div>
               <div class="day-counts">
