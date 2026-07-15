@@ -52,7 +52,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       --history-amber: #a46c00;
     }
     main.history-page { width: min(1180px, calc(100% - 1.5rem)); max-width: none; margin: auto; padding: 1rem 0 3.5rem; }
-    .history-page .card { background: #fff; border: 1px solid var(--history-line); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+    .history-page .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--box-shadow); }
     .history-page .history-hero { position: relative; min-height: 343px; box-sizing: border-box; overflow: hidden; padding: clamp(1.1rem, 3vw, 1.7rem); color: #fff; background: linear-gradient(135deg, #122033, #1b304a 65%, #244666); }
     .history-hero::after { content: ''; position: absolute; width: 360px; height: 360px; right: -150px; top: -185px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255,255,255,.025), 0 0 0 110px rgba(255,255,255,.02); }
     .hero-top, .hero-command { position: relative; z-index: 1; }
@@ -61,11 +61,11 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     .eyebrow { color: #9cc8f3; }
     .hero-copy h1 { margin: .35rem 0 .3rem; color: #fff; font-size: clamp(2rem, 5vw, 3.35rem); letter-spacing: -.04em; }
     .hero-copy p { max-width: 65ch; margin: 0; color: #cbd8e5; line-height: 1.6; }
-    .hero-meta { display: grid; gap: .25rem; text-align: right; color: #b7c8d8; font-size: .73rem; }
+    .hero-meta { display: grid; gap: .25rem; text-align: right; color: #c5d3df; font-size: .73rem; }
     .hero-command { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; margin-top: 1.25rem; padding: 1rem; border: 1px solid rgba(255,255,255,.15); border-radius: 18px; background: rgba(255,255,255,.07); backdrop-filter: blur(8px); }
-    .command-icon { display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border-radius: 14px; background: rgba(255,255,255,.12); font-size: 1.35rem; }
+    .hero-command .command-icon { display: block; color: #9cc8f3; font-size: 1.9rem; line-height: 1; }
     .hero-command span { display: block; color: #9fb7ca; font-size: .68rem; font-weight: 900; letter-spacing: .09em; }
-    .hero-command strong { display: block; color: #fff; font-size: 1.16rem; }
+    .hero-command strong { display: block; color: #fff; font-size: 1.2rem; }
     .hero-command p { margin: .18rem 0 0; color: #cbd8e5; font-size: .79rem; }
     .latest-date { min-width: 132px; padding: .62rem .8rem; border-radius: 12px; background: #fff; color: var(--history-ink); text-align: right; }
     .latest-date small { display: block; color: var(--history-muted); font-size: .65rem; }
@@ -107,7 +107,9 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     .timeline-shell { padding: .45rem 1rem 1rem; }
     .timeline-day { border-top: 1px solid var(--history-line); }
     .timeline-day:first-child { border-top: 0; }
-    .timeline-day > summary { display: grid; grid-template-columns: 150px 1fr auto; gap: 1rem; align-items: center; padding: 1rem 0; cursor: pointer; list-style: none; }
+    .timeline-day > summary { display: grid; grid-template-columns: 150px 1fr auto; gap: 1rem; align-items: center; margin: 0 -.5rem; padding: 1rem .5rem; border-radius: 12px; cursor: pointer; list-style: none; transition: background-color .18s ease; }
+    .timeline-day > summary:hover { background: #f6f8fb; }
+    .timeline-day > summary:focus-visible { outline: 2px solid #78a7dc; outline-offset: 2px; }
     .timeline-day > summary::-webkit-details-marker { display: none; }
     .day-date strong { display: block; font-size: 1rem; }
     .day-date small { display: block; margin-top: .16rem; color: var(--history-muted); font-size: .7rem; }
@@ -199,7 +201,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
         </div>
       </div>
       <div class="hero-command">
-        <span class="command-icon">◎</span>
+        <span class="command-icon">◉</span>
         <div>
           <span>HISTORY LEDGER</span>
           <strong>{records.length ? `已冻结 ${records.length} 个交易日 · ${triggerTotal} 次正式触发` : '等待首个交易日记录'}</strong>
