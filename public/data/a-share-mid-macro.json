@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-14 14:35:02 CST",
+  "generated_at": "2026-07-15 08:35:47 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Mid-Macro Constraint v1",
@@ -10,42 +10,42 @@
       "label": "加息预期/固收相对强弱",
       "state": "中性",
       "score": 0.5,
-      "headline": "固收/权益5日相对中性-0.04pp",
+      "headline": "固收/权益5日相对中性-0.20pp",
       "reasons": [
-        "固收/权益5日相对中性-0.04pp",
-        "固收20日相对偏强+2.12pp"
+        "固收/权益5日相对中性-0.20pp",
+        "固收20日相对偏强+1.96pp"
       ],
       "metrics": {
-        "bond_ret5": 0.04,
-        "bond_ret20": 0.31,
-        "equity_ret5": 0.08,
-        "equity_ret20": -1.81,
-        "bond_vs_equity_5d_pp": -0.04,
-        "bond_vs_equity_20d_pp": 2.12
+        "bond_ret5": 0.03,
+        "bond_ret20": 0.29,
+        "equity_ret5": 0.23,
+        "equity_ret20": -1.67,
+        "bond_vs_equity_5d_pp": -0.2,
+        "bond_vs_equity_20d_pp": 1.96
       },
       "details": {
         "511260": {
           "ret5": 0.03,
           "ret20": 0.37,
-          "last": 134.9,
+          "last": 134.893,
           "date": "2026-07-14"
         },
         "511010": {
           "ret5": 0.04,
-          "ret20": 0.31,
-          "last": 140.81,
+          "ret20": 0.3,
+          "last": 140.798,
           "date": "2026-07-14"
         },
         "511110": {
-          "ret5": 0.04,
-          "ret20": 0.24,
-          "last": 102.9,
+          "ret5": 0.01,
+          "ret20": 0.21,
+          "last": 102.865,
           "date": "2026-07-14"
         },
         "510300": {
-          "ret5": 0.08,
-          "ret20": -1.81,
-          "last": 4.83,
+          "ret5": 0.23,
+          "ret20": -1.67,
+          "last": 4.837,
           "date": "2026-07-14"
         }
       },
@@ -55,25 +55,24 @@
       "key": "overseas_deleveraging",
       "label": "国际市场ETF去杠杆压力",
       "state": "逆风",
-      "score": 2.0,
-      "headline": "海外映射ETF 5日偏弱-2.32%",
+      "score": 1.5,
+      "headline": "海外映射ETF 5日偏弱-2.26%",
       "reasons": [
-        "海外映射ETF 5日偏弱-2.32%",
-        "2只核心海外ETF 5日跌超2%",
-        "海外相关池弱化占比88%"
+        "海外映射ETF 5日偏弱-2.26%",
+        "2只核心海外ETF 5日跌超2%"
       ],
       "metrics": {
-        "proxy_ret5_avg": -2.32,
-        "proxy_ret20_avg": 1.13,
+        "proxy_ret5_avg": -2.26,
+        "proxy_ret20_avg": 1.19,
         "proxy_weak_count_5d": 2,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.875
+        "overseas_weak_share": 0.375
       },
       "details": {
         "159941": {
-          "ret5": -0.86,
-          "ret20": -4.0,
-          "last": 1.61,
+          "ret5": -0.68,
+          "ret20": -3.82,
+          "last": 1.613,
           "date": "2026-07-14"
         },
         "513500": {
@@ -83,9 +82,9 @@
           "date": "2026-07-14"
         },
         "159502": {
-          "ret5": -4.34,
-          "ret20": 15.91,
-          "last": 1.566,
+          "ret5": -4.28,
+          "ret20": 15.99,
+          "last": 1.567,
           "date": "2026-07-14"
         },
         "513520": {
@@ -206,14 +205,14 @@
     "headwind_level": 2,
     "headwind_count": 2,
     "watch_count": 0,
-    "score_total": 4.5,
+    "score_total": 4.0,
     "label": "逆风",
     "allow_chase": false,
     "allow_new_offense": false,
-    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_position": "权益10%-30%；防御/现金70%-90%",
     "base_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
     "constrained_equity_band": {
       "low": 0,
