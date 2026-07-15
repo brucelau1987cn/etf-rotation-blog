@@ -1,0 +1,33 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <BaseHead title="登录回测实验室｜ETF罗盘" description="登录ETF罗盘回测实验室，上传有操作ETF名单并查看验证结果。" />
+  <style>
+    main { width: min(680px, calc(100% - 1.5rem)); margin: auto; padding: clamp(2rem, 8vw, 5rem) 0 5rem; }
+    .login-card { padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid var(--border); border-radius: 20px; background: var(--paper); box-shadow: var(--box-shadow); }
+    .kicker { color: var(--accent-dark); font-size: .72rem; font-weight: 900; letter-spacing: .12em; }
+    h1 { margin: .45rem 0 .6rem; font-size: clamp(1.8rem, 5vw, 2.7rem); letter-spacing: -.04em; }
+    p { color: rgb(var(--gray)); line-height: 1.7; }
+    .notice { margin-top: 1.2rem; padding: .85rem 1rem; border: 1px solid #ead7aa; border-left: 4px solid #d99a00; border-radius: 12px; background: #fff9ec; color: #6c5528; font-size: .88rem; }
+    .back { display: inline-flex; margin-top: 1.2rem; padding: .55rem .8rem; border-radius: 10px; background: #14243b; color: #fff; font-weight: 850; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <Header />
+  <main>
+    <section class="login-card">
+      <span class="kicker">ETF COMPASS LAB</span>
+      <h1>登录回测实验室</h1>
+      <p>账号登录、CSV上传和历史回测功能正在接入。现有ETF罗盘页面继续正常使用。</p>
+      <div class="notice">管理员账号和用户权限后端完成配置后，这里将提供正式登录入口。</div>
+      <a class="back" href="/">返回ETF罗盘首页</a>
+    </section>
+  </main>
+  <Footer />
+</body>
+</html>
