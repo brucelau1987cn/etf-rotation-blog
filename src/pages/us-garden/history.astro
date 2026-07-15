@@ -5,20 +5,304 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import UsSubnav from '../../components/UsSubnav.astro';
+
 const backtest = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-backtest.json'), 'utf8'));
 const flowerHistory = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-flower-history.json'), 'utf8'));
 const records = flowerHistory.records || [];
-const total = (key: string) => records.reduce((sum: number, r: any) => sum + (r.counts?.[key] || 0), 0);
-const labels: Record<string,string> = { ready_plant:'候场', plant:'伏击', ready_harvest:'止盈观察', harvest:'兑现', exit:'破位撤退' };
+const total = (key: string) => records.reduce((sum: number, record: any) => sum + (record.counts?.[key] || 0), 0);
+const labels: Record<string, string> = {
+  ready_plant: '候场',
+  plant: '伏击',
+  ready_harvest: '止盈观察',
+  harvest: '兑现',
+  exit: '破位撤退',
+};
+const tone: Record<string, string> = {
+  ready_plant: 'watch',
+  plant: 'plant',
+  ready_harvest: 'ready',
+  harvest: 'harvest',
+  exit: 'exit',
+};
+const latest = records[0];
+const triggerTotal = total('plant') + total('harvest') + total('exit');
+const latestTriggerTotal = (latest?.counts?.plant || 0) + (latest?.counts?.harvest || 0) + (latest?.counts?.exit || 0);
+const generatedAt = latest?.generated_at
+  ? String(latest.generated_at).replace('T', ' ').replace(/\.\d+/, '').replace(/-\d\d:\d\d$/, ' ET')
+  : '—';
+const formatLevel = (value: unknown) => Number.isFinite(Number(value)) ? `$${Number(value).toFixed(2)}` : '—';
+const signalEntries = (record: any) => Object.entries(record.signals || {})
+  .flatMap(([key, items]: any) => (items || []).map((item: any) => ({ key, ...item })));
 ---
-<!doctype html><html lang="zh-CN"><head><BaseHead title="美股ETF罗盘｜信号历史与成绩" description="美股ETF伏击兑现信号历史、方向验证及统计口径。" /></head><body><Header /><main class="site-shell"><UsSubnav active="history" />
-<section class="hero"><span class="pill">🇺🇸 US ETF COMPASS HISTORY</span><h1>美股ETF罗盘历史成绩</h1><p>伏击、兑现与失效信号按交易日留档；准备信号和实际触发分开统计。</p></section>
-<section class="score"><article><span>记录交易日</span><strong>{records.length}天</strong></article><article><span>伏击触发</span><strong>{total('plant')}次</strong></article><article><span>兑现触发</span><strong>{total('harvest')}次</strong></article><article><span>破位撤退</span><strong>{total('exit')}次</strong></article></section>
-<section class="card"><h2>罗盘信号时间线</h2>{records.length ? <div class="timeline">{records.map((record:any) => <article><div class="date"><strong>{record.date}</strong><small>{record.market_regime?.state} · 权益参考{record.market_regime?.equity_allocation}</small></div><div class="counts">{Object.entries(record.counts || {}).map(([key,value]:any) => <span>{labels[key]} <b>{value}</b></span>)}</div><div class="symbols">{Object.entries(record.signals || {}).flatMap(([key,items]:any) => items.map((x:any) => <span><b>{labels[key]}</b> {x.symbol} · ${x.trigger_level}</span>))}</div></article>)}</div> : <p>尚未生成首个交易日记录。</p>}</section>
-<section class="score secondary"><article><span>趋势验证样本</span><strong>{backtest.sample_count.toLocaleString()}条</strong></article><article><span>次日方向命中</span><strong>{backtest.next_day_direction_rate}%</strong></article><article><span>收益口径</span><strong>Adjusted Close</strong></article><article><span>对照基准</span><strong>{backtest.benchmark}</strong></article></section>
-<section class="grid"><article class="card"><h2>触发规则</h2><ol><li><strong>伏击：</strong>当日最低价触达前一快照伏击位，收盘未跌破防守线。</li><li><strong>兑现：</strong>当日最高价触达前一快照兑现位。</li><li><strong>失效：</strong>当日最低价触达前一快照防守线。</li><li><strong>准备：</strong>距当前关键位3%以内，仅作次日计划。</li></ol></article><article class="card"><h2>审计口径</h2><ul><li>触发使用未复权原始OHLC</li><li>收益使用Adjusted Close</li><li>同一交易日重复运行覆盖、不重复累计</li><li>最多保留260个交易日</li><li>准备信号不计作实际成交</li></ul></article></section>
-<section class="card notice"><strong>限制：</strong>方向验证不等同实际收益。罗盘记录尚未计入交易成本、点差、滑点、税务与盘中成交顺序；没有实际持仓时，“兑现”表示目标触发，不代表账户完成卖出。</section>
-<div class="links"><a href="/us-garden/">返回美股罗盘</a><a href="/us-momentum/">进入趋势风控</a><a href="/garden/history/">查看A股成绩</a></div>
-</main><Footer /><style>
-main{width:min(1180px,calc(100% - 1.5rem));margin:auto;padding:1rem 0 3rem}.hero{padding:1rem 0}.hero h1{font-size:clamp(2rem,5vw,3.4rem);margin:.5rem 0}.hero p{color:rgb(var(--gray-dark))}.pill{background:#e8f2ff;color:#174ea6}.score{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin:1rem 0}.score article,.card{padding:1rem;border:1px solid var(--border);border-radius:20px;background:#fff}.score article{display:grid;gap:.35rem}.score span{font-size:.8rem;color:rgb(var(--gray))}.score strong{font-size:1.2rem}.secondary{margin-top:1.5rem}.timeline>article{padding:1rem 0;border-top:1px solid var(--border)}.date{display:flex;justify-content:space-between;gap:.8rem}.date small{color:rgb(var(--gray))}.counts,.symbols{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}.counts span,.symbols span{padding:.35rem .55rem;border-radius:999px;background:#f1f5f9;font-size:.78rem}.symbols span{background:#f8fafc}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.card li{margin:.55rem 0}.notice{margin-top:1rem;background:#fff8e6;border-left:4px solid #d99a00}.links{display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap}.links a{color:#174ea6;font-weight:800}@media(max-width:720px){.score{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.date{display:grid}}
-</style></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <BaseHead title="美股ETF罗盘｜历史成绩与信号审计" description="美股ETF罗盘历史终端：按交易日查看候场、伏击、止盈观察、兑现和破位撤退记录，并核对方向验证与审计口径。" />
+  <style>
+    :root {
+      --history-terminal: #122033;
+      --history-terminal-2: #1b3651;
+      --history-ink: #142033;
+      --history-muted: #64748b;
+      --history-line: #dce4ee;
+      --history-blue: #2563eb;
+      --history-green: #137547;
+      --history-orange: #c96a13;
+      --history-red: #c5221f;
+      --history-amber: #a46c00;
+    }
+    main { width: min(1180px, calc(100% - 1.5rem)); margin: auto; padding: 1rem 0 3.5rem; }
+    .card { background: #fff; border: 1px solid var(--history-line); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+    .history-hero { position: relative; overflow: hidden; padding: clamp(1.1rem, 3vw, 1.7rem); color: #fff; background: linear-gradient(135deg, var(--history-terminal), var(--history-terminal-2) 68%, #285b7c); }
+    .history-hero::after { content: ''; position: absolute; width: 360px; height: 360px; right: -150px; top: -185px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255,255,255,.025), 0 0 0 110px rgba(255,255,255,.02); }
+    .hero-top, .hero-command { position: relative; z-index: 1; }
+    .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .eyebrow, .section-kicker { font-size: .7rem; font-weight: 950; letter-spacing: .13em; }
+    .eyebrow { color: #9cc8f3; }
+    .hero-copy h1 { margin: .35rem 0 .3rem; color: #fff; font-size: clamp(2rem, 5vw, 3.35rem); letter-spacing: -.04em; }
+    .hero-copy p { max-width: 65ch; margin: 0; color: #cbd8e5; line-height: 1.6; }
+    .hero-meta { display: grid; gap: .25rem; text-align: right; color: #b7c8d8; font-size: .73rem; }
+    .hero-command { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; margin-top: 1.25rem; padding: 1rem; border: 1px solid rgba(255,255,255,.15); border-radius: 18px; background: rgba(255,255,255,.07); backdrop-filter: blur(8px); }
+    .command-icon { display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border-radius: 14px; background: rgba(255,255,255,.12); font-size: 1.35rem; }
+    .hero-command span { display: block; color: #9fb7ca; font-size: .68rem; font-weight: 900; letter-spacing: .09em; }
+    .hero-command strong { display: block; color: #fff; font-size: 1.16rem; }
+    .hero-command p { margin: .18rem 0 0; color: #cbd8e5; font-size: .79rem; }
+    .latest-date { min-width: 132px; padding: .62rem .8rem; border-radius: 12px; background: #fff; color: var(--history-ink); text-align: right; }
+    .latest-date small { display: block; color: var(--history-muted); font-size: .65rem; }
+    .latest-date b { font-size: .86rem; }
+
+    .summary-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: .8rem 0 0; }
+    .summary-card { position: relative; min-height: 7.1rem; padding: .9rem; overflow: hidden; }
+    .summary-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--history-blue); }
+    .summary-card.plant::before { background: var(--history-green); }
+    .summary-card.harvest::before { background: var(--history-orange); }
+    .summary-card.exit::before { background: var(--history-red); }
+    .summary-card span { display: block; color: var(--history-muted); font-size: .72rem; font-weight: 850; }
+    .summary-card strong { display: block; margin: .45rem 0 .2rem; color: var(--history-ink); font-size: 1.65rem; letter-spacing: -.03em; }
+    .summary-card small { display: block; color: #78909f; font-size: .69rem; line-height: 1.45; }
+
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin: 1.6rem 0 .7rem; }
+    .section-head h2 { margin: .2rem 0 0; font-size: 1.45rem; }
+    .section-head p { margin: 0; color: var(--history-muted); font-size: .78rem; }
+    .section-kicker { color: var(--history-blue); }
+
+    .evidence-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .75fr); gap: .8rem; }
+    .validation-card, .audit-card { padding: 1rem; }
+    .validation-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+    .validation-top h3, .audit-card h3 { margin: 0; font-size: 1.05rem; }
+    .validation-top p, .audit-card > p { margin: .25rem 0 0; color: var(--history-muted); font-size: .76rem; line-height: 1.5; }
+    .hit-rate { text-align: right; }
+    .hit-rate strong { display: block; color: var(--history-green); font-size: 2rem; line-height: 1; }
+    .hit-rate small { color: var(--history-muted); font-size: .68rem; }
+    .validation-metrics { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .5rem; margin-top: .9rem; }
+    .validation-metrics div, .audit-row { padding: .65rem; border-radius: 12px; background: #f6f8fb; }
+    .validation-metrics span, .audit-row span { display: block; color: var(--history-muted); font-size: .67rem; }
+    .validation-metrics b, .audit-row b { display: block; margin-top: .15rem; font-size: .82rem; }
+    .rate-track { height: 7px; margin-top: .85rem; overflow: hidden; border-radius: 999px; background: #e8edf3; }
+    .rate-track i { display: block; width: var(--rate); height: 100%; border-radius: inherit; background: linear-gradient(90deg, #64b68a, var(--history-green)); }
+    .audit-list { display: grid; gap: .45rem; margin-top: .8rem; }
+    .audit-row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: center; }
+    .audit-row b { margin: 0; text-align: right; }
+
+    .timeline-shell { padding: .45rem 1rem 1rem; }
+    .timeline-day { border-top: 1px solid var(--history-line); }
+    .timeline-day:first-child { border-top: 0; }
+    .timeline-day > summary { display: grid; grid-template-columns: 150px 1fr auto; gap: 1rem; align-items: center; padding: 1rem 0; cursor: pointer; list-style: none; }
+    .timeline-day > summary::-webkit-details-marker { display: none; }
+    .day-date strong { display: block; font-size: 1rem; }
+    .day-date small { display: block; margin-top: .16rem; color: var(--history-muted); font-size: .7rem; }
+    .day-counts { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .count-chip, .signal-tag { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; font-size: .69rem; font-weight: 850; }
+    .count-chip { padding: .27rem .48rem; background: #f1f5f9; color: #526274; }
+    .count-chip b { font-size: .75rem; }
+    .count-chip.plant, .signal-tag.plant { background: #e9f7ef; color: var(--history-green); }
+    .count-chip.harvest, .signal-tag.harvest { background: #fff1e3; color: var(--history-orange); }
+    .count-chip.exit, .signal-tag.exit { background: #fff0ef; color: var(--history-red); }
+    .count-chip.ready, .signal-tag.ready { background: #fff7df; color: var(--history-amber); }
+    .count-chip.watch, .signal-tag.watch { background: #eaf3ff; color: #1e64ad; }
+    .day-total { text-align: right; }
+    .day-total b { display: block; font-size: .88rem; }
+    .day-total small { color: var(--history-muted); font-size: .66rem; }
+    .expand-label::after { content: '展开明细 ▸'; }
+    .timeline-day[open] .expand-label::after { content: '收起明细 ▾'; }
+    .signal-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: .5rem; padding: 0 0 1rem 150px; }
+    .signal-item { min-width: 0; padding: .7rem; border: 1px solid var(--history-line); border-radius: 13px; background: #fbfcfe; }
+    .signal-top { display: flex; justify-content: space-between; gap: .45rem; align-items: flex-start; }
+    .signal-top strong { font-size: .88rem; }
+    .signal-tag { flex: 0 0 auto; padding: .2rem .42rem; }
+    .signal-item p { margin: .45rem 0 0; color: var(--history-muted); font-size: .72rem; line-height: 1.45; }
+    .signal-level { display: flex; justify-content: space-between; gap: .5rem; margin-top: .5rem; padding-top: .45rem; border-top: 1px dashed var(--history-line); font-size: .7rem; }
+    .signal-level span { color: var(--history-muted); }
+
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .method-card { padding: 1rem; }
+    .method-card h3 { margin: 0 0 .75rem; font-size: 1.02rem; }
+    .rule-list { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; counter-reset: rule; }
+    .rule-list li { display: grid; grid-template-columns: 30px 1fr; gap: .6rem; align-items: start; color: #405064; font-size: .78rem; line-height: 1.5; counter-increment: rule; }
+    .rule-list li::before { content: counter(rule); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; background: #edf3fa; color: #245c94; font-size: .69rem; font-weight: 950; }
+    .rule-list strong { color: var(--history-ink); }
+    .boundary-note { margin-top: .8rem; padding: .85rem 1rem; border: 1px solid #f0d29c; border-left: 4px solid #d99a00; border-radius: 14px; background: #fff9ec; color: #6c5527; font-size: .78rem; line-height: 1.55; }
+    .route-links { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1rem; }
+    .route-links a { padding: .48rem .68rem; border: 1px solid var(--history-line); border-radius: 999px; color: var(--history-ink); text-decoration: none; font-size: .76rem; font-weight: 850; }
+    .route-links a:first-child { border-color: var(--history-terminal); background: var(--history-terminal); color: #fff; }
+
+    @media (max-width: 900px) {
+      .hero-top { display: grid; }
+      .hero-meta { text-align: left; }
+      .hero-command { grid-template-columns: auto 1fr; }
+      .latest-date { grid-column: 1 / -1; text-align: left; }
+      .evidence-grid { grid-template-columns: 1fr; }
+      .timeline-day > summary { grid-template-columns: 125px 1fr; }
+      .day-total { grid-column: 2; text-align: left; }
+      .signal-list { padding-left: 125px; }
+    }
+    @media (max-width: 620px) {
+      main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
+      .history-hero { padding: 1rem; }
+      .hero-copy h1 { font-size: 2rem; }
+      .hero-meta span:nth-child(2) { display: none; }
+      .hero-command { gap: .65rem; padding: .75rem; }
+      .command-icon { width: 2.35rem; height: 2.35rem; }
+      .hero-command strong { font-size: 1rem; }
+      .summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+      .summary-card { min-height: 6rem; padding: .75rem; }
+      .summary-card strong { font-size: 1.35rem; }
+      .section-head { align-items: flex-start; }
+      .section-head p { max-width: 15rem; text-align: right; }
+      .validation-metrics, .method-grid { grid-template-columns: 1fr; }
+      .timeline-shell { padding: .35rem .8rem .8rem; }
+      .timeline-day > summary { grid-template-columns: 1fr; gap: .55rem; }
+      .day-total { grid-column: 1; display: flex; gap: .4rem; align-items: center; }
+      .day-total b, .day-total small { display: inline; }
+      .signal-list { grid-template-columns: 1fr; padding: 0 0 .9rem; }
+      .expand-label::after { content: '展开 ▸'; }
+      .timeline-day[open] .expand-label::after { content: '收起 ▾'; }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+  <main class="site-shell">
+    <UsSubnav active="history" />
+
+    <section class="history-hero card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <span class="eyebrow">US ETF COMPASS · HISTORY &amp; AUDIT</span>
+          <h1>美股ETF罗盘历史成绩</h1>
+          <p>逐日冻结候场、伏击、止盈观察、兑现和破位撤退记录；历史信号、方向验证与真实账户收益分层展示。</p>
+        </div>
+        <div class="hero-meta">
+          <span>最新记录 {latest?.date || '等待首个交易日'}</span>
+          <span>生成时间 {generatedAt}</span>
+          <span>上涨绿色 · 下跌红色</span>
+        </div>
+      </div>
+      <div class="hero-command">
+        <span class="command-icon">◎</span>
+        <div>
+          <span>HISTORY LEDGER</span>
+          <strong>{records.length ? `已冻结 ${records.length} 个交易日 · ${triggerTotal} 次正式触发` : '等待首个交易日记录'}</strong>
+          <p>{latest ? `最新交易日 ${latest.date}：${latest.market_regime?.state || '状态待定'}，正式触发 ${latestTriggerTotal} 次。` : '首个美股收盘任务完成后开始形成前向记录。'}</p>
+        </div>
+        <div class="latest-date"><small>最新权益参考</small><b>{latest?.market_regime?.equity_allocation || '—'}</b></div>
+      </div>
+    </section>
+
+    <section class="summary-strip" aria-label="历史信号摘要">
+      <article class="summary-card card"><span>记录交易日</span><strong>{records.length}天</strong><small>按美股交易日冻结，重复运行覆盖</small></article>
+      <article class="summary-card plant card"><span>正式伏击</span><strong>{total('plant')}次</strong><small>触及伏击位且收盘重新站回</small></article>
+      <article class="summary-card harvest card"><span>兑现触发</span><strong>{total('harvest')}次</strong><small>盘中高点触达前一快照兑现位</small></article>
+      <article class="summary-card exit card"><span>破位撤退</span><strong>{total('exit')}次</strong><small>触及防守线，风险动作优先</small></article>
+    </section>
+
+    <div class="section-head">
+      <div><span class="section-kicker">VALIDATION SNAPSHOT</span><h2>方向验证与审计状态</h2></div>
+      <p>方向命中用于研究校准，不代表账户收益</p>
+    </div>
+    <section class="evidence-grid">
+      <article class="validation-card card">
+        <div class="validation-top">
+          <div><h3>趋势通过后的次日方向验证</h3><p>{backtest.note}</p></div>
+          <div class="hit-rate"><strong>{backtest.next_day_direction_rate}%</strong><small>次日方向命中</small></div>
+        </div>
+        <div class="rate-track" style={`--rate:${Math.max(0, Math.min(100, Number(backtest.next_day_direction_rate) || 0))}%`}><i></i></div>
+        <div class="validation-metrics">
+          <div><span>验证样本</span><b>{backtest.sample_count.toLocaleString()} 条</b></div>
+          <div><span>命中样本</span><b>{backtest.next_day_direction_hits.toLocaleString()} 条</b></div>
+          <div><span>收益口径</span><b>Adjusted Close</b></div>
+        </div>
+      </article>
+      <article class="audit-card card">
+        <h3>审计状态</h3>
+        <p>信号记录、价格触发与收益验证采用独立口径。</p>
+        <div class="audit-list">
+          <div class="audit-row"><span>市场</span><b>US</b></div>
+          <div class="audit-row"><span>对照基准</span><b>{backtest.benchmark}</b></div>
+          <div class="audit-row"><span>历史保留</span><b>最多260日</b></div>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-head">
+      <div><span class="section-kicker">DAILY SIGNAL LEDGER</span><h2>罗盘信号时间线</h2></div>
+      <p>{records.length ? `${records.length} 个交易日 · 点击展开明细` : '等待记录'}</p>
+    </div>
+    <section class="timeline-shell card">
+      {records.length ? records.map((record: any, index: number) => {
+        const signals = signalEntries(record);
+        const formalCount = (record.counts?.plant || 0) + (record.counts?.harvest || 0) + (record.counts?.exit || 0);
+        return (
+          <details class="timeline-day" open={index === 0}>
+            <summary>
+              <div class="day-date"><strong>{record.date}</strong><small>{record.market_regime?.state || '状态待定'} · 权益参考 {record.market_regime?.equity_allocation || '—'}</small></div>
+              <div class="day-counts">
+                {Object.entries(record.counts || {}).map(([key, value]: any) => <span class={`count-chip ${tone[key]}`}><span>{labels[key]}</span><b>{value}</b></span>)}
+              </div>
+              <div class="day-total"><b>正式 {formalCount} 次</b><small class="expand-label"></small></div>
+            </summary>
+            <div class="signal-list">
+              {signals.map((item: any) => (
+                <article class="signal-item">
+                  <div class="signal-top"><strong>{item.symbol} · {item.theme || item.name}</strong><span class={`signal-tag ${tone[item.key]}`}>{labels[item.key]}</span></div>
+                  <p>{item.trigger_basis || item.trade_state || '按冻结快照记录'}</p>
+                  <div class="signal-level"><span>触发位</span><b>{formatLevel(item.trigger_level)}</b></div>
+                </article>
+              ))}
+            </div>
+          </details>
+        );
+      }) : <p>尚未生成首个交易日记录。</p>}
+    </section>
+
+    <div class="section-head">
+      <div><span class="section-kicker">RULES &amp; BOUNDARIES</span><h2>触发规则与统计边界</h2></div>
+      <p>规则固定后再看历史结果</p>
+    </div>
+    <section class="method-grid">
+      <article class="method-card card">
+        <h3>触发规则</h3>
+        <ol class="rule-list">
+          <li><span><strong>伏击：</strong>当日最低价触达前一快照伏击位，收盘重新站回且未跌破防守线。</span></li>
+          <li><span><strong>兑现：</strong>当日最高价触达前一快照兑现位。</span></li>
+          <li><span><strong>破位撤退：</strong>当日最低价触达前一快照防守线。</span></li>
+          <li><span><strong>候场与止盈观察：</strong>距关键位3%以内，仅作为下一窗口计划。</span></li>
+        </ol>
+      </article>
+      <article class="method-card card">
+        <h3>审计口径</h3>
+        <ol class="rule-list">
+          <li><span>触发判断使用未复权原始OHLC，收益验证使用Adjusted Close。</span></li>
+          <li><span>同一交易日重复运行采用覆盖写入，避免重复累计。</span></li>
+          <li><span>候场和止盈观察属于准备状态，不计作实际成交。</span></li>
+          <li><span>真实成交、交易成本与持仓收益由模拟盘独立记录。</span></li>
+        </ol>
+      </article>
+    </section>
+
+    <aside class="boundary-note"><strong>统计边界：</strong>方向验证、信号触发和账户收益属于三套独立证据。当前记录未计入点差、滑点、税务及盘中成交顺序；无实际持仓时，“兑现”只表示目标触发。</aside>
+    <nav class="route-links" aria-label="美股历史页相关入口"><a href="/us-garden/">返回今日动作</a><a href="/us-momentum/">趋势风控</a><a href="/us-macro/">宏观雷达</a><a href="/paper/">模拟盘</a><a href="/garden/history/">A股历史成绩</a></nav>
+  </main>
+  <Footer />
+</body>
+</html>
