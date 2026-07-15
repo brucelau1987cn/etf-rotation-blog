@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import json
+import re
 import subprocess
 from contextlib import contextmanager
 from datetime import datetime
@@ -67,6 +68,23 @@ def sync_remote() -> None:
         raise RuntimeError("main and origin/main diverged; manual reconciliation required")
 
 
+def ensure_pub_date(article: Path, trade_date: str) -> None:
+    text = article.read_text(encoding="utf-8")
+    match = re.match(r"(?s)^---\n(?P<header>.*?)\n---\n", text)
+    if not match:
+        raise RuntimeError("article frontmatter is missing")
+    header = match.group("header")
+    pub_match = re.search(r"(?m)^pubDate:\s*['\"]?([^'\"\n]+)", header)
+    if pub_match:
+        if pub_match.group(1).strip() != trade_date:
+            raise RuntimeError(
+                f"article pubDate mismatch: pubDate={pub_match.group(1).strip()!r}, trade_date={trade_date!r}"
+            )
+        return
+    updated_header = f"pubDate: {trade_date}\n{header}"
+    article.write_text(text[:match.start("header")] + updated_header + text[match.end("header"):], encoding="utf-8")
+
+
 def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | None = None) -> dict[str, Any]:
     state = load_state(state_path)
     trade_date = state["trade_date"]
@@ -88,6 +106,7 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
         raise RuntimeError(
             f"recommendations stage/date mismatch: date={reco.get('date')!r}, stage={reco.get('stage')!r}"
         )
+    ensure_pub_date(article, trade_date)
     article_text = article.read_text(encoding="utf-8")
     stage_markers = (
         "stage: 22:00夜间最终版",
