@@ -172,10 +172,12 @@ def qfq_state() -> tuple[str | None, int]:
     try:
         with sqlite3.connect(DB) as db:
             latest = db.execute(
-                "SELECT max(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1"
+                "SELECT max(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 "
+                "AND open>0 AND high>0 AND low>0 AND close>0 AND high>=max(open,close) AND low<=min(open,close)"
             ).fetchone()[0]
             coverage = db.execute(
-                "SELECT count(distinct symbol) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 AND trade_date=?",
+                "SELECT count(distinct symbol) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 AND trade_date=? "
+                "AND open>0 AND high>0 AND low>0 AND close>0 AND high>=max(open,close) AND low<=min(open,close)",
                 (latest,),
             ).fetchone()[0]
         return latest, int(coverage)

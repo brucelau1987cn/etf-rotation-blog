@@ -33,6 +33,20 @@ def test_cache_prefers_iwencai_qfq(tmp_path):
     assert bars[0]["close"] == 3.05
 
 
+def test_cache_falls_back_when_preferred_source_has_invalid_ohlc(tmp_path):
+    db_path = tmp_path / "bars.db"
+    base = {"market": "XSHG", "symbol": "510050", "trade_date": "2026-07-10",
+            "volume": 10, "adjustment": "qfq", "is_final": True}
+    with connect(db_path) as db:
+        upsert_bars(db, [
+            {**base, "open": 3.0, "high": 3.1, "low": 2.9, "close": 3.05, "source": "stock-api"},
+            {**base, "open": 6.0, "high": 6.1, "low": 5.9, "close": 3.05, "source": "iwencai"},
+        ])
+        bars = get_bars(db, "XSHG", "510050", "qfq")
+    assert len(bars) == 1
+    assert bars[0]["source"] == "stock-api"
+
+
 def test_adjustment_bases_remain_separate(tmp_path):
     db_path = tmp_path / "bars.db"
     base = {"market": "XSHG", "symbol": "510050", "trade_date": "2026-07-10",
@@ -80,6 +94,20 @@ def test_iwencai_prefixed_fields_are_normalized():
     assert bars[0]["open"] == 0.936
     assert bars[0]["close"] == 0.974
     assert bars[0]["amount"] == 67890.0
+
+
+def test_iwencai_mixed_adjustment_ohlc_is_rejected():
+    importer = load_importer()
+    payload = {"datas": [{
+        "基金代码": "159667.SZ",
+        "基金@开盘价:前复权[20260303]": 1.993,
+        "基金@最高价[20260303]": 1.998,
+        "基金@最低价[20260303]": 1.896,
+        "基金@收盘价:前复权[20260303]": 0.633,
+    }]}
+    bars, symbols = importer.parse_payload(payload, {"159667": {"code": "159667", "market": "XSHE"}})
+    assert bars == []
+    assert symbols == set()
 
 
 def test_stock_api_history_is_normalized_and_finality_is_time_aware():

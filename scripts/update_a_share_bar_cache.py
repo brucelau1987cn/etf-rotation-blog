@@ -30,6 +30,18 @@ CN = ZoneInfo("Asia/Shanghai")
 STOCK_API_PACKAGE = "stock-api@2.7.3"
 
 
+def valid_ohlc(bar: dict[str, Any]) -> bool:
+    try:
+        open_, high, low, close = (float(bar[field]) for field in ("open", "high", "low", "close"))
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        all(math.isfinite(value) and value > 0 for value in (open_, high, low, close))
+        and high >= max(open_, close)
+        and low <= min(open_, close)
+    )
+
+
 def load_universe() -> list[dict[str, str]]:
     path = ROOT / "scripts" / "generate_garden_pool.py"
     spec = importlib.util.spec_from_file_location("garden_pool", path)
@@ -84,7 +96,7 @@ def parse_payload(payload: dict[str, Any], item_map: dict[str, dict[str, str]]) 
                 "is_final": observed < today or (observed == today and current_is_final),
             })
             bar[FIELD_MAP[field_cn]] = numeric
-    bars = [x for x in bars_by_key.values() if x.get("close") is not None]
+    bars = [x for x in bars_by_key.values() if valid_ohlc(x)]
     symbols = {x["symbol"] for x in bars}
     return bars, symbols
 
@@ -115,7 +127,8 @@ def parse_stock_api_rows(payload: Any, item: dict[str, str], now: datetime | Non
                 continue
             if math.isfinite(value):
                 bar[field] = value
-        parsed.append(bar)
+        if valid_ohlc(bar):
+            parsed.append(bar)
     return parsed
 
 

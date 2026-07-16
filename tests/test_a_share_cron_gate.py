@@ -100,3 +100,16 @@ def test_pending_public_changes_detects_staged_only_change(tmp_path, monkeypatch
 def test_qfq_state_degrades_when_database_is_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(cron_gate, "DB", tmp_path / "missing" / "etf-compass.db")
     assert cron_gate.qfq_state() == (None, 0)
+
+
+def test_qfq_state_excludes_malformed_ohlc(tmp_path, monkeypatch):
+    import sqlite3
+    db_path = tmp_path / "bars.db"
+    with sqlite3.connect(db_path) as db:
+        db.execute("CREATE TABLE daily_bars(symbol TEXT,trade_date TEXT,open REAL,high REAL,low REAL,close REAL,adjustment TEXT,is_final INTEGER)")
+        db.executemany("INSERT INTO daily_bars VALUES (?,?,?,?,?,?,?,?)", [
+            ("510050", "2026-07-14", 3.0, 3.1, 2.9, 3.05, "qfq", 1),
+            ("159667", "2026-07-14", 2.0, 2.1, 1.9, 0.63, "qfq", 1),
+        ])
+    monkeypatch.setattr(cron_gate, "DB", db_path)
+    assert cron_gate.qfq_state() == ("2026-07-14", 1)

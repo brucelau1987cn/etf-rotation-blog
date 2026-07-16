@@ -93,6 +93,8 @@ def get_bars(db: sqlite3.Connection, market: str, symbol: str, adjustment: str =
         f"""SELECT * FROM (
           SELECT *, ROW_NUMBER() OVER(PARTITION BY trade_date ORDER BY {priority}, fetched_at DESC) AS rn
           FROM daily_bars WHERE market=? AND symbol=? AND adjustment=? AND is_final=1
+            AND open>0 AND high>0 AND low>0 AND close>0
+            AND high>=max(open,close) AND low<=min(open,close)
         ) WHERE rn=1 ORDER BY trade_date DESC LIMIT ?""",
         (market, symbol, adjustment, limit),
     ).fetchall()

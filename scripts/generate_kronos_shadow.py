@@ -98,6 +98,8 @@ def load_frames(
               ) rn
               FROM daily_bars
               WHERE market IN ('A','XSHG','XSHE') AND adjustment='qfq' AND is_final=1
+                AND open>0 AND high>0 AND low>0 AND close>0
+                AND high>=max(open,close) AND low<=min(open,close)
                 AND symbol IN ({placeholders})
             ) WHERE rn=1 ORDER BY symbol,trade_date""",
             symbols,

@@ -252,11 +252,13 @@ def load_frames(db_path: Path, limit: int) -> tuple[dict[str, pd.DataFrame], dic
         """SELECT symbol,trade_date,open,high,low,close,volume,amount FROM (
           SELECT *, ROW_NUMBER() OVER (
             PARTITION BY symbol,trade_date
-            ORDER BY CASE source WHEN 'iwencai' THEN 1 WHEN 'stock-api' THEN 2 ELSE 9 END,
+            ORDER BY CASE source WHEN 'iwencai' THEN 1 WHEN 'stock-api' THEN 2 WHEN 'tencent' THEN 3 ELSE 9 END,
                      fetched_at DESC
           ) rn
           FROM daily_bars
           WHERE market IN ('A','XSHG','XSHE') AND adjustment='qfq' AND is_final=1
+            AND open>0 AND high>0 AND low>0 AND close>0
+            AND high>=max(open,close) AND low<=min(open,close)
         ) WHERE rn=1 ORDER BY symbol,trade_date"""
     ).fetchall()
     db.close()
