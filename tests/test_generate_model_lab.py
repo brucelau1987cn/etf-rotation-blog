@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -64,3 +65,40 @@ def test_history_destination_failure_does_not_publish_snapshot(tmp_path: Path):
     else:
         raise AssertionError("expected history destination failure")
     assert not out.exists()
+
+
+def market_frame(closes: list[float]) -> pd.DataFrame:
+    close = pd.Series(closes, index=pd.bdate_range("2025-01-02", periods=len(closes)), dtype=float)
+    return pd.DataFrame({
+        "open": close * .998, "high": close * 1.005, "low": close * .995,
+        "close": close, "volume": 1_000_000.0, "amount": close * 1_000_000,
+    }, index=close.index)
+
+
+def test_multi_timeframe_alignment_uses_closed_week_and_detects_trend():
+    frame = market_frame([100 + i * .5 for i in range(100)])
+    result = lab.multi_timeframe_alignment(frame)
+    assert result["score"] >= 55
+    assert result["state"] == "strong_bullish"
+    assert result["closed_week_trade_date"] <= frame.index[-1].date().isoformat()
+    assert lab.rsi_series(frame["close"]).iloc[-1] == 100
+
+
+def test_atr_trail_is_below_price_in_stable_uptrend():
+    frame = market_frame([100 + i * .3 for i in range(100)])
+    result = lab.atr_trailing_defense(frame)
+    assert result["trailing_defense"] < frame["close"].iloc[-1]
+    assert result["state"] in {"above", "near"}
+
+
+def test_break_retest_state_machine_confirms_and_audits_outcome():
+    closes = [100 + i * .1 for i in range(25)] + [105, 103.1, 108, 109, 110]
+    frame = market_frame(closes)
+    frame.iloc[25, frame.columns.get_loc("open")] = 102.0
+    frame.iloc[26, frame.columns.get_loc("low")] = 102.2
+    frame.iloc[27, frame.columns.get_loc("high")] = 112.0
+    result = lab.break_retest_audit(frame)
+    assert result["confirmed_count"] >= 1
+    assert result["wins"] >= 1
+    confirmed = [x for x in result["recent_events"] if x["status"] == "confirmed"]
+    assert confirmed and confirmed[-1]["bars"] >= 1

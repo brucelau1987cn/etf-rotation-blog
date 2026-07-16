@@ -27,13 +27,42 @@ import Footer from '../components/Footer.astro';
     .summary { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin-top: .25rem; color: rgb(var(--gray-dark)); font-size: .8rem; }
     .summary span { padding: .2rem .45rem; border-radius: 6px; background: #eef3f4; }
     .empty { color: rgb(var(--gray)); }
+    .research-panel { margin-top: 1rem; }
+    .research-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+    .research-head h2 { margin: 0; }
+    .research-head p { margin: 0; color: rgb(var(--gray)); font-size: .8rem; }
     @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+  <style is:global>
+    #research-content .research-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .65rem; }
+    #research-content .research-card { padding: .78rem; border: 1px solid var(--border); border-top: 3px solid #66839a; border-radius: 12px; background: #fbfcfd; }
+    #research-content .research-card.buy { border-top-color: var(--action-buy); background: #fff8f6; }
+    #research-content .research-card.sell { border-top-color: var(--action-sell); background: #f3fbf6; }
+    #research-content .research-card span { display: block; color: rgb(var(--gray)); font-size: .72rem; }
+    #research-content .research-card strong { display: block; margin-top: .15rem; font-size: 1.2rem; }
+    #research-content .research-card small { display: block; margin-top: .2rem; color: rgb(var(--gray)); line-height: 1.4; }
+    #research-content .validation { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .55rem; margin-top: .7rem; }
+    #research-content .validation div { padding: .62rem .7rem; border-radius: 10px; background: #eef3f4; font-size: .78rem; }
+    #research-content .validation b { display: block; margin-top: .12rem; }
+    #research-content .research-note { margin: .5rem 0 0; color: rgb(var(--gray)); font-size: .72rem; }
+    #research-content .watch-list { display: grid; gap: .4rem; margin-top: .75rem; }
+    #research-content .watch-row { display: grid; grid-template-columns: minmax(150px,1fr) 2fr; gap: .55rem; align-items: center; padding: .5rem .65rem; border: 1px solid var(--border); border-radius: 9px; font-size: .78rem; }
+    #research-content .tags { display: flex; flex-wrap: wrap; gap: .28rem; }
+    #research-content .tag { padding: .12rem .38rem; border-radius: 999px; background: #edf2f4; color: #445867; font-weight: 800; }
+    #research-content .tag.buy { background: #fff0ef; color: var(--action-buy); }
+    #research-content .tag.sell { background: #e9f7ef; color: var(--action-sell); }
+    @media (max-width: 720px) { #research-content .research-grid { grid-template-columns: repeat(2,1fr); } #research-content .validation { grid-template-columns: 1fr; } }
+    @media (max-width: 480px) { #research-content .research-grid { grid-template-columns: 1fr; } #research-content .watch-row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <Header />
   <main>
     <section class="hero"><span class="kicker">ETF COMPASS LAB</span><h1>回测实验室</h1><p id="welcome">正在读取登录状态…</p></section>
+    <section class="panel research-panel" aria-labelledby="research-title">
+      <div class="research-head"><div><h2 id="research-title">旁路信号增强</h2><p>多周期一致性 · ATR动态防守 · RSI Z-score止盈 · 突破回踩审计</p></div><p>研究层 · 正式信号保持原规则</p></div>
+      <div id="research-content"><div class="empty">正在读取研究快照…</div></div>
+    </section>
     <div class="grid">
       <section class="panel"><h2>上传名单</h2><form id="upload-form"><input name="file" type="file" accept=".csv,text/csv" required /><button type="submit">上传并排队</button><button class="secondary" type="button" id="logout">退出登录</button></form><div class="status" id="status" role="status" aria-live="polite"></div></section>
       <section class="panel"><h2>我的任务</h2><div class="jobs" id="jobs"><div class="empty">正在读取…</div></div></section>
@@ -43,9 +72,41 @@ import Footer from '../components/Footer.astro';
   <script>
     const welcome = document.querySelector('#welcome'); const status = document.querySelector('#status'); const jobs = document.querySelector('#jobs');
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    const pct = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
+    const pp = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}个百分点` : '—';
+    async function loadResearch() {
+      const box = document.querySelector('#research-content');
+      try {
+        const response = await fetch(`/data/model-lab/a-share-shadow.json?cb=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json(); const feature = data.signal_enhancement;
+        if (!feature) { box.innerHTML = '<div class="empty">研究增强快照尚未生成。</div>'; return; }
+        const s = feature.summary, v = feature.historical_validation, br = s.break_retest;
+        const priority = item => { const x = item.signal_enhancement; return x.atr_defense.state === 'breached' ? 0 : x.rsi_take_profit.state === 'cooling_trigger' ? 1 : x.break_retest.state === 'armed' ? 2 : x.atr_defense.state === 'near' ? 3 : 4; };
+        const selected = (data.items || []).filter(item => { const x = item.signal_enhancement; return x && (x.break_retest.state === 'armed' || x.atr_defense.state !== 'above' || ['overheated','cooling_trigger'].includes(x.rsi_take_profit.state)); }).sort((a,b) => priority(a) - priority(b)).slice(0, 12);
+        const rows = selected.map(item => { const x = item.signal_enhancement, tags = [];
+          if (x.break_retest.state === 'armed') tags.push('<span class="tag buy">回踩候场</span>');
+          if (x.atr_defense.state === 'breached') tags.push('<span class="tag sell">ATR跌破</span>'); else if (x.atr_defense.state === 'near') tags.push('<span class="tag sell">接近ATR防守</span>');
+          if (x.rsi_take_profit.state === 'overheated') tags.push('<span class="tag sell">Z-score过热</span>'); else if (x.rsi_take_profit.state === 'cooling_trigger') tags.push('<span class="tag sell">Z-score回落</span>');
+          tags.push(`<span class="tag">多周期 ${escapeHtml(x.multi_timeframe.score ?? '—')}</span>`);
+          return `<div class="watch-row"><strong>${escapeHtml(item.symbol)} · ${escapeHtml(item.name)}</strong><div class="tags">${tags.join('')}</div></div>`;
+        }).join('');
+        box.innerHTML = `<div class="research-grid">
+          <article class="research-card buy"><span>多周期强一致</span><strong>${s.multi_timeframe.strong_bullish}只</strong><small>日/周/60日已收盘信号投票</small></article>
+          <article class="research-card sell"><span>ATR动态防守</span><strong>${s.atr_defense.breached}跌破 · ${s.atr_defense.near}接近</strong><small>2×ATR单向跟踪，当前角色：旁路观察</small></article>
+          <article class="research-card sell"><span>RSI Z-score止盈</span><strong>${s.rsi_take_profit.overheated}过热 · ${s.rsi_take_profit.cooling_trigger}回落</strong><small>RSI14相对20期分布，阈值 +2</small></article>
+          <article class="research-card buy"><span>突破回踩状态机</span><strong>${br.armed}候场 · 已决胜率${br.win_rate ?? '—'}%</strong><small>确认 ${br.historical_confirmed}；已决 ${br.decided_count}；到期 ${br.outcome_expired}；开放 ${br.outcome_open}</small></article>
+        </div><div class="validation">
+          <div>强一致组未来5日<b>${pct(v.multi_timeframe.strong_alignment.average_pct)} · 相对提升 ${pp(v.multi_timeframe.average_return_lift_pct)}</b></div>
+          <div>RSI过热回落后5日<b>${pct(v.rsi_cooling.average_pct)} · 样本 ${v.rsi_cooling.count}</b></div>
+          <div>ATR跌破后5日<b>${pct(v.atr_breach.average_pct)} · 样本 ${v.atr_breach.count}</b></div>
+        </div><p class="research-note">历史统计使用ETF×日期重叠观察值，尚未扣除交易成本；升级正式规则需通过推广闸门。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
+      } catch (error) { box.innerHTML = `<div class="empty">研究快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
+    }
     async function load() {
       const me = await fetch('/api/auth/me'); if (!me.ok) { location.href = '/login/'; return; }
       const user = await me.json(); welcome.textContent = `已登录：${user.user.username} · ${user.user.role === 'admin' ? '管理员' : '用户'}`;
+      loadResearch();
       const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
       jobs.innerHTML = data.jobs.length ? data.jobs.map(job => { const summary = job.result?.by_category || {}; const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈'],['兑现','兑现']].map(([key,label]) => summary[key] ? `<span>${label} ${summary[key].count}只 · T+1 ${summary[key].t1_hit_rate ?? '待定'}%</span>` : '').join(''); return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || job.result?.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`; }).join('') : '<div class="empty">还没有上传任务。</div>';
     }

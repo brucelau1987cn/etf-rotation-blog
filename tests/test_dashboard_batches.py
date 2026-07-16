@@ -32,6 +32,7 @@ FIXTURES = {
     },
     "model-lab/a-share-shadow.json": {
         "latest_trade_date": "2026-07-14", "mode": "shadow_research_only", "production_weights_changed": False,
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "summary": {}, "historical_validation": {}},
     },
     "us-etf-garden.json": {
         "date": "2026-07-13", "updated_at": "2026-07-13T18:31:00-04:00", "stage": "美股收盘版",
@@ -104,6 +105,15 @@ def test_missing_file_is_blocked(tmp_path):
     result = validate(tmp_path)
     assert result.status == "error"
     assert "missing file" in result.errors[0]
+
+
+def test_missing_signal_enhancement_is_blocked(tmp_path):
+    def mutate(payloads):
+        payloads["model-lab/a-share-shadow.json"].pop("signal_enhancement")
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("signal_enhancement is required" in error for error in result.errors)
 
 
 def test_invalid_stage_and_status_are_blocked(tmp_path):

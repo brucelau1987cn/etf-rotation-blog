@@ -165,6 +165,14 @@ def validate_runtime_schema(
         errors.append("a-share-mid-macro requires market=CN and exactly 3 factors")
     if shadow.get("mode") != "shadow_research_only" or shadow.get("production_weights_changed") is not False:
         errors.append("a-share-shadow must remain shadow_research_only with unchanged production weights")
+    enhancement = shadow.get("signal_enhancement")
+    if not isinstance(enhancement, dict):
+        errors.append("a-share-shadow signal_enhancement is required")
+    else:
+        if enhancement.get("formal_signal_logic_changed") is not False or enhancement.get("production_role") != "shadow_filter_and_audit_only":
+            errors.append("a-share-shadow enhancement must remain audit-only with unchanged formal signals")
+        if not isinstance(enhancement.get("summary"), dict) or not isinstance(enhancement.get("historical_validation"), dict):
+            errors.append("a-share-shadow enhancement requires summary and historical_validation")
 
     require_fields(errors, "us-etf-garden", us, ("date", "updated_at", "stage", "session_state", "market_regime", "flower_signals"))
     if us.get("stage") not in US_STAGES:

@@ -16,7 +16,8 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
     }))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
-        "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89
+        "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only"}
     }))
     monkeypatch.setattr(prepare, "run_json", lambda command: {
         "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91
@@ -42,7 +43,7 @@ def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeyp
     state.write_text(json.dumps({"status": "prepared", "trade_date": "2026-07-13"}))
     result = prepare.prepare(now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=state)
     assert result["status"] == "blocked"
-    assert len(result["errors"]) == 3
+    assert len(result["errors"]) == 4
     assert json.loads(state.read_text())["status"] == "blocked"
 
 
