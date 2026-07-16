@@ -113,7 +113,7 @@ def validate_levels(
 
 def validate_runtime_schema(
     errors: list[str], warnings: list[str], garden: dict[str, Any], a_pool: dict[str, Any], a_mid: dict[str, Any],
-    shadow: dict[str, Any], us: dict[str, Any], us_pool: dict[str, Any], us_macro: dict[str, Any],
+    shadow: dict[str, Any], kronos: dict[str, Any], us: dict[str, Any], us_pool: dict[str, Any], us_macro: dict[str, Any],
 ) -> None:
     require_fields(errors, "garden-recommendations", garden, ("date", "updated_at", "stage", "market_state", "position", "summary"))
     if garden.get("stage") not in A_STAGES:
@@ -193,6 +193,43 @@ def validate_runtime_schema(
         if invalid_numbers:
             errors.append(f"a-share-shadow enhancement contains non-finite values: {', '.join(invalid_numbers[:5])}")
 
+    if kronos.get("mode") != "shadow_research_only" or kronos.get("production_weights_changed") is not False:
+        errors.append("Kronos snapshot must remain shadow_research_only with unchanged production weights")
+    if kronos.get("formal_signal_logic_changed") is not False or kronos.get("production_role") != "display_and_audit_only":
+        errors.append("Kronos snapshot must remain display-and-audit only")
+    basis = kronos.get("data_basis") or {}
+    if basis.get("adjustment") != "qfq" or basis.get("is_final") is not True or basis.get("universe") != "formal_rotation":
+        errors.append("Kronos snapshot requires final qfq formal_rotation data")
+    definition = kronos.get("forecast_definition") or {}
+    if definition.get("horizon_sessions") != 5 or len(definition.get("future_sessions") or []) != 5:
+        errors.append("Kronos snapshot requires five future sessions")
+    kronos_items = kronos.get("items") or []
+    kronos_coverage = kronos.get("coverage") or {}
+    expected = int(kronos_coverage.get("expected_symbols") or 0)
+    predicted = int(kronos_coverage.get("predicted_symbols") or 0)
+    rotation_codes = {
+        str(item.get("code")) for item in (rows or [])
+        if isinstance(item, dict) and item.get("asset_layer", "rotation") == "rotation"
+    }
+    kronos_symbols = [str(item.get("symbol") or "") for item in kronos_items if isinstance(item, dict)]
+    if expected != predicted or predicted != len(kronos_items) or set(kronos_symbols) != rotation_codes:
+        errors.append(f"Kronos coverage/symbol set mismatch: expected={expected}, predicted={predicted}, items={len(kronos_items)}, rotation={len(rotation_codes)}")
+    if len(kronos_symbols) != len(set(kronos_symbols)):
+        errors.append("Kronos snapshot contains duplicate symbols")
+    for index, item in enumerate(kronos_items):
+        label = f"Kronos items[{index}]"
+        if item.get("as_of") != kronos.get("latest_trade_date"):
+            errors.append(f"{label} as_of differs from Kronos latest_trade_date")
+        if len(item.get("steps") or []) != 5:
+            errors.append(f"{label} requires five prediction steps")
+        for step in item.get("steps") or []:
+            if any(number(step.get(field)) is None for field in ("open", "high", "low", "close")):
+                errors.append(f"{label} contains non-finite OHLC")
+                break
+    invalid_kronos = non_finite_paths(kronos, "kronos")
+    if invalid_kronos:
+        errors.append(f"Kronos snapshot contains non-finite values: {', '.join(invalid_kronos[:5])}")
+
     require_fields(errors, "us-etf-garden", us, ("date", "updated_at", "stage", "session_state", "market_regime", "flower_signals"))
     if us.get("stage") not in US_STAGES:
         errors.append(f"us-etf-garden invalid stage: {us.get('stage')!r}")
@@ -235,13 +272,14 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         a_pool = load_json(data_dir / "etf-garden-pool.json")
         a_mid = load_json(data_dir / "a-share-mid-macro.json")
         shadow = load_json(data_dir / "model-lab/a-share-shadow.json")
+        kronos = load_json(data_dir / "model-lab/a-share-kronos-shadow.json")
         us = load_json(data_dir / "us-etf-garden.json")
         us_pool = load_json(data_dir / "us-etf-pool.json")
         us_macro = load_json(data_dir / "us-macro-dashboard.json")
     except ValueError as exc:
         return CheckResult("error", [str(exc)], warnings, batches)
 
-    validate_runtime_schema(errors, warnings, garden, a_pool, a_mid, shadow, us, us_pool, us_macro)
+    validate_runtime_schema(errors, warnings, garden, a_pool, a_mid, shadow, kronos, us, us_pool, us_macro)
 
     a_date = require_date(errors, "A recommendations date", garden.get("date"))
     a_applies = require_date(errors, "A recommendations applies_to", garden.get("applies_to"))
@@ -250,6 +288,7 @@ def validate(data_dir: Path = DATA) -> CheckResult:
     pool_latest = require_date(errors, "A pool latest_trade_date", a_pool.get("latest_trade_date"))
     mid_generated = require_date(errors, "A mid-macro generated_at", a_mid.get("generated_at"))
     shadow_latest = require_date(errors, "A shadow latest_trade_date", shadow.get("latest_trade_date"))
+    kronos_latest = require_date(errors, "A Kronos latest_trade_date", kronos.get("latest_trade_date"))
     action_dates = sorted({
         parsed
         for section in ("plant", "harvest", "watch")
@@ -279,6 +318,11 @@ def validate(data_dir: Path = DATA) -> CheckResult:
             "A-share shadow date outside plan/baseline batches: "
             f"allowed={sorted(shadow_allowed_dates)}, shadow={shadow_latest}"
         )
+    if kronos_latest and kronos_latest not in shadow_allowed_dates:
+        errors.append(
+            "A-share Kronos date outside plan/baseline batches: "
+            f"allowed={sorted(shadow_allowed_dates)}, kronos={kronos_latest}"
+        )
     stage = str(garden.get("stage") or "")
     allowed_action_dates = {date for date in (a_date, pool_latest) if date}
     unexpected_action_dates = [date for date in action_dates if date not in allowed_action_dates]
@@ -287,11 +331,11 @@ def validate(data_dir: Path = DATA) -> CheckResult:
             f"A action price dates outside plan/baseline batches: allowed={sorted(allowed_action_dates)}, actions={action_dates}"
         )
     if stage.startswith("22:00"):
-        final_dates = [x for x in (a_date, a_level, pool_latest, shadow_latest) if x]
+        final_dates = [x for x in (a_date, a_level, pool_latest, shadow_latest, kronos_latest) if x]
         if len(set(final_dates)) > 1:
             errors.append(
                 "A 22:00 final stage requires one final date: "
-                f"recommendations={a_date}, levels={a_level}, pool_latest={pool_latest}, shadow={shadow_latest}"
+                f"recommendations={a_date}, levels={a_level}, pool_latest={pool_latest}, shadow={shadow_latest}, kronos={kronos_latest}"
             )
         if action_dates and action_dates != [a_date]:
             errors.append(f"A 22:00 final action dates must equal {a_date}: {action_dates}")
@@ -326,6 +370,7 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         "pool_latest": pool_latest,
         "mid_macro_date": mid_generated,
         "shadow_date": shadow_latest,
+        "kronos_date": kronos_latest,
     }
     batches["us"] = {
         "date": us_date,

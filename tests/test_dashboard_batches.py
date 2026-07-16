@@ -34,6 +34,23 @@ FIXTURES = {
         "latest_trade_date": "2026-07-14", "mode": "shadow_research_only", "production_weights_changed": False,
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "summary": {}, "historical_validation": {}, "coverage": {"symbols_at_least_260": 89}, "feature_parameters": {}},
     },
+    "model-lab/a-share-kronos-shadow.json": {
+        "latest_trade_date": "2026-07-14", "mode": "shadow_research_only",
+        "production_weights_changed": False, "formal_signal_logic_changed": False,
+        "production_role": "display_and_audit_only",
+        "data_basis": {"adjustment": "qfq", "is_final": True, "universe": "formal_rotation"},
+        "forecast_definition": {"horizon_sessions": 5, "future_sessions": ["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21"]},
+        "coverage": {"expected_symbols": 1, "predicted_symbols": 1, "failed_symbols": []},
+        "items": [{
+            "symbol": "510300", "name": "沪深300ETF", "as_of": "2026-07-14", "close": 4.0,
+            "steps": [
+                {"session": i, "date": day, "open": 4.0, "high": 4.1, "low": 3.9, "close": 4.02}
+                for i, day in enumerate(["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21"], 1)
+            ],
+            "five_day": {"predicted_close": 4.02, "predicted_return_pct": 0.5, "path_high_pct": 2.5, "path_low_pct": -2.5},
+            "quality": {"raw_ohlc_valid": True, "raw_errors": []},
+        }],
+    },
     "us-etf-garden.json": {
         "date": "2026-07-13", "updated_at": "2026-07-13T18:31:00-04:00", "stage": "美股收盘版",
         "session_state": "closed", "market_regime": {"state": "risk-off"},
@@ -85,6 +102,8 @@ def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
         })
         payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
         payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-kronos-shadow.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-kronos-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"
@@ -123,6 +142,18 @@ def test_non_finite_enhancement_value_is_blocked(tmp_path):
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("non-finite" in error for error in result.errors)
+
+
+def test_invalid_kronos_snapshot_is_blocked(tmp_path):
+    def mutate(payloads):
+        snapshot = payloads["model-lab/a-share-kronos-shadow.json"]
+        snapshot["items"][0]["steps"][0]["close"] = float("nan")
+        snapshot["items"].append(copy.deepcopy(snapshot["items"][0]))
+        snapshot["coverage"]["predicted_symbols"] = 2
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("Kronos" in error for error in result.errors)
 
 
 def test_invalid_stage_and_status_are_blocked(tmp_path):

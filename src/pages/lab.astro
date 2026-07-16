@@ -28,6 +28,7 @@ import Footer from '../components/Footer.astro';
     .summary span { padding: .2rem .45rem; border-radius: 6px; background: #eef3f4; }
     .empty { color: rgb(var(--gray)); }
     .research-panel { margin-top: 1rem; }
+    .kronos-panel { margin-top: 1rem; }
     .research-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
     .research-head h2 { margin: 0; }
     .research-head p { margin: 0; color: rgb(var(--gray)); font-size: .8rem; }
@@ -51,8 +52,20 @@ import Footer from '../components/Footer.astro';
     #research-content .tag { padding: .12rem .38rem; border-radius: 999px; background: #edf2f4; color: #445867; font-weight: 800; }
     #research-content .tag.buy { background: #fff0ef; color: var(--action-buy); }
     #research-content .tag.sell { background: #e9f7ef; color: var(--action-sell); }
-    @media (max-width: 720px) { #research-content .research-grid { grid-template-columns: repeat(2,1fr); } #research-content .validation { grid-template-columns: 1fr; } }
-    @media (max-width: 480px) { #research-content .research-grid { grid-template-columns: 1fr; } #research-content .watch-row { grid-template-columns: 1fr; } }
+    #kronos-content .kronos-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .65rem; }
+    #kronos-content .kronos-card { padding: .78rem; border: 1px solid var(--border); border-top: 3px solid #6c62a7; border-radius: 12px; background: #faf9ff; }
+    #kronos-content .kronos-card span { display: block; color: rgb(var(--gray)); font-size: .72rem; }
+    #kronos-content .kronos-card strong { display: block; margin-top: .15rem; font-size: 1.2rem; }
+    #kronos-content .kronos-card strong span { display: inline; color: inherit; font-size: inherit; }
+    #kronos-content .kronos-card small { display: block; margin-top: .2rem; color: rgb(var(--gray)); line-height: 1.4; }
+    #kronos-content .kronos-list { display: grid; gap: .4rem; margin-top: .75rem; }
+    #kronos-content .kronos-row { display: grid; grid-template-columns: minmax(170px,1fr) auto minmax(210px,1fr); gap: .65rem; align-items: center; padding: .52rem .65rem; border: 1px solid var(--border); border-radius: 9px; font-size: .78rem; }
+    #kronos-content .kronos-return { font-size: .9rem; font-weight: 900; }
+    #kronos-content .kronos-range { color: rgb(var(--gray)); text-align: right; }
+    #kronos-content .quality-warning { color: #9a6500; font-weight: 800; }
+    #kronos-content .kronos-note { margin: .6rem 0 0; color: rgb(var(--gray)); font-size: .72rem; line-height: 1.55; }
+    @media (max-width: 720px) { #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: repeat(2,1fr); } #research-content .validation { grid-template-columns: 1fr; } #kronos-content .kronos-row { grid-template-columns: 1fr auto; } #kronos-content .kronos-range { grid-column: 1/-1; text-align: left; } }
+    @media (max-width: 480px) { #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: 1fr; } #research-content .watch-row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -62,6 +75,10 @@ import Footer from '../components/Footer.astro';
     <section class="panel research-panel" aria-labelledby="research-title">
       <div class="research-head"><div><h2 id="research-title">旁路信号增强</h2><p>多周期一致性 · ATR动态防守 · RSI Z-score止盈 · 突破回踩审计</p></div><p>研究层 · 正式信号保持原规则</p></div>
       <div id="research-content"><div class="empty">正在读取研究快照…</div></div>
+    </section>
+    <section class="panel kronos-panel" aria-labelledby="kronos-title">
+      <div class="research-head"><div><h2 id="kronos-title">Kronos 未来5日影子预测</h2><p>K线基础模型 · qfq已收盘日线 · 确定性贪心路径</p></div><p>研究展示与模型审计</p></div>
+      <div id="kronos-content"><div class="empty">正在读取Kronos快照…</div></div>
     </section>
     <div class="grid">
       <section class="panel"><h2>上传名单</h2><form id="upload-form"><input name="file" type="file" accept=".csv,text/csv" required /><button type="submit">上传并排队</button><button class="secondary" type="button" id="logout">退出登录</button></form><div class="status" id="status" role="status" aria-live="polite"></div></section>
@@ -103,10 +120,30 @@ import Footer from '../components/Footer.astro';
         </div><p class="research-note">历史覆盖 ${feature.coverage?.symbols_at_least_260 ?? '—'}/${feature.coverage?.symbols ?? '—'}只达到260根；统计使用ETF×日期重叠观察值，交易成本将在推广闸门阶段纳入。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
       } catch (error) { box.innerHTML = `<div class="empty">研究快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
+    async function loadKronos() {
+      const box = document.querySelector('#kronos-content');
+      try {
+        const response = await fetch(`/data/model-lab/a-share-kronos-shadow.json?cb=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json(), coverage = data.coverage || {}, summary = data.summary || {};
+        const ranked = [...(data.items || [])].sort((a,b) => Number(b.five_day?.predicted_return_pct) - Number(a.five_day?.predicted_return_pct));
+        const selected = [...ranked.slice(0,5), ...ranked.slice(-5)].filter((item,index,list) => list.findIndex(other => other.symbol === item.symbol) === index);
+        const rows = selected.map(item => { const value = Number(item.five_day?.predicted_return_pct), tone = value > 0 ? 'market-up-text' : value < 0 ? 'market-down-text' : '', quality = item.quality?.raw_ohlc_valid ? '' : '<span class="quality-warning">OHLC校验提醒</span>';
+          return `<div class="kronos-row"><strong>${escapeHtml(item.symbol)} · ${escapeHtml(item.name)}</strong><span class="kronos-return ${tone}">${pct(value)}</span><span class="kronos-range">路径低/高 ${pct(item.five_day?.path_low_pct)} / ${pct(item.five_day?.path_high_pct)} ${quality}</span></div>`;
+        }).join('');
+        box.innerHTML = `<div class="kronos-grid">
+          <article class="kronos-card"><span>预测覆盖</span><strong>${coverage.predicted_symbols ?? '—'}/${coverage.expected_symbols ?? '—'}</strong><small>正式轮动ETF · 数据日 ${escapeHtml(data.latest_trade_date)}</small></article>
+          <article class="kronos-card"><span>未来5日方向</span><strong><span class="market-up-text">${summary.bullish_symbols ?? '—'}正</span> · <span class="market-down-text">${summary.bearish_symbols ?? '—'}负</span></strong><small>只统计模型路径终点方向</small></article>
+          <article class="kronos-card"><span>中位预测收益</span><strong class="${Number(summary.median_predicted_return_pct) >= 0 ? 'market-up-text' : 'market-down-text'}">${pct(summary.median_predicted_return_pct)}</strong><small>截面中位数 · horizon 5个交易日</small></article>
+          <article class="kronos-card"><span>原始OHLC质量</span><strong>${coverage.raw_ohlc_valid_symbols ?? '—'}/${coverage.predicted_symbols ?? '—'}</strong><small>异常路径保留原值并提示，未用于正式信号</small></article>
+        </div><div class="kronos-list">${rows}</div><p class="kronos-note">模型：${escapeHtml(data.model?.checkpoint)}；输入最近${data.model?.parameters?.lookback ?? '—'}根OHLC；未来交易日：${(data.forecast_definition?.future_sessions || []).map(escapeHtml).join('、')}。当前输出是一条固定参数的确定性模型路径，用于旁路观察、历史积累和后续walk-forward验证；正式动作、权重、关键位与模拟盘规则保持原状态。</p>`;
+      } catch (error) { box.innerHTML = `<div class="empty">Kronos快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
+    }
     async function load() {
       const me = await fetch('/api/auth/me'); if (!me.ok) { location.href = '/login/'; return; }
       const user = await me.json(); welcome.textContent = `已登录：${user.user.username} · ${user.user.role === 'admin' ? '管理员' : '用户'}`;
       loadResearch();
+      loadKronos();
       const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
       jobs.innerHTML = data.jobs.length ? data.jobs.map(job => { const summary = job.result?.by_category || {}; const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈'],['兑现','兑现']].map(([key,label]) => summary[key] ? `<span>${label} ${summary[key].count}只 · T+1 ${summary[key].t1_hit_rate ?? '待定'}%</span>` : '').join(''); return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || job.result?.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`; }).join('') : '<div class="empty">还没有上传任务。</div>';
     }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import tempfile
@@ -41,6 +42,38 @@ def atomic_write(path: Path, payload: dict) -> None:
             os.unlink(temporary)
 
 
+def validate_kronos_snapshot(payload: dict, trade_date: str | None) -> list[str]:
+    errors = []
+    if payload.get("mode") != "shadow_research_only" or payload.get("production_weights_changed") is not False:
+        errors.append("Kronos snapshot must remain shadow_research_only with unchanged production weights")
+    if payload.get("formal_signal_logic_changed") is not False or payload.get("production_role") != "display_and_audit_only":
+        errors.append("Kronos snapshot must remain display-and-audit only")
+    if payload.get("latest_trade_date") != trade_date:
+        errors.append("Kronos latest_trade_date differs from gate qfq_date")
+    basis = payload.get("data_basis") or {}
+    if basis.get("adjustment") != "qfq" or basis.get("is_final") is not True or basis.get("universe") != "formal_rotation":
+        errors.append("Kronos snapshot requires final qfq formal_rotation data")
+    definition = payload.get("forecast_definition") or {}
+    if definition.get("horizon_sessions") != 5 or len(definition.get("future_sessions") or []) != 5:
+        errors.append("Kronos snapshot requires five future sessions")
+    coverage = payload.get("coverage") or {}
+    items = payload.get("items") or []
+    if coverage.get("expected_symbols") != 89 or coverage.get("predicted_symbols") != 89 or len(items) != 89:
+        errors.append("Kronos snapshot requires 89/89 coverage")
+    symbols = [item.get("symbol") for item in items if isinstance(item, dict)]
+    if len(symbols) != len(set(symbols)):
+        errors.append("Kronos snapshot contains duplicate symbols")
+    for item in items:
+        if not isinstance(item, dict) or item.get("as_of") != trade_date or len(item.get("steps") or []) != 5:
+            errors.append("Kronos snapshot contains stale or malformed items")
+            break
+        values = [step.get(field) for step in item["steps"] for field in ("open", "high", "low", "close")]
+        if any(not isinstance(value, (int, float)) or not math.isfinite(value) for value in values):
+            errors.append("Kronos snapshot contains non-finite predictions")
+            break
+    return errors
+
+
 def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     current = now or datetime.now(CN)
     gate = run_json(["python3", "scripts/check_a_share_cron_gate.py", "--stage", "22:00"])
@@ -58,6 +91,8 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
 
     pool = json.loads((ROOT / "public/data/etf-garden-pool.json").read_text(encoding="utf-8"))
     shadow = json.loads((ROOT / "public/data/model-lab/a-share-shadow.json").read_text(encoding="utf-8"))
+    kronos_path = ROOT / "public/data/model-lab/a-share-kronos-shadow.json"
+    kronos = json.loads(kronos_path.read_text(encoding="utf-8")) if kronos_path.exists() else {}
     errors = []
     if shadow.get("mode") != "shadow_research_only":
         errors.append("shadow mode must be shadow_research_only")
@@ -76,6 +111,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         errors.append("pool latest_trade_date differs from gate qfq_date")
     if int((pool.get("summary") or {}).get("valid_count") or 0) < 82:
         errors.append("formal pool valid coverage below 82")
+    errors.extend(validate_kronos_snapshot(kronos, gate.get("qfq_date")))
     if errors:
         payload = {
             "version": 1,
@@ -105,6 +141,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         "snapshot_files": [
             "public/data/etf-garden-pool.json",
             "public/data/model-lab/a-share-shadow.json",
+            "public/data/model-lab/a-share-kronos-shadow.json",
         ],
     }
     atomic_write(state_path, payload)
