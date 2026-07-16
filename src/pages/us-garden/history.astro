@@ -18,9 +18,9 @@ const labels: Record<string, string> = {
   exit: '破位撤退',
 };
 const tone: Record<string, string> = {
-  ready_plant: 'watch',
+  ready_plant: 'plant',
   plant: 'plant',
-  ready_harvest: 'ready',
+  ready_harvest: 'harvest',
   harvest: 'harvest',
   exit: 'exit',
 };
@@ -74,9 +74,8 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     .summary-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: .8rem 0 0; }
     .summary-card { position: relative; min-height: 7.1rem; padding: .9rem; overflow: hidden; }
     .summary-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--history-blue); }
-    .summary-card.plant::before { background: var(--history-green); }
-    .summary-card.harvest::before { background: var(--history-orange); }
-    .summary-card.exit::before { background: var(--history-red); }
+    .summary-card.plant::before { background: var(--history-red); }
+    .summary-card.harvest::before, .summary-card.exit::before { background: var(--history-green); }
     .summary-card span { display: block; color: var(--history-muted); font-size: .72rem; font-weight: 850; }
     .summary-card strong { display: block; margin: .45rem 0 .2rem; color: var(--history-ink); font-size: 1.65rem; letter-spacing: -.03em; }
     .summary-card small { display: block; color: #78909f; font-size: .69rem; line-height: 1.45; }
@@ -117,9 +116,8 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     .count-chip, .signal-tag { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; font-size: .69rem; font-weight: 850; }
     .count-chip { padding: .27rem .48rem; background: #f1f5f9; color: #526274; }
     .count-chip b { font-size: .75rem; }
-    .count-chip.plant, .signal-tag.plant { background: #e9f7ef; color: var(--history-green); }
-    .count-chip.harvest, .signal-tag.harvest { background: #fff1e3; color: var(--history-orange); }
-    .count-chip.exit, .signal-tag.exit { background: #fff0ef; color: var(--history-red); }
+    .count-chip.plant, .signal-tag.plant { background: #fff0ef; color: var(--history-red); }
+    .count-chip.harvest, .signal-tag.harvest, .count-chip.exit, .signal-tag.exit { background: #e9f7ef; color: var(--history-green); }
     .count-chip.ready, .signal-tag.ready { background: #fff7df; color: var(--history-amber); }
     .count-chip.watch, .signal-tag.watch { background: #eaf3ff; color: #1e64ad; }
     .day-total { text-align: right; }
