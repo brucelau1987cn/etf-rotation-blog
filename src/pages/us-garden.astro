@@ -190,7 +190,9 @@ const countTone = (section: { key: string; tone: string }) => {
       .secondary-price.live-refresh-button { border: 0; padding: .2rem; background: transparent; border-radius: 9px; }
       .live-refresh-button:hover, .live-refresh-button:focus-visible { background: #eaf3ff; outline: 2px solid #78a7dc; outline-offset: -2px; }
       .live-refresh-button.loading { opacity: .58; cursor: wait; }
-      .live-refresh-button.loading .live-price::after { content: ' ↻'; }
+      .refresh-icon { display: inline-block; margin-left: .18rem; font-size: .9em; line-height: 1; }
+      .live-refresh-button.loading .refresh-icon { animation: refresh-spin .75s linear infinite; }
+      @keyframes refresh-spin { to { transform: rotate(360deg); } }
       .live-quote-meta { margin-top: .45rem; color: rgb(var(--gray)); font-size: .7rem; }
       .live-quote-meta .up { color: var(--market-up); font-weight: 850; }
       .live-quote-meta .down { color: var(--market-down); font-weight: 850; }
@@ -317,7 +319,7 @@ const countTone = (section: { key: string; tone: string }) => {
                           </div>
                           <div class="level-grid" aria-label={`${item.symbol}关键价位`}>
                             <button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}>
-                              <span>实时现价 · 点击更新</span>
+                              <span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span>
                               <b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b>
                             </button>
                             <div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div>
@@ -336,7 +338,7 @@ const countTone = (section: { key: string; tone: string }) => {
               })}
             </section>
 
-            {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">次级观察</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · 点击更新</span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
+            {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">次级观察</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
 
             <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">行业广度</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
