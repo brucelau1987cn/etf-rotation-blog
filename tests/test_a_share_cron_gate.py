@@ -60,6 +60,13 @@ def test_exchange_calendar_controls_execution():
     assert gate("08:30", "2026-07-14T08:30:00", trading_day=None)[0] == "blocked"
 
 
+def test_calendar_fallback_uses_market_evidence():
+    now = datetime.fromisoformat("2026-07-14T21:50:00").replace(tzinfo=CN)
+    assert cron_gate.resolve_trading_day(None, stage="22:00", now=now, quote_date="2026-07-14", qfq_date="2026-07-14", qfq_coverage=91) == (True, "quote_and_final_qfq")
+    assert cron_gate.resolve_trading_day(None, stage="22:00", now=now, quote_date="2026-07-14", qfq_date="2026-07-13", qfq_coverage=91) == (None, "unavailable")
+    assert cron_gate.resolve_trading_day(None, stage="14:30", now=now, quote_date="2026-07-14", qfq_date="2026-07-13", qfq_coverage=91) == (True, "quote_timestamp")
+
+
 def test_stage_rank_prefers_0830_preopen():
     assert stage_rank("08:30盘前版") == 1
     assert stage_rank("07:30早盘版") == 1

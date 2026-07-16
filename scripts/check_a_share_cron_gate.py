@@ -132,6 +132,22 @@ def is_trading_day(day: str) -> bool | None:
     return None
 
 
+def resolve_trading_day(
+    calendar_value: bool | None, *, stage: str, now: datetime,
+    quote_date: str | None, qfq_date: str | None, qfq_coverage: int,
+) -> tuple[bool | None, str]:
+    if calendar_value is not None:
+        return calendar_value, "baostock"
+    today = now.date().isoformat()
+    if stage == "22:00" and quote_date == today and qfq_date == today and qfq_coverage >= MINIMUM_COVERAGE:
+        return True, "quote_and_final_qfq"
+    if stage in {"11:30", "14:30"} and quote_date == today:
+        return True, "quote_timestamp"
+    if now.weekday() >= 5:
+        return False, "weekend"
+    return None, "unavailable"
+
+
 def pending_public_changes(day: str) -> bool:
     paths = [
         "public/data/model-lab/a-share-shadow.json",
@@ -182,10 +198,14 @@ def main() -> int:
     timestamp = args.quote_timestamp or quote_timestamp()
     quote_date = f"{timestamp[:4]}-{timestamp[4:6]}-{timestamp[6:8]}" if timestamp else None
     article_stage = args.article_stage if args.article_stage is not None else read_article_stage(day)
+    trading_day, calendar_source = resolve_trading_day(
+        is_trading_day(day), stage=args.stage, now=now, quote_date=quote_date,
+        qfq_date=qfq_date, qfq_coverage=qfq_coverage,
+    )
     gate = GateInput(
         stage=args.stage,
         now=now,
-        trading_day=is_trading_day(day),
+        trading_day=trading_day,
         pending_publish=pending_public_changes(day),
         article_stage_rank=stage_rank(article_stage),
         pool_count=int(summary.get("universe_count") or 0),
@@ -200,6 +220,7 @@ def main() -> int:
         "reason": reason,
         "article_stage": article_stage,
         "quote_timestamp": timestamp,
+        "calendar_source": calendar_source,
         **{k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in asdict(gate).items()},
     }
     print(json.dumps(result, ensure_ascii=False))
