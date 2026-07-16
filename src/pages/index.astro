@@ -67,7 +67,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
       .dashboard-head p{margin:0;color:rgb(var(--gray));max-width:620px;line-height:1.55}
       .dates{display:grid;grid-template-columns:repeat(2,auto);gap:.32rem}
       .dates span{padding:.34rem .55rem;border:1px solid var(--border);border-radius:9px;background:#fff;font-size:.7rem;white-space:nowrap;color:rgb(var(--gray))}
-      .markets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem;margin-top:.9rem}
+      .markets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem;margin-top:.9rem;isolation:isolate}
       .market{padding:1rem;overflow:hidden;display:flex;flex-direction:column}
       .market.a{border-top:5px solid var(--accent)}
       .market.us{border-top:5px solid #1b67b2;background:linear-gradient(180deg,#f7fbff 0,#fff 20%)}
