@@ -36,8 +36,8 @@ const sections = [
   { key: 'exit', status: 'exit', title: '破位撤退', note: '触及前一快照防守线，风险动作最高优先', tone: 'exit' },
   { key: 'harvest', status: 'harvest', title: '兑现触发', note: '盘中触及前一快照兑现位', tone: 'harvest' },
   { key: 'ready_harvest', status: 'take-profit', title: '止盈观察', note: '距兑现位3%以内或短期过热', tone: 'ready' },
-  { key: 'ready_plant', status: 'watch', title: '候场', note: '距伏击位3%以内，仅观察不提前追', tone: 'watch' },
   { key: 'plant', status: 'plant', title: '正式伏击', note: '触及伏击位且收盘站回，可执行', tone: 'plant' },
+  { key: 'ready_plant', status: 'watch', title: '候场', note: '距伏击位3%以内，仅观察不提前追', tone: 'watch' },
 ];
 const displaySections = sections.map((section) => ({ ...section, items: data.flower_signals[section.key] || [] }));
 const activeSections = displaySections.filter((section) => section.items.length > 0);
@@ -375,7 +375,7 @@ const countTone = (section: { key: string; tone: string }) => {
         usLiveStatus.classList.toggle('online', state === 'online');
         usLiveStatus.classList.toggle('error', state === 'error');
       };
-      const sectionPriority = ['exit', 'harvest', 'ready_harvest', 'ready_plant', 'plant'];
+      const sectionPriority = ['exit', 'harvest', 'ready_harvest', 'plant', 'ready_plant'];
       const sectionTone = { exit: 'exit', harvest: 'harvest', plant: 'plant', ready_harvest: 'ready', ready_plant: 'watch' };
       const realtimeActionCopy = {
         exit: '实时跌破防守线，优先撤退并复核',
