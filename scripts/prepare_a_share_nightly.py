@@ -68,6 +68,8 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         errors.append("signal_enhancement is required")
     elif enhancement.get("formal_signal_logic_changed") is not False or enhancement.get("production_role") != "shadow_filter_and_audit_only":
         errors.append("signal_enhancement must remain audit-only")
+    elif int((enhancement.get("coverage") or {}).get("symbols_at_least_260") or 0) < 82:
+        errors.append("signal_enhancement 260-bar coverage below 82")
     if int(shadow.get("rotation_universe_count") or 0) < 82:
         errors.append("shadow rotation universe below 82")
     if pool.get("latest_trade_date") != gate.get("qfq_date"):

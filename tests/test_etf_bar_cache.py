@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -78,3 +80,38 @@ def test_iwencai_prefixed_fields_are_normalized():
     assert bars[0]["open"] == 0.936
     assert bars[0]["close"] == 0.974
     assert bars[0]["amount"] == 67890.0
+
+
+def test_stock_api_history_is_normalized_and_finality_is_time_aware():
+    importer = load_importer()
+    payload = [{"date": "2026-07-15", "open": 3.0, "high": 3.1, "low": 2.9, "close": 3.05, "volume": 123},
+               {"date": "2026-07-16", "open": 3.05, "high": 3.2, "low": 3.0, "close": 3.1, "volume": 456}]
+    now = datetime(2026, 7, 16, 14, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    bars = importer.parse_stock_api_rows(payload, {"code": "510050", "market": "XSHG"}, now)
+    assert len(bars) == 2
+    assert bars[0]["source"] == "stock-api" and bars[0]["is_final"] is True
+    assert bars[1]["is_final"] is False
+
+
+def test_tencent_array_shape_is_normalized(monkeypatch):
+    importer = load_importer()
+    payload = {"data": {"sz159992": {"day": [["2026-07-15", "0.874", "0.912", "0.933", "0.870", "28621018"]]}}}
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *args): return None
+        def read(self): return __import__("json").dumps(payload).encode()
+    monkeypatch.setattr(importer.urllib.request, "urlopen", lambda request, timeout: Response())
+    bars = importer.fetch_tencent_history({"code": "159992", "market": "XSHE"}, 320)
+    assert len(bars) == 1
+    assert bars[0]["source"] == "tencent"
+    assert bars[0]["open"] == .874 and bars[0]["close"] == .912
+
+
+def test_short_history_symbols_are_selected_for_backfill(tmp_path):
+    importer = load_importer(); db_path = tmp_path / "bars.db"
+    universe = [{"code": "510050", "market": "XSHG"}, {"code": "159915", "market": "XSHE"}]
+    with connect(db_path) as db:
+        upsert_bars(db, [{"market": "XSHG", "symbol": "510050", "trade_date": "2026-07-10",
+                          "close": 3.0, "adjustment": "qfq", "source": "iwencai", "is_final": True}])
+        selected = importer.symbols_needing_backfill(db, universe, minimum=2)
+    assert [item["code"] for item in selected] == ["510050", "159915"]

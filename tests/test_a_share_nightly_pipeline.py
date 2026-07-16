@@ -17,7 +17,7 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     }))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
-        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only"}
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
     }))
     monkeypatch.setattr(prepare, "run_json", lambda command: {
         "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91

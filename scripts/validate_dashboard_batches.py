@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -71,6 +72,16 @@ def number(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed == parsed and abs(parsed) != float("inf") else None
+
+
+def non_finite_paths(value: Any, path: str = "root") -> list[str]:
+    if isinstance(value, float) and not math.isfinite(value):
+        return [path]
+    if isinstance(value, dict):
+        return [item for key, child in value.items() for item in non_finite_paths(child, f"{path}.{key}")]
+    if isinstance(value, list):
+        return [item for index, child in enumerate(value) for item in non_finite_paths(child, f"{path}[{index}]")]
+    return []
 
 
 def require_fields(errors: list[str], label: str, payload: dict[str, Any], fields: tuple[str, ...]) -> None:
@@ -173,6 +184,14 @@ def validate_runtime_schema(
             errors.append("a-share-shadow enhancement must remain audit-only with unchanged formal signals")
         if not isinstance(enhancement.get("summary"), dict) or not isinstance(enhancement.get("historical_validation"), dict):
             errors.append("a-share-shadow enhancement requires summary and historical_validation")
+        coverage = enhancement.get("coverage")
+        if not isinstance(coverage, dict) or int(coverage.get("symbols_at_least_260") or 0) < 82:
+            errors.append("a-share-shadow enhancement requires at least 82 symbols with 260-bar history")
+        if not isinstance(enhancement.get("feature_parameters"), dict):
+            errors.append("a-share-shadow enhancement requires frozen feature_parameters")
+        invalid_numbers = non_finite_paths(enhancement, "signal_enhancement")
+        if invalid_numbers:
+            errors.append(f"a-share-shadow enhancement contains non-finite values: {', '.join(invalid_numbers[:5])}")
 
     require_fields(errors, "us-etf-garden", us, ("date", "updated_at", "stage", "session_state", "market_regime", "flower_signals"))
     if us.get("stage") not in US_STAGES:

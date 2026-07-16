@@ -100,7 +100,7 @@ import Footer from '../components/Footer.astro';
           <div>强一致组未来5日<b>${pct(v.multi_timeframe.strong_alignment.average_pct)} · 相对提升 ${pp(v.multi_timeframe.average_return_lift_pct)}</b></div>
           <div>RSI过热回落后5日<b>${pct(v.rsi_cooling.average_pct)} · 样本 ${v.rsi_cooling.count}</b></div>
           <div>ATR跌破后5日<b>${pct(v.atr_breach.average_pct)} · 样本 ${v.atr_breach.count}</b></div>
-        </div><p class="research-note">历史统计使用ETF×日期重叠观察值，尚未扣除交易成本；升级正式规则需通过推广闸门。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
+        </div><p class="research-note">历史覆盖 ${feature.coverage?.symbols_at_least_260 ?? '—'}/${feature.coverage?.symbols ?? '—'}只达到260根；统计使用ETF×日期重叠观察值，交易成本将在推广闸门阶段纳入。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
       } catch (error) { box.innerHTML = `<div class="empty">研究快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
     async function load() {

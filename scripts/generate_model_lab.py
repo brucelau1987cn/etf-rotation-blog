@@ -404,6 +404,18 @@ def enhancement_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def history_coverage(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
+    counts = [len(frame) for frame in frames.values()]
+    dates = [index for frame in frames.values() for index in (frame.index.min(), frame.index.max()) if pd.notna(index)]
+    return {
+        "symbols": len(counts), "minimum_bars": min(counts, default=0),
+        "median_bars": int(np.median(counts)) if counts else 0, "maximum_bars": max(counts, default=0),
+        "symbols_at_least_260": sum(count >= 260 for count in counts),
+        "start_date": min(dates).date().isoformat() if dates else None,
+        "end_date": max(dates).date().isoformat() if dates else None,
+    }
+
+
 def portfolio_risk(frames: dict[str, pd.DataFrame], symbols: list[str]) -> dict[str, Any]:
     returns = pd.concat({s: frames[s]["close"].pct_change() for s in symbols}, axis=1).dropna().tail(120)
     if returns.empty:
@@ -453,7 +465,7 @@ def execution_estimate(metric: dict[str, Any], order_cny: float) -> dict[str, An
     }
 
 
-def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180) -> dict[str, Any]:
+def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 320) -> dict[str, Any]:
     frames, names = load_frames(db_path, limit)
     metrics = {symbol: symbol_metrics(df) for symbol, df in frames.items()}
     formal_count = len(metrics)
@@ -516,6 +528,13 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 180
             "production_role": "shadow_filter_and_audit_only",
             "formal_signal_logic_changed": False,
             "methodology_provenance": "independent Python implementation from public methodology descriptions; no Pine source embedded",
+            "coverage": history_coverage(frames),
+            "feature_parameters": {
+                "multi_timeframe": {"timeframes": ["D", "closed W-FRI", "60D"], "strong_threshold": 55, "methods_per_timeframe": 3},
+                "atr_defense": {"atr_method": "Wilder EMA", "atr_length": 14, "multiple": 2.0, "trigger": "close below prior ratcheted trail"},
+                "rsi_take_profit": {"rsi_length": 14, "zscore_window": 20, "threshold": 2.0, "trigger": "cross below +2 from above"},
+                "break_retest": {"breakout_lookback": 20, "retest_tolerance_atr": .25, "expiry_bars": 10, "stop_atr": 1.0, "target_r": 2.0},
+            },
             "summary": enhancement_summary(items),
             "historical_validation": historical_feature_validation(frames),
             "features": [
@@ -557,7 +576,7 @@ def main() -> int:
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY)
-    parser.add_argument("--limit", type=int, default=180)
+    parser.add_argument("--limit", type=int, default=320)
     args = parser.parse_args()
     snapshot = generate(args.db, args.out, args.history, args.limit)
     print(json.dumps({
