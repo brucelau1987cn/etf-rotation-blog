@@ -174,13 +174,13 @@ const countTone = (section: { key: string; tone: string }) => {
       .rules p { margin: 0; padding: .65rem; background: var(--warm-2); border-radius: 10px; font-size: .8rem; }
       .links { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .8rem; }
       .links a { padding: .45rem .65rem; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: .78rem; font-weight: 850; }
-      .us-up { color: #137547; font-weight: 900; }
-      .us-down { color: #c5221f; font-weight: 900; }
+      .us-up { color: #c5221f; font-weight: 900; }
+      .us-down { color: #137547; font-weight: 900; }
       .color-legend { display: inline-flex; align-items: center; gap: .45rem; flex-wrap: nowrap; white-space: nowrap; }
       .color-legend .legend-item { display: inline-flex; align-items: center; gap: .28rem; }
       .color-legend .dot { width: .62rem; height: .62rem; border-radius: 50%; flex: 0 0 auto; }
-      .color-legend .dot.up { background: #137547; box-shadow: 0 0 0 3px rgb(19 117 71 / 12%); }
-      .color-legend .dot.down { background: #c5221f; box-shadow: 0 0 0 3px rgb(197 34 31 / 12%); }
+      .color-legend .dot.up { background: #c5221f; box-shadow: 0 0 0 3px rgb(197 34 31 / 12%); }
+      .color-legend .dot.down { background: #137547; box-shadow: 0 0 0 3px rgb(19 117 71 / 12%); }
       .color-legend .sep { color: rgb(var(--gray)); font-weight: 800; }
       .live-status { display: inline-flex; align-items: center; gap: .38rem; background: #fff7df; color: #8a5a00; }
       .live-status::before { content: ''; width: .48rem; height: .48rem; border-radius: 50%; background: #d99a00; box-shadow: 0 0 0 3px rgb(217 154 0 / 12%); }
@@ -196,8 +196,8 @@ const countTone = (section: { key: string; tone: string }) => {
       .live-refresh-button.loading { opacity: .58; cursor: wait; }
       .live-refresh-button.loading .live-price::after { content: ' ↻'; }
       .live-quote-meta { margin-top: .45rem; color: rgb(var(--gray)); font-size: .7rem; }
-      .live-quote-meta .up { color: #137547; font-weight: 850; }
-      .live-quote-meta .down { color: #c5221f; font-weight: 850; }
+      .live-quote-meta .up { color: #c5221f; font-weight: 850; }
+      .live-quote-meta .down { color: #137547; font-weight: 850; }
       @media (max-width: 940px) {
         .hero-top { display: grid; }
         .meta-line { justify-content: flex-start; max-width: none; }
@@ -260,7 +260,7 @@ const countTone = (section: { key: string; tone: string }) => {
               <div class="market-strip">
                 <div><span>市场状态</span><strong>{data.market_regime.state}</strong></div>
                 <div><span>权益参考</span><strong>{data.market_regime.equity_allocation}</strong></div>
-                <div><span>颜色口径</span><strong class="color-legend" aria-label="美股颜色：绿涨红跌"><span class="legend-item"><i class="dot up" aria-hidden="true"></i><span class="us-up">绿涨</span></span><span class="sep">·</span><span class="legend-item"><i class="dot down" aria-hidden="true"></i><span class="us-down">红跌</span></span></strong></div>
+                <div><span>颜色口径</span><strong class="color-legend" aria-label="涨跌颜色：红涨绿跌"><span class="legend-item"><i class="dot up" aria-hidden="true"></i><span class="us-up">红涨</span></span><span class="sep">·</span><span class="legend-item"><i class="dot down" aria-hidden="true"></i><span class="us-down">绿跌</span></span></strong></div>
                 <div class="mainline"><span>今日主线</span><strong title={data.summary}>{data.summary}</strong></div>
               </div>
               <div class="macro-gate"><span>{macroIcon}</span><div><strong>宏观风险：{macro.risk.label} · {macro.risk.headline}</strong><small>{macro.risk.equity_constraint}</small></div><a href="/us-macro/">查看宏观雷达 →</a></div>
