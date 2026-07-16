@@ -142,6 +142,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .decision-box { padding: .72rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); min-height: 4.1rem; }
       .decision-box span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; letter-spacing: .03em; }
       .decision-box strong { display: block; margin-top: .22rem; font-size: .95rem; line-height: 1.35; }
+      .decision-box small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .67rem; }
       .decision-box.mainline { grid-column: 1 / -1; background: #fff; min-height: auto; }
       .decision-box.mainline strong { font-size: .88rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .top-action { margin-top: .7rem; padding: .85rem 1rem; border-radius: 14px; background: rgb(var(--black)); color: #fff; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75rem; align-items: center; }
@@ -246,6 +247,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .button { justify-content: center; }
       }
     </style>
+    <style is:global>
+      main .market-up { color: var(--market-up); font-weight: 850; }
+      main .market-down { color: var(--market-down); font-weight: 850; }
+    </style>
   </head>
   <body>
     <Header />
@@ -279,7 +284,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         <div class="decision-grid">
           <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
           <div class="decision-box"><span>仓位建议</span><strong>{data.position}</strong></div>
-          <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong></div>
+          <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong><small>行情：🔴上涨 / 🟢下跌</small></div>
           <div class="decision-box mainline"><span>今日主线</span><strong title={data.mainline}>{data.mainline}</strong></div>
         </div>
         {midMacro && (
@@ -432,7 +437,8 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           }
           if (metaNode) {
             const change = numberOf(quote?.change_pct);
-            metaNode.textContent = `${quoteMode} ${time} · ${displaySource(quote?.source || payload.source)}${change === null ? '' : ` · ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}`;
+            const changeText = change === null ? '' : ` · <span class="${change >= 0 ? 'market-up' : 'market-down'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</span>`;
+            metaNode.innerHTML = `${quoteMode} ${time} · ${displaySource(quote?.source || payload.source)}${changeText}`;
           }
           updated += 1;
         }

@@ -46,9 +46,9 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       --history-muted: #64748b;
       --history-line: #dce4ee;
       --history-blue: #2563eb;
-      --history-green: #137547;
+      --history-green: var(--action-sell);
       --history-orange: #c96a13;
-      --history-red: #c5221f;
+      --history-red: var(--action-buy);
       --history-amber: #a46c00;
     }
     main.history-page { width: min(1180px, calc(100% - 1.5rem)); max-width: none; margin: auto; padding: 1rem 0 3.5rem; }
@@ -195,7 +195,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
         <div class="hero-meta">
           <span>最新记录 {latest?.date || '等待首个交易日'}</span>
           <span>生成时间 {generatedAt}</span>
-          <span>上涨红色 · 下跌绿色</span>
+          <span>行情：🔴上涨 / 🟢下跌</span>
         </div>
       </div>
       <div class="hero-command">

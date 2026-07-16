@@ -31,16 +31,19 @@ try {
 const aMidLabel = aMid?.label || '中性';
 const aMidConstraint = aMid?.equity_constraint || '按关键位正常执行';
 const aActions = [...garden.harvest.slice(0,2),...garden.plant.slice(0,2)].slice(0,3);
-const usPriority = ['exit','harvest','plant','ready_harvest','ready_plant'];
+const usPriority = ['exit','harvest','ready_harvest','plant','ready_plant'];
 const usActions = usPriority.flatMap(key => us.flower_signals[key] || []).slice(0,3);
 const usFormalCount = ['exit','harvest','plant'].reduce((n,key)=>n+(us.flower_signals[key]?.length||0),0);
 const usReadyCount = ['ready_harvest','ready_plant'].reduce((n,key)=>n+(us.flower_signals[key]?.length||0),0);
 const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tight' ? '🟠' : macro.risk.key === 'slightly-tight' ? '🟡' : '🟢';
 const number = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(v >= 100 ? 2 : 3).replace(/0+$/,'').replace(/\.$/,'') : 'N/A';
 const distance = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? `${v>0?'+':''}${v.toFixed(1)}%` : 'N/A';
-const aTone = (status:string) => status.includes('兑现') ? 'sell' : status.includes('撤退') ? 'exit' : 'buy';
+const aTone = (status:string) => status.includes('兑现') || status.includes('止盈') || status.includes('撤退') ? 'sell' : 'buy';
 const usLabel = (item:UsAction) => item.signal || item.trade_state;
-const usTone = (item:UsAction) => item.signal?.includes('兑现') ? 'sell' : item.signal?.includes('撤退') ? 'exit' : 'buy';
+const usTone = (item:UsAction) => {
+  const label = usLabel(item);
+  return label.includes('兑现') || label.includes('止盈') || label.includes('撤退') || label.includes('退出') ? 'sell' : 'buy';
+};
 const actionLevel = (item:AAction) => item.action_level ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? item.target : item.support);
 const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? '兑现位' : '伏击位');
 // Decision date = trade plan day. Quote date = latest action snapshot (intraday/close),
@@ -93,9 +96,8 @@ const aLevelBaseline = garden.level_data_as_of || '';
       .actions-head small{color:rgb(var(--gray))}
       .action-list{display:grid;gap:.62rem;flex:1}
       .action{padding:.78rem;border:1px solid var(--border);border-radius:12px;background:#fff}
-      .action.sell{border-left:4px solid var(--green)}
-      .action.buy{border-left:4px solid var(--accent)}
-      .action.exit{border-left:4px solid #991b1b}
+      .action.sell,.action.exit{border-left:4px solid var(--action-sell)}
+      .action.buy{border-left:4px solid var(--action-buy)}
       .action-top{display:flex;justify-content:space-between;gap:.55rem;align-items:flex-start}
       .identity{min-width:0}
       .identity strong{display:block;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -103,7 +105,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
       .state{padding:.18rem .46rem;border-radius:999px;font-size:.66rem;font-weight:850;white-space:nowrap}
       .sell .state{background:var(--green-soft);color:var(--green)}
       .buy .state{background:var(--accent-soft);color:var(--accent-dark)}
-      .exit .state{background:#fee2e2;color:#991b1b}
+      .exit .state{background:var(--green-soft);color:var(--action-sell)}
       .levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.3rem;margin-top:.55rem}
       .level{padding:.48rem .3rem;text-align:center;background:var(--warm-2);border-radius:8px;min-width:0}
       .level.active{background:#eef6ff}
@@ -136,7 +138,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
         <div>
           <span class="pill">今日双市场</span>
           <h1>双市场今日仪表盘</h1>
-          <p>先看状态与仓位，再看优先动作。风险动作优先；候场不等于买入。</p>
+          <p>先看状态与仓位，再看优先动作。颜色规则：🔴低吸 / 🟢兑现；行情：🔴上涨 / 🟢下跌。</p>
         </div>
         <div class="dates">
           <span>A股计划 {garden.date}</span>
