@@ -1,31 +1,31 @@
 {
   "date": "2026-07-16",
-  "updated_at": "2026-07-16 08:30 CST",
+  "updated_at": "2026-07-16 11:40 CST",
   "applies_to": "2026-07-16",
-  "data_as_of": "2026-07-15 qfq收盘基线；盘前资讯与资金复核截至2026-07-16 08:30 CST",
+  "data_as_of": "2026-07-16 11:40 CST盘中行情；历史基线为2026-07-15 qfq收盘",
   "level_data_as_of": "2026-07-15",
-  "stage": "08:30盘前版",
+  "stage": "11:30上午收盘修正版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-07-16+08:30+Bruce ETF Trend Radar v3",
+  "idempotency_key": "CN+2026-07-16+11:30+Bruce ETF Trend Radar v3",
   "market_state": "防御",
   "position": "权益0%-10%；防御/现金90%-100%",
   "mainline": "医药消费高位分批止盈；半导体/科创/通信破位后只做反抽观察；银行红利作为防御底仓候场，不追高。",
-  "summary": "08:30盘前版：隔夜美股芯片反弹提高科技高开概率，但不能覆盖A股上一交易日价格—资金双弱；医药消费先兑现，银行红利只候场，权益0%-10%。",
+  "summary": "11:30修正：指数震荡偏弱，医药消费延续强势但高位；科技继续走弱，先兑现、不抄底，防御回踩候场；中观逆风（权益上限已压缩）。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
     "qfq_count": 91,
     "raw_fallback_count": 0,
     "latest_trade_date": "2026-07-15",
-    "generated_at": "2026-07-16 08:30:48 UTC+08:00",
-    "quote_as_of": "2026-07-15 close",
-    "quote_date": "2026-07-15",
-    "return_basis_disclosure": "上一完整交易日qfq作为历史基线；盘前不混用当日盘中行情。"
+    "generated_at": "2026-07-16 11:41:00 UTC+08:00",
+    "quote_as_of": "2026-07-16 11:40-11:41 CST",
+    "quote_date": "2026-07-16",
+    "return_basis_disclosure": "历史强度使用上一完整交易日qfq；当日盘中价格、成交额和位置使用实时快照。"
   },
   "source_audit": {
-    "mx_fund_flow_as_of": "2026-07-16 08:30 CST（上一交易日收盘基线）",
-    "mx_raw_rows": "non-empty rawTable for 5 core ETFs; empty rows are not zero flow",
-    "iwencai_news": "success via multi-key wrapper; overnight news returned current results",
+    "mx_fund_flow_as_of": "2026-07-16 11:40 CST；本次查询空rawTable，不解释为零资金",
+    "mx_raw_rows": "empty rawTable; downgraded to turnover/position proxy",
+    "iwencai_news": "success via multi-key wrapper; morning news returned current results",
     "final_pool": "formal universe 91/91; qfq baseline 2026-07-15"
   },
   "harvest": [
@@ -174,8 +174,9 @@
       "distance_pct": -3.04,
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "level_status": "ready",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
-      "eligibility": "ok"
+      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+      "eligibility": "watch_only",
+      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
     },
     {
       "status": "候场",
@@ -201,8 +202,8 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "level_status": "ready",
       "eligibility": "watch_only",
-      "eligibility_reason": "中观偏逆风：权益上限降1档，只回踩不追高",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
+      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
     },
     {
       "status": "候场",
@@ -228,8 +229,8 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "level_status": "ready",
       "eligibility": "watch_only",
-      "eligibility_reason": "中观偏逆风：权益上限降1档，只回踩不追高",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
+      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
     }
   ],
   "watch": [
@@ -265,36 +266,73 @@
   "level_model_version": "A ETF Compass Levels v2",
   "level_generated_at": "2026-07-16 08:30:48 UTC+08:00",
   "level_source": "stock-api package v2.7.3",
+  "intraday_1130": {
+    "stage": "11:30上午收盘修正版",
+    "quote_as_of": "2026-07-16 11:40-11:41 CST",
+    "index": {
+      "上证指数": -0.82,
+      "深证成指": -0.83,
+      "创业板指": -1.73
+    },
+    "prepared": {
+      "plant": 3,
+      "harvest": 5
+    },
+    "actual_triggered": {
+      "plant": 0,
+      "harvest": 4
+    },
+    "direction": "医药消费相对抗跌；半导体、通信、科创50走弱；银行红利回踩未确认承接",
+    "executable": "分批止盈、反抽减仓、红色候场；权益0%-10%",
+    "fund_flow_disclosure": "MX-Skills主力资金查询返回空rawTable，未将空rows解释为零资金",
+    "harvest_triggered": [
+      "159928",
+      "560080",
+      "513060",
+      "159992"
+    ],
+    "plant_watch": [
+      "512800",
+      "515180",
+      "512890"
+    ],
+    "risk_watch": [
+      "515880",
+      "512480",
+      "588000",
+      "515220"
+    ]
+  },
   "level_invalid_count": 0,
   "mid_macro": {
-    "generated_at": "2026-07-16 08:32:40 CST",
-    "headwind_level": 1,
-    "label": "偏逆风",
-    "equity_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
+    "generated_at": "2026-07-16 11:44:27 CST",
+    "headwind_level": 2,
+    "label": "逆风",
+    "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
     "allow_chase": false,
-    "allow_new_offense": true,
+    "allow_new_offense": false,
     "base_position": "权益0%-10%；防御/现金90%-100%",
     "factors": [
       {
         "key": "rates_fixed_income",
         "label": "加息预期/固收相对强弱",
-        "state": "中性",
-        "score": 0.5,
-        "headline": "固收/权益5日相对中性-0.82pp"
+        "state": "逆风",
+        "score": 2.0,
+        "headline": "固收5日相对沪深300超额+2.37pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "国际市场ETF去杠杆压力",
         "state": "中性",
-        "score": 0.0,
-        "headline": "海外映射ETF 5日-0.13%"
+        "score": 0.5,
+        "headline": "海外映射ETF 5日-1.35%"
       },
       {
         "key": "margin_financing",
         "label": "两融余额趋势",
         "state": "逆风",
         "score": 2.0,
-        "headline": "两融余额5日-2.67%"
+        "headline": "两融余额5日-2.44%"
       }
     ]
   }
