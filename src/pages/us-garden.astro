@@ -383,14 +383,14 @@ const countTone = (section: { key: string; tone: string }) => {
       const realtimeActionCopy = {
         exit: '实时跌破防守线，优先撤退并复核',
         harvest: '实时达到兑现位，进入分批兑现',
-        plant: '实时进入伏击区，按计划分批确认',
+        plant: '前一收盘已确认，按计划持有或回踩分批',
         ready_harvest: '接近兑现位，保持止盈观察',
         ready_plant: '等待价格进入伏击区',
       };
       const realtimeBasisCopy = {
         exit: '实时价≤防守线',
         harvest: '实时价≥兑现位',
-        plant: '实时价≤伏击位且高于防守线',
+        plant: '前一交易日触及伏击位且收盘重新站回',
         ready_harvest: '距兑现位3%以内或短期过热',
         ready_plant: '距伏击位3%以内，等待分批进入',
       };
@@ -474,10 +474,17 @@ const countTone = (section: { key: string; tone: string }) => {
               const gap = (price / target - 1) * 100;
               if (price >= target) nextSection = 'harvest';
               triggerText = price >= target ? '达到兑现位' : (Math.abs(gap) <= 3 ? '距兑现位≤3%' : '等待兑现');
-            } else if (origin.includes('plant') && support !== null) {
+            } else if (origin === 'ready_plant' && support !== null) {
               const gap = (price / support - 1) * 100;
-              if (price <= support) nextSection = 'plant';
-              triggerText = price <= support ? '进入伏击区' : (Math.abs(gap) <= 3 ? '距伏击位≤3%' : '等待伏击');
+              const dayLow = num(quote?.low);
+              const touched = dayLow !== null && dayLow <= support && (stop === null || price > stop);
+              nextSection = 'ready_plant';
+              triggerText = touched
+                ? (price >= support ? '盘中已触价并站回·等待收盘确认' : '盘中触价·等待收盘确认')
+                : (Math.abs(gap) <= 3 ? '距伏击位≤3%' : '等待伏击');
+            } else if (origin === 'plant' && support !== null) {
+              nextSection = 'plant';
+              triggerText = price <= support ? '正式伏击回踩' : '正式伏击持有';
             }
             moveUsCard(card, nextSection);
             triggerNode.textContent = triggerText;
