@@ -1,33 +1,33 @@
 {
-  "date": "2026-07-16",
-  "updated_at": "2026-07-16 22:02 CST",
-  "applies_to": "2026-07-16",
-  "data_as_of": "2026-07-16收盘行情；夜间研究更新至2026-07-16 21:55 CST",
+  "date": "2026-07-17",
+  "updated_at": "2026-07-17 08:35 CST",
+  "applies_to": "2026-07-17",
+  "data_as_of": "2026-07-16收盘qfq基线；隔夜资讯更新至2026-07-17 08:32 CST",
   "level_data_as_of": "2026-07-16",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-07-16+22:00+Bruce ETF Trend Radar v3",
+  "idempotency_key": "CN+2026-07-17+08:30+Bruce ETF Trend Radar v3",
   "market_state": "防御",
   "position": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "科技机构级出货并破位撤退；中药、消费与养殖相对强但高位只兑现；创新药价格-资金背离，银行红利未形成承接。",
-  "summary": "22:00夜间最终版：指数收盘全线下挫，科技破位扩大且主力大额流出；中药、消费、养殖逆势偏强但不追，创新药主力净流出1.39亿元；正式伏击仍关闭，权益0%-10%；中观强逆风（权益上限已压缩）。",
+  "mainline": "全球半导体第二晚共振下跌，科技继续破位撤退；中药、医药、消费与养殖保留相对强度但以兑现为先；银行红利仅候场且不可执行。",
+  "summary": "08:30盘前版：91池有效91/91、qfq 91/91，动量通过15只；隔夜纳指跌1.47%、费城半导体指数跌4.29%，上一交易日A股科技价格与资金双破位。正式伏击0只，银行与红利仅候场；强势医药消费优先止盈，权益0%-10%；中观强逆风（权益上限已压缩）。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
     "qfq_count": 91,
     "raw_fallback_count": 0,
     "latest_trade_date": "2026-07-16",
-    "generated_at": "2026-07-16 21:55:52 UTC+08:00",
+    "generated_at": "2026-07-17 08:31:29 UTC+08:00",
     "quote_as_of": "2026-07-16收盘",
     "quote_date": "2026-07-16",
-    "return_basis_disclosure": "历史强度与最终关键位使用2026-07-16 qfq收盘；收益验证使用当日原始收盘涨跌幅。"
+    "return_basis_disclosure": "盘前历史强度与关键位统一使用2026-07-16 qfq；尚无2026-07-17盘中成交与资金数据。"
   },
   "source_audit": {
-    "mx_fund_flow_as_of": "2026-07-16夜间复核；rawTable非空，核心ETF资金按f62/主力净流入字段解析",
-    "mx_raw_rows": "non-empty; 159992 -1.391亿元，159865 -967.2万元，560080 +1113万元，159928 -452.7万元；512480 -1.526亿元，515880 -3.465亿元，588000 -7.984亿元，512800 -2167万元，515180 -6735万元",
-    "iwencai_news": "多Key包装器成功；确认全球存储链共振下跌、半导体/通信资金兑现、医药消费逆势及513310溢价停牌风险公告",
-    "final_pool": "formal universe 91/91; qfq baseline 2026-07-16; generated_at 2026-07-16 21:55:52 UTC+08:00",
-    "fallback": "MX与iWenCai均成功，stock-api MCP用于指数收盘交叉验证；未把缺失字段解释为零资金"
+    "mx_fund_flow_as_of": "2026-07-17 08:32查询；返回内容对应2026-07-16收盘，rawTable非空",
+    "mx_raw_rows": "588000 -7.984亿元，512480 -1.526亿元，515880 -3.465亿元，159992 -1.391亿元；均按上一完整交易日资金基线使用",
+    "iwencai_news": "多Key包装器成功；确认隔夜美股三大指数收跌、费城半导体指数跌4.29%、存储链大跌、纳斯达克金龙中国指数涨1.79%，以及医药个股过热风险与WAIC事件",
+    "final_pool": "formal universe 91/91；qfq baseline 2026-07-16；evaluation_date 2026-07-17",
+    "fallback": "MX-Skills与iWenCai均成功；stock-api/Tencent缓存用于91池qfq量价，未把缺失字段解释为零资金"
   },
   "harvest": [
     {
@@ -35,9 +35,9 @@
       "code": "560080",
       "name": "中药ETF汇添富",
       "priority": "高",
-      "trigger": "收盘🔴+2.18%、pos 0.91、ret5 +12.08%，逆势领涨但已处高位；主力净流入约1113万元，量能未显著放大。",
-      "action": "已触发兑现：持仓分批止盈20%-30%，不追高；次日若跌回1.008下方继续减仓。",
-      "signal_state": "实际触发",
+      "trigger": "昨收涨2.18%、pos 0.91、ret5 12.08%，政策催化有效但短线高位且量比仅0.97。",
+      "action": "准备兑现：若高开冲高或跌回1.008下方，持仓分批止盈20%-30%；空仓不追。",
+      "signal_state": "准备信号",
       "price": 1.03,
       "support": 0.978,
       "target": 1.082,
@@ -59,9 +59,9 @@
       "code": "159865",
       "name": "养殖ETF国泰",
       "priority": "高",
-      "trigger": "收盘🔴+1.87%、pos 0.86、量比1.44，但主力净流出约967万元，属于价格-资金背离的新相对强项。",
-      "action": "持仓可冲高兑现10%-20%，空仓不追；只有回踩0.519附近缩量企稳且资金转正才重新评估。",
-      "signal_state": "夜间新增观察",
+      "trigger": "昨收涨1.87%、pos 0.86、量比1.44，短线强度改善，但上一收盘主力资金仍小幅净流出。",
+      "action": "准备止盈：冲高不放量则兑现10%-20%；只有回踩0.519附近缩量企稳且资金转正才继续持有。",
+      "signal_state": "准备信号",
       "price": 0.544,
       "support": 0.519,
       "target": 0.569,
@@ -83,9 +83,9 @@
       "code": "159928",
       "name": "消费ETF汇添富",
       "priority": "高",
-      "trigger": "收盘🔴+1.37%、pos 0.80，延续相对强势，但主力净流出约453万元且行业修复仍待中报验证。",
-      "action": "已触发兑现：已有利润继续分批锁定20%-30%，不在高位追加；跌破0.656继续减仓。",
-      "signal_state": "实际触发",
+      "trigger": "昨收涨1.37%、pos 0.80、ret5 7.61%，相对强但价格与资金仍有背离。",
+      "action": "准备兑现：高开或急拉时锁定20%-30%利润；跌破0.656继续减，不在高位追加。",
+      "signal_state": "准备信号",
       "price": 0.665,
       "support": 0.64,
       "target": 0.69,
@@ -107,9 +107,9 @@
       "code": "159992",
       "name": "创新药ETF银华",
       "priority": "高",
-      "trigger": "收盘🟢-0.33%，ret5仍+9.65%、ret20 +27.31%，但主力净流出约1.391亿元，价格-资金背离显著。",
-      "action": "已触发兑现：持仓再减10%-20%并停止追高；若跌破0.878或资金继续大额流出，继续降仓。",
-      "signal_state": "实际触发",
+      "trigger": "ret5 9.65%、ret20 27.31%仍居动量第1，但昨收跌0.33%、主力净流出约1.391亿元；昭衍新药等提示过热风险。",
+      "action": "准备兑现：反弹先减10%-20%，不追；跌破0.878或资金继续大额流出时继续降仓。",
+      "signal_state": "准备信号",
       "price": 0.909,
       "support": 0.841,
       "target": 0.977,
@@ -127,13 +127,13 @@
       "level_status": "ready"
     },
     {
-      "status": "兑现",
+      "status": "止盈观察",
       "code": "513060",
       "name": "恒生医疗ETF博时",
       "priority": "中高",
-      "trigger": "收盘🟢-0.55%、pos 0.19，由上午强势转为近低位收盘，港股医药兑现尾部风险仍未释放。",
-      "action": "已触发兑现：只减不加，保留不超过5%观察仓；跌破0.544继续降仓，重新站稳0.55再观察。",
-      "signal_state": "实际触发",
+      "trigger": "ret20 18.66%但昨收跌0.55%、pos 0.19，前强方向已出现尾盘回吐。",
+      "action": "准备止盈：反弹至0.55附近而量能不增则减10%-20%；跌破0.544继续降仓，不作左侧伏击。",
+      "signal_state": "准备信号",
       "price": 0.547,
       "support": 0.514,
       "target": 0.58,
@@ -157,9 +157,11 @@
       "code": "512800",
       "name": "银行ETF华宝",
       "priority": "中高",
-      "trigger": "收盘🟢-1.01%、pos 0.13、量比0.67，虽相对抗跌但主力净流出约2167万元，未形成防御承接。",
-      "action": "仅候场，不新增；次日缩量止跌并站回0.790且资金转正后，才允许小额分批；中观强逆风：仅观察，不新开伏击。",
+      "trigger": "昨收跌1.01%、pos 0.13、量比0.67，低位但主力净流出约2167万元，尚未形成防御承接。",
+      "action": "仅候场不可执行；回踩后缩量止跌、重新站回0.790且资金转正才重新评估；中观强逆风：仅观察，不新开伏击。",
       "signal_state": "准备信号",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单",
       "price": 0.782,
       "support": 0.762,
       "target": 0.806,
@@ -174,18 +176,18 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready",
-      "eligibility": "blocked",
-      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单"
+      "level_status": "ready"
     },
     {
       "status": "候场",
       "code": "515180",
       "name": "红利ETF易方达",
       "priority": "中",
-      "trigger": "收盘🟢-1.02%、pos 0.17，主力净流出约6735万元；红利低波属性未转化为主动承接。",
-      "action": "仅保留底仓观察，不新开；回踩支撑后重新站回1.374且资金转正才评估；中观强逆风：仅观察，不新开伏击。",
+      "trigger": "昨收跌1.02%、pos 0.17、趋势D，主力净流出约6735万元，红利属性未转化为主动买盘。",
+      "action": "仅候场不可执行；回踩支撑后重新站回1.374且资金转正才重新评估；中观强逆风：仅观察，不新开伏击。",
       "signal_state": "准备信号",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单",
       "price": 1.36,
       "support": 1.33,
       "target": 1.399,
@@ -200,9 +202,7 @@
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
-      "level_status": "ready",
-      "eligibility": "blocked",
-      "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单"
+      "level_status": "ready"
     }
   ],
   "watch": [
@@ -211,123 +211,84 @@
       "name": "科创50ETF华夏",
       "status": "破位撤退",
       "priority": "高",
-      "action": "收盘🟢-4.09%、主力净流出约7.984亿元；未站回2.028前不抄底，反抽只减仓。"
+      "action": "昨收跌4.09%、主力净流出约7.984亿元；隔夜SOX再跌4.29%，未站回2.028且资金流出未衰减前不抄底。",
+      "price_date": "2026-07-16"
     },
     {
       "code": "512480",
       "name": "半导体ETF国联安",
       "status": "破位撤退",
       "priority": "高",
-      "action": "收盘🟢-5.93%、主力净流出约1.526亿元；跌破短线结构，至少等待1-2个交易日资金流出衰减。"
+      "action": "昨收跌5.93%、主力净流出约1.526亿元；海外半导体继续共振下跌，反抽只减仓。",
+      "price_date": "2026-07-16"
     },
     {
       "code": "515880",
       "name": "通信ETF国泰",
       "status": "破位撤退",
       "priority": "高",
-      "action": "收盘🟢-3.56%、主力净流出约3.465亿元；高换手出货延续，不接飞刀。"
+      "action": "昨收跌3.56%、主力净流出约3.465亿元；高换手出货未结束，未站回0.759前不接飞刀。",
+      "price_date": "2026-07-16"
     },
     {
       "code": "513310",
       "name": "中韩半导体ETF华泰柏瑞",
       "status": "破位撤退",
       "priority": "高",
-      "action": "收盘🟢-7.59%，且基金公告提示高溢价、临时停牌风险；禁止参与溢价博弈。"
+      "action": "昨收跌7.59%，7月17日开市至10:30停牌并有高溢价风险提示；禁止参与溢价博弈。",
+      "price_date": "2026-07-16"
     },
     {
-      "code": "159985",
-      "name": "豆粕ETF华夏",
+      "code": "513180",
+      "name": "恒生科技ETF华夏",
       "status": "候场",
       "priority": "中",
-      "action": "收盘🟢-3.72%、pos 0.05；独立alpha也出现破位，当日不抄底，等止跌确认。"
+      "action": "昨收涨1.66%、中概金龙指数隔夜涨1.79%，但全球芯片退潮不支持追高；仅观察港股能否独立承接。",
+      "price_date": "2026-07-16"
     }
   ],
-  "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-07-16 21:55:52 UTC+08:00",
-  "level_source": "stock-api package v2.7.3",
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "quote_as_of": "2026-07-16 11:40-11:41 CST",
-    "index": {
-      "上证指数": -0.82,
-      "深证成指": -0.83,
-      "创业板指": -1.73
-    },
+    "status": "pending",
     "prepared": {
-      "plant": 3,
+      "plant": 2,
       "harvest": 5
     },
     "actual_triggered": {
       "plant": 0,
-      "harvest": 4
-    },
-    "direction": "医药消费相对抗跌；半导体、通信、科创50走弱；银行红利回踩未确认承接",
-    "executable": "分批止盈、反抽减仓、红色候场；权益0%-10%",
-    "fund_flow_disclosure": "MX-Skills主力资金查询返回空rawTable，未将空rows解释为零资金",
-    "harvest_triggered": [
-      "159928",
-      "560080",
-      "513060",
-      "159992"
-    ],
-    "plant_watch": [
-      "512800",
-      "515180",
-      "512890"
-    ],
-    "risk_watch": [
-      "515880",
-      "512480",
-      "588000",
-      "515220"
-    ]
+      "harvest": 0
+    }
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "quote_as_of": "2026-07-16 14:30 CST",
-    "index": {
-      "上证指数": -1.79,
-      "深证成指": -2.04,
-      "创业板指": -3.05
-    },
+    "status": "pending",
     "prepared": {
-      "plant": 3,
-      "harvest": 4
+      "plant": 2,
+      "harvest": 5
     },
     "actual_triggered": {
       "plant": 0,
-      "harvest": 4
-    },
-    "direction": "系统性下跌加深；半导体、通信、科创50破位扩大；中药消费相对强但只兑现，创新药与恒生医疗回吐",
-    "executable": "尾盘分批止盈、破位反抽减仓、银行红利不新增；权益0%-10%",
-    "fund_flow_disclosure": "MX-Skills请求网络错误，未形成可解析rawTable，未将缺失资金解释为零资金",
-    "harvest_triggered": [
-      "560080",
-      "159928",
-      "513060",
-      "159992"
-    ],
-    "plant_watch": [
-      "512800",
-      "515180",
-      "512890"
-    ],
-    "risk_watch": [
-      "515880",
-      "512480",
-      "588000",
-      "515220"
-    ],
-    "new_changes_vs_1130": [
-      "指数跌幅扩大",
-      "科技破位加速",
-      "创新药与恒生医疗由强转弱",
-      "中药消费仍在日高附近只适合兑现"
-    ]
+      "harvest": 0
+    }
   },
+  "nightly_2200": {
+    "stage": "22:00夜间最终版",
+    "status": "pending",
+    "prepared": {
+      "plant": 2,
+      "harvest": 5
+    },
+    "actual_triggered": {
+      "plant": 0,
+      "harvest": 0
+    }
+  },
+  "level_model_version": "A ETF Compass Levels v2",
+  "level_generated_at": "2026-07-17 08:31:29 UTC+08:00",
+  "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0,
   "mid_macro": {
-    "generated_at": "2026-07-16 22:07:07 CST",
+    "generated_at": "2026-07-17 08:35:55 CST",
     "headwind_level": 3,
     "label": "强逆风",
     "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
@@ -340,14 +301,14 @@
         "label": "加息预期/固收相对强弱",
         "state": "逆风",
         "score": 2.0,
-        "headline": "固收5日相对沪深300超额+3.39pp"
+        "headline": "固收5日相对沪深300超额+3.33pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "国际市场ETF去杠杆压力",
         "state": "逆风",
         "score": 2.0,
-        "headline": "海外映射ETF 5日偏弱-1.58%"
+        "headline": "海外映射ETF 5日偏弱-1.61%"
       },
       {
         "key": "margin_financing",
@@ -356,59 +317,6 @@
         "score": 2.0,
         "headline": "两融余额5日-2.44%"
       }
-    ]
-  },
-  "nightly_2200": {
-    "stage": "22:00夜间最终版",
-    "quote_as_of": "2026-07-16收盘；研究更新至21:55 CST",
-    "index": {
-      "上证指数": -1.85,
-      "深证成指": -1.97,
-      "创业板指": -2.95,
-      "科创50": -4.02
-    },
-    "breadth": {
-      "up": 28,
-      "down": 63,
-      "flat": 0,
-      "scope": "ETF罗盘91只正式池"
-    },
-    "prepared": {
-      "plant": 2,
-      "harvest": 5
-    },
-    "actual_triggered": {
-      "plant": 0,
-      "harvest": 4
-    },
-    "direction": "科技机构级出货并破位；中药、消费、养殖相对强但高位兑现；创新药与恒生医疗由强转弱",
-    "executable": "兑现强势仓、退出科技破位仓、防御仅候场；权益0%-10%",
-    "fund_flow_disclosure": "MX-Skills rawTable非空；按主力净流入字段解析。未覆盖或缺失字段不解释为零资金。",
-    "harvest_triggered": [
-      "560080",
-      "159928",
-      "159992",
-      "513060"
-    ],
-    "new_harvest_watch": [
-      "159865"
-    ],
-    "plant_watch": [
-      "512800",
-      "515180"
-    ],
-    "risk_watch": [
-      "588000",
-      "512480",
-      "515880",
-      "513310",
-      "159985"
-    ],
-    "new_changes_vs_1430": [
-      "科技收盘继续走弱且资金复核确认机构级流出",
-      "创新药收跌且主力净流出1.391亿元，兑现优先级上升",
-      "养殖逆势上涨但资金背离，只列止盈观察",
-      "中韩半导体ETF新增溢价与临时停牌公告风险"
     ]
   }
 }
