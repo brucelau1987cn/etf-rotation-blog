@@ -157,6 +157,18 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
     return {"status": "published", "trade_date": trade_date, "commit": commit, "changed": paths}
 
 
+def format_receipt(result: dict[str, Any]) -> str:
+    trade_date = result.get("trade_date", "待确认")
+    status = result.get("status")
+    if status == "published":
+        return f"✅ A股ETF罗盘夜间最终版已发布\n交易日：{trade_date}｜提交：{result.get('commit', '—')}"
+    if status == "idempotent":
+        return f"✅ A股ETF罗盘夜间最终版已是最新\n交易日：{trade_date}｜无需重复发布"
+    if status == "validated":
+        return f"✅ A股ETF罗盘夜间批次校验通过\n交易日：{trade_date}｜尚未执行发布"
+    return f"A股ETF罗盘夜间任务完成｜交易日：{trade_date}｜状态：{status or 'unknown'}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--state", type=Path, default=STATE)
@@ -166,12 +178,14 @@ def main() -> int:
     args = parser.parse_args()
     if args.self_test:
         assert ROOT.joinpath("scripts/validate_dashboard_batches.py").exists()
+        assert "夜间最终版已发布" in format_receipt({"status": "published", "trade_date": "2026-07-17", "commit": "abc1234"})
+        assert "无需重复发布" in format_receipt({"status": "idempotent", "trade_date": "2026-07-17"})
         print("publish_a_share_nightly self-test: OK")
         return 0
     now = datetime.fromisoformat(args.now).astimezone(CN) if args.now else None
     with publish_lock():
         result = publish(args.state, args.dry_run, now=now)
-    print(json.dumps(result, ensure_ascii=False))
+    print(format_receipt(result))
     return 0
 
 
