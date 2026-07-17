@@ -26,6 +26,13 @@ import Footer from '../components/Footer.astro';
     .meta { color: rgb(var(--gray)); font-size: .8rem; }
     .summary { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin-top: .25rem; color: rgb(var(--gray-dark)); font-size: .8rem; }
     .summary span { padding: .2rem .45rem; border-radius: 6px; background: #eef3f4; }
+    .job-status { align-self: start; padding: .18rem .45rem; border-radius: 999px; background: #eef3f4; color: #43586a; font-size: .72rem; font-weight: 850; }
+    .quality { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .15rem; }
+    .quality span { padding: .18rem .42rem; border-radius: 999px; background: #edf7f1; color: #247047; font-size: .72rem; font-weight: 800; }
+    .quality .warning { background: #fff4dc; color: #8a5a00; }
+    .method { grid-column: 1 / -1; color: rgb(var(--gray)); font-size: .75rem; }
+    .method summary { width: fit-content; cursor: pointer; font-weight: 800; }
+    .method p { margin: .35rem 0 0; line-height: 1.55; }
     .empty { color: rgb(var(--gray)); }
     .research-panel { margin-top: 1rem; }
     .kronos-panel { margin-top: 1rem; }
@@ -145,7 +152,19 @@ import Footer from '../components/Footer.astro';
       loadResearch();
       loadKronos();
       const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
-      jobs.innerHTML = data.jobs.length ? data.jobs.map(job => { const summary = job.result?.by_category || {}; const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈'],['兑现','兑现']].map(([key,label]) => summary[key] ? `<span>${label} ${summary[key].count}只 · T+1 ${summary[key].t1_hit_rate ?? '待定'}%</span>` : '').join(''); return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span>${escapeHtml(job.status)}</span><span class="meta">日期：${escapeHtml(job.trade_date || job.result?.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`; }).join('') : '<div class="empty">还没有上传任务。</div>';
+      const statusLabel = value => ({queued:'排队中',processing:'处理中',completed:'已完成',failed:'失败',waiting_close:'等待收盘'})[value] || value;
+      jobs.innerHTML = data.jobs.length ? data.jobs.map(job => {
+        const result = job.result || {}, summary = result.by_category || {}, quality = result.data_quality || {};
+        const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈观察'],['兑现','兑现']].map(([key,label]) => {
+          const item = summary[key]; if (!item || !item.count) return '';
+          const target = `触价 ${item.target_hit ?? 0}/${item.target_samples ?? item.count}`;
+          const confirmed = key === '伏击' ? ` · 收盘确认 ${item.confirmation_samples ? `${item.confirmed}/${item.confirmation_samples}` : '待定'}` : '';
+          return `<span>${label} ${item.count}只 · ${target}${confirmed} · T+1 ${item.t1_hit_rate ?? '待定'}%</span>`;
+        }).join('');
+        const qualityLabels = result.version === 'strict_intraday_v2' ? `<div class="quality"><span>严格5分钟 ${quality.m5_final ?? 0}</span>${quality.m5_partial ? `<span class="warning">盘中待收盘 ${quality.m5_partial}</span>` : ''}${quality.pending_intraday ? `<span class="warning">等待下午行情 ${quality.pending_intraday}</span>` : ''}${quality.daily_fallback ? `<span class="warning">日线粗略回退 ${quality.daily_fallback}</span>` : ''}</div>` : (result.version ? '<div class="quality"><span class="warning">旧版日线预回测</span></div>' : '');
+        const method = result.methodology ? `<details class="method"><summary>查看回测口径</summary><p>${escapeHtml(result.methodology)}</p></details>` : '';
+        return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span class="job-status">${escapeHtml(statusLabel(job.status))}</span><span class="meta">日期：${escapeHtml(job.trade_date || result.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${qualityLabels}${method}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`;
+      }).join('') : '<div class="empty">还没有上传任务。</div>';
     }
     document.querySelector('#upload-form').addEventListener('submit', async event => { event.preventDefault(); status.textContent = '上传中…'; const response = await fetch('/api/upload', { method: 'POST', body: new FormData(event.currentTarget) }); const data = await response.json().catch(() => ({})); status.textContent = response.ok ? `已排队：${data.filename}（${data.count}行）` : (data.error || '上传失败'); if (response.ok) { event.currentTarget.reset(); load(); } });
     document.querySelector('#logout').addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login/'; });

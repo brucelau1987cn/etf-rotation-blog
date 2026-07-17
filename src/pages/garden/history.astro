@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
+import AStockSubnav from '../../components/AStockSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 
 const post = await getEntry('blog', 'garden/etf-garden');
@@ -20,6 +21,7 @@ const overall = backtest.summary.overall;
 const recentDates = Object.entries(backtest.summary.by_date)
   .sort(([a], [b]) => a.localeCompare(b))
   .slice(-20) as [string, { count: number; next1_hit_rate: number; next3_hit_rate: number }][];
+const latestSignalDate = Object.keys(backtest.summary.by_date).sort().at(-1) || '待更新';
 const recentCount = recentDates.reduce((sum, [, item]) => sum + item.count, 0);
 const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
   ? recentDates.reduce((sum, [, item]) => sum + item[key] * item.count, 0) / recentCount
@@ -41,6 +43,13 @@ const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
       .score span { display: block; color: rgb(var(--gray)); font-size: 0.78rem; font-weight: 800; }
       .score strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }
       .score-note { margin: 0 0 1.3rem; color: rgb(var(--gray)); font-size: 0.84rem; line-height: 1.6; }
+      .archive-details { margin-top: 1rem; border: 1px solid var(--border); border-radius: 16px; background: rgb(var(--white)); overflow: clip; }
+      .archive-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.15rem; cursor: pointer; list-style: none; font-weight: 900; }
+      .archive-details > summary::-webkit-details-marker { display: none; }
+      .archive-details > summary small { display: block; margin-top: 0.18rem; color: rgb(var(--gray)); font-size: 0.76rem; font-weight: 650; }
+      .archive-details > summary::after { content: '展开'; flex: 0 0 auto; color: rgb(var(--gray)); font-size: 0.76rem; }
+      .archive-details[open] > summary::after { content: '收起'; }
+      .archive-details .content-card { margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; }
       @media (max-width: 760px) { .history-hero { display: block; } .back-link { margin-top: 1rem; } }
       @media (max-width: 760px) { .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     </style>
@@ -48,6 +57,7 @@ const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
   <body>
     <Header />
     <main>
+      <AStockSubnav active="garden" />
       <section class="history-hero">
         <div>
           <span class="pill">历史复盘</span>
@@ -57,18 +67,21 @@ const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
         <a class="back-link" href="/garden/">返回A股罗盘</a>
       </section>
       <section aria-labelledby="score-title">
-        <div class="section-heading"><h2 id="score-title">公开成绩单</h2><span class="pill">前复权 qfq · {backtest.generated_at}</span></div>
+        <div class="section-heading"><h2 id="score-title">罗盘方向验证</h2><span class="pill">样本截止 {latestSignalDate} · 前复权 qfq</span></div>
         <div class="score-grid">
-          <div class="score card"><span>已验证历史信号</span><strong>{overall.count}</strong></div>
+          <div class="score card"><span>已验证方向样本</span><strong>{overall.count}</strong></div>
           <div class="score card"><span>全样本次日方向</span><strong>{overall.next1_hit_rate.toFixed(1)}%</strong></div>
           <div class="score card"><span>近20交易日次日方向</span><strong>{weighted('next1_hit_rate').toFixed(1)}%</strong></div>
           <div class="score card"><span>近20交易日三日方向</span><strong>{weighted('next3_hit_rate').toFixed(1)}%</strong></div>
         </div>
-        <p class="score-note">统计覆盖最近 {recentDates.length} 个有信号交易日、{recentCount} 条信号。方向命中只衡量后续涨跌方向，目标触发、真实可执行和收益验证分开统计；历史表现不代表未来收益。<a href="/data/etf-garden-backtest.json">查看完整机器可读数据</a></p>
+        <p class="score-note">统计覆盖最近 {recentDates.length} 个有信号交易日、{recentCount} 条信号；本次计算更新于 {backtest.generated_at}。方向命中只衡量后续涨跌方向，目标触发、真实可执行和收益验证分开统计；历史表现不代表未来收益。<a href="/data/etf-garden-backtest.json">查看完整机器可读数据</a></p>
       </section>
-      <article class="content-card card prose">
-        <Content />
-      </article>
+      <details class="archive-details">
+        <summary><span>旧版四窗口归档<small>历史原文按时间线保留，默认折叠以避免与当前罗盘动作混淆。</small></span></summary>
+        <article class="content-card card prose">
+          <Content />
+        </article>
+      </details>
     </main>
     <Footer />
   </body>
