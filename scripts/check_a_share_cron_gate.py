@@ -151,6 +151,8 @@ def resolve_trading_day(
 def pending_public_changes(day: str) -> bool:
     paths = [
         "public/data/model-lab/a-share-shadow.json",
+        "public/data/model-lab/a-share-research-audit.json",
+        "public/data/etf-garden-backtest.json",
         "public/data/etf-garden-pool.json",
         "public/data/garden-recommendations.json",
         "public/data/a-share-mid-macro.json",

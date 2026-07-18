@@ -2,13 +2,27 @@ import copy
 import json
 from pathlib import Path
 
+from scripts.generate_research_audit import build_payload
 from scripts.validate_dashboard_batches import validate
 
 
 A_ROW = {
     "code": "510300", "name": "沪深300ETF", "date": "2026-07-14", "trade_state": "可持有",
     "strength_level": "A", "risk_level": "低", "price": 4.0, "support": 3.9, "target": 4.3, "stop": 3.7,
+    "quote_source": "fixture", "kline_source": "fixture", "checks": {}, "risk_flags": [],
 }
+A_POOL = {
+    "evaluation_date": "2026-07-14", "latest_trade_date": "2026-07-14",
+    "summary": {"universe_count": 1}, "all_rows": [A_ROW],
+}
+BACKTEST = {"records": [{
+    "target_date": "2026-07-14", "actual_trade_date": "2026-07-14",
+    "side": "red", "code": "510300", "name": "沪深300ETF",
+    "prev_close": 3.9, "target_close": 4.0, "next_close": 4.02,
+    "day_ret_pct": 2.56, "next1_ret_pct": 0.5, "next3_ret_pct": 1.0,
+    "day_hit": True, "next1_hit": True, "next3_hit": True, "excursion_hit": True,
+}]}
+RESEARCH_AUDIT = build_payload(BACKTEST, A_POOL, Path("/definitely/missing-turnover.json"), "2026-07-14T22:10:00+08:00")
 US_ROW = {
     "symbol": "SPY", "name": "SPY", "trade_state": "可持有", "strength_level": "A", "risk_level": "低",
     "price": 600.0, "support": 590.0, "target": 630.0, "stop": 570.0,
@@ -22,10 +36,8 @@ FIXTURES = {
             "risk_level": "低", "price": 4.0, "support": 3.9, "target": 4.3, "stop": 3.7, "level_status": "ready",
         }], "harvest": [], "watch": [],
     },
-    "etf-garden-pool.json": {
-        "evaluation_date": "2026-07-14", "latest_trade_date": "2026-07-14",
-        "summary": {"universe_count": 1}, "all_rows": [A_ROW],
-    },
+    "etf-garden-pool.json": A_POOL,
+    "etf-garden-backtest.json": BACKTEST,
     "a-share-mid-macro.json": {
         "version": 1, "generated_at": "2026-07-14 22:05:22 CST", "market": "CN",
         "factors": [{"key": "a"}, {"key": "b"}, {"key": "c"}], "constraint": {"label": "中性"},
@@ -51,6 +63,7 @@ FIXTURES = {
             "quality": {"raw_ohlc_valid": True, "raw_errors": []},
         }],
     },
+    "model-lab/a-share-research-audit.json": RESEARCH_AUDIT,
     "us-etf-garden.json": {
         "date": "2026-07-13", "updated_at": "2026-07-13T18:31:00-04:00", "stage": "美股收盘版",
         "session_state": "closed", "market_regime": {"state": "risk-off"},
@@ -101,9 +114,14 @@ def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
             **payloads["garden-recommendations.json"]["plant"][0], "code": "510500", "price_date": "2026-07-13",
         })
         payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["etf-garden-pool.json"]["all_rows"][0]["date"] = "2026-07-13"
         payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
         payloads["model-lab/a-share-kronos-shadow.json"]["latest_trade_date"] = "2026-07-13"
         payloads["model-lab/a-share-kronos-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
+        payloads["model-lab/a-share-research-audit.json"] = build_payload(
+            payloads["etf-garden-backtest.json"], payloads["etf-garden-pool.json"],
+            Path("/definitely/missing-turnover.json"), "2026-07-14T14:30:00+08:00",
+        )
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"
@@ -154,6 +172,60 @@ def test_invalid_kronos_snapshot_is_blocked(tmp_path):
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("Kronos" in error for error in result.errors)
+
+
+def test_invalid_research_audit_is_blocked(tmp_path):
+    def mutate(payloads):
+        audit = payloads["model-lab/a-share-research-audit.json"]
+        audit["mode"] = "production"
+        audit["dataset"]["value"] = "short"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("research-audit" in error for error in result.errors)
+
+
+def test_research_audit_unknown_count_and_provenance_tamper_are_blocked(tmp_path):
+    def mutate(payloads):
+        audit = payloads["model-lab/a-share-research-audit.json"]
+        audit["execution_audit"]["blockers"]["pending_close_confirmation"]["count"] = 0
+        audit["dataset"]["provenance"]["execution_basis"] = "tampered"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert any("unknown count must be null" in error for error in result.errors)
+    assert any("provenance" in error for error in result.errors)
+
+
+def test_research_audit_xss_and_derived_metric_tampering_are_blocked(tmp_path):
+    attack = '<img src=x onerror=alert(document.domain)>'
+    def mutate(payloads):
+        audit = payloads["model-lab/a-share-research-audit.json"]
+        audit["walk_forward"]["aggregate"]["oos_count"] = attack
+        audit["execution_audit"]["blockers"]["invalid_levels"]["count"] = 0
+        audit["chip_poc"]["eligible_symbols"] = 999
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("oos_count must be a non-negative integer" in error for error in result.errors)
+    assert any("derived payload differs" in error for error in result.errors)
+
+
+def test_research_audit_rejects_unpurged_t_plus_one_fold(tmp_path):
+    def mutate(payloads):
+        template = payloads["etf-garden-backtest.json"]["records"][0]
+        payloads["etf-garden-backtest.json"]["records"] = [
+            {**template, "target_date": f"2026-06-{index:02d}", "actual_trade_date": f"2026-06-{index:02d}"}
+            for index in range(1, 21)
+        ]
+        audit = build_payload(
+            payloads["etf-garden-backtest.json"], payloads["etf-garden-pool.json"],
+            Path("/definitely/missing-turnover.json"), "2026-07-14T22:10:00+08:00",
+        )
+        audit["walk_forward"]["folds"][0]["purged_dates"] = [audit["walk_forward"]["folds"][0]["test_start"]]
+        payloads["model-lab/a-share-research-audit.json"] = audit
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert any("purge/no-lookahead" in error for error in result.errors)
 
 
 def test_invalid_stage_and_status_are_blocked(tmp_path):

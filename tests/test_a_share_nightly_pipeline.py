@@ -25,12 +25,23 @@ def kronos_fixture(trade_date="2026-07-14", count=89):
     }
 
 
+def research_audit_fixture(trade_date="2026-07-14", pool_rows=0):
+    return {
+        "schema_version": "research_audit_v1", "mode": "shadow_research_only",
+        "production_rules_changed": False,
+        "dataset": {"as_of": trade_date, "pool_row_count": pool_rows},
+    }
+
+
 def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
+    monkeypatch.setattr(prepare, "validate_research_audit", lambda errors, audit, backtest, pool: audit.get("dataset", {}))
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
     }))
+    (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
@@ -45,18 +56,48 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     assert result["trade_date"] == "2026-07-14"
     assert json.loads(state.read_text())["expected_stage"] == "22:00夜间最终版"
     assert "public/data/model-lab/a-share-kronos-shadow.json" in result["snapshot_files"]
+    assert "public/data/model-lab/a-share-research-audit.json" in result["snapshot_files"]
+    assert "public/data/etf-garden-backtest.json" in result["snapshot_files"]
+    assert "public/data/etf-garden-backtest.json" in publish.ALLOWED_STATIC
 
 
-def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeypatch):
+def test_prepare_blocks_when_research_audit_generation_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: ({}, "generator boom"))
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
     }))
+    (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
+    (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
+        "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
+    }))
+    (tmp_path / "public/data/model-lab/a-share-kronos-shadow.json").write_text(json.dumps(kronos_fixture()))
+    monkeypatch.setattr(prepare, "run_json", lambda command: {
+        "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91
+    })
+    result = prepare.prepare(
+        now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=tmp_path / "state.json",
+    )
+    assert result["status"] == "blocked"
+    assert any("research audit generation failed" in error for error in result["errors"])
+
+
+def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(prepare, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
+    (tmp_path / "public/data/model-lab").mkdir(parents=True)
+    (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
+        "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
+    }))
+    (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "production", "production_weights_changed": True, "rotation_universe_count": 10
     }))
     (tmp_path / "public/data/model-lab/a-share-kronos-shadow.json").write_text(json.dumps(kronos_fixture()))
+    audit_path = tmp_path / "public/data/model-lab/a-share-research-audit.json"
+    audit_path.write_text('{"sentinel": true}')
     monkeypatch.setattr(prepare, "run_json", lambda command: {"decision": "run", "qfq_date": "2026-07-14"})
     state = tmp_path / "state.json"
     state.write_text(json.dumps({"status": "prepared", "trade_date": "2026-07-13"}))
@@ -64,14 +105,17 @@ def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeyp
     assert result["status"] == "blocked"
     assert len(result["errors"]) == 4
     assert json.loads(state.read_text())["status"] == "blocked"
+    assert json.loads(audit_path.read_text()) == {"sentinel": True}
 
 
 def test_prepare_blocks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
     }))
+    (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}

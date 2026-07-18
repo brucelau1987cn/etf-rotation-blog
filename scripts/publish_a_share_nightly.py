@@ -21,6 +21,8 @@ ALLOWED_STATIC = {
     "public/data/etf-garden-pool.json",
     "public/data/model-lab/a-share-shadow.json",
     "public/data/model-lab/a-share-kronos-shadow.json",
+    "public/data/model-lab/a-share-research-audit.json",
+    "public/data/etf-garden-backtest.json",
 }
 
 

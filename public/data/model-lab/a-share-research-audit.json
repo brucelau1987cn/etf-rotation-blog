@@ -1,0 +1,225 @@
+{
+  "schema_version": "research_audit_v1",
+  "mode": "shadow_research_only",
+  "production_rules_changed": false,
+  "generated_at": "2026-07-18T23:29:01.916674+00:00",
+  "dataset": {
+    "algorithm": "sha256",
+    "value": "6b87d8af749720253284a852e0f38d2736da3ca8a1ab7313a7005f58a3402e00",
+    "record_count": 401,
+    "pool_row_count": 91,
+    "as_of": "2026-07-17",
+    "components": {
+      "historical_direction_records": {
+        "algorithm": "sha256",
+        "value": "664a3e61a953b63f75404f3a1b78ec7abe0e01ce70d4ddb5d0a58d851f8fed00",
+        "record_count": 401,
+        "as_of": "2026-07-09",
+        "canonical_fields": [
+          "target_date",
+          "actual_trade_date",
+          "side",
+          "code",
+          "name",
+          "prev_close",
+          "target_close",
+          "next_close",
+          "day_ret_pct",
+          "next1_ret_pct",
+          "next3_ret_pct",
+          "day_hit",
+          "next1_hit",
+          "next3_hit",
+          "excursion_hit"
+        ],
+        "volatile_fields_excluded": [
+          "generated_at"
+        ]
+      },
+      "current_action_pool": {
+        "algorithm": "sha256",
+        "value": "e6a7f10ec9f34885fa1a34d2b30ac2daac5f589bc3f7736488b16973f5dc4c65",
+        "row_count": 91,
+        "as_of": "2026-07-17",
+        "canonical_scope": "complete_action_pool_rows",
+        "volatile_fields_excluded": [
+          "generated_at",
+          "refreshed_at",
+          "updated_at"
+        ]
+      }
+    },
+    "provenance": {
+      "schema_version": "research_audit_v1",
+      "source": "frozen historical direction records + current frozen action pool",
+      "adjustment": "qfq for historical returns; raw executable levels remain separate",
+      "granularity": "daily direction history; current pool snapshot",
+      "execution_basis": "T signal → next-session close direction evaluation",
+      "cost_model": {
+        "applied": false,
+        "reason": "方向标签验证不构造组合成交；账户级评价必须另行计入佣金、最低收费与滑点"
+      }
+    }
+  },
+  "walk_forward": {
+    "status": "evaluated",
+    "configuration": {
+      "train_trade_dates": 10,
+      "purge_trade_dates": 1,
+      "test_trade_dates": 5,
+      "step_trade_dates": 5,
+      "target": "T+1方向收益"
+    },
+    "folds": [
+      {
+        "index": 0,
+        "train_start": "2026-05-29",
+        "train_end": "2026-06-10",
+        "purged_dates": [
+          "2026-06-11"
+        ],
+        "label_horizon_sessions": 1,
+        "test_start": "2026-06-12",
+        "test_end": "2026-06-18",
+        "train": {
+          "count": 148,
+          "hit_rate_pct": 47.97,
+          "average_directional_return_pct": -0.0049
+        },
+        "test": {
+          "count": 56,
+          "hit_rate_pct": 33.93,
+          "average_directional_return_pct": -0.7555
+        },
+        "hit_rate_degradation_pp": 14.04
+      },
+      {
+        "index": 1,
+        "train_start": "2026-06-05",
+        "train_end": "2026-06-17",
+        "purged_dates": [
+          "2026-06-18"
+        ],
+        "label_horizon_sessions": 1,
+        "test_start": "2026-06-22",
+        "test_end": "2026-06-26",
+        "train": {
+          "count": 146,
+          "hit_rate_pct": 51.37,
+          "average_directional_return_pct": 0.0925
+        },
+        "test": {
+          "count": 70,
+          "hit_rate_pct": 44.29,
+          "average_directional_return_pct": -0.2204
+        },
+        "hit_rate_degradation_pp": 7.08
+      },
+      {
+        "index": 2,
+        "train_start": "2026-06-12",
+        "train_end": "2026-06-25",
+        "purged_dates": [
+          "2026-06-26"
+        ],
+        "label_horizon_sessions": 1,
+        "test_start": "2026-06-30",
+        "test_end": "2026-07-06",
+        "train": {
+          "count": 116,
+          "hit_rate_pct": 37.07,
+          "average_directional_return_pct": -0.4588
+        },
+        "test": {
+          "count": 61,
+          "hit_rate_pct": 67.21,
+          "average_directional_return_pct": 0.9384
+        },
+        "hit_rate_degradation_pp": -30.14
+      }
+    ],
+    "skipped_folds": [],
+    "aggregate": {
+      "fold_count": 3,
+      "oos_count": 187,
+      "oos_hit_rate_pct": 48.66,
+      "oos_average_directional_return_pct": -0.0027,
+      "positive_fold_consistency_pct": 33.33,
+      "average_hit_rate_degradation_pp": -3.01
+    },
+    "methodology": "按交易日顺序使用互不重叠的样本外窗口；每折在训练末端剔除一个T+1标签跨度，训练段仅作为稳定性基线，没有可调参数时不虚构优化结果。",
+    "limitation": "这是历史方向标签的前向分折验证，不代表模拟盘或真实账户收益。"
+  },
+  "execution_audit": {
+    "row_count": 91,
+    "latest_trade_date": "2026-07-17",
+    "blockers": {
+      "invalid_levels": {
+        "status": "known",
+        "count": 44,
+        "scope": "current_pool"
+      },
+      "stale_rows": {
+        "status": "known",
+        "count": 0,
+        "scope": "current_pool"
+      },
+      "unknown_market_data": {
+        "status": "known",
+        "count": 0,
+        "scope": "current_pool"
+      },
+      "pending_close_confirmation": {
+        "status": "unknown",
+        "count": null,
+        "scope": "strict_intraday_upload_jobs",
+        "reason": "静态研究快照不包含运行时上传任务存储"
+      },
+      "missing_strict_5m_bars": {
+        "status": "unknown",
+        "count": null,
+        "scope": "strict_intraday_upload_jobs",
+        "reason": "静态研究快照不包含逐任务5分钟覆盖明细"
+      }
+    },
+    "gate_failure_counts": {
+      "dual_momentum": 72,
+      "ma20_above_ma60": 60,
+      "ma_rising": 61,
+      "momentum": 78,
+      "price_above_ma": 68,
+      "short_ok": 34
+    },
+    "gate_unknown_counts": {},
+    "risk_flag_counts": {
+      "收盘偏弱": 82,
+      "破位加速": 32,
+      "跌破20日线": 68
+    },
+    "trade_state_counts": {
+      "回踩候选": 8,
+      "观察": 8,
+      "退出": 75
+    },
+    "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
+  },
+  "chip_poc": {
+    "status": "blocked",
+    "quality": "unknown",
+    "source": "local_turnover_cache",
+    "reason": "历史换手率缓存尚未建立",
+    "eligible_symbols": 0,
+    "blocked_symbols": null,
+    "items": [],
+    "caveat": "ETF申购赎回与份额变化会削弱筹码含义；本模块只作研究旁路，不产生动作。"
+  },
+  "promotion_gate": {
+    "status": "shadow_only",
+    "requirements": [
+      "扩大严格盘中样本",
+      "补齐历史换手率和份额变化",
+      "加入账户级真实成本",
+      "样本外稳定后由人工确认生产变更"
+    ]
+  }
+}

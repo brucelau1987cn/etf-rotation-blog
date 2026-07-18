@@ -35,6 +35,7 @@ import Footer from '../components/Footer.astro';
     .method p { margin: .35rem 0 0; line-height: 1.55; }
     .empty { color: rgb(var(--gray)); }
     .research-panel { margin-top: 1rem; }
+    .audit-panel { margin-top: 1rem; }
     .kronos-panel { margin-top: 1rem; }
     .research-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
     .research-head h2 { margin: 0; }
@@ -42,6 +43,21 @@ import Footer from '../components/Footer.astro';
     @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
   </style>
   <style is:global>
+    #audit-content .audit-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .65rem; }
+    #audit-content .audit-card { padding: .78rem; border: 1px solid var(--border); border-top: 3px solid #66839a; border-radius: 12px; background: #fbfcfd; }
+    #audit-content .audit-card.warning { border-top-color: #b7801f; background: #fffaf0; }
+    #audit-content .audit-card.buy { border-top-color: var(--action-buy); background: #fff8f6; }
+    #audit-content .audit-card.sell { border-top-color: var(--action-sell); background: #f3fbf6; }
+    #audit-content .audit-card span { display: block; color: rgb(var(--gray)); font-size: .72rem; }
+    #audit-content .audit-card strong { display: block; margin-top: .15rem; font-size: 1.15rem; overflow-wrap: anywhere; }
+    #audit-content .audit-card small { display: block; margin-top: .2rem; color: rgb(var(--gray)); line-height: 1.4; }
+    #audit-content .audit-details { margin-top: .7rem; border: 1px solid var(--border); border-radius: 11px; background: #fbfcfd; }
+    #audit-content .audit-details summary { padding: .65rem .75rem; cursor: pointer; font-size: .8rem; font-weight: 850; }
+    #audit-content .audit-detail-body { display: grid; gap: .45rem; padding: 0 .75rem .75rem; }
+    #audit-content .audit-row { display: grid; grid-template-columns: minmax(170px,.8fr) 1.4fr; gap: .65rem; padding-top: .45rem; border-top: 1px solid var(--border); font-size: .76rem; }
+    #audit-content .audit-row span { color: rgb(var(--gray)); }
+    #audit-content code { font-size: .72rem; overflow-wrap: anywhere; }
+    #audit-content .audit-note { margin: .6rem 0 0; color: rgb(var(--gray)); font-size: .72rem; line-height: 1.55; }
     #research-content .research-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .65rem; }
     #research-content .research-card { padding: .78rem; border: 1px solid var(--border); border-top: 3px solid #66839a; border-radius: 12px; background: #fbfcfd; }
     #research-content .research-card.buy { border-top-color: var(--action-buy); background: #fff8f6; }
@@ -71,21 +87,25 @@ import Footer from '../components/Footer.astro';
     #kronos-content .kronos-range { color: rgb(var(--gray)); text-align: right; }
     #kronos-content .quality-warning { color: #9a6500; font-weight: 800; }
     #kronos-content .kronos-note { margin: .6rem 0 0; color: rgb(var(--gray)); font-size: .72rem; line-height: 1.55; }
-    @media (max-width: 720px) { #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: repeat(2,1fr); } #research-content .validation { grid-template-columns: 1fr; } #kronos-content .kronos-row { grid-template-columns: 1fr auto; } #kronos-content .kronos-range { grid-column: 1/-1; text-align: left; } }
-    @media (max-width: 480px) { #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: 1fr; } #research-content .watch-row { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { #audit-content .audit-grid, #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: repeat(2,1fr); } #audit-content .audit-row { grid-template-columns: 1fr; gap: .2rem; } #research-content .validation { grid-template-columns: 1fr; } #kronos-content .kronos-row { grid-template-columns: 1fr auto; } #kronos-content .kronos-range { grid-column: 1/-1; text-align: left; } }
+    @media (max-width: 480px) { #audit-content .audit-grid, #research-content .research-grid, #kronos-content .kronos-grid { grid-template-columns: 1fr; } #research-content .watch-row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <Header />
   <main>
     <section class="hero"><span class="kicker">ETF COMPASS LAB</span><h1>回测实验室</h1><p id="welcome">正在读取登录状态…</p></section>
+    <section class="panel audit-panel" aria-labelledby="audit-title">
+      <div class="research-head"><div><h2 id="audit-title">研究审计台</h2><p>数据指纹 · 样本外分折 · 执行阻断 · 筹码POC门禁</p></div><p>旁路研究 · 生产规则未改变</p></div>
+      <div id="audit-content"><div class="empty">正在读取研究审计快照…</div></div>
+    </section>
     <section class="panel research-panel" aria-labelledby="research-title">
       <div class="research-head"><div><h2 id="research-title">旁路信号增强</h2><p>多周期一致性 · ATR动态防守 · RSI Z-score止盈 · 突破回踩审计</p></div><p>研究层 · 正式信号保持原规则</p></div>
       <div id="research-content"><div class="empty">正在读取研究快照…</div></div>
     </section>
     <section class="panel kronos-panel" aria-labelledby="kronos-title">
-      <div class="research-head"><div><h2 id="kronos-title">Kronos 未来5日影子预测</h2><p>K线基础模型 · qfq已收盘日线 · 确定性贪心路径</p></div><p>研究展示与模型审计</p></div>
-      <div id="kronos-content"><div class="empty">正在读取Kronos快照…</div></div>
+      <div class="research-head"><div><h2 id="kronos-title">未来5日影子预测</h2><p>K线基础模型 · 前复权已收盘日线 · 固定参数路径</p></div><p>研究展示与模型审计</p></div>
+      <div id="kronos-content"><div class="empty">正在读取未来路径快照…</div></div>
     </section>
     <div class="grid">
       <section class="panel"><h2>上传名单</h2><form id="upload-form"><input name="file" type="file" accept=".csv,text/csv" required /><button type="submit">上传并排队</button><button class="secondary" type="button" id="logout">退出登录</button></form><div class="status" id="status" role="status" aria-live="polite"></div></section>
@@ -96,8 +116,33 @@ import Footer from '../components/Footer.astro';
   <script>
     const welcome = document.querySelector('#welcome'); const status = document.querySelector('#status'); const jobs = document.querySelector('#jobs');
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
-    const pct = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
-    const pp = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}个百分点` : '—';
+    const signed = (value, suffix) => { if (value === null || value === undefined || value === '') return '—'; const number = Number(value); if (!Number.isFinite(number)) return '—'; const clean = Math.abs(number) < 0.005 ? 0 : number; return `${clean > 0 ? '+' : ''}${clean.toFixed(2)}${suffix}`; };
+    const pct = value => signed(value, '%');
+    const pp = value => signed(value, '个百分点');
+    const whole = value => { if (value === null || value === undefined || value === '') return '—'; const number = Number(value); return Number.isInteger(number) && number >= 0 ? String(number) : '—'; };
+    async function loadAudit() {
+      const box = document.querySelector('#audit-content');
+      try {
+        const response = await fetch(`/data/model-lab/a-share-research-audit.json?cb=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json(), dataset = data.dataset || {}, provenance = dataset.provenance || {}, walk = data.walk_forward || {}, aggregate = walk.aggregate || {}, execution = data.execution_audit || {}, blockers = execution.blockers || {}, chip = data.chip_poc || {};
+        const blockerValue = item => item?.status === 'known' ? whole(item.count) : '未知';
+        const avg = Number(aggregate.oos_average_directional_return_pct), oosTone = Number.isFinite(avg) && avg > 0 ? 'buy' : Number.isFinite(avg) && avg < 0 ? 'sell' : '';
+        const foldRows = (walk.folds || []).map(fold => `<div class="audit-row"><strong>${escapeHtml(fold.test_start)}—${escapeHtml(fold.test_end)}</strong><span>样本 ${escapeHtml(whole(fold.test?.count))} · 命中 ${escapeHtml(pct(fold.test?.hit_rate_pct))} · 方向收益 ${escapeHtml(pct(fold.test?.average_directional_return_pct))} · 相对训练退化 ${escapeHtml(pp(fold.hit_rate_degradation_pp))}</span></div>`).join('');
+        const chipMain = chip.status === 'evaluated' ? `${whole(chip.eligible_symbols)}只已评估` : '数据质量阻断';
+        box.innerHTML = `<div class="audit-grid">
+          <article class="audit-card"><span>冻结数据指纹</span><strong><code>${escapeHtml(String(dataset.value || '').slice(0,16))}</code></strong><small>${escapeHtml(whole(dataset.record_count))}条方向记录＋${escapeHtml(whole(dataset.pool_row_count))}条当前池｜截至 ${escapeHtml(dataset.as_of || '—')}</small></article>
+          <article class="audit-card ${oosTone}"><span>样本外T+1方向</span><strong>${escapeHtml(pct(aggregate.oos_hit_rate_pct))}</strong><small>${escapeHtml(whole(aggregate.fold_count))}折 · ${escapeHtml(whole(aggregate.oos_count))}条 · 平均方向收益 ${escapeHtml(pct(aggregate.oos_average_directional_return_pct))} · 正收益折 ${escapeHtml(pct(aggregate.positive_fold_consistency_pct))}</small></article>
+          <article class="audit-card warning"><span>执行数据审计</span><strong>${escapeHtml(blockerValue(blockers.invalid_levels))}条关键位异常</strong><small>陈旧 ${escapeHtml(blockerValue(blockers.stale_rows))} · 数据未知 ${escapeHtml(blockerValue(blockers.unknown_market_data))} · 收盘确认 ${escapeHtml(blockerValue(blockers.pending_close_confirmation))}</small></article>
+          <article class="audit-card warning"><span>换手衰减筹码POC</span><strong>${escapeHtml(chipMain)}</strong><small>${escapeHtml(chip.reason || chip.caveat || '仅作研究旁路')}</small></article>
+        </div><details class="audit-details"><summary>查看分折、阻断与复现口径</summary><div class="audit-detail-body">
+          ${foldRows || '<div class="audit-row"><strong>样本外分折</strong><span>历史样本仍在积累。</span></div>'}
+          <div class="audit-row"><strong>盘中严格数据</strong><span>等待收盘确认：${escapeHtml(blockerValue(blockers.pending_close_confirmation))}；缺少严格5分钟：${escapeHtml(blockerValue(blockers.missing_strict_5m_bars))}。运行时数据未进入静态快照时保持“未知”。</span></div>
+          <div class="audit-row"><strong>复现口径</strong><span>${escapeHtml(provenance.adjustment || '—')}；${escapeHtml(provenance.execution_basis || '—')}；账户级成本尚未计入方向标签评价。</span></div>
+          <div class="audit-row"><strong>推广门禁</strong><span>${(data.promotion_gate?.requirements || []).map(escapeHtml).join('；')}</span></div>
+        </div></details><p class="audit-note">该区只做数据质量、样本外稳定性和研究旁路审计。正式动作、权重、关键位、仓位及模拟盘规则保持原状态。</p>`;
+      } catch (error) { box.innerHTML = `<div class="empty">研究审计快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
+    }
     async function loadResearch() {
       const box = document.querySelector('#research-content');
       try {
@@ -116,18 +161,18 @@ import Footer from '../components/Footer.astro';
           return `<div class="watch-row"><strong>${escapeHtml(item.symbol)} · ${escapeHtml(item.name)}</strong><div class="tags">${tags.join('')}</div></div>`;
         }).join('');
         box.innerHTML = `<div class="research-grid">
-          <article class="research-card buy"><span>多周期强一致</span><strong>${s.multi_timeframe.strong_bullish}只</strong><small>日/周/60日已收盘信号投票</small></article>
-          <article class="research-card sell"><span>ATR动态防守</span><strong>${s.atr_defense.breached}跌破 · ${s.atr_defense.near}接近</strong><small>2×ATR单向跟踪，当前角色：旁路观察</small></article>
-          <article class="research-card sell"><span>RSI Z-score止盈</span><strong>${s.rsi_take_profit.overheated}过热 · ${s.rsi_take_profit.cooling_trigger}回落</strong><small>RSI14相对20期分布，阈值 +2</small></article>
-          <article class="research-card buy"><span>突破回踩状态机</span><strong>${br.armed}候场 · 已决胜率${br.win_rate ?? '—'}%</strong><small>确认 ${br.historical_confirmed}；已决 ${br.decided_count}；到期 ${br.outcome_expired}；开放 ${br.outcome_open}</small></article>
+          <article class="research-card buy"><span>多周期强一致</span><strong>${escapeHtml(whole(s.multi_timeframe.strong_bullish))}只</strong><small>日/周/60日已收盘信号投票</small></article>
+          <article class="research-card sell"><span>ATR动态防守</span><strong>${escapeHtml(whole(s.atr_defense.breached))}跌破 · ${escapeHtml(whole(s.atr_defense.near))}接近</strong><small>2×ATR单向跟踪，当前角色：旁路观察</small></article>
+          <article class="research-card sell"><span>RSI Z-score止盈</span><strong>${escapeHtml(whole(s.rsi_take_profit.overheated))}过热 · ${escapeHtml(whole(s.rsi_take_profit.cooling_trigger))}回落</strong><small>RSI14相对20期分布，阈值 +2</small></article>
+          <article class="research-card buy"><span>突破回踩状态机</span><strong>${escapeHtml(whole(br.armed))}候场 · 已决胜率${escapeHtml(pct(br.win_rate))}</strong><small>确认 ${escapeHtml(whole(br.historical_confirmed))}；已决 ${escapeHtml(whole(br.decided_count))}；到期 ${escapeHtml(whole(br.outcome_expired))}；开放 ${escapeHtml(whole(br.outcome_open))}</small></article>
         </div><div class="validation">
-          <div>强一致组未来5日<b>${pct(v.multi_timeframe.strong_alignment.average_pct)} · 相对提升 ${pp(v.multi_timeframe.average_return_lift_pct)}</b></div>
-          <div>RSI过热回落后5日<b>${pct(v.rsi_cooling.average_pct)} · 样本 ${v.rsi_cooling.count}</b></div>
-          <div>ATR跌破后5日<b>${pct(v.atr_breach.average_pct)} · 样本 ${v.atr_breach.count}</b></div>
-        </div><p class="research-note">历史覆盖 ${feature.coverage?.symbols_at_least_260 ?? '—'}/${feature.coverage?.symbols ?? '—'}只达到260根；统计使用ETF×日期重叠观察值，交易成本将在推广闸门阶段纳入。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
+          <div>强一致组未来5日<b>${escapeHtml(pct(v.multi_timeframe.strong_alignment.average_pct))} · 相对提升 ${escapeHtml(pp(v.multi_timeframe.average_return_lift_pct))}</b></div>
+          <div>RSI过热回落后5日<b>${escapeHtml(pct(v.rsi_cooling.average_pct))} · 样本 ${escapeHtml(whole(v.rsi_cooling.count))}</b></div>
+          <div>ATR跌破后5日<b>${escapeHtml(pct(v.atr_breach.average_pct))} · 样本 ${escapeHtml(whole(v.atr_breach.count))}</b></div>
+        </div><p class="research-note">历史覆盖 ${escapeHtml(whole(feature.coverage?.symbols_at_least_260))}/${escapeHtml(whole(feature.coverage?.symbols))}只达到260根；统计使用ETF×日期重叠观察值，交易成本将在推广闸门阶段纳入。</p>${rows ? `<div class="watch-list">${rows}</div>` : '<div class="empty">当前没有旁路关注项。</div>'}`;
       } catch (error) { box.innerHTML = `<div class="empty">研究快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
-    async function loadKronos() {
+    async function loadFuturePath() {
       const box = document.querySelector('#kronos-content');
       try {
         const response = await fetch(`/data/model-lab/a-share-kronos-shadow.json?cb=${Date.now()}`, { cache: 'no-store' });
@@ -139,29 +184,30 @@ import Footer from '../components/Footer.astro';
           return `<div class="kronos-row"><strong>${escapeHtml(item.symbol)} · ${escapeHtml(item.name)}</strong><span class="kronos-return ${tone}">${pct(value)}</span><span class="kronos-range">路径低/高 ${pct(item.five_day?.path_low_pct)} / ${pct(item.five_day?.path_high_pct)} ${quality}</span></div>`;
         }).join('');
         box.innerHTML = `<div class="kronos-grid">
-          <article class="kronos-card"><span>预测覆盖</span><strong>${coverage.predicted_symbols ?? '—'}/${coverage.expected_symbols ?? '—'}</strong><small>正式轮动ETF · 数据日 ${escapeHtml(data.latest_trade_date)}</small></article>
-          <article class="kronos-card"><span>未来5日方向</span><strong><span class="market-up-text">${summary.bullish_symbols ?? '—'}正</span> · <span class="market-down-text">${summary.bearish_symbols ?? '—'}负</span></strong><small>只统计模型路径终点方向</small></article>
-          <article class="kronos-card"><span>中位预测收益</span><strong class="${Number(summary.median_predicted_return_pct) >= 0 ? 'market-up-text' : 'market-down-text'}">${pct(summary.median_predicted_return_pct)}</strong><small>截面中位数 · horizon 5个交易日</small></article>
-          <article class="kronos-card"><span>原始OHLC质量</span><strong>${coverage.raw_ohlc_valid_symbols ?? '—'}/${coverage.predicted_symbols ?? '—'}</strong><small>异常路径保留原值并提示，未用于正式信号</small></article>
-        </div><div class="kronos-list">${rows}</div><p class="kronos-note">模型：${escapeHtml(data.model?.checkpoint)}；输入最近${data.model?.parameters?.lookback ?? '—'}根OHLC；未来交易日：${(data.forecast_definition?.future_sessions || []).map(escapeHtml).join('、')}。当前输出是一条固定参数的确定性模型路径，用于旁路观察、历史积累和后续walk-forward验证；正式动作、权重、关键位与模拟盘规则保持原状态。</p>`;
-      } catch (error) { box.innerHTML = `<div class="empty">Kronos快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
+          <article class="kronos-card"><span>预测覆盖</span><strong>${escapeHtml(whole(coverage.predicted_symbols))}/${escapeHtml(whole(coverage.expected_symbols))}</strong><small>正式轮动ETF · 数据日 ${escapeHtml(data.latest_trade_date)}</small></article>
+          <article class="kronos-card"><span>未来5日方向</span><strong><span class="market-up-text">${escapeHtml(whole(summary.bullish_symbols))}正</span> · <span class="market-down-text">${escapeHtml(whole(summary.bearish_symbols))}负</span></strong><small>只统计模型路径终点方向</small></article>
+          <article class="kronos-card"><span>中位预测收益</span><strong class="${Number(summary.median_predicted_return_pct) >= 0 ? 'market-up-text' : 'market-down-text'}">${escapeHtml(pct(summary.median_predicted_return_pct))}</strong><small>截面中位数 · horizon 5个交易日</small></article>
+          <article class="kronos-card"><span>原始OHLC质量</span><strong>${escapeHtml(whole(coverage.raw_ohlc_valid_symbols))}/${escapeHtml(whole(coverage.predicted_symbols))}</strong><small>异常路径保留原值并提示，未用于正式信号</small></article>
+        </div><div class="kronos-list">${rows}</div><p class="kronos-note">输入最近${escapeHtml(whole(data.model?.parameters?.lookback))}根OHLC；未来交易日：${(data.forecast_definition?.future_sessions || []).map(escapeHtml).join('、')}。当前输出是一条固定参数的研究路径，用于旁路观察、历史积累和后续样本外验证；正式动作、权重、关键位与模拟盘规则保持原状态。</p>`;
+      } catch (error) { box.innerHTML = `<div class="empty">未来路径快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
     async function load() {
       const me = await fetch('/api/auth/me'); if (!me.ok) { location.href = '/login/'; return; }
       const user = await me.json(); welcome.textContent = `已登录：${user.user.username} · ${user.user.role === 'admin' ? '管理员' : '用户'}`;
+      loadAudit();
       loadResearch();
-      loadKronos();
+      loadFuturePath();
       const response = await fetch('/api/jobs'); const data = await response.json(); if (!response.ok) { jobs.textContent = data.error || '任务读取失败'; return; }
       const statusLabel = value => ({queued:'排队中',processing:'处理中',completed:'已完成',failed:'失败',waiting_close:'等待收盘'})[value] || value;
       jobs.innerHTML = data.jobs.length ? data.jobs.map(job => {
         const result = job.result || {}, summary = result.by_category || {}, quality = result.data_quality || {};
         const labels = [['candidate','候场'],['伏击','伏击'],['止盈观察','止盈观察'],['兑现','兑现']].map(([key,label]) => {
-          const item = summary[key]; if (!item || !item.count) return '';
-          const target = `触价 ${item.target_hit ?? 0}/${item.target_samples ?? item.count}`;
-          const confirmed = key === '伏击' ? ` · 收盘确认 ${item.confirmation_samples ? `${item.confirmed}/${item.confirmation_samples}` : '待定'}` : '';
-          return `<span>${label} ${item.count}只 · ${target}${confirmed} · T+1 ${item.t1_hit_rate ?? '待定'}%</span>`;
+          const item = summary[key]; if (!item || !Number(item.count)) return '';
+          const target = `触价 ${whole(item.target_hit)}/${whole(item.target_samples ?? item.count)}`;
+          const confirmed = key === '伏击' ? ` · 收盘确认 ${Number(item.confirmation_samples) ? `${whole(item.confirmed)}/${whole(item.confirmation_samples)}` : '待定'}` : '';
+          return `<span>${escapeHtml(label)} ${escapeHtml(whole(item.count))}只 · ${escapeHtml(target)}${escapeHtml(confirmed)} · T+1 ${escapeHtml(pct(item.t1_hit_rate))}</span>`;
         }).join('');
-        const qualityLabels = result.version === 'strict_intraday_v2' ? `<div class="quality"><span>严格5分钟 ${quality.m5_final ?? 0}</span>${quality.m5_partial ? `<span class="warning">盘中待收盘 ${quality.m5_partial}</span>` : ''}${quality.pending_intraday ? `<span class="warning">等待下午行情 ${quality.pending_intraday}</span>` : ''}${quality.daily_fallback ? `<span class="warning">日线粗略回退 ${quality.daily_fallback}</span>` : ''}</div>` : (result.version ? '<div class="quality"><span class="warning">旧版日线预回测</span></div>' : '');
+        const qualityLabels = result.version === 'strict_intraday_v2' ? `<div class="quality"><span>严格5分钟 ${escapeHtml(whole(quality.m5_final ?? 0))}</span>${Number(quality.m5_partial) ? `<span class="warning">盘中待收盘 ${escapeHtml(whole(quality.m5_partial))}</span>` : ''}${Number(quality.pending_intraday) ? `<span class="warning">等待下午行情 ${escapeHtml(whole(quality.pending_intraday))}</span>` : ''}${Number(quality.daily_fallback) ? `<span class="warning">日线粗略回退 ${escapeHtml(whole(quality.daily_fallback))}</span>` : ''}</div>` : (result.version ? '<div class="quality"><span class="warning">旧版日线预回测</span></div>' : '');
         const method = result.methodology ? `<details class="method"><summary>查看回测口径</summary><p>${escapeHtml(result.methodology)}</p></details>` : '';
         return `<div class="job"><strong>${escapeHtml(job.filename)}</strong><span class="job-status">${escapeHtml(statusLabel(job.status))}</span><span class="meta">日期：${escapeHtml(job.trade_date || result.trade_date || '待识别')}</span><span class="meta">提交：${escapeHtml(job.created_at)}</span>${labels ? `<div class="summary">${labels}</div>` : ''}${qualityLabels}${method}${job.error_message ? `<div class="summary"><span>错误：${escapeHtml(job.error_message)}</span></div>` : ''}</div>`;
       }).join('') : '<div class="empty">还没有上传任务。</div>';

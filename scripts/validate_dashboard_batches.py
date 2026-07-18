@@ -5,10 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+try:
+    from generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
+except ModuleNotFoundError:  # imported as scripts.validate_dashboard_batches in tests
+    from scripts.generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data"
@@ -263,6 +269,172 @@ def validate_runtime_schema(
     require_fields(errors, "us-macro-dashboard", us_macro, ("version", "generated_at", "risk", "market", "data_quality"))
 
 
+def audit_nonnegative_int(errors: list[str], label: str, value: Any, *, nullable: bool = False) -> None:
+    if nullable and value is None:
+        return
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        errors.append(f"{label} must be a non-negative integer{' or null' if nullable else ''}")
+
+
+def audit_finite_number(
+    errors: list[str], label: str, value: Any, *, nullable: bool = False,
+    minimum: float | None = None, maximum: float | None = None,
+) -> None:
+    if nullable and value is None:
+        return
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+        errors.append(f"{label} must be a finite number{' or null' if nullable else ''}")
+        return
+    if ((minimum is not None and value < minimum)
+            or (maximum is not None and value > maximum)):
+        errors.append(f"{label} is outside the allowed range")
+
+
+def validate_research_audit(
+    errors: list[str], audit: dict[str, Any], backtest: dict[str, Any], pool: dict[str, Any],
+) -> dict[str, Any]:
+    require_fields(
+        errors, "a-share-research-audit", audit,
+        ("schema_version", "mode", "production_rules_changed", "dataset", "walk_forward", "execution_audit", "chip_poc"),
+    )
+    if audit.get("schema_version") != "research_audit_v1":
+        errors.append("a-share-research-audit schema_version must be research_audit_v1")
+    if audit.get("mode") != "shadow_research_only" or audit.get("production_rules_changed") is not False:
+        errors.append("a-share-research-audit must remain shadow-only with unchanged production rules")
+
+    dataset_value = audit.get("dataset")
+    dataset: dict[str, Any] = dataset_value if isinstance(dataset_value, dict) else {}
+    require_fields(
+        errors, "a-share-research-audit dataset", dataset,
+        ("algorithm", "value", "record_count", "pool_row_count", "as_of", "components", "provenance"),
+    )
+    audit_hash = dataset.get("value")
+    if dataset.get("algorithm") != "sha256" or not isinstance(audit_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", audit_hash):
+        errors.append("a-share-research-audit requires a lowercase 64-character hexadecimal sha256 fingerprint")
+
+    records_value = backtest.get("records")
+    rows_value = pool.get("all_rows")
+    records: list[dict[str, Any]] = records_value if isinstance(records_value, list) else []
+    rows: list[dict[str, Any]] = rows_value if isinstance(rows_value, list) else []
+    expected_hash, expected_history, expected_pool = combined_fingerprint(records, rows, PROVENANCE)
+    if audit_hash != expected_hash:
+        errors.append("a-share-research-audit combined fingerprint differs from current inputs or provenance")
+    if dataset.get("provenance") != PROVENANCE:
+        errors.append("a-share-research-audit provenance differs from the frozen reproducibility contract")
+    components_value = dataset.get("components")
+    components: dict[str, Any] = components_value if isinstance(components_value, dict) else {}
+    history_value = components.get("historical_direction_records")
+    pool_value = components.get("current_action_pool")
+    history_component: dict[str, Any] = history_value if isinstance(history_value, dict) else {}
+    pool_component: dict[str, Any] = pool_value if isinstance(pool_value, dict) else {}
+    if history_component != expected_history:
+        errors.append("a-share-research-audit historical component fingerprint differs from input records")
+    if pool_component != expected_pool:
+        errors.append("a-share-research-audit action-pool component fingerprint differs from current pool")
+    if dataset.get("record_count") != len(records) or dataset.get("pool_row_count") != len(rows):
+        errors.append("a-share-research-audit input counts differ from current inputs")
+
+    walk_value = audit.get("walk_forward")
+    walk: dict[str, Any] = walk_value if isinstance(walk_value, dict) else {}
+    if walk.get("status") not in {"evaluated", "insufficient_history"}:
+        errors.append("a-share-research-audit walk_forward has invalid status")
+    folds_value = walk.get("folds")
+    folds: list[Any] = folds_value if isinstance(folds_value, list) else []
+    if walk.get("status") == "evaluated" and not folds:
+        errors.append("a-share-research-audit evaluated walk_forward requires at least one fold")
+    if walk.get("status") == "insufficient_history" and folds:
+        errors.append("a-share-research-audit insufficient_history must not contain evaluated folds")
+    configuration_value = walk.get("configuration")
+    configuration: dict[str, Any] = configuration_value if isinstance(configuration_value, dict) else {}
+    if walk.get("status") == "evaluated" and configuration.get("purge_trade_dates") != 1:
+        errors.append("a-share-research-audit walk_forward must purge one T+1 label date")
+    aggregate_value = walk.get("aggregate")
+    aggregate: dict[str, Any] = aggregate_value if isinstance(aggregate_value, dict) else {}
+    if aggregate.get("fold_count") != len(folds):
+        errors.append("a-share-research-audit aggregate fold_count differs from folds")
+    audit_nonnegative_int(errors, "a-share-research-audit aggregate.fold_count", aggregate.get("fold_count"))
+    audit_nonnegative_int(errors, "a-share-research-audit aggregate.oos_count", aggregate.get("oos_count"))
+    audit_finite_number(errors, "a-share-research-audit aggregate.oos_hit_rate_pct", aggregate.get("oos_hit_rate_pct"), nullable=True, minimum=0, maximum=100)
+    audit_finite_number(errors, "a-share-research-audit aggregate.oos_average_directional_return_pct", aggregate.get("oos_average_directional_return_pct"), nullable=True)
+    audit_finite_number(errors, "a-share-research-audit aggregate.positive_fold_consistency_pct", aggregate.get("positive_fold_consistency_pct"), nullable=True, minimum=0, maximum=100)
+    previous_test_end: str | None = None
+    for index, fold in enumerate(folds):
+        if not isinstance(fold, dict):
+            errors.append(f"a-share-research-audit fold[{index}] must be an object")
+            continue
+        train_start = date_prefix(fold.get("train_start"))
+        train_end = date_prefix(fold.get("train_end"))
+        test_start = date_prefix(fold.get("test_start"))
+        test_end = date_prefix(fold.get("test_end"))
+        purged_value = fold.get("purged_dates")
+        purged: list[Any] = purged_value if isinstance(purged_value, list) else []
+        purge_dates = [date_prefix(value) for value in purged]
+        purge_date = purge_dates[0] if len(purge_dates) == 1 else None
+        if any(value is None for value in (train_start, train_end, test_start, test_end, purge_date)):
+            errors.append(f"a-share-research-audit fold[{index}] has invalid dates")
+            continue
+        assert train_start is not None and train_end is not None
+        assert test_start is not None and test_end is not None and purge_date is not None
+        if not (train_start <= train_end < purge_date < test_start <= test_end):
+            errors.append(f"a-share-research-audit fold[{index}] violates T+1 purge/no-lookahead ordering")
+        if fold.get("label_horizon_sessions") != 1:
+            errors.append(f"a-share-research-audit fold[{index}] label horizon must be 1")
+        test_value = fold.get("test")
+        test_metrics: dict[str, Any] = test_value if isinstance(test_value, dict) else {}
+        audit_nonnegative_int(errors, f"a-share-research-audit fold[{index}].test.count", test_metrics.get("count"))
+        audit_finite_number(errors, f"a-share-research-audit fold[{index}].test.hit_rate_pct", test_metrics.get("hit_rate_pct"), nullable=True, minimum=0, maximum=100)
+        audit_finite_number(errors, f"a-share-research-audit fold[{index}].test.average_directional_return_pct", test_metrics.get("average_directional_return_pct"), nullable=True)
+        audit_finite_number(errors, f"a-share-research-audit fold[{index}].hit_rate_degradation_pp", fold.get("hit_rate_degradation_pp"), nullable=True)
+        if previous_test_end is not None and previous_test_end >= test_start:
+            errors.append(f"a-share-research-audit fold[{index}] overlaps a prior OOS window")
+        previous_test_end = test_end
+
+    execution_value = audit.get("execution_audit")
+    execution: dict[str, Any] = execution_value if isinstance(execution_value, dict) else {}
+    blockers_value = execution.get("blockers")
+    blockers: dict[str, Any] = blockers_value if isinstance(blockers_value, dict) else {}
+    required_blockers = {
+        "invalid_levels", "stale_rows", "unknown_market_data",
+        "pending_close_confirmation", "missing_strict_5m_bars",
+    }
+    if set(blockers) != required_blockers:
+        errors.append("a-share-research-audit blocker schema is incomplete or contains unknown keys")
+    for name in sorted(required_blockers):
+        blocker_value = blockers.get(name)
+        blocker: dict[str, Any] = blocker_value if isinstance(blocker_value, dict) else {}
+        status = blocker.get("status")
+        count = blocker.get("count")
+        if status == "known":
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                errors.append(f"a-share-research-audit blocker {name} known count must be a non-negative integer")
+        elif status == "unknown":
+            if count is not None or not blocker.get("reason"):
+                errors.append(f"a-share-research-audit blocker {name} unknown count must be null with a reason")
+        else:
+            errors.append(f"a-share-research-audit blocker {name} has invalid status")
+
+    chip_value = audit.get("chip_poc")
+    chip: dict[str, Any] = chip_value if isinstance(chip_value, dict) else {}
+    if chip.get("status") not in {"evaluated", "blocked"}:
+        errors.append("a-share-research-audit chip_poc has invalid status")
+    audit_nonnegative_int(errors, "a-share-research-audit chip_poc.eligible_symbols", chip.get("eligible_symbols"))
+    audit_nonnegative_int(errors, "a-share-research-audit chip_poc.blocked_symbols", chip.get("blocked_symbols"), nullable=True)
+    if not isinstance(chip.get("items"), list):
+        errors.append("a-share-research-audit chip_poc.items must be a list")
+    generated_at = audit.get("generated_at")
+    if not isinstance(generated_at, str) or not generated_at:
+        errors.append("a-share-research-audit generated_at must be a non-empty string")
+    else:
+        expected = build_payload(backtest, pool, DEFAULT_TURNOVER, generated_at)
+        if audit != expected:
+            errors.append("a-share-research-audit derived payload differs from deterministic reconstruction")
+
+    invalid = non_finite_paths(audit, "a-share-research-audit")
+    if invalid:
+        errors.append(f"a-share-research-audit contains non-finite values: {', '.join(invalid[:5])}")
+    return dataset
+
+
 def validate(data_dir: Path = DATA) -> CheckResult:
     errors: list[str] = []
     warnings: list[str] = []
@@ -273,6 +445,8 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         a_mid = load_json(data_dir / "a-share-mid-macro.json")
         shadow = load_json(data_dir / "model-lab/a-share-shadow.json")
         kronos = load_json(data_dir / "model-lab/a-share-kronos-shadow.json")
+        research_audit = load_json(data_dir / "model-lab/a-share-research-audit.json")
+        backtest = load_json(data_dir / "etf-garden-backtest.json")
         us = load_json(data_dir / "us-etf-garden.json")
         us_pool = load_json(data_dir / "us-etf-pool.json")
         us_macro = load_json(data_dir / "us-macro-dashboard.json")
@@ -281,11 +455,19 @@ def validate(data_dir: Path = DATA) -> CheckResult:
 
     validate_runtime_schema(errors, warnings, garden, a_pool, a_mid, shadow, kronos, us, us_pool, us_macro)
 
+    audit_dataset = validate_research_audit(errors, research_audit, backtest, a_pool)
+
     a_date = require_date(errors, "A recommendations date", garden.get("date"))
     a_applies = require_date(errors, "A recommendations applies_to", garden.get("applies_to"))
     a_level = require_date(errors, "A recommendation level_data_as_of", garden.get("level_data_as_of"))
     pool_eval = require_date(errors, "A pool evaluation_date", a_pool.get("evaluation_date"))
     pool_latest = require_date(errors, "A pool latest_trade_date", a_pool.get("latest_trade_date"))
+    audit_as_of = require_date(errors, "A research audit as_of", audit_dataset.get("as_of"))
+    if audit_as_of and pool_latest and audit_as_of != pool_latest:
+        errors.append(f"A research audit as_of {audit_as_of} differs from pool latest {pool_latest}")
+    audit_pool_count = audit_dataset.get("pool_row_count")
+    if not isinstance(audit_pool_count, int) or audit_pool_count != len(a_pool.get("all_rows") or []):
+        errors.append("A research audit pool_row_count differs from current pool rows")
     mid_generated = require_date(errors, "A mid-macro generated_at", a_mid.get("generated_at"))
     shadow_latest = require_date(errors, "A shadow latest_trade_date", shadow.get("latest_trade_date"))
     kronos_latest = require_date(errors, "A Kronos latest_trade_date", kronos.get("latest_trade_date"))

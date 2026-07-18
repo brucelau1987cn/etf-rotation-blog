@@ -12,6 +12,13 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+try:
+    from generate_research_audit import DEFAULT_TURNOVER, build_payload
+    from validate_dashboard_batches import validate_research_audit
+except ModuleNotFoundError:  # imported as scripts.prepare_a_share_nightly in tests
+    from scripts.generate_research_audit import DEFAULT_TURNOVER, build_payload
+    from scripts.validate_dashboard_batches import validate_research_audit
+
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path("/root/.hermes/state/a-share-nightly-pipeline.json")
 CN = ZoneInfo("Asia/Shanghai")
@@ -40,6 +47,15 @@ def atomic_write(path: Path, payload: dict) -> None:
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
+
+
+def generate_research_audit(
+    backtest: dict, pool: dict, generated_at: str,
+) -> tuple[dict, str | None]:
+    try:
+        return build_payload(backtest, pool, DEFAULT_TURNOVER, generated_at), None
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        return {}, f"research audit generator unavailable: {exc}"
 
 
 def validate_kronos_snapshot(payload: dict, trade_date: str | None) -> list[str]:
@@ -90,9 +106,11 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         return payload
 
     pool = json.loads((ROOT / "public/data/etf-garden-pool.json").read_text(encoding="utf-8"))
+    backtest = json.loads((ROOT / "public/data/etf-garden-backtest.json").read_text(encoding="utf-8"))
     shadow = json.loads((ROOT / "public/data/model-lab/a-share-shadow.json").read_text(encoding="utf-8"))
     kronos_path = ROOT / "public/data/model-lab/a-share-kronos-shadow.json"
     kronos = json.loads(kronos_path.read_text(encoding="utf-8")) if kronos_path.exists() else {}
+    research_audit: dict = {}
     errors = []
     if shadow.get("mode") != "shadow_research_only":
         errors.append("shadow mode must be shadow_research_only")
@@ -112,6 +130,15 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     if int((pool.get("summary") or {}).get("valid_count") or 0) < 82:
         errors.append("formal pool valid coverage below 82")
     errors.extend(validate_kronos_snapshot(kronos, gate.get("qfq_date")))
+    if not errors:
+        research_audit, research_error = generate_research_audit(backtest, pool, current.isoformat())
+        if research_error:
+            errors.append(f"research audit generation failed: {research_error}")
+        else:
+            validate_research_audit(errors, research_audit, backtest, pool)
+            research_dataset = research_audit.get("dataset") or {}
+            if research_dataset.get("as_of") != pool.get("latest_trade_date"):
+                errors.append("research audit as_of differs from pool latest_trade_date")
     if errors:
         payload = {
             "version": 1,
@@ -125,6 +152,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         atomic_write(state_path, payload)
         return payload
 
+    atomic_write(ROOT / "public/data/model-lab/a-share-research-audit.json", research_audit)
     payload = {
         "version": 1,
         "status": "prepared",
@@ -139,9 +167,11 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
             "public/data/a-share-mid-macro.json",
         ],
         "snapshot_files": [
+            "public/data/etf-garden-backtest.json",
             "public/data/etf-garden-pool.json",
             "public/data/model-lab/a-share-shadow.json",
             "public/data/model-lab/a-share-kronos-shadow.json",
+            "public/data/model-lab/a-share-research-audit.json",
         ],
     }
     atomic_write(state_path, payload)
