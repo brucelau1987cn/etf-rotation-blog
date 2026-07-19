@@ -2,6 +2,7 @@
 title: 'A股ETF雷达数据源与博客同步流程'
 description: '记录ETF轮动笔记的数据源优先级、OpenD状态、A股兜底路线，以及每日定时任务同步到博客的发布规则。'
 pubDate: 2026-06-01
+category: '策略研究'
 ---
 
 ## 结论先行

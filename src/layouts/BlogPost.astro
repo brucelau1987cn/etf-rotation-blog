@@ -9,7 +9,7 @@ import { SITE_AUTHOR } from '../consts';
 import { sanitizePublicText, summarizeDescription } from '../lib/posts';
 
 type Props = CollectionEntry<'blog'>['data'];
-const { title, description, pubDate, updatedDate, appliesTo, dataAsOf, stage, heroImage, category } = Astro.props;
+const { title, description, pubDate, updatedDate, appliesTo, dataAsOf, stage, heroImage, category, longform = false } = Astro.props;
 const displayTitle = sanitizePublicText(title);
 const readableDescription = summarizeDescription(description, 180);
 const displayStage = stage ? sanitizePublicText(stage) : stage;
@@ -59,6 +59,11 @@ const jsonLd = {
       .disclaimer { margin-top: 0.8rem; padding: 0.75rem; border-radius: 12px; background: var(--amber-soft); color: rgb(var(--gray-dark)); font-size: 0.8rem; line-height: 1.5; }
       .back-top { display: block; margin-top: 0.7rem; color: rgb(var(--gray)); font-size: 0.8rem; text-align: center; text-decoration: none; }
       .status-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
+      .longform-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .7rem; margin: 0 0 1rem; padding: .8rem .9rem; }
+      .longform-tools p { margin: 0; color: rgb(var(--gray-dark)); font-size: .84rem; line-height: 1.5; }
+      .longform-tools button { padding: .48rem .7rem; border: 1px solid var(--border); border-radius: 999px; background: rgb(var(--black)); color: #fff; font: inherit; font-size: .78rem; font-weight: 850; cursor: pointer; }
+      .prose.longform-collapsed { position: relative; max-height: 80rem; overflow: hidden; }
+      .prose.longform-collapsed::after { content: ''; position: absolute; inset: auto 0 0; height: 10rem; pointer-events: none; background: linear-gradient(transparent, rgb(var(--white)) 78%); }
       .prose > h2:first-child { margin-top: 0; padding: 1rem 1.1rem 0; border: 1px solid rgba(214,61,46,.22); border-bottom: 0; border-radius: 18px 18px 0 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
       .prose > h2:first-child + blockquote { margin-top: 0; border-radius: 0 0 18px 18px; border: 1px solid rgba(214,61,46,.22); border-top: 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
       @media (max-width: 960px) {
@@ -95,8 +100,9 @@ const jsonLd = {
           {updatedDate && <div class="last-updated-on">最后更新：<FormattedDate date={updatedDate} /></div>}
           <nav class="article-nav" aria-label="文章快捷导航"><a href="/a-compass/">← A股罗盘</a><a href="/blog">全部A股复盘</a><a href="/momentum">A股趋势风控雷达</a></nav>
         </header>
+        {longform && <section class="longform-tools card" aria-label="长文阅读控制"><p><strong>长文模式：</strong>默认展示核心章节，目录可直接跳转到任意段落。</p><button type="button" id="longform-toggle" aria-expanded="false" aria-controls="article-content">展开完整正文</button></section>}
         <div class="article-shell">
-          <div class="prose" id="article-content"><slot /></div>
+          <div class:list={['prose', longform && 'longform-collapsed']} id="article-content" data-longform={longform ? 'true' : undefined}><slot /></div>
           <aside class="sidebar card" aria-label="本文目录">
             <details open>
               <summary>本文目录</summary>
@@ -175,6 +181,23 @@ const jsonLd = {
         return s.replace(/\s{2,}/g, ' ').trim();
       };
       const content = document.querySelector('#article-content');
+      const longformToggle = document.querySelector('#longform-toggle');
+      const expandLongform = () => {
+        if (!content || !longformToggle) return;
+        content.classList.remove('longform-collapsed');
+        longformToggle.textContent = '收起历史正文';
+        longformToggle.setAttribute('aria-expanded', 'true');
+      };
+      if (content && longformToggle) {
+        longformToggle.addEventListener('click', () => {
+          const collapsed = content.classList.toggle('longform-collapsed');
+          longformToggle.textContent = collapsed ? '展开完整正文' : '收起历史正文';
+          longformToggle.setAttribute('aria-expanded', String(!collapsed));
+          if (collapsed) document.querySelector('.longform-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        if (location.hash) expandLongform();
+        window.addEventListener('hashchange', expandLongform);
+      }
       if (content) {
         const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
         const nodes = [];

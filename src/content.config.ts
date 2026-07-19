@@ -17,6 +17,7 @@ const blog = defineCollection({
 				dataAsOf: z.string().optional(),
 				stage: z.string().optional(),
 				category: z.string().optional(),
+				longform: z.boolean().optional(),
 				heroImage: z.optional(image()),
 			}),
 });

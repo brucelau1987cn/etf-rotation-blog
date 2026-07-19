@@ -3,7 +3,8 @@ title: 'ETF雷达历史详细归档'
 description: 'ETF罗盘固定页压缩前的历史详细预测、推荐与实际信号记录。'
 pubDate: 2026-07-07
 updatedDate: 2026-07-07
-category: 'ETF罗盘'
+category: '历史档案'
+longform: true
 ---
 
 > 本页保存 ETF罗盘固定页的历史详细内容。主入口 `/a-compass/` 只保留最近3个交易窗口和历史查询清单。
