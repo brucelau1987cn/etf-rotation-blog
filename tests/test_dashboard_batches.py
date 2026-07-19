@@ -46,21 +46,42 @@ FIXTURES = {
         "latest_trade_date": "2026-07-14", "mode": "shadow_research_only", "production_weights_changed": False,
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "summary": {}, "historical_validation": {}, "coverage": {"symbols_at_least_260": 89}, "feature_parameters": {}},
     },
-    "model-lab/a-share-kronos-shadow.json": {
-        "latest_trade_date": "2026-07-14", "mode": "shadow_research_only",
-        "production_weights_changed": False, "formal_signal_logic_changed": False,
-        "production_role": "display_and_audit_only",
-        "data_basis": {"adjustment": "qfq", "is_final": True, "universe": "formal_rotation"},
-        "forecast_definition": {"horizon_sessions": 5, "future_sessions": ["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21"]},
-        "coverage": {"expected_symbols": 1, "predicted_symbols": 1, "failed_symbols": []},
+    "model-lab/a-share-path-shadow.json": {
+        "schema_version": 1, "latest_trade_date": "2026-07-14", "generated_at": "2026-07-14T14:00:00+00:00",
+        "input_fingerprint": "f" * 64, "model_family": "sequence_path_model",
+        "mode": "shadow_research_only", "production_weights_changed": False,
+        "formal_signal_logic_changed": False, "production_role": "display_and_audit_only",
+        "data_basis": {"adjustment": "qfq", "is_final": True, "universe": "formal_rotation", "expected_symbols": 1},
+        "forecast_definition": {
+            "target": "future_ohlc_path", "horizon_sessions": 5,
+            "future_sessions": ["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21"],
+            "interpretation": "deterministic research path; display only",
+        },
+        "model": {"parameters": {
+            "lookback": 256, "minimum_history": 96, "horizon_sessions": 5,
+            "input_columns": ["open", "high", "low", "close"],
+        }},
+        "coverage": {
+            "expected_symbols": 1, "predicted_symbols": 1, "failed_symbols": [],
+            "raw_ohlc_valid_symbols": 1, "minimum_history_bars": 256, "median_history_bars": 256,
+        },
+        "summary": {
+            "bullish_symbols": 1, "bearish_symbols": 0,
+            "median_predicted_return_pct": 0.5, "mean_predicted_return_pct": 0.5,
+            "top_predicted": [{"symbol": "510300", "name": "沪深300ETF", "predicted_return_pct": 0.5}],
+        },
+        "validation": {
+            "status": "shadow_accumulation", "formal_promotion_eligible": False,
+            "required_checks": ["directional_hit_rate"],
+        },
         "items": [{
-            "symbol": "510300", "name": "沪深300ETF", "as_of": "2026-07-14", "close": 4.0,
+            "symbol": "510300", "name": "沪深300ETF", "as_of": "2026-07-14", "history_bars": 256, "close": 4.0,
             "steps": [
                 {"session": i, "date": day, "open": 4.0, "high": 4.1, "low": 3.9, "close": 4.02}
                 for i, day in enumerate(["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21"], 1)
             ],
             "five_day": {"predicted_close": 4.02, "predicted_return_pct": 0.5, "path_high_pct": 2.5, "path_low_pct": -2.5},
-            "quality": {"raw_ohlc_valid": True, "raw_errors": []},
+            "quality": {"raw_ohlc_valid": True, "raw_errors": [], "input_columns": ["open", "high", "low", "close"]},
         }],
     },
     "model-lab/a-share-research-audit.json": RESEARCH_AUDIT,
@@ -116,8 +137,8 @@ def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
         payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
         payloads["etf-garden-pool.json"]["all_rows"][0]["date"] = "2026-07-13"
         payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
-        payloads["model-lab/a-share-kronos-shadow.json"]["latest_trade_date"] = "2026-07-13"
-        payloads["model-lab/a-share-kronos-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
+        payloads["model-lab/a-share-path-shadow.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-path-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
         payloads["model-lab/a-share-research-audit.json"] = build_payload(
             payloads["etf-garden-backtest.json"], payloads["etf-garden-pool.json"],
             Path("/definitely/missing-turnover.json"), "2026-07-14T14:30:00+08:00",
@@ -164,7 +185,7 @@ def test_non_finite_enhancement_value_is_blocked(tmp_path):
 
 def test_invalid_kronos_snapshot_is_blocked(tmp_path):
     def mutate(payloads):
-        snapshot = payloads["model-lab/a-share-kronos-shadow.json"]
+        snapshot = payloads["model-lab/a-share-path-shadow.json"]
         snapshot["items"][0]["steps"][0]["close"] = float("nan")
         snapshot["items"].append(copy.deepcopy(snapshot["items"][0]))
         snapshot["coverage"]["predicted_symbols"] = 2
@@ -253,6 +274,21 @@ def test_explicit_invalid_level_is_allowed(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"
+
+
+def test_path_shadow_public_schema_rejects_sensitive_unknown_keys_and_html(tmp_path):
+    def mutate(payloads):
+        snapshot = payloads["model-lab/a-share-path-shadow.json"]
+        snapshot["model"]["checkpoint"] = "private/model"
+        snapshot["model"]["api_key"] = "secret-value"
+        snapshot["data_basis"]["database"] = "/root/private.db"
+        snapshot["items"][0]["name"] = "</strong><img src=x onerror=alert(1)>"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("public schema" in error for error in result.errors)
+    assert any("forbidden public key" in error for error in result.errors)
+    assert any("forbidden HTML delimiters" in error for error in result.errors)
 
 
 def test_duplicate_pool_code_is_blocked(tmp_path):

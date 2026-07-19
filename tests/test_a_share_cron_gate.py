@@ -86,7 +86,7 @@ def test_pending_public_changes_detects_staged_only_change(tmp_path, monkeypatch
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True)
-    path = tmp_path / "src/content/blog/2026-07-14.md"
+    path = tmp_path / "public/data/model-lab/a-share-path-shadow.json"
     path.parent.mkdir(parents=True)
     path.write_text("old\n", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)

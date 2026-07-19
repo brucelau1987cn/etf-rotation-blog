@@ -13,19 +13,26 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 try:
+    from a_share_nightly_contract import (
+        DEPLOYMENT_MARKER_FILE, PATH_SHADOW_FILE, SNAPSHOT_FILES, STATE, file_hashes,
+        nightly_content_files, nightly_lock,
+    )
     from generate_research_audit import DEFAULT_TURNOVER, build_payload
     from validate_dashboard_batches import validate_research_audit
 except ModuleNotFoundError:  # imported as scripts.prepare_a_share_nightly in tests
+    from scripts.a_share_nightly_contract import (
+        DEPLOYMENT_MARKER_FILE, PATH_SHADOW_FILE, SNAPSHOT_FILES, STATE, file_hashes,
+        nightly_content_files, nightly_lock,
+    )
     from scripts.generate_research_audit import DEFAULT_TURNOVER, build_payload
     from scripts.validate_dashboard_batches import validate_research_audit
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE = Path("/root/.hermes/state/a-share-nightly-pipeline.json")
 CN = ZoneInfo("Asia/Shanghai")
 
 
 def run_json(command: list[str]) -> dict:
-    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False, timeout=180)
     if not result.stdout.strip():
         raise RuntimeError((result.stderr or f"empty output: {command}")[-1000:])
     payload = json.loads(result.stdout)
@@ -47,6 +54,35 @@ def atomic_write(path: Path, payload: dict) -> None:
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
+
+
+def git_head() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+        capture_output=True, check=True, timeout=30,
+    ).stdout.strip()
+
+
+def ensure_current_main() -> str:
+    def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args], cwd=ROOT, text=True, capture_output=True,
+            check=check, timeout=120,
+        )
+
+    branch = git("branch", "--show-current").stdout.strip()
+    if branch != "main":
+        raise RuntimeError(f"nightly prepare requires main branch, got {branch!r}")
+    if git("diff", "--cached", "--quiet", check=False).returncode != 0:
+        raise RuntimeError("nightly prepare requires a clean git index")
+    git("fetch", "origin", "main")
+    head = git("rev-parse", "HEAD").stdout.strip()
+    remote = git("rev-parse", "origin/main").stdout.strip()
+    if head != remote:
+        raise RuntimeError(
+            f"nightly prepare requires HEAD == origin/main: head={head[:12]} remote={remote[:12]}"
+        )
+    return head
 
 
 def generate_research_audit(
@@ -108,7 +144,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     pool = json.loads((ROOT / "public/data/etf-garden-pool.json").read_text(encoding="utf-8"))
     backtest = json.loads((ROOT / "public/data/etf-garden-backtest.json").read_text(encoding="utf-8"))
     shadow = json.loads((ROOT / "public/data/model-lab/a-share-shadow.json").read_text(encoding="utf-8"))
-    kronos_path = ROOT / "public/data/model-lab/a-share-kronos-shadow.json"
+    kronos_path = ROOT / PATH_SHADOW_FILE
     kronos = json.loads(kronos_path.read_text(encoding="utf-8")) if kronos_path.exists() else {}
     research_audit: dict = {}
     errors = []
@@ -153,26 +189,29 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         return payload
 
     atomic_write(ROOT / "public/data/model-lab/a-share-research-audit.json", research_audit)
+    trade_date = str(gate.get("qfq_date"))
+    base_commit = git_head()
+    generation_id = f"a-share-{trade_date}-{current.strftime('%Y%m%dT%H%M%S%z')}"
+    atomic_write(ROOT / DEPLOYMENT_MARKER_FILE, {
+        "schema_version": 1,
+        "generation_id": generation_id,
+        "trade_date": trade_date,
+        "base_commit": base_commit,
+        "mode": "a_share_nightly_static",
+    })
     payload = {
-        "version": 1,
+        "version": 2,
         "status": "prepared",
-        "phase": "prepare",
-        "trade_date": gate.get("qfq_date"),
+        "phase": "prepared",
+        "generation_id": generation_id,
+        "trade_date": trade_date,
         "prepared_at": current.isoformat(),
+        "base_commit": base_commit,
         "gate": gate,
         "expected_stage": "22:00夜间最终版",
-        "content_files": [
-            f"src/content/blog/{gate.get('qfq_date')}.md",
-            "public/data/garden-recommendations.json",
-            "public/data/a-share-mid-macro.json",
-        ],
-        "snapshot_files": [
-            "public/data/etf-garden-backtest.json",
-            "public/data/etf-garden-pool.json",
-            "public/data/model-lab/a-share-shadow.json",
-            "public/data/model-lab/a-share-kronos-shadow.json",
-            "public/data/model-lab/a-share-research-audit.json",
-        ],
+        "content_files": list(nightly_content_files(trade_date)),
+        "snapshot_files": list(SNAPSHOT_FILES),
+        "snapshot_hashes": file_hashes(ROOT, SNAPSHOT_FILES),
     }
     atomic_write(state_path, payload)
     return payload
@@ -187,7 +226,9 @@ def main() -> int:
         assert ROOT.joinpath("scripts/check_a_share_cron_gate.py").exists()
         print("prepare_a_share_nightly self-test: OK")
         return 0
-    result = prepare(state_path=args.state)
+    with nightly_lock():
+        ensure_current_main()
+        result = prepare(state_path=args.state)
     if result.get("status") == "prepared":
         return 0
     print(json.dumps(result, ensure_ascii=False))

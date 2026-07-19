@@ -2,7 +2,7 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-07-18T23:29:01.916674+00:00",
+  "generated_at": "2026-07-19T03:40:47.516288+00:00",
   "dataset": {
     "algorithm": "sha256",
     "value": "6b87d8af749720253284a852e0f38d2736da3ca8a1ab7313a7005f58a3402e00",
@@ -64,6 +64,7 @@
   "walk_forward": {
     "status": "evaluated",
     "configuration": {
+      "evaluation_type": "rolling_time_split_no_parameter_training",
       "train_trade_dates": 10,
       "purge_trade_dates": 1,
       "test_trade_dates": 5,
@@ -144,11 +145,40 @@
       "oos_count": 187,
       "oos_hit_rate_pct": 48.66,
       "oos_average_directional_return_pct": -0.0027,
+      "trade_date_count": 15,
+      "unique_symbol_count": 41,
+      "equal_date_weighted_hit_rate_pct": 48.37,
+      "equal_date_weighted_return_pct": -0.0527,
+      "date_cluster_bootstrap_95ci": {
+        "method": "deterministic_trade_date_cluster_bootstrap",
+        "samples": 10000,
+        "seed": 20260719,
+        "hit_rate_pct": [
+          34.55,
+          61.76
+        ],
+        "average_directional_return_pct": [
+          -0.8582,
+          0.8077
+        ]
+      },
+      "side_metrics": {
+        "red_direction_label": {
+          "count": 83,
+          "hit_rate_pct": 48.19,
+          "average_directional_return_pct": -0.1877
+        },
+        "green_direction_label": {
+          "count": 104,
+          "hit_rate_pct": 49.04,
+          "average_directional_return_pct": 0.145
+        }
+      },
       "positive_fold_consistency_pct": 33.33,
       "average_hit_rate_degradation_pp": -3.01
     },
     "methodology": "按交易日顺序使用互不重叠的样本外窗口；每折在训练末端剔除一个T+1标签跨度，训练段仅作为稳定性基线，没有可调参数时不虚构优化结果。",
-    "limitation": "这是历史方向标签的前向分折验证，不代表模拟盘或真实账户收益。"
+    "limitation": "这是历史方向标签的滚动时间切片，不代表模拟盘或真实账户收益；当前历史记录尚缺signal_available_at与label_available_at点时账本，推广前必须按真实标签可得时间复核purge；日期聚类区间按唯一交易日重采样，当前未处理跨日序列相关。"
   },
   "execution_audit": {
     "row_count": 91,
@@ -156,8 +186,28 @@
     "blockers": {
       "invalid_levels": {
         "status": "known",
+        "count": 0,
+        "scope": "execution_eligible_rows"
+      },
+      "missing_or_nonfinite_levels": {
+        "status": "known",
+        "count": 0,
+        "scope": "current_pool"
+      },
+      "nonpositive_levels": {
+        "status": "known",
+        "count": 0,
+        "scope": "current_pool"
+      },
+      "ordering_violation": {
+        "status": "known",
         "count": 44,
         "scope": "current_pool"
+      },
+      "model_not_applicable_for_trade_state": {
+        "status": "known",
+        "count": 44,
+        "scope": "non_execution_rows"
       },
       "stale_rows": {
         "status": "known",

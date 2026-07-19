@@ -17,6 +17,11 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+try:
+    from a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
+except ModuleNotFoundError:
+    from scripts.a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
+
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/etf-garden-pool.json"
 DB = ROOT / "data/local/etf-compass.db"
@@ -149,15 +154,7 @@ def resolve_trading_day(
 
 
 def pending_public_changes(day: str) -> bool:
-    paths = [
-        "public/data/model-lab/a-share-shadow.json",
-        "public/data/model-lab/a-share-research-audit.json",
-        "public/data/etf-garden-backtest.json",
-        "public/data/etf-garden-pool.json",
-        "public/data/garden-recommendations.json",
-        "public/data/a-share-mid-macro.json",
-        f"src/content/blog/{day}.md",
-    ]
+    paths = [*SNAPSHOT_FILES, *nightly_content_files(day)]
     # Include staged and untracked files. `git diff --quiet` only sees
     # unstaged changes and can miss a generated snapshot already in the index.
     result = subprocess.run(

@@ -85,6 +85,10 @@ def test_generate_shadow_payload_and_reuse_cache(tmp_path):
     assert runtime.calls == 1
     assert payload["mode"] == "shadow_research_only"
     assert payload["production_weights_changed"] is False
+    assert payload["model_family"] == "sequence_path_model"
+    assert set(payload["model"]) == {"parameters"}
+    assert "checkpoint" not in json.dumps(payload)
+    assert "NeoQuasar" not in json.dumps(payload)
     assert payload["formal_signal_logic_changed"] is False
     assert payload["production_role"] == "display_and_audit_only"
     assert payload["coverage"]["predicted_symbols"] == 2
@@ -92,12 +96,17 @@ def test_generate_shadow_payload_and_reuse_cache(tmp_path):
     assert all(len(item["steps"]) == 5 for item in payload["items"])
     assert all(item["five_day"]["predicted_return_pct"] == 1.0 for item in payload["items"])
     assert not kronos.validate_payload(payload, 2)
+    polluted = json.loads(out.read_text())
+    polluted["model"]["checkpoint"] = "private/model"
+    polluted["model"]["api_key"] = "secret"
+    out.write_text(json.dumps(polluted))
     cached = kronos.generate(
         db_path=db, out_path=out, history_path=history, runtime=BombRuntime(),
         expected_symbols=2, universe=universe, future_sessions=sessions,
         minimum_history=96, lookback=100,
     )
-    assert cached["runtime"]["cache_hit"] is True
+    assert cached == payload
+    assert "runtime" not in cached
     assert len(history.read_text().splitlines()) == 1
 
 

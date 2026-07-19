@@ -11,11 +11,17 @@ import hashlib
 import json
 import math
 import os
+import random
 import tempfile
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+try:
+    from a_share_execution_contract import EXECUTION_ELIGIBLE_STATES
+except ModuleNotFoundError:
+    from scripts.a_share_execution_contract import EXECUTION_ELIGIBLE_STATES
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BACKTEST = ROOT / "public/data/etf-garden-backtest.json"
@@ -166,6 +172,63 @@ def _sample_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _date_cluster_metrics(
+    records: list[dict[str, Any]], *, bootstrap_samples: int = 10_000, seed: int = 20260719,
+) -> dict[str, Any]:
+    by_date: dict[str, list[float]] = {}
+    symbols: set[str] = set()
+    for row in records:
+        value = _directional_return(row)
+        trade_date = row.get("actual_trade_date") or row.get("target_date")
+        if value is None or not trade_date:
+            continue
+        by_date.setdefault(str(trade_date), []).append(value)
+        if row.get("code"):
+            symbols.add(str(row["code"]))
+    dates = sorted(by_date)
+    if not dates:
+        return {
+            "trade_date_count": 0, "unique_symbol_count": len(symbols),
+            "equal_date_weighted_hit_rate_pct": None,
+            "equal_date_weighted_return_pct": None,
+            "date_cluster_bootstrap_95ci": None,
+        }
+    daily_hits = [sum(value > 0 for value in by_date[day]) / len(by_date[day]) * 100 for day in dates]
+    daily_returns = [sum(by_date[day]) / len(by_date[day]) for day in dates]
+    rng = random.Random(seed)
+    hit_draws: list[float] = []
+    return_draws: list[float] = []
+    for _ in range(bootstrap_samples):
+        indexes = [rng.randrange(len(dates)) for _ in dates]
+        hit_draws.append(sum(daily_hits[index] for index in indexes) / len(indexes))
+        return_draws.append(sum(daily_returns[index] for index in indexes) / len(indexes))
+
+    def percentile(values: list[float], probability: float) -> float:
+        ordered = sorted(values)
+        position = (len(ordered) - 1) * probability
+        lower = int(position)
+        upper = min(lower + 1, len(ordered) - 1)
+        weight = position - lower
+        return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+    return {
+        "trade_date_count": len(dates),
+        "unique_symbol_count": len(symbols),
+        "equal_date_weighted_hit_rate_pct": round(sum(daily_hits) / len(daily_hits), 2),
+        "equal_date_weighted_return_pct": round(sum(daily_returns) / len(daily_returns), 4),
+        "date_cluster_bootstrap_95ci": {
+            "method": "deterministic_trade_date_cluster_bootstrap",
+            "samples": bootstrap_samples,
+            "seed": seed,
+            "hit_rate_pct": [round(percentile(hit_draws, 0.025), 2), round(percentile(hit_draws, 0.975), 2)],
+            "average_directional_return_pct": [
+                round(percentile(return_draws, 0.025), 4),
+                round(percentile(return_draws, 0.975), 4),
+            ],
+        },
+    }
+
+
 def walk_forward_evaluation(
     records: list[dict[str, Any]], train_dates: int = 10, test_dates: int = 5,
 ) -> dict[str, Any]:
@@ -221,12 +284,18 @@ def walk_forward_evaluation(
             if fold["test_start"] <= day <= fold["test_end"]:
                 oos_rows.extend(by_date[day])
     oos = _sample_metrics(oos_rows)
+    cluster = _date_cluster_metrics(oos_rows)
+    side_metrics = {
+        "red_direction_label": _sample_metrics([row for row in oos_rows if row.get("side") == "red"]),
+        "green_direction_label": _sample_metrics([row for row in oos_rows if row.get("side") == "green"]),
+    }
     positive_folds = sum(
         fold["test"]["average_directional_return_pct"] > 0 for fold in folds
     )
     return {
         "status": "evaluated",
         "configuration": {
+            "evaluation_type": "rolling_time_split_no_parameter_training",
             "train_trade_dates": train_dates, "purge_trade_dates": 1,
             "test_trade_dates": test_dates,
             "step_trade_dates": test_dates, "target": "T+1方向收益",
@@ -237,6 +306,8 @@ def walk_forward_evaluation(
             "fold_count": len(folds), "oos_count": oos["count"],
             "oos_hit_rate_pct": oos["hit_rate_pct"],
             "oos_average_directional_return_pct": oos["average_directional_return_pct"],
+            **cluster,
+            "side_metrics": side_metrics,
             "positive_fold_consistency_pct": round(positive_folds / len(folds) * 100, 2),
             "average_hit_rate_degradation_pp": round(
                 sum(fold["hit_rate_degradation_pp"] for fold in folds) / len(folds), 2,
@@ -246,7 +317,11 @@ def walk_forward_evaluation(
             "按交易日顺序使用互不重叠的样本外窗口；每折在训练末端剔除一个T+1标签跨度，"
             "训练段仅作为稳定性基线，没有可调参数时不虚构优化结果。"
         ),
-        "limitation": "这是历史方向标签的前向分折验证，不代表模拟盘或真实账户收益。",
+        "limitation": (
+            "这是历史方向标签的滚动时间切片，不代表模拟盘或真实账户收益；"
+            "当前历史记录尚缺signal_available_at与label_available_at点时账本，推广前必须按真实标签可得时间复核purge；"
+            "日期聚类区间按唯一交易日重采样，当前未处理跨日序列相关。"
+        ),
     }
 
 
@@ -256,6 +331,10 @@ def execution_audit(pool: dict[str, Any]) -> dict[str, Any]:
     rows = list(raw_rows) if rows_available else []
     latest = pool.get("latest_trade_date")
     invalid_levels = 0
+    model_not_applicable = 0
+    missing_or_nonfinite_levels = 0
+    nonpositive_levels = 0
+    ordering_violations = 0
     stale = 0
     unknown_data = 0
     check_failures: Counter[str] = Counter()
@@ -264,11 +343,22 @@ def execution_audit(pool: dict[str, Any]) -> dict[str, Any]:
     trade_states: Counter[str] = Counter()
     for row in rows:
         support, target, stop = (finite(row.get(key)) for key in ("support", "target", "stop"))
-        if (
-            support is None or target is None or stop is None
-            or not (target > support > stop)
-        ):
-            invalid_levels += 1
+        issue: str | None = None
+        if support is None or target is None or stop is None:
+            issue = "missing_or_nonfinite"
+            missing_or_nonfinite_levels += 1
+        elif min(support, target, stop) <= 0:
+            issue = "nonpositive"
+            nonpositive_levels += 1
+        elif not (target > support > stop):
+            issue = "ordering"
+            ordering_violations += 1
+        if issue:
+            execution_eligible = row.get("trade_state") in EXECUTION_ELIGIBLE_STATES
+            if execution_eligible:
+                invalid_levels += 1
+            else:
+                model_not_applicable += 1
         if latest and row.get("date") != latest:
             stale += 1
         if finite(row.get("price")) is None or not row.get("quote_source") or not row.get("kline_source"):
@@ -291,7 +381,13 @@ def execution_audit(pool: dict[str, Any]) -> dict[str, Any]:
 
     current_scope = "current_pool"
     if rows_available:
-        invalid_blocker = known(invalid_levels, current_scope)
+        invalid_blocker = known(invalid_levels, "execution_eligible_rows")
+        level_detail_blockers = {
+            "missing_or_nonfinite_levels": known(missing_or_nonfinite_levels, current_scope),
+            "nonpositive_levels": known(nonpositive_levels, current_scope),
+            "ordering_violation": known(ordering_violations, current_scope),
+            "model_not_applicable_for_trade_state": known(model_not_applicable, "non_execution_rows"),
+        }
         market_blocker = known(unknown_data, current_scope)
         stale_blocker = (
             known(stale, current_scope) if latest
@@ -299,7 +395,14 @@ def execution_audit(pool: dict[str, Any]) -> dict[str, Any]:
         )
     else:
         reason = "当前池缺少all_rows数组"
-        invalid_blocker = unknown(current_scope, reason)
+        invalid_blocker = unknown("execution_eligible_rows", reason)
+        level_detail_blockers = {
+            key: unknown(current_scope, reason)
+            for key in (
+                "missing_or_nonfinite_levels", "nonpositive_levels",
+                "ordering_violation", "model_not_applicable_for_trade_state",
+            )
+        }
         market_blocker = unknown(current_scope, reason)
         stale_blocker = unknown(current_scope, reason)
 
@@ -316,6 +419,7 @@ def execution_audit(pool: dict[str, Any]) -> dict[str, Any]:
         "row_count": len(rows) if rows_available else None, "latest_trade_date": latest,
         "blockers": {
             "invalid_levels": invalid_blocker,
+            **level_detail_blockers,
             "stale_rows": stale_blocker,
             "unknown_market_data": market_blocker,
             "pending_close_confirmation": runtime_blocker(

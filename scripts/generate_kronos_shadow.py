@@ -17,7 +17,6 @@ import random
 import sqlite3
 import sys
 import tempfile
-import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -29,8 +28,10 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from scripts.path_shadow_public_schema import project_public_payload, validate_public_payload
+
 DEFAULT_DB = ROOT / "data/local/etf-compass.db"
-DEFAULT_OUT = ROOT / "public/data/model-lab/a-share-kronos-shadow.json"
+DEFAULT_OUT = ROOT / "public/data/model-lab/a-share-path-shadow.json"
 DEFAULT_HISTORY = ROOT / "data/local/model-lab/a-share-kronos-shadow-history.jsonl"
 DEFAULT_RUNTIME = Path("/root/.cache/etf-kronos")
 
@@ -364,7 +365,6 @@ def generate(
     reuse_cache: bool = True,
     batch_size: int = 8,
 ) -> dict[str, Any]:
-    started = time.monotonic()
     universe = universe or rotation_universe()
     if len(universe) != expected_symbols:
         raise RuntimeError(f"formal rotation universe is {len(universe)}, expected {expected_symbols}")
@@ -396,8 +396,15 @@ def generate(
     fingerprint = input_fingerprint(frames, future_sessions, parameters)
     if reuse_cache and out_path.exists():
         existing = json.loads(out_path.read_text(encoding="utf-8"))
-        if existing.get("input_fingerprint") == fingerprint and not validate_payload(existing, expected_symbols):
-            return {**existing, "runtime": {**(existing.get("runtime") or {}), "cache_hit": True}}
+        projected = project_public_payload(existing)
+        if (
+            projected.get("input_fingerprint") == fingerprint
+            and not validate_payload(projected, expected_symbols)
+            and not validate_public_payload(projected)
+        ):
+            if projected != existing:
+                atomic_write_text(out_path, json.dumps(projected, ensure_ascii=False, separators=(",", ":")) + "\n")
+            return projected
     runtime = runtime or KronosRuntime(runtime_dir, allow_download=allow_download, batch_size=batch_size)
     predictions = runtime.predict(frames, future_sessions)
     if set(predictions) != set(frames):
@@ -411,7 +418,7 @@ def generate(
     payload = {
         "schema_version": 1,
         "mode": "shadow_research_only",
-        "model_family": "Kronos",
+        "model_family": "sequence_path_model",
         "production_weights_changed": False,
         "formal_signal_logic_changed": False,
         "production_role": "display_and_audit_only",
@@ -419,7 +426,6 @@ def generate(
         "latest_trade_date": latest_trade_date.isoformat(),
         "input_fingerprint": fingerprint,
         "data_basis": {
-            "database": "data/local/etf-compass.db",
             "adjustment": "qfq",
             "is_final": True,
             "universe": "formal_rotation",
@@ -429,16 +435,15 @@ def generate(
             "target": "future_ohlc_path",
             "horizon_sessions": HORIZON,
             "future_sessions": [item.date().isoformat() for item in future_sessions],
-            "interpretation": "deterministic greedy model path; research display only",
+            "interpretation": "deterministic research path; display only",
         },
         "model": {
-            "checkpoint": MODEL_ID,
-            "revision": MODEL_REVISION,
-            "tokenizer": TOKENIZER_ID,
-            "tokenizer_revision": TOKENIZER_REVISION,
-            "code_revision": KRONOS_CODE_REVISION,
-            "device": "cpu",
-            "parameters": parameters,
+            "parameters": {
+                "lookback": parameters["lookback"],
+                "minimum_history": parameters["minimum_history"],
+                "horizon_sessions": parameters["horizon_sessions"],
+                "input_columns": parameters["input_columns"],
+            },
         },
         "coverage": {
             "expected_symbols": expected_symbols,
@@ -463,17 +468,12 @@ def generate(
             "formal_promotion_eligible": False,
             "required_checks": ["walk_forward_rank_ic", "directional_hit_rate", "max_drawdown", "turnover", "net_of_cost_increment"],
         },
-        "runtime": {
-            "seconds": finite(time.monotonic() - started, 3),
-            "batch_size": batch_size,
-            "cache_hit": False,
-            "torch_version": getattr(runtime, "torch_version", "test-double"),
-        },
         "items": items,
     }
-    errors = validate_payload(payload, expected_symbols)
+    payload = project_public_payload(payload)
+    errors = validate_payload(payload, expected_symbols) + validate_public_payload(payload)
     if errors:
-        raise RuntimeError("invalid Kronos payload: " + "; ".join(errors[:10]))
+        raise RuntimeError("invalid public path payload: " + "; ".join(errors[:10]))
     append_history(history_path, payload)
     atomic_write_text(out_path, json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
     return payload

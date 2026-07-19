@@ -85,6 +85,11 @@ def test_walk_forward_has_disjoint_oos_windows_and_no_lookahead():
         oos_windows.append(window)
     assert oos_windows[0].isdisjoint(oos_windows[1])
     assert result["aggregate"]["oos_count"] == 10
+    assert result["aggregate"]["trade_date_count"] == 10
+    assert result["aggregate"]["unique_symbol_count"] == 1
+    assert result["aggregate"]["date_cluster_bootstrap_95ci"]["samples"] == 10_000
+    assert result["configuration"]["evaluation_type"] == "rolling_time_split_no_parameter_training"
+    assert result == audit.walk_forward_evaluation(rows, train_dates=10, test_dates=5)
 
 
 def test_walk_forward_preserves_insufficient_history():
@@ -104,13 +109,36 @@ def test_execution_audit_keeps_runtime_blockers_unknown():
         }],
     }
     result = audit.execution_audit(pool)
-    assert result["blockers"]["invalid_levels"]["count"] == 1
+    assert result["blockers"]["invalid_levels"]["count"] == 0
+    assert result["blockers"]["model_not_applicable_for_trade_state"]["count"] == 1
     assert result["blockers"]["stale_rows"]["count"] == 1
     assert result["blockers"]["unknown_market_data"]["count"] == 1
     assert result["blockers"]["pending_close_confirmation"]["count"] is None
     assert result["blockers"]["missing_strict_5m_bars"]["status"] == "unknown"
     assert result["gate_failure_counts"] == {"momentum": 1}
     assert result["gate_unknown_counts"] == {"strict_5m": 1}
+
+
+def test_execution_audit_uses_shared_execution_eligibility_states():
+    def result_for(state):
+        return audit.execution_audit({
+            "latest_trade_date": "2026-01-02",
+            "all_rows": [{
+                "date": "2026-01-02", "price": 1.0, "quote_source": "q",
+                "kline_source": "k", "support": 1.2, "target": 1.1, "stop": 0.9,
+                "trade_state": state,
+            }],
+        })
+
+    for state in ("可持有", "回踩候选"):
+        result = result_for(state)
+        assert result["blockers"]["invalid_levels"]["count"] == 1
+        assert result["blockers"]["model_not_applicable_for_trade_state"]["count"] == 0
+    for state in ("观察", "退出"):
+        result = result_for(state)
+        assert result["blockers"]["invalid_levels"]["count"] == 0
+        assert result["blockers"]["ordering_violation"]["count"] == 1
+        assert result["blockers"]["model_not_applicable_for_trade_state"]["count"] == 1
 
 
 def test_execution_audit_missing_inputs_remain_unknown_and_runtime_counts_can_be_known():

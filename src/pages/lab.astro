@@ -96,7 +96,7 @@ import Footer from '../components/Footer.astro';
   <main>
     <section class="hero"><span class="kicker">ETF COMPASS LAB</span><h1>回测实验室</h1><p id="welcome">正在读取登录状态…</p></section>
     <section class="panel audit-panel" aria-labelledby="audit-title">
-      <div class="research-head"><div><h2 id="audit-title">研究审计台</h2><p>数据指纹 · 样本外分折 · 执行阻断 · 筹码POC门禁</p></div><p>旁路研究 · 生产规则未改变</p></div>
+      <div class="research-head"><div><h2 id="audit-title">研究审计台</h2><p>数据指纹 · 历史时间分折 · 执行阻断 · 筹码POC门禁</p></div><p>旁路研究 · 生产规则未改变</p></div>
       <div id="audit-content"><div class="empty">正在读取研究审计快照…</div></div>
     </section>
     <section class="panel research-panel" aria-labelledby="research-title">
@@ -125,22 +125,23 @@ import Footer from '../components/Footer.astro';
       try {
         const response = await fetch(`/data/model-lab/a-share-research-audit.json?cb=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json(), dataset = data.dataset || {}, provenance = dataset.provenance || {}, walk = data.walk_forward || {}, aggregate = walk.aggregate || {}, execution = data.execution_audit || {}, blockers = execution.blockers || {}, chip = data.chip_poc || {};
+        const data = await response.json(), dataset = data.dataset || {}, provenance = dataset.provenance || {}, walk = data.walk_forward || {}, aggregate = walk.aggregate || {}, cluster = aggregate.date_cluster_bootstrap_95ci || {}, execution = data.execution_audit || {}, blockers = execution.blockers || {}, chip = data.chip_poc || {};
         const blockerValue = item => item?.status === 'known' ? whole(item.count) : '未知';
-        const avg = Number(aggregate.oos_average_directional_return_pct), oosTone = Number.isFinite(avg) && avg > 0 ? 'buy' : Number.isFinite(avg) && avg < 0 ? 'sell' : '';
+        const range = values => Array.isArray(values) && values.length === 2 ? `${pct(values[0])}—${pct(values[1])}` : '—';
         const foldRows = (walk.folds || []).map(fold => `<div class="audit-row"><strong>${escapeHtml(fold.test_start)}—${escapeHtml(fold.test_end)}</strong><span>样本 ${escapeHtml(whole(fold.test?.count))} · 命中 ${escapeHtml(pct(fold.test?.hit_rate_pct))} · 方向收益 ${escapeHtml(pct(fold.test?.average_directional_return_pct))} · 相对训练退化 ${escapeHtml(pp(fold.hit_rate_degradation_pp))}</span></div>`).join('');
         const chipMain = chip.status === 'evaluated' ? `${whole(chip.eligible_symbols)}只已评估` : '数据质量阻断';
         box.innerHTML = `<div class="audit-grid">
           <article class="audit-card"><span>冻结数据指纹</span><strong><code>${escapeHtml(String(dataset.value || '').slice(0,16))}</code></strong><small>${escapeHtml(whole(dataset.record_count))}条方向记录＋${escapeHtml(whole(dataset.pool_row_count))}条当前池｜截至 ${escapeHtml(dataset.as_of || '—')}</small></article>
-          <article class="audit-card ${oosTone}"><span>样本外T+1方向</span><strong>${escapeHtml(pct(aggregate.oos_hit_rate_pct))}</strong><small>${escapeHtml(whole(aggregate.fold_count))}折 · ${escapeHtml(whole(aggregate.oos_count))}条 · 平均方向收益 ${escapeHtml(pct(aggregate.oos_average_directional_return_pct))} · 正收益折 ${escapeHtml(pct(aggregate.positive_fold_consistency_pct))}</small></article>
-          <article class="audit-card warning"><span>执行数据审计</span><strong>${escapeHtml(blockerValue(blockers.invalid_levels))}条关键位异常</strong><small>陈旧 ${escapeHtml(blockerValue(blockers.stale_rows))} · 数据未知 ${escapeHtml(blockerValue(blockers.unknown_market_data))} · 收盘确认 ${escapeHtml(blockerValue(blockers.pending_close_confirmation))}</small></article>
+          <article class="audit-card"><span>滚动历史时间切片</span><strong>${escapeHtml(pct(aggregate.equal_date_weighted_hit_rate_pct))}</strong><small>${escapeHtml(whole(aggregate.trade_date_count))}个唯一交易日 · ${escapeHtml(whole(aggregate.oos_count))}条 · 日等权收益 ${escapeHtml(pct(aggregate.equal_date_weighted_return_pct))} · 命中95%区间 ${escapeHtml(range(cluster.hit_rate_pct))}</small></article>
+          <article class="audit-card warning"><span>执行数据审计</span><strong>${escapeHtml(blockerValue(blockers.invalid_levels))}条可执行关键位异常</strong><small>非执行状态不适用 ${escapeHtml(blockerValue(blockers.model_not_applicable_for_trade_state))} · 陈旧 ${escapeHtml(blockerValue(blockers.stale_rows))} · 数据未知 ${escapeHtml(blockerValue(blockers.unknown_market_data))}</small></article>
           <article class="audit-card warning"><span>换手衰减筹码POC</span><strong>${escapeHtml(chipMain)}</strong><small>${escapeHtml(chip.reason || chip.caveat || '仅作研究旁路')}</small></article>
         </div><details class="audit-details"><summary>查看分折、阻断与复现口径</summary><div class="audit-detail-body">
-          ${foldRows || '<div class="audit-row"><strong>样本外分折</strong><span>历史样本仍在积累。</span></div>'}
+          ${foldRows || '<div class="audit-row"><strong>历史时间分折</strong><span>历史样本仍在积累。</span></div>'}
+          <div class="audit-row"><strong>日期聚类区间</strong><span>命中 ${escapeHtml(range(cluster.hit_rate_pct))}；方向收益 ${escapeHtml(range(cluster.average_directional_return_pct))}；${escapeHtml(walk.limitation || '')}</span></div>
           <div class="audit-row"><strong>盘中严格数据</strong><span>等待收盘确认：${escapeHtml(blockerValue(blockers.pending_close_confirmation))}；缺少严格5分钟：${escapeHtml(blockerValue(blockers.missing_strict_5m_bars))}。运行时数据未进入静态快照时保持“未知”。</span></div>
           <div class="audit-row"><strong>复现口径</strong><span>${escapeHtml(provenance.adjustment || '—')}；${escapeHtml(provenance.execution_basis || '—')}；账户级成本尚未计入方向标签评价。</span></div>
           <div class="audit-row"><strong>推广门禁</strong><span>${(data.promotion_gate?.requirements || []).map(escapeHtml).join('；')}</span></div>
-        </div></details><p class="audit-note">该区只做数据质量、样本外稳定性和研究旁路审计。正式动作、权重、关键位、仓位及模拟盘规则保持原状态。</p>`;
+        </div></details><p class="audit-note">该区只做数据质量、历史时间切片稳定性和研究旁路审计。正式动作、权重、关键位、仓位及模拟盘规则保持原状态。</p>`;
       } catch (error) { box.innerHTML = `<div class="empty">研究审计快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
     async function loadResearch() {
@@ -175,7 +176,7 @@ import Footer from '../components/Footer.astro';
     async function loadFuturePath() {
       const box = document.querySelector('#kronos-content');
       try {
-        const response = await fetch(`/data/model-lab/a-share-kronos-shadow.json?cb=${Date.now()}`, { cache: 'no-store' });
+        const response = await fetch(`/data/model-lab/a-share-path-shadow.json?cb=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json(), coverage = data.coverage || {}, summary = data.summary || {};
         const ranked = [...(data.items || [])].sort((a,b) => Number(b.five_day?.predicted_return_pct) - Number(a.five_day?.predicted_return_pct));
@@ -188,7 +189,7 @@ import Footer from '../components/Footer.astro';
           <article class="kronos-card"><span>未来5日方向</span><strong><span class="market-up-text">${escapeHtml(whole(summary.bullish_symbols))}正</span> · <span class="market-down-text">${escapeHtml(whole(summary.bearish_symbols))}负</span></strong><small>只统计模型路径终点方向</small></article>
           <article class="kronos-card"><span>中位预测收益</span><strong class="${Number(summary.median_predicted_return_pct) >= 0 ? 'market-up-text' : 'market-down-text'}">${escapeHtml(pct(summary.median_predicted_return_pct))}</strong><small>截面中位数 · horizon 5个交易日</small></article>
           <article class="kronos-card"><span>原始OHLC质量</span><strong>${escapeHtml(whole(coverage.raw_ohlc_valid_symbols))}/${escapeHtml(whole(coverage.predicted_symbols))}</strong><small>异常路径保留原值并提示，未用于正式信号</small></article>
-        </div><div class="kronos-list">${rows}</div><p class="kronos-note">输入最近${escapeHtml(whole(data.model?.parameters?.lookback))}根OHLC；未来交易日：${(data.forecast_definition?.future_sessions || []).map(escapeHtml).join('、')}。当前输出是一条固定参数的研究路径，用于旁路观察、历史积累和后续样本外验证；正式动作、权重、关键位与模拟盘规则保持原状态。</p>`;
+        </div><div class="kronos-list">${rows}</div><p class="kronos-note">输入最近${escapeHtml(whole(data.model?.parameters?.lookback))}根OHLC；未来交易日：${(data.forecast_definition?.future_sessions || []).map(escapeHtml).join('、')}。当前输出是一条固定参数的研究路径，用于旁路观察、历史积累和后续点时账本验证；正式动作、权重、关键位与模拟盘规则保持原状态。</p>`;
       } catch (error) { box.innerHTML = `<div class="empty">未来路径快照读取失败：${escapeHtml(error?.message || error)}</div>`; }
     }
     async function load() {

@@ -12,9 +12,13 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
     from generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
+    from path_shadow_public_schema import validate_public_payload
 except ModuleNotFoundError:  # imported as scripts.validate_dashboard_batches in tests
+    from scripts.a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
     from scripts.generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
+    from scripts.path_shadow_public_schema import validate_public_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data"
@@ -22,7 +26,7 @@ A_STAGES = {"08:30盘前版", "11:30上午收盘修正版", "14:30尾盘操作�
 A_STATUSES = {"候场", "伏击", "止盈观察", "兑现", "破位撤退"}
 A_RISKS = {"低", "中", "高"}
 A_STRENGTHS = {"A", "B", "C", "D"}
-A_TRADE_STATES = {"可持有", "回踩候选", "观察", "退出"}
+A_TRADE_STATES = set(ALL_TRADE_STATES)
 US_STAGES = {"美股盘前快照", "美股盘中快照", "美股收盘版"}
 US_SESSIONS = {"preopen", "open", "closed"}
 US_SIGNALS = {"候场", "伏击触发", "止盈观察", "兑现触发", "破位撤退"}
@@ -169,12 +173,14 @@ def validate_runtime_schema(
                 errors.append(f"{label} invalid strength_level: {item.get('strength_level')!r}")
             if item.get("risk_level") not in A_RISKS:
                 errors.append(f"{label} invalid risk_level: {item.get('risk_level')!r}")
-            # Pool-wide levels are research diagnostics. Rows in 观察/退出 can
-            # carry inverted or legacy bands; surface them without blocking the
-            # build. Executable recommendation rows above remain strict.
+            # Executable rows enforce the full stop < support < target contract.
+            # Non-execution rows retain numeric/positive checks while target ordering
+            # is classified by the research audit as model_not_applicable.
+            executable = item.get("trade_state") in EXECUTION_ELIGIBLE_STATES
             validate_levels(
-                errors if item.get("trade_state") in {"可持有", "回踩候选"} else warnings,
+                errors if executable else warnings,
                 label, item, allow_invalid=True,
+                require_target_above_support=executable,
             )
 
     require_fields(errors, "a-share-mid-macro", a_mid, ("version", "generated_at", "market", "factors", "constraint"))
@@ -199,6 +205,9 @@ def validate_runtime_schema(
         if invalid_numbers:
             errors.append(f"a-share-shadow enhancement contains non-finite values: {', '.join(invalid_numbers[:5])}")
 
+    public_path_errors = validate_public_payload(kronos)
+    if public_path_errors:
+        errors.extend(f"path-shadow public schema: {message}" for message in public_path_errors)
     if kronos.get("mode") != "shadow_research_only" or kronos.get("production_weights_changed") is not False:
         errors.append("Kronos snapshot must remain shadow_research_only with unchanged production weights")
     if kronos.get("formal_signal_logic_changed") is not False or kronos.get("production_role") != "display_and_audit_only":
@@ -394,7 +403,9 @@ def validate_research_audit(
     blockers_value = execution.get("blockers")
     blockers: dict[str, Any] = blockers_value if isinstance(blockers_value, dict) else {}
     required_blockers = {
-        "invalid_levels", "stale_rows", "unknown_market_data",
+        "invalid_levels", "missing_or_nonfinite_levels", "nonpositive_levels",
+        "ordering_violation", "model_not_applicable_for_trade_state",
+        "stale_rows", "unknown_market_data",
         "pending_close_confirmation", "missing_strict_5m_bars",
     }
     if set(blockers) != required_blockers:
@@ -444,7 +455,7 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         a_pool = load_json(data_dir / "etf-garden-pool.json")
         a_mid = load_json(data_dir / "a-share-mid-macro.json")
         shadow = load_json(data_dir / "model-lab/a-share-shadow.json")
-        kronos = load_json(data_dir / "model-lab/a-share-kronos-shadow.json")
+        kronos = load_json(data_dir / "model-lab/a-share-path-shadow.json")
         research_audit = load_json(data_dir / "model-lab/a-share-research-audit.json")
         backtest = load_json(data_dir / "etf-garden-backtest.json")
         us = load_json(data_dir / "us-etf-garden.json")
