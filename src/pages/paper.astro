@@ -42,7 +42,7 @@ const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) 
       <div class="accounts">
         {accounts.map((a: any) => (
           <section class="account card" id={a.market === 'A' ? 'a-share' : 'us'}>
-            <div class="account-head"><div><h2>{label(a.market)}</h2><small>起始 {a.inception_date || '待首次运行'} · 持仓 {Object.keys(a.positions || {}).length}/10</small></div><a href={a.market === 'A' ? '/garden/' : '/us-garden/'}>返回罗盘 →</a></div>
+            <div class="account-head"><div><h2>{label(a.market)}</h2><small>起始 {a.inception_date || '待首次运行'} · 持仓 {Object.keys(a.positions || {}).length}/10</small></div><a href={a.market === 'A' ? '/a-compass/' : '/us-compass/'}>返回罗盘 →</a></div>
             <div class="metrics">
               <div class="metric"><span>账户权益</span><b>{money(a.equity,a.currency)}</b></div>
               <div class="metric"><span>当日收益</span><b class={tone(a.daily_return)}>{pct(a.daily_return)}</b></div>

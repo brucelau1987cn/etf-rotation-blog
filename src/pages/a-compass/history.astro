@@ -8,10 +8,10 @@ import Header from '../../components/Header.astro';
 import AStockSubnav from '../../components/AStockSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 
-const post = await getEntry('blog', 'garden/etf-garden');
+const post = await getEntry('blog', 'a-compass/etf-compass');
 
 if (!post) {
-  throw new Error('Missing ETF garden post: garden/etf-garden');
+  throw new Error('Missing ETF compass post: a-compass/etf-compass');
 }
 
 const { Content } = await render(post);
@@ -57,14 +57,14 @@ const weighted = (key: 'next1_hit_rate' | 'next3_hit_rate') => recentCount
   <body>
     <Header />
     <main>
-      <AStockSubnav active="garden" />
+      <AStockSubnav active="compass" />
       <section class="history-hero">
         <div>
           <span class="pill">历史复盘</span>
           <h1>ETF罗盘历史记录</h1>
-          <p>这里保留四窗口对比、最近复盘命中、明日验证清单和旧入口；<a href="/garden/">A股罗盘</a>主入口只展示当前动作。</p>
+          <p>这里保留四窗口对比、最近复盘命中、明日验证清单和旧入口；<a href="/a-compass/">A股罗盘</a>主入口只展示当前动作。</p>
         </div>
-        <a class="back-link" href="/garden/">返回A股罗盘</a>
+        <a class="back-link" href="/a-compass/">返回A股罗盘</a>
       </section>
       <section aria-labelledby="score-title">
         <div class="section-heading"><h2 id="score-title">罗盘方向验证</h2><span class="pill">样本截止 {latestSignalDate} · 前复权 qfq</span></div>

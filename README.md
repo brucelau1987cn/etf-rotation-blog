@@ -63,7 +63,7 @@ Check out [our documentation](https://docs.astro.build) or jump into our [Discor
 | Page | Source | Script |
 | --- | --- | --- |
 | `/momentum` ETF 动量雷达 | `public/data/etf-garden-pool.json` (stock-api v2.7.2 + youth-online mirror) | `scripts/generate_garden_pool.py` |
-| `/garden` ETF 罗盘 | `public/data/etf-garden-pool.json` | `scripts/generate_garden_pool.py` |
+| `/a-compass/` ETF 罗盘 | `public/data/etf-garden-pool.json` | `scripts/generate_garden_pool.py` |
 | `/paper` ETF 虚拟交易 | `public/data/paper-trading.json`（运行态位于仓库外） | `scripts/paper_trade_runner.py` |
 | `/stocks` 个股深度 | `src/content/blog/stocks/*.md` | hand-written |
 

@@ -141,7 +141,7 @@ def extract_predictions_from_text(path: Path, text: str) -> list[dict[str, Any]]
 
 
 def extract_predictions() -> list[dict[str, Any]]:
-    files = [BLOG_DIR / "garden" / "etf-garden-archive.md"]
+    files = [BLOG_DIR / "a-compass" / "etf-compass-archive.md"]
     files += sorted(BLOG_DIR.glob("2026-*.md"))
     records: list[dict[str, Any]] = []
     for p in files:
@@ -365,7 +365,7 @@ def main() -> int:
     payload = {
         "generated_at": dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S UTC+08:00"),
         "strategy": "ETF Garden red/green prediction backtest v1",
-        "source_files": ["src/content/blog/garden/etf-garden-archive.md", "src/content/blog/2026-*.md"],
+        "source_files": ["src/content/blog/a-compass/etf-compass-archive.md", "src/content/blog/2026-*.md"],
         "quote_source": STOCK_API_PACKAGE + " (qfq adjusted klines)",
         "raw_prediction_count": len(raw),
         "evaluated_count": len(enriched),

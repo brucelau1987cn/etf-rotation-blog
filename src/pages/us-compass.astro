@@ -230,7 +230,7 @@ const countTone = (section: { key: string; tone: string }) => {
   <body>
     <Header />
     <main>
-      <UsSubnav active="garden" />
+      <UsSubnav active="compass" />
       <section class="dashboard-hero card" aria-labelledby="us-page-title">
               <div class="hero-top">
                 <div class="hero-copy">
@@ -342,7 +342,7 @@ const countTone = (section: { key: string; tone: string }) => {
 
             <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">行业广度</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 
-      <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-garden/history/">历史成绩</a><a href="/garden/">A股ETF罗盘</a></div></details>
+      <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-compass/history/">历史成绩</a><a href="/a-compass/">A股ETF罗盘</a></div></details>
     </main>
     <Footer />
     <script is:inline>

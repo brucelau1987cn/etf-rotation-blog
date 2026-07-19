@@ -1,0 +1,10 @@
+---
+export function getStaticPaths() {
+  return [
+    { params: { legacy: 'etf-garden' }, props: { target: '/blog/a-compass/etf-compass/' } },
+    { params: { legacy: 'etf-garden-archive' }, props: { target: '/blog/a-compass/etf-compass-archive/' } },
+  ];
+}
+const { target } = Astro.props;
+return Astro.redirect(target, 301);
+---
