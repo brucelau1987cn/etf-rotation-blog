@@ -96,7 +96,7 @@
       "factor_key": "overseas_deleveraging",
       "note": "当前以境内海外ETF映射和海外相关池弱化广度作为外部风险代理。",
       "state": "逆风",
-      "score": 3.0,
+      "score": 2.75,
       "headline": "海外映射ETF 5日均值-5.71%",
       "as_of": "2026-07-17"
     },
@@ -137,13 +137,23 @@
   "factors": [
     {
       "key": "rates_fixed_income",
-      "label": "利率与流动性偏好",
+      "label": "固收相对权益强弱",
       "state": "逆风",
       "score": 2.0,
       "headline": "固收5日相对沪深300超额+5.00pp",
       "reasons": [
         "固收5日相对沪深300超额+5.00pp",
         "固收20日相对偏强+8.10pp"
+      ],
+      "status": "ok",
+      "quality": "market_proxy",
+      "completeness": 1.0,
+      "interpretation": "股债风险偏好代理，不等同于政策利率、国债到期收益率或加息概率。",
+      "not_measured": [
+        "DR007与政策利率偏离",
+        "国债到期收益率",
+        "期限利差",
+        "信用利差"
       ],
       "metrics": {
         "bond_ret5": 0.03,
@@ -183,15 +193,25 @@
     },
     {
       "key": "overseas_deleveraging",
-      "label": "外部市场与汇率压力代理",
+      "label": "海外风险映射压力",
       "state": "逆风",
-      "score": 3.0,
+      "score": 2.75,
       "headline": "海外映射ETF 5日均值-5.71%",
       "reasons": [
         "海外映射ETF 5日均值-5.71%",
         "3只核心海外ETF 5日跌超2%",
-        "海外相关池弱化占比88%",
+        "海外相关池弱化占比88%（确认项）",
         "海外映射20日仍弱-4.26%"
+      ],
+      "status": "ok",
+      "quality": "market_proxy",
+      "completeness": 1.0,
+      "interpretation": "境内QDII与海外主题ETF价格代理，不等同于海外真实去杠杆流量或人民币汇率。",
+      "proxy_risks": [
+        "汇率扰动",
+        "QDII溢折价",
+        "交易时段错位",
+        "行业集中度"
       ],
       "metrics": {
         "proxy_ret5_avg": -5.71,
@@ -239,6 +259,10 @@
         "两融余额20日-3.18%",
         "连续5日净回落"
       ],
+      "status": "ok",
+      "quality": "market_data",
+      "completeness": 1.0,
+      "interpretation": "境内杠杆资金强度与风险偏好指标，属于市场资金层。",
       "metrics": {
         "rzye": 2837700798247.0,
         "rzye_yi": 28377.01,
@@ -338,11 +362,13 @@
     "headwind_level": 3,
     "headwind_count": 3,
     "watch_count": 0,
-    "score_total": 7.5,
+    "score_total": 7.25,
     "label": "强逆风",
     "allow_chase": false,
     "allow_new_offense": false,
     "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_position_source": "etf-garden-pool.market_regime",
+    "base_market_state": "极弱",
     "base_equity_band": {
       "low": 0,
       "high": 10

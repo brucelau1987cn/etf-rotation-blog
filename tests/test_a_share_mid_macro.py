@@ -67,6 +67,17 @@ class MidMacroConstraintTests(unittest.TestCase):
     def test_format_band(self) -> None:
         self.assertEqual(self.mod.format_band((0, 10)), "权益0%-10%；防御/现金90%-100%")
 
+    def test_constraint_records_uncompressed_base_source(self) -> None:
+        factors = [
+            {"state": "逆风", "score": 2.0},
+            {"state": "逆风", "score": 2.0},
+            {"state": "中性", "score": 0.2},
+        ]
+        result = self.mod.build_constraint(factors, "权益30%-50%；防御/现金50%-70%", "震荡")
+        self.assertEqual(result["base_position"], "权益30%-50%；防御/现金50%-70%")
+        self.assertEqual(result["base_position_source"], "etf-garden-pool.market_regime")
+        self.assertEqual(result["base_market_state"], "震荡")
+
     def test_macro_framework_is_complete_and_honest(self) -> None:
         dimensions = self.mod.MACRO_FRAMEWORK
         self.assertEqual(len(dimensions), 6)

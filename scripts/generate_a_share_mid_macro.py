@@ -274,11 +274,16 @@ def score_rates(bars_map: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     state = "逆风" if score >= 1.5 else "观察" if score >= 0.8 else "中性"
     return {
         "key": "rates_fixed_income",
-        "label": "利率与流动性偏好",
+        "label": "固收相对权益强弱",
         "state": state,
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "固收与权益相对数据不足",
         "reasons": reasons,
+        "status": "ok",
+        "quality": "market_proxy",
+        "completeness": 1.0,
+        "interpretation": "股债风险偏好代理，不等同于政策利率、国债到期收益率或加息概率。",
+        "not_measured": ["DR007与政策利率偏离", "国债到期收益率", "期限利差", "信用利差"],
         "metrics": {
             "bond_ret5": bond5,
             "bond_ret20": bond20,
@@ -343,8 +348,10 @@ def score_overseas(bars_map: dict[str, list[dict[str, Any]]], pool_rows: list[di
         score += 0.5
         reasons.append(f"{weak}只核心海外ETF 5日跌超2%")
     if weak_share is not None and weak_share >= 0.45:
-        score += 0.5
-        reasons.append(f"海外相关池弱化占比{weak_share:.0%}")
+        # Pool breadth is a confirmation because these rows already feed the
+        # trend regime. Keep its contribution small to avoid double counting.
+        score += 0.25
+        reasons.append(f"海外相关池弱化占比{weak_share:.0%}（确认项）")
     if avg20 is not None and avg20 <= -3:
         score += 0.5
         reasons.append(f"海外映射20日仍弱{avg20:+.2f}%")
@@ -352,11 +359,16 @@ def score_overseas(bars_map: dict[str, list[dict[str, Any]]], pool_rows: list[di
     state = "逆风" if score >= 1.5 else "观察" if score >= 0.8 else "中性"
     return {
         "key": "overseas_deleveraging",
-        "label": "外部市场与汇率压力代理",
+        "label": "海外风险映射压力",
         "state": state,
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "海外映射数据不足",
         "reasons": reasons,
+        "status": "ok",
+        "quality": "market_proxy",
+        "completeness": 1.0,
+        "interpretation": "境内QDII与海外主题ETF价格代理，不等同于海外真实去杠杆流量或人民币汇率。",
+        "proxy_risks": ["汇率扰动", "QDII溢折价", "交易时段错位", "行业集中度"],
         "metrics": {
             "proxy_ret5_avg": avg5,
             "proxy_ret20_avg": avg20,
@@ -431,6 +443,10 @@ def score_margin() -> dict[str, Any]:
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "两融数据不足",
         "reasons": reasons,
+        "status": "ok",
+        "quality": "market_data",
+        "completeness": 1.0,
+        "interpretation": "境内杠杆资金强度与风险偏好指标，属于市场资金层。",
         "metrics": {
             "rzye": latest["rzye"],
             "rzye_yi": round(latest["rzye"] / 1e8, 2),
@@ -489,7 +505,9 @@ def build_constraint(factors: list[dict[str, Any]], base_position: str | None, m
         "label": ["中性", "偏逆风", "逆风", "强逆风"][level],
         "allow_chase": allow_chase,
         "allow_new_offense": allow_new_offense,
-        "base_position": base_position,
+        "base_position": format_band(base_band),
+        "base_position_source": "etf-garden-pool.market_regime",
+        "base_market_state": market_state,
         "base_equity_band": {"low": base_band[0], "high": base_band[1]},
         "constrained_equity_band": {"low": constrained[0], "high": constrained[1]},
         "position": format_band(constrained),
@@ -510,6 +528,7 @@ def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str,
     if not isinstance(reco, dict):
         return None
     original_position = reco.get("position")
+    reco["position_base"] = constraint.get("base_position") or original_position
     reco["position"] = constraint["position"]
     reco["mid_macro"] = {
         "generated_at": generated_at,
@@ -637,7 +656,7 @@ def main() -> None:
         factors.append(
             {
                 "key": "rates_fixed_income",
-                "label": "利率与流动性偏好",
+                "label": "固收相对权益强弱",
                 "state": "观察",
                 "score": 0.8,
                 "headline": "固收数据暂缺，按观察处理",
@@ -654,7 +673,7 @@ def main() -> None:
         factors.append(
             {
                 "key": "overseas_deleveraging",
-                "label": "外部市场与汇率压力代理",
+                "label": "海外风险映射压力",
                 "state": "观察",
                 "score": 0.8,
                 "headline": "海外映射数据暂缺，按观察处理",
@@ -683,16 +702,17 @@ def main() -> None:
         )
 
     reco = json.loads(RECO.read_text(encoding="utf-8")) if RECO.exists() else {}
-    base_position = reco.get("position") if isinstance(reco, dict) else None
-    market_state = reco.get("market_state") if isinstance(reco, dict) else None
-    if not market_state:
-        market_state = (pool.get("market_regime") or {}).get("state")
-    if not base_position:
-        base_position = (pool.get("market_regime") or {}).get("equity_allocation")
-        if isinstance(base_position, str) and not base_position.startswith("权益"):
-            # pool stores equity_allocation like 10%-30%
-            defense = (pool.get("market_regime") or {}).get("defense_allocation") or ""
-            base_position = f"权益{base_position}" + (f"；防御/现金{defense}" if defense else "")
+    regime = pool.get("market_regime") or {}
+    market_state = regime.get("state") or (reco.get("market_state") if isinstance(reco, dict) else None)
+    # Always derive the uncompressed base band from the trend pool. The
+    # recommendations file contains the previously constrained final position
+    # and cannot safely serve as the next run's base.
+    base_position = regime.get("equity_allocation")
+    if isinstance(base_position, str) and not base_position.startswith("权益"):
+        defense = regime.get("defense_allocation") or ""
+        base_position = f"权益{base_position}" + (f"；防御/现金{defense}" if defense else "")
+    if not base_position and isinstance(reco, dict):
+        base_position = reco.get("position_base") or reco.get("position")
 
     constraint = build_constraint(factors, base_position if isinstance(base_position, str) else None, market_state if isinstance(market_state, str) else None)
     factor_dates = sorted(str(factor.get("as_of")) for factor in factors if factor.get("as_of"))
