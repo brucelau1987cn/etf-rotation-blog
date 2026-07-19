@@ -78,6 +78,16 @@ class MidMacroConstraintTests(unittest.TestCase):
         self.assertEqual(result["base_position_source"], "etf-garden-pool.market_regime")
         self.assertEqual(result["base_market_state"], "震荡")
 
+    def test_macro_item_formats_values(self) -> None:
+        item = self.mod.macro_item(
+            key="pmi", title="制造业PMI", value=50.3, unit="", date="2026-06-01",
+            frequency="月频", source="国家统计局", source_url="https://www.stats.gov.cn/",
+            detail="50为荣枯线", change=0.3, tone="positive",
+        )
+        self.assertEqual(item["display"], "50.30")
+        self.assertEqual(item["change"], 0.3)
+        self.assertEqual(item["tone"], "positive")
+
     def test_macro_framework_is_complete_and_honest(self) -> None:
         dimensions = self.mod.MACRO_FRAMEWORK
         self.assertEqual(len(dimensions), 6)

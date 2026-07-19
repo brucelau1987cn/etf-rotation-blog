@@ -51,6 +51,11 @@ MARGIN_URL = (
     "reportName=RPTA_RZRQ_LSHJ&columns=ALL&pageNumber=1&pageSize=40"
     "&sortColumns=dim_date&sortTypes=-1&source=WEB&client=WEB"
 )
+ECONOMY_URL = (
+    "https://datacenter-web.eastmoney.com/api/data/v1/get?"
+    "columns=ALL&pageNumber=1&pageSize=6&sortColumns=REPORT_DATE&sortTypes=-1"
+    "&source=WEB&client=WEB&reportName={report}"
+)
 
 MACRO_FRAMEWORK = [
     {
@@ -172,6 +177,78 @@ def fetch_json(url: str, timeout: int = 20) -> Any:
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8", "ignore"))
+
+
+def fetch_economy_rows(report: str) -> list[dict[str, Any]]:
+    payload = fetch_json(ECONOMY_URL.format(report=report))
+    rows = ((payload.get("result") or {}).get("data") or [])
+    if not rows:
+        raise RuntimeError(f"{report}: no economy rows")
+    return rows
+
+
+def macro_item(
+    *, key: str, title: str, value: float, unit: str, date: str, frequency: str,
+    source: str, source_url: str, detail: str, change: float | None = None,
+    change_label: str = "较上期", tone: str = "neutral",
+) -> dict[str, Any]:
+    return {
+        "key": key, "title": title, "value": value, "unit": unit,
+        "display": f"{value:.2f}{unit}" if unit not in {"亿元", "万亿元"} else f"{value:.0f}{unit}",
+        "as_of": date, "frequency": frequency, "source": source, "source_url": source_url,
+        "detail": detail, "change": change, "change_label": change_label, "tone": tone,
+    }
+
+
+def score_tone(value: float, positive: float, negative: float, reverse: bool = False) -> str:
+    if reverse:
+        return "positive" if value <= positive else "warning" if value >= negative else "neutral"
+    return "positive" if value >= positive else "warning" if value <= negative else "neutral"
+
+
+def fetch_macro_observations() -> dict[str, list[dict[str, Any]]]:
+    output: dict[str, list[dict[str, Any]]] = {
+        "monetary_liquidity": [], "credit_impulse": [], "growth_cycle": [],
+        "inflation_margin": [], "external_fx": [], "market_liquidity": [],
+    }
+    cpi = fetch_economy_rows("RPT_ECONOMY_CPI")
+    ppi = fetch_economy_rows("RPT_ECONOMY_PPI")
+    pmi = fetch_economy_rows("RPT_ECONOMY_PMI")
+    money = fetch_economy_rows("RPT_ECONOMY_CURRENCY_SUPPLY")
+    loan = fetch_economy_rows("RPT_ECONOMY_RMB_LOAN")
+    gdp = fetch_economy_rows("RPT_ECONOMY_GDP")
+
+    def f(row: dict[str, Any], field: str) -> float:
+        return float(row[field])
+
+    money_url = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+    stats_url = "https://www.stats.gov.cn/sj/zxfb/"
+    loan_url = "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+    m2, m1 = f(money[0], "BASIC_CURRENCY_SAME"), f(money[0], "CURRENCY_SAME")
+    output["monetary_liquidity"] = [
+        macro_item(key="m2_yoy", title="M2同比", value=m2, unit="%", date=str(money[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=money_url, detail=f"前值 {f(money[1], 'BASIC_CURRENCY_SAME'):.1f}% · 广义流动性", change=round(m2-f(money[1], "BASIC_CURRENCY_SAME"),2), tone=score_tone(m2, 8.0, 6.0)),
+        macro_item(key="m1_yoy", title="M1同比", value=m1, unit="%", date=str(money[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=money_url, detail=f"前值 {f(money[1], 'CURRENCY_SAME'):.1f}% · 资金活化程度", change=round(m1-f(money[1], "CURRENCY_SAME"),2), tone=score_tone(m1, 5.0, 0.0)),
+        macro_item(key="m1_m2_gap", title="M1-M2剪刀差", value=round(m1-m2,2), unit="pp", date=str(money[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=money_url, detail="差值回升通常对应企业资金活化改善", change=round((m1-m2)-(f(money[1],'CURRENCY_SAME')-f(money[1],'BASIC_CURRENCY_SAME')),2), tone=score_tone(m1-m2, -2.0, -6.0)),
+    ]
+    loan_value, loan_prev = f(loan[0], "RMB_LOAN"), f(loan[1], "RMB_LOAN")
+    output["credit_impulse"] = [
+        macro_item(key="rmb_loan", title="新增人民币贷款", value=loan_value, unit="亿元", date=str(loan[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=loan_url, detail=f"上月 {loan_prev:.0f}亿元 · 当月新增", change=round(loan_value-loan_prev,2), tone="neutral"),
+        macro_item(key="loan_yoy", title="新增贷款同比", value=f(loan[0], "RMB_LOAN_SAME"), unit="%", date=str(loan[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=loan_url, detail="反映当月信用投放相对去年同期", tone=score_tone(f(loan[0], "RMB_LOAN_SAME"), 5.0, -10.0)),
+        macro_item(key="loan_ytd", title="年内贷款累计", value=f(loan[0], "RMB_LOAN_ACCUMULATE"), unit="亿元", date=str(loan[0]["REPORT_DATE"])[:10], frequency="月频", source="人民银行金融统计", source_url=loan_url, detail=f"累计同比 {f(loan[0], 'LOAN_ACCUMULATE_SAME'):+.1f}%", tone=score_tone(f(loan[0], "LOAN_ACCUMULATE_SAME"), 0.0, -10.0)),
+    ]
+    pmi_value, non_pmi = f(pmi[0], "MAKE_INDEX"), f(pmi[0], "NMAKE_INDEX")
+    output["growth_cycle"] = [
+        macro_item(key="manufacturing_pmi", title="制造业PMI", value=pmi_value, unit="", date=str(pmi[0]["REPORT_DATE"])[:10], frequency="月频", source="国家统计局", source_url=stats_url, detail=f"前值 {f(pmi[1], 'MAKE_INDEX'):.1f} · 50为荣枯线", change=round(pmi_value-f(pmi[1], "MAKE_INDEX"),2), tone=score_tone(pmi_value, 50.0, 49.5)),
+        macro_item(key="non_manufacturing_pmi", title="非制造业PMI", value=non_pmi, unit="", date=str(pmi[0]["REPORT_DATE"])[:10], frequency="月频", source="国家统计局", source_url=stats_url, detail=f"前值 {f(pmi[1], 'NMAKE_INDEX'):.1f} · 服务与建筑景气", change=round(non_pmi-f(pmi[1], "NMAKE_INDEX"),2), tone=score_tone(non_pmi, 50.0, 49.5)),
+        macro_item(key="gdp_yoy", title="GDP累计同比", value=f(gdp[0], "SUM_SAME"), unit="%", date=str(gdp[0]["REPORT_DATE"])[:10], frequency="季度", source="国家统计局", source_url=stats_url, detail=f"{gdp[0]['TIME']} · 第三产业 {f(gdp[0], 'THIRD_SAME'):.1f}%", change=round(f(gdp[0], "SUM_SAME")-f(gdp[1], "SUM_SAME"),2), tone=score_tone(f(gdp[0], "SUM_SAME"), 5.0, 4.5)),
+    ]
+    cpi_value, ppi_value = f(cpi[0], "NATIONAL_SAME"), f(ppi[0], "BASE_SAME")
+    output["inflation_margin"] = [
+        macro_item(key="cpi_yoy", title="CPI同比", value=cpi_value, unit="%", date=str(cpi[0]["REPORT_DATE"])[:10], frequency="月频", source="国家统计局", source_url=stats_url, detail=f"环比 {f(cpi[0], 'NATIONAL_SEQUENTIAL'):+.1f}% · 前值 {f(cpi[1], 'NATIONAL_SAME'):.1f}%", change=round(cpi_value-f(cpi[1], "NATIONAL_SAME"),2), tone=score_tone(cpi_value, 1.0, 0.0)),
+        macro_item(key="ppi_yoy", title="PPI同比", value=ppi_value, unit="%", date=str(ppi[0]["REPORT_DATE"])[:10], frequency="月频", source="国家统计局", source_url=stats_url, detail=f"前值 {f(ppi[1], 'BASE_SAME'):.1f}% · 工业品价格周期", change=round(ppi_value-f(ppi[1], "BASE_SAME"),2), tone=score_tone(ppi_value, 0.0, -2.0)),
+        macro_item(key="ppi_cpi_gap", title="PPI-CPI剪刀差", value=round(ppi_value-cpi_value,2), unit="pp", date=str(cpi[0]["REPORT_DATE"])[:10], frequency="月频", source="国家统计局", source_url=stats_url, detail="正值通常有利上游价格与工业收入", change=round((ppi_value-cpi_value)-(f(ppi[1],'BASE_SAME')-f(cpi[1],'NATIONAL_SAME')),2), tone=score_tone(ppi_value-cpi_value, 0.0, -2.0)),
+    ]
+    return output
 
 
 def fetch_tencent_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
@@ -728,6 +805,32 @@ def main() -> None:
             }
         )
 
+    observations: dict[str, list[dict[str, Any]]] = {}
+    try:
+        observations = fetch_macro_observations()
+    except Exception as exc:  # noqa: BLE001
+        failures["macro_observations"] = str(exc)
+        observations = {item["key"]: [] for item in MACRO_FRAMEWORK}
+
+    factor_map_for_observations = {factor["key"]: factor for factor in factors}
+    rate_factor = factor_map_for_observations.get("rates_fixed_income") or {}
+    overseas_factor = factor_map_for_observations.get("overseas_deleveraging") or {}
+    margin_factor = factor_map_for_observations.get("margin_financing") or {}
+    rate_metrics = rate_factor.get("metrics") or {}
+    overseas_metrics = overseas_factor.get("metrics") or {}
+    margin_metrics = margin_factor.get("metrics") or {}
+    observations.setdefault("monetary_liquidity", []).append(
+        macro_item(key="bond_equity_5d", title="固收相对权益5日", value=float(rate_metrics.get("bond_vs_equity_5d_pp") or 0), unit="pp", date=rate_factor.get("as_of") or "", frequency="日频", source="公开前复权行情", source_url="https://www.chinabond.com.cn/", detail="国债/信用债ETF均值减沪深300收益", tone="warning" if float(rate_metrics.get("bond_vs_equity_5d_pp") or 0) >= 1.5 else "neutral")
+    )
+    observations["external_fx"] = [
+        macro_item(key="overseas_5d", title="海外映射ETF 5日", value=float(overseas_metrics.get("proxy_ret5_avg") or 0), unit="%", date=overseas_factor.get("as_of") or "", frequency="日频", source="境内QDII行情", source_url="https://www.chinamoney.com.cn/chinese/bkccpr/", detail=f"20日 {float(overseas_metrics.get('proxy_ret20_avg') or 0):+.2f}% · 汇率与溢折价会扰动", tone="warning" if float(overseas_metrics.get("proxy_ret5_avg") or 0) <= -1.5 else "neutral"),
+        macro_item(key="overseas_weak", title="海外池弱化占比", value=round(float(overseas_metrics.get("overseas_weak_share") or 0)*100,2), unit="%", date=overseas_factor.get("as_of") or "", frequency="日频", source="ETF罗盘海外池", source_url="/a-momentum/", detail=f"样本 {int(overseas_metrics.get('overseas_pool_count') or 0)}只 · 只作确认项", tone="warning" if float(overseas_metrics.get("overseas_weak_share") or 0) >= .45 else "neutral"),
+    ]
+    observations["market_liquidity"] = [
+        macro_item(key="margin_balance", title="两融余额", value=float(margin_metrics.get("rzye_yi") or 0), unit="亿元", date=margin_factor.get("as_of") or "", frequency="日频", source="沪深两融历史汇总", source_url="https://www.sse.com.cn/market/othersdata/margin/sum/", detail=f"5日 {float(margin_metrics.get('chg5_pct') or 0):+.2f}% · 20日 {float(margin_metrics.get('chg20_pct') or 0):+.2f}%", change=float(margin_metrics.get("chg5_pct") or 0), change_label="5日", tone="warning" if float(margin_metrics.get("chg5_pct") or 0) <= -.4 else "positive"),
+        macro_item(key="margin_share", title="融资余额占比", value=float(margin_metrics.get("rzyezb") or 0), unit="%", date=margin_factor.get("as_of") or "", frequency="日频", source="沪深两融历史汇总", source_url="https://www.sse.com.cn/market/othersdata/margin/sum/", detail=f"连续回落 {int(margin_metrics.get('down_streak') or 0)}日", tone="warning" if int(margin_metrics.get("down_streak") or 0) >= 4 else "neutral"),
+    ]
+
     reco = json.loads(RECO.read_text(encoding="utf-8")) if RECO.exists() else {}
     regime = pool.get("market_regime") or {}
     market_state = regime.get("state") or (reco.get("market_state") if isinstance(reco, dict) else None)
@@ -749,6 +852,7 @@ def main() -> None:
     framework = []
     for item in MACRO_FRAMEWORK:
         dimension = dict(item)
+        dimension["observations"] = observations.get(item["key"], [])
         live_factor = factor_map.get(item.get("factor_key"))
         if live_factor:
             dimension.update(
