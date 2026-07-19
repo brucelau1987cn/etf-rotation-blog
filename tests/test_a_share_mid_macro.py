@@ -95,6 +95,8 @@ class MidMacroConstraintTests(unittest.TestCase):
         covered = {item["coverage"] for item in dimensions}
         self.assertIn("pending_official", covered)
         self.assertTrue(all(item["primary_source"] for item in dimensions))
+        self.assertTrue(all(item.get("links") for item in dimensions))
+        self.assertTrue(all(link["url"].startswith("https://") for item in dimensions for link in item["links"]))
 
 
 if __name__ == "__main__":

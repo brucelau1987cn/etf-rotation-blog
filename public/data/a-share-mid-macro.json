@@ -16,6 +16,23 @@
       ],
       "frequency": "日度 / 月度",
       "primary_source": "中国人民银行、全国银行间同业拆借中心",
+      "links": [
+        {
+          "label": "央行货币政策工具",
+          "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125440/index.html",
+          "type": "官方数据"
+        },
+        {
+          "label": "银行间市场利率",
+          "url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+          "type": "市场利率"
+        },
+        {
+          "label": "中债收益率资料",
+          "url": "https://www.chinabond.com.cn/",
+          "type": "债券数据"
+        }
+      ],
       "coverage": "proxy",
       "factor_key": "rates_fixed_income",
       "note": "当前以国债、信用债相对沪深300的价格表现作为日频风险偏好代理。",
@@ -35,6 +52,18 @@
       ],
       "frequency": "月度",
       "primary_source": "中国人民银行",
+      "links": [
+        {
+          "label": "社会融资规模",
+          "url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
+          "type": "官方数据"
+        },
+        {
+          "label": "金融统计数据",
+          "url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+          "type": "官方发布"
+        }
+      ],
       "coverage": "pending_official",
       "factor_key": null,
       "note": "等待稳定接入官方月度时序；缺失时不参与日度风险评分。",
@@ -54,6 +83,18 @@
       ],
       "frequency": "月度",
       "primary_source": "国家统计局",
+      "links": [
+        {
+          "label": "统计局最新发布",
+          "url": "https://www.stats.gov.cn/sj/zxfb/",
+          "type": "官方发布"
+        },
+        {
+          "label": "国家数据查询",
+          "url": "https://data.stats.gov.cn/",
+          "type": "数据查询"
+        }
+      ],
       "coverage": "pending_official",
       "factor_key": null,
       "note": "用于判断盈利周期和顺周期行业背景，按官方发布日期更新。",
@@ -73,6 +114,18 @@
       ],
       "frequency": "月度",
       "primary_source": "国家统计局",
+      "links": [
+        {
+          "label": "CPI / PPI官方发布",
+          "url": "https://www.stats.gov.cn/sj/zxfb/",
+          "type": "官方发布"
+        },
+        {
+          "label": "国家数据查询",
+          "url": "https://data.stats.gov.cn/",
+          "type": "数据查询"
+        }
+      ],
       "coverage": "pending_official",
       "factor_key": null,
       "note": "重点观察PPI方向与上下游利润再分配，不把单月读数直接当交易信号。",
@@ -92,6 +145,23 @@
       ],
       "frequency": "日度",
       "primary_source": "中国外汇交易中心、国家外汇管理局、公开市场行情",
+      "links": [
+        {
+          "label": "人民币汇率",
+          "url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+          "type": "市场数据"
+        },
+        {
+          "label": "外汇局统计数据",
+          "url": "https://www.safe.gov.cn/safe/tjsj1/index.html",
+          "type": "官方数据"
+        },
+        {
+          "label": "银行结售汇",
+          "url": "https://www.safe.gov.cn/safe/yhjsh/index.html",
+          "type": "官方发布"
+        }
+      ],
       "coverage": "proxy",
       "factor_key": "overseas_deleveraging",
       "note": "当前以境内海外ETF映射和海外相关池弱化广度作为外部风险代理。",
@@ -111,6 +181,23 @@
       ],
       "frequency": "日度",
       "primary_source": "沪深北交易所、公开市场数据",
+      "links": [
+        {
+          "label": "上交所融资融券",
+          "url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
+          "type": "官方数据"
+        },
+        {
+          "label": "深交所融资融券",
+          "url": "https://www.szse.cn/disclosure/margin/margin/index.html",
+          "type": "官方数据"
+        },
+        {
+          "label": "深交所市场指标",
+          "url": "https://www.szse.cn/market/stock/indicator/index.html",
+          "type": "市场数据"
+        }
+      ],
       "coverage": "live",
       "factor_key": "margin_financing",
       "note": "当前日度风险闸门使用两融余额趋势；成交与ETF资金用于交易层复核。",
