@@ -1,0 +1,79 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import AStockSubnav from '../components/AStockSubnav.astro';
+
+const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-share-mid-macro.json'), 'utf-8'));
+const constraint = data.constraint || {};
+const factors = data.factors || [];
+const tone = (state: string) => state === '逆风' ? 'danger' : state === '顺风' ? 'positive' : 'watch';
+const icon = (state: string) => state === '逆风' ? '🔴' : state === '顺风' ? '🟢' : '🟡';
+const metricLabel: Record<string, Record<string, string>> = {
+  rates_fixed_income: { bond_vs_equity_5d_pp: '固收相对权益5日', bond_vs_equity_20d_pp: '固收相对权益20日', bond_ret5: '固收5日', equity_ret5: '沪深300 5日' },
+  overseas_deleveraging: { proxy_ret5_avg: '海外映射5日均值', proxy_ret20_avg: '海外映射20日均值', overseas_weak_share: '海外池弱化占比', proxy_weak_count_5d: '5日弱势核心数' },
+  margin_financing: { rzye_yi: '两融余额', chg5_pct: '两融5日', chg10_pct: '两融10日', chg20_pct: '两融20日', down_streak: '连续回落' },
+};
+const formatMetric = (key: string, value: unknown) => {
+  if (typeof value !== 'number') return String(value ?? 'N/A');
+  if (key === 'rzye_yi') return `${value.toFixed(0)}亿元`;
+  if (key === 'overseas_weak_share') return `${Math.round(value * 100)}%`;
+  if (key.includes('count') || key === 'down_streak') return `${value}项`;
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}${key.includes('pp') ? 'pp' : '%'}`;
+};
+const sourceNames = [
+  { label: '固收/权益代理', value: (data.source_audit?.rates_proxies || []).join(' / ') },
+  { label: '海外映射代理', value: (data.source_audit?.overseas_proxies || []).join(' / ') },
+  { label: '两融数据', value: data.source_audit?.margin_source || '公开市场数据' },
+  { label: '价格数据', value: data.source_audit?.price_source || '公开行情' },
+];
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <BaseHead title="A股宏观雷达｜风险预算与中观约束" description="A股宏观雷达：通过固收相对强弱、海外去杠杆压力和两融余额趋势，约束A股ETF权益仓位、追高资格和进攻节奏。" />
+  <style>
+    :root{--macro-ink:#182437;--macro-muted:#66758a;--macro-line:#dfe6ee;--macro-red:#bd2d25;--macro-green:#18734b;--macro-amber:#a86613;--macro-blue:#245a9b}
+    main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}.macro-hero{padding:clamp(1rem,3vw,1.6rem);overflow:hidden;background:linear-gradient(135deg,#fff8f5,#fff 58%,#f2f7ff)}
+    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.eyebrow{color:var(--accent);font-size:.72rem;font-weight:950;letter-spacing:.12em}.hero-top h1{margin:.35rem 0;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.04em}.hero-top p{max-width:66ch;margin:0;color:var(--macro-muted);line-height:1.65}.hero-meta{display:grid;gap:.3rem;text-align:right}.hero-meta span{padding:.28rem .5rem;border:1px solid var(--macro-line);border-radius:8px;background:#fff;color:var(--macro-muted);font-size:.7rem;white-space:nowrap}
+    .command{display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;margin-top:1rem;padding:1rem;border-radius:17px;background:#17243a;color:#fff}.command-icon{font-size:2rem}.command span{display:block;color:#aebdd0;font-size:.68rem;font-weight:900;letter-spacing:.08em}.command strong{display:block;margin:.15rem 0;font-size:1.18rem}.command p{margin:0;color:#d5deea;font-size:.82rem;line-height:1.5}.budget{padding:.65rem .8rem;border-radius:12px;background:#fff;color:var(--macro-ink);text-align:right}.budget small{display:block;color:var(--macro-muted)}.budget b{display:block;margin-top:.12rem;font-size:.88rem}
+    .section-head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin:1.55rem 0 .7rem}.section-head h2{margin:.2rem 0 0}.section-head p{margin:0;color:var(--macro-muted);font-size:.8rem}.kicker{color:var(--accent);font-size:.68rem;font-weight:950;letter-spacing:.11em}.factor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.factor{padding:1rem;border-top:5px solid var(--macro-amber)}.factor.danger{border-top-color:var(--macro-red);background:linear-gradient(180deg,#fff7f6,#fff 42%)}.factor.positive{border-top-color:var(--macro-green);background:linear-gradient(180deg,#f3fbf7,#fff 42%)}.factor-top{display:flex;justify-content:space-between;gap:.6rem}.factor-top span{font-size:.75rem;font-weight:900;color:var(--macro-muted)}.state{padding:.18rem .46rem;border-radius:999px;background:#fff0ee;color:var(--macro-red);font-size:.7rem;font-weight:900}.factor.positive .state{background:#e9f7ef;color:var(--macro-green)}.factor h3{margin:.75rem 0 .35rem;font-size:1.08rem}.factor>p{min-height:3em;margin:0;color:var(--macro-muted);font-size:.8rem;line-height:1.55}.factor-score{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding:.55rem .65rem;border-radius:10px;background:#f5f7fa}.factor-score span{color:var(--macro-muted);font-size:.7rem}.factor-score b{font-size:1rem}.reason-list{margin:.7rem 0 0;padding-left:1.15rem;color:var(--macro-ink);font-size:.76rem;line-height:1.55}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.75rem}.metric{padding:.5rem;border:1px solid var(--macro-line);border-radius:9px;background:#fff}.metric span{display:block;color:var(--macro-muted);font-size:.64rem}.metric b{display:block;margin-top:.12rem;font-size:.78rem;overflow-wrap:anywhere}
+    .rules{display:grid;grid-template-columns:1.05fr .95fr;gap:.8rem}.rule-card,.source-card{padding:1rem}.rule-card h3,.source-card h3{margin:0 0 .75rem}.rule-list{display:grid;gap:.5rem}.rule{display:flex;gap:.6rem;align-items:flex-start;padding:.65rem;border-radius:11px;background:var(--warm-2);font-size:.8rem;line-height:1.5}.rule b{color:var(--accent)}.source-list{display:grid;gap:.45rem}.source{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.7rem;padding:.55rem 0;border-top:1px solid var(--macro-line);font-size:.76rem}.source:first-child{border-top:0}.source span{color:var(--macro-muted)}.source b{overflow-wrap:anywhere}.links{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem}.links a{padding:.5rem .72rem;border:1px solid var(--macro-line);border-radius:999px;background:#fff;color:var(--macro-ink);font-size:.78rem;font-weight:900;text-decoration:none}.links a.primary{background:#17243a;color:#fff}
+    @media(max-width:900px){.hero-top{display:grid}.hero-meta{text-align:left}.command{grid-template-columns:auto 1fr}.budget{grid-column:1/-1;text-align:left}.factor-grid{grid-template-columns:1fr}.factor>p{min-height:0}.rules{grid-template-columns:1fr}}
+    @media(max-width:620px){main{width:min(100% - 1rem,1180px);padding-top:.6rem}.macro-hero{padding:.9rem}.hero-top h1{font-size:2rem}.command{gap:.65rem;padding:.8rem}.command-icon{font-size:1.5rem}.metrics{grid-template-columns:1fr 1fr}.section-head{align-items:flex-start}.source{grid-template-columns:1fr;gap:.2rem}}
+  </style>
+</head>
+<body>
+  <Header />
+  <main>
+    <AStockSubnav active="macro" />
+    <section class="macro-hero card">
+      <div class="hero-top"><div><span class="eyebrow">A-SHARE MACRO RISK TERMINAL</span><h1>A股宏观雷达</h1><p>先决定风险预算，再确认趋势和ETF关键位。该层通过三项中观因子约束权益仓位与追高资格。</p></div><div class="hero-meta"><span>模型 {data.model_version}</span><span>生成 {data.generated_at}</span><span>时区 {data.timezone}</span></div></div>
+      <div class="command"><span class="command-icon">{constraint.headwind_level >= 3 ? '🔴' : constraint.headwind_level >= 1 ? '🟡' : '🟢'}</span><div><span>MACRO RISK GATE</span><strong>{constraint.label} · 逆风等级 {constraint.headwind_level}/3</strong><p>{constraint.equity_constraint}</p></div><div class="budget"><small>当前风险预算</small><b>{constraint.position}</b></div></div>
+    </section>
+
+    <div class="section-head"><div><span class="kicker">THREE-FACTOR GATE</span><h2>三因子风险矩阵</h2></div><p>每张卡使用自己的观察日期和公开数据口径</p></div>
+    <section class="factor-grid">
+      {factors.map((factor: any) => (
+        <article class={`factor card ${tone(factor.state)}`}>
+          <div class="factor-top"><span>{factor.label}</span><b class="state">{icon(factor.state)} {factor.state}</b></div>
+          <h3>{factor.headline}</h3><p>{factor.reasons?.[0] || '等待可靠数据'}</p>
+          <div class="factor-score"><span>因子压力分</span><b>{factor.score} / 3</b></div>
+          <div class="metrics">{Object.entries(factor.metrics || {}).slice(0, 4).map(([key,value]) => <div class="metric"><span>{metricLabel[factor.key]?.[key] || key}</span><b>{formatMetric(key,value)}</b></div>)}</div>
+          <ul class="reason-list">{(factor.reasons || []).slice(1).map((reason: string) => <li>{reason}</li>)}</ul>
+          <small>观察日 {factor.as_of || 'N/A'}</small>
+        </article>
+      ))}
+    </section>
+
+    <div class="section-head"><div><span class="kicker">EXECUTION & SOURCE</span><h2>执行纪律与数据口径</h2></div><p>宏观层约束仓位，价格和资金负责触发</p></div>
+    <section class="rules">
+      <article class="rule-card card"><h3>当前执行规则</h3><div class="rule-list">{(constraint.execution_rules || []).map((rule: string, index: number) => <div class="rule"><b>{String(index + 1).padStart(2,'0')}</b><span>{rule}</span></div>)}</div><div class="links"><a class="primary" href="/a-compass/">查看今日动作</a><a href="/a-momentum/">查看趋势风控</a><a href="/blog/">查看盘后复盘</a></div></article>
+      <article class="source-card card"><h3>来源与完整性</h3><div class="source-list">{sourceNames.map(item => <div class="source"><span>{item.label}</span><b>{item.value || 'N/A'}</b></div>)}</div><p>{data.disclaimer}</p><small>本轮缺失：{Object.keys(data.source_audit?.failures || {}).length} 项</small></article>
+    </section>
+  </main>
+  <Footer />
+</body>
+</html>

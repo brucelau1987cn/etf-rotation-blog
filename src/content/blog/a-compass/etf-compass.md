@@ -69,4 +69,4 @@ category: '历史档案'
 |---|---|
 | 每日详细复盘 | [/blog/](/blog/) |
 | 历史详细归档 | [/blog/a-compass/etf-compass-archive/](/blog/a-compass/etf-compass-archive/) |
-| 动量雷达 | [/momentum/](/momentum/) |
+| 动量雷达 | [/a-momentum/](/a-momentum/) |
