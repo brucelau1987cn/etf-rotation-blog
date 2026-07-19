@@ -94,6 +94,65 @@ def generate_research_audit(
         return {}, f"research audit generator unavailable: {exc}"
 
 
+def generate_macro_snapshot() -> dict:
+    """Refresh the A-share macro snapshot before the 22:00 content phase."""
+    result = subprocess.run(
+        ["python3", "scripts/generate_a_share_mid_macro.py"], cwd=ROOT,
+        text=True, capture_output=True, check=False, timeout=240,
+    )
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "macro generator failed")[-2000:])
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError("macro generator returned empty output")
+    try:
+        return json.loads(lines[-1])
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"invalid macro generator output: {exc}") from exc
+
+
+def validate_macro_snapshot(payload: dict, trade_date: str | None) -> list[str]:
+    errors: list[str] = []
+    if payload.get("version") != 2:
+        errors.append("macro snapshot version must be 2")
+    if str(payload.get("generated_at") or "")[:10] != trade_date:
+        errors.append("macro generated_at differs from gate qfq_date")
+    framework = payload.get("framework") or []
+    if len(framework) != 6:
+        errors.append("macro framework requires six dimensions")
+        return errors
+    expected = {
+        "monetary_liquidity", "credit_impulse", "growth_cycle",
+        "inflation_margin", "external_fx", "market_liquidity",
+    }
+    if {item.get("key") for item in framework if isinstance(item, dict)} != expected:
+        errors.append("macro framework dimension keys are incomplete")
+    observation_count = 0
+    for dimension in framework:
+        observations = dimension.get("observations") or []
+        if not observations:
+            errors.append(f"macro dimension {dimension.get('key')} has no concrete observations")
+            continue
+        observation_count += len(observations)
+        for item in observations:
+            value = item.get("value")
+            if not isinstance(value, (int, float)) or not math.isfinite(value):
+                errors.append(f"macro observation {item.get('key')} has a non-finite value")
+            if not item.get("as_of") or str(item.get("as_of")) > str(trade_date):
+                errors.append(f"macro observation {item.get('key')} has an invalid observation date")
+            if not item.get("source") or not item.get("detail"):
+                errors.append(f"macro observation {item.get('key')} lacks source or detail")
+    if observation_count < 15:
+        errors.append(f"macro concrete observation coverage below 15: {observation_count}")
+    constraint = payload.get("constraint") or {}
+    if constraint.get("headwind_level") not in {0, 1, 2, 3}:
+        errors.append("macro headwind_level must be between 0 and 3")
+    factors = payload.get("factors") or []
+    if len(factors) != 3 or any(factor.get("status") != "ok" for factor in factors):
+        errors.append("macro daily risk gate requires three available factors")
+    return errors
+
+
 def validate_kronos_snapshot(payload: dict, trade_date: str | None) -> list[str]:
     errors = []
     if payload.get("mode") != "shadow_research_only" or payload.get("production_weights_changed") is not False:
@@ -166,6 +225,19 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     if int((pool.get("summary") or {}).get("valid_count") or 0) < 82:
         errors.append("formal pool valid coverage below 82")
     errors.extend(validate_kronos_snapshot(kronos, gate.get("qfq_date")))
+    macro_generation: dict = {}
+    if not errors:
+        try:
+            macro_generation = generate_macro_snapshot()
+            macro_path = ROOT / "public/data/a-share-mid-macro.json"
+            macro_snapshot = json.loads(macro_path.read_text(encoding="utf-8"))
+            errors.extend(validate_macro_snapshot(macro_snapshot, gate.get("qfq_date")))
+            if macro_generation.get("status") != "ok":
+                errors.append("macro generator status is not ok")
+            if macro_generation.get("failures"):
+                errors.append(f"macro generator reported failures: {macro_generation['failures']}")
+        except (OSError, ValueError, TypeError, json.JSONDecodeError, RuntimeError) as exc:
+            errors.append(f"macro snapshot generation failed: {exc}")
     if not errors:
         research_audit, research_error = generate_research_audit(backtest, pool, current.isoformat())
         if research_error:
@@ -212,6 +284,12 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         "content_files": list(nightly_content_files(trade_date)),
         "snapshot_files": list(SNAPSHOT_FILES),
         "snapshot_hashes": file_hashes(ROOT, SNAPSHOT_FILES),
+        "macro_refresh": {
+            "status": macro_generation.get("status"),
+            "headwind_level": macro_generation.get("headwind_level"),
+            "label": macro_generation.get("label"),
+            "failures": macro_generation.get("failures") or {},
+        },
     }
     atomic_write(state_path, payload)
     return payload

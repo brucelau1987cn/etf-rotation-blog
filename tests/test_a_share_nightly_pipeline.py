@@ -37,11 +37,37 @@ def research_audit_fixture(trade_date="2026-07-14", pool_rows=0):
     }
 
 
+def macro_fixture(trade_date="2026-07-14"):
+    keys = [
+        "monetary_liquidity", "credit_impulse", "growth_cycle",
+        "inflation_margin", "external_fx", "market_liquidity",
+    ]
+    return {
+        "version": 2, "generated_at": f"{trade_date} 22:06:38 CST",
+        "framework": [{
+            "key": key,
+            "observations": [{
+                "key": f"{key}-{index}", "value": 1.0, "as_of": trade_date,
+                "source": "fixture", "detail": "fixture observation",
+            } for index in range(3)],
+        } for key in keys],
+        "constraint": {"headwind_level": 1},
+        "factors": [{"status": "ok"}, {"status": "ok"}, {"status": "ok"}],
+    }
+
+
+def write_macro_fixture(root: Path, trade_date="2026-07-14"):
+    path = root / "public/data/a-share-mid-macro.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(macro_fixture(trade_date)))
+
+
 def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
     monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
     monkeypatch.setattr(prepare, "validate_research_audit", lambda errors, audit, backtest, pool: audit.get("dataset", {}))
     monkeypatch.setattr(prepare, "git_head", lambda: "a" * 40)
+    monkeypatch.setattr(prepare, "generate_macro_snapshot", lambda: {"status": "ok", "headwind_level": 1, "label": "偏逆风", "failures": {}})
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
@@ -52,6 +78,7 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
     }))
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
+    write_macro_fixture(tmp_path)
     monkeypatch.setattr(prepare, "run_json", lambda command: {
         "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91
     })
@@ -65,6 +92,7 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     assert "public/data/etf-garden-backtest.json" in result["snapshot_files"]
     assert set(result["snapshot_hashes"]) == set(result["snapshot_files"])
     assert result["base_commit"] == "a" * 40
+    assert result["macro_refresh"]["status"] == "ok"
     assert "public/data/etf-garden-backtest.json" in publish.ALLOWED_STATIC
 
 
@@ -91,6 +119,7 @@ def test_prepare_preflight_rejects_remote_drift(monkeypatch):
 def test_prepare_blocks_when_research_audit_generation_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
     monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: ({}, "generator boom"))
+    monkeypatch.setattr(prepare, "generate_macro_snapshot", lambda: {"status": "ok", "headwind_level": 1, "label": "偏逆风", "failures": {}})
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
@@ -101,6 +130,7 @@ def test_prepare_blocks_when_research_audit_generation_fails(tmp_path, monkeypat
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
     }))
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
+    write_macro_fixture(tmp_path)
     monkeypatch.setattr(prepare, "run_json", lambda command: {
         "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91
     })
@@ -149,10 +179,43 @@ def test_prepare_blocks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     }))
     invalid = kronos_fixture(count=88)
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(invalid))
+    write_macro_fixture(tmp_path)
     monkeypatch.setattr(prepare, "run_json", lambda command: {"decision": "run", "qfq_date": "2026-07-14"})
     result = prepare.prepare(now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=tmp_path / "state.json")
     assert result["status"] == "blocked"
     assert any("89/89" in error for error in result["errors"])
+
+
+def test_macro_snapshot_validation_requires_all_dimensions_and_finite_values():
+    payload = macro_fixture()
+    assert prepare.validate_macro_snapshot(payload, "2026-07-14") == []
+    payload["framework"][0]["observations"][0]["value"] = float("nan")
+    errors = prepare.validate_macro_snapshot(payload, "2026-07-14")
+    assert any("non-finite" in error for error in errors)
+
+
+def test_prepare_blocks_when_macro_generation_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(prepare, "ROOT", tmp_path)
+    monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
+    monkeypatch.setattr(prepare, "generate_macro_snapshot", lambda: (_ for _ in ()).throw(RuntimeError("macro boom")))
+    (tmp_path / "public/data/model-lab").mkdir(parents=True)
+    (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
+        "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
+    }))
+    (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
+    (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
+        "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}},
+    }))
+    (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
+    monkeypatch.setattr(prepare, "run_json", lambda command: {
+        "decision": "run", "qfq_date": "2026-07-14", "qfq_coverage": 91
+    })
+    result = prepare.prepare(
+        now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=tmp_path / "state.json",
+    )
+    assert result["status"] == "blocked"
+    assert any("macro snapshot generation failed" in error for error in result["errors"])
 
 
 def prepared_state():
