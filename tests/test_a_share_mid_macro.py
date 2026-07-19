@@ -67,6 +67,24 @@ class MidMacroConstraintTests(unittest.TestCase):
     def test_format_band(self) -> None:
         self.assertEqual(self.mod.format_band((0, 10)), "权益0%-10%；防御/现金90%-100%")
 
+    def test_macro_framework_is_complete_and_honest(self) -> None:
+        dimensions = self.mod.MACRO_FRAMEWORK
+        self.assertEqual(len(dimensions), 6)
+        self.assertEqual(
+            {item["key"] for item in dimensions},
+            {
+                "monetary_liquidity",
+                "credit_impulse",
+                "growth_cycle",
+                "inflation_margin",
+                "external_fx",
+                "market_liquidity",
+            },
+        )
+        covered = {item["coverage"] for item in dimensions}
+        self.assertIn("pending_official", covered)
+        self.assertTrue(all(item["primary_source"] for item in dimensions))
+
 
 if __name__ == "__main__":
     unittest.main()

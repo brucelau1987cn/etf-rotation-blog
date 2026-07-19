@@ -1,33 +1,163 @@
 {
-  "version": 1,
+  "version": 2,
   "generated_at": "2026-07-17 22:06:38 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
-  "model_version": "A-share Mid-Macro Constraint v1",
+  "model_version": "A-share Macro & Financial Conditions v2",
+  "framework": [
+    {
+      "key": "monetary_liquidity",
+      "label": "货币与流动性",
+      "question": "资金价格与流动性环境是否支持风险资产估值？",
+      "official_indicators": [
+        "DR007/逆回购利率",
+        "中期政策利率与LPR",
+        "M1/M2增速"
+      ],
+      "frequency": "日度 / 月度",
+      "primary_source": "中国人民银行、全国银行间同业拆借中心",
+      "coverage": "proxy",
+      "factor_key": "rates_fixed_income",
+      "note": "当前以国债、信用债相对沪深300的价格表现作为日频风险偏好代理。",
+      "state": "逆风",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+5.00pp",
+      "as_of": "2026-07-17"
+    },
+    {
+      "key": "credit_impulse",
+      "label": "信用周期",
+      "question": "实体融资需求和信用扩张是否改善？",
+      "official_indicators": [
+        "社会融资规模存量增速",
+        "人民币贷款",
+        "政府债券融资"
+      ],
+      "frequency": "月度",
+      "primary_source": "中国人民银行",
+      "coverage": "pending_official",
+      "factor_key": null,
+      "note": "等待稳定接入官方月度时序；缺失时不参与日度风险评分。",
+      "state": "待接入",
+      "score": null,
+      "headline": "等待稳定的官方免费时序数据",
+      "as_of": null
+    },
+    {
+      "key": "growth_cycle",
+      "label": "增长与盈利",
+      "question": "生产、需求和企业利润处于扩张还是收缩阶段？",
+      "official_indicators": [
+        "制造业PMI",
+        "工业增加值",
+        "规模以上工业企业利润"
+      ],
+      "frequency": "月度",
+      "primary_source": "国家统计局",
+      "coverage": "pending_official",
+      "factor_key": null,
+      "note": "用于判断盈利周期和顺周期行业背景，按官方发布日期更新。",
+      "state": "待接入",
+      "score": null,
+      "headline": "等待稳定的官方免费时序数据",
+      "as_of": null
+    },
+    {
+      "key": "inflation_margin",
+      "label": "通胀与利润率",
+      "question": "价格环境正在改善企业利润率，还是压缩终端需求？",
+      "official_indicators": [
+        "PPI同比",
+        "CPI同比",
+        "PPI-CPI剪刀差"
+      ],
+      "frequency": "月度",
+      "primary_source": "国家统计局",
+      "coverage": "pending_official",
+      "factor_key": null,
+      "note": "重点观察PPI方向与上下游利润再分配，不把单月读数直接当交易信号。",
+      "state": "待接入",
+      "score": null,
+      "headline": "等待稳定的官方免费时序数据",
+      "as_of": null
+    },
+    {
+      "key": "external_fx",
+      "label": "汇率与外部环境",
+      "question": "人民币、美元与海外风险偏好是否形成外部约束？",
+      "official_indicators": [
+        "人民币汇率与CFETS指数",
+        "美元指数/美债利率",
+        "海外股市风险偏好"
+      ],
+      "frequency": "日度",
+      "primary_source": "中国外汇交易中心、国家外汇管理局、公开市场行情",
+      "coverage": "proxy",
+      "factor_key": "overseas_deleveraging",
+      "note": "当前以境内海外ETF映射和海外相关池弱化广度作为外部风险代理。",
+      "state": "逆风",
+      "score": 3.0,
+      "headline": "海外映射ETF 5日均值-5.71%",
+      "as_of": "2026-07-17"
+    },
+    {
+      "key": "market_liquidity",
+      "label": "市场资金与杠杆",
+      "question": "A股增量资金和杠杆资金是否持续进入？",
+      "official_indicators": [
+        "融资余额与融资买入额",
+        "成交额与市场广度",
+        "ETF份额变化"
+      ],
+      "frequency": "日度",
+      "primary_source": "沪深北交易所、公开市场数据",
+      "coverage": "live",
+      "factor_key": "margin_financing",
+      "note": "当前日度风险闸门使用两融余额趋势；成交与ETF资金用于交易层复核。",
+      "state": "逆风",
+      "score": 2.5,
+      "headline": "两融余额5日-3.29%",
+      "as_of": "2026-07-16"
+    }
+  ],
+  "scoring_scope": {
+    "mode": "timely_three_factor_gate",
+    "included": [
+      "rates_fixed_income",
+      "overseas_deleveraging",
+      "margin_financing"
+    ],
+    "excluded_until_official_series": [
+      "credit_impulse",
+      "growth_cycle",
+      "inflation_margin"
+    ],
+    "note": "日度风险闸门只使用可及时更新的三项代理；月度官方数据作为背景层，缺失时不计分。"
+  },
   "factors": [
     {
       "key": "rates_fixed_income",
-      "label": "加息预期/固收相对强弱",
+      "label": "利率与流动性偏好",
       "state": "逆风",
       "score": 2.0,
-      "headline": "固收5日相对沪深300超额+4.98pp",
+      "headline": "固收5日相对沪深300超额+5.00pp",
       "reasons": [
-        "固收5日相对沪深300超额+4.98pp",
-        "固收20日相对偏强+8.08pp"
+        "固收5日相对沪深300超额+5.00pp",
+        "固收20日相对偏强+8.10pp"
       ],
       "metrics": {
         "bond_ret5": 0.03,
         "bond_ret20": 0.17,
-        "equity_ret5": -4.95,
-        "equity_ret20": -7.91,
-        "bond_vs_equity_5d_pp": 4.98,
-        "bond_vs_equity_20d_pp": 8.08
+        "equity_ret5": -4.97,
+        "equity_ret20": -7.93,
+        "bond_vs_equity_5d_pp": 5.0,
+        "bond_vs_equity_20d_pp": 8.1
       },
       "details": {
         "511260": {
           "ret5": 0.02,
           "ret20": 0.19,
-          "last": 134.97,
+          "last": 134.966,
           "date": "2026-07-17"
         },
         "511010": {
@@ -43,9 +173,9 @@
           "date": "2026-07-17"
         },
         "510300": {
-          "ret5": -4.95,
-          "ret20": -7.91,
-          "last": 4.59,
+          "ret5": -4.97,
+          "ret20": -7.93,
+          "last": 4.589,
           "date": "2026-07-17"
         }
       },
@@ -53,19 +183,19 @@
     },
     {
       "key": "overseas_deleveraging",
-      "label": "国际市场ETF去杠杆压力",
+      "label": "外部市场与汇率压力代理",
       "state": "逆风",
       "score": 3.0,
-      "headline": "海外映射ETF 5日均值-5.74%",
+      "headline": "海外映射ETF 5日均值-5.71%",
       "reasons": [
-        "海外映射ETF 5日均值-5.74%",
+        "海外映射ETF 5日均值-5.71%",
         "3只核心海外ETF 5日跌超2%",
         "海外相关池弱化占比88%",
-        "海外映射20日仍弱-4.29%"
+        "海外映射20日仍弱-4.26%"
       ],
       "metrics": {
-        "proxy_ret5_avg": -5.74,
-        "proxy_ret20_avg": -4.29,
+        "proxy_ret5_avg": -5.71,
+        "proxy_ret20_avg": -4.26,
         "proxy_weak_count_5d": 3,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.875
@@ -78,9 +208,9 @@
           "date": "2026-07-17"
         },
         "513500": {
-          "ret5": -1.07,
-          "ret20": -2.5,
-          "last": 2.5,
+          "ret5": -0.95,
+          "ret20": -2.38,
+          "last": 2.503,
           "date": "2026-07-17"
         },
         "159502": {
@@ -100,7 +230,7 @@
     },
     {
       "key": "margin_financing",
-      "label": "两融余额趋势",
+      "label": "市场资金与杠杆",
       "state": "逆风",
       "score": 2.5,
       "headline": "两融余额5日-3.29%",

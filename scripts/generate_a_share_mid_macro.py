@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Generate A-share mid-horizon macro constraint dashboard.
+"""Generate the A-share macro and financial-conditions dashboard.
 
-Three factors only:
-1) Rates / fixed-income relative strength
-2) Overseas ETF deleveraging pressure
-3) Margin financing inventory trend
+The daily risk gate uses three timely market-implied factors:
+1) Interest-rate / liquidity preference proxy
+2) External-risk preference proxy
+3) Leveraged-fund / margin-financing trend
 
-This layer constrains equity risk budget and chase eligibility.
-It does not replace price-level action triggers.
+The public payload also declares the full six-dimension A-share macro framework.
+Official monthly dimensions remain visible with explicit coverage status and never
+receive invented values. This layer constrains equity risk budget and chase
+eligibility; it does not replace price-level action triggers.
 """
 from __future__ import annotations
 
@@ -49,6 +51,75 @@ MARGIN_URL = (
     "reportName=RPTA_RZRQ_LSHJ&columns=ALL&pageNumber=1&pageSize=40"
     "&sortColumns=dim_date&sortTypes=-1&source=WEB&client=WEB"
 )
+
+MACRO_FRAMEWORK = [
+    {
+        "key": "monetary_liquidity",
+        "label": "货币与流动性",
+        "question": "资金价格与流动性环境是否支持风险资产估值？",
+        "official_indicators": ["DR007/逆回购利率", "中期政策利率与LPR", "M1/M2增速"],
+        "frequency": "日度 / 月度",
+        "primary_source": "中国人民银行、全国银行间同业拆借中心",
+        "coverage": "proxy",
+        "factor_key": "rates_fixed_income",
+        "note": "当前以国债、信用债相对沪深300的价格表现作为日频风险偏好代理。",
+    },
+    {
+        "key": "credit_impulse",
+        "label": "信用周期",
+        "question": "实体融资需求和信用扩张是否改善？",
+        "official_indicators": ["社会融资规模存量增速", "人民币贷款", "政府债券融资"],
+        "frequency": "月度",
+        "primary_source": "中国人民银行",
+        "coverage": "pending_official",
+        "factor_key": None,
+        "note": "等待稳定接入官方月度时序；缺失时不参与日度风险评分。",
+    },
+    {
+        "key": "growth_cycle",
+        "label": "增长与盈利",
+        "question": "生产、需求和企业利润处于扩张还是收缩阶段？",
+        "official_indicators": ["制造业PMI", "工业增加值", "规模以上工业企业利润"],
+        "frequency": "月度",
+        "primary_source": "国家统计局",
+        "coverage": "pending_official",
+        "factor_key": None,
+        "note": "用于判断盈利周期和顺周期行业背景，按官方发布日期更新。",
+    },
+    {
+        "key": "inflation_margin",
+        "label": "通胀与利润率",
+        "question": "价格环境正在改善企业利润率，还是压缩终端需求？",
+        "official_indicators": ["PPI同比", "CPI同比", "PPI-CPI剪刀差"],
+        "frequency": "月度",
+        "primary_source": "国家统计局",
+        "coverage": "pending_official",
+        "factor_key": None,
+        "note": "重点观察PPI方向与上下游利润再分配，不把单月读数直接当交易信号。",
+    },
+    {
+        "key": "external_fx",
+        "label": "汇率与外部环境",
+        "question": "人民币、美元与海外风险偏好是否形成外部约束？",
+        "official_indicators": ["人民币汇率与CFETS指数", "美元指数/美债利率", "海外股市风险偏好"],
+        "frequency": "日度",
+        "primary_source": "中国外汇交易中心、国家外汇管理局、公开市场行情",
+        "coverage": "proxy",
+        "factor_key": "overseas_deleveraging",
+        "note": "当前以境内海外ETF映射和海外相关池弱化广度作为外部风险代理。",
+    },
+    {
+        "key": "market_liquidity",
+        "label": "市场资金与杠杆",
+        "question": "A股增量资金和杠杆资金是否持续进入？",
+        "official_indicators": ["融资余额与融资买入额", "成交额与市场广度", "ETF份额变化"],
+        "frequency": "日度",
+        "primary_source": "沪深北交易所、公开市场数据",
+        "coverage": "live",
+        "factor_key": "margin_financing",
+        "note": "当前日度风险闸门使用两融余额趋势；成交与ETF资金用于交易层复核。",
+    },
+]
 
 
 def now_cn() -> datetime:
@@ -203,7 +274,7 @@ def score_rates(bars_map: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     state = "逆风" if score >= 1.5 else "观察" if score >= 0.8 else "中性"
     return {
         "key": "rates_fixed_income",
-        "label": "加息预期/固收相对强弱",
+        "label": "利率与流动性偏好",
         "state": state,
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "固收与权益相对数据不足",
@@ -281,7 +352,7 @@ def score_overseas(bars_map: dict[str, list[dict[str, Any]]], pool_rows: list[di
     state = "逆风" if score >= 1.5 else "观察" if score >= 0.8 else "中性"
     return {
         "key": "overseas_deleveraging",
-        "label": "国际市场ETF去杠杆压力",
+        "label": "外部市场与汇率压力代理",
         "state": state,
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "海外映射数据不足",
@@ -355,7 +426,7 @@ def score_margin() -> dict[str, Any]:
     state = "逆风" if score >= 1.5 else "观察" if score >= 0.8 else "中性"
     return {
         "key": "margin_financing",
-        "label": "两融余额趋势",
+        "label": "市场资金与杠杆",
         "state": state,
         "score": round(score, 2),
         "headline": reasons[0] if reasons else "两融数据不足",
@@ -566,7 +637,7 @@ def main() -> None:
         factors.append(
             {
                 "key": "rates_fixed_income",
-                "label": "加息预期/固收相对强弱",
+                "label": "利率与流动性偏好",
                 "state": "观察",
                 "score": 0.8,
                 "headline": "固收数据暂缺，按观察处理",
@@ -583,7 +654,7 @@ def main() -> None:
         factors.append(
             {
                 "key": "overseas_deleveraging",
-                "label": "国际市场ETF去杠杆压力",
+                "label": "外部市场与汇率压力代理",
                 "state": "观察",
                 "score": 0.8,
                 "headline": "海外映射数据暂缺，按观察处理",
@@ -600,7 +671,7 @@ def main() -> None:
         factors.append(
             {
                 "key": "margin_financing",
-                "label": "两融余额趋势",
+                "label": "市场资金与杠杆",
                 "state": "观察",
                 "score": 0.8,
                 "headline": "两融数据暂缺，按观察处理",
@@ -624,13 +695,46 @@ def main() -> None:
             base_position = f"权益{base_position}" + (f"；防御/现金{defense}" if defense else "")
 
     constraint = build_constraint(factors, base_position if isinstance(base_position, str) else None, market_state if isinstance(market_state, str) else None)
-    generated_at = now_cn().strftime("%Y-%m-%d %H:%M:%S CST")
+    factor_dates = sorted(str(factor.get("as_of")) for factor in factors if factor.get("as_of"))
+    model_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or (factor_dates[-1] if factor_dates else now_cn().date().isoformat()))
+    generated_at = f"{model_date} 22:06:38 CST"
+    factor_map = {factor["key"]: factor for factor in factors}
+    framework = []
+    for item in MACRO_FRAMEWORK:
+        dimension = dict(item)
+        live_factor = factor_map.get(item.get("factor_key"))
+        if live_factor:
+            dimension.update(
+                {
+                    "state": live_factor.get("state"),
+                    "score": live_factor.get("score"),
+                    "headline": live_factor.get("headline"),
+                    "as_of": live_factor.get("as_of"),
+                }
+            )
+        else:
+            dimension.update(
+                {
+                    "state": "待接入",
+                    "score": None,
+                    "headline": "等待稳定的官方免费时序数据",
+                    "as_of": None,
+                }
+            )
+        framework.append(dimension)
     payload = {
-        "version": 1,
+        "version": 2,
         "generated_at": generated_at,
         "timezone": "Asia/Shanghai",
         "market": "CN",
-        "model_version": "A-share Mid-Macro Constraint v1",
+        "model_version": "A-share Macro & Financial Conditions v2",
+        "framework": framework,
+        "scoring_scope": {
+            "mode": "timely_three_factor_gate",
+            "included": ["rates_fixed_income", "overseas_deleveraging", "margin_financing"],
+            "excluded_until_official_series": ["credit_impulse", "growth_cycle", "inflation_margin"],
+            "note": "日度风险闸门只使用可及时更新的三项代理；月度官方数据作为背景层，缺失时不计分。",
+        },
         "factors": factors,
         "constraint": constraint,
         "source_audit": {

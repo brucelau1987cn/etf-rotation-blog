@@ -9,40 +9,56 @@ import AStockSubnav from '../components/AStockSubnav.astro';
 const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-share-mid-macro.json'), 'utf-8'));
 const constraint = data.constraint || {};
 const factors = data.factors || [];
-const tone = (state: string) => state === '逆风' ? 'danger' : state === '顺风' ? 'positive' : 'watch';
-const icon = (state: string) => state === '逆风' ? '🔴' : state === '顺风' ? '🟢' : '🟡';
+const factorMap = new Map(factors.map((factor: any) => [factor.key, factor]));
+const framework = data.framework || [];
+const scored = framework.filter((item: any) => item.factor_key && factorMap.has(item.factor_key));
+const background = framework.filter((item: any) => !item.factor_key);
+const stateClass = (state: string) => state === '逆风' ? 'risk' : state === '顺风' ? 'support' : state === '待接入' ? 'pending' : 'neutral';
+const stateIcon = (state: string) => state === '逆风' ? '↓' : state === '顺风' ? '↑' : state === '待接入' ? '·' : '—';
 const metricLabel: Record<string, Record<string, string>> = {
-  rates_fixed_income: { bond_vs_equity_5d_pp: '固收相对权益5日', bond_vs_equity_20d_pp: '固收相对权益20日', bond_ret5: '固收5日', equity_ret5: '沪深300 5日' },
-  overseas_deleveraging: { proxy_ret5_avg: '海外映射5日均值', proxy_ret20_avg: '海外映射20日均值', overseas_weak_share: '海外池弱化占比', proxy_weak_count_5d: '5日弱势核心数' },
-  margin_financing: { rzye_yi: '两融余额', chg5_pct: '两融5日', chg10_pct: '两融10日', chg20_pct: '两融20日', down_streak: '连续回落' },
+  rates_fixed_income: { bond_ret5: '固收5日', bond_ret20: '固收20日', equity_ret5: '沪深300 5日', equity_ret20: '沪深300 20日', bond_vs_equity_5d_pp: '固收相对权益5日', bond_vs_equity_20d_pp: '固收相对权益20日' },
+  overseas_deleveraging: { proxy_ret5_avg: '海外映射5日均值', proxy_ret20_avg: '海外映射20日均值', proxy_weak_count_5d: '核心弱势数', overseas_pool_count: '海外相关池', overseas_weak_share: '海外池弱化占比' },
+  margin_financing: { rzye_yi: '两融余额', rzyezb: '融资余额占比', chg5_pct: '5日变化', chg10_pct: '10日变化', chg20_pct: '20日变化', down_streak: '连续回落' },
 };
 const formatMetric = (key: string, value: unknown) => {
   if (typeof value !== 'number') return String(value ?? 'N/A');
   if (key === 'rzye_yi') return `${value.toFixed(0)}亿元`;
+  if (key === 'rzyezb') return `${value.toFixed(2)}%`;
   if (key === 'overseas_weak_share') return `${Math.round(value * 100)}%`;
   if (key.includes('count') || key === 'down_streak') return `${value}项`;
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}${key.includes('pp') ? 'pp' : '%'}`;
 };
-const sourceNames = [
-  { label: '固收/权益代理', value: (data.source_audit?.rates_proxies || []).join(' / ') },
-  { label: '海外映射代理', value: (data.source_audit?.overseas_proxies || []).join(' / ') },
-  { label: '两融数据', value: data.source_audit?.margin_source || '公开市场数据' },
-  { label: '价格数据', value: data.source_audit?.price_source || '公开行情' },
+const coverageLabel = (coverage: string) => ({ live: '日度实测', proxy: '日度代理', pending_official: '官方月度待接入' })[coverage] || coverage;
+const sourceLabel = (value: string) => ({
+  'eastmoney RPTA_RZRQ_LSHJ': '公开两融历史汇总',
+  'tencent qfq day bars': '公开前复权日线',
+})[value] || value;
+const dailyMissing = Object.keys(data.source_audit?.failures || {}).length;
+const pendingOfficial = background.length;
+const levelCopy = [
+  { level: 0, label: '中性', discipline: '按ETF关键位与趋势正常执行' },
+  { level: 1, label: '偏逆风', discipline: '权益上限下调一档，只等回踩' },
+  { level: 2, label: '逆风', discipline: '禁止追高，新增进攻仓减半' },
+  { level: 3, label: '强逆风', discipline: '停止新开进攻仓，优先防御' },
 ];
 ---
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <BaseHead title="A股宏观雷达｜风险预算与中观约束" description="A股宏观雷达：通过固收相对强弱、海外去杠杆压力和两融余额趋势，约束A股ETF权益仓位、追高资格和进攻节奏。" />
+  <BaseHead title="A股宏观雷达｜流动性、信用与风险预算" description="A股宏观雷达：客观跟踪货币流动性、信用周期、增长盈利、通胀利润率、汇率外部环境和市场资金杠杆，并将及时指标映射为ETF风险预算。" />
   <style>
-    :root{--macro-ink:#182437;--macro-muted:#66758a;--macro-line:#dfe6ee;--macro-red:#bd2d25;--macro-green:#18734b;--macro-amber:#a86613;--macro-blue:#245a9b}
-    main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}.macro-hero{padding:clamp(1rem,3vw,1.6rem);overflow:hidden;background:linear-gradient(135deg,#fff8f5,#fff 58%,#f2f7ff)}
-    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.eyebrow{color:var(--accent);font-size:.72rem;font-weight:950;letter-spacing:.12em}.hero-top h1{margin:.35rem 0;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.04em}.hero-top p{max-width:66ch;margin:0;color:var(--macro-muted);line-height:1.65}.hero-meta{display:grid;gap:.3rem;text-align:right}.hero-meta span{padding:.28rem .5rem;border:1px solid var(--macro-line);border-radius:8px;background:#fff;color:var(--macro-muted);font-size:.7rem;white-space:nowrap}
-    .command{display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;margin-top:1rem;padding:1rem;border-radius:17px;background:#17243a;color:#fff}.command-icon{font-size:2rem}.command span{display:block;color:#aebdd0;font-size:.68rem;font-weight:900;letter-spacing:.08em}.command strong{display:block;margin:.15rem 0;font-size:1.18rem}.command p{margin:0;color:#d5deea;font-size:.82rem;line-height:1.5}.budget{padding:.65rem .8rem;border-radius:12px;background:#fff;color:var(--macro-ink);text-align:right}.budget small{display:block;color:var(--macro-muted)}.budget b{display:block;margin-top:.12rem;font-size:.88rem}
-    .section-head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin:1.55rem 0 .7rem}.section-head h2{margin:.2rem 0 0}.section-head p{margin:0;color:var(--macro-muted);font-size:.8rem}.kicker{color:var(--accent);font-size:.68rem;font-weight:950;letter-spacing:.11em}.factor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.factor{padding:1rem;border-top:5px solid var(--macro-amber)}.factor.danger{border-top-color:var(--macro-red);background:linear-gradient(180deg,#fff7f6,#fff 42%)}.factor.positive{border-top-color:var(--macro-green);background:linear-gradient(180deg,#f3fbf7,#fff 42%)}.factor-top{display:flex;justify-content:space-between;gap:.6rem}.factor-top span{font-size:.75rem;font-weight:900;color:var(--macro-muted)}.state{padding:.18rem .46rem;border-radius:999px;background:#fff0ee;color:var(--macro-red);font-size:.7rem;font-weight:900}.factor.positive .state{background:#e9f7ef;color:var(--macro-green)}.factor h3{margin:.75rem 0 .35rem;font-size:1.08rem}.factor>p{min-height:3em;margin:0;color:var(--macro-muted);font-size:.8rem;line-height:1.55}.factor-score{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding:.55rem .65rem;border-radius:10px;background:#f5f7fa}.factor-score span{color:var(--macro-muted);font-size:.7rem}.factor-score b{font-size:1rem}.reason-list{margin:.7rem 0 0;padding-left:1.15rem;color:var(--macro-ink);font-size:.76rem;line-height:1.55}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.75rem}.metric{padding:.5rem;border:1px solid var(--macro-line);border-radius:9px;background:#fff}.metric span{display:block;color:var(--macro-muted);font-size:.64rem}.metric b{display:block;margin-top:.12rem;font-size:.78rem;overflow-wrap:anywhere}
-    .rules{display:grid;grid-template-columns:1.05fr .95fr;gap:.8rem}.rule-card,.source-card{padding:1rem}.rule-card h3,.source-card h3{margin:0 0 .75rem}.rule-list{display:grid;gap:.5rem}.rule{display:flex;gap:.6rem;align-items:flex-start;padding:.65rem;border-radius:11px;background:var(--warm-2);font-size:.8rem;line-height:1.5}.rule b{color:var(--accent)}.source-list{display:grid;gap:.45rem}.source{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.7rem;padding:.55rem 0;border-top:1px solid var(--macro-line);font-size:.76rem}.source:first-child{border-top:0}.source span{color:var(--macro-muted)}.source b{overflow-wrap:anywhere}.links{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem}.links a{padding:.5rem .72rem;border:1px solid var(--macro-line);border-radius:999px;background:#fff;color:var(--macro-ink);font-size:.78rem;font-weight:900;text-decoration:none}.links a.primary{background:#17243a;color:#fff}
-    @media(max-width:900px){.hero-top{display:grid}.hero-meta{text-align:left}.command{grid-template-columns:auto 1fr}.budget{grid-column:1/-1;text-align:left}.factor-grid{grid-template-columns:1fr}.factor>p{min-height:0}.rules{grid-template-columns:1fr}}
-    @media(max-width:620px){main{width:min(100% - 1rem,1180px);padding-top:.6rem}.macro-hero{padding:.9rem}.hero-top h1{font-size:2rem}.command{gap:.65rem;padding:.8rem}.command-icon{font-size:1.5rem}.metrics{grid-template-columns:1fr 1fr}.section-head{align-items:flex-start}.source{grid-template-columns:1fr;gap:.2rem}}
+    :root{--m-ink:#182235;--m-muted:#687386;--m-line:#dfe4ea;--m-panel:#f7f8fa;--m-navy:#17243a;--m-blue:#335f8a;--m-risk:#a9473f;--m-risk-soft:#fbf2f0;--m-support:#2f7055;--m-support-soft:#eef7f2;--m-warn:#8a681f;--m-warn-soft:#faf6e9}
+    main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem;color:var(--m-ink)}
+    .macro-hero{padding:clamp(1rem,3vw,1.55rem);background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%);border-color:#d9dfe6}.hero-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.2rem;align-items:start}.eyebrow,.section-kicker{display:block;color:var(--m-blue);font-size:.69rem;font-weight:900;letter-spacing:.12em}.hero-row h1{margin:.35rem 0 .45rem;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.045em;text-wrap:balance}.hero-row p{max-width:68ch;margin:0;color:var(--m-muted);font-size:.93rem;line-height:1.7}.stamp{display:grid;gap:.32rem;text-align:right}.stamp span{color:var(--m-muted);font-size:.7rem;white-space:nowrap}
+    .gate{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,.42fr);gap:1rem;margin-top:1rem;padding:1rem 1.05rem;border-radius:17px;background:var(--m-navy);color:#fff}.gate-label{display:flex;align-items:center;gap:.55rem;color:#b9c6d7;font-size:.68rem;font-weight:850;letter-spacing:.08em}.gate-dot{width:.58rem;height:.58rem;border-radius:50%;background:#d97a6c;box-shadow:0 0 0 5px rgba(217,122,108,.12)}.gate h2{margin:.4rem 0 .3rem;color:#fff;font-size:clamp(1.15rem,3vw,1.45rem)}.gate p{margin:0;color:#d4dce7;font-size:.82rem;line-height:1.55}.allocation{display:grid;align-content:center;padding:.75rem .85rem;border:1px solid rgba(255,255,255,.14);border-radius:13px;background:rgba(255,255,255,.07)}.allocation span{color:#b9c6d7;font-size:.68rem}.allocation strong{margin-top:.2rem;color:#fff;font-size:.94rem;line-height:1.45}
+    .scope-note{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:start;margin-top:.75rem;padding:.72rem .82rem;border:1px solid #eadfc6;border-radius:12px;background:#fffaf0;color:#655735;font-size:.78rem;line-height:1.55}.scope-note b{white-space:nowrap}
+    .section-head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin:1.55rem 0 .72rem}.section-head h2{margin:.2rem 0 0;font-size:1.45rem;letter-spacing:-.025em}.section-head p{max-width:46ch;margin:0;color:var(--m-muted);font-size:.78rem;text-align:right;line-height:1.5}
+    .live-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.live-card{padding:1rem;border-top:4px solid #aeb7c2}.live-card.risk{border-top-color:var(--m-risk);background:linear-gradient(180deg,var(--m-risk-soft),#fff 42%)}.live-card.support{border-top-color:var(--m-support);background:linear-gradient(180deg,var(--m-support-soft),#fff 42%)}.card-head{display:flex;justify-content:space-between;gap:.7rem;align-items:flex-start}.dimension-name{color:var(--m-muted);font-size:.75rem;font-weight:850}.state{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .48rem;border-radius:999px;background:#eef1f5;color:#596579;font-size:.68rem;font-weight:900}.state.risk{background:#f8e5e2;color:var(--m-risk)}.state.support{background:#e4f2e9;color:var(--m-support)}.state.pending{background:#f0f1f3;color:#717986}.live-card h3{margin:.72rem 0 .32rem;font-size:1.05rem;line-height:1.45}.factor-question{min-height:3.1em;margin:0;color:var(--m-muted);font-size:.78rem;line-height:1.55}.score-row{display:flex;justify-content:space-between;align-items:center;margin-top:.72rem;padding:.55rem .62rem;border-radius:10px;background:var(--m-panel)}.score-row span{color:var(--m-muted);font-size:.68rem}.score-row b{font-size:.92rem}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.62rem}.metric{min-width:0;padding:.48rem .52rem;border:1px solid var(--m-line);border-radius:9px;background:#fff}.metric span{display:block;color:var(--m-muted);font-size:.62rem}.metric strong{display:block;margin-top:.12rem;font-size:.78rem;overflow-wrap:anywhere}.reason{margin:.62rem 0 0;padding-left:1rem;color:#465267;font-size:.73rem;line-height:1.55}.asof{display:block;margin-top:.65rem;color:#87909e;font-size:.66rem}
+    .framework-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.68rem}.framework-card{padding:.9rem}.framework-top{display:flex;justify-content:space-between;gap:.65rem;align-items:center}.framework-card h3{margin:0;font-size:.98rem}.coverage{color:var(--m-muted);font-size:.66rem;font-weight:800}.framework-card>p{min-height:3em;margin:.55rem 0;color:var(--m-muted);font-size:.76rem;line-height:1.52}.indicator-list{display:flex;flex-wrap:wrap;gap:.28rem}.indicator-list span{padding:.22rem .4rem;border-radius:7px;background:var(--m-panel);color:#4d596b;font-size:.65rem}.framework-meta{display:grid;gap:.26rem;margin-top:.65rem;padding-top:.58rem;border-top:1px solid var(--m-line);font-size:.67rem}.framework-meta span{color:var(--m-muted)}.framework-meta b{font-weight:750;overflow-wrap:anywhere}.framework-card.pending{background:#fbfbfc}.framework-card.pending h3{color:#555f6e}
+    .ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem}.level{padding:.78rem;border:1px solid var(--m-line);border-radius:13px;background:#fff}.level.current{border-color:#c77a70;background:var(--m-risk-soft);box-shadow:inset 0 0 0 1px rgba(169,71,63,.12)}.level-number{display:flex;justify-content:space-between;align-items:center;color:var(--m-muted);font-size:.67rem}.level h3{margin:.4rem 0 .25rem;font-size:.94rem}.level p{margin:0;color:var(--m-muted);font-size:.71rem;line-height:1.45}.current-tag{color:var(--m-risk);font-weight:900}
+    .bottom-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:.75rem}.discipline,.sources{padding:1rem}.discipline h3,.sources h3{margin:0 0 .7rem}.rule-list{display:grid;gap:.42rem}.rule{display:grid;grid-template-columns:1.8rem 1fr;gap:.55rem;align-items:start;padding:.58rem;border-radius:10px;background:var(--m-panel);font-size:.76rem;line-height:1.5}.rule b{color:var(--m-blue)}.source-list{display:grid}.source{display:grid;grid-template-columns:7rem minmax(0,1fr);gap:.6rem;padding:.48rem 0;border-top:1px solid var(--m-line);font-size:.72rem}.source:first-child{border-top:0}.source span{color:var(--m-muted)}.source b{font-weight:750;overflow-wrap:anywhere}.action-links{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem}.action-links a{padding:.46rem .66rem;border:1px solid var(--m-line);border-radius:999px;background:#fff;color:var(--m-ink);font-size:.73rem;font-weight:850;text-decoration:none}.action-links a.primary{background:var(--m-navy);color:#fff;border-color:var(--m-navy)}
+    @media(max-width:900px){.hero-row{grid-template-columns:1fr}.stamp{text-align:left}.gate{grid-template-columns:1fr}.live-grid,.framework-grid{grid-template-columns:1fr}.factor-question,.framework-card>p{min-height:0}.ladder{grid-template-columns:repeat(2,minmax(0,1fr))}.bottom-grid{grid-template-columns:1fr}}
+    @media(max-width:620px){main{width:min(100% - 1rem,1180px);padding-top:.6rem}.macro-hero{padding:.88rem}.hero-row h1{font-size:2rem}.hero-row p{font-size:.86rem}.gate{padding:.82rem}.scope-note{grid-template-columns:1fr}.section-head{align-items:flex-start}.section-head p{display:none}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ladder{grid-template-columns:1fr 1fr}.source{grid-template-columns:1fr;gap:.16rem}}
   </style>
 </head>
 <body>
@@ -50,28 +66,49 @@ const sourceNames = [
   <main>
     <AStockSubnav active="macro" />
     <section class="macro-hero card">
-      <div class="hero-top"><div><span class="eyebrow">A-SHARE MACRO RISK TERMINAL</span><h1>A股宏观雷达</h1><p>先决定风险预算，再确认趋势和ETF关键位。该层通过三项中观因子约束权益仓位与追高资格。</p></div><div class="hero-meta"><span>模型 {data.model_version}</span><span>生成 {data.generated_at}</span><span>时区 {data.timezone}</span></div></div>
-      <div class="command"><span class="command-icon">{constraint.headwind_level >= 3 ? '🔴' : constraint.headwind_level >= 1 ? '🟡' : '🟢'}</span><div><span>MACRO RISK GATE</span><strong>{constraint.label} · 逆风等级 {constraint.headwind_level}/3</strong><p>{constraint.equity_constraint}</p></div><div class="budget"><small>当前风险预算</small><b>{constraint.position}</b></div></div>
+      <div class="hero-row">
+        <div><span class="eyebrow">A-SHARE MACRO &amp; FINANCIAL CONDITIONS</span><h1>A股宏观雷达</h1><p>从流动性、信用、增长、通胀、汇率和市场资金六个维度观察A股环境。日度风险闸门只采用三项可及时更新的代理，月度官方数据作为背景层单独披露。</p></div>
+        <div class="stamp"><span>模型：{data.model_version}</span><span>更新：{data.generated_at}</span><span>市场：A股 · {data.timezone}</span></div>
+      </div>
+      <section class="gate" aria-label="当前宏观风险闸门">
+        <div><span class="gate-label"><i class="gate-dot"></i>当前风险闸门</span><h2>{constraint.label} · 逆风等级 {constraint.headwind_level}/3</h2><p>{constraint.equity_constraint}</p></div>
+        <div class="allocation"><span>约束后风险预算</span><strong>{constraint.position}</strong></div>
+      </section>
+      <div class="scope-note"><b>评分边界</b><span>{data.scoring_scope?.note || '宏观背景只约束风险预算，ETF价格与资金负责触发。'} 当前等级按逆风因子数量与总压力分共同分档：3项逆风或总分≥5.5进入 Level 3。</span></div>
     </section>
 
-    <div class="section-head"><div><span class="kicker">THREE-FACTOR GATE</span><h2>三因子风险矩阵</h2></div><p>每张卡使用自己的观察日期和公开数据口径</p></div>
-    <section class="factor-grid">
-      {factors.map((factor: any) => (
-        <article class={`factor card ${tone(factor.state)}`}>
-          <div class="factor-top"><span>{factor.label}</span><b class="state">{icon(factor.state)} {factor.state}</b></div>
-          <h3>{factor.headline}</h3><p>{factor.reasons?.[0] || '等待可靠数据'}</p>
-          <div class="factor-score"><span>因子压力分</span><b>{factor.score} / 3</b></div>
-          <div class="metrics">{Object.entries(factor.metrics || {}).slice(0, 4).map(([key,value]) => <div class="metric"><span>{metricLabel[factor.key]?.[key] || key}</span><b>{formatMetric(key,value)}</b></div>)}</div>
-          <ul class="reason-list">{(factor.reasons || []).slice(1).map((reason: string) => <li>{reason}</li>)}</ul>
-          <small>观察日 {factor.as_of || 'N/A'}</small>
-        </article>
-      ))}
+    <div class="section-head"><div><span class="section-kicker">TIMELY RISK GATE</span><h2>日度三项风险闸门</h2></div><p>用于调节仓位和追高资格，属于市场隐含的金融条件代理。</p></div>
+    <section class="live-grid">
+      {scored.map((dimension: any) => {
+        const factor: any = factorMap.get(dimension.factor_key) || {};
+        return <article class={`live-card card ${stateClass(factor.state)}`}>
+          <div class="card-head"><span class="dimension-name">{dimension.label}</span><b class={`state ${stateClass(factor.state)}`}>{stateIcon(factor.state)} {factor.state}</b></div>
+          <h3>{factor.headline}</h3><p class="factor-question">{dimension.question}</p>
+          <div class="score-row"><span>压力分</span><b>{factor.score} / 3</b></div>
+          <div class="metrics">{Object.entries(factor.metrics || {}).filter(([key]) => metricLabel[factor.key]?.[key]).slice(0,6).map(([key,value]) => <div class="metric"><span>{metricLabel[factor.key][key]}</span><strong>{formatMetric(key,value)}</strong></div>)}</div>
+          <ul class="reason">{(factor.reasons || []).slice(1,4).map((reason: string) => <li>{reason}</li>)}</ul>
+          <small class="asof">观察日 {factor.as_of || 'N/A'} · {coverageLabel(dimension.coverage)}</small>
+        </article>;
+      })}
     </section>
 
-    <div class="section-head"><div><span class="kicker">EXECUTION & SOURCE</span><h2>执行纪律与数据口径</h2></div><p>宏观层约束仓位，价格和资金负责触发</p></div>
-    <section class="rules">
-      <article class="rule-card card"><h3>当前执行规则</h3><div class="rule-list">{(constraint.execution_rules || []).map((rule: string, index: number) => <div class="rule"><b>{String(index + 1).padStart(2,'0')}</b><span>{rule}</span></div>)}</div><div class="links"><a class="primary" href="/a-compass/">查看今日动作</a><a href="/a-momentum/">查看趋势风控</a><a href="/blog/">查看盘后复盘</a></div></article>
-      <article class="source-card card"><h3>来源与完整性</h3><div class="source-list">{sourceNames.map(item => <div class="source"><span>{item.label}</span><b>{item.value || 'N/A'}</b></div>)}</div><p>{data.disclaimer}</p><small>本轮缺失：{Object.keys(data.source_audit?.failures || {}).length} 项</small></article>
+    <div class="section-head"><div><span class="section-kicker">OBJECTIVE FRAMEWORK</span><h2>A股宏观六维框架</h2></div><p>完整框架覆盖经济与金融条件；数据覆盖状态公开显示。</p></div>
+    <section class="framework-grid">
+      {framework.map((item: any) => <article class={`framework-card card ${stateClass(item.state)}`}>
+        <div class="framework-top"><h3>{item.label}</h3><span class="coverage">{coverageLabel(item.coverage)}</span></div>
+        <p>{item.question}</p>
+        <div class="indicator-list">{(item.official_indicators || []).map((indicator: string) => <span>{indicator}</span>)}</div>
+        <div class="framework-meta"><span>频率 <b>{item.frequency}</b></span><span>来源 <b>{item.primary_source}</b></span><span>当前 <b>{item.headline}</b></span></div>
+      </article>)}
+    </section>
+
+    <div class="section-head"><div><span class="section-kicker">RISK-BUDGET LADDER</span><h2>风险预算阶梯</h2></div><p>宏观等级只压缩权益上限，不替代ETF伏击位、防守线和资金确认。</p></div>
+    <section class="ladder">{levelCopy.map(item => <article class={`level ${constraint.headwind_level === item.level ? 'current' : ''}`}><div class="level-number"><span>LEVEL {item.level}</span>{constraint.headwind_level === item.level && <b class="current-tag">当前</b>}</div><h3>{item.label}</h3><p>{item.discipline}</p></article>)}</section>
+
+    <div class="section-head"><div><span class="section-kicker">DISCIPLINE &amp; SOURCES</span><h2>执行纪律与来源</h2></div><p>区分官方月度背景、日度市场代理和交易触发层。</p></div>
+    <section class="bottom-grid">
+      <article class="discipline card"><h3>当前执行规则</h3><div class="rule-list">{(constraint.execution_rules || []).map((rule: string,index: number) => <div class="rule"><b>{String(index+1).padStart(2,'0')}</b><span>{rule}</span></div>)}</div><div class="action-links"><a class="primary" href="/a-compass/">今日动作</a><a href="/a-momentum/">趋势风控</a><a href="/blog/">盘后复盘</a></div></article>
+      <article class="sources card"><h3>当前数据来源</h3><div class="source-list"><div class="source"><span>利率代理</span><b>十年国债ETF / 国债ETF / 公司债ETF / 沪深300ETF</b></div><div class="source"><span>外部代理</span><b>纳指ETF / 标普500ETF / 美国生物科技ETF / 日经ETF</b></div><div class="source"><span>两融</span><b>{sourceLabel(data.source_audit?.margin_source)}</b></div><div class="source"><span>价格</span><b>{sourceLabel(data.source_audit?.price_source)}</b></div><div class="source"><span>日度输入</span><b>缺失 {dailyMissing}/3</b></div><div class="source"><span>月度背景</span><b>待接入 {pendingOfficial}/6</b></div></div><small class="asof">{data.disclaimer}</small></article>
     </section>
   </main>
   <Footer />
