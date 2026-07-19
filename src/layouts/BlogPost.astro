@@ -64,6 +64,8 @@ const jsonLd = {
       .longform-tools button { padding: .48rem .7rem; border: 1px solid var(--border); border-radius: 999px; background: rgb(var(--black)); color: #fff; font: inherit; font-size: .78rem; font-weight: 850; cursor: pointer; }
       .prose.longform-collapsed { position: relative; max-height: 80rem; overflow: hidden; }
       .prose.longform-collapsed::after { content: ''; position: absolute; inset: auto 0 0; height: 10rem; pointer-events: none; background: linear-gradient(transparent, rgb(var(--white)) 78%); }
+      .prose pre { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+      .prose pre code { display: block; width: max-content; min-width: 100%; }
       .prose > h2:first-child { margin-top: 0; padding: 1rem 1.1rem 0; border: 1px solid rgba(214,61,46,.22); border-bottom: 0; border-radius: 18px 18px 0 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
       .prose > h2:first-child + blockquote { margin-top: 0; border-radius: 0 0 18px 18px; border: 1px solid rgba(214,61,46,.22); border-top: 0; background: linear-gradient(135deg, var(--accent-soft), #fff); }
       @media (max-width: 960px) {
@@ -185,13 +187,13 @@ const jsonLd = {
       const expandLongform = () => {
         if (!content || !longformToggle) return;
         content.classList.remove('longform-collapsed');
-        longformToggle.textContent = '收起历史正文';
+        longformToggle.textContent = '收起完整正文';
         longformToggle.setAttribute('aria-expanded', 'true');
       };
       if (content && longformToggle) {
         longformToggle.addEventListener('click', () => {
           const collapsed = content.classList.toggle('longform-collapsed');
-          longformToggle.textContent = collapsed ? '展开完整正文' : '收起历史正文';
+          longformToggle.textContent = collapsed ? '展开完整正文' : '收起完整正文';
           longformToggle.setAttribute('aria-expanded', String(!collapsed));
           if (collapsed) document.querySelector('.longform-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
