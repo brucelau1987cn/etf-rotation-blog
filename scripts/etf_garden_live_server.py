@@ -9,6 +9,7 @@ ETF Garden live quote HTTP server. Listens on 127.0.0.1:8766.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -22,7 +23,7 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from zoneinfo import ZoneInfo
 
-ROOT = Path("/root/projects/etf-rotation-blog")
+ROOT = Path(os.environ.get("ETF_BLOG_ROOT", Path(__file__).resolve().parents[1])).resolve()
 STOCK_API_PACKAGE = "stock-api@2.7.3"
 PORT = 8766
 CACHE_TTL = 30

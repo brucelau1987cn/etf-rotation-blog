@@ -1,6 +1,9 @@
 import importlib.util
+import os
 from pathlib import Path
 
+# Set mock environment variable before loading the module to avoid side-effects or hardcoded fallback errors
+os.environ["ETF_BLOG_ROOT"] = str(Path(__file__).resolve().parents[1])
 
 PATH = Path(__file__).resolve().parents[1] / "scripts/etf_garden_live_server.py"
 spec = importlib.util.spec_from_file_location("etf_garden_live_server", PATH)
