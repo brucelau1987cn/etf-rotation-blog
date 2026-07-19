@@ -23,6 +23,12 @@ function rehypePublicText() {
           }
         }
       }
+      if (node.type === 'element' && node.tagName === 'a' && node.properties?.target === '_blank') {
+        const rel = new Set(Array.isArray(node.properties.rel) ? node.properties.rel : []);
+        rel.add('noopener');
+        rel.add('noreferrer');
+        node.properties.rel = [...rel];
+      }
       if (Array.isArray(node.children)) {
         for (const child of node.children) walk(child);
       }

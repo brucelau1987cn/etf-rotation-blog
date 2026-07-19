@@ -498,7 +498,7 @@ const countTone = (section: { key: string; tone: string }) => {
         if (usLiveLoading || document.hidden) return;
         usLiveLoading = true;
         try {
-          const response = await fetch(`${US_LIVE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+          const response = await fetch(US_LIVE_URL);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const payload = await response.json();
           if (!payload.ok || !Array.isArray(payload.items)) throw new Error('行情格式异常');

@@ -399,7 +399,10 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
         $('refresh-btn').textContent = '刷新中…';
         $('status-line').textContent = '正在读取 ETF罗盘 91 池基准快照…';
         try {
-          payload = await fetch(`${DATA_URL}?t=${Date.now()}`).then(r => r.json());
+          payload = await fetch(`${DATA_URL}?t=${Date.now()}`).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          });
           rawRows = payload.all_rows || [...(payload.core_pool || []), ...(payload.watch_pool || [])];
           render();
           void loadLive();

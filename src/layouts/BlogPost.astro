@@ -6,12 +6,12 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_AUTHOR } from '../consts';
-import { cleanDescription, sanitizePublicText } from '../lib/posts';
+import { sanitizePublicText, summarizeDescription } from '../lib/posts';
 
 type Props = CollectionEntry<'blog'>['data'];
 const { title, description, pubDate, updatedDate, appliesTo, dataAsOf, stage, heroImage, category } = Astro.props;
 const displayTitle = sanitizePublicText(title);
-const readableDescription = cleanDescription(description);
+const readableDescription = summarizeDescription(description, 180);
 const displayStage = stage ? sanitizePublicText(stage) : stage;
 const displayCategory = category ? sanitizePublicText(category) : category;
 const displayDataAsOf = dataAsOf ? sanitizePublicText(dataAsOf) : dataAsOf;

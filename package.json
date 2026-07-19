@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "astro dev",
     "build": "python3 scripts/validate_dashboard_batches.py && astro build",
+    "audit": "python3 scripts/audit_static_site.py",
     "test": "python3 -m pytest -q",
-    "check": "npm run test && npm run build",
+    "check": "npm run test && npm run build && npm run audit",
     "preview": "astro preview",
     "astro": "astro"
   },
