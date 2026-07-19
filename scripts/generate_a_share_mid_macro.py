@@ -853,6 +853,11 @@ def main() -> None:
     for item in MACRO_FRAMEWORK:
         dimension = dict(item)
         dimension["observations"] = observations.get(item["key"], [])
+        if not item.get("factor_key") and dimension["observations"]:
+            dimension["coverage"] = "official"
+            dimension["state"] = "已更新"
+            first = dimension["observations"][0]
+            dimension["headline"] = f"{first['title']} {first['display']}"
         live_factor = factor_map.get(item.get("factor_key"))
         if live_factor:
             dimension.update(
@@ -863,7 +868,7 @@ def main() -> None:
                     "as_of": live_factor.get("as_of"),
                 }
             )
-        else:
+        elif not dimension["observations"]:
             dimension.update(
                 {
                     "state": "待接入",
@@ -872,6 +877,9 @@ def main() -> None:
                     "as_of": None,
                 }
             )
+        else:
+            dimension["score"] = None
+            dimension["as_of"] = max(str(observation["as_of"]) for observation in dimension["observations"] if observation.get("as_of"))
         framework.append(dimension)
     payload = {
         "version": 2,

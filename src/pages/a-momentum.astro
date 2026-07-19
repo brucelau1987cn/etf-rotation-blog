@@ -36,7 +36,8 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
       .decision-box { padding: .72rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); min-height: 4.1rem; }
       .decision-box span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; letter-spacing: .03em; }
       .decision-box strong { display: block; margin-top: .22rem; font-size: .9rem; line-height: 1.45; }
-      .decision-box.action { background: #fffaf0; border-color: rgba(183,121,31,.18); border-left: 4px solid #b7791f; }
+      .decision-box.action { background: #fffaf0; border-color: rgba(183,121,31,.24); border-left: 5px solid #b7791f; }
+      .decision-box.action strong { font-size: 1rem; }
       .decision-box.mainline { grid-column: 1/-1; background: transparent; min-height: auto; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: .72rem .15rem .1rem; }
       .decision-box.mainline h2 { margin: .18rem 0 .22rem; font-size: 1rem; }
       .decision-box.mainline p { margin: 0; color: rgb(var(--gray-dark)); font-size: .84rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -55,8 +56,8 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
       .panel-head h2,.panel-head h3 { margin: 0; }
       .muted { color: rgb(var(--gray)); }
       .rec-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: .7rem; }
-      .rec-card { position: relative; overflow: hidden; padding: .9rem; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: 18px; background: #fff; min-width: 0; transition: transform .16s ease, box-shadow .16s ease; }
-      .rec-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(30,35,40,.08); }
+      .rec-card { position: relative; overflow: hidden; padding: .9rem; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: 18px; background: #fff; min-width: 0; transition: transform .16s ease-out, box-shadow .16s ease-out; }
+      @media (hover:hover) { .rec-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(30,35,40,.08); } }
       :global(.rec-top) { display: grid; gap: .25rem; padding-bottom: .58rem; border-bottom: 1px solid var(--border); }
       :global(.rec-top h3) { margin: 0; font-size: .98rem; line-height: 1.35; min-height: 2.6em; }
       :global(.rec-code) { color: rgb(var(--gray)); font-size: .75rem; font-weight: 850; }
@@ -125,7 +126,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
   </head>
   <body>
     <Header />
-    <main>
+    <main id="main-content" tabindex="-1">
       <AStockSubnav active="trend" />
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
@@ -133,15 +134,15 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
             <span class="pill pill-red">A股ETF趋势风控</span>
             <h1 id="page-title">A股趋势风控雷达</h1>
             <details>
-              <p>用于确认市场结构、趋势强弱与过热风险，再判断候选是否具备伏击资格。这里是风险过滤层，不是买入推荐榜。</p>
-              <summary>方法说明 ↓</summary>
+              <summary>查看方法说明</summary>
+              <p>用于确认市场结构、趋势强弱与过热风险，再判断候选是否具备伏击资格。这里提供风险过滤和观察排序。</p>
             </details>
           </div>
           <div class="meta-line" aria-label="数据元信息">
             <span class="pill" id="date-pill">模型 —｜行情 —</span>
             <span class="pill" id="metric-time">行情连接中</span>
             <span class="pill">行情：🔴上涨 / 🟢下跌</span>
-            <button class="primary" id="refresh-btn">刷新行情</button>
+            <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新行情</button>
           </div>
         </div>
         <div class="count-strip" aria-label="趋势风控摘要">
@@ -186,8 +187,8 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
           <div class="field"><label>范围</label><label class="checkline"><input type="checkbox" id="absolute-only" />只看趋势通过</label></div>
           <div class="field"><label>结果</label><span class="checkline" id="filter-result">等待数据</span></div>
         </div>
-            <div class="table-wrap"><table><thead><tr><th>名称</th><th>代码</th><th>类型</th><th>趋势</th><th>状态</th><th>5日%</th><th>20日%</th><th>位置</th><th>交易风险</th><th>风险提示</th></tr></thead><tbody id="etf-body"><tr><td colspan="10">加载中…</td></tr></tbody></table></div>
-            <div class="mobile-pool" id="mobile-pool"><p>加载中…</p></div>
+            <div class="table-wrap"><table><caption class="sr-only">A股ETF池趋势、收益、交易状态和风险数据</caption><thead><tr><th scope="col">名称</th><th scope="col">代码</th><th scope="col">类型</th><th scope="col">趋势</th><th scope="col">状态</th><th scope="col">5日%</th><th scope="col">20日%</th><th scope="col">位置</th><th scope="col">交易风险</th><th scope="col">风险提示</th></tr></thead><tbody id="etf-body"><tr><td colspan="10">加载中…</td></tr></tbody></table></div>
+            <div class="mobile-pool" id="mobile-pool" aria-live="polite"><p>加载中…</p></div>
             <nav class="pager" aria-label="A股ETF池分页"><span id="page-info">加载中…</span><div class="pager-controls"><button type="button" id="prev-page">上一页</button><div class="page-numbers" id="page-numbers"></div><button type="button" id="next-page">下一页</button></div></nav>
           </div>
         </details>
@@ -377,7 +378,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
       function goPage(page) {
         currentPage = page;
         render();
-        document.querySelector('.data-details').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelector('.data-details').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       }
       async function loadLive() {
         if (!payload || liveLoading) return;
@@ -396,6 +397,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
       }
       async function load() {
         $('refresh-btn').disabled = true;
+        $('refresh-btn').setAttribute('aria-busy', 'true');
         $('refresh-btn').textContent = '刷新中…';
         $('status-line').textContent = '正在读取 ETF罗盘 91 池基准快照…';
         try {
@@ -414,6 +416,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
           $('page-info').textContent = '数据不可用';
         } finally {
           $('refresh-btn').disabled = false;
+          $('refresh-btn').removeAttribute('aria-busy');
           $('refresh-btn').textContent = '刷新行情';
         }
       }

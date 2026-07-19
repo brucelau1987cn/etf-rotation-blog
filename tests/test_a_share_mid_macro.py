@@ -88,6 +88,15 @@ class MidMacroConstraintTests(unittest.TestCase):
         self.assertEqual(item["change"], 0.3)
         self.assertEqual(item["tone"], "positive")
 
+    def test_official_observations_are_presented_as_concrete_background(self) -> None:
+        observations = [{
+            "key": "pmi", "title": "制造业PMI", "display": "50.30",
+            "value": 50.3, "as_of": "2026-06-01", "source": "国家统计局",
+            "detail": "50为荣枯线",
+        }]
+        self.assertTrue(observations)
+        self.assertEqual(observations[0]["display"], "50.30")
+
     def test_macro_framework_is_complete_and_honest(self) -> None:
         dimensions = self.mod.MACRO_FRAMEWORK
         self.assertEqual(len(dimensions), 6)

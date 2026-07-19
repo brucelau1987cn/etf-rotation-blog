@@ -149,7 +149,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .top-action .rank { font-size: 1.25rem; }
       .top-action span, .top-action strong { color: #fff; }
       .top-action small { display: block; opacity: .7; }
-      .top-action strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+      .top-action strong { display: block; line-height: 1.5; }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
       .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }
@@ -159,7 +159,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-gate summary::-webkit-details-marker { display: none; }
       .macro-gate summary > span { font-size: 1.2rem; }
       .macro-gate summary strong { display: block; font-size: .9rem; }
-      .macro-gate summary small { margin-top: .12rem; color: rgb(var(--gray)); font-size: .75rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+      .macro-gate summary small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .75rem; line-height: 1.45; }
       .macro-gate summary b { font-size: .78rem; padding: .28rem .5rem; border-radius: 999px; background: #fff; border: 1px solid var(--border); white-space: nowrap; }
       .macro-gate .macro-more { margin-top: .55rem; display: grid; gap: .45rem; }
       .macro-factors { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .45rem; }
@@ -254,7 +254,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
   </head>
   <body>
     <Header />
-    <main>
+    <main id="main-content" tabindex="-1">
       <AStockSubnav active="compass" />
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
@@ -262,8 +262,8 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
             <span class="pill pill-red">🇨🇳A股ETF交易仪表盘</span>
             <h1 id="page-title">A股ETF罗盘</h1>
             <details>
+              <summary>查看完整结论</summary>
               <p>{data.summary}</p>
-              <summary>展开完整结论</summary>
             </details>
           </div>
           <div class="meta-line" aria-label="数据元信息">
