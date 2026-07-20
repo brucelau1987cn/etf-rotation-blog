@@ -233,6 +233,30 @@ def prepared_state():
     }
 
 
+def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
+    candidate_dir = tmp_path / "candidate"
+    candidate_dir.mkdir()
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append((command, kwargs))
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publish.tempfile, "mkdtemp", lambda **kwargs: str(candidate_dir))
+    monkeypatch.setattr(publish, "run", fake_run)
+    publish.validate_candidate_commit("a" * 40)
+
+    python_commands = [command for command, _ in commands if command and command[0] == publish.PROJECT_PYTHON]
+    assert python_commands == [
+        [publish.PROJECT_PYTHON, "-m", "pytest", "-q"],
+        [publish.PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"],
+    ]
+    for _, kwargs in commands:
+        if "env" in kwargs:
+            assert kwargs["env"]["PATH"].startswith("/usr/bin:")
+            assert "VIRTUAL_ENV" not in kwargs["env"]
+
+
 def test_publish_rejects_wrong_stage(tmp_path, monkeypatch):
     monkeypatch.setattr(publish, "ROOT", tmp_path)
     monkeypatch.setattr(publish, "git_head", lambda: "a" * 40)

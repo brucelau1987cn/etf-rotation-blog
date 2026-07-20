@@ -31,6 +31,15 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 CN = ZoneInfo("Asia/Shanghai")
 ALLOWED_STATIC = set(SNAPSHOT_FILES)
+PROJECT_PYTHON = "/usr/bin/python3"
+
+
+def project_subprocess_env() -> dict[str, str]:
+    """Keep project commands out of the Hermes gateway virtualenv."""
+    env = dict(os.environ)
+    env.pop("VIRTUAL_ENV", None)
+    env["PATH"] = "/usr/bin:" + env.get("PATH", "")
+    return env
 
 
 def run(
@@ -210,12 +219,13 @@ def create_candidate_commit(paths: list[str], message: str) -> tuple[str, str]:
 
 def validate_candidate_commit(commit: str) -> None:
     candidate_dir = Path(tempfile.mkdtemp(prefix="a-share-nightly-candidate-"))
+    env = project_subprocess_env()
     try:
         run(["git", "worktree", "add", "--detach", str(candidate_dir), commit])
-        run(["npm", "ci"], cwd=candidate_dir, timeout=600)
-        run(["python3", "-m", "pytest", "-q"], cwd=candidate_dir, timeout=300)
-        run(["python3", "scripts/validate_dashboard_batches.py"], cwd=candidate_dir, timeout=180)
-        run(["npm", "run", "build"], cwd=candidate_dir, timeout=600)
+        run(["npm", "ci"], cwd=candidate_dir, env=env, timeout=600)
+        run([PROJECT_PYTHON, "-m", "pytest", "-q"], cwd=candidate_dir, env=env, timeout=300)
+        run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], cwd=candidate_dir, env=env, timeout=180)
+        run(["npm", "run", "build"], cwd=candidate_dir, env=env, timeout=600)
     finally:
         run(
             ["git", "worktree", "remove", "--force", str(candidate_dir)],
@@ -429,8 +439,9 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
         return {"status": "idempotent", "trade_date": trade_date, "changed": []}
     foreign = changed - allowed
 
-    run(["python3", "scripts/enrich_garden_recommendations.py", "--validate"])
-    batch = run(["python3", "scripts/validate_dashboard_batches.py"])
+    env = project_subprocess_env()
+    run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+    batch = run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
     paths = sorted(owned_changes)
     message = f"data: publish A-share nightly final {trade_date}"
     candidate, candidate_tree = create_candidate_commit(paths, message)
