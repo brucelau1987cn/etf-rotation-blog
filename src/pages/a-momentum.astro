@@ -233,10 +233,16 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
           const ret20 = adjustReturn(base20);
           const ma20 = Number(row.ma20);
           const ma20Prev = Number(row.ma20_prev);
-          const priceAboveMa = Number.isFinite(ma20) ? price > ma20 : row.checks?.price_above_ma;
-          const maRising = Number.isFinite(ma20) && Number.isFinite(ma20Prev) ? ma20 > ma20Prev : row.checks?.ma_rising;
-          const shortOk = Number.isFinite(ret3) ? ret3 > -5 : row.checks?.short_ok;
-          const momentum = Boolean(priceAboveMa && maRising && shortOk);
+          const canRecomputeMomentum = Number.isFinite(ma20) && Number.isFinite(ma20Prev) && Number.isFinite(ret3);
+          const priceAboveMa = canRecomputeMomentum ? price > ma20 : row.checks?.price_above_ma;
+          const maRising = canRecomputeMomentum ? ma20 > ma20Prev : row.checks?.ma_rising;
+          const shortOk = canRecomputeMomentum ? ret3 > -5 : row.checks?.short_ok;
+          const momentum = canRecomputeMomentum
+            ? Boolean(priceAboveMa && maRising && shortOk)
+            : row.checks?.momentum;
+          const status = canRecomputeMomentum
+            ? (momentum ? 'core' : (row.status === 'cash' ? 'cash' : 'watch'))
+            : row.status;
           return {
             ...row,
             price,
@@ -248,13 +254,15 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
             ret3: Number.isFinite(ret3) ? Number(ret3.toFixed(2)) : row.ret3,
             ret10: Number.isFinite(ret10) ? Number(ret10.toFixed(2)) : row.ret10,
             ret20: Number.isFinite(ret20) ? Number(ret20.toFixed(2)) : row.ret20,
-            status: momentum ? 'core' : (row.status === 'cash' ? 'cash' : 'watch'),
+            status,
             checks: {
               ...(row.checks || {}),
-              price_above_ma: priceAboveMa,
-              ma_rising: maRising,
-              short_ok: shortOk,
-              momentum,
+              ...(canRecomputeMomentum ? {
+                price_above_ma: priceAboveMa,
+                ma_rising: maRising,
+                short_ok: shortOk,
+                momentum,
+              } : {}),
             },
             live: true,
           };
@@ -298,6 +306,19 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
         }
         return selected;
       }
+      function quoteStateOf(generatedAt, hasLive) {
+        if (!hasLive) return '基准快照';
+        const match = String(generatedAt || '').match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})/);
+        if (!match) return '实时行情';
+        const [, date, hour, minute] = match;
+        const weekday = new Date(`${date}T12:00:00+08:00`).getUTCDay();
+        if (weekday === 0 || weekday === 6) return '休市快照';
+        const minutes = Number(hour) * 60 + Number(minute);
+        if (minutes < 9 * 60 + 30) return '盘前快照';
+        if (minutes <= 11 * 60 + 30 || (minutes >= 13 * 60 && minutes <= 15 * 60)) return '盘中行情';
+        if (minutes < 13 * 60) return '午间快照';
+        return '收盘快照';
+      }
       function render() {
         const type = $('type-filter').value;
         const stateFilter = $('state-filter').value;
@@ -318,10 +339,8 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
         const pageStart = (currentPage - 1) * pageSize;
         const shownRows = rows.slice(pageStart, pageStart + pageSize);
         const liveTime = livePayload?.generated_at ? livePayload.generated_at.replace(' UTC+08:00', '').slice(11, 16) : null;
-        const generatedDate = livePayload?.generated_at?.slice(0, 10);
+        const quoteState = quoteStateOf(livePayload?.generated_at, Boolean(livePayload));
         const tradeDate = payload?.latest_trade_date;
-        const isSnapshot = Boolean(generatedDate && tradeDate && generatedDate !== tradeDate);
-        const quoteState = isSnapshot ? '休市快照' : (livePayload ? '盘中行情' : '基准快照');
         const weak = [...rawRows].sort((a, b) => (Number(a.ret20) || Infinity) - (Number(b.ret20) || Infinity)).slice(0, 3);
         $('metric-total').textContent = `${summary.universe_count || rows.length}`;
         $('metric-pass').textContent = `${summary.core_count || rows.filter(r => r.status === 'core' && r.cooldown_state !== '止损观察').length} / ${summary.universe_count || rows.length}`;
