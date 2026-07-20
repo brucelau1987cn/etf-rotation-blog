@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/forward-evidence-ledger.schema.json",
+  "title": "Forward evidence ledger contract (reserved)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "generated_at", "records"],
+  "properties": {
+    "schema_version": {"const": "forward-evidence-ledger-v1"},
+    "batch_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["signal_id", "market", "symbol", "model_role", "signal_time", "availability_time", "status", "eligibility", "block_reason", "evidence", "counter_evidence", "outcome"],
+        "properties": {
+          "signal_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+          "market": {"enum": ["CN", "US"]},
+          "symbol": {"type": "string", "minLength": 1},
+          "model_role": {"enum": ["production", "shadow"]},
+          "signal_time": {"type": "string", "format": "date-time"},
+          "availability_time": {"type": "string", "format": "date-time"},
+          "status": {"enum": ["planned", "eligible", "blocked", "ordered", "filled", "exited", "expired", "unknown"]},
+          "eligibility": {"enum": ["eligible", "ineligible", "unknown"]},
+          "block_reason": {"type": ["string", "null"]},
+          "evidence": {"$ref": "#/$defs/evidenceList"},
+          "counter_evidence": {"$ref": "#/$defs/evidenceList"},
+          "outcome": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "return_pct", "benchmark_return_pct", "costs"],
+            "properties": {
+              "status": {"enum": ["pending", "known", "unknown", "not_applicable"]},
+              "return_pct": {"type": ["number", "null"]},
+              "benchmark_return_pct": {"type": ["number", "null"]},
+              "costs": {"type": ["number", "null"]}
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidenceList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "observed_at", "status", "statement", "source_category"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "observed_at": {"type": ["string", "null"]},
+          "status": {"enum": ["known", "unknown", "not_applicable"]},
+          "statement": {"type": "string"},
+          "source_category": {"enum": ["market_data", "historical_market_data", "official_statistics", "public_events", "derived_research", "model_output"]}
+        }
+      }
+    }
+  }
+}

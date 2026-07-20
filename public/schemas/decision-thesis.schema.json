@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/decision-thesis.schema.json",
+  "title": "Decision thesis contract (reserved)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "thesis_id", "decision_id", "market", "symbol", "model_role", "created_at", "as_of", "status", "claim", "evidence", "counter_evidence", "invalidation_conditions"],
+  "properties": {
+    "schema_version": {"const": "decision-thesis-v1"},
+    "thesis_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+    "decision_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+    "market": {"enum": ["CN", "US"]},
+    "symbol": {"type": "string", "minLength": 1},
+    "model_role": {"enum": ["production", "shadow"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "as_of": {"type": "string", "format": "date"},
+    "status": {"enum": ["active", "confirmed", "weakened", "invalidated", "expired", "unknown"]},
+    "claim": {"type": "string", "minLength": 1},
+    "evidence": {"$ref": "#/$defs/assertions"},
+    "counter_evidence": {"$ref": "#/$defs/assertions"},
+    "invalidation_conditions": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "assertions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assertion_id", "status", "observed_at", "statement", "source_category"],
+        "properties": {
+          "assertion_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["known", "unknown", "not_applicable"]},
+          "observed_at": {"type": ["string", "null"]},
+          "statement": {"type": "string"},
+          "source_category": {"enum": ["market_data", "historical_market_data", "official_statistics", "public_events", "derived_research", "model_output"]}
+        }
+      }
+    }
+  }
+}

@@ -19,19 +19,20 @@ from zoneinfo import ZoneInfo
 
 try:
     from a_share_nightly_contract import (
-        PUBLIC_VERIFY_FILES, SNAPSHOT_FILES, STATE, file_hashes,
-        nightly_content_files, nightly_lock,
+        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
+        STATE, file_hashes, nightly_content_files, nightly_lock,
     )
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import (
-        PUBLIC_VERIFY_FILES, SNAPSHOT_FILES, STATE, file_hashes,
-        nightly_content_files, nightly_lock,
+        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
+        STATE, file_hashes, nightly_content_files, nightly_lock,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
 CN = ZoneInfo("Asia/Shanghai")
-ALLOWED_STATIC = set(SNAPSHOT_FILES)
+ALLOWED_STATIC = set(SNAPSHOT_FILES) | set(GENERATED_PUBLIC_FILES)
 PROJECT_PYTHON = "/usr/bin/python3"
+BUILD_PYTHON = ".build-venv/bin/python"
 
 
 def project_subprocess_env() -> dict[str, str]:
@@ -226,6 +227,12 @@ def validate_candidate_commit(commit: str) -> None:
         run([PROJECT_PYTHON, "-m", "pytest", "-q"], cwd=candidate_dir, env=env, timeout=300)
         run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], cwd=candidate_dir, env=env, timeout=180)
         run(["npm", "run", "build"], cwd=candidate_dir, env=env, timeout=600)
+        generated_diff = run(
+            ["git", "diff", "--exit-code", "--", *GENERATED_PUBLIC_FILES],
+            cwd=candidate_dir, env=env, check=False, timeout=60,
+        )
+        if generated_diff.returncode != 0:
+            raise RuntimeError("candidate build rewrote managed public artifacts")
     finally:
         run(
             ["git", "worktree", "remove", "--force", str(candidate_dir)],
@@ -432,16 +439,24 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
 
     expected_content = set(nightly_content_files(trade_date))
     expected_snapshots = set(SNAPSHOT_FILES)
-    allowed = expected_content | expected_snapshots
+    allowed = expected_content | expected_snapshots | set(GENERATED_PUBLIC_FILES)
+    env = project_subprocess_env()
+    run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+    batch = run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
+    run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
+    run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
+    run([BUILD_PYTHON, "scripts/generate_data_catalog.py"], env=env)
+    run([BUILD_PYTHON, "scripts/validate_public_data_contracts.py"], env=env)
     changed = git_changes()
+    dirty_catalog_inputs = (changed & set(CATALOG_INPUT_FILES)) - allowed
+    if dirty_catalog_inputs:
+        raise RuntimeError(
+            f"catalog input files contain foreign changes: {sorted(dirty_catalog_inputs)}"
+        )
     owned_changes = changed & allowed
     if not owned_changes:
         return {"status": "idempotent", "trade_date": trade_date, "changed": []}
     foreign = changed - allowed
-
-    env = project_subprocess_env()
-    run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
-    batch = run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
     paths = sorted(owned_changes)
     message = f"data: publish A-share nightly final {trade_date}"
     candidate, candidate_tree = create_candidate_commit(paths, message)

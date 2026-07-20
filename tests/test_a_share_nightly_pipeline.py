@@ -94,6 +94,10 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     assert result["base_commit"] == "a" * 40
     assert result["macro_refresh"]["status"] == "ok"
     assert "public/data/etf-garden-backtest.json" in publish.ALLOWED_STATIC
+    assert "public/data/a-compass-dashboard.json" in publish.ALLOWED_STATIC
+    assert "public/data/catalog.json" in publish.ALLOWED_STATIC
+    assert "public/schemas/data-catalog.schema.json" in publish.PUBLIC_VERIFY_FILES
+    assert "public/data/us-etf-pool.json" in publish.CATALOG_INPUT_FILES
 
 
 def test_prepare_preflight_rejects_remote_drift(monkeypatch):
@@ -257,6 +261,31 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
             assert "VIRTUAL_ENV" not in kwargs["env"]
 
 
+def test_candidate_validation_rejects_rewritten_generated_artifacts(tmp_path, monkeypatch):
+    candidate_dir = tmp_path / "candidate"
+    candidate_dir.mkdir()
+
+    def fake_mkdtemp(prefix):
+        return str(candidate_dir)
+
+    def fake_run(command, **kwargs):
+        if command[:3] == ["git", "diff", "--exit-code"]:
+            return subprocess.CompletedProcess(command, 1, stdout="diff", stderr="")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publish.tempfile, "mkdtemp", fake_mkdtemp)
+    monkeypatch.setattr(publish, "run", fake_run)
+    with pytest.raises(RuntimeError, match="rewrote managed public artifacts"):
+        publish.validate_candidate_commit("a" * 40)
+
+
+def test_catalog_foreign_dirty_input_is_detected():
+    changed = {"public/data/us-etf-pool.json", "public/data/catalog.json"}
+    allowed = {"public/data/catalog.json"}
+    dirty = (changed & set(publish.CATALOG_INPUT_FILES)) - allowed
+    assert dirty == {"public/data/us-etf-pool.json"}
+
+
 def test_publish_rejects_wrong_stage(tmp_path, monkeypatch):
     monkeypatch.setattr(publish, "ROOT", tmp_path)
     monkeypatch.setattr(publish, "git_head", lambda: "a" * 40)
@@ -288,6 +317,7 @@ def test_publish_idempotent_when_no_owned_changes(tmp_path, monkeypatch):
     (tmp_path / "public/data/garden-recommendations.json").write_text(json.dumps({"date": "2026-07-14", "stage": "22:00夜间最终版"}))
     (tmp_path / "public/data/a-share-mid-macro.json").write_text("{}")
     monkeypatch.setattr(publish, "git_changes", lambda: {"unrelated.txt"})
+    monkeypatch.setattr(publish, "run", lambda command, **kwargs: subprocess.CompletedProcess(command, 0, stdout="{}", stderr=""))
     result = publish.publish(state, dry_run=True, now=datetime(2026, 7, 14, 22, 30, tzinfo=CN))
     assert result["status"] == "idempotent"
     assert result["changed"] == []

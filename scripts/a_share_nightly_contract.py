@@ -19,6 +19,28 @@ RESEARCH_AUDIT_FILE = "public/data/model-lab/a-share-research-audit.json"
 DEPLOYMENT_MARKER_FILE = "public/data/a-share-nightly-deployment.json"
 RECOMMENDATIONS_FILE = "public/data/garden-recommendations.json"
 MID_MACRO_FILE = "public/data/a-share-mid-macro.json"
+COMPACT_DASHBOARD_FILE = "public/data/a-compass-dashboard.json"
+DATA_CATALOG_FILE = "public/data/catalog.json"
+PUBLIC_SCHEMA_FILES = (
+    "public/schemas/data-catalog.schema.json",
+    "public/schemas/a-compass-dashboard.schema.json",
+    "public/schemas/forward-evidence-ledger.schema.json",
+    "public/schemas/decision-thesis.schema.json",
+    "public/schemas/decision-drift.schema.json",
+)
+CATALOG_INPUT_FILES = (
+    RECOMMENDATIONS_FILE,
+    COMPACT_DASHBOARD_FILE,
+    POOL_FILE,
+    MID_MACRO_FILE,
+    RESEARCH_AUDIT_FILE,
+    PATH_SHADOW_FILE,
+    "public/data/us-etf-garden.json",
+    "public/data/us-etf-pool.json",
+    "public/data/us-macro-dashboard.json",
+    "public/data/paper-trading.json",
+    DEPLOYMENT_MARKER_FILE,
+)
 
 SNAPSHOT_FILES = (
     BACKTEST_FILE,
@@ -29,7 +51,11 @@ SNAPSHOT_FILES = (
     DEPLOYMENT_MARKER_FILE,
 )
 
-PUBLIC_VERIFY_FILES = SNAPSHOT_FILES + (RECOMMENDATIONS_FILE, MID_MACRO_FILE)
+GENERATED_PUBLIC_FILES = (COMPACT_DASHBOARD_FILE, DATA_CATALOG_FILE)
+PUBLIC_VERIFY_FILES = SNAPSHOT_FILES + (
+    RECOMMENDATIONS_FILE,
+    MID_MACRO_FILE,
+) + GENERATED_PUBLIC_FILES + PUBLIC_SCHEMA_FILES
 
 
 def nightly_content_files(trade_date: str) -> tuple[str, ...]:
@@ -41,7 +67,7 @@ def nightly_content_files(trade_date: str) -> tuple[str, ...]:
 
 
 def nightly_owned_files(trade_date: str) -> tuple[str, ...]:
-    return nightly_content_files(trade_date) + SNAPSHOT_FILES
+    return nightly_content_files(trade_date) + SNAPSHOT_FILES + GENERATED_PUBLIC_FILES
 
 
 def sha256_file(path: Path) -> str:

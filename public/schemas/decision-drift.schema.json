@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/decision-drift.schema.json",
+  "title": "Decision drift contract (reserved)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "drift_id", "decision_id", "thesis_id", "model_role", "baseline_time", "observed_at", "status", "severity", "evidence", "counter_evidence", "changes"],
+  "properties": {
+    "schema_version": {"const": "decision-drift-v1"},
+    "drift_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+    "decision_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+    "thesis_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+    "model_role": {"enum": ["production", "shadow"]},
+    "baseline_time": {"type": "string", "format": "date-time"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["stable", "drifting", "material_change", "resolved", "unknown"]},
+    "severity": {"enum": ["none", "low", "medium", "high", "unknown"]},
+    "evidence": {"$ref": "#/$defs/assertions"},
+    "counter_evidence": {"$ref": "#/$defs/assertions"},
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "before", "after", "status"],
+        "properties": {
+          "field": {"type": "string"},
+          "before": {},
+          "after": {},
+          "status": {"enum": ["known", "unknown", "not_applicable"]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assertions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assertion_id", "status", "observed_at", "statement", "source_category"],
+        "properties": {
+          "assertion_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["known", "unknown", "not_applicable"]},
+          "observed_at": {"type": ["string", "null"]},
+          "statement": {"type": "string"},
+          "source_category": {"enum": ["market_data", "historical_market_data", "official_statistics", "public_events", "derived_research", "model_output"]}
+        }
+      }
+    }
+  }
+}
