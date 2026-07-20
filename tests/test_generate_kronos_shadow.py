@@ -110,6 +110,27 @@ def test_generate_shadow_payload_and_reuse_cache(tmp_path):
     assert len(history.read_text().splitlines()) == 1
 
 
+def test_main_reports_public_payload_without_runtime(monkeypatch, capsys):
+    payload = {
+        "mode": "shadow_research_only",
+        "latest_trade_date": "2026-07-20",
+        "coverage": {"predicted_symbols": 89},
+        "forecast_definition": {"horizon_sessions": 5},
+    }
+    monkeypatch.setattr(kronos, "generate", lambda **kwargs: payload)
+    monkeypatch.setattr(kronos.sys, "argv", ["generate_kronos_shadow.py"])
+
+    assert kronos.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result == {
+        "status": "ok",
+        "mode": "shadow_research_only",
+        "trade_date": "2026-07-20",
+        "universe": 89,
+        "horizon_sessions": 5,
+    }
+
+
 def test_history_failure_preserves_previous_public_snapshot(tmp_path, monkeypatch):
     db = tmp_path / "bars.db"
     out = tmp_path / "shadow.json"

@@ -504,8 +504,6 @@ def main() -> int:
         "trade_date": payload["latest_trade_date"],
         "universe": payload["coverage"]["predicted_symbols"],
         "horizon_sessions": payload["forecast_definition"]["horizon_sessions"],
-        "cache_hit": payload["runtime"]["cache_hit"],
-        "seconds": payload["runtime"].get("seconds"),
     }, ensure_ascii=False))
     return 0
 
