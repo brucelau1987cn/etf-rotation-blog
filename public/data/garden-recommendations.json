@@ -1,16 +1,16 @@
 {
   "date": "2026-07-20",
-  "updated_at": "2026-07-20 08:33 CST",
+  "updated_at": "2026-07-20 11:44 CST",
   "applies_to": "2026-07-20",
-  "data_as_of": "2026-07-17收盘final qfq；隔夜与周末资讯截至2026-07-20 08:30 CST",
+  "data_as_of": "2026-07-20 11:43 CST盘中行情；关键位使用2026-07-17 final qfq",
   "level_data_as_of": "2026-07-17",
-  "stage": "08:30盘前版",
+  "stage": "11:30上午收盘修正版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-07-20+08:30+Bruce ETF Trend Radar v3",
-  "market_state": "极弱",
+  "idempotency_key": "CN+2026-07-20+11:30+Bruce ETF Trend Radar v3",
+  "market_state": "极弱基线上的盘中修复",
   "position": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "稳市政策与能源催化只提高超跌修复概率；海外科技熊市和中观强逆风未解除，正式伏击0只。",
-  "summary": "08:30盘前版：91池动量通过11只、强势0只。银行与煤炭仅候场；油气、电力、医药反抽兑现；通信、科创50、半导体维持破位撤退；中观强逆风（权益上限已压缩）。",
+  "mainline": "稳市政策兑现为68/91上涨的普遍修复，煤炭、电力、油气领涨；科技高开回落且资金分化，中观强逆风未解除，正式伏击0只。",
+  "summary": "11:30上午收盘修正：91池68涨/21跌/2平；煤炭条件触发但门禁阻断，电力、油气、创新药执行兑现；银行只候场，科技维持破位撤退；中观强逆风（权益上限已压缩）。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
@@ -18,19 +18,19 @@
     "raw_fallback_count": 0,
     "latest_trade_date": "2026-07-17",
     "generated_at": "2026-07-20 08:31:36 UTC+08:00",
-    "quote_as_of": "2026-07-17收盘",
-    "quote_date": "2026-07-17",
-    "return_basis_disclosure": "盘前使用上一完整交易日2026-07-17 final qfq作为历史强度与关键位基线；未将盘前时间戳冒充当日行情。",
-    "breadth": "动量通过11/91，强势0只，市场状态极弱"
+    "quote_as_of": "2026-07-20 11:43 CST",
+    "quote_date": "2026-07-20",
+    "return_basis_disclosure": "当日上午触发使用2026-07-20实时行情；历史强度与静态关键位继续使用2026-07-17 final qfq，未以盘中行情冒充final qfq。",
+    "breadth": "91池68涨/21跌/2平；final qfq动量通过仍以7月17日11/91、强势0只为基线"
   },
   "source_audit": {
-    "mx_fund_flow_as_of": "盘前按2026-07-17收盘基线复核5只核心ETF，返回非空数据表；缺失不按零资金处理",
-    "mx_raw_rows": "沿用收盘已验证资金：515880 -15.46亿、588000 -26.38亿、512480 -2.38亿、512800 +0.56亿、159611 -0.38亿",
-    "iwencai_market": "多Key包装器成功；确认2026-07-17上证-3.046%、深证-5.3957%、创业板-7.145%、科创50-7.1186%",
-    "iwencai_news": "多Key包装器三组查询成功；确认海外科技获利了结、煤价与高温催化、创新药政策与短线筹码出清",
-    "mx_search": "成功；确认稳市座谈、央企增持、回购增持专项再贷款、费城半导体技术熊市及中东地缘风险",
+    "mx_fund_flow_as_of": "2026-07-20约11:40，两组各5只ETF均返回非空rawTable；空行不按零资金处理",
+    "mx_raw_rows": "515220 +0.89亿、512800 +0.79亿、159611 +0.35亿、159992 +0.96亿、515880 +2.47亿；588000 -2.43亿、512480 -0.22亿、560080 -0.02亿",
+    "iwencai_market": "多Key包装器成功；以最新涨跌幅确认上证+1.1753%、深证+0.2111%、创业板+1.1285%、科创50-0.1912%",
+    "iwencai_news": "多Key包装器成功；午间确认政策托底后能源、防守、消费修复，半导体与算力硬件仍弱",
+    "mx_search": "成功；11:35午评确认沪深两市半日成交约1.67万亿元、较上一交易日同期放量约681亿元，约2900只个股上涨",
     "final_pool": "formal universe 91/91；qfq 91/91；latest_trade_date=2026-07-17；evaluation_date=2026-07-20",
-    "fallback": "stock-api/Tencent为价格与K线交叉源；所有盘前资金均标记为上一完整交易日"
+    "fallback": "stock-api MCP/Tencent覆盖91/91实时价格、高低点与上午位置；MX为目标ETF资金主源，未将缺失值解释为零"
   },
   "harvest": [
     {
@@ -38,9 +38,15 @@
       "code": "162411",
       "name": "华宝油气LOF",
       "priority": "中",
-      "trigger": "上周五涨1.62%，周末地缘风险推升油价；独立α不代表A股风险修复。",
-      "action": "原观察仓可持有但不追；若高开接近0.900分批兑现，出现明显溢价直接放弃新增。",
-      "signal_state": "盘前准备",
+      "trigger": "上午涨3.99%，最高0.914并越过0.900兑现位；主力仅小幅净流入，独立α不代表A股风险修复。",
+      "action": "兑现30%-50%；守0.900且无明显溢价才留小底仓，跌回0.900下方不回补。",
+      "signal_state": "上午已触发",
+      "intraday_price": 0.912,
+      "intraday_change_pct": 3.99,
+      "intraday_position": 0.82,
+      "intraday_amount_yi": 0.61,
+      "intraday_main_flow_yi": 0.02,
+      "quote_timestamp": "2026-07-20 11:42 CST",
       "price": 0.877,
       "support": 0.854,
       "target": 0.9,
@@ -62,9 +68,15 @@
       "code": "159611",
       "name": "电力ETF广发",
       "priority": "高",
-      "trigger": "上周五涨2.18%、量比2.59，但主力-0.38亿，价格—资金背离。",
-      "action": "高开或冲向1.044-1.063继续兑现20%-30%；跌破1.010降仓，资金转正前不加仓。",
-      "signal_state": "盘前准备",
+      "trigger": "上午涨3.39%，最高/现价1.068并越过1.063兑现位，主力转为+0.35亿，位置1.00。",
+      "action": "兑现20%-30%；守1.044且资金持续为正可留底仓，跌破1.044继续降仓。",
+      "signal_state": "上午已触发",
+      "intraday_price": 1.068,
+      "intraday_change_pct": 3.39,
+      "intraday_position": 1.0,
+      "intraday_amount_yi": 7.54,
+      "intraday_main_flow_yi": 0.35,
+      "quote_timestamp": "2026-07-20 11:42 CST",
       "price": 1.033,
       "support": 1.034,
       "target": 1.063,
@@ -86,9 +98,15 @@
       "code": "159992",
       "name": "创新药ETF银华",
       "priority": "高",
-      "trigger": "上周五跌7.26%、主力-3.89亿；政策催化尚在但短线筹码出清。",
-      "action": "反抽至0.878-0.910只减仓；只有站回0.910且资金转正才停止减仓，低开破0.827不抄底。",
-      "signal_state": "盘前准备",
+      "trigger": "上午涨2.97%，最高0.878触及反抽兑现线后回落至0.868，主力+0.96亿。",
+      "action": "已触线者减仓；站回0.878再看0.910，跌破0.843转弱、0.827失效。",
+      "signal_state": "上午已触发",
+      "intraday_price": 0.868,
+      "intraday_change_pct": 2.97,
+      "intraday_position": 0.79,
+      "intraday_amount_yi": 9.9,
+      "intraday_main_flow_yi": 0.96,
+      "quote_timestamp": "2026-07-20 11:42 CST",
       "price": 0.843,
       "support": 0.827,
       "target": 0.91,
@@ -110,9 +128,15 @@
       "code": "513060",
       "name": "恒生医疗ETF博时",
       "priority": "高",
-      "trigger": "上周五跌5.30%、主力-0.63亿，港股医药多只成分股双位数下跌。",
-      "action": "反抽至0.544-0.551减仓；站回0.551且资金转正前不回补，跌破0.507继续退出。",
-      "signal_state": "盘前准备",
+      "trigger": "上午涨3.09%、主力+0.33亿，但最高0.539尚未到0.544兑现线。",
+      "action": "持有观察，不提前追；0.544-0.551兑现，跌破0.518转弱、0.507失效。",
+      "signal_state": "上午未触发",
+      "intraday_price": 0.534,
+      "intraday_change_pct": 3.09,
+      "intraday_position": 0.69,
+      "intraday_amount_yi": 7.54,
+      "intraday_main_flow_yi": 0.33,
+      "quote_timestamp": "2026-07-20 11:42 CST",
       "price": 0.518,
       "support": 0.507,
       "target": 0.551,
@@ -134,9 +158,15 @@
       "code": "560080",
       "name": "中药ETF汇添富",
       "priority": "中",
-      "trigger": "上周五跌3.30%、收盘位置0.05，但ret5仍+6.52%、趋势C，属于强趋势后的低位出清。",
-      "action": "反抽先兑现，不追；站回1.035且资金转正才保留观察仓，跌破0.946不抄底。",
-      "signal_state": "盘前准备",
+      "trigger": "上午涨0.90%、最高1.014，未到1.035；主力-0.02亿，价格与资金轻微背离。",
+      "action": "反抽小减，资金背离不加；站回1.035且资金转正才停止减仓，跌破0.978转弱。",
+      "signal_state": "上午未触发",
+      "intraday_price": 1.005,
+      "intraday_change_pct": 0.9,
+      "intraday_position": 0.75,
+      "intraday_amount_yi": 1.01,
+      "intraday_main_flow_yi": -0.02,
+      "quote_timestamp": "2026-07-20 11:42 CST",
       "price": 0.996,
       "support": 0.946,
       "target": 1.046,
@@ -160,11 +190,17 @@
       "code": "512800",
       "name": "银行ETF华宝",
       "priority": "高",
-      "trigger": "上周五涨0.90%、成交19.44亿、主力+0.56亿，属于防守真钱承接。",
-      "action": "候场不可执行：回踩0.766-0.783缩量止跌、站回0.789且资金继续为正才保留；中观强逆风解除前不转正式伏击；中观约束：停开新伏击。",
-      "signal_state": "盘前条件待触发",
+      "trigger": "上午涨2.15%、主力+0.79亿、位置1.00；但最低0.786未进入0.766-0.783回踩区。",
+      "action": "候场不可执行：不追上午高点；回踩0.789-0.783缩量承接且资金为正才重评，中观强逆风解除前不转正式伏击。",
+      "signal_state": "方向兑现但条件未触发",
       "eligibility": "blocked",
       "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
+      "intraday_price": 0.806,
+      "intraday_change_pct": 2.15,
+      "intraday_position": 1.0,
+      "intraday_amount_yi": 5.54,
+      "intraday_main_flow_yi": 0.79,
+      "quote_timestamp": "2026-07-20 11:43 CST",
       "price": 0.789,
       "support": 0.766,
       "target": 0.812,
@@ -187,11 +223,17 @@
       "code": "515220",
       "name": "煤炭ETF国泰",
       "priority": "高",
-      "trigger": "上周五跌1.81%但主力+3.43亿；煤价周涨、高温日耗与安监提供周末催化。",
-      "action": "候场不可执行：守1.129并放量站回1.150、资金继续为正才保留；高开接近1.198不追，中观强逆风解除前不转正式伏击；中观强逆风：仅观察，不新开伏击。",
-      "signal_state": "盘前条件待触发",
+      "trigger": "上午涨5.45%，守住1.129并站上1.150，主力+0.89亿；但现价1.200已进入兑现区。",
+      "action": "候场触发但不可新开：原底仓在1.198-1.202分批止盈；回踩1.150缩量且资金为正才保留观察；中观强逆风：仅观察，不新开伏击。",
+      "signal_state": "上午已触发但门禁阻断",
       "eligibility": "blocked",
       "eligibility_reason": "中观强逆风 + 趋势过弱，移出可执行伏击名单",
+      "intraday_price": 1.2,
+      "intraday_change_pct": 5.45,
+      "intraday_position": 0.97,
+      "intraday_amount_yi": 7.2,
+      "intraday_main_flow_yi": 0.89,
+      "quote_timestamp": "2026-07-20 11:43 CST",
       "price": 1.138,
       "support": 1.129,
       "target": 1.198,
@@ -215,40 +257,60 @@
       "name": "通信ETF国泰",
       "status": "破位撤退",
       "priority": "高",
-      "action": "上周五跌9.97%、主力-15.46亿；交易仓维持0，至少等1-2日流出衰减，先站回0.716才降级为观察。"
+      "action": "上午-0.15%、成交38.19亿、主力+2.47亿但pos仅0.38；只观察承接，站回0.687且资金持续为正才解除破位，跌破0.640撤退。"
     },
     {
       "code": "588000",
       "name": "科创50ETF华夏",
       "status": "破位撤退",
       "priority": "高",
-      "action": "上周五跌7.10%、成交142.87亿、主力-26.38亿；反抽只减仓，站回1.945且资金转正前不抄底。"
+      "action": "上午+0.06%、成交76.30亿但主力-2.43亿、pos 0.39；反抽只减，站回1.873且资金转正才降级为观察。"
     },
     {
       "code": "512480",
       "name": "半导体ETF国联安",
       "status": "破位撤退",
       "priority": "高",
-      "action": "上周五跌7.68%、主力-2.38亿；站回1.155且资金转正前不新开。"
+      "action": "上午-0.84%、主力-0.22亿、pos 0.28；站回1.114且资金转正前不新开，跌破1.040继续退出。"
     },
     {
       "code": "515180",
       "name": "红利ETF易方达",
       "status": "候场",
       "priority": "低",
-      "action": "趋势D且上周五收盘位置0.05；只观察1.330支撑，未站回1.372且资金改善前不新开。"
+      "action": "上午+2.66%、pos 0.94；仅持有不追，回踩1.372不破且资金确认才继续候场，跌破1.330失效。"
     }
   ],
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "pending",
+    "status": "complete",
+    "quote_as_of": "2026-07-20 11:43 CST",
+    "quote_date": "2026-07-20",
+    "level_data_as_of": "2026-07-17",
+    "breadth": {
+      "up": 68,
+      "down": 21,
+      "flat": 2,
+      "total": 91
+    },
     "prepared": {
       "plant": 2,
       "harvest": 5
     },
     "actual_triggered": {
+      "plant": 1,
+      "harvest": 3
+    },
+    "executable": {
       "plant": 0,
-      "harvest": 0
+      "harvest": 3
+    },
+    "scorecard": {
+      "prepared": "7项",
+      "actual_triggered": "4/7",
+      "direction": "7/7",
+      "executable": "3/7",
+      "benefit": "创新药0.878触线后回到0.868，按线兑现相对现价约多保留1.14%；电力与油气采用分批兑现"
     }
   },
   "intraday_1430": {
@@ -294,21 +356,21 @@
         "label": "固收相对权益强弱",
         "state": "逆风",
         "score": 2.0,
-        "headline": "固收5日相对沪深300超额+5.00pp"
+        "headline": "固收5日相对沪深300超额+1.79pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "逆风",
-        "score": 2.75,
-        "headline": "海外映射ETF 5日均值-5.71%"
+        "score": 2.25,
+        "headline": "海外映射ETF 5日偏弱-2.46%"
       },
       {
         "key": "margin_financing",
         "label": "市场资金与杠杆",
         "state": "逆风",
         "score": 2.5,
-        "headline": "两融余额5日-3.29%"
+        "headline": "两融余额5日-5.65%"
       }
     ]
   }
