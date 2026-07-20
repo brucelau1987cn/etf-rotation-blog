@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-17T07:10:39.425090+00:00",
+  "updated_at": "2026-07-20T07:10:52.953984+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -57,6 +57,14 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-20",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
@@ -64,20 +72,20 @@
         {
           "symbol": "512800",
           "name": "银行ETF华宝",
-          "support": 0.762,
-          "target": 0.806,
-          "stop": 0.75,
-          "signal_date": "2026-07-17",
+          "support": 0.766,
+          "target": 0.812,
+          "stop": 0.759,
+          "signal_date": "2026-07-20",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "515180",
-          "name": "红利ETF易方达",
-          "support": 1.33,
-          "target": 1.399,
-          "stop": 1.308,
-          "signal_date": "2026-07-17",
+          "symbol": "515220",
+          "name": "煤炭ETF国泰",
+          "support": 1.129,
+          "target": 1.198,
+          "stop": 1.058,
+          "signal_date": "2026-07-20",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -93,16 +101,82 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-11",
-      "cash": 20000.0,
-      "positions": {},
-      "equity": 20000.0,
+      "cash": 10196.002913378907,
+      "positions": {
+        "ITB": {
+          "symbol": "ITB",
+          "name": "iShares U.S. Home Construction",
+          "quantity": 20,
+          "entry_price": 99.83000183105469,
+          "entry_cost": 1.9983,
+          "entry_at": "2026-07-17T13:30:42.460887+00:00",
+          "target": 103.51,
+          "stop": 95.77,
+          "level_basis": null,
+          "signal_date": "2026-07-16",
+          "last_price": 97.20999908447266
+        },
+        "XHB": {
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "quantity": 18,
+          "entry_price": 110.02999877929688,
+          "entry_cost": 1.99027,
+          "entry_at": "2026-07-17T13:30:42.460887+00:00",
+          "target": 114.2,
+          "stop": 106.27,
+          "level_basis": null,
+          "signal_date": "2026-07-16",
+          "last_price": 108.05500030517578
+        },
+        "SKYY": {
+          "symbol": "SKYY",
+          "name": "First Trust Cloud Computing",
+          "quantity": 14,
+          "entry_price": 133.8249969482422,
+          "entry_cost": 1.936775,
+          "entry_at": "2026-07-17T13:30:42.460887+00:00",
+          "target": 141.96,
+          "stop": 128.94,
+          "level_basis": null,
+          "signal_date": "2026-07-16",
+          "last_price": 136.25999450683594
+        },
+        "EFA": {
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "quantity": 19,
+          "entry_price": 102.55000305175781,
+          "entry_cost": 1.974225,
+          "entry_at": "2026-07-17T13:30:42.460887+00:00",
+          "target": 105.24,
+          "stop": 101.9,
+          "level_basis": null,
+          "signal_date": "2026-07-16",
+          "last_price": 103.3949966430664
+        },
+        "XLU": {
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "quantity": 44,
+          "entry_price": 45.34000015258789,
+          "entry_cost": 1.99748,
+          "entry_at": "2026-07-17T16:55:44.758952+00:00",
+          "target": 46.38,
+          "stop": 44.25,
+          "level_basis": null,
+          "signal_date": "2026-07-16",
+          "last_price": 45.09000015258789
+        }
+      },
+      "equity": 19941.297767,
       "realized_pnl": 0.0,
-      "unrealized_pnl": 0.0,
-      "daily_return": 0.0,
-      "cumulative_return": 0.0,
+      "unrealized_pnl": -58.702233,
+      "daily_return": -0.00293511,
+      "cumulative_return": -0.00293511,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 1.0,
+      "cash_ratio": 0.51130087,
       "history": [
         {
           "date": "2026-07-13",
@@ -137,8 +211,110 @@
           "max_drawdown": 0.0
         }
       ],
-      "events": [],
-      "pending_signals": [],
+      "events": [
+        {
+          "id": "US:ITB:buy:1784295016:plant",
+          "timestamp": "2026-07-17T13:30:42.460887+00:00",
+          "market": "US",
+          "symbol": "ITB",
+          "name": "iShares U.S. Home Construction",
+          "side": "buy",
+          "quantity": 20,
+          "price": 99.830002,
+          "cost": 1.9983,
+          "reason": "plant"
+        },
+        {
+          "id": "US:XHB:buy:1784295032:plant",
+          "timestamp": "2026-07-17T13:30:42.460887+00:00",
+          "market": "US",
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "side": "buy",
+          "quantity": 18,
+          "price": 110.029999,
+          "cost": 1.99027,
+          "reason": "plant"
+        },
+        {
+          "id": "US:SKYY:buy:1784295002:plant",
+          "timestamp": "2026-07-17T13:30:42.460887+00:00",
+          "market": "US",
+          "symbol": "SKYY",
+          "name": "First Trust Cloud Computing",
+          "side": "buy",
+          "quantity": 14,
+          "price": 133.824997,
+          "cost": 1.936775,
+          "reason": "plant"
+        },
+        {
+          "id": "US:EFA:buy:1784295028:plant",
+          "timestamp": "2026-07-17T13:30:42.460887+00:00",
+          "market": "US",
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "side": "buy",
+          "quantity": 19,
+          "price": 102.550003,
+          "cost": 1.974225,
+          "reason": "plant"
+        },
+        {
+          "id": "US:XLU:buy:1784307344:plant",
+          "timestamp": "2026-07-17T16:55:44.758952+00:00",
+          "market": "US",
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "side": "buy",
+          "quantity": 44,
+          "price": 45.34,
+          "cost": 1.99748,
+          "reason": "plant"
+        }
+      ],
+      "pending_signals": [
+        {
+          "symbol": "IBB",
+          "name": "iShares Biotechnology ETF",
+          "support": 187.87,
+          "target": 194.61,
+          "stop": 182.71,
+          "signal_date": "2026-07-16",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "EWZ",
+          "name": "iShares MSCI Brazil",
+          "support": 34.71,
+          "target": 36.12,
+          "stop": 34.28,
+          "signal_date": "2026-07-16",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "FDN",
+          "name": "First Trust Dow Jones Internet",
+          "support": 267.51,
+          "target": 279.97,
+          "stop": 263.66,
+          "signal_date": "2026-07-16",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "IGV",
+          "name": "iShares Expanded Tech-Software",
+          "support": 91.05,
+          "target": 97.62,
+          "stop": 88.47,
+          "signal_date": "2026-07-16",
+          "kind": "ready_plant",
+          "status": "候场"
+        }
+      ],
       "benchmark": {
         "symbol": "SPY",
         "cumulative_return": null,
