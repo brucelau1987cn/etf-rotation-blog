@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-20T07:10:52.953984+00:00",
+  "updated_at": "2026-07-21T07:10:09.255250+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -65,6 +65,14 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-21",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
@@ -72,20 +80,20 @@
         {
           "symbol": "512800",
           "name": "银行ETF华宝",
-          "support": 0.766,
-          "target": 0.812,
-          "stop": 0.759,
-          "signal_date": "2026-07-20",
+          "support": 0.785,
+          "target": 0.831,
+          "stop": 0.765,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "515220",
-          "name": "煤炭ETF国泰",
-          "support": 1.129,
-          "target": 1.198,
-          "stop": 1.058,
-          "signal_date": "2026-07-20",
+          "symbol": "515180",
+          "name": "红利ETF易方达",
+          "support": 1.355,
+          "target": 1.433,
+          "stop": 1.332,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -101,34 +109,8 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-11",
-      "cash": 10196.002913378907,
+      "cash": 12126.930113710938,
       "positions": {
-        "ITB": {
-          "symbol": "ITB",
-          "name": "iShares U.S. Home Construction",
-          "quantity": 20,
-          "entry_price": 99.83000183105469,
-          "entry_cost": 1.9983,
-          "entry_at": "2026-07-17T13:30:42.460887+00:00",
-          "target": 103.51,
-          "stop": 95.77,
-          "level_basis": null,
-          "signal_date": "2026-07-16",
-          "last_price": 97.20999908447266
-        },
-        "XHB": {
-          "symbol": "XHB",
-          "name": "SPDR S&P Homebuilders",
-          "quantity": 18,
-          "entry_price": 110.02999877929688,
-          "entry_cost": 1.99027,
-          "entry_at": "2026-07-17T13:30:42.460887+00:00",
-          "target": 114.2,
-          "stop": 106.27,
-          "level_basis": null,
-          "signal_date": "2026-07-16",
-          "last_price": 108.05500030517578
-        },
         "SKYY": {
           "symbol": "SKYY",
           "name": "First Trust Cloud Computing",
@@ -140,7 +122,7 @@
           "stop": 128.94,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 136.25999450683594
+          "last_price": 136.85000610351562
         },
         "EFA": {
           "symbol": "EFA",
@@ -153,7 +135,7 @@
           "stop": 101.9,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 103.3949966430664
+          "last_price": 102.61499786376953
         },
         "XLU": {
           "symbol": "XLU",
@@ -166,17 +148,30 @@
           "stop": 44.25,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 45.09000015258789
+          "last_price": 44.93000030517578
+        },
+        "IBB": {
+          "symbol": "IBB",
+          "name": "iShares Biotechnology ETF",
+          "quantity": 10,
+          "entry_price": 188.4499969482422,
+          "entry_cost": 1.94225,
+          "entry_at": "2026-07-20T14:35:56.584667+00:00",
+          "target": 194.72,
+          "stop": 183.15,
+          "level_basis": null,
+          "signal_date": "2026-07-17",
+          "last_price": 186.9600067138672
         }
       },
-      "equity": 19941.297767,
-      "realized_pnl": 0.0,
-      "unrealized_pnl": -58.702233,
-      "daily_return": -0.00293511,
-      "cumulative_return": -0.00293511,
+      "equity": 19839.035239,
+      "realized_pnl": -163.75916483398436,
+      "unrealized_pnl": 2.794404,
+      "daily_return": -0.00804824,
+      "cumulative_return": -0.00804824,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.51130087,
+      "cash_ratio": 0.61126612,
       "history": [
         {
           "date": "2026-07-13",
@@ -271,46 +266,112 @@
           "price": 45.34,
           "cost": 1.99748,
           "reason": "plant"
+        },
+        {
+          "id": "US:ITB:sell:1784558143:stop",
+          "timestamp": "2026-07-20T14:35:56.584667+00:00",
+          "market": "US",
+          "symbol": "ITB",
+          "name": "iShares U.S. Home Construction",
+          "side": "sell",
+          "quantity": 20,
+          "price": 95.565002,
+          "cost": 1.95565,
+          "reason": "stop"
+        },
+        {
+          "id": "US:IBB:buy:1784558150:plant",
+          "timestamp": "2026-07-20T14:35:56.584667+00:00",
+          "market": "US",
+          "symbol": "IBB",
+          "name": "iShares Biotechnology ETF",
+          "side": "buy",
+          "quantity": 10,
+          "price": 188.449997,
+          "cost": 1.94225,
+          "reason": "plant"
+        },
+        {
+          "id": "US:XHB:sell:1784559049:stop",
+          "timestamp": "2026-07-20T14:50:56.782930+00:00",
+          "market": "US",
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "side": "sell",
+          "quantity": 18,
+          "price": 106.110001,
+          "cost": 1.95499,
+          "reason": "stop"
         }
       ],
       "pending_signals": [
         {
-          "symbol": "IBB",
-          "name": "iShares Biotechnology ETF",
-          "support": 187.87,
-          "target": 194.61,
-          "stop": 182.71,
-          "signal_date": "2026-07-16",
-          "kind": "ready_plant",
-          "status": "候场"
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "support": 13.39,
+          "target": 14.43,
+          "stop": 13.01,
+          "signal_date": "2026-07-17",
+          "kind": "plant",
+          "status": "伏击"
         },
         {
-          "symbol": "EWZ",
-          "name": "iShares MSCI Brazil",
-          "support": 34.71,
-          "target": 36.12,
-          "stop": 34.28,
-          "signal_date": "2026-07-16",
-          "kind": "ready_plant",
-          "status": "候场"
+          "symbol": "KWEB",
+          "name": "KraneShares CSI China Internet",
+          "support": 26.16,
+          "target": 27.46,
+          "stop": 25.48,
+          "signal_date": "2026-07-17",
+          "kind": "plant",
+          "status": "伏击"
         },
         {
           "symbol": "FDN",
           "name": "First Trust Dow Jones Internet",
-          "support": 267.51,
-          "target": 279.97,
-          "stop": 263.66,
-          "signal_date": "2026-07-16",
-          "kind": "ready_plant",
-          "status": "候场"
+          "support": 267.86,
+          "target": 276.68,
+          "stop": 260.53,
+          "signal_date": "2026-07-17",
+          "kind": "plant",
+          "status": "伏击"
         },
         {
           "symbol": "IGV",
           "name": "iShares Expanded Tech-Software",
-          "support": 91.05,
-          "target": 97.62,
-          "stop": 88.47,
-          "signal_date": "2026-07-16",
+          "support": 91.24,
+          "target": 96.59,
+          "stop": 87.75,
+          "signal_date": "2026-07-17",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "XRT",
+          "name": "SPDR S&P Retail ETF",
+          "support": 87.68,
+          "target": 91.85,
+          "stop": 86.18,
+          "signal_date": "2026-07-17",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "IYT",
+          "name": "iShares Transportation Average",
+          "support": 87.26,
+          "target": 91.16,
+          "stop": 86.61,
+          "signal_date": "2026-07-17",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "KRE",
+          "name": "SPDR S&P Regional Banking",
+          "support": 74.77,
+          "target": 78.61,
+          "stop": 74.13,
+          "signal_date": "2026-07-17",
           "kind": "ready_plant",
           "status": "候场"
         }
