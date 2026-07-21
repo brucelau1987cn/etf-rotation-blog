@@ -85,23 +85,23 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 2.01,
+          "value": 1.01,
           "unit": "pp",
-          "display": "2.01pp",
-          "as_of": "2026-07-20",
+          "display": "1.01pp",
+          "as_of": "2026-07-21",
           "frequency": "日频",
           "source": "公开前复权行情",
           "source_url": "https://www.chinabond.com.cn/",
           "detail": "国债/信用债ETF均值减沪深300收益",
           "change": null,
           "change_label": "较上期",
-          "tone": "warning"
+          "tone": "neutral"
         }
       ],
       "state": "逆风",
-      "score": 2.0,
-      "headline": "固收5日相对沪深300超额+2.01pp",
-      "as_of": "2026-07-20"
+      "score": 1.5,
+      "headline": "固收5日相对转强+1.01pp",
+      "as_of": "2026-07-21"
     },
     {
       "key": "credit_impulse",
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": -3.17,
+          "value": -1.83,
           "unit": "%",
-          "display": "-3.17%",
-          "as_of": "2026-07-20",
+          "display": "-1.83%",
+          "as_of": "2026-07-21",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 -4.61% · 汇率与溢折价会扰动",
+          "detail": "20日 -1.07% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "warning"
@@ -390,7 +390,7 @@
           "value": 62.5,
           "unit": "%",
           "display": "62.50%",
-          "as_of": "2026-07-20",
+          "as_of": "2026-07-21",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
           "source_url": "/a-momentum/",
@@ -401,9 +401,9 @@
         }
       ],
       "state": "逆风",
-      "score": 2.75,
-      "headline": "海外映射ETF 5日均值-3.17%",
-      "as_of": "2026-07-20"
+      "score": 1.75,
+      "headline": "海外映射ETF 5日偏弱-1.83%",
+      "as_of": "2026-07-21"
     },
     {
       "key": "market_liquidity",
@@ -440,25 +440,25 @@
         {
           "key": "margin_balance",
           "title": "两融余额",
-          "value": 27575.68,
+          "value": 26977.76,
           "unit": "亿元",
-          "display": "27576亿元",
-          "as_of": "2026-07-17",
+          "display": "26978亿元",
+          "as_of": "2026-07-20",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
-          "detail": "5日 -5.65% · 20日 -6.33%",
-          "change": -5.65,
+          "detail": "5日 -6.62% · 20日 -9.25%",
+          "change": -6.62,
           "change_label": "5日",
           "tone": "warning"
         },
         {
           "key": "margin_share",
           "title": "融资余额占比",
-          "value": 2.892601,
+          "value": 2.827415,
           "unit": "%",
-          "display": "2.89%",
-          "as_of": "2026-07-17",
+          "display": "2.83%",
+          "as_of": "2026-07-20",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
@@ -470,8 +470,8 @@
       ],
       "state": "逆风",
       "score": 2.5,
-      "headline": "两融余额5日-5.65%",
-      "as_of": "2026-07-17"
+      "headline": "两融余额5日-6.62%",
+      "as_of": "2026-07-20"
     }
   ],
   "scoring_scope": {
@@ -493,11 +493,11 @@
       "key": "rates_fixed_income",
       "label": "固收相对权益强弱",
       "state": "逆风",
-      "score": 2.0,
-      "headline": "固收5日相对沪深300超额+2.01pp",
+      "score": 1.5,
+      "headline": "固收5日相对转强+1.01pp",
       "reasons": [
-        "固收5日相对沪深300超额+2.01pp",
-        "固收20日相对偏强+8.81pp"
+        "固收5日相对转强+1.01pp",
+        "固收20日相对偏强+3.30pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -510,52 +510,51 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": 0.03,
-        "bond_ret20": 0.15,
-        "equity_ret5": -1.98,
-        "equity_ret20": -8.66,
-        "bond_vs_equity_5d_pp": 2.01,
-        "bond_vs_equity_20d_pp": 8.81
+        "bond_ret5": 0.04,
+        "bond_ret20": 0.22,
+        "equity_ret5": -0.97,
+        "equity_ret20": -3.08,
+        "bond_vs_equity_5d_pp": 1.01,
+        "bond_vs_equity_20d_pp": 3.3
       },
       "details": {
         "511260": {
-          "ret5": 0.04,
-          "ret20": 0.2,
-          "last": 134.966,
-          "date": "2026-07-20"
+          "ret5": 0.06,
+          "ret20": 0.34,
+          "last": 134.98,
+          "date": "2026-07-21"
         },
         "511010": {
-          "ret5": 0.03,
-          "ret20": 0.12,
-          "last": 140.815,
-          "date": "2026-07-20"
+          "ret5": 0.02,
+          "ret20": 0.19,
+          "last": 140.824,
+          "date": "2026-07-21"
         },
         "511110": {
-          "ret5": 0.01,
-          "ret20": 0.14,
-          "last": 102.901,
-          "date": "2026-07-20"
+          "ret5": 0.04,
+          "ret20": 0.13,
+          "last": 102.91,
+          "date": "2026-07-21"
         },
         "510300": {
-          "ret5": -1.98,
-          "ret20": -8.66,
-          "last": 4.65,
-          "date": "2026-07-20"
+          "ret5": -0.97,
+          "ret20": -3.08,
+          "last": 4.79,
+          "date": "2026-07-21"
         }
       },
-      "as_of": "2026-07-20"
+      "as_of": "2026-07-21"
     },
     {
       "key": "overseas_deleveraging",
       "label": "海外风险映射压力",
       "state": "逆风",
-      "score": 2.75,
-      "headline": "海外映射ETF 5日均值-3.17%",
+      "score": 1.75,
+      "headline": "海外映射ETF 5日偏弱-1.83%",
       "reasons": [
-        "海外映射ETF 5日均值-3.17%",
-        "3只核心海外ETF 5日跌超2%",
-        "海外相关池弱化占比62%（确认项）",
-        "海外映射20日仍弱-4.61%"
+        "海外映射ETF 5日偏弱-1.83%",
+        "2只核心海外ETF 5日跌超2%",
+        "海外相关池弱化占比62%（确认项）"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -568,49 +567,49 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": -3.17,
-        "proxy_ret20_avg": -4.61,
-        "proxy_weak_count_5d": 3,
+        "proxy_ret5_avg": -1.83,
+        "proxy_ret20_avg": -1.07,
+        "proxy_weak_count_5d": 2,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.625
       },
       "details": {
         "159941": {
-          "ret5": -3.54,
-          "ret20": -8.01,
-          "last": 1.551,
-          "date": "2026-07-20"
+          "ret5": -1.49,
+          "ret20": -2.4,
+          "last": 1.589,
+          "date": "2026-07-21"
         },
         "513500": {
-          "ret5": -0.95,
-          "ret20": -2.61,
-          "last": 2.498,
-          "date": "2026-07-20"
+          "ret5": -0.39,
+          "ret20": 1.0,
+          "last": 2.53,
+          "date": "2026-07-21"
         },
         "159502": {
-          "ret5": -3.02,
-          "ret20": 9.43,
-          "last": 1.543,
-          "date": "2026-07-20"
+          "ret5": -2.49,
+          "ret20": 5.89,
+          "last": 1.528,
+          "date": "2026-07-21"
         },
         "513520": {
-          "ret5": -5.19,
-          "ret20": -17.23,
-          "last": 2.157,
-          "date": "2026-07-20"
+          "ret5": -2.96,
+          "ret20": -8.79,
+          "last": 2.232,
+          "date": "2026-07-21"
         }
       },
-      "as_of": "2026-07-20"
+      "as_of": "2026-07-21"
     },
     {
       "key": "margin_financing",
       "label": "市场资金与杠杆",
       "state": "逆风",
       "score": 2.5,
-      "headline": "两融余额5日-5.65%",
+      "headline": "两融余额5日-6.62%",
       "reasons": [
-        "两融余额5日-5.65%",
-        "两融余额20日-6.33%",
+        "两融余额5日-6.62%",
+        "两融余额20日-9.25%",
         "连续5日净回落"
       ],
       "status": "ok",
@@ -618,29 +617,23 @@
       "completeness": 1.0,
       "interpretation": "境内杠杆资金强度与风险偏好指标，属于市场资金层。",
       "metrics": {
-        "rzye": 2757567529288.0,
-        "rzye_yi": 27575.68,
-        "rzyezb": 2.892601,
-        "chg5_pct": -5.65,
-        "chg10_pct": -7.49,
-        "chg20_pct": -6.33,
+        "rzye": 2697776157310.0,
+        "rzye_yi": 26977.76,
+        "rzyezb": 2.827415,
+        "chg5_pct": -6.62,
+        "chg10_pct": -9.17,
+        "chg20_pct": -9.25,
         "down_streak": 5,
-        "as_of": "2026-07-17"
+        "as_of": "2026-07-20"
       },
       "details": {
         "latest": {
-          "date": "2026-07-17",
-          "rzye": 2757567529288.0,
-          "rzyezb": 2.892601,
-          "rzmre": 206340367665
+          "date": "2026-07-20",
+          "rzye": 2697776157310.0,
+          "rzyezb": 2.827415,
+          "rzmre": 214769058951
         },
         "points": [
-          {
-            "date": "2026-07-02",
-            "rzye": 3000457833938.0,
-            "rzyezb": 2.877713,
-            "rzmre": 324387724852
-          },
           {
             "date": "2026-07-03",
             "rzye": 2980723557643.0,
@@ -706,26 +699,32 @@
             "rzye": 2757567529288.0,
             "rzyezb": 2.892601,
             "rzmre": 206340367665
+          },
+          {
+            "date": "2026-07-20",
+            "rzye": 2697776157310.0,
+            "rzyezb": 2.827415,
+            "rzmre": 214769058951
           }
         ]
       },
-      "as_of": "2026-07-17"
+      "as_of": "2026-07-20"
     }
   ],
   "constraint": {
     "headwind_level": 3,
     "headwind_count": 3,
     "watch_count": 0,
-    "score_total": 7.25,
+    "score_total": 5.75,
     "label": "强逆风",
     "allow_chase": false,
     "allow_new_offense": false,
-    "base_position": "权益10%-30%；防御/现金70%-90%",
+    "base_position": "权益0%-10%；防御/现金90%-100%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "防御",
+    "base_market_state": "极弱",
     "base_equity_band": {
-      "low": 10,
-      "high": 30
+      "low": 0,
+      "high": 10
     },
     "constrained_equity_band": {
       "low": 0,
