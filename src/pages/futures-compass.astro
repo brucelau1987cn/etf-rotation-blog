@@ -1,16 +1,37 @@
 ---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 
-const watchlist = [
-  { code: 'LC0', name: '碳酸锂', exchange: '广期所', focus: '新能源链库存与现货贴水', state: '重点跟踪', bias: '低位波段' },
-  { code: 'PS0', name: '多晶硅', exchange: '广期所', focus: '产能出清与现金成本线', state: '重点跟踪', bias: '周期修复' },
-  { code: 'SI0', name: '工业硅', exchange: '广期所', focus: '光伏链补库与仓单变化', state: '观察', bias: '供需验证' },
-  { code: 'AU0', name: '黄金', exchange: '上期所', focus: '美元利率、避险与实际利率', state: '观察', bias: '趋势防守' },
-  { code: 'SC0', name: '原油', exchange: '能源中心', focus: '地缘风险与库存周期', state: '观察', bias: '事件驱动' },
-  { code: 'M0', name: '豆粕', exchange: '大商所', focus: '美豆天气、压榨利润与基差', state: '观察', bias: '商品独立alpha' },
+type FutureItem = {
+  code: string; continuous: string; name: string; exchange: string;
+  contract_code?: string; contract_name?: string; price?: number; change_pct?: number;
+  open?: number; high?: number; low?: number; prev_close?: number; amplitude_pct?: number;
+  volume?: number; open_interest?: number; open_interest_change?: number;
+  open_interest_change_pct?: number; capital_state?: string; quote_time?: string; is_main?: boolean;
+};
+type FuturesPayload = { generated_at?: string; source?: string; stale?: boolean; iwencai_review?: { reviewed_at?: string; review_slot?: string; status?: string }; items: FutureItem[] };
+
+const fallbackItems: FutureItem[] = [
+  { code: 'LC', continuous: 'LC0', name: '碳酸锂', exchange: '广期所' },
+  { code: 'PS', continuous: 'PS0', name: '多晶硅', exchange: '广期所' },
+  { code: 'SI', continuous: 'SI0', name: '工业硅', exchange: '广期所' },
+  { code: 'AU', continuous: 'AU0', name: '黄金', exchange: '上期所' },
+  { code: 'SC', continuous: 'SC0', name: '原油', exchange: '能源中心' },
+  { code: 'M', continuous: 'M0', name: '豆粕', exchange: '大商所' },
 ];
+let snapshot: FuturesPayload = { items: fallbackItems };
+try {
+  snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8'));
+} catch {}
+const items = snapshot.items?.length ? snapshot.items : fallbackItems;
+const number = (value?: number, digits = 2) => Number.isFinite(Number(value))
+  ? Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—';
+const pct = (value?: number) => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
+const tone = (value?: number) => Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : 'flat';
+const snapshotTime = (snapshot.generated_at || '').replace(' UTC+08:00', '') || '等待刷新';
 
 const modules = [
   { title: '结构', body: 'BOS / CHoCH 判断趋势切换，区分主升、反抽、破位和箱体震荡。' },
@@ -22,7 +43,7 @@ const modules = [
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title="期货罗盘 | ETF罗盘" description="期货罗盘用于跟踪中国商品期货趋势、资金、缺口和供需变化，重点覆盖碳酸锂、多晶硅、工业硅、黄金、原油和豆粕。" />
+    <BaseHead title="期货罗盘 | ETF罗盘" description="期货罗盘跟踪中国商品期货主力合约行情、成交量、持仓量、趋势结构和供需变化。" />
     <style>
       main{width:min(1120px,calc(100% - 2rem));padding:1.15rem 0 3rem}
       .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:1rem;align-items:stretch;margin-top:.65rem}
@@ -34,30 +55,25 @@ const modules = [
       .status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.75rem}
       .status{padding:.7rem;border:1px solid var(--border);border-radius:11px;background:var(--warm-2)}
       .status span{display:block;font-size:.68rem;color:rgb(var(--gray));font-weight:780}
-      .status strong{display:block;margin-top:.18rem;font-size:.92rem;line-height:1.35}
+      .status strong{display:block;margin-top:.18rem;font-size:.86rem;line-height:1.35;overflow-wrap:anywhere}
       .section-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin:1.35rem 0 .65rem}
-      .section-head h2{margin:0;font-size:1.35rem}
-      .section-head p{margin:0;color:rgb(var(--gray));font-size:.82rem}
+      .section-head h2{margin:0;font-size:1.35rem}.section-head p{margin:0;color:rgb(var(--gray));font-size:.82rem}
+      .refresh-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.65rem 0}
+      .refresh-status{color:rgb(var(--gray));font-size:.76rem}.refresh-status strong{color:rgb(var(--gray-dark))}
+      .refresh-button{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .68rem;border:1px solid var(--border);border-radius:9px;background:#fff;color:rgb(var(--gray-dark));font:inherit;font-size:.75rem;font-weight:800;cursor:pointer}
+      .refresh-button:hover{background:var(--warm)}.refresh-button.loading .refresh-icon{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
       .watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
       .future-card{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:#fff;box-shadow:var(--box-shadow);min-width:0}
-      .future-top{display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}
-      .future-top strong{display:block;font-size:1rem}
-      .future-top small{display:block;color:rgb(var(--gray));font-size:.68rem}
+      .future-card.up{border-top:4px solid var(--market-up)}.future-card.down{border-top:4px solid var(--market-down)}.future-card.flat{border-top:4px solid #aaa}
+      .future-top{display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}.future-top strong{display:block;font-size:1rem}.future-top small{display:block;color:rgb(var(--gray));font-size:.68rem}
       .tag{padding:.18rem .45rem;border-radius:999px;background:var(--amber-soft);color:var(--amber);font-size:.66rem;font-weight:850;white-space:nowrap}
-      .future-card p{margin:.65rem 0 .75rem;color:rgb(var(--gray));font-size:.78rem;line-height:1.5}
-      .bias{display:flex;justify-content:space-between;gap:.5rem;padding-top:.65rem;border-top:1px solid var(--border);font-size:.75rem;color:rgb(var(--gray))}
-      .bias strong{font-size:.78rem;color:rgb(var(--gray-dark))}
-      .module-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}
-      .module{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:var(--warm-2)}
-      .module h3{margin:0 0 .38rem;font-size:1rem}
-      .module p{margin:0;color:rgb(var(--gray));font-size:.78rem;line-height:1.55}
-      .roadmap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-top:.8rem}
-      .step{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:#fff}
-      .step span{display:inline-flex;align-items:center;justify-content:center;width:1.8rem;height:1.8rem;border-radius:999px;background:rgb(var(--black));color:#fff;font-weight:900;font-size:.8rem}
-      .step h3{margin:.55rem 0 .35rem;font-size:1rem}
-      .step p{margin:0;color:rgb(var(--gray));font-size:.78rem;line-height:1.55}
-      @media(max-width:900px){.hero{grid-template-columns:1fr}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.module-grid,.roadmap{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      @media(max-width:620px){main{width:min(100% - 1rem,1120px);padding-top:.75rem}.hero-main,.hero-side{padding:.95rem}.watch-grid,.module-grid,.roadmap{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.status-grid{grid-template-columns:1fr}}
+      .quote{display:flex;align-items:flex-end;justify-content:space-between;gap:.6rem;margin:.75rem 0}.price{font-size:1.5rem;font-weight:900;line-height:1}.change{font-size:.88rem;font-weight:900}.up .change{color:var(--market-up)}.down .change{color:var(--market-down)}
+      .quote-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.38rem}.quote-cell{padding:.5rem;background:var(--warm-2);border-radius:9px;min-width:0}.quote-cell span{display:block;color:rgb(var(--gray));font-size:.59rem}.quote-cell strong{display:block;margin-top:.12rem;font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .capital-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.48rem;padding:.52rem .58rem;border:1px solid var(--border);border-radius:9px;font-size:.7rem}.capital-row span{color:rgb(var(--gray))}.capital-state{font-weight:900}.up .capital-state{color:var(--market-up)}.down .capital-state{color:var(--market-down)}
+      .module-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.module{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:var(--warm-2)}.module h3{margin:0 0 .38rem;font-size:1rem}.module p{margin:0;color:rgb(var(--gray));font-size:.78rem;line-height:1.55}
+      .source-note{margin-top:1rem;padding:.8rem;border:1px solid var(--border);border-radius:12px;background:#fff;font-size:.76rem;color:rgb(var(--gray));line-height:1.6}
+      @media(max-width:900px){.hero{grid-template-columns:1fr}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:620px){main{width:min(100% - 1rem,1120px);padding-top:.75rem}.hero-main,.hero-side{padding:.95rem}.watch-grid,.module-grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.status-grid{grid-template-columns:1fr}.refresh-row{align-items:flex-start}.refresh-status{max-width:70%}}
     </style>
   </head>
   <body>
@@ -67,74 +83,100 @@ const modules = [
         <div class="hero-main">
           <span class="pill pill-amber">期货罗盘</span>
           <h1>商品期货趋势与供需雷达</h1>
-          <p>先跟踪结构和资金，再用仓单、库存、现货升贴水确认胜率。首版聚焦新能源链和高流动性商品，后续接入自动行情、仓单和席位数据。</p>
-          <div class="hero-tags">
-            <span class="pill">BOS / CHoCH</span>
-            <span class="pill">资金流五档</span>
-            <span class="pill">FVG缺口</span>
-            <span class="pill">仓单供需</span>
-          </div>
+          <p>新浪期货提供分钟级主力行情，成交量与持仓变化判断资金方向；同花顺问财按时段复查合约和产业数据，交易所仓单确认供需。</p>
+          <div class="hero-tags"><span class="pill">BOS / CHoCH</span><span class="pill">资金流五档</span><span class="pill">FVG缺口</span><span class="pill">仓单供需</span></div>
         </div>
         <aside class="hero-side" aria-label="期货罗盘状态">
-          <span class="pill">首版状态</span>
+          <span class="pill">实时状态</span>
           <div class="status-grid">
-            <div class="status"><span>覆盖品种</span><strong>{watchlist.length}个</strong></div>
-            <div class="status"><span>核心市场</span><strong>中国商品期货</strong></div>
-            <div class="status"><span>重点链条</span><strong>锂电 / 光伏 / 资源</strong></div>
-            <div class="status"><span>更新节奏</span><strong>手动研究 -> 自动化</strong></div>
+            <div class="status"><span>覆盖品种</span><strong id="coverage-count">{items.length}/6</strong></div>
+            <div class="status"><span>行情来源</span><strong id="source-label">{snapshot.source || '新浪期货'}</strong></div>
+            <div class="status"><span>问财复查</span><strong id="review-time">{snapshot.iwencai_review?.reviewed_at?.replace('T',' ') || '待首次复查'}</strong></div>
+            <div class="status"><span>数据时间</span><strong id="data-time">{snapshotTime}</strong></div>
           </div>
         </aside>
       </section>
 
       <section aria-label="期货观察池">
-        <div class="section-head">
-          <h2>观察池</h2>
-          <p>代码采用连续主力合约口径，正式信号接入后展示实时价、关键位和动作状态。</p>
+        <div class="section-head"><h2>主力合约观察池</h2><p>页面每 60 秒检查更新；价格、涨跌、量仓和日内区间来自分钟级行情。</p></div>
+        <div class="refresh-row">
+          <div class="refresh-status" id="refresh-status" role="status" aria-live="polite"><strong>静态快照</strong> · 正在连接实时数据</div>
+          <button class="refresh-button" id="refresh-button" type="button" aria-label="刷新期货行情"><span class="refresh-icon" aria-hidden="true">↻</span>刷新</button>
         </div>
-        <div class="watch-grid">
-          {watchlist.map((item) => (
-            <article class="future-card">
-              <div class="future-top">
-                <div>
-                  <strong>{item.code} · {item.name}</strong>
-                  <small>{item.exchange}</small>
-                </div>
-                <span class="tag">{item.state}</span>
+        <div class="watch-grid" id="futures-grid">
+          {items.map((item) => (
+            <article class={`future-card ${tone(item.change_pct)}`} data-code={item.code}>
+              <div class="future-top"><div><strong>{item.continuous} · {item.name}</strong><small class="contract-name">{item.contract_name || item.exchange}</small></div><span class="tag">主力</span></div>
+              <div class="quote"><strong class="price">{number(item.price)}</strong><span class="change">{pct(item.change_pct)}</span></div>
+              <div class="quote-grid">
+                <div class="quote-cell"><span>日内高</span><strong class="high">{number(item.high)}</strong></div>
+                <div class="quote-cell"><span>日内低</span><strong class="low">{number(item.low)}</strong></div>
+                <div class="quote-cell"><span>振幅</span><strong class="amplitude">{pct(item.amplitude_pct)}</strong></div>
+                <div class="quote-cell"><span>成交量</span><strong class="volume">{number(item.volume, 0)}</strong></div>
+                <div class="quote-cell"><span>持仓量</span><strong class="open-interest">{number(item.open_interest, 0)}</strong></div>
+                <div class="quote-cell"><span>较昨持仓</span><strong class="oi-change">{number(item.open_interest_change, 0)}</strong></div>
               </div>
-              <p>{item.focus}</p>
-              <div class="bias"><span>当前任务</span><strong>{item.bias}</strong></div>
+              <div class="capital-row"><span><b class="contract-code">{item.contract_code || '—'}</b> · <span class="quote-time">{item.quote_time || '—'}</span></span><strong class="capital-state">{item.capital_state || '等待量仓确认'}</strong></div>
             </article>
           ))}
         </div>
       </section>
 
       <section aria-label="分析框架">
-        <div class="section-head">
-          <h2>分析框架</h2>
-          <p>期货罗盘采用结构、资金、缺口、供需四层交叉验证。</p>
-        </div>
-        <div class="module-grid">
-          {modules.map((item) => (
-            <article class="module">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section aria-label="接入路线">
-        <div class="section-head">
-          <h2>接入路线</h2>
-          <p>页面入口先上线，数据闭环分三步补齐。</p>
-        </div>
-        <div class="roadmap">
-          <article class="step"><span>1</span><h3>行情快照</h3><p>接入连续合约日线和实时价，输出趋势、波动和关键位。</p></article>
-          <article class="step"><span>2</span><h3>供需因子</h3><p>合并仓单、库存、现货价格和产业利润，标注供应压力和补库强度。</p></article>
-          <article class="step"><span>3</span><h3>信号复盘</h3><p>冻结每日判断，回填 T+1 / T+5 表现，持续校准胜率和盈亏比。</p></article>
-        </div>
+        <div class="section-head"><h2>分析框架</h2><p>结构、资金、缺口、供需四层交叉验证。</p></div>
+        <div class="module-grid">{modules.map((item) => <article class="module"><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+        <div class="source-note">最新价、涨跌幅、日内高低、成交量和持仓量来自新浪期货；同花顺问财用于盘前、日盘收盘和夜盘复查；广期所公开仓单用于供需确认。页面保留最近一次有效快照。</div>
       </section>
     </main>
     <Footer />
+    <script is:inline>
+      const LIVE_URL = 'https://etf-live.peekabo.cc/api/futures-compass/live';
+      const number = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—';
+      const pct = (value) => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
+      let loading = false;
+      const button = document.getElementById('refresh-button');
+      const status = document.getElementById('refresh-status');
+      function render(payload) {
+        for (const item of payload.items || []) {
+          const card = document.querySelector(`[data-code="${item.code}"]`);
+          if (!card) continue;
+          card.classList.remove('up', 'down', 'flat');
+          card.classList.add(Number(item.change_pct) > 0 ? 'up' : Number(item.change_pct) < 0 ? 'down' : 'flat');
+          card.querySelector('.contract-name').textContent = item.contract_name || item.exchange || '—';
+          card.querySelector('.contract-code').textContent = item.contract_code || '—';
+          card.querySelector('.price').textContent = number(item.price);
+          card.querySelector('.change').textContent = pct(item.change_pct);
+          card.querySelector('.high').textContent = number(item.high);
+          card.querySelector('.low').textContent = number(item.low);
+          card.querySelector('.amplitude').textContent = pct(item.amplitude_pct);
+          card.querySelector('.volume').textContent = number(item.volume, 0);
+          card.querySelector('.open-interest').textContent = number(item.open_interest, 0);
+          card.querySelector('.oi-change').textContent = `${Number(item.open_interest_change) > 0 ? '+' : ''}${number(item.open_interest_change, 0)}`;
+          card.querySelector('.capital-state').textContent = item.capital_state || '等待量仓确认';
+          card.querySelector('.quote-time').textContent = item.quote_time || '—';
+        }
+        document.getElementById('coverage-count').textContent = `${payload.count || payload.items?.length || 0}/${payload.expected_count || 6}`;
+        document.getElementById('source-label').textContent = payload.source || '新浪期货';
+        document.getElementById('data-time').textContent = (payload.generated_at || '—').replace('T', ' ').replace('+08:00', '');
+        document.getElementById('review-time').textContent = (payload.iwencai_review?.reviewed_at || '待首次复查').replace('T', ' ').replace('+08:00', '');
+        status.innerHTML = payload.stale ? '<strong>快照保留</strong> · 实时源暂时波动' : `<strong>实时数据</strong> · ${payload.cache_age_s > 0 ? `缓存 ${Math.round(payload.cache_age_s)} 秒` : '刚刚更新'}`;
+      }
+      async function refresh(force = false) {
+        if (loading) return;
+        loading = true; button?.classList.add('loading'); button?.setAttribute('disabled', '');
+        try {
+          const response = await fetch(`${LIVE_URL}${force ? '?refresh=1' : ''}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          render(await response.json());
+        } catch (error) {
+          status.innerHTML = '<strong>静态快照</strong> · 实时连接失败，页面保留最近数据';
+        } finally {
+          loading = false; button?.classList.remove('loading'); button?.removeAttribute('disabled');
+        }
+      }
+      button?.addEventListener('click', () => refresh(true));
+      refresh(false);
+      setInterval(() => refresh(false), 60000);
+    </script>
   </body>
 </html>
