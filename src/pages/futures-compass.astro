@@ -5,14 +5,27 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 
+type Receipt = { status?: string; trade_date?: string; receipt?: number; change?: number; source?: string };
+type Fvg = { direction?: string; lower?: number; upper?: number; status?: string };
 type FutureItem = {
   code: string; continuous: string; name: string; exchange: string;
   contract_code?: string; contract_name?: string; price?: number; change_pct?: number;
   open?: number; high?: number; low?: number; prev_close?: number; amplitude_pct?: number;
   volume?: number; open_interest?: number; open_interest_change?: number;
   open_interest_change_pct?: number; capital_state?: string; quote_time?: string; is_main?: boolean;
+  ma5?: number; ma10?: number; ma20?: number; atr14?: number; volume_ratio_20d?: number;
+  range_20d_position_pct?: number; support?: number; resistance?: number; invalidation?: number;
+  trend_state?: string; structure?: string; signal_label?: string; fvg?: Fvg;
+  warehouse_receipt?: Receipt;
+  unit?: string; tick?: number;
 };
-type FuturesPayload = { generated_at?: string; source?: string; stale?: boolean; iwencai_review?: { reviewed_at?: string; review_slot?: string; status?: string }; items: FutureItem[] };
+type Leader = { code?: string; name?: string; change_pct?: number; open_interest_change_pct?: number; capital_state?: string } | null;
+type Summary = { strongest?: Leader; weakest?: Leader; largest_oi_increase?: Leader; largest_oi_decrease?: Leader; capital_counts?: Record<string, number>; ranking?: string[] };
+type FuturesPayload = {
+  generated_at?: string; source?: string; stale?: boolean; count?: number; expected_count?: number;
+  iwencai_review?: { reviewed_at?: string; review_slot?: string; status?: string; row_count?: number };
+  summary?: Summary; items: FutureItem[];
+};
 
 const fallbackItems: FutureItem[] = [
   { code: 'LC', continuous: 'LC0', name: '碳酸锂', exchange: '广期所' },
@@ -23,160 +36,112 @@ const fallbackItems: FutureItem[] = [
   { code: 'M', continuous: 'M0', name: '豆粕', exchange: '大商所' },
 ];
 let snapshot: FuturesPayload = { items: fallbackItems };
-try {
-  snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8'));
-} catch {}
+try { snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8')); } catch {}
 const items = snapshot.items?.length ? snapshot.items : fallbackItems;
-const number = (value?: number, digits = 2) => Number.isFinite(Number(value))
-  ? Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—';
+const summary = snapshot.summary || {};
+const number = (value?: number, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
+const priceDigits = (tick?: number) => Number(tick) >= 1 ? 0 : Number(tick) >= 0.1 ? 1 : 2;
+const quote = (value?: number, tick?: number) => number(value, priceDigits(tick));
 const pct = (value?: number) => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
+const multiple = (value?: number) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}×` : '—';
 const tone = (value?: number) => Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : 'flat';
-const snapshotTime = (snapshot.generated_at || '').replace(' UTC+08:00', '') || '等待刷新';
-
-const modules = [
-  { title: '结构', body: 'BOS / CHoCH 判断趋势切换，区分主升、反抽、破位和箱体震荡。' },
-  { title: '资金', body: '成交量、持仓量和席位多空变化合并判断，过滤单日情绪噪声。' },
-  { title: '缺口', body: '跟踪 FVG 与夜盘跳空，确认回补、延续和失效位置。' },
-  { title: '供需', body: '仓单、库存、现货升贴水和产业链利润决定胜率边界。' },
-];
+const stateTone = (value?: string) => value?.includes('增仓上涨') ? 'bull' : value?.includes('增仓下跌') ? 'bear' : value?.includes('减仓') ? 'caution' : 'neutral';
+const snapshotTime = (snapshot.generated_at || '').replace('T', ' ').replace('+08:00', '') || '等待刷新';
+const leaderText = (item?: Leader, field: 'change_pct' | 'open_interest_change_pct' = 'change_pct') => item ? `${item.code} ${item.name} · ${pct(item[field])}` : '等待有效数据';
+const longCount = items.filter((item) => item.capital_state === '增仓上涨').length;
+const shortCount = items.filter((item) => item.capital_state === '增仓下跌').length;
+const knownReceipts = items.filter((item) => item.warehouse_receipt?.status === 'known');
+const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '日盘收盘', night: '夜盘' };
 ---
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title="期货罗盘 | ETF罗盘" description="期货罗盘跟踪中国商品期货主力合约行情、成交量、持仓量、趋势结构和供需变化。" />
+    <BaseHead title="期货罗盘 | ETF罗盘" description="期货罗盘跟踪中国商品期货主力行情、量仓结构、BOS与CHoCH、关键位、FVG及交易所仓单。" />
     <style>
-      main{width:min(1120px,calc(100% - 2rem));padding:1.15rem 0 3rem}
-      .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:1rem;align-items:stretch;margin-top:.65rem}
-      .hero-main,.hero-side{padding:1.2rem;border:1px solid var(--border);border-radius:16px;background:#fff;box-shadow:var(--box-shadow)}
-      .hero-main{border-top:5px solid var(--amber)}
-      .hero h1{margin:.35rem 0 .5rem;font-size:clamp(1.9rem,4.2vw,2.7rem)}
-      .hero p{margin:0;color:rgb(var(--gray));line-height:1.6;max-width:680px}
-      .hero-tags{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.9rem}
-      .status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.75rem}
-      .status{padding:.7rem;border:1px solid var(--border);border-radius:11px;background:var(--warm-2)}
-      .status span{display:block;font-size:.68rem;color:rgb(var(--gray));font-weight:780}
-      .status strong{display:block;margin-top:.18rem;font-size:.86rem;line-height:1.35;overflow-wrap:anywhere}
-      .section-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin:1.35rem 0 .65rem}
-      .section-head h2{margin:0;font-size:1.35rem}.section-head p{margin:0;color:rgb(var(--gray));font-size:.82rem}
-      .refresh-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.65rem 0}
-      .refresh-status{color:rgb(var(--gray));font-size:.76rem}.refresh-status strong{color:rgb(var(--gray-dark))}
-      .refresh-button{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .68rem;border:1px solid var(--border);border-radius:9px;background:#fff;color:rgb(var(--gray-dark));font:inherit;font-size:.75rem;font-weight:800;cursor:pointer}
-      .refresh-button:hover{background:var(--warm)}.refresh-button.loading .refresh-icon{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-      .watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
-      .future-card{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:#fff;box-shadow:var(--box-shadow);min-width:0}
-      .future-card.up{border-top:4px solid var(--market-up)}.future-card.down{border-top:4px solid var(--market-down)}.future-card.flat{border-top:4px solid #aaa}
-      .future-top{display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}.future-top strong{display:block;font-size:1rem}.future-top small{display:block;color:rgb(var(--gray));font-size:.68rem}
-      .tag{padding:.18rem .45rem;border-radius:999px;background:var(--amber-soft);color:var(--amber);font-size:.66rem;font-weight:850;white-space:nowrap}
-      .quote{display:flex;align-items:flex-end;justify-content:space-between;gap:.6rem;margin:.75rem 0}.price{font-size:1.5rem;font-weight:900;line-height:1}.change{font-size:.88rem;font-weight:900}.up .change{color:var(--market-up)}.down .change{color:var(--market-down)}
-      .quote-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.38rem}.quote-cell{padding:.5rem;background:var(--warm-2);border-radius:9px;min-width:0}.quote-cell span{display:block;color:rgb(var(--gray));font-size:.59rem}.quote-cell strong{display:block;margin-top:.12rem;font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .capital-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.48rem;padding:.52rem .58rem;border:1px solid var(--border);border-radius:9px;font-size:.7rem}.capital-row span{color:rgb(var(--gray))}.capital-state{font-weight:900}.up .capital-state{color:var(--market-up)}.down .capital-state{color:var(--market-down)}
-      .module-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.module{padding:.9rem;border:1px solid var(--border);border-radius:13px;background:var(--warm-2)}.module h3{margin:0 0 .38rem;font-size:1rem}.module p{margin:0;color:rgb(var(--gray));font-size:.78rem;line-height:1.55}
-      .source-note{margin-top:1rem;padding:.8rem;border:1px solid var(--border);border-radius:12px;background:#fff;font-size:.76rem;color:rgb(var(--gray));line-height:1.6}
-      @media(max-width:900px){.hero{grid-template-columns:1fr}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      @media(max-width:620px){main{width:min(100% - 1rem,1120px);padding-top:.75rem}.hero-main,.hero-side{padding:.95rem}.watch-grid,.module-grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.status-grid{grid-template-columns:1fr}.refresh-row{align-items:flex-start}.refresh-status{max-width:70%}}
+      main{width:min(1180px,calc(100% - 2rem));padding:1rem 0 3rem}.terminal{margin-top:.7rem;padding:1.15rem;border:1px solid #24313b;border-radius:14px;background:#172129;color:#f5f7f8;box-shadow:0 14px 34px rgba(16,27,35,.15)}
+      .terminal-top{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}.terminal h1{margin:.3rem 0 .4rem;color:#fff;font-size:clamp(1.75rem,4vw,2.55rem);letter-spacing:0}.terminal p{margin:0;color:#c8d1d6;line-height:1.55;max-width:760px}.data-stamp{display:grid;gap:.26rem;text-align:right;color:#b8c3c9;font-size:.7rem}.data-stamp strong{color:#fff;font-size:.78rem}
+      .command-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-top:1rem}.command{padding:.72rem;border:1px solid #334651;border-radius:9px;background:#202d35;min-width:0}.command span{display:block;color:#aebbc2;font-size:.65rem}.command strong{display:block;margin-top:.2rem;color:#fff;font-size:.82rem;line-height:1.35;overflow-wrap:anywhere}.command.bull strong{color:#ff9a8f}.command.bear strong{color:#83dcae}
+      .section-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin:1.35rem 0 .65rem}.section-head h2{margin:0;font-size:1.3rem}.section-head p{margin:0;color:rgb(var(--gray));font-size:.78rem}.eyebrow{display:block;color:var(--amber);font-size:.65rem;font-weight:900;text-transform:uppercase}
+      .refresh-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.65rem 0}.refresh-status{color:rgb(var(--gray));font-size:.75rem}.refresh-status strong{color:rgb(var(--gray-dark))}.refresh-button{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .65rem;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-size:.74rem;font-weight:800;cursor:pointer}.refresh-button.loading .refresh-icon{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+      .watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}.future-card{padding:.88rem;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:var(--box-shadow);min-width:0}.future-card.up{border-top:4px solid var(--market-up)}.future-card.down{border-top:4px solid var(--market-down)}.future-card.flat{border-top:4px solid #999}
+      .future-top{display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start}.future-top strong{display:block;font-size:.98rem}.future-top small{display:block;color:rgb(var(--gray));font-size:.66rem}.state-tag{padding:.18rem .42rem;border-radius:6px;font-size:.64rem;font-weight:850;white-space:nowrap}.state-tag.bull{background:#fff0ee;color:#bb3023}.state-tag.bear{background:#e8f7ef;color:#08733b}.state-tag.caution{background:#fff6df;color:#8d5c00}.state-tag.neutral{background:#f0f1f2;color:#596169}
+      .quote{display:flex;align-items:flex-end;justify-content:space-between;gap:.6rem;margin:.72rem 0}.price{font-size:1.48rem;font-weight:900;line-height:1}.price-unit{display:block;margin-top:.2rem;color:rgb(var(--gray));font-size:.62rem;font-weight:700}.change{font-size:.86rem;font-weight:900}.up .change{color:var(--market-up)}.down .change{color:var(--market-down)}
+      .quote-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.34rem}.quote-cell{padding:.46rem;background:var(--warm-2);border-radius:7px;min-width:0}.quote-cell span{display:block;color:rgb(var(--gray));font-size:.57rem}.quote-cell strong{display:block;margin-top:.1rem;font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.34rem;margin-top:.42rem}.evidence{padding:.44rem;border:1px solid var(--border);border-radius:7px;min-width:0}.evidence span{display:block;color:rgb(var(--gray));font-size:.57rem}.evidence strong{display:block;margin-top:.1rem;font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-foot{display:flex;justify-content:space-between;gap:.45rem;margin-top:.45rem;color:rgb(var(--gray));font-size:.64rem}.card-foot b{color:rgb(var(--gray-dark))}
+      .matrix{display:grid;grid-template-columns:1.05fr .95fr;gap:.75rem}.matrix-panel,.supply-panel{padding:.9rem;border:1px solid var(--border);border-radius:10px;background:#fff}.matrix-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}.matrix-cell{padding:.65rem;border-radius:8px;background:var(--warm-2)}.matrix-cell span{display:block;color:rgb(var(--gray));font-size:.62rem}.matrix-cell strong{display:block;margin-top:.14rem;font-size:.82rem}.matrix-cell.bull{border-left:4px solid var(--market-up)}.matrix-cell.bear{border-left:4px solid var(--market-down)}.matrix-cell.caution{border-left:4px solid var(--amber)}
+      .supply-list{display:grid;gap:.4rem}.supply-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.58rem;border-bottom:1px solid var(--border);font-size:.75rem}.supply-row:last-child{border-bottom:0}.supply-row span{color:rgb(var(--gray))}.review-box{margin-top:.6rem;padding:.65rem;border-radius:8px;background:#172129;color:#dbe2e6;font-size:.72rem;line-height:1.55}.review-box strong{color:#fff}
+      .legend{margin-top:.85rem;padding:.75rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;color:rgb(var(--gray));line-height:1.55}.legend b{color:rgb(var(--gray-dark))}
+      @media(max-width:940px){.command-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix{grid-template-columns:1fr}}
+      @media(max-width:620px){main{width:min(100% - .8rem,1180px);padding-top:.6rem}.terminal{padding:.85rem}.terminal-top{display:block}.terminal p{font-size:.78rem}.data-stamp{text-align:left;margin-top:.55rem}.command-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.38rem}.command{padding:.55rem}.watch-grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.refresh-row{align-items:center}.refresh-button{min-width:44px;min-height:44px}.refresh-status{max-width:72%}.quote-grid,.evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.supply-row{grid-template-columns:1fr auto}.supply-row span:last-child{grid-column:1/-1}}
     </style>
   </head>
   <body>
     <Header />
     <main>
-      <section class="hero" aria-label="期货罗盘首页">
-        <div class="hero-main">
-          <span class="pill pill-amber">期货罗盘</span>
-          <h1>商品期货趋势与供需雷达</h1>
-          <p>新浪期货提供分钟级主力行情，成交量与持仓变化判断资金方向；同花顺问财按时段复查合约和产业数据，交易所仓单确认供需。</p>
-          <div class="hero-tags"><span class="pill">BOS / CHoCH</span><span class="pill">资金流五档</span><span class="pill">FVG缺口</span><span class="pill">仓单供需</span></div>
+      <section class="terminal" aria-label="期货罗盘决策总览">
+        <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>先看价格与持仓是否同向，再确认结构、关键位、成交活跃度和仓单。所有状态由行情与日线规则确定，缺失字段保持未知。</p></div><div class="data-stamp"><strong id="data-time">数据 {snapshotTime}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
+        <div class="command-grid">
+          <div class="command bull"><span>6品种观察池涨幅第一</span><strong id="strongest-item">{leaderText(summary.strongest)}</strong></div>
+          <div class="command bear"><span>6品种观察池跌幅第一</span><strong id="weakest-item">{leaderText(summary.weakest)}</strong></div>
+          <div class="command bull"><span>6品种持仓增幅率第一</span><strong id="oi-in-item">{leaderText(summary.largest_oi_increase, 'open_interest_change_pct')}</strong></div>
+          <div class="command"><span>增仓同向确认</span><strong id="capital-counts">多头 {longCount} · 空头 {shortCount}</strong></div>
         </div>
-        <aside class="hero-side" aria-label="期货罗盘状态">
-          <span class="pill">实时状态</span>
-          <div class="status-grid">
-            <div class="status"><span>覆盖品种</span><strong id="coverage-count">{items.length}/6</strong></div>
-            <div class="status"><span>行情来源</span><strong id="source-label">{snapshot.source || '新浪期货'}</strong></div>
-            <div class="status"><span>问财复查</span><strong id="review-time">{snapshot.iwencai_review?.reviewed_at?.replace('T',' ') || '待首次复查'}</strong></div>
-            <div class="status"><span>数据时间</span><strong id="data-time">{snapshotTime}</strong></div>
-          </div>
-        </aside>
       </section>
 
       <section aria-label="期货观察池">
-        <div class="section-head"><h2>主力合约观察池</h2><p>页面每 60 秒检查更新；价格、涨跌、量仓和日内区间来自分钟级行情。</p></div>
-        <div class="refresh-row">
-          <div class="refresh-status" id="refresh-status" role="status" aria-live="polite"><strong>静态快照</strong> · 正在连接实时数据</div>
-          <button class="refresh-button" id="refresh-button" type="button" aria-label="刷新期货行情"><span class="refresh-icon" aria-hidden="true">↻</span>刷新</button>
-        </div>
+        <div class="section-head"><div><span class="eyebrow">Main contracts</span><h2>主力合约观察池</h2></div><p>实时行情每60秒检查；结构与关键位使用已收盘日线。</p></div>
+        <div class="refresh-row"><div class="refresh-status" id="refresh-status" role="status" aria-live="polite"><strong>静态快照</strong> · 正在连接实时数据</div><button class="refresh-button" id="refresh-button" type="button" aria-label="刷新期货行情"><span class="refresh-icon" aria-hidden="true">↻</span>刷新</button></div>
         <div class="watch-grid" id="futures-grid">
           {items.map((item) => (
             <article class={`future-card ${tone(item.change_pct)}`} data-code={item.code}>
-              <div class="future-top"><div><strong>{item.continuous} · {item.name}</strong><small class="contract-name">{item.contract_name || item.exchange}</small></div><span class="tag">主力</span></div>
-              <div class="quote"><strong class="price">{number(item.price)}</strong><span class="change">{pct(item.change_pct)}</span></div>
+              <div class="future-top"><div><strong>{item.name} · 主连 {item.continuous}</strong><small class="contract-name">实际主力 {item.contract_code || '待确认'} · {item.exchange}</small></div><span class={`state-tag ${stateTone(item.capital_state)}`}>{item.signal_label || item.capital_state || '等待确认'}</span></div>
+              <div class="quote"><div><strong class="price">{quote(item.price,item.tick)}</strong><small class="price-unit">{item.unit || ''}</small></div><span class="change">{pct(item.change_pct)}</span></div>
               <div class="quote-grid">
-                <div class="quote-cell"><span>日内高</span><strong class="high">{number(item.high)}</strong></div>
-                <div class="quote-cell"><span>日内低</span><strong class="low">{number(item.low)}</strong></div>
-                <div class="quote-cell"><span>振幅</span><strong class="amplitude">{pct(item.amplitude_pct)}</strong></div>
-                <div class="quote-cell"><span>成交量</span><strong class="volume">{number(item.volume, 0)}</strong></div>
-                <div class="quote-cell"><span>持仓量</span><strong class="open-interest">{number(item.open_interest, 0)}</strong></div>
-                <div class="quote-cell"><span>较昨持仓</span><strong class="oi-change">{number(item.open_interest_change, 0)}</strong></div>
+                <div class="quote-cell"><span>开盘</span><strong class="open">{quote(item.open,item.tick)}</strong></div><div class="quote-cell"><span>日内高</span><strong class="high">{quote(item.high,item.tick)}</strong></div><div class="quote-cell"><span>日内低</span><strong class="low">{quote(item.low,item.tick)}</strong></div>
+                <div class="quote-cell"><span>成交量 · 手</span><strong class="volume">{number(item.volume,0)}</strong></div><div class="quote-cell"><span>持仓量 · 手</span><strong class="open-interest">{number(item.open_interest,0)}</strong></div><div class="quote-cell"><span>较昨持仓</span><strong class="oi-change">{number(item.open_interest_change,0)} · {pct(item.open_interest_change_pct)}</strong></div>
               </div>
-              <div class="capital-row"><span><b class="contract-code">{item.contract_code || '—'}</b> · <span class="quote-time">{item.quote_time || '—'}</span></span><strong class="capital-state">{item.capital_state || '等待量仓确认'}</strong></div>
+              <div class="evidence-grid">
+                <div class="evidence"><span>趋势</span><strong class="trend-state">{item.trend_state || '未知'}</strong></div><div class="evidence"><span>结构</span><strong class="structure">{item.structure || '未知'}</strong></div><div class="evidence"><span>20日位置</span><strong class="range-position">{pct(item.range_20d_position_pct)}</strong></div>
+                <div class="evidence"><span>支撑 · {item.unit || ''}</span><strong class="support">{quote(item.support,item.tick)}</strong></div><div class="evidence"><span>压力 · {item.unit || ''}</span><strong class="resistance">{quote(item.resistance,item.tick)}</strong></div><div class="evidence"><span>量比20日</span><strong class="volume-ratio">{multiple(item.volume_ratio_20d)}</strong></div>
+              </div>
+              <div class="card-foot"><span><b class="capital-state">{item.capital_state || '量仓未知'}</b> · <span class="fvg-state">{item.fvg?.direction || 'FVG未知'}</span></span><span class="quote-time">{item.quote_time || '—'}</span></div>
             </article>
           ))}
         </div>
       </section>
 
-      <section aria-label="分析框架">
-        <div class="section-head"><h2>分析框架</h2><p>结构、资金、缺口、供需四层交叉验证。</p></div>
-        <div class="module-grid">{modules.map((item) => <article class="module"><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-        <div class="source-note">最新价、涨跌幅、日内高低、成交量和持仓量来自新浪期货；同花顺问财用于盘前、日盘收盘和夜盘复查；广期所公开仓单用于供需确认。页面保留最近一次有效快照。</div>
+      <section aria-label="结构与供需">
+        <div class="section-head"><div><span class="eyebrow">Evidence matrix</span><h2>强弱矩阵与供需复查</h2></div><p>量仓四象限、交易所仓单和定时复查分别保留来源时间。</p></div>
+        <div class="matrix">
+          <article class="matrix-panel"><div class="matrix-grid"><div class="matrix-cell bull"><span>增仓上涨</span><strong>{summary.capital_counts?.['增仓上涨'] || 0} 个 · 趋势资金确认</strong></div><div class="matrix-cell bear"><span>增仓下跌</span><strong>{summary.capital_counts?.['增仓下跌'] || 0} 个 · 空头资金确认</strong></div><div class="matrix-cell caution"><span>减仓上涨</span><strong>{summary.capital_counts?.['减仓上涨'] || 0} 个 · 空头回补</strong></div><div class="matrix-cell caution"><span>减仓下跌</span><strong>{summary.capital_counts?.['减仓下跌'] || 0} 个 · 多头离场</strong></div></div><div class="legend"><b>排序：</b>{summary.ranking?.join(' → ') || '等待足够数据'}。排序综合当日涨跌、持仓变化率和20日量比，仅作横向证据比较。</div></article>
+          <article class="supply-panel"><div class="supply-list">{knownReceipts.length ? knownReceipts.map((item) => <div class="supply-row"><strong>{item.code} · {item.name}</strong><span>仓单 {number(item.warehouse_receipt?.receipt,0)}</span><span class={tone(item.warehouse_receipt?.change)}>日变 {number(item.warehouse_receipt?.change,0)}</span></div>) : <div class="supply-row"><strong>仓单数据</strong><span>等待交易所有效快照</span></div>}</div><div class="review-box"><strong>定时复查：</strong>{reviewSlot[snapshot.iwencai_review?.review_slot || ''] || '待首次复查'} · {snapshot.iwencai_review?.status === 'ok' ? `覆盖 ${snapshot.iwencai_review?.row_count || 0} 行` : '状态未知'}<br />时间 {(snapshot.iwencai_review?.reviewed_at || '—').replace('T',' ').replace('+08:00','')}</div></article>
+        </div>
+        <div class="legend"><b>口径：</b>红涨绿跌；价格摘要显示涨跌幅，持仓摘要显示较昨持仓变化率；“支撑/压力”由20日区间和ATR14计算并按合约最小变动单位取整；BOS/CHoCH使用最近已收盘K线；仓单当前覆盖广期所品种。实时失败时页面保留最近有效快照并明确标记。</div>
       </section>
     </main>
     <Footer />
     <script is:inline>
       const LIVE_URL = 'https://etf-live.peekabo.cc/api/futures-compass/live';
-      const number = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—';
+      const number = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
+      const priceDigits = (tick) => Number(tick) >= 1 ? 0 : Number(tick) >= .1 ? 1 : 2;
+      const quote = (value, tick) => number(value, priceDigits(tick));
       const pct = (value) => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
-      let loading = false;
-      const button = document.getElementById('refresh-button');
-      const status = document.getElementById('refresh-status');
+      const multiple = (value) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}×` : '—';
+      let loading = false; const button = document.getElementById('refresh-button'); const status = document.getElementById('refresh-status');
+      function leader(item, field = 'change_pct') { return item ? `${item.code} ${item.name} · ${pct(item[field])}` : '等待有效数据'; }
       function render(payload) {
         for (const item of payload.items || []) {
-          const card = document.querySelector(`[data-code="${item.code}"]`);
-          if (!card) continue;
-          card.classList.remove('up', 'down', 'flat');
-          card.classList.add(Number(item.change_pct) > 0 ? 'up' : Number(item.change_pct) < 0 ? 'down' : 'flat');
-          card.querySelector('.contract-name').textContent = item.contract_name || item.exchange || '—';
-          card.querySelector('.contract-code').textContent = item.contract_code || '—';
-          card.querySelector('.price').textContent = number(item.price);
-          card.querySelector('.change').textContent = pct(item.change_pct);
-          card.querySelector('.high').textContent = number(item.high);
-          card.querySelector('.low').textContent = number(item.low);
-          card.querySelector('.amplitude').textContent = pct(item.amplitude_pct);
-          card.querySelector('.volume').textContent = number(item.volume, 0);
-          card.querySelector('.open-interest').textContent = number(item.open_interest, 0);
-          card.querySelector('.oi-change').textContent = `${Number(item.open_interest_change) > 0 ? '+' : ''}${number(item.open_interest_change, 0)}`;
-          card.querySelector('.capital-state').textContent = item.capital_state || '等待量仓确认';
-          card.querySelector('.quote-time').textContent = item.quote_time || '—';
+          const card = document.querySelector(`[data-code="${item.code}"]`); if (!card) continue;
+          card.classList.remove('up','down','flat'); card.classList.add(Number(item.change_pct)>0?'up':Number(item.change_pct)<0?'down':'flat');
+          const values = {'.contract-name':`实际主力 ${item.contract_code||'待确认'} · ${item.exchange||''}`,'.price':quote(item.price,item.tick),'.change':pct(item.change_pct),'.open':quote(item.open,item.tick),'.high':quote(item.high,item.tick),'.low':quote(item.low,item.tick),'.volume':number(item.volume,0),'.open-interest':number(item.open_interest,0),'.oi-change':`${number(item.open_interest_change,0)} · ${pct(item.open_interest_change_pct)}`,'.trend-state':item.trend_state||'未知','.structure':item.structure||'未知','.range-position':pct(item.range_20d_position_pct),'.support':quote(item.support,item.tick),'.resistance':quote(item.resistance,item.tick),'.volume-ratio':multiple(item.volume_ratio_20d),'.capital-state':item.capital_state||'量仓未知','.fvg-state':item.fvg?.direction||'FVG未知','.quote-time':item.quote_time||'—'};
+          for (const [selector,value] of Object.entries(values)) { const node=card.querySelector(selector); if(node) node.textContent=value; }
         }
-        document.getElementById('coverage-count').textContent = `${payload.count || payload.items?.length || 0}/${payload.expected_count || 6}`;
-        document.getElementById('source-label').textContent = payload.source || '新浪期货';
-        document.getElementById('data-time').textContent = (payload.generated_at || '—').replace('T', ' ').replace('+08:00', '');
-        document.getElementById('review-time').textContent = (payload.iwencai_review?.reviewed_at || '待首次复查').replace('T', ' ').replace('+08:00', '');
-        status.innerHTML = payload.stale ? '<strong>快照保留</strong> · 实时源暂时波动' : `<strong>实时数据</strong> · ${payload.cache_age_s > 0 ? `缓存 ${Math.round(payload.cache_age_s)} 秒` : '刚刚更新'}`;
+        const s=payload.summary||{}; document.getElementById('strongest-item').textContent=leader(s.strongest); document.getElementById('weakest-item').textContent=leader(s.weakest); document.getElementById('oi-in-item').textContent=leader(s.largest_oi_increase,'open_interest_change_pct');
+        document.getElementById('capital-counts').textContent=`多头 ${s.capital_counts?.['增仓上涨']||0} · 空头 ${s.capital_counts?.['增仓下跌']||0}`; document.getElementById('source-label').textContent=payload.source||'新浪期货'; document.getElementById('data-time').textContent=`数据 ${(payload.generated_at||'—').replace('T',' ').replace('+08:00','')}`;
+        status.innerHTML=payload.stale?'<strong>快照保留</strong> · 实时源暂时波动':`<strong>实时数据</strong> · ${payload.cache_age_s>0?`缓存 ${Math.round(payload.cache_age_s)} 秒`:'刚刚更新'}`;
       }
-      async function refresh(force = false) {
-        if (loading) return;
-        loading = true; button?.classList.add('loading'); button?.setAttribute('disabled', '');
-        try {
-          const response = await fetch(`${LIVE_URL}${force ? '?refresh=1' : ''}`, { cache: 'no-store' });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          render(await response.json());
-        } catch (error) {
-          status.innerHTML = '<strong>静态快照</strong> · 实时连接失败，页面保留最近数据';
-        } finally {
-          loading = false; button?.classList.remove('loading'); button?.removeAttribute('disabled');
-        }
-      }
-      button?.addEventListener('click', () => refresh(true));
-      refresh(false);
-      setInterval(() => refresh(false), 60000);
+      async function refresh(force=false){if(loading)return;loading=true;button?.classList.add('loading');button?.setAttribute('disabled','');try{const response=await fetch(`${LIVE_URL}${force?'?refresh=1':''}`,{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);render(await response.json());}catch{status.innerHTML='<strong>静态快照</strong> · 实时连接失败，页面保留最近数据';}finally{loading=false;button?.classList.remove('loading');button?.removeAttribute('disabled');}}
+      button?.addEventListener('click',()=>refresh(true));refresh(false);setInterval(()=>refresh(false),60000);
     </script>
   </body>
 </html>

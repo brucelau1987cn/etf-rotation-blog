@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import json
-from futures_compass_data import PUBLIC_SNAPSHOT, atomic_json, fetch_daily_bars, fetch_realtime
+from futures_compass_data import (
+    PUBLIC_SNAPSHOT,
+    atomic_json,
+    fetch_daily_bars,
+    fetch_realtime,
+    fetch_warehouse_receipts,
+)
 
 
 def main() -> int:
     daily = fetch_daily_bars()
+    warehouse = fetch_warehouse_receipts()
     payload = fetch_realtime()
     atomic_json(PUBLIC_SNAPSHOT, payload)
     print(json.dumps({
         "status": "ok", "path": "public/data/futures-compass.json",
         "count": payload.get("count"), "generated_at": payload.get("generated_at"),
         "source": payload.get("source"), "daily_rows": daily.get("rows"),
+        "warehouse_rows": warehouse.get("rows"),
     }, ensure_ascii=False))
     return 0
 

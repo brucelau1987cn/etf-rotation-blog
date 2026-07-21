@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from futures_compass_analytics import build_summary, enrich_item
+
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "local" / "futures" / "futures.db"
 LIVE_SNAPSHOT = ROOT / "data" / "local" / "futures" / "live.json"
@@ -21,12 +23,12 @@ IWENCAI_WRAPPER = Path.home() / ".hermes" / "scripts" / "iwencai-skill-run"
 CN = ZoneInfo("Asia/Shanghai")
 
 WATCHLIST = [
-    {"code": "LC", "continuous": "LC0", "name": "碳酸锂", "exchange": "广期所"},
-    {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所"},
-    {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所"},
-    {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所"},
-    {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心"},
-    {"code": "M", "continuous": "M0", "name": "豆粕", "exchange": "大商所"},
+    {"code": "LC", "continuous": "LC0", "name": "碳酸锂", "exchange": "广期所", "unit": "元/吨", "tick": 20},
+    {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
+    {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
+    {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所", "unit": "元/克", "tick": 0.02},
+    {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1},
+    {"code": "M", "continuous": "M0", "name": "豆粕", "exchange": "大商所", "unit": "元/吨", "tick": 1},
 ]
 
 
@@ -207,6 +209,7 @@ def fetch_realtime() -> dict[str, Any]:
         status = "ok" if len(items) == len(WATCHLIST) else "partial" if items else "error"
         audit(db, "sina-akshare", "realtime", status, len(items), latency, "; ".join(errors)[:500] or None)
         db.commit()
+        items = [enrich_item(db, item) for item in items]
         review = latest_review(db)
     if len(items) < 4:
         raise RuntimeError(f"realtime coverage too low: {len(items)}/6; {'; '.join(errors)}")
@@ -214,7 +217,7 @@ def fetch_realtime() -> dict[str, Any]:
         "ok": True, "source": "新浪期货", "generated_at": observed_at,
         "fetched_at": time.time(), "latency_ms": latency, "count": len(items),
         "expected_count": len(WATCHLIST), "stale": False, "errors": errors,
-        "iwencai_review": review, "items": items,
+        "iwencai_review": review, "summary": build_summary(items), "items": items,
     }
     atomic_json(LIVE_SNAPSHOT, payload)
     return payload
@@ -228,7 +231,7 @@ def fetch_daily_bars() -> dict[str, Any]:
         for meta in WATCHLIST:
             try:
                 frame = ak.futures_zh_daily_sina(symbol=meta["continuous"])
-                for bar in frame.tail(5).to_dict("records"):
+                for bar in frame.tail(60).to_dict("records"):
                     db.execute(
                         "INSERT INTO daily_bars(code,trade_date,open,high,low,close,volume,open_interest,settle,source,fetched_at) "
                         "VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(code,trade_date,source) DO UPDATE SET "
