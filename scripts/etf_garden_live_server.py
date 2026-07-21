@@ -31,17 +31,7 @@ PORT = 8766
 CACHE_TTL = 30
 MAX_CODES = 100
 SERVER_START = time.time()
-IWENCAI_WRAPPER = Path.home() / ".hermes" / "scripts" / "iwencai-skill-run"
 FUTURES_CACHE_TTL = 60
-FUTURES_SNAPSHOT = ROOT / "data" / "local" / "futures-compass-live.json"
-FUTURES_WATCHLIST = [
-    {"code": "LC", "continuous": "LC0", "name": "碳酸锂", "exchange": "广期所"},
-    {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所"},
-    {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所"},
-    {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所"},
-    {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心"},
-    {"code": "M", "continuous": "M0", "name": "豆粕", "exchange": "大商所"},
-]
 
 GARDEN_POOL = [
     {"name": "上证50ETF华夏", "code": "510050", "market": "XSHG", "type": "宽基"},
@@ -347,80 +337,6 @@ def get_us_data(force: bool = False, symbol: str | None = None) -> dict:
             _us_cache["data"] = data
             _us_cache["ts"] = time.time()
         data = dict(data); data["cache_age_s"] = 0; return data
-
-
-def _number(value):
-    if value in (None, "", "--"):
-        return None
-    try:
-        return float(str(value).replace(",", "").replace("%", ""))
-    except (TypeError, ValueError):
-        return None
-
-
-def _atomic_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
-
-
-def _load_futures_snapshot() -> dict | None:
-    for path in (FUTURES_SNAPSHOT, ROOT / "public" / "data" / "futures-compass.json"):
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            if payload.get("items"):
-                return payload
-        except (OSError, ValueError, TypeError):
-            continue
-    return None
-
-
-def fetch_futures_quotes() -> dict:
-    query = "碳酸锂 多晶硅 工业硅 黄金 原油 豆粕主力合约最新价涨跌幅成交量持仓量"
-    command = [
-        str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query,
-        "--limit", "20", "--timeout", "45",
-    ]
-    started = time.time()
-    proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)
-    if proc.returncode != 0:
-        raise RuntimeError((proc.stderr or proc.stdout or "iWenCai futures query failed").strip()[:500])
-    raw = json.loads(proc.stdout)
-    rows = raw.get("datas") or []
-    row_map = {str(row.get("品种代码") or "").upper(): row for row in rows if isinstance(row, dict)}
-    items = []
-    for meta in FUTURES_WATCHLIST:
-        row = row_map.get(meta["code"], {})
-        if not row:
-            continue
-        change_pct = _number(row.get("最新涨跌幅", row.get("涨跌幅")))
-        items.append({
-            **meta,
-            "contract_code": row.get("合约代码"),
-            "contract_name": row.get("合约简称") or row.get("品种简称") or meta["name"],
-            "price": _number(row.get("最新价")),
-            "change_pct": round(change_pct, 3) if change_pct is not None else None,
-            "volume": _number(row.get("成交量")),
-            "open_interest": _number(row.get("持仓量")),
-            "is_main": bool(row.get("是否主力合约", True)),
-        })
-    if len(items) < 4:
-        raise RuntimeError(f"iWenCai futures coverage too low: {len(items)}/6")
-    payload = {
-        "ok": True,
-        "source": "同花顺问财",
-        "source_skill": "hithink-futures-query",
-        "generated_at": now_cn_text(),
-        "fetched_at": time.time(),
-        "latency_ms": round((time.time() - started) * 1000),
-        "count": len(items),
-        "expected_count": len(FUTURES_WATCHLIST),
-        "stale": False,
-        "items": items,
-    }
-    _atomic_json(FUTURES_SNAPSHOT, payload)
-    return payload
 
 
 def get_futures_data(force: bool = False) -> dict:
