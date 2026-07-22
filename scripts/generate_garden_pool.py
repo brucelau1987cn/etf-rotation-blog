@@ -225,7 +225,8 @@ def trade_state(row: dict[str, Any], risk_level: str, risk_flags: list[str]) -> 
     if status != "core":
         return ("退出" if score < 48 else "观察", cooldown, 0)
     if risk_level == "高" or cooldown == "止盈观察":
-        return "禁止追高", "止盈观察", 0
+        # "禁止追高" is presentation guidance, not an execution state.
+        return "观察", "止盈观察", 0
     if risk_level == "中":
         return "回踩候选", cooldown, 0
     if score >= 76:

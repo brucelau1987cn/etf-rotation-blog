@@ -78,11 +78,18 @@ def ensure_current_main() -> str:
     git("fetch", "origin", "main")
     head = git("rev-parse", "HEAD").stdout.strip()
     remote = git("rev-parse", "origin/main").stdout.strip()
-    if head != remote:
-        raise RuntimeError(
-            f"nightly prepare requires HEAD == origin/main: head={head[:12]} remote={remote[:12]}"
-        )
-    return head
+    if head == remote:
+        return head
+    remote_contains_head = git(
+        "merge-base", "--is-ancestor", "HEAD", "origin/main", check=False,
+    ).returncode == 0
+    if remote_contains_head:
+        git("merge", "--ff-only", "origin/main")
+        return git("rev-parse", "HEAD").stdout.strip()
+    raise RuntimeError(
+        "nightly prepare cannot safely fast-forward main: "
+        f"head={head[:12]} remote={remote[:12]}"
+    )
 
 
 def generate_research_audit(

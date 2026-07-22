@@ -47,10 +47,14 @@ def run(
     command: list[str], check: bool = True, *, cwd: Path | None = None,
     env: dict[str, str] | None = None, timeout: int = 600,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        command, cwd=cwd or ROOT, text=True, capture_output=True,
-        check=check, env=env, timeout=timeout,
+    result = subprocess.run(
+        command, cwd=cwd or ROOT, env=env, text=True, capture_output=True,
+        check=False, timeout=timeout,
     )
+    if check and result.returncode != 0:
+        detail = (result.stderr or result.stdout or "no command output")[-4000:]
+        raise RuntimeError(f"command failed rc={result.returncode}: {command}\n{detail}")
+    return result
 
 
 FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")

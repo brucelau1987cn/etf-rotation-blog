@@ -103,6 +103,8 @@ def test_garden_trading_agent_decision_outputs_debate_and_cooldown() -> None:
     hot_decision = garden.trading_agent_decision(overheated)
     assert hot_decision["cooldown_state"] == "止盈观察"
     assert "高位过热" in hot_decision["risk_flags"]
+    assert hot_decision["trade_state"] == "观察"
+    assert hot_decision["action"] == "观察"
 
 
 def test_parse_js_object_array_extracts_youth_pool_items() -> None:

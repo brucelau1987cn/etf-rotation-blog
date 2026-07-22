@@ -100,8 +100,11 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     assert "public/data/us-etf-pool.json" in publish.CATALOG_INPUT_FILES
 
 
-def test_prepare_preflight_rejects_remote_drift(monkeypatch):
+def test_prepare_preflight_fast_forwards_when_remote_is_ahead(monkeypatch):
+    commands = []
+
     def fake_run(command, **kwargs):
+        commands.append(command[1:])
         args = command[1:]
         if args == ["branch", "--show-current"]:
             return subprocess.CompletedProcess(command, 0, stdout="main\n", stderr="")
@@ -110,13 +113,40 @@ def test_prepare_preflight_rejects_remote_drift(monkeypatch):
         if args == ["fetch", "origin", "main"]:
             return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
         if args == ["rev-parse", "HEAD"]:
-            return subprocess.CompletedProcess(command, 0, stdout="a" * 40 + "\n", stderr="")
+            value = "b" if ["merge", "--ff-only", "origin/main"] in commands else "a"
+            return subprocess.CompletedProcess(command, 0, stdout=value * 40 + "\n", stderr="")
         if args == ["rev-parse", "origin/main"]:
             return subprocess.CompletedProcess(command, 0, stdout="b" * 40 + "\n", stderr="")
+        if args == ["merge-base", "--is-ancestor", "HEAD", "origin/main"]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        if args == ["merge", "--ff-only", "origin/main"]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
         raise AssertionError(command)
 
     monkeypatch.setattr(prepare.subprocess, "run", fake_run)
-    with pytest.raises(RuntimeError, match="HEAD == origin/main"):
+    assert prepare.ensure_current_main() == "b" * 40
+    assert ["merge", "--ff-only", "origin/main"] in commands
+
+
+def test_prepare_preflight_rejects_non_fast_forward_remote(monkeypatch):
+    def fake_run(command, **kwargs):
+        args = command[1:]
+        outputs = {
+            ("branch", "--show-current"): "main\n",
+            ("fetch", "origin", "main"): "",
+            ("rev-parse", "HEAD"): "a" * 40 + "\n",
+            ("rev-parse", "origin/main"): "b" * 40 + "\n",
+        }
+        if args == ["diff", "--cached", "--quiet"]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        if args == ["merge-base", "--is-ancestor", "HEAD", "origin/main"]:
+            return subprocess.CompletedProcess(command, 1, stdout="", stderr="")
+        if tuple(args) in outputs:
+            return subprocess.CompletedProcess(command, 0, stdout=outputs[tuple(args)], stderr="")
+        raise AssertionError(command)
+
+    monkeypatch.setattr(prepare.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="cannot safely fast-forward"):
         prepare.ensure_current_main()
 
 

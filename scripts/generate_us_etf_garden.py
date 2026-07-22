@@ -196,7 +196,7 @@ def evaluate(item: tuple[str, str, str, str], data: dict[str, Any], spy_adj: lis
     risk = "高" if risk_score >= 60 else ("中" if risk_score >= 35 else "低")
     momentum = adj[-1] > ma20 and ma20 > ma20_prev and r3 > -5
     if not momentum: state = "退出" if strength == "D" else "观察"
-    elif risk == "高": state = "禁止追高"
+    elif risk == "高": state = "观察"
     elif risk == "中": state = "回踩候选"
     elif strength in {"A", "B"}: state = "可持有"
     else: state = "观察"
