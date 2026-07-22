@@ -79,7 +79,7 @@ a:hover { color: var(--accent-dark); }
 
 .skip-link {
 	position: fixed;
-	top: 0.55rem;
+	top: -100px;
 	left: 0.55rem;
 	z-index: 100;
 	padding: 0.55rem 0.8rem;
@@ -88,10 +88,9 @@ a:hover { color: var(--accent-dark); }
 	color: #fff;
 	font-weight: 800;
 	text-decoration: none;
-	transform: translateY(-160%);
-	transition: transform 160ms ease-out;
+	transition: top 160ms ease-out;
 }
-.skip-link:focus { color: #fff; transform: translateY(0); }
+.skip-link:focus { top: 0.55rem; color: #fff; }
 
 p { margin: 0 0 1.1rem; }
 ul, ol { padding-left: 1.4rem; margin: 0 0 1.1rem; }

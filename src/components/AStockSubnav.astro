@@ -4,12 +4,18 @@ const links = [
   { key: 'compass', href: '/a-compass/', label: '今日动作' },
   { key: 'trend', href: '/a-momentum/', label: '趋势风控' },
   { key: 'macro', href: '/a-macro/', label: '宏观雷达' },
+  { key: 'rolling', href: '/a-rolling/', label: '滚动策略' },
   { key: 'review', href: '/blog/', label: '盘后复盘' },
 ];
 ---
 <nav class="a-subnav" aria-label="A股ETF二级导航">
   {links.map((link) => <a href={link.href} class:list={[active === link.key && 'active']} aria-current={active === link.key ? 'page' : undefined}>{link.label}</a>)}
 </nav>
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.a-subnav a.active')?.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+  }, { once: true });
+</script>
 <style>
   .a-subnav{display:flex;gap:.35rem;width:min(1180px,calc(100vw - 1.5rem));min-height:48px;box-sizing:border-box;margin:0 50% 1rem;padding:.35rem;border:1px solid var(--border);border-radius:14px;background:#fff;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;transform:translateX(-50%)}.a-subnav::-webkit-scrollbar{display:none}.a-subnav a{display:flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:36px;padding:.5rem .85rem;border-radius:10px;color:rgb(var(--gray-dark));font-size:.82rem;font-weight:850;line-height:1;text-decoration:none;white-space:nowrap}.a-subnav a:hover{background:#f1f5f9}.a-subnav a.active{background:#14243b;color:#fff}@media(max-width:620px){.a-subnav{width:calc(100vw - 1rem);position:sticky;top:3.55rem;z-index:18;box-shadow:0 8px 20px rgba(15,23,42,.08)}}
 </style>

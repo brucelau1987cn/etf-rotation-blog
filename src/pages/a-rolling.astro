@@ -1,0 +1,268 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import AStockSubnav from '../components/AStockSubnav.astro';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import MarketClock from '../components/MarketClock.astro';
+import { SITE_TITLE } from '../consts';
+
+type Direction = 'BUY' | 'SELL' | 'UNKNOWN' | 'CONFLICT';
+type Signal = {
+  instrument_name: string;
+  exchange: 'SSE' | 'SZSE';
+  symbol: string;
+  timeframe: string;
+  direction: Direction;
+  latest_signal_at: string | null;
+  source: string;
+  duration: string;
+  phase_code: string;
+  phase_label: string;
+  alert_configured_count: number;
+  live_verified_count: number;
+};
+type Payload = {
+  schema_version: string;
+  mode: 'demo' | 'live';
+  generated_at: string;
+  notice: string;
+  signals: Signal[];
+};
+
+const payload = JSON.parse(
+  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals-demo.json'), 'utf-8'),
+) as Payload;
+const timeframeOrder = ['10m', '30m', '1h', '2h', '3h', '4h', '5h', '6h', '1D'];
+const timeframeLabels: Record<string, string> = {
+  '10m': '10分钟', '30m': '30分钟', '1h': '1小时', '2h': '2小时', '3h': '3小时',
+  '4h': '4小时', '5h': '5小时', '6h': '6小时', '1D': '日线',
+};
+const signals = [...payload.signals].sort((a, b) => timeframeOrder.indexOf(a.timeframe) - timeframeOrder.indexOf(b.timeframe));
+const primary = signals[0];
+const buyCount = signals.filter((item) => item.direction === 'BUY').length;
+const sellCount = signals.filter((item) => item.direction === 'SELL').length;
+const unknownCount = signals.filter((item) => item.direction === 'UNKNOWN').length;
+const conflictCount = signals.filter((item) => item.direction === 'CONFLICT').length;
+const byGroup = {
+  short: signals.filter((item) => ['10m', '30m', '1h'].includes(item.timeframe)),
+  medium: signals.filter((item) => ['2h', '3h', '4h', '5h'].includes(item.timeframe)),
+  long: signals.filter((item) => ['6h', '1D'].includes(item.timeframe)),
+};
+const groupLabel = (rows: Signal[]) => {
+  const buys = rows.filter((item) => item.direction === 'BUY').length;
+  const sells = rows.filter((item) => item.direction === 'SELL').length;
+  if (rows.some((item) => item.direction === 'CONFLICT')) return '存在冲突';
+  if (buys > sells) return '买入占优';
+  if (sells > buys) return '卖出占优';
+  return '方向均衡';
+};
+const formatTime = (value: string | null) => {
+  if (!value) return '等待信号';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai', hour12: false, month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+const directionLabel: Record<Direction, string> = { BUY: '买入', SELL: '卖出', UNKNOWN: '等待信号', CONFLICT: '信号冲突' };
+const directionClass: Record<Direction, string> = { BUY: 'buy', SELL: 'sell', UNKNOWN: 'unknown', CONFLICT: 'conflict' };
+const pageTitle = `A股滚动策略｜九周期信号 | ${SITE_TITLE}`;
+const pageDescription = 'A股滚动策略九周期信号观察页，展示短中长周期方向、持续时间、信号时间与数据状态。当前为脱敏演示数据。';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={pageTitle} description={pageDescription} />
+  </head>
+  <body>
+    <Header />
+    <main id="main-content">
+      <AStockSubnav active="rolling" />
+
+      <section class="terminal-head" aria-labelledby="rolling-title">
+        <div class="title-block">
+          <div class="eyebrow"><span class="status-dot"></span>A股 · 九周期状态 <span class="mode-badge">演示数据</span></div>
+          <h1 id="rolling-title">滚动策略</h1>
+          <p>{primary?.instrument_name || '暂无标的'} <code>{primary?.symbol || '—'}</code></p>
+        </div>
+        <div class="head-meta">
+          <MarketClock market="a-share" />
+        </div>
+        <div class="phase-panel">
+          <span>当前阶段</span>
+          <strong>{primary?.phase_label || '等待状态数据'}</strong>
+          <small>数据时间 {formatTime(payload.generated_at)} · {signals.length}/9 周期</small>
+        </div>
+        <div class="count-grid" aria-label="信号统计">
+          <div class="count-item buy"><span>买入</span><strong>{buyCount}</strong></div>
+          <div class="count-item sell"><span>卖出</span><strong>{sellCount}</strong></div>
+          <div class="count-item neutral"><span>等待</span><strong>{unknownCount}</strong></div>
+          <div class:list={['count-item', conflictCount > 0 ? 'warning' : 'neutral']}><span>冲突</span><strong>{conflictCount}</strong></div>
+        </div>
+      </section>
+
+      <section class="cycle-summary" aria-label="周期分组状态">
+        <article>
+          <span>短周期</span>
+          <strong>{groupLabel(byGroup.short)}</strong>
+          <small>10分钟 · 30分钟 · 1小时</small>
+        </article>
+        <article>
+          <span>中周期</span>
+          <strong>{groupLabel(byGroup.medium)}</strong>
+          <small>2小时 · 3小时 · 4小时 · 5小时</small>
+        </article>
+        <article>
+          <span>长周期</span>
+          <strong>{groupLabel(byGroup.long)}</strong>
+          <small>6小时 · 日线</small>
+        </article>
+      </section>
+
+      <section class="matrix-section" aria-labelledby="matrix-title">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">周期矩阵</span>
+            <h2 id="matrix-title">九周期信号</h2>
+          </div>
+          <p>移动端可展开信号事实</p>
+        </div>
+
+        <div class="signal-table-wrap">
+          <table class="signal-table">
+            <caption>上海电力九周期脱敏演示信号</caption>
+            <thead>
+              <tr><th scope="col">周期</th><th scope="col">方向</th><th scope="col">持续时间</th><th scope="col">信号时间</th><th scope="col">状态</th></tr>
+            </thead>
+            <tbody>
+              {signals.map((signal) => (
+                <tr>
+                  <th scope="row">{timeframeLabels[signal.timeframe] || signal.timeframe}</th>
+                  <td><span class:list={['direction', directionClass[signal.direction]]}>{directionLabel[signal.direction]}</span></td>
+                  <td>{signal.duration}</td>
+                  <td>{formatTime(signal.latest_signal_at)}</td>
+                  <td><span class="source">演示</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-signals">
+          {signals.map((signal) => (
+            <details class:list={['cycle-card', directionClass[signal.direction]]}>
+              <summary>
+                <span class="cycle-name">{timeframeLabels[signal.timeframe] || signal.timeframe}</span>
+                <span class:list={['direction', directionClass[signal.direction]]}>{directionLabel[signal.direction]}</span>
+                <span class="chevron" aria-hidden="true">⌄</span>
+              </summary>
+              <dl>
+                <div><dt>持续时间</dt><dd>{signal.duration}</dd></div>
+                <div><dt>最近信号</dt><dd>{formatTime(signal.latest_signal_at)}</dd></div>
+                <div><dt>阶段</dt><dd>{signal.phase_label}</dd></div>
+                <div><dt>数据来源</dt><dd>脱敏演示 Fixture</dd></div>
+              </dl>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <aside class="data-notice" aria-label="数据状态">
+        <div><span class="notice-icon">i</span><strong>演示隔离模式</strong></div>
+        <p>{payload.notice} 页面不会连接数据库、Webhook、交易系统或生产信号。</p>
+      </aside>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
+  .terminal-head { display: grid; grid-template-columns: minmax(0,.85fr) minmax(520px,1.15fr); gap: 1rem; padding: 1.15rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: var(--box-shadow); }
+  .title-block h1 { margin: .2rem 0 .2rem; font-size: clamp(1.9rem, 4vw, 2.65rem); letter-spacing: 0; }
+  .title-block p { margin: 0; color: rgb(var(--gray)); font-weight: 750; }
+  .title-block code { margin-left: .35rem; background: #f4f5f6; color: rgb(var(--black)); }
+  .eyebrow { display: flex; align-items: center; gap: .4rem; color: rgb(var(--gray)); font-size: .72rem; font-weight: 900; letter-spacing: .06em; }
+  .status-dot { width: .48rem; height: .48rem; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
+  .head-meta { min-width: 0; }
+  .head-meta :global(.market-clock) { width: 100%; }
+  .mode-badge { display: inline-flex; align-items: center; min-height: 28px; padding: .25rem .6rem; border: 1px solid #e4bf72; border-radius: 999px; background: var(--amber-soft); color: #925600; font-size: .72rem; font-weight: 900; }
+  .phase-panel { padding: .9rem 1rem; border: 1px solid #dbe3ec; border-radius: 10px; background: #f5f8fb; }
+  .phase-panel span, .phase-panel small { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 750; }
+  .phase-panel strong { display: block; margin: .2rem 0 .25rem; font-size: 1rem; line-height: 1.45; letter-spacing: 0; }
+  .count-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .45rem; }
+  .count-item { min-height: 72px; padding: .65rem .7rem; border: 1px solid var(--border); border-radius: 10px; background: #fafafa; }
+  .count-item span { display: block; color: rgb(var(--gray)); font-size: .7rem; font-weight: 850; }
+  .count-item strong { display: block; margin-top: .25rem; font-size: 1.5rem; line-height: 1; }
+  .count-item.buy { border-color: rgba(214,61,46,.18); background: var(--accent-soft); }
+  .count-item.buy strong { color: var(--action-buy); }
+  .count-item.sell { border-color: rgba(21,148,71,.18); background: var(--green-soft); }
+  .count-item.sell strong { color: var(--action-sell); }
+  .count-item.warning strong { color: var(--amber); }
+  .cycle-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .7rem; margin-top: .75rem; }
+  .cycle-summary article { padding: .8rem .9rem; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .cycle-summary span, .cycle-summary small { display: block; color: rgb(var(--gray)); font-size: .7rem; font-weight: 750; }
+  .cycle-summary strong { display: block; margin: .16rem 0; font-size: .95rem; letter-spacing: 0; }
+  .matrix-section { margin-top: 1.5rem; }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
+  .section-head h2 { margin: .2rem 0 0; font-size: 1.35rem; letter-spacing: 0; }
+  .section-head p { margin: 0; color: rgb(var(--gray)); font-size: .76rem; }
+  .signal-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: var(--box-shadow); }
+  .signal-table { display: table; min-width: 720px; border: 0; border-radius: 0; }
+  .signal-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .signal-table th, .signal-table td { height: 60px; padding: .7rem .9rem; vertical-align: middle; }
+  .signal-table thead th { color: rgb(var(--gray)); font-size: .72rem; letter-spacing: .04em; }
+  .signal-table tbody th { color: rgb(var(--black)); font-size: .88rem; }
+  .signal-table tbody tr:last-child th, .signal-table tbody tr:last-child td { border-bottom: 0; }
+  .direction { display: inline-flex; align-items: center; justify-content: center; min-width: 62px; min-height: 30px; padding: .25rem .55rem; border: 1px solid transparent; border-radius: 7px; font-size: .76rem; font-weight: 900; }
+  .direction.buy { color: #a6291f; border-color: rgba(214,61,46,.18); background: var(--accent-soft); }
+  .direction.sell { color: #087a37; border-color: rgba(21,148,71,.18); background: var(--green-soft); }
+  .direction.unknown { color: #5f6368; border-color: #d7d9dc; background: #f2f3f4; }
+  .direction.conflict { color: #925600; border-color: #e4bf72; background: var(--amber-soft); }
+  .source { color: rgb(var(--gray)); font-size: .72rem; font-weight: 800; }
+  .mobile-signals { display: none; }
+  .data-notice { margin-top: 1rem; padding: .8rem .9rem; border: 1px solid #e4bf72; border-radius: 10px; background: var(--amber-soft); }
+  .data-notice > div { display: flex; align-items: center; gap: .45rem; }
+  .data-notice strong { font-size: .82rem; }
+  .notice-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: #925600; color: #fff; font-size: .72rem; font-weight: 900; }
+  .data-notice p { margin: .25rem 0 0 1.7rem; color: #6f521b; font-size: .75rem; line-height: 1.5; }
+  @media (max-width: 760px) {
+    main { width: calc(100% - 1rem); padding-top: .7rem; }
+    .terminal-head { grid-template-columns: 1fr; padding: .9rem; }
+    .head-meta { align-items: stretch; }
+    .head-meta :global(.market-clock) { width: 100%; }
+    .mode-badge { align-self: flex-start; }
+    .count-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .cycle-summary { grid-template-columns: 1fr; gap: .45rem; }
+    .cycle-summary article { display: grid; grid-template-columns: 76px 1fr; align-items: center; }
+    .cycle-summary small { grid-column: 2; }
+    .section-head { align-items: flex-start; }
+    .section-head p { text-align: right; }
+    .signal-table-wrap { display: none; }
+    .mobile-signals { display: grid; gap: .45rem; }
+    .cycle-card { overflow: hidden; border: 1px solid var(--border); border-left: 4px solid #b4b8bd; border-radius: 10px; background: #fff; }
+    .cycle-card.buy { border-left-color: var(--action-buy); }
+    .cycle-card.sell { border-left-color: var(--action-sell); }
+    .cycle-card.conflict { border-left-color: var(--amber); }
+    .cycle-card summary { display: grid; grid-template-columns: minmax(90px,1fr) auto 20px; align-items: center; gap: .6rem; min-height: 58px; padding: .65rem .75rem; cursor: pointer; list-style: none; }
+    .cycle-card summary::-webkit-details-marker { display: none; }
+    .cycle-name { color: rgb(var(--black)); font-size: .88rem; font-weight: 900; }
+    .chevron { color: rgb(var(--gray)); transition: transform 160ms ease; }
+    .cycle-card[open] .chevron { transform: rotate(180deg); }
+    .cycle-card dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin: 0; padding: .75rem; border-top: 1px solid var(--border); background: #fafafa; }
+    .cycle-card dl div:last-child { grid-column: 1 / -1; }
+    .cycle-card dt { color: rgb(var(--gray)); font-size: .68rem; font-weight: 800; }
+    .cycle-card dd { margin: .12rem 0 0; color: rgb(var(--black)); font-size: .78rem; line-height: 1.4; }
+    .data-notice p { margin-left: 0; }
+  }
+  @media (max-width: 360px) {
+    .count-item { min-height: 66px; }
+    .cycle-card dl { grid-template-columns: 1fr; }
+    .cycle-card dl div:last-child { grid-column: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+</style>
