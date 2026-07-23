@@ -5,7 +5,7 @@
   "data_as_of": "2026-07-21T03:00:00Z",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "依据用户提供的各周期最近一次BUY/SELL时间制作的上海电力基准演示快照。",
+  "notice": "依据上海电力基准数据制作的演示快照；展示买方传导至D30及空方8分钟预警与10m/15m卖出节点。",
   "delivery": { "state": "live", "reason": null },
   "instrument": { "instrument_name": "上海电力", "exchange": "SSE", "symbol": "600021" },
   "transmission": {
@@ -47,7 +47,7 @@
   ],
   "sell_chain": {
     "window_type": "8min",
-    "window_description": "买方越过4小时，采用8分钟卖出预警窗口",
+    "window_description": "买方传导到达 D30（超过4小时），采用 8分钟 卖出预警窗口",
     "warning_star": {
       "code": "★",
       "timeframe_minutes": 8,
@@ -65,14 +65,14 @@
   },
   "sell_alerts": [
     {
-      "alert_id": "sell-alert-01",
+      "alert_id": "sell-alert-shanghai-electric",
       "cycle_code": "Ⅰ",
       "timeframe_minutes": 10,
       "triggered_at": "2026-07-21T03:00:00Z",
       "transmission_position": "D30",
       "remaining_session_minutes": 120,
       "analysis_state": "ready",
-      "analysis": "买方能量已传导至D30（5小时30分钟），处于极长周期博弈阶段。8分钟卖出预警触发后，10分钟节点（Ⅰ）与15分钟节点（Ⅱ）已相继确认卖出信号，空方力量显著增强，需重点关注今日剩余120分钟内是否进一步向下触及30分钟节点。"
+      "analysis": "买方力量已成功传导至 D30 (5小时30分钟)，本轮买方传导在 D45 (5小时45分钟) 暂时停顿。由于买方已超过 4小时 节点，系统启用了 8分钟 卖出观察窗口。当前 8分钟 卖出预警 (★) 已于 09:38 触发，随后 10分钟 (Ⅰ) 与 15分钟 (Ⅱ) 卖出节点也已陆续确认。空方力量正在积聚，建议密切观察 30分钟 节点 (Ⅲ) 是否进一步发出卖出确认信号。"
     }
   ]
 }
