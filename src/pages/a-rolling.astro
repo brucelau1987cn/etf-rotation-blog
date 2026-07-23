@@ -109,6 +109,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         width: min(1180px, calc(100% - 1.5rem));
         padding: 1rem 0 3rem;
         margin: 0 auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
       .card {
         border: 1px solid var(--border);
@@ -458,6 +459,9 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
       }
 
       @media (max-width: 768px) {
+        main {
+          width: min(100% - 1rem, 1180px);
+        }
         .count-strip { grid-template-columns: repeat(2, 1fr); }
       }
     </style>
@@ -473,9 +477,10 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="hero-copy">
             <div class="meta-line">
               <span class="pill pill-red">🇨🇳 A股 · 滚动策略</span>
-              <span class="pill pill-amber">数据时点：{formatTime(payload.data_as_of)}</span>
-              <span class="pill pill-blue">模式：基准演示</span>
+              <span class="pill pill-amber" id="pill-as-of">数据时点：{formatTime(payload.data_as_of)}</span>
+              <span class="pill pill-blue" id="pill-mode">模式：{payload.mode === 'demo' ? '基准演示' : '实时数据'}</span>
               <span class="pill">协议：a-rolling-energy-v2</span>
+              <span class="pill live-pill" id="live-status-pill" style="background:#e6f4ff; color:#0958d9; border-color:#91caff;">实时连接中</span>
             </div>
             <h1 id="page-title">多空能量传导链</h1>
             <p>基于 TradingBox AI 4.0 信号的 34 周期买方能量传导与动态卖出预警中枢</p>
@@ -486,23 +491,23 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         <div class="count-strip" aria-label="核心指标看板">
           <div class="count-box buy-box">
             <span>🔴 当前多头位置</span>
-            <strong>{payload.transmission.current_cycle_code}</strong>
-            <em>连续点亮 {payload.transmission.lit_count} 格</em>
+            <strong id="stat-current-code">{payload.transmission.current_cycle_code}</strong>
+            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格</em>
           </div>
           <div class="count-box stop-box">
             <span>🟡 传导停止节点</span>
-            <strong>{payload.transmission.stopped_at_code || 'G'}</strong>
+            <strong id="stat-stopped-code">{payload.transmission.stopped_at_code || 'G'}</strong>
             <em>暂未出现买入确认</em>
           </div>
           <div class="count-box sell-box">
             <span>🟢 卖出预警窗口</span>
-            <strong>{payload.sell_chain.warning_star.code} ({payload.sell_chain.window_type})</strong>
-            <em>{formatTime(payload.sell_chain.warning_star.triggered_at, false)} 预警点亮</em>
+            <strong id="stat-star-code">{payload.sell_chain.warning_star.code} ({payload.sell_chain.window_type})</strong>
+            <em id="stat-star-time">{formatTime(payload.sell_chain.warning_star.triggered_at, false)} 预警点亮</em>
           </div>
           <div class="count-box sell-box">
             <span>🟢 正式卖出节点</span>
-            <strong>Ⅰ · Ⅱ 级</strong>
-            <em>Ⅲ 节点观察中</em>
+            <strong id="stat-sell-summary">Ⅰ · Ⅱ 级</strong>
+            <em id="stat-sell-note">Ⅲ 节点观察中</em>
           </div>
         </div>
       </section>
@@ -526,8 +531,8 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="table-grid">
             <!-- 左侧固定标的列 -->
             <div class="stock-sticky">
-              <div class="stock-name-title">{payload.instrument.instrument_name}</div>
-              <div class="stock-code-tag">{payload.instrument.symbol}</div>
+              <div class="stock-name-title" id="inst-name">{payload.instrument.instrument_name}</div>
+              <div class="stock-code-tag" id="inst-symbol">{payload.instrument.symbol}</div>
             </div>
 
             <!-- 右侧双行信号轴 -->
@@ -536,7 +541,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
               <!-- 上层：卖出信号链（绿） -->
               <div class="axis-row sell-axis">
                 <div class="axis-label sell-label">空方力量</div>
-                <div class="cells-scroll">
+                <div class="cells-scroll" id="sell-cells-container">
                   <!-- 预警五角星 -->
                   <div class="cell-badge sell-star">
                     <div class="badge-code">{payload.sell_chain.warning_star.code}</div>
@@ -545,7 +550,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
 
                   <!-- 罗马数字节点 -->
                   {payload.sell_chain.nodes.map((node) => (
-                    <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`}>
+                    <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
                       <div class="badge-code">{node.code}</div>
                       <div class="badge-time">
                         {node.sell_state === 'SELL' ? formatTime(node.triggered_at, false) : node.sell_state === 'OBSERVING' ? '观察中' : '未激活'}
@@ -558,9 +563,9 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
               <!-- 下层：买入信号链（红） -->
               <div class="axis-row buy-axis">
                 <div class="axis-label buy-label">多方力量</div>
-                <div class="cells-scroll">
+                <div class="cells-scroll" id="buy-cells-container">
                   {payload.buy_cycles.map((cycle) => (
-                    <div class={`cell-badge buy-${cycle.buy_state.toLowerCase()}`}>
+                    <div class={`cell-badge buy-${cycle.buy_state.toLowerCase()}`} data-buy-code={cycle.cycle_code}>
                       <div class="badge-code">{cycle.cycle_code}</div>
                       <div class="badge-time">
                         {cycle.buy_state === 'BUY' ? formatTime(cycle.buy_triggered_at, false) : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活'}
@@ -581,24 +586,156 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <span style="font-size: 1.25rem;">⚡</span>
           <h3 id="ai-title">AI 卖出预警实时研判</h3>
         </div>
-        {payload.sell_alerts.length > 0 ? (
-          payload.sell_alerts.map((alert) => (
-            <div class="ai-alert-box">
-              <div class="ai-alert-meta">
-                <span>触发节点：<strong>{alert.cycle_code} ({alert.timeframe_minutes}分钟)</strong></span>
-                <span>多头极限位置：<strong>{alert.transmission_position}</strong></span>
-                <span>今日剩余交易时间：<strong>{alert.remaining_session_minutes}分钟</strong></span>
+        <div id="ai-alerts-container">
+          {payload.sell_alerts.length > 0 ? (
+            payload.sell_alerts.map((alert) => (
+              <div class="ai-alert-box">
+                <div class="ai-alert-meta">
+                  <span>触发节点：<strong>{alert.cycle_code} ({alert.timeframe_minutes}分钟)</strong></span>
+                  <span>多头极限位置：<strong>{alert.transmission_position}</strong></span>
+                  <span>今日剩余交易时间：<strong>{alert.remaining_session_minutes}分钟</strong></span>
+                </div>
+                <p class="ai-alert-text">{alert.analysis}</p>
               </div>
-              <p class="ai-alert-text">{alert.analysis}</p>
+            ))
+          ) : (
+            <div style="color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;">
+              当前多头传导有序，暂无空方卖出预警。
             </div>
-          ))
-        ) : (
-          <div style="color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;">
-            当前多头传导有序，暂无空方卖出预警。
-          </div>
-        )}
+          )}
+        </div>
       </section>
     </main>
     <Footer />
+
+    <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
+    <script is:inline>
+      (() => {
+        const formatTime = (value, includeDate = true) => {
+          if (!value) return '—';
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) return String(value);
+          if (!includeDate) {
+            return date.toLocaleString('zh-CN', {
+              timeZone: 'Asia/Shanghai', hour12: false, hour: '2-digit', minute: '2-digit'
+            });
+          }
+          return date.toLocaleString('zh-CN', {
+            timeZone: 'Asia/Shanghai', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+          });
+        };
+
+        const updateUI = (data) => {
+          if (!data) return;
+
+          // 1. 更新顶部元数据
+          const pillAsOf = document.getElementById('pill-as-of');
+          if (pillAsOf) pillAsOf.textContent = `数据时点：${formatTime(data.data_as_of)}`;
+          
+          const pillMode = document.getElementById('pill-mode');
+          if (pillMode) pillMode.textContent = `模式：${data.mode === 'demo' ? '基准演示' : '实时数据'}`;
+
+          const liveStatus = document.getElementById('live-status-pill');
+          if (liveStatus) {
+            liveStatus.textContent = '● 实时已同步';
+            liveStatus.style.color = '#389e0d';
+            liveStatus.style.borderColor = '#b7eb8f';
+            liveStatus.style.background = '#f6ffed';
+          }
+
+          // 2. 更新 4 列统计条
+          if (data.transmission) {
+            const elCurrent = document.getElementById('stat-current-code');
+            if (elCurrent) elCurrent.textContent = data.transmission.current_cycle_code || '—';
+            
+            const elLit = document.getElementById('stat-lit-count');
+            if (elLit) elLit.textContent = `连续点亮 ${data.transmission.lit_count} 格`;
+
+            const elStopped = document.getElementById('stat-stopped-code');
+            if (elStopped) elStopped.textContent = data.transmission.stopped_at_code || 'G';
+          }
+
+          if (data.sell_chain) {
+            const elStar = document.getElementById('stat-star-code');
+            if (elStar && data.sell_chain.warning_star) {
+              elStar.textContent = `${data.sell_chain.warning_star.code} (${data.sell_chain.window_type})`;
+            }
+
+            const elStarTime = document.getElementById('stat-star-time');
+            if (elStarTime && data.sell_chain.warning_star) {
+              elStarTime.textContent = `${formatTime(data.sell_chain.warning_star.triggered_at, false)} 预警点亮`;
+            }
+          }
+
+          // 3. 更新多头买入节点
+          if (Array.isArray(data.buy_cycles)) {
+            data.buy_cycles.forEach(cycle => {
+              const el = document.querySelector(`[data-buy-code="${cycle.cycle_code}"]`);
+              if (el) {
+                el.className = `cell-badge buy-${(cycle.buy_state || 'inactive').toLowerCase()}`;
+                const timeEl = el.querySelector('.badge-time');
+                if (timeEl) {
+                  timeEl.textContent = cycle.buy_state === 'BUY'
+                    ? formatTime(cycle.buy_triggered_at, false)
+                    : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活';
+                }
+              }
+            });
+          }
+
+          // 4. 更新空头卖出节点
+          if (data.sell_chain && Array.isArray(data.sell_chain.nodes)) {
+            data.sell_chain.nodes.forEach(node => {
+              const el = document.querySelector(`[data-sell-code="${node.code}"]`);
+              if (el) {
+                el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
+                const timeEl = el.querySelector('.badge-time');
+                if (timeEl) {
+                  timeEl.textContent = node.sell_state === 'SELL'
+                    ? formatTime(node.triggered_at, false)
+                    : node.sell_state === 'OBSERVING' ? '观察中' : '未激活';
+                }
+              }
+            });
+          }
+
+          // 5. 更新 AI 分析卡片
+          if (Array.isArray(data.sell_alerts)) {
+            const container = document.getElementById('ai-alerts-container');
+            if (container) {
+              if (data.sell_alerts.length === 0) {
+                container.innerHTML = `<div style="color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;">当前多头传导有序，暂无空方卖出预警。</div>`;
+              } else {
+                container.innerHTML = data.sell_alerts.map(alert => `
+                  <div class="ai-alert-box">
+                    <div class="ai-alert-meta">
+                      <span>触发节点：<strong>${alert.cycle_code} (${alert.timeframe_minutes}分钟)</strong></span>
+                      <span>多头极限位置：<strong>${alert.transmission_position}</strong></span>
+                      <span>今日剩余交易时间：<strong>${alert.remaining_session_minutes}分钟</strong></span>
+                    </div>
+                    <p class="ai-alert-text">${alert.analysis}</p>
+                  </div>
+                `).join('');
+              }
+            }
+          }
+        };
+
+        const fetchLatestSignals = async () => {
+          try {
+            const res = await fetch('/api/public/v1/rolling-signals');
+            if (!res.ok) return;
+            const data = await res.json();
+            updateUI(data);
+          } catch (e) {
+            // 静默失败，保持 DOM 现状
+          }
+        };
+
+        // 页面打开后立即拉取一次最新信号，之后每 15 秒轮询更新一次
+        setTimeout(fetchLatestSignals, 1000);
+        setInterval(fetchLatestSignals, 15000);
+      })();
+    </script>
   </body>
 </html>
