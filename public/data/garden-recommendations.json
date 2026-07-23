@@ -1,34 +1,34 @@
 {
   "date": "2026-07-23",
-  "updated_at": "2026-07-23 11:48 CST",
+  "updated_at": "2026-07-23 22:42 CST",
   "applies_to": "2026-07-23",
-  "data_as_of": "2026-07-23 11:48 CST盘中原始行情与MX资金；历史关键位为2026-07-22收盘 qfq（91/91）",
-  "level_data_as_of": "2026-07-22",
-  "stage": "11:30上午收盘修正版",
+  "data_as_of": "2026-07-23 收盘原始行情、MX-Skills 22:38资金复核；静态关键位为2026-07-23收盘 qfq（91/91）",
+  "level_data_as_of": "2026-07-23",
+  "stage": "22:00夜间最终版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-07-23+11:30+Bruce ETF Trend Radar v3",
-  "market_state": "91池45红/42绿/4平，宽基小跌但科创50指数跌4.09%；科技高开低走，资源、电网领涨但ETF资金背离，结构轮动不等于风险修复。",
+  "idempotency_key": "CN+2026-07-23+22:00+Bruce ETF Trend Radar v3",
+  "market_state": "91池收盘广度改善但科技与周期分化：电网、电池、有色领涨，半导体链继续破位；成交2.21万亿、较前日缩量约4592亿，属于高低切换，不是风险偏好全面修复。",
   "position": "权益0%-10%；防御/现金90%-100%",
-  "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "上午科技破位撤退；资源、电网冲高止盈但不追；银行红利仅候场；黄金股、煤炭、创新药执行兑现。",
-  "summary": "11:30上午收盘修正：科创与半导体跌破退出位，通信仅观察承接；资源、电网涨价不涨资金；正式伏击仍为0，防御候场，黄金煤炭创新药兑现；中观逆风（权益上限已压缩）。",
+  "position_base": "权益10%-30%；防御/现金70%-90%",
+  "mainline": "科技破位撤退；电网、电池、有色冲高兑现且不追；银行、红利只作防御候场；黄金股、煤炭继续锁盈，创新药反抽兑现。",
+  "summary": "22:00夜间最终整理：科创50与半导体收跌3.43%/3.99%，MX主力约-21.38亿/-4.97亿，破位撤退有效；电网设备+5.20%但ETF主力约-2.15亿，资源、电池均按冲高兑现；正式伏击仍为0，中观逆风维持权益0%-10%。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
     "qfq_count": 91,
     "raw_fallback_count": 0,
-    "latest_trade_date": "2026-07-22",
-    "generated_at": "2026-07-23 11:48:00 UTC+08:00",
-    "quote_as_of": "2026-07-23 11:48 CST盘中",
+    "latest_trade_date": "2026-07-23",
+    "generated_at": "2026-07-23 21:01:18 UTC+08:00",
+    "quote_as_of": "2026-07-23 收盘",
     "quote_date": "2026-07-23",
-    "return_basis_disclosure": "2026-07-23盘中原始OHLC用于触发与上午表现；2026-07-22 final qfq用于历史强度和静态关键位。",
-    "breadth": "91池45红/42绿/4平；上证-0.19%、深证-0.19%、创业板-0.33%、科创50-4.09%"
+    "return_basis_disclosure": "当日原始OHLC用于收盘触发与收益验证；2026-07-23 qfq用于静态关键位与历史强度。",
+    "breadth": "收盘沪指+0.25%、深成指+0.44%、创业板+0.25%、科创50-3.78%；全市场超4200只上涨，成交约2.21万亿、较前日缩量约4592亿"
   },
   "source_audit": {
-    "mx_fund_flow_as_of": "MX-Skills三组ETF查询均返回非空表，时间2026-07-23 11:47-11:48 CST；空行未按零处理",
-    "iwencai_news": "多Key包装器成功；早盘半导体高开资讯与午间半导体领跌形成反转，电网规划、锂矿和有色为上午催化",
-    "final_pool": "formal universe 91/91；qfq 91/91；latest_trade_date=2026-07-22；盘中quote_date=2026-07-23",
-    "fallback": "stock-api MCP/Tencent覆盖91只ETF及宽基实时行情；MX-Search补充11:40午评，未将旧年份新闻纳入结论"
+    "mx_fund_flow_as_of": "MX-Skills 22:38 CST两组ETF资金查询均返回非空表；缺失行不按零处理",
+    "iwencai_news": "多Key包装器成功：收盘确认电网、锂矿、电池与有色走强，半导体产业链继续下挫",
+    "final_pool": "冻结正式池91/91；qfq 91/91；latest_trade_date=2026-07-23；generated_at=2026-07-23 21:01:18 UTC+08:00",
+    "fallback": "stock-api MCP/Tencent复核收盘价；MX-Search补充收盘广度、缩量及行业资金方向"
   },
   "harvest": [
     {
@@ -36,85 +36,120 @@
       "code": "517520",
       "name": "黄金股ETF永赢",
       "priority": "高",
-      "trigger": "上午1.909、涨2.97%，进入盘前1.883以上兑现区，但主力约-0.11亿。",
-      "action": "已有仓分批兑现30%-50%，空仓不追；下午守1.883只保留底仓。",
-      "signal_state": "上午已触发",
-      "price": 1.909,
-      "support": 1.883,
-      "target": 1.991,
-      "stop": 1.84,
-      "trigger_level": 1.883,
-      "action_level_label": "兑现区",
+      "trigger": "收盘1.886、涨1.73%，日内冲高1.931回落，MX主力约-0.35亿。",
+      "action": "已有仓分批兑现30%-50%，空仓不追；仅守住收盘关键位后保留底仓。",
+      "signal_state": "收盘已触发",
+      "price": 1.886,
+      "support": 1.755,
+      "target": 2.017,
+      "stop": 1.695,
+      "action_level": 2.017,
+      "trigger_level": 2.017,
+      "action_level_label": "兑现位",
+      "distance_pct": 6.95,
+      "trend_level": "B",
+      "risk_level": "中",
       "price_date": "2026-07-23",
-      "risk_level": "中"
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready"
     },
     {
       "status": "兑现",
       "code": "515220",
       "name": "煤炭ETF国泰",
       "priority": "中",
-      "trigger": "上午1.237、涨1.06%，守住盘前1.224锁盈位，但主力约-0.19亿。",
-      "action": "已有仓继续锁盈，空仓不追；下午跌回1.224下方减仓，1.205下方退出交易仓。",
-      "signal_state": "上午已触发",
-      "price": 1.237,
-      "support": 1.224,
-      "target": 1.289,
-      "stop": 1.205,
-      "trigger_level": 1.224,
-      "action_level_label": "锁盈区",
+      "trigger": "收盘1.238、涨1.14%，接近日高，MX主力约-0.21亿。",
+      "action": "已有仓继续锁盈，空仓不追；跌破静态止损位退出交易仓。",
+      "signal_state": "收盘已触发",
+      "price": 1.238,
+      "support": 1.171,
+      "target": 1.305,
+      "stop": 1.143,
+      "action_level": 1.305,
+      "trigger_level": 1.305,
+      "action_level_label": "兑现位",
+      "distance_pct": 5.41,
+      "trend_level": "B",
+      "risk_level": "低",
       "price_date": "2026-07-23",
-      "risk_level": "中"
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready"
     },
     {
       "status": "兑现",
       "code": "159992",
       "name": "创新药ETF银华",
       "priority": "高",
-      "trigger": "上午0.869、跌1.25%，主力约-0.58亿，未能进入反抽兑现区且延续资金流出。",
-      "action": "持有继续减仓；失守0.846加快兑现，下午站回0.887且资金转正才停止减仓。",
-      "signal_state": "上午已触发",
-      "price": 0.869,
-      "support": 0.846,
-      "target": 0.904,
-      "stop": 0.79,
-      "trigger_level": 0.887,
-      "action_level_label": "停止减仓确认位",
+      "trigger": "收盘0.877、跌0.34%，MX主力约-0.20亿，反抽未获资金确认。",
+      "action": "反抽兑现、停止新增；只有价格站回5日结构且资金转正才停止减仓。",
+      "signal_state": "收盘已触发",
+      "price": 0.877,
+      "support": 0.85,
+      "target": 0.944,
+      "stop": 0.788,
+      "action_level": 0.944,
+      "trigger_level": 0.944,
+      "action_level_label": "兑现位",
+      "distance_pct": 7.64,
+      "trend_level": "C",
+      "risk_level": "低",
       "price_date": "2026-07-23",
-      "risk_level": "高"
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready"
     },
     {
       "status": "止盈观察",
       "code": "512400",
       "name": "有色金属ETF南方",
       "priority": "高",
-      "trigger": "上午1.829、涨3.45%、位置约76%，但主力约-0.40亿，价格资金背离。",
-      "action": "已有仓冲高兑现，空仓不追；下午资金转正且守1.829才保留小仓。",
-      "signal_state": "上午新增",
-      "price": 1.829,
-      "support": 1.759,
-      "target": 1.851,
-      "stop": 1.74,
-      "trigger_level": 1.829,
-      "action_level_label": "止盈观察位",
+      "trigger": "收盘1.822、涨3.05%，但MX主力约-1.51亿，价格资金背离。",
+      "action": "已有仓冲高兑现，空仓不追；次日只有回踩承接且资金转正才保留小仓。",
+      "signal_state": "收盘新增",
+      "price": 1.822,
+      "support": 1.779,
+      "target": 1.941,
+      "stop": 1.664,
+      "action_level": 1.941,
+      "trigger_level": 1.941,
+      "action_level_label": "兑现位",
+      "distance_pct": 6.53,
+      "trend_level": "D",
+      "risk_level": "中",
       "price_date": "2026-07-23",
-      "risk_level": "中"
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready"
     },
     {
       "status": "止盈观察",
       "code": "159326",
       "name": "电网设备ETF华夏",
       "priority": "高",
-      "trigger": "上午1.630、涨3.36%、位置约74%，政策催化明确但主力约-0.48亿。",
-      "action": "已有仓冲高兑现，空仓不追；下午资金转正且守1.630才保留小仓。",
-      "signal_state": "上午新增",
-      "price": 1.63,
+      "trigger": "收盘1.659、涨5.20%、接近日高，但MX主力约-2.15亿。",
+      "action": "政策催化不等于ETF新钱；已有仓冲高兑现，空仓不追，等待缩量回踩确认。",
+      "signal_state": "收盘新增",
+      "price": 1.659,
       "support": 1.579,
-      "target": 1.648,
-      "stop": 1.56,
-      "trigger_level": 1.63,
-      "action_level_label": "止盈观察位",
+      "target": 1.78,
+      "stop": 1.497,
+      "action_level": 1.78,
+      "trigger_level": 1.78,
+      "action_level_label": "兑现位",
+      "distance_pct": 7.29,
+      "trend_level": "D",
+      "risk_level": "中",
       "price_date": "2026-07-23",
-      "risk_level": "中"
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready"
     }
   ],
   "plant": [
@@ -123,19 +158,26 @@
       "code": "512800",
       "name": "银行ETF华宝",
       "priority": "高",
-      "trigger": "上午0.803、涨0.50%，回踩0.795后修复，但主力约-0.44亿。",
-      "action": "已有底仓持有，空仓不追；下午回踩0.795守稳且资金转正才重评。",
+      "trigger": "收盘0.803、涨0.50%，日内承接尚可但MX主力约-0.77亿。",
+      "action": "已有底仓持有，空仓不追；回踩静态支撑并见资金转正才重评。",
       "signal_state": "候场未触发",
       "eligibility": "watch_only",
       "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
       "price": 0.803,
-      "support": 0.795,
-      "target": 0.824,
-      "stop": 0.774,
-      "trigger_level": 0.795,
-      "action_level_label": "回踩确认位",
-      "price_date": "2026-07-23",
+      "support": 0.779,
+      "target": 0.827,
+      "stop": 0.77,
+      "action_level": 0.779,
+      "trigger_level": 0.779,
+      "action_level_label": "伏击位",
+      "distance_pct": -2.99,
+      "trend_level": "C",
       "risk_level": "低",
+      "price_date": "2026-07-23",
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready",
       "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
     },
     {
@@ -143,19 +185,26 @@
       "code": "515180",
       "name": "红利ETF易方达",
       "priority": "中",
-      "trigger": "上午1.406、涨0.72%，回踩1.387后修复，主力约+0.35亿。",
-      "action": "已有底仓持有，空仓不追；下午回踩1.387守稳且资金延续才重评。",
+      "trigger": "收盘1.409、涨0.93%、接近日高，MX主力约+0.55亿。",
+      "action": "保留防御底仓，空仓不追；仅回踩确认后分批重评。",
       "signal_state": "候场未触发",
       "eligibility": "watch_only",
       "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 1.406,
-      "support": 1.387,
-      "target": 1.436,
-      "stop": 1.356,
-      "trigger_level": 1.387,
-      "action_level_label": "回踩确认位",
-      "price_date": "2026-07-23",
+      "price": 1.409,
+      "support": 1.368,
+      "target": 1.45,
+      "stop": 1.341,
+      "action_level": 1.368,
+      "trigger_level": 1.368,
+      "action_level_label": "伏击位",
+      "distance_pct": -2.91,
+      "trend_level": "C",
       "risk_level": "低",
+      "price_date": "2026-07-23",
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready",
       "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
     }
   ],
@@ -165,53 +214,35 @@
       "name": "科创50ETF华夏",
       "status": "破位撤退",
       "priority": "高",
-      "action": "上午1.883、跌3.68%、主力约-15.04亿，跌破1.935；退出交易仓，不抄底。下午站回1.935且资金显著收敛/转正才降级为观察。",
-      "price_date": "2026-07-23",
-      "price": 1.883,
-      "support": 1.867,
-      "ma20": 2.106
+      "action": "收盘1.888、跌3.43%、MX主力约-21.38亿；退出交易仓，不抄底，等待资金流出显著衰减与静态关键位修复。"
     },
     {
       "code": "512480",
       "name": "半导体ETF国联安",
       "status": "破位撤退",
       "priority": "高",
-      "action": "上午1.100、跌4.51%、主力约-3.46亿，跌破1.138；退出交易仓。下午站回1.138且资金转正才降级为观察。",
-      "price_date": "2026-07-23",
-      "price": 1.1,
-      "support": 1.091,
-      "ma20": 1.306
+      "action": "收盘1.106、跌3.99%、MX主力约-4.97亿；退出交易仓，未收复静态关键位前不做反抽加仓。"
     },
     {
       "code": "515880",
       "name": "通信ETF国泰",
       "status": "反抽观察",
       "priority": "高",
-      "action": "上午0.669、跌0.30%、主力约+1.47亿，但冲高0.696后回落；只看承接，不回补。站回0.705且资金延续才升级，0.664下方撤退。",
-      "price_date": "2026-07-23",
-      "price": 0.669,
-      "support": 0.664,
-      "ma20": 0.778
+      "action": "收盘0.671平盘、MX主力约+0.87亿，但5日与20日结构仍弱；仅观察承接，不回补，下一交易日需价格、成交、资金三确认。"
     },
     {
       "code": "516150",
       "name": "稀土ETF嘉实",
       "status": "止盈观察",
       "priority": "中",
-      "action": "上午1.647、涨2.30%但主力约-0.13亿，低成交下不追；下午资金转正且守1.647才保留。",
-      "price_date": "2026-07-23",
-      "price": 1.647,
-      "support": 1.606
+      "action": "收盘涨3.04%、接近日高，但20日仍弱；按周期轮动冲高兑现，不作为追涨主线。"
     },
     {
       "code": "159755",
       "name": "电池ETF广发",
-      "status": "反抽观察",
+      "status": "止盈观察",
       "priority": "中",
-      "action": "上午0.935、涨2.30%但主力约-0.02亿；只按资源带动的反抽看待，0.906下方失效，资金转正才升级。",
-      "price_date": "2026-07-23",
-      "price": 0.935,
-      "support": 0.906
+      "action": "收盘涨3.28%、接近日高，受电池与锂矿情绪驱动；等待回踩确认，不追涨。"
     }
   ],
   "intraday_0830": {
@@ -219,7 +250,6 @@
     "status": "complete",
     "quote_as_of": "2026-07-22收盘",
     "quote_date": "2026-07-22",
-    "level_data_as_of": "2026-07-22",
     "prepared": {
       "plant": 2,
       "harvest": 3
@@ -227,13 +257,6 @@
     "executable": {
       "plant": 0,
       "harvest": 0
-    },
-    "scorecard": {
-      "prepared": "5项：候场2、兑现观察3；科技另列3项反抽/撤退观察",
-      "actual_triggered": "11:30验证：兑现3/3、科技退出2/2、正式伏击0/2",
-      "direction": "科技不追与高位兑现方向正确；防御相对抗跌但未形成正式伏击",
-      "executable": "上午仅减仓/兑现可执行，没有新增仓",
-      "benefit": "避免科创50约3.68%和半导体约4.51%的昨收到午间回撤"
     }
   },
   "intraday_1130": {
@@ -241,7 +264,6 @@
     "status": "complete",
     "quote_as_of": "2026-07-23 11:48 CST盘中",
     "quote_date": "2026-07-23",
-    "level_data_as_of": "2026-07-22",
     "prepared": {
       "plant": 2,
       "harvest": 3
@@ -255,18 +277,11 @@
       "plant": 0,
       "harvest": 3,
       "exit": 2
-    },
-    "scorecard": {
-      "prepared": "08:30准备候场2、兑现3，科技观察3",
-      "actual_triggered": "兑现3/3；科技退出2/2；防御正式伏击0/2",
-      "direction": "科技高开低走、资源电网轮动、防御相对承接均被识别",
-      "executable": "可执行为减仓/兑现；正式伏击仍为0",
-      "benefit": "避开588000约3.68%、512480约4.51%的昨收到午间回撤，并在517520与515220兑现区锁盈"
     }
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "status": "pending",
+    "status": "not_published",
     "prepared": {
       "plant": 2,
       "harvest": 5
@@ -274,10 +289,29 @@
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "pending",
+    "status": "content_ready",
+    "quote_as_of": "2026-07-23 收盘",
+    "quote_date": "2026-07-23",
     "prepared": {
       "plant": 2,
       "harvest": 5
+    },
+    "actual_triggered": {
+      "plant": 0,
+      "harvest": 5,
+      "exit": 2
+    },
+    "executable": {
+      "plant": 0,
+      "harvest": 5,
+      "exit": 2
+    },
+    "scorecard": {
+      "prepared": "盘前候场2、兑现3，科技另列破位/反抽观察",
+      "actual_triggered": "兑现5项、科技退出2项、正式伏击0项",
+      "direction": "科技不追与冲高兑现方向正确；电网、电池、有色的收盘强势未获得ETF资金确认",
+      "executable": "收盘可执行为减仓、兑现及防御底仓持有；无新增进攻仓",
+      "benefit": "避开科创50-3.43%与半导体-3.99%的收盘回撤；将资源、电网强势定性为兑现而非追涨"
     }
   },
   "mid_macro": {
@@ -294,14 +328,14 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.5,
-        "headline": "固收/权益5日相对中性-0.29pp"
+        "headline": "固收/权益5日相对中性-0.70pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "逆风",
         "score": 2.25,
-        "headline": "海外映射ETF 5日偏弱-2.56%"
+        "headline": "海外映射ETF 5日偏弱-2.43%"
       },
       {
         "key": "margin_financing",
@@ -313,7 +347,7 @@
     ]
   },
   "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-07-23 08:30:53 UTC+08:00",
+  "level_generated_at": "2026-07-23 21:01:18 UTC+08:00",
   "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0
 }
