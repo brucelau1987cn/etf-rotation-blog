@@ -518,6 +518,23 @@ def test_manifest_cannot_expand_owned_paths(tmp_path):
         publish.load_state(state)
 
 
+def test_published_manifest_returns_idempotent_without_remote_work(monkeypatch):
+    state = prepared_state()
+    state.update({
+        "status": "published",
+        "phase": "published",
+        "commit": "b" * 40,
+        "candidate_tree": "c" * 40,
+        "dataset_fingerprint": "d" * 64,
+        "public_hashes": {path: "e" * 64 for path in publish.PUBLIC_VERIFY_FILES},
+    })
+    monkeypatch.setattr(publish, "load_state", lambda _: state)
+    monkeypatch.setattr(publish, "sync_remote", lambda **_: (_ for _ in ()).throw(AssertionError("sync after publish")))
+    monkeypatch.setattr(publish, "verify_production", lambda *args: (_ for _ in ()).throw(AssertionError("probe after publish")))
+    result = publish.publish(now=datetime(2026, 7, 14, 22, 30, tzinfo=CN))
+    assert result == {"status": "idempotent", "trade_date": "2026-07-14", "changed": []}
+
+
 def test_production_verification_binds_full_public_hash_set(monkeypatch):
     bodies = {path: b"{}" for path in publish.PUBLIC_VERIFY_FILES}
     audit_path = "public/data/model-lab/a-share-research-audit.json"

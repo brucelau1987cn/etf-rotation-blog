@@ -59,7 +59,7 @@ def run(
 
 FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-PUBLISHABLE_STATUSES = {"prepared", "candidate_validated", "committed", "deploy_failed"}
+PUBLISHABLE_STATUSES = {"prepared", "candidate_validated", "committed", "deploy_failed", "published"}
 
 
 def validate_manifest(payload: Any) -> list[str]:
@@ -96,7 +96,7 @@ def validate_manifest(payload: Any) -> list[str]:
         errors.append("manifest snapshot_hashes must contain SHA-256 values")
     if payload.get("expected_stage") != "22:00夜间最终版":
         errors.append("manifest expected_stage is invalid")
-    if status in {"candidate_validated", "committed", "deploy_failed"}:
+    if status in {"candidate_validated", "committed", "deploy_failed", "published"}:
         if not SHA256_RE.fullmatch(str(payload.get("dataset_fingerprint") or "")):
             errors.append("manifest dataset_fingerprint must be SHA-256")
         if not FULL_SHA_RE.fullmatch(str(payload.get("commit") or "")):
@@ -346,6 +346,8 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
         )
 
     status = state.get("status")
+    if status == "published":
+        return {"status": "idempotent", "trade_date": trade_date, "changed": []}
     recovery_statuses = {"candidate_validated", "committed", "deploy_failed"}
     if status in recovery_statuses:
         verify_candidate_identity(state)
