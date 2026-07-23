@@ -7,15 +7,31 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
-type Cycle = {
+type BuyCycle = {
   cycle_code: string;
   segment: string;
   timeframe_minutes: number;
   timeframe_label: string;
-  buy_state: 'BUY' | 'INACTIVE' | 'UNKNOWN';
+  buy_state: 'BUY' | 'STOPPED' | 'INACTIVE' | 'UNKNOWN';
   buy_triggered_at: string | null;
-  source: string;
 };
+
+type SellStar = {
+  code: string;
+  timeframe_minutes: number;
+  timeframe_label: string;
+  sell_state: 'SELL' | 'INACTIVE';
+  triggered_at: string | null;
+};
+
+type SellNode = {
+  code: string;
+  timeframe_minutes: number;
+  timeframe_label: string;
+  sell_state: 'SELL' | 'OBSERVING' | 'INACTIVE';
+  triggered_at: string | null;
+};
+
 type SellAlert = {
   alert_id: string;
   cycle_code: string;
@@ -26,191 +42,425 @@ type SellAlert = {
   analysis_state: 'pending' | 'ready' | 'unavailable';
   analysis: string;
 };
+
 type Payload = {
-  schema_version: 'a-rolling-energy-v2';
+  schema_version: string;
   mode: 'demo' | 'live';
   generated_at: string;
   data_as_of: string;
-  freshness: 'fresh' | 'stale' | 'unknown';
+  freshness: string;
   stale_after_seconds: number;
   notice: string;
-  delivery: { state: 'live' | 'lkg'; reason: string | null };
+  delivery: { state: string; reason: string | null };
   instrument: { instrument_name: string; exchange: string; symbol: string };
-  transmission: { state: string; basis: 'latest_buy_by_cycle' | 'single_run'; current_cycle_code: string | null; started_at: string | null; lit_count: number; continuous_confirmed: boolean };
-  cycles: Cycle[];
+  transmission: {
+    state: string;
+    basis: string;
+    current_cycle_code: string | null;
+    stopped_at_code?: string | null;
+    started_at: string | null;
+    lit_count: number;
+    continuous_confirmed: boolean;
+  };
+  buy_cycles: BuyCycle[];
+  sell_chain: {
+    window_type: string;
+    window_description: string;
+    warning_star: SellStar;
+    nodes: SellNode[];
+  };
   sell_alerts: SellAlert[];
 };
 
 const payload = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8')) as Payload;
-const segments = [
-  { key: '预备', title: '预备观察', subtitle: '105分钟启动窗口' },
-  { key: 'A', title: 'A段', subtitle: '2小时 · 每15分钟' },
-  { key: 'B', title: 'B段', subtitle: '3小时 · 每15分钟' },
-  { key: 'C', title: 'C段', subtitle: '4小时 · 每10分钟' },
-  { key: 'D', title: 'D段', subtitle: '5小时 · 每10分钟' },
-  { key: 'E', title: 'E段', subtitle: '6小时 · 每10分钟' },
-  { key: 'F', title: 'F段', subtitle: '7小时 · 每10分钟' },
-  { key: 'G', title: 'G段', subtitle: '8小时 · 日周期' },
-];
-const formatTime = (value: string | null, includeYear = false) => {
-  if (!value) return '尚未启动';
+
+const formatTime = (value: string | null, short = false) => {
+  if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('zh-CN', {
-    timeZone: 'Asia/Shanghai', hour12: false,
-    ...(includeYear ? { year: 'numeric' as const } : {}),
-    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Shanghai',
+    hour12: false,
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
-const transmissionLabel = payload.transmission.basis === 'single_run'
-  ? payload.transmission.state === 'complete' ? '单轮传导完成' : payload.transmission.state === 'transmitting' ? '正在连续传导' : '等待传导启动'
-  : '最近BUY覆盖至全周期';
-const statusCopy = payload.transmission.continuous_confirmed
-  ? '同一轮触发顺序已经上游确认'
-  : '跨日期最近信号覆盖，尚未确认为同一轮连续传导';
-const pageTitle = `A股滚动策略｜买方能量传导 | ${SITE_TITLE}`;
-const pageDescription = 'A股滚动策略买方能量传导终端，以105分钟预备窗口和A至G共34个周期观察点展示买方力量向长周期延续的位置。';
+
+const pageTitle = `A股滚动策略｜多空能量传导链 | ${SITE_TITLE}`;
+const pageDescription = 'A股滚动策略多空能量传导终端，展示买方力量与卖方预警的动态延伸。';
 ---
 
 <!doctype html>
 <html lang="zh-CN">
-  <head><BaseHead title={pageTitle} description={pageDescription} /></head>
+  <head>
+    <BaseHead title={pageTitle} description={pageDescription} />
+    <style>
+      .energy-hero {
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+      .hero-title h1 {
+        font-size: 1.75rem;
+        margin: 0;
+        color: #ffffff;
+        font-weight: 700;
+      }
+      .hero-meta {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: #94a3b8;
+      }
+      .hero-meta code {
+        background: #334155;
+        color: #38bdf8;
+        padding: 0.1rem 0.5rem;
+        border-radius: 4px;
+      }
+      .hero-badge {
+        background: #0284c7;
+        color: white;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      /* 双层表格核心结构 */
+      .matrix-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        overflow-x: auto;
+      }
+      .matrix-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .matrix-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      /* 表格内框架 */
+      .table-wrapper {
+        min-width: 1100px;
+        display: flex;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      /* 左侧固定股票信息列 */
+      .stock-col {
+        width: 140px;
+        background: #f8fafc;
+        border-right: 1px solid #cbd5e1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .stock-name {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+      .stock-symbol {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+      }
+
+      /* 右侧双行信号区 */
+      .signals-grid {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 统一行样式 */
+      .grid-row {
+        display: flex;
+        align-items: center;
+        min-height: 80px;
+        position: relative;
+      }
+      .sell-row {
+        background: #fafafa;
+        border-bottom: 1px dashed #cbd5e1;
+      }
+      .buy-row {
+        background: #ffffff;
+      }
+
+      .row-label {
+        width: 100px;
+        padding: 0 1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-shrink: 0;
+      }
+      .sell-label { color: #15803d; }
+      .buy-label { color: #b91c1c; }
+
+      .cells-container {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        overflow-x: auto;
+        flex: 1;
+      }
+
+      /* 信号单元格通用样式 */
+      .cell-card {
+        min-width: 85px;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+      }
+      .cell-code {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .cell-time {
+        font-size: 0.72rem;
+        margin-top: 0.2rem;
+      }
+
+      /* 买入链单元格配色 */
+      .buy-cell.active {
+        background: #fff1f0;
+        border: 1px solid #ffa39e;
+        color: #cf1322;
+      }
+      .buy-cell.active .cell-time { color: #cf1322; }
+
+      .buy-cell.stopped {
+        background: #fffbe6;
+        border: 1px solid #ffe58f;
+        color: #d48806;
+      }
+      .buy-cell.stopped .cell-time { color: #d48806; }
+
+      .buy-cell.inactive {
+        background: #f5f5f5;
+        border: 1px solid #d9d9d9;
+        color: #bfbfbf;
+      }
+      .buy-cell.inactive .cell-time { color: #bfbfbf; }
+
+      /* 卖出链单元格配色 */
+      .sell-cell.star {
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        color: #389e0d;
+      }
+      .sell-cell.star .cell-code {
+        font-size: 1.1rem;
+        color: #389e0d;
+      }
+
+      .sell-cell.active {
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        color: #389e0d;
+      }
+
+      .sell-cell.observing {
+        background: #fafafa;
+        border: 1px dashed #b7eb8f;
+        color: #52c41a;
+      }
+
+      .sell-cell.inactive {
+        background: #f5f5f5;
+        border: 1px solid #d9d9d9;
+        color: #bfbfbf;
+      }
+
+      /* AI 卖出提醒区域 */
+      .ai-section {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      .ai-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .ai-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .ai-card {
+        background: #f8fafc;
+        border-left: 4px solid #16a34a;
+        padding: 1.25rem;
+        border-radius: 0 8px 8px 0;
+      }
+      .ai-card-head {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        color: #475569;
+      }
+      .ai-card-body {
+        font-size: 0.95rem;
+        color: #334155;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
   <body>
     <Header />
-    <main id="main-content" tabindex="-1">
+    <main id="main-content" style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
       <AStockSubnav active="rolling" />
 
-      <section class="energy-hero" aria-labelledby="energy-title">
-        <div class="hero-main">
-          <div class="eyebrow"><span class="pulse" aria-hidden="true"></span><span>A股 · 买方能量传导</span><b data-field="environment">{payload.mode === 'demo' ? '演示快照' : payload.delivery.state === 'live' ? '实时数据' : '有效快照'}</b></div>
-          <h1 id="energy-title">滚动策略</h1>
-          <div class="instrument"><strong data-field="instrument-name">{payload.instrument.instrument_name}</strong><code data-field="symbol">{payload.instrument.symbol}</code><span data-field="exchange">{payload.instrument.exchange}</span></div>
+      <!-- 顶栏 Hero -->
+      <section class="energy-hero">
+        <div class="hero-title">
+          <h1>A股滚动策略 · 多空能量传导链</h1>
+          <div class="hero-meta">
+            <span>标的：<strong>{payload.instrument.instrument_name}</strong></span>
+            <code>{payload.instrument.symbol}</code>
+            <span>更新时点：{formatTime(payload.data_as_of)}</span>
+          </div>
         </div>
-        <div class="hero-status">
-          <span>当前能量位置</span>
-          <strong data-field="current-position">{payload.transmission.current_cycle_code || '等待启动'}</strong>
-          <small data-field="transmission-label">{transmissionLabel}</small>
+        <div>
+          <span class="hero-badge">
+            多头位置：{payload.transmission.current_cycle_code} ({payload.transmission.lit_count}/34)
+          </span>
         </div>
       </section>
 
-      <section class="status-strip" aria-label="当前能量状态">
-        <article><span>本轮/记录起点</span><strong data-field="started-at">{formatTime(payload.transmission.started_at, true)}</strong></article>
-        <article><span>已点亮</span><strong class="red" data-field="lit-count">{payload.transmission.lit_count}<i>/34</i></strong></article>
-        <article><span>最新周期</span><strong data-field="latest-cycle">{payload.transmission.current_cycle_code || '—'}</strong></article>
-        <article><span>传导状态</span><strong data-field="transmission-state">{payload.transmission.state === 'complete' ? '全周期覆盖' : payload.transmission.state === 'transmitting' ? '继续传导' : '观察中'}</strong></article>
-        <article><span>数据时点</span><strong data-field="data-as-of">{formatTime(payload.data_as_of, true)}</strong></article>
-      </section>
+      <!-- 核心双层横向矩阵表格 -->
+      <section class="matrix-card">
+        <div class="matrix-header">
+          <div class="matrix-title">双向能量传导看板</div>
+          <div style="font-size: 0.85rem; color: #64748b;">
+            {payload.sell_chain.window_description}
+          </div>
+        </div>
 
-      <aside class:list={['basis-notice', payload.transmission.continuous_confirmed && 'confirmed']}>
-        <strong data-field="basis-title">{payload.transmission.continuous_confirmed ? '连续传导已确认' : '演示口径说明'}</strong>
-        <p data-field="basis-copy">{statusCopy}</p>
-      </aside>
+        <div class="table-wrapper">
+          <!-- 左侧股票固定列 -->
+          <div class="stock-col">
+            <div class="stock-name">{payload.instrument.instrument_name}</div>
+            <div class="stock-symbol">{payload.instrument.symbol}</div>
+          </div>
 
-      <section class="transmission-section" aria-labelledby="transmission-title">
-        <header class="section-head">
-          <div><span>BUY ENERGY PATH</span><h2 id="transmission-title">34周期能量传导图</h2></div>
-          <p>红色表示该周期存在BUY记录；中性格表示尚未激活</p>
-        </header>
-        <div class="energy-board" data-energy-board>
-          {segments.map((segment) => {
-            const rows = payload.cycles.filter((cycle) => cycle.segment === segment.key);
-            return (
-              <section class="segment" data-segment={segment.key} aria-labelledby={`segment-${segment.key}`}>
-                <header><div><span>{segment.subtitle}</span><h3 id={`segment-${segment.key}`}>{segment.title}</h3>{segment.key === 'D' && <small>后两格为更早历史记录</small>}</div><b data-segment-count>{rows.filter((row) => row.buy_state === 'BUY').length}/{rows.length}</b></header>
-                <div class="cycle-grid">
-                  {rows.map((cycle) => (
-                    <article class:list={['energy-cell', cycle.buy_state === 'BUY' && 'active', cycle.buy_state === 'UNKNOWN' && 'unknown', cycle.cycle_code === payload.transmission.current_cycle_code && 'current']} data-cycle-code={cycle.cycle_code}>
-                      <div class="cell-code"><strong>{cycle.cycle_code}</strong><span>{cycle.timeframe_minutes}m</span></div>
-                      <p>{cycle.timeframe_label}</p>
-                      <div class="cell-state"><i aria-hidden="true"></i><b data-cycle-state>{cycle.buy_state === 'BUY' ? 'BUY' : cycle.buy_state === 'UNKNOWN' ? '待确认' : '未激活'}</b></div>
-                      <time data-cycle-time datetime={cycle.buy_triggered_at || undefined}>{cycle.buy_triggered_at ? formatTime(cycle.buy_triggered_at) : '等待信号'}</time>
-                    </article>
-                  ))}
+          <!-- 右侧双行信号区 -->
+          <div class="signals-grid">
+            
+            <!-- 上层：卖出传导链（绿色） -->
+            <div class="grid-row sell-row">
+              <div class="row-label sell-label">
+                <span>空方力量</span>
+              </div>
+              <div class="cells-container">
+                <!-- 预警五角星 -->
+                <div class="cell-card sell-cell star">
+                  <div class="cell-code">{payload.sell_chain.warning_star.code}</div>
+                  <div class="cell-time">{formatTime(payload.sell_chain.warning_star.triggered_at)}</div>
                 </div>
-              </section>
-            );
-          })}
+
+                <!-- 罗马数字节点 -->
+                {payload.sell_chain.nodes.map((node) => (
+                  <div class={`cell-card sell-cell ${node.sell_state.toLowerCase()}`}>
+                    <div class="cell-code">{node.code}</div>
+                    <div class="cell-time">
+                      {node.sell_state === 'SELL' ? formatTime(node.triggered_at) : node.sell_state === 'OBSERVING' ? '观察中' : '未激活'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <!-- 下层：买入传导链（红色） -->
+            <div class="grid-row buy-row">
+              <div class="row-label buy-label">
+                <span>多方力量</span>
+              </div>
+              <div class="cells-container">
+                {payload.buy_cycles.map((cycle) => (
+                  <div class={`cell-card buy-cell ${cycle.buy_state.toLowerCase()}`}>
+                    <div class="cell-code">{cycle.cycle_code}</div>
+                    <div class="cell-time">
+                      {cycle.buy_state === 'BUY' ? formatTime(cycle.buy_triggered_at) : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
-      <section class="sell-section" aria-labelledby="sell-title">
-        <header class="section-head sell-head">
-          <div><span>SELL SIGNAL ANALYSIS</span><h2 id="sell-title">AI卖出信号提醒</h2></div>
-          <p>卖出信号独立分析，不改变原始信号与买方能量格</p>
-        </header>
-        <div class="sell-list" data-sell-list>
-          {payload.sell_alerts.length ? payload.sell_alerts.map((alert) => (
-            <article class="sell-alert">
-              <header><div><span>AI信号提醒</span><h3>{payload.instrument.instrument_name}</h3></div><time>{formatTime(alert.triggered_at, true)}</time></header>
-              <dl><div><dt>卖出周期</dt><dd>{alert.cycle_code} · {alert.timeframe_minutes}分钟</dd></div><div><dt>能量位置</dt><dd>{alert.transmission_position || '未进入传导'}</dd></div><div><dt>剩余交易时间</dt><dd>{alert.remaining_session_minutes}分钟</dd></div></dl>
-              <p>{alert.analysis_state === 'ready' ? alert.analysis : 'AI分析尚未生成，保留原始卖出信号事实。'}</p>
-            </article>
-          )) : (
-            <div class="sell-empty" data-sell-empty><div aria-hidden="true">!</div><strong>当前没有卖出提醒</strong><p>尚未收到符合 v2 合同的SELL事件。接入34周期Webhook后，提醒将按触发时间倒序显示。</p></div>
-          )}
+      <!-- 下方：AI 卖出提醒解短卡片 -->
+      <section class="ai-section">
+        <div class="ai-header">
+          <span style="font-size: 1.2rem;">🤖</span>
+          <div class="ai-title">AI 卖出预警研判</div>
         </div>
+        {payload.sell_alerts.length > 0 ? (
+          payload.sell_alerts.map((alert) => (
+            <div class="ai-card">
+              <div class="ai-card-head">
+                <span>触发节点：<strong>{alert.cycle_code} ({alert.timeframe_minutes}分钟)</strong></span>
+                <span>多头位置：<strong>{alert.transmission_position}</strong></span>
+                <span>今日剩余交易时间：<strong>{alert.remaining_session_minutes}分钟</strong></span>
+              </div>
+              <div class="ai-card-body">
+                {alert.analysis}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 1rem;">
+            当前多头传导有序，暂无空方卖出预警。
+          </div>
+        )}
       </section>
 
-      <aside class="data-boundary" aria-label="数据边界">
-        <div aria-hidden="true">i</div>
-        <section><strong data-field="boundary-title">{payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'}</strong><p><span data-field="notice">{payload.notice}</span> 页面不生成仓位或交易指令。</p><small data-refresh-state role="status" aria-live="polite">页面已载入有效快照，正在后台检查更新</small></section>
-        <details><summary>查看数据边界</summary><p>BUY格只表达对应周期的信号事实。只有上游提供同一run_id并通过连续性校验时，才标记为单轮连续传导。AI提醒只承担分析提示，不改变TradingBox原始信号。</p></details>
-      </aside>
     </main>
     <Footer />
-
-    <script is:inline>
-      (() => {
-        const CODES = ['PRE','A1','A2','A3','A4','B1','B2','B3','B4','C1','C2','C3','C4','C5','C6','D1','D2','D3','D4','D5','D6','E1','E2','E3','E4','E5','E6','F1','F2','F3','F4','F5','F6','G'];
-        const field = name => document.querySelector(`[data-field="${name}"]`);
-        const setText = (node, value) => { if (node) node.textContent = value; };
-        const formatTime = (value, includeYear = false) => {
-          if (!value) return '尚未启动';
-          const date = new Date(value);
-          if (Number.isNaN(date.getTime())) return String(value);
-          return date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, ...(includeYear ? { year: 'numeric' } : {}), month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        };
-        let inFlight = false;
-        const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-        const renderAlerts = (alerts, instrument) => {
-          const list = document.querySelector('[data-sell-list]');
-          if (!list) return;
-          if (!alerts.length) {
-            list.innerHTML = '<div class="sell-empty" data-sell-empty><div aria-hidden="true">!</div><strong>当前没有卖出提醒</strong><p>尚未收到符合 v2 合同的SELL事件。接入34周期Webhook后，提醒将按触发时间倒序显示。</p></div>';
-            return;
-          }
-          list.innerHTML = alerts.map(alert => `<article class="sell-alert"><header><div><span>AI信号提醒</span><h3>${escapeHtml(instrument.instrument_name)}</h3></div><time>${escapeHtml(formatTime(alert.triggered_at, true))}</time></header><dl><div><dt>卖出周期</dt><dd>${escapeHtml(alert.cycle_code)} · ${escapeHtml(alert.timeframe_minutes)}分钟</dd></div><div><dt>能量位置</dt><dd>${escapeHtml(alert.transmission_position || '未进入传导')}</dd></div><div><dt>剩余交易时间</dt><dd>${escapeHtml(alert.remaining_session_minutes)}分钟</dd></div></dl><p>${escapeHtml(alert.analysis_state === 'ready' ? alert.analysis : 'AI分析尚未生成，保留原始卖出信号事实。')}</p></article>`).join('');
-        };
-        const render = payload => {
-          if (!payload || payload.schema_version !== 'a-rolling-energy-v2' || !Array.isArray(payload.cycles) || payload.cycles.length !== 34) throw new Error('invalid payload');
-          if (payload.cycles.some((cycle, index) => cycle.cycle_code !== CODES[index])) throw new Error('invalid sequence');
-          setText(field('environment'), payload.mode === 'demo' ? '演示快照' : payload.delivery.state === 'live' ? '实时数据' : '有效快照');
-          setText(field('instrument-name'), payload.instrument.instrument_name); setText(field('symbol'), payload.instrument.symbol); setText(field('exchange'), payload.instrument.exchange);
-          setText(field('current-position'), payload.transmission.current_cycle_code || '等待启动');
-          setText(field('transmission-label'), payload.transmission.basis === 'single_run' ? payload.transmission.state === 'complete' ? '单轮传导完成' : '正在连续传导' : '最近BUY覆盖至全周期');
-          setText(field('started-at'), formatTime(payload.transmission.started_at, true)); setText(field('lit-count'), `${payload.transmission.lit_count}/34`); setText(field('latest-cycle'), payload.transmission.current_cycle_code || '—');
-          setText(field('transmission-state'), payload.transmission.state === 'complete' ? '全周期覆盖' : payload.transmission.state === 'transmitting' ? '继续传导' : '观察中'); setText(field('data-as-of'), formatTime(payload.data_as_of, true));
-          setText(field('basis-title'), payload.transmission.continuous_confirmed ? '连续传导已确认' : '演示口径说明'); setText(field('basis-copy'), payload.transmission.continuous_confirmed ? '同一轮触发顺序已经上游确认' : '跨日期最近信号覆盖，尚未确认为同一轮连续传导');
-          for (const cycle of payload.cycles) {
-            const cell = document.querySelector(`[data-cycle-code="${cycle.cycle_code}"]`); if (!cell) continue;
-            cell.classList.toggle('active', cycle.buy_state === 'BUY'); cell.classList.toggle('unknown', cycle.buy_state === 'UNKNOWN'); cell.classList.toggle('current', cycle.cycle_code === payload.transmission.current_cycle_code);
-            setText(cell.querySelector('[data-cycle-state]'), cycle.buy_state === 'BUY' ? 'BUY' : cycle.buy_state === 'UNKNOWN' ? '待确认' : '未激活'); setText(cell.querySelector('[data-cycle-time]'), cycle.buy_triggered_at ? formatTime(cycle.buy_triggered_at) : '等待信号');
-          }
-          for (const segment of ['预备','A','B','C','D','E','F','G']) { const box = document.querySelector(`[data-segment="${segment}"]`); if (box) setText(box.querySelector('[data-segment-count]'), `${payload.cycles.filter(c => c.segment === segment && c.buy_state === 'BUY').length}/${payload.cycles.filter(c => c.segment === segment).length}`); }
-          renderAlerts(payload.sell_alerts || [], payload.instrument);
-          setText(field('boundary-title'), payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'); setText(field('notice'), payload.notice);
-          setText(document.querySelector('[data-refresh-state]'), payload.delivery.state === 'live' ? `实时数据已更新 · ${formatTime(payload.data_as_of)}` : `显示最后有效快照 · ${payload.delivery.reason || '实时源暂不可用'}`);
-        };
-        const refresh = async () => { if (inFlight || document.hidden) return; inFlight = true; try { const response = await fetch('/api/public/v1/rolling-signals', { headers: { accept: 'application/json' } }); if (!response.ok) throw new Error(); render(await response.json()); } catch { setText(document.querySelector('[data-refresh-state]'), '实时检查失败，继续保留当前有效快照'); } finally { inFlight = false; } };
-        refresh(); window.setInterval(refresh, 60000);
-      })();
-    </script>
   </body>
 </html>
-
-<style>
-  main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}.energy-hero{display:grid;grid-template-columns:minmax(0,1fr) 280px;border:1px solid #dce2e8;border-radius:8px 8px 0 0;background:#fff;box-shadow:0 10px 32px rgba(28,38,48,.06)}.hero-main{padding:1rem 1.15rem}.eyebrow{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;color:#59636e;font-size:.7rem;font-weight:850}.eyebrow b{padding:.14rem .4rem;border:1px solid #e8c57a;border-radius:4px;background:#fff8e9;color:#8d5b00;font-size:.65rem}.pulse{width:.48rem;height:.48rem;border-radius:50%;background:#d63d2e;box-shadow:0 0 0 4px rgba(214,61,46,.12)}h1{margin:.16rem 0 .1rem;font-size:2rem;letter-spacing:0}.instrument{display:flex;align-items:center;gap:.45rem;color:#6b747d;font-size:.76rem}.instrument strong{font-size:.88rem}.instrument code{padding:.08rem .3rem;background:#f1f3f5}.hero-status{display:grid;align-content:center;padding:.9rem 1.1rem;border-left:1px solid #e2e7eb;background:#f8fafb}.hero-status span,.status-strip span{color:#747d86;font-size:.67rem;font-weight:800}.hero-status strong{color:#b52e23;font-size:2rem;line-height:1.1}.hero-status small{margin-top:.2rem;color:#69737d;font-size:.68rem}.status-strip{display:grid;grid-template-columns:1.35fr repeat(4,1fr);border:1px solid #dce2e8;border-top:0;border-radius:0 0 8px 8px;background:#fff}.status-strip article{min-width:0;padding:.62rem .85rem;border-right:1px solid #e5e9ed}.status-strip article:last-child{border-right:0}.status-strip strong{display:block;margin-top:.15rem;overflow-wrap:anywhere;font-size:.8rem}.status-strip .red{color:#b52e23;font-size:1.1rem}.status-strip .red i{margin-left:.15rem;color:#7a838b;font-size:.68rem;font-style:normal}.basis-notice{display:flex;align-items:center;gap:.8rem;margin-top:.7rem;padding:.65rem .8rem;border-left:4px solid #b87900;background:#fff8e8;color:#6f541f}.basis-notice.confirmed{border-left-color:#159447;background:#eff9f2;color:#116d36}.basis-notice strong{flex:0 0 auto;font-size:.74rem}.basis-notice p{margin:0;font-size:.7rem}.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin:1.45rem 0 .65rem}.section-head span{color:#7b838b;font-size:.64rem;font-weight:900}.section-head h2{margin:.08rem 0 0;font-size:1.25rem;letter-spacing:0}.section-head p{margin:0;color:#737c85;font-size:.72rem}.energy-board{display:grid;gap:.7rem}.segment{overflow:hidden;border:1px solid #dce2e8;border-radius:7px;background:#fff}.segment>header{display:flex;align-items:center;justify-content:space-between;padding:.55rem .72rem;border-bottom:1px solid #e5e9ed;background:#f7f9fa}.segment>header span{color:#7b838b;font-size:.62rem}.segment h3{margin:.04rem 0 0;font-size:.83rem;letter-spacing:0}.segment>header small{display:block;margin-top:.08rem;color:#9a6e1c;font-size:.6rem}.segment>header b{color:#a6291f;font-size:.72rem}.cycle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:#e6eaed}.segment[data-segment="预备"] .cycle-grid,.segment[data-segment="G"] .cycle-grid{grid-template-columns:minmax(180px,1fr)}.energy-cell{position:relative;min-width:0;min-height:116px;padding:.62rem .68rem;background:#fff}.energy-cell.active{background:#fff3f1}.energy-cell.active::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:#d63d2e}.energy-cell.current{z-index:1;box-shadow:inset 0 0 0 2px #24364b}.energy-cell.current::after{content:'当前';position:absolute;top:.42rem;right:.52rem;padding:.08rem .25rem;border-radius:3px;background:#24364b;color:#fff;font-size:.55rem;font-weight:900}.cell-code{display:flex;align-items:flex-start;justify-content:space-between;gap:.4rem}.cell-code strong{font-size:1rem}.cell-code span{color:#7b838b;font:700 .63rem ui-monospace,SFMono-Regular,Menlo,monospace}.energy-cell p{margin:.12rem 0 .5rem;color:#5d6872;font-size:.66rem}.cell-state{display:flex;align-items:center;gap:.3rem}.cell-state i{width:.48rem;height:.48rem;border-radius:50%;background:#aab2ba}.cell-state b{color:#747d86;font-size:.64rem}.active .cell-state i{background:#d63d2e;box-shadow:0 0 0 3px rgba(214,61,46,.11)}.active .cell-state b{color:#a6291f}.energy-cell time{display:block;margin-top:.35rem;color:#727c85;font:650 .62rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.sell-section{margin-top:1.4rem}.sell-head{margin-top:0}.sell-list{display:grid;gap:.7rem}.sell-alert{padding:.85rem;border:1px solid #cbded2;border-left:4px solid #159447;border-radius:7px;background:#f8fcf9}.sell-alert header{display:flex;justify-content:space-between;gap:1rem}.sell-alert header span{color:#087a37;font-size:.64rem;font-weight:900}.sell-alert h3{margin:.08rem 0 0;font-size:.95rem}.sell-alert time{color:#6c767f;font-size:.68rem}.sell-alert dl{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin:.7rem 0}.sell-alert dt{color:#7b848c;font-size:.62rem}.sell-alert dd{margin:.1rem 0 0;font-size:.72rem;font-weight:800}.sell-alert p{margin:0;color:#46525d;font-size:.72rem;line-height:1.55}.sell-empty{display:grid;justify-items:center;padding:1.35rem;border:1px dashed #cfd6dc;border-radius:7px;background:#fafbfc;text-align:center}.sell-empty div{display:flex;align-items:center;justify-content:center;width:1.65rem;height:1.65rem;border-radius:50%;background:#e9edf0;color:#5f6972;font-size:.8rem;font-weight:900}.sell-empty strong{margin-top:.4rem;font-size:.78rem}.sell-empty p{max-width:620px;margin:.18rem 0 0;color:#727c85;font-size:.68rem;line-height:1.5}.data-boundary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.7rem;align-items:center;margin-top:.8rem;padding:.7rem .8rem;border:1px solid #e3c67d;border-radius:7px;background:#fff9ec}.data-boundary>div{display:flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:50%;background:#895a00;color:#fff;font-size:.7rem;font-weight:900}.data-boundary strong{font-size:.75rem}.data-boundary p{margin:.08rem 0 0;color:#755d2d;font-size:.68rem;line-height:1.45}.data-boundary small{display:block;margin-top:.2rem;color:#806a3d;font-size:.62rem}.data-boundary details{min-width:112px}.data-boundary summary{color:#6f541f;font-size:.68rem;font-weight:850;cursor:pointer}.data-boundary details p{margin-top:.4rem}
-  @media(max-width:900px){.cycle-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-strip{grid-template-columns:repeat(3,1fr)}.status-strip article:nth-child(3){border-right:0}.status-strip article:nth-child(-n+3){border-bottom:1px solid #e5e9ed}}
-  @media(max-width:620px){main{width:calc(100% - 1rem);padding-top:.7rem}.energy-hero{grid-template-columns:1fr}.hero-main{padding:.8rem}.hero-status{border-top:1px solid #e2e7eb;border-left:0}.hero-status strong{font-size:1.55rem}.status-strip{grid-template-columns:1fr 1fr}.status-strip article{border-bottom:1px solid #e5e9ed}.status-strip article:nth-child(odd){border-right:1px solid #e5e9ed}.status-strip article:nth-child(even){border-right:0}.status-strip article:last-child{grid-column:1/-1;border-bottom:0}.basis-notice,.section-head{align-items:flex-start;flex-direction:column;gap:.25rem}.cycle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.energy-cell{min-height:110px;padding:.58rem}.sell-alert header{align-items:flex-start;flex-direction:column;gap:.2rem}.sell-alert dl{grid-template-columns:1fr}.data-boundary{grid-template-columns:auto 1fr;align-items:start}.data-boundary details{grid-column:2}}
-  @media(max-width:360px){.cycle-grid{grid-template-columns:1fr}.status-strip{grid-template-columns:1fr}.status-strip article,.status-strip article:nth-child(odd){grid-column:auto;border-right:0}.energy-cell{min-height:102px}}
-</style>
