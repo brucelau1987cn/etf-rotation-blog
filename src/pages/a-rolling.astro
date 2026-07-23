@@ -5,26 +5,29 @@ import AStockSubnav from '../components/AStockSubnav.astro';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import MarketClock from '../components/MarketClock.astro';
 import { SITE_TITLE } from '../consts';
 
-type Direction = 'BUY' | 'SELL' | 'UNKNOWN' | 'CONFLICT';
-type Signal = {
-  instrument_name: string;
-  exchange: 'SSE' | 'SZSE';
-  symbol: string;
-  timeframe: string;
-  direction: Direction;
-  latest_signal_at: string | null;
+type Cycle = {
+  cycle_code: string;
+  segment: string;
+  timeframe_minutes: number;
+  timeframe_label: string;
+  buy_state: 'BUY' | 'INACTIVE' | 'UNKNOWN';
+  buy_triggered_at: string | null;
   source: string;
-  duration: string;
-  phase_code: string;
-  phase_label: string;
-  alert_configured_count: number;
-  live_verified_count: number;
+};
+type SellAlert = {
+  alert_id: string;
+  cycle_code: string;
+  timeframe_minutes: number;
+  triggered_at: string;
+  transmission_position: string | null;
+  remaining_session_minutes: number;
+  analysis_state: 'pending' | 'ready' | 'unavailable';
+  analysis: string;
 };
 type Payload = {
-  schema_version: string;
+  schema_version: 'a-rolling-energy-v2';
   mode: 'demo' | 'live';
   generated_at: string;
   data_as_of: string;
@@ -32,69 +35,25 @@ type Payload = {
   stale_after_seconds: number;
   notice: string;
   delivery: { state: 'live' | 'lkg'; reason: string | null };
-  signals: Signal[];
-};
-type CycleGroup = {
-  key: 'short' | 'medium' | 'long';
-  label: string;
-  note: string;
-  timeframes: string[];
+  instrument: { instrument_name: string; exchange: string; symbol: string };
+  transmission: { state: string; basis: 'latest_buy_by_cycle' | 'single_run'; current_cycle_code: string | null; started_at: string | null; lit_count: number; continuous_confirmed: boolean };
+  cycles: Cycle[];
+  sell_alerts: SellAlert[];
 };
 
-const payload = JSON.parse(
-  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8'),
-) as Payload;
-const timeframeOrder = ['10m', '30m', '1h', '2h', '3h', '4h', '5h', '6h', '1D'];
-const timeframeLabels: Record<string, string> = {
-  '10m': '10分钟', '30m': '30分钟', '1h': '1小时', '2h': '2小时', '3h': '3小时',
-  '4h': '4小时', '5h': '5小时', '6h': '6小时', '1D': '日线',
-};
-const timeframeWeights: Record<string, number> = {
-  '10m': 1, '30m': 1, '1h': 2, '2h': 2, '3h': 3, '4h': 3, '5h': 4, '6h': 5, '1D': 7,
-};
-const cycleGroups: CycleGroup[] = [
-  { key: 'short', label: '短周期', note: '执行节奏', timeframes: ['10m', '30m', '1h'] },
-  { key: 'medium', label: '中周期', note: '趋势确认', timeframes: ['2h', '3h', '4h', '5h'] },
-  { key: 'long', label: '长周期', note: '方向约束', timeframes: ['6h', '1D'] },
+const payload = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8')) as Payload;
+const segments = [
+  { key: '预备', title: '预备观察', subtitle: '105分钟启动窗口' },
+  { key: 'A', title: 'A段', subtitle: '2小时 · 每15分钟' },
+  { key: 'B', title: 'B段', subtitle: '3小时 · 每15分钟' },
+  { key: 'C', title: 'C段', subtitle: '4小时 · 每10分钟' },
+  { key: 'D', title: 'D段', subtitle: '5小时 · 每10分钟' },
+  { key: 'E', title: 'E段', subtitle: '6小时 · 每10分钟' },
+  { key: 'F', title: 'F段', subtitle: '7小时 · 每10分钟' },
+  { key: 'G', title: 'G段', subtitle: '8小时 · 日周期' },
 ];
-const signals = [...payload.signals].sort((a, b) => timeframeOrder.indexOf(a.timeframe) - timeframeOrder.indexOf(b.timeframe));
-const primary = signals[0];
-const generatedAtMs = Date.parse(payload.generated_at);
-const buyCount = signals.filter((item) => item.direction === 'BUY').length;
-const sellCount = signals.filter((item) => item.direction === 'SELL').length;
-const unresolvedCount = signals.filter((item) => ['UNKNOWN', 'CONFLICT'].includes(item.direction)).length;
-const totalWeight = signals.reduce((sum, item) => sum + (timeframeWeights[item.timeframe] || 1), 0);
-const directionScore = signals.reduce((sum, item) => {
-  const sign = item.direction === 'BUY' ? 1 : item.direction === 'SELL' ? -1 : 0;
-  return sum + sign * (timeframeWeights[item.timeframe] || 1);
-}, 0);
-const weightedPct = totalWeight ? Math.round((directionScore / totalWeight) * 100) : 0;
-const weightedTone = weightedPct >= 20 ? 'buy' : weightedPct <= -20 ? 'sell' : 'mixed';
-const weightedLabel = weightedPct >= 20 ? '偏多' : weightedPct <= -20 ? '偏空' : '多空拉锯';
-const latestSignal = [...signals]
-  .filter((item) => item.latest_signal_at && Number.isFinite(Date.parse(item.latest_signal_at)))
-  .sort((a, b) => Date.parse(b.latest_signal_at!) - Date.parse(a.latest_signal_at!))[0];
-const latestWindowMs = 6 * 60 * 60 * 1000;
-const latestCutoff = Number.isFinite(generatedAtMs) ? generatedAtMs - latestWindowMs : Number.NEGATIVE_INFINITY;
-const latestTimeframes = signals
-  .filter((item) => item.latest_signal_at && Date.parse(item.latest_signal_at) >= latestCutoff)
-  .map((item) => item.timeframe);
-
-const rowsFor = (group: CycleGroup) => signals.filter((item) => group.timeframes.includes(item.timeframe));
-const groupState = (rows: Signal[]) => {
-  const buys = rows.filter((item) => item.direction === 'BUY').length;
-  const sells = rows.filter((item) => item.direction === 'SELL').length;
-  const unresolved = rows.length - buys - sells;
-  if (unresolved > 0) return { label: '待确认', tone: 'mixed', summary: `${unresolved}个信号未决` };
-  if (buys === rows.length) return { label: '全部偏多', tone: 'buy', summary: `${buys}/${rows.length} 买入` };
-  if (sells === rows.length) return { label: '全部偏空', tone: 'sell', summary: `${sells}/${rows.length} 卖出` };
-  if (buys > sells) return { label: '偏多', tone: 'buy', summary: `${buys}买 · ${sells}卖` };
-  if (sells > buys) return { label: '偏空', tone: 'sell', summary: `${buys}买 · ${sells}卖` };
-  return { label: '方向分化', tone: 'mixed', summary: `${buys}买 · ${sells}卖` };
-};
-const longState = groupState(rowsFor(cycleGroups[2]));
 const formatTime = (value: string | null, includeYear = false) => {
-  if (!value) return '等待信号';
+  if (!value) return '尚未启动';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('zh-CN', {
@@ -103,499 +62,155 @@ const formatTime = (value: string | null, includeYear = false) => {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
   });
 };
-const freshness = (value: string | null) => {
-  if (!value || !Number.isFinite(generatedAtMs)) return '时间未知';
-  const signalMs = Date.parse(value);
-  if (!Number.isFinite(signalMs)) return '时间未知';
-  const hours = Math.max(0, Math.round((generatedAtMs - signalMs) / 36e5));
-  if (hours === 0) return '本小时变化';
-  if (hours < 24) return `${hours}小时前变化`;
-  const days = Math.round(hours / 24);
-  return `${days}天前变化`;
-};
-const directionLabel: Record<Direction, string> = { BUY: '买入', SELL: '卖出', UNKNOWN: '等待', CONFLICT: '冲突' };
-const directionClass: Record<Direction, string> = { BUY: 'buy', SELL: 'sell', UNKNOWN: 'unknown', CONFLICT: 'conflict' };
-const filterCounts = { all: signals.length, buy: buyCount, sell: sellCount, latest: latestTimeframes.length };
-const pageTitle = `A股滚动策略｜九周期决策终端 | ${SITE_TITLE}`;
-const pageDescription = 'A股滚动策略九周期决策终端，展示短中长周期方向、加权倾向、最近变化、持续时间与数据状态。';
+const transmissionLabel = payload.transmission.basis === 'single_run'
+  ? payload.transmission.state === 'complete' ? '单轮传导完成' : payload.transmission.state === 'transmitting' ? '正在连续传导' : '等待传导启动'
+  : '最近BUY覆盖至全周期';
+const statusCopy = payload.transmission.continuous_confirmed
+  ? '同一轮触发顺序已经上游确认'
+  : '跨日期最近信号覆盖，尚未确认为同一轮连续传导';
+const pageTitle = `A股滚动策略｜买方能量传导 | ${SITE_TITLE}`;
+const pageDescription = 'A股滚动策略买方能量传导终端，以105分钟预备窗口和A至G共34个周期观察点展示买方力量向长周期延续的位置。';
 ---
 
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <BaseHead title={pageTitle} description={pageDescription} />
-  </head>
+  <head><BaseHead title={pageTitle} description={pageDescription} /></head>
   <body>
     <Header />
     <main id="main-content" tabindex="-1">
       <AStockSubnav active="rolling" />
 
-      <section class="strategy-terminal" aria-labelledby="rolling-title">
-        <div class="terminal-top">
-          <div class="title-block">
-            <div class="context-line">
-              <span class="live-dot" aria-hidden="true"></span>
-              <span>A股 · 九周期监控</span>
-              <span class="environment" data-field="environment">{payload.mode === 'demo' ? '演示数据' : payload.delivery.state === 'live' ? '实时数据' : '有效快照'}</span>
-            </div>
-            <h1 id="rolling-title">滚动策略</h1>
-            <div class="instrument"><strong data-field="instrument-name">{primary?.instrument_name || '暂无标的'}</strong><code data-field="symbol">{primary?.symbol || '—'}</code><span data-field="exchange">{primary?.exchange || '—'}</span></div>
-          </div>
-          <div class="clock-slot">
-            {payload.mode === 'demo' ? (
-              <div class="snapshot-panel" role="status">
-                <span>历史演示快照</span>
-                <strong>{formatTime(payload.generated_at, true)}</strong>
-                <small>脱敏数据 · 信号新鲜度均以此快照时间计算</small>
-              </div>
-            ) : <MarketClock market="a-share" />}
-          </div>
+      <section class="energy-hero" aria-labelledby="energy-title">
+        <div class="hero-main">
+          <div class="eyebrow"><span class="pulse" aria-hidden="true"></span><span>A股 · 买方能量传导</span><b data-field="environment">{payload.mode === 'demo' ? '演示快照' : payload.delivery.state === 'live' ? '实时数据' : '有效快照'}</b></div>
+          <h1 id="energy-title">滚动策略</h1>
+          <div class="instrument"><strong data-field="instrument-name">{payload.instrument.instrument_name}</strong><code data-field="symbol">{payload.instrument.symbol}</code><span data-field="exchange">{payload.instrument.exchange}</span></div>
         </div>
-
-        <div class="decision-band">
-          <article class="decision-cell primary-decision">
-            <span>策略阶段</span>
-            <strong data-field="phase-label">{primary?.phase_label || '等待状态数据'}</strong>
-            <small>阶段由公开数据字段直接呈现</small>
-          </article>
-          <article class:list={['decision-cell', 'weighted', weightedTone]}>
-            <span>周期加权倾向</span>
-            <strong data-field="weighted-label">{weightedLabel} <b data-field="weighted-value">{weightedPct > 0 ? '+' : ''}{weightedPct}</b></strong>
-            <small>高周期权重更高 · 范围 -100 至 +100</small>
-          </article>
-          <article class:list={['decision-cell', longState.tone]}>
-            <span>高周期约束</span>
-            <strong data-field="long-label">{longState.label}</strong>
-            <small data-field="long-summary">6小时 / 日线 · {longState.summary}</small>
-          </article>
-          <article class="decision-cell latest">
-            <span>最近变化</span>
-            <strong data-field="latest-label">{latestSignal ? `${timeframeLabels[latestSignal.timeframe]} ${directionLabel[latestSignal.direction]}` : '等待信号'}</strong>
-            <small data-field="latest-summary">{formatTime(latestSignal?.latest_signal_at || null)} · {freshness(latestSignal?.latest_signal_at || null)}</small>
-          </article>
-        </div>
-
-        <div class="terminal-meta">
-          <div><span>数据时间</span><strong data-field="data-as-of">{formatTime(payload.data_as_of, true)}</strong></div>
-          <div><span>周期覆盖</span><strong data-field="coverage">{signals.length}/9</strong></div>
-          <div><span>方向计数</span><strong class="buy-text" data-field="buy-count">{buyCount} 买</strong><i>·</i><strong class="sell-text" data-field="sell-count">{sellCount} 卖</strong></div>
-          <div><span>待确认</span><strong data-field="unresolved-count">{unresolvedCount}</strong></div>
+        <div class="hero-status">
+          <span>当前能量位置</span>
+          <strong data-field="current-position">{payload.transmission.current_cycle_code || '等待启动'}</strong>
+          <small data-field="transmission-label">{transmissionLabel}</small>
         </div>
       </section>
 
-      <section class="cycle-board" aria-labelledby="cycle-title">
-        <div class="section-heading">
-          <div><span>结构判断</span><h2 id="cycle-title">短、中、长周期</h2></div>
-          <p>长周期负责约束，短周期负责执行节奏</p>
-        </div>
-        <div class="cycle-grid">
-          {cycleGroups.map((group) => {
-            const rows = rowsFor(group);
-            const state = groupState(rows);
+      <section class="status-strip" aria-label="当前能量状态">
+        <article><span>本轮/记录起点</span><strong data-field="started-at">{formatTime(payload.transmission.started_at, true)}</strong></article>
+        <article><span>已点亮</span><strong class="red" data-field="lit-count">{payload.transmission.lit_count}<i>/34</i></strong></article>
+        <article><span>最新周期</span><strong data-field="latest-cycle">{payload.transmission.current_cycle_code || '—'}</strong></article>
+        <article><span>传导状态</span><strong data-field="transmission-state">{payload.transmission.state === 'complete' ? '全周期覆盖' : payload.transmission.state === 'transmitting' ? '继续传导' : '观察中'}</strong></article>
+        <article><span>数据时点</span><strong data-field="data-as-of">{formatTime(payload.data_as_of, true)}</strong></article>
+      </section>
+
+      <aside class:list={['basis-notice', payload.transmission.continuous_confirmed && 'confirmed']}>
+        <strong data-field="basis-title">{payload.transmission.continuous_confirmed ? '连续传导已确认' : '演示口径说明'}</strong>
+        <p data-field="basis-copy">{statusCopy}</p>
+      </aside>
+
+      <section class="transmission-section" aria-labelledby="transmission-title">
+        <header class="section-head">
+          <div><span>BUY ENERGY PATH</span><h2 id="transmission-title">34周期能量传导图</h2></div>
+          <p>红色表示该周期存在BUY记录；中性格表示尚未激活</p>
+        </header>
+        <div class="energy-board" data-energy-board>
+          {segments.map((segment) => {
+            const rows = payload.cycles.filter((cycle) => cycle.segment === segment.key);
             return (
-              <article class:list={['cycle-group', state.tone]} data-cycle-group={group.key}>
-                <header><div><span>{group.note}</span><h3>{group.label}</h3></div><strong data-cycle-state>{state.label}</strong></header>
-                <div class="cycle-rail" aria-label={`${group.label}${state.summary}`}>
-                  {rows.map((signal) => (
-                    <div class:list={['rail-node', directionClass[signal.direction]]} data-cycle-timeframe={signal.timeframe} title={`${timeframeLabels[signal.timeframe]} ${directionLabel[signal.direction]}`}>
-                      <span>{timeframeLabels[signal.timeframe]}</span>
-                      <b aria-hidden="true"></b>
-                    </div>
+              <section class="segment" data-segment={segment.key} aria-labelledby={`segment-${segment.key}`}>
+                <header><div><span>{segment.subtitle}</span><h3 id={`segment-${segment.key}`}>{segment.title}</h3>{segment.key === 'D' && <small>后两格为更早历史记录</small>}</div><b data-segment-count>{rows.filter((row) => row.buy_state === 'BUY').length}/{rows.length}</b></header>
+                <div class="cycle-grid">
+                  {rows.map((cycle) => (
+                    <article class:list={['energy-cell', cycle.buy_state === 'BUY' && 'active', cycle.buy_state === 'UNKNOWN' && 'unknown', cycle.cycle_code === payload.transmission.current_cycle_code && 'current']} data-cycle-code={cycle.cycle_code}>
+                      <div class="cell-code"><strong>{cycle.cycle_code}</strong><span>{cycle.timeframe_minutes}m</span></div>
+                      <p>{cycle.timeframe_label}</p>
+                      <div class="cell-state"><i aria-hidden="true"></i><b data-cycle-state>{cycle.buy_state === 'BUY' ? 'BUY' : cycle.buy_state === 'UNKNOWN' ? '待确认' : '未激活'}</b></div>
+                      <time data-cycle-time datetime={cycle.buy_triggered_at || undefined}>{cycle.buy_triggered_at ? formatTime(cycle.buy_triggered_at) : '等待信号'}</time>
+                    </article>
                   ))}
                 </div>
-                <footer><span data-cycle-summary>{state.summary}</span><small>{group.timeframes.map((item) => timeframeLabels[item]).join(' · ')}</small></footer>
-              </article>
+              </section>
             );
           })}
         </div>
       </section>
 
-      <section class="signal-workbench" aria-labelledby="matrix-title">
-        <div class="workbench-head">
-          <div><span>信号工作台</span><h2 id="matrix-title">九周期矩阵</h2></div>
-          <div class="filter-control" role="group" aria-label="筛选九周期信号">
-            <button type="button" class="active" data-filter="all" aria-pressed="true">全部 <b>{filterCounts.all}</b></button>
-            <button type="button" data-filter="buy" aria-pressed="false">买入 <b>{filterCounts.buy}</b></button>
-            <button type="button" data-filter="sell" aria-pressed="false">卖出 <b>{filterCounts.sell}</b></button>
-            <button type="button" data-filter="latest" aria-pressed="false">快照6h <b>{filterCounts.latest}</b></button>
-          </div>
-        </div>
-
-        <div class="matrix-legend" aria-label="方向图例">
-          <span><i class="buy"></i>买入</span><span><i class="sell"></i>卖出</span><span><i class="unknown"></i>等待</span>
-          <em id="filter-status" role="status" aria-live="polite">显示全部 {signals.length} 个周期</em>
-        </div>
-
-        <div class="signal-list" data-signal-list>
-          {cycleGroups.map((group) => (
-            <section class="signal-group" data-signal-group aria-labelledby={`group-${group.key}`}>
-              <div class="group-label"><span>{group.note}</span><strong id={`group-${group.key}`}>{group.label}</strong></div>
-              <div class="group-rows">
-                {rowsFor(group).map((signal) => (
-                  <details
-                    class:list={['signal-row', directionClass[signal.direction]]}
-                    data-timeframe={signal.timeframe}
-                    data-direction={directionClass[signal.direction]}
-                    data-latest={latestTimeframes.includes(signal.timeframe) ? 'true' : 'false'}
-                  >
-                    <summary>
-                      <span class="timeframe">{timeframeLabels[signal.timeframe] || signal.timeframe}<small>权重 {timeframeWeights[signal.timeframe] || 1}</small></span>
-                      <span class:list={['direction', directionClass[signal.direction]]} data-row-direction><i aria-hidden="true"></i><span>{directionLabel[signal.direction]}</span></span>
-                      <span class="signal-time"><small>最近变化</small><strong data-row-time>{formatTime(signal.latest_signal_at)}</strong><em data-row-freshness>{freshness(signal.latest_signal_at)}</em></span>
-                      <span class="row-state">{latestTimeframes.includes(signal.timeframe) && <b>6h内</b>}<i aria-hidden="true">⌄</i></span>
-                    </summary>
-                    <div class="signal-facts">
-                      <dl><div><dt>策略阶段</dt><dd data-row-phase>{signal.phase_label}</dd></div><div><dt>数据状态</dt><dd data-row-delivery>{payload.mode === 'demo' ? '脱敏演示' : payload.delivery.state === 'live' ? '实时接入' : '有效快照'}</dd></div><div><dt>预警配置</dt><dd data-row-alerts>{signal.alert_configured_count}</dd></div><div><dt>实时核验</dt><dd data-row-verified>{signal.live_verified_count}</dd></div></dl>
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </section>
-          ))}
-          <div class="empty-filter" hidden>当前筛选没有匹配周期</div>
+      <section class="sell-section" aria-labelledby="sell-title">
+        <header class="section-head sell-head">
+          <div><span>SELL SIGNAL ANALYSIS</span><h2 id="sell-title">AI卖出信号提醒</h2></div>
+          <p>卖出信号独立分析，不改变原始信号与买方能量格</p>
+        </header>
+        <div class="sell-list" data-sell-list>
+          {payload.sell_alerts.length ? payload.sell_alerts.map((alert) => (
+            <article class="sell-alert">
+              <header><div><span>AI信号提醒</span><h3>{payload.instrument.instrument_name}</h3></div><time>{formatTime(alert.triggered_at, true)}</time></header>
+              <dl><div><dt>卖出周期</dt><dd>{alert.cycle_code} · {alert.timeframe_minutes}分钟</dd></div><div><dt>能量位置</dt><dd>{alert.transmission_position || '未进入传导'}</dd></div><div><dt>剩余交易时间</dt><dd>{alert.remaining_session_minutes}分钟</dd></div></dl>
+              <p>{alert.analysis_state === 'ready' ? alert.analysis : 'AI分析尚未生成，保留原始卖出信号事实。'}</p>
+            </article>
+          )) : (
+            <div class="sell-empty" data-sell-empty><div aria-hidden="true">!</div><strong>当前没有卖出提醒</strong><p>尚未收到符合 v2 合同的SELL事件。接入34周期Webhook后，提醒将按触发时间倒序显示。</p></div>
+          )}
         </div>
       </section>
 
       <aside class="data-boundary" aria-label="数据边界">
-        <div class="boundary-icon" aria-hidden="true">i</div>
-        <div><strong data-field="boundary-title">{payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'}</strong><p><span data-field="notice">{payload.notice}</span> 当前页面呈现方向监控与周期结构，不生成仓位、价格或交易指令。</p><small class="refresh-state" data-refresh-state role="status" aria-live="polite">页面已载入有效快照，正在后台检查更新</small></div>
-        <details><summary>查看数据边界</summary><p>页面读取公开静态快照；“周期加权倾向”仅用于避免九个周期机械等权，高周期拥有更高展示权重。它属于结构观察指标。</p></details>
+        <div aria-hidden="true">i</div>
+        <section><strong data-field="boundary-title">{payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'}</strong><p><span data-field="notice">{payload.notice}</span> 页面不生成仓位或交易指令。</p><small data-refresh-state role="status" aria-live="polite">页面已载入有效快照，正在后台检查更新</small></section>
+        <details><summary>查看数据边界</summary><p>BUY格只表达对应周期的信号事实。只有上游提供同一run_id并通过连续性校验时，才标记为单轮连续传导。AI提醒只承担分析提示，不改变TradingBox原始信号。</p></details>
       </aside>
     </main>
     <Footer />
 
     <script is:inline>
       (() => {
-        const TIMEFRAMES = ['10m', '30m', '1h', '2h', '3h', '4h', '5h', '6h', '1D'];
-        const LABELS = { '10m': '10分钟', '30m': '30分钟', '1h': '1小时', '2h': '2小时', '3h': '3小时', '4h': '4小时', '5h': '5小时', '6h': '6小时', '1D': '日线' };
-        const WEIGHTS = { '10m': 1, '30m': 1, '1h': 2, '2h': 2, '3h': 3, '4h': 3, '5h': 4, '6h': 5, '1D': 7 };
-        const GROUPS = { short: ['10m', '30m', '1h'], medium: ['2h', '3h', '4h', '5h'], long: ['6h', '1D'] };
-        const DIRECTIONS = { BUY: ['buy', '买入'], SELL: ['sell', '卖出'], UNKNOWN: ['unknown', '等待'], CONFLICT: ['conflict', '冲突'] };
-        const buttons = [...document.querySelectorAll('[data-filter]')];
-        const rows = [...document.querySelectorAll('.signal-row')];
-        const groups = [...document.querySelectorAll('[data-signal-group]')];
-        const status = document.getElementById('filter-status');
-        const empty = document.querySelector('.empty-filter');
-        const refreshState = document.querySelector('[data-refresh-state]');
-        const filterLabels = { all: '全部', buy: '买入', sell: '卖出', latest: '快照前6小时' };
-        let activeFilter = 'all';
-        let referenceMs = Date.now();
-        let inFlight = false;
-
+        const CODES = ['PRE','A1','A2','A3','A4','B1','B2','B3','B4','C1','C2','C3','C4','C5','C6','D1','D2','D3','D4','D5','D6','E1','E2','E3','E4','E5','E6','F1','F2','F3','F4','F5','F6','G'];
         const field = name => document.querySelector(`[data-field="${name}"]`);
         const setText = (node, value) => { if (node) node.textContent = value; };
         const formatTime = (value, includeYear = false) => {
-          if (!value) return '等待信号';
+          if (!value) return '尚未启动';
           const date = new Date(value);
           if (Number.isNaN(date.getTime())) return String(value);
-          return date.toLocaleString('zh-CN', {
-            timeZone: 'Asia/Shanghai', hour12: false,
-            ...(includeYear ? { year: 'numeric' } : {}),
-            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-          });
+          return date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, ...(includeYear ? { year: 'numeric' } : {}), month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         };
-        const freshness = value => {
-          const signalMs = Date.parse(value || '');
-          if (!Number.isFinite(signalMs)) return '时间未知';
-          const hours = Math.max(0, Math.round((referenceMs - signalMs) / 36e5));
-          if (hours === 0) return '本小时变化';
-          if (hours < 24) return `${hours}小时前变化`;
-          return `${Math.round(hours / 24)}天前变化`;
-        };
-        const stateFor = list => {
-          const buys = list.filter(row => row.direction === 'BUY').length;
-          const sells = list.filter(row => row.direction === 'SELL').length;
-          const unresolved = list.length - buys - sells;
-          if (unresolved) return ['mixed', '待确认', `${unresolved}个信号未决`];
-          if (buys === list.length) return ['buy', '全部偏多', `${buys}/${list.length} 买入`];
-          if (sells === list.length) return ['sell', '全部偏空', `${sells}/${list.length} 卖出`];
-          if (buys > sells) return ['buy', '偏多', `${buys}买 · ${sells}卖`];
-          if (sells > buys) return ['sell', '偏空', `${buys}买 · ${sells}卖`];
-          return ['mixed', '方向分化', `${buys}买 · ${sells}卖`];
-        };
-        const applyFilter = filter => {
-          activeFilter = filter;
-          let visible = 0;
-          for (const row of rows) {
-            const matches = filter === 'all' || row.dataset.direction === filter || (filter === 'latest' && row.dataset.latest === 'true');
-            row.hidden = !matches;
-            if (matches) visible += 1;
+        let inFlight = false;
+        const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+        const renderAlerts = (alerts, instrument) => {
+          const list = document.querySelector('[data-sell-list]');
+          if (!list) return;
+          if (!alerts.length) {
+            list.innerHTML = '<div class="sell-empty" data-sell-empty><div aria-hidden="true">!</div><strong>当前没有卖出提醒</strong><p>尚未收到符合 v2 合同的SELL事件。接入34周期Webhook后，提醒将按触发时间倒序显示。</p></div>';
+            return;
           }
-          for (const group of groups) group.hidden = !group.querySelector('.signal-row:not([hidden])');
-          for (const button of buttons) {
-            const active = button.dataset.filter === filter;
-            button.classList.toggle('active', active);
-            button.setAttribute('aria-pressed', String(active));
-          }
-          setText(status, `显示${filterLabels[filter]} ${visible} 个周期`);
-          if (empty) empty.hidden = visible > 0;
+          list.innerHTML = alerts.map(alert => `<article class="sell-alert"><header><div><span>AI信号提醒</span><h3>${escapeHtml(instrument.instrument_name)}</h3></div><time>${escapeHtml(formatTime(alert.triggered_at, true))}</time></header><dl><div><dt>卖出周期</dt><dd>${escapeHtml(alert.cycle_code)} · ${escapeHtml(alert.timeframe_minutes)}分钟</dd></div><div><dt>能量位置</dt><dd>${escapeHtml(alert.transmission_position || '未进入传导')}</dd></div><div><dt>剩余交易时间</dt><dd>${escapeHtml(alert.remaining_session_minutes)}分钟</dd></div></dl><p>${escapeHtml(alert.analysis_state === 'ready' ? alert.analysis : 'AI分析尚未生成，保留原始卖出信号事实。')}</p></article>`).join('');
         };
         const render = payload => {
-          if (!payload || payload.schema_version !== 'a-rolling-public-v1' || !Array.isArray(payload.signals) || payload.signals.length !== 9) throw new Error('invalid payload');
-          const signals = [...payload.signals].sort((a, b) => TIMEFRAMES.indexOf(a.timeframe) - TIMEFRAMES.indexOf(b.timeframe));
-          if (signals.some((row, index) => row.timeframe !== TIMEFRAMES[index] || !DIRECTIONS[row.direction])) throw new Error('invalid signal set');
-          const primary = signals[0];
-          referenceMs = Date.parse(payload.data_as_of || payload.generated_at);
-          if (!Number.isFinite(referenceMs)) throw new Error('invalid data timestamp');
-          const latestCutoff = referenceMs - 6 * 60 * 60 * 1000;
-          const latest = [...signals].filter(row => Number.isFinite(Date.parse(row.latest_signal_at))).sort((a, b) => Date.parse(b.latest_signal_at) - Date.parse(a.latest_signal_at))[0];
-          const buyCount = signals.filter(row => row.direction === 'BUY').length;
-          const sellCount = signals.filter(row => row.direction === 'SELL').length;
-          const unresolved = signals.length - buyCount - sellCount;
-          const totalWeight = signals.reduce((sum, row) => sum + WEIGHTS[row.timeframe], 0);
-          const score = signals.reduce((sum, row) => sum + (row.direction === 'BUY' ? 1 : row.direction === 'SELL' ? -1 : 0) * WEIGHTS[row.timeframe], 0);
-          const weightedPct = Math.round(score / totalWeight * 100);
-          const weightedTone = weightedPct >= 20 ? 'buy' : weightedPct <= -20 ? 'sell' : 'mixed';
-          const weightedLabel = weightedPct >= 20 ? '偏多' : weightedPct <= -20 ? '偏空' : '多空拉锯';
-          const deliveryLabel = payload.mode === 'demo' ? '脱敏演示' : payload.delivery.state === 'live' ? '实时接入' : '有效快照';
-
-          setText(field('environment'), payload.mode === 'demo' ? '演示数据' : payload.delivery.state === 'live' ? '实时数据' : '有效快照');
-          setText(field('instrument-name'), primary.instrument_name);
-          setText(field('symbol'), primary.symbol);
-          setText(field('exchange'), primary.exchange);
-          setText(field('phase-label'), primary.phase_label);
-          const weighted = field('weighted-label');
-          if (weighted) weighted.childNodes[0].nodeValue = `${weightedLabel} `;
-          setText(field('weighted-value'), `${weightedPct > 0 ? '+' : ''}${weightedPct}`);
-          const weightedCell = weighted?.closest('.decision-cell');
-          if (weightedCell) { weightedCell.classList.remove('buy', 'sell', 'mixed'); weightedCell.classList.add(weightedTone); }
-          const longState = stateFor(signals.filter(row => GROUPS.long.includes(row.timeframe)));
-          setText(field('long-label'), longState[1]);
-          setText(field('long-summary'), `6小时 / 日线 · ${longState[2]}`);
-          setText(field('latest-label'), latest ? `${LABELS[latest.timeframe]} ${DIRECTIONS[latest.direction][1]}` : '等待信号');
-          setText(field('latest-summary'), latest ? `${formatTime(latest.latest_signal_at)} · ${freshness(latest.latest_signal_at)}` : '等待信号');
-          setText(field('data-as-of'), formatTime(payload.data_as_of, true));
-          setText(field('coverage'), `${signals.length}/9`);
-          setText(field('buy-count'), `${buyCount} 买`);
-          setText(field('sell-count'), `${sellCount} 卖`);
-          setText(field('unresolved-count'), String(unresolved));
-          setText(field('boundary-title'), payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照');
-          setText(field('notice'), payload.notice);
-
-          for (const signal of signals) {
-            const tone = DIRECTIONS[signal.direction][0];
-            const row = document.querySelector(`[data-timeframe="${signal.timeframe}"]`);
-            if (!row) continue;
-            row.dataset.direction = tone;
-            row.dataset.latest = String(Number.isFinite(Date.parse(signal.latest_signal_at)) && Date.parse(signal.latest_signal_at) >= latestCutoff);
-            row.classList.remove('buy', 'sell', 'unknown', 'conflict');
-            row.classList.add(tone);
-            const direction = row.querySelector('[data-row-direction]');
-            if (direction) { direction.classList.remove('buy', 'sell', 'unknown', 'conflict'); direction.classList.add(tone); setText(direction.querySelector('span'), DIRECTIONS[signal.direction][1]); }
-            setText(row.querySelector('[data-row-time]'), formatTime(signal.latest_signal_at));
-            setText(row.querySelector('[data-row-freshness]'), freshness(signal.latest_signal_at));
-            setText(row.querySelector('[data-row-phase]'), signal.phase_label);
-            setText(row.querySelector('[data-row-delivery]'), deliveryLabel);
-            setText(row.querySelector('[data-row-alerts]'), String(signal.alert_configured_count));
-            setText(row.querySelector('[data-row-verified]'), String(signal.live_verified_count));
-            const rail = document.querySelector(`[data-cycle-timeframe="${signal.timeframe}"]`);
-            if (rail) { rail.classList.remove('buy', 'sell', 'unknown', 'conflict'); rail.classList.add(tone); rail.title = `${LABELS[signal.timeframe]} ${DIRECTIONS[signal.direction][1]}`; }
+          if (!payload || payload.schema_version !== 'a-rolling-energy-v2' || !Array.isArray(payload.cycles) || payload.cycles.length !== 34) throw new Error('invalid payload');
+          if (payload.cycles.some((cycle, index) => cycle.cycle_code !== CODES[index])) throw new Error('invalid sequence');
+          setText(field('environment'), payload.mode === 'demo' ? '演示快照' : payload.delivery.state === 'live' ? '实时数据' : '有效快照');
+          setText(field('instrument-name'), payload.instrument.instrument_name); setText(field('symbol'), payload.instrument.symbol); setText(field('exchange'), payload.instrument.exchange);
+          setText(field('current-position'), payload.transmission.current_cycle_code || '等待启动');
+          setText(field('transmission-label'), payload.transmission.basis === 'single_run' ? payload.transmission.state === 'complete' ? '单轮传导完成' : '正在连续传导' : '最近BUY覆盖至全周期');
+          setText(field('started-at'), formatTime(payload.transmission.started_at, true)); setText(field('lit-count'), `${payload.transmission.lit_count}/34`); setText(field('latest-cycle'), payload.transmission.current_cycle_code || '—');
+          setText(field('transmission-state'), payload.transmission.state === 'complete' ? '全周期覆盖' : payload.transmission.state === 'transmitting' ? '继续传导' : '观察中'); setText(field('data-as-of'), formatTime(payload.data_as_of, true));
+          setText(field('basis-title'), payload.transmission.continuous_confirmed ? '连续传导已确认' : '演示口径说明'); setText(field('basis-copy'), payload.transmission.continuous_confirmed ? '同一轮触发顺序已经上游确认' : '跨日期最近信号覆盖，尚未确认为同一轮连续传导');
+          for (const cycle of payload.cycles) {
+            const cell = document.querySelector(`[data-cycle-code="${cycle.cycle_code}"]`); if (!cell) continue;
+            cell.classList.toggle('active', cycle.buy_state === 'BUY'); cell.classList.toggle('unknown', cycle.buy_state === 'UNKNOWN'); cell.classList.toggle('current', cycle.cycle_code === payload.transmission.current_cycle_code);
+            setText(cell.querySelector('[data-cycle-state]'), cycle.buy_state === 'BUY' ? 'BUY' : cycle.buy_state === 'UNKNOWN' ? '待确认' : '未激活'); setText(cell.querySelector('[data-cycle-time]'), cycle.buy_triggered_at ? formatTime(cycle.buy_triggered_at) : '等待信号');
           }
-          for (const [key, timeframes] of Object.entries(GROUPS)) {
-            const card = document.querySelector(`[data-cycle-group="${key}"]`);
-            const groupState = stateFor(signals.filter(row => timeframes.includes(row.timeframe)));
-            if (card) { card.classList.remove('buy', 'sell', 'mixed'); card.classList.add(groupState[0]); setText(card.querySelector('[data-cycle-state]'), groupState[1]); setText(card.querySelector('[data-cycle-summary]'), groupState[2]); }
-          }
-          for (const button of buttons) {
-            const filter = button.dataset.filter;
-            const count = filter === 'all' ? signals.length : filter === 'buy' ? buyCount : filter === 'sell' ? sellCount : signals.filter(row => Number.isFinite(Date.parse(row.latest_signal_at)) && Date.parse(row.latest_signal_at) >= latestCutoff).length;
-            setText(button.querySelector('b'), String(count));
-          }
-          applyFilter(activeFilter);
-          setText(refreshState, payload.delivery.state === 'live' ? `实时数据已更新 · ${formatTime(payload.data_as_of)}` : `显示最后有效快照 · ${payload.delivery.reason || '实时源暂不可用'}`);
+          for (const segment of ['预备','A','B','C','D','E','F','G']) { const box = document.querySelector(`[data-segment="${segment}"]`); if (box) setText(box.querySelector('[data-segment-count]'), `${payload.cycles.filter(c => c.segment === segment && c.buy_state === 'BUY').length}/${payload.cycles.filter(c => c.segment === segment).length}`); }
+          renderAlerts(payload.sell_alerts || [], payload.instrument);
+          setText(field('boundary-title'), payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'); setText(field('notice'), payload.notice);
+          setText(document.querySelector('[data-refresh-state]'), payload.delivery.state === 'live' ? `实时数据已更新 · ${formatTime(payload.data_as_of)}` : `显示最后有效快照 · ${payload.delivery.reason || '实时源暂不可用'}`);
         };
-        const refresh = async () => {
-          if (inFlight || document.hidden) return;
-          inFlight = true;
-          try {
-            const response = await fetch('/api/public/v1/rolling-signals', { headers: { accept: 'application/json' } });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            render(await response.json());
-          } catch {
-            setText(refreshState, '实时检查失败，继续保留当前有效快照');
-          } finally {
-            inFlight = false;
-          }
-        };
-
-        for (const button of buttons) button.addEventListener('click', () => applyFilter(button.dataset.filter));
-        refresh();
-        window.setInterval(refresh, 60000);
+        const refresh = async () => { if (inFlight || document.hidden) return; inFlight = true; try { const response = await fetch('/api/public/v1/rolling-signals', { headers: { accept: 'application/json' } }); if (!response.ok) throw new Error(); render(await response.json()); } catch { setText(document.querySelector('[data-refresh-state]'), '实时检查失败，继续保留当前有效快照'); } finally { inFlight = false; } };
+        refresh(); window.setInterval(refresh, 60000);
       })();
     </script>
   </body>
 </html>
 
 <style>
-  main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
-  .strategy-terminal { overflow: hidden; border: 1px solid #dce2e8; border-radius: 8px; background: #fff; box-shadow: 0 10px 32px rgba(28,38,48,.06); }
-  .terminal-top { display: grid; grid-template-columns: minmax(300px,.82fr) minmax(520px,1.18fr); gap: 1rem; align-items: center; padding: 1rem 1.15rem; border-bottom: 1px solid #e5e9ed; background: #fbfcfd; }
-  .context-line { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; color: #59636e; font-size: .7rem; font-weight: 850; }
-  .live-dot { width: .48rem; height: .48rem; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
-  .environment { padding: .15rem .45rem; border: 1px solid #e8c57a; border-radius: 4px; background: #fff8e9; color: #8d5b00; }
-  .title-block h1 { margin: .18rem 0 .12rem; font-size: 2rem; letter-spacing: 0; }
-  .instrument { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; color: #6b747d; font-size: .76rem; }
-  .instrument strong { font-size: .88rem; }
-  .instrument code { padding: .08rem .3rem; background: #f1f3f5; }
-  .clock-slot { min-width: 0; }
-  .clock-slot :global(.market-clock) { width: 100%; box-shadow: none; border-radius: 6px; }
-  .snapshot-panel { display: grid; align-content: center; min-height: 76px; padding: .7rem .85rem; border: 1px solid #e3c67d; border-radius: 6px; background: #fff9ec; }
-  .snapshot-panel span { color: #805a12; font-size: .68rem; font-weight: 900; }
-  .snapshot-panel strong { margin-top: .1rem; font-size: 1rem; }
-  .snapshot-panel small { margin-top: .08rem; color: #755f35; font-size: .68rem; }
-  .decision-band { display: grid; grid-template-columns: 1.35fr repeat(3,minmax(0,1fr)); border-bottom: 1px solid #e5e9ed; }
-  .decision-cell { min-width: 0; min-height: 110px; padding: .85rem 1rem; border-right: 1px solid #e5e9ed; background: #fff; }
-  .decision-cell:last-child { border-right: 0; }
-  .decision-cell > span, .terminal-meta span { display: block; color: #747d86; font-size: .68rem; font-weight: 800; }
-  .decision-cell > strong { display: block; margin-top: .28rem; font-size: .98rem; line-height: 1.4; letter-spacing: 0; }
-  .decision-cell small { display: block; margin-top: .3rem; color: #7b838b; font-size: .68rem; line-height: 1.4; }
-  .primary-decision { border-top: 3px solid #24364b; background: #f7f9fb; }
-  .primary-decision > strong { font-size: 1.04rem; }
-  .decision-cell.buy { border-top: 3px solid var(--action-buy); background: linear-gradient(180deg,#fff5f2,#fff); }
-  .decision-cell.sell { border-top: 3px solid var(--action-sell); background: linear-gradient(180deg,#f1faf4,#fff); }
-  .decision-cell.mixed, .decision-cell.latest { border-top: 3px solid #9aa4ae; }
-  .weighted strong b { margin-left: .2rem; font-size: 1.3rem; }
-  .weighted.buy strong b { color: var(--action-buy); }
-  .weighted.sell strong b { color: var(--action-sell); }
-  .weighted.mixed strong b { color: #56616c; }
-  .terminal-meta { display: grid; grid-template-columns: 1.5fr .75fr 1fr .75fr; background: #f7f8fa; }
-  .terminal-meta > div { min-height: 52px; padding: .5rem 1rem; border-right: 1px solid #e5e9ed; }
-  .terminal-meta > div:last-child { border-right: 0; }
-  .terminal-meta strong { font-size: .76rem; }
-  .terminal-meta i { margin: 0 .3rem; color: #a2a8ae; font-style: normal; }
-  .buy-text { color: var(--action-buy); }
-  .sell-text { color: var(--action-sell); }
-  .section-heading, .workbench-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
-  .section-heading { margin: 1.45rem 0 .65rem; }
-  .section-heading > div > span, .workbench-head > div > span { color: #6f7881; font-size: .68rem; font-weight: 900; }
-  .section-heading h2, .workbench-head h2 { margin: .08rem 0 0; font-size: 1.25rem; letter-spacing: 0; }
-  .section-heading p { margin: 0; color: #737c85; font-size: .74rem; }
-  .cycle-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .65rem; }
-  .cycle-group { padding: .75rem .8rem; border: 1px solid #dfe4e8; border-top: 3px solid #9da6af; border-radius: 7px; background: #fff; }
-  .cycle-group.buy { border-top-color: var(--action-buy); }
-  .cycle-group.sell { border-top-color: var(--action-sell); }
-  .cycle-group header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
-  .cycle-group header span { color: #7a838b; font-size: .65rem; font-weight: 800; }
-  .cycle-group h3 { margin: .04rem 0 0; font-size: .9rem; letter-spacing: 0; }
-  .cycle-group header > strong { font-size: .75rem; }
-  .cycle-group.buy header > strong { color: var(--action-buy); }
-  .cycle-group.sell header > strong { color: var(--action-sell); }
-  .cycle-rail { display: flex; align-items: flex-start; margin: .65rem 0 .5rem; }
-  .rail-node { position: relative; flex: 1; min-width: 0; text-align: center; }
-  .rail-node::after { content: ''; position: absolute; z-index: 0; top: 1.68rem; left: 50%; width: 100%; height: 2px; background: #dfe3e7; }
-  .rail-node:last-child::after { display: none; }
-  .rail-node span { display: block; overflow: hidden; color: #69737d; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
-  .rail-node b { position: relative; z-index: 1; display: block; width: .75rem; height: .75rem; margin: .32rem auto 0; border: 2px solid #fff; border-radius: 50%; background: #aeb6bd; box-shadow: 0 0 0 1px #aeb6bd; }
-  .rail-node.buy b { background: var(--action-buy); box-shadow: 0 0 0 1px var(--action-buy); }
-  .rail-node.sell b { background: var(--action-sell); box-shadow: 0 0 0 1px var(--action-sell); }
-  .rail-node.conflict b { background: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
-  .cycle-group footer { display: flex; align-items: flex-end; justify-content: space-between; gap: .5rem; }
-  .cycle-group footer span { font-size: .7rem; font-weight: 850; }
-  .cycle-group footer small { overflow: hidden; max-width: 68%; color: #858d95; font-size: .6rem; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-  .signal-workbench { margin-top: 1.4rem; overflow: hidden; border: 1px solid #d9dfe4; border-radius: 8px; background: #fff; }
-  .workbench-head { padding: .8rem .9rem; border-bottom: 1px solid #e1e6ea; background: #f8fafb; }
-  .filter-control { display: inline-flex; padding: .2rem; border: 1px solid #d8dee3; border-radius: 6px; background: #fff; }
-  .filter-control button { min-height: 34px; padding: .35rem .65rem; border: 0; border-radius: 4px; background: transparent; color: #58636d; font: inherit; font-size: .7rem; font-weight: 850; cursor: pointer; }
-  .filter-control button b { margin-left: .15rem; color: inherit; font-size: .65rem; }
-  .filter-control button.active { background: #24364b; color: #fff; }
-  .matrix-legend { display: flex; align-items: center; gap: .75rem; min-height: 38px; padding: .4rem .9rem; border-bottom: 1px solid #e8ebee; color: #6d7680; font-size: .65rem; }
-  .matrix-legend span { display: inline-flex; align-items: center; gap: .25rem; }
-  .matrix-legend i { width: .45rem; height: .45rem; border-radius: 50%; background: #aeb6bd; }
-  .matrix-legend i.buy { background: var(--action-buy); }
-  .matrix-legend i.sell { background: var(--action-sell); }
-  .matrix-legend em { margin-left: auto; font-style: normal; }
-  .signal-group { display: grid; grid-template-columns: 112px minmax(0,1fr); border-bottom: 1px solid #e1e5e9; }
-  .signal-group:last-of-type { border-bottom: 0; }
-  .group-label { padding: .75rem .8rem; border-right: 1px solid #e1e5e9; background: #f8f9fa; }
-  .group-label span { display: block; color: #7a838c; font-size: .62rem; }
-  .group-label strong { font-size: .78rem; }
-  .signal-row { border-bottom: 1px solid #edf0f2; background: #fff; }
-  .signal-row:last-child { border-bottom: 0; }
-  .signal-row[hidden], .signal-group[hidden] { display: none; }
-  .signal-row summary { display: grid; grid-template-columns: 110px 100px minmax(220px,1fr) 72px; align-items: center; gap: .65rem; min-height: 56px; padding: .45rem .8rem; cursor: pointer; list-style: none; }
-  .signal-row summary::-webkit-details-marker { display: none; }
-  .signal-row summary:hover { background: #fafbfc; }
-  .timeframe { font-size: .78rem; font-weight: 900; }
-  .timeframe small, .signal-time small { display: block; color: #6f7881; font-size: .66rem; font-weight: 700; }
-  .direction { display: inline-flex; align-items: center; gap: .35rem; width: max-content; min-width: 62px; color: #59636c; font-size: .72rem; font-weight: 900; }
-  .direction i { width: .52rem; height: .52rem; border-radius: 50%; background: #aeb6bd; }
-  .direction.buy { color: #a6291f; }
-  .direction.buy i { background: var(--action-buy); }
-  .direction.sell { color: #087a37; }
-  .direction.sell i { background: var(--action-sell); }
-  .direction.conflict { color: #8b5800; }
-  .direction.conflict i { background: var(--amber); }
-  .signal-time strong { display: block; overflow: hidden; font-size: .75rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-  .signal-time em { display: block; color: #68727c; font-size: .66rem; font-style: normal; }
-  .row-state { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; min-height: 44px; }
-  .row-state b { padding: .12rem .3rem; border: 1px solid #cbd7e2; border-radius: 3px; background: #f2f7fb; color: #31536f; font-size: .58rem; }
-  .row-state i { color: #7d858d; font-style: normal; transition: transform 160ms ease; }
-  .signal-row[open] .row-state i { transform: rotate(180deg); }
-  .signal-facts { padding: .65rem .8rem .75rem; border-top: 1px solid #edf0f2; background: #fafbfc; }
-  .signal-facts dl { display: grid; grid-template-columns: 2fr repeat(3,1fr); gap: .55rem; margin: 0; }
-  .signal-facts dl > div { min-width: 0; }
-  .signal-facts dt { color: #7b848c; font-size: .6rem; font-weight: 800; }
-  .signal-facts dd { margin: .12rem 0 0; font-size: .7rem; line-height: 1.4; }
-  .empty-filter { padding: 1.5rem; color: #747d85; font-size: .78rem; text-align: center; }
-  .data-boundary { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .7rem; align-items: center; margin-top: .8rem; padding: .7rem .8rem; border: 1px solid #e3c67d; border-radius: 7px; background: #fff9ec; }
-  .boundary-icon { display: flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #895a00; color: #fff; font-size: .7rem; font-weight: 900; }
-  .data-boundary strong { font-size: .75rem; }
-  .data-boundary p { margin: .08rem 0 0; color: #755d2d; font-size: .68rem; line-height: 1.45; }
-  .refresh-state { display: block; margin-top: .22rem; color: #806a3d; font-size: .62rem; line-height: 1.4; }
-  .data-boundary details { min-width: 112px; }
-  .data-boundary summary { color: #6f541f; font-size: .68rem; font-weight: 850; cursor: pointer; }
-  .data-boundary details p { margin-top: .4rem; }
-  @media (max-width: 900px) {
-    .terminal-top { grid-template-columns: 1fr; }
-    .decision-band { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .decision-cell:nth-child(2) { border-right: 0; }
-    .decision-cell:nth-child(-n+2) { border-bottom: 1px solid #e5e9ed; }
-    .cycle-grid { grid-template-columns: 1fr; }
-    .signal-row summary { grid-template-columns: 94px 84px minmax(180px,1fr) 64px; }
-  }
-  @media (max-width: 620px) {
-    main { width: calc(100% - 1rem); padding-top: .7rem; }
-    .strategy-terminal, .signal-workbench { border-radius: 6px; }
-    .terminal-top { padding: .8rem; }
-    .title-block h1 { font-size: 1.65rem; }
-    .clock-slot :global(.market-clock) { display: none; }
-    .snapshot-panel { min-height: 64px; }
-    .decision-band { grid-template-columns: 1fr 1fr; }
-    .decision-cell { min-height: 100px; padding: .68rem .7rem; }
-    .decision-cell > strong { font-size: .84rem; }
-    .primary-decision { grid-column: 1/-1; min-height: auto; border-right: 0; }
-    .decision-cell:nth-child(2) { border-right: 1px solid #e5e9ed; }
-    .decision-cell:nth-child(3) { border-right: 0; }
-    .decision-cell:nth-child(-n+3) { border-bottom: 1px solid #e5e9ed; }
-    .decision-cell.latest { grid-column: 1/-1; min-height: auto; }
-    .terminal-meta { grid-template-columns: 1fr 1fr; }
-    .terminal-meta > div:nth-child(2) { border-right: 0; }
-    .terminal-meta > div:nth-child(-n+2) { border-bottom: 1px solid #e5e9ed; }
-    .section-heading { align-items: flex-start; flex-direction: column; gap: .25rem; }
-    .section-heading p { max-width: none; font-size: .65rem; text-align: left; }
-    .cycle-group { padding: .65rem .7rem; }
-    .workbench-head { align-items: stretch; flex-direction: column; }
-    .filter-control { display: grid; grid-template-columns: repeat(4,1fr); width: 100%; }
-    .filter-control button { min-height: 40px; padding-inline: .25rem; }
-    .matrix-legend { gap: .5rem; }
-    .matrix-legend em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .signal-group { display: block; }
-    .group-label { display: flex; align-items: center; justify-content: space-between; padding: .48rem .7rem; border-right: 0; border-bottom: 1px solid #e3e7ea; }
-    .signal-row summary { grid-template-columns: minmax(74px,.8fr) minmax(64px,.72fr) minmax(124px,1.35fr) 44px; gap: .3rem; min-height: 64px; padding: .45rem .55rem; }
-    .signal-time strong { font-size: .7rem; }
-    .row-state b { display: none; }
-    .signal-facts dl { grid-template-columns: 1fr 1fr; }
-    .signal-facts dl > div:first-child { grid-column: 1/-1; }
-    .data-boundary { grid-template-columns: auto 1fr; align-items: start; }
-    .data-boundary details { grid-column: 2; }
-  }
-  @media (max-width: 360px) {
-    .decision-band { grid-template-columns: 1fr; }
-    .decision-cell, .decision-cell:nth-child(2), .decision-cell:nth-child(3) { grid-column: auto; border-right: 0; }
-    .primary-decision, .decision-cell.latest { grid-column: auto; }
-    .filter-control button { font-size: .65rem; }
-    .matrix-legend span:nth-child(3) { display: none; }
-    .signal-row summary { grid-template-columns: 66px 58px minmax(104px,1fr) 44px; }
-  }
-  @media (prefers-reduced-motion: reduce) { .row-state i { transition: none; } }
+  main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}.energy-hero{display:grid;grid-template-columns:minmax(0,1fr) 280px;border:1px solid #dce2e8;border-radius:8px 8px 0 0;background:#fff;box-shadow:0 10px 32px rgba(28,38,48,.06)}.hero-main{padding:1rem 1.15rem}.eyebrow{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;color:#59636e;font-size:.7rem;font-weight:850}.eyebrow b{padding:.14rem .4rem;border:1px solid #e8c57a;border-radius:4px;background:#fff8e9;color:#8d5b00;font-size:.65rem}.pulse{width:.48rem;height:.48rem;border-radius:50%;background:#d63d2e;box-shadow:0 0 0 4px rgba(214,61,46,.12)}h1{margin:.16rem 0 .1rem;font-size:2rem;letter-spacing:0}.instrument{display:flex;align-items:center;gap:.45rem;color:#6b747d;font-size:.76rem}.instrument strong{font-size:.88rem}.instrument code{padding:.08rem .3rem;background:#f1f3f5}.hero-status{display:grid;align-content:center;padding:.9rem 1.1rem;border-left:1px solid #e2e7eb;background:#f8fafb}.hero-status span,.status-strip span{color:#747d86;font-size:.67rem;font-weight:800}.hero-status strong{color:#b52e23;font-size:2rem;line-height:1.1}.hero-status small{margin-top:.2rem;color:#69737d;font-size:.68rem}.status-strip{display:grid;grid-template-columns:1.35fr repeat(4,1fr);border:1px solid #dce2e8;border-top:0;border-radius:0 0 8px 8px;background:#fff}.status-strip article{min-width:0;padding:.62rem .85rem;border-right:1px solid #e5e9ed}.status-strip article:last-child{border-right:0}.status-strip strong{display:block;margin-top:.15rem;overflow-wrap:anywhere;font-size:.8rem}.status-strip .red{color:#b52e23;font-size:1.1rem}.status-strip .red i{margin-left:.15rem;color:#7a838b;font-size:.68rem;font-style:normal}.basis-notice{display:flex;align-items:center;gap:.8rem;margin-top:.7rem;padding:.65rem .8rem;border-left:4px solid #b87900;background:#fff8e8;color:#6f541f}.basis-notice.confirmed{border-left-color:#159447;background:#eff9f2;color:#116d36}.basis-notice strong{flex:0 0 auto;font-size:.74rem}.basis-notice p{margin:0;font-size:.7rem}.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin:1.45rem 0 .65rem}.section-head span{color:#7b838b;font-size:.64rem;font-weight:900}.section-head h2{margin:.08rem 0 0;font-size:1.25rem;letter-spacing:0}.section-head p{margin:0;color:#737c85;font-size:.72rem}.energy-board{display:grid;gap:.7rem}.segment{overflow:hidden;border:1px solid #dce2e8;border-radius:7px;background:#fff}.segment>header{display:flex;align-items:center;justify-content:space-between;padding:.55rem .72rem;border-bottom:1px solid #e5e9ed;background:#f7f9fa}.segment>header span{color:#7b838b;font-size:.62rem}.segment h3{margin:.04rem 0 0;font-size:.83rem;letter-spacing:0}.segment>header small{display:block;margin-top:.08rem;color:#9a6e1c;font-size:.6rem}.segment>header b{color:#a6291f;font-size:.72rem}.cycle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:#e6eaed}.segment[data-segment="预备"] .cycle-grid,.segment[data-segment="G"] .cycle-grid{grid-template-columns:minmax(180px,1fr)}.energy-cell{position:relative;min-width:0;min-height:116px;padding:.62rem .68rem;background:#fff}.energy-cell.active{background:#fff3f1}.energy-cell.active::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:#d63d2e}.energy-cell.current{z-index:1;box-shadow:inset 0 0 0 2px #24364b}.energy-cell.current::after{content:'当前';position:absolute;top:.42rem;right:.52rem;padding:.08rem .25rem;border-radius:3px;background:#24364b;color:#fff;font-size:.55rem;font-weight:900}.cell-code{display:flex;align-items:flex-start;justify-content:space-between;gap:.4rem}.cell-code strong{font-size:1rem}.cell-code span{color:#7b838b;font:700 .63rem ui-monospace,SFMono-Regular,Menlo,monospace}.energy-cell p{margin:.12rem 0 .5rem;color:#5d6872;font-size:.66rem}.cell-state{display:flex;align-items:center;gap:.3rem}.cell-state i{width:.48rem;height:.48rem;border-radius:50%;background:#aab2ba}.cell-state b{color:#747d86;font-size:.64rem}.active .cell-state i{background:#d63d2e;box-shadow:0 0 0 3px rgba(214,61,46,.11)}.active .cell-state b{color:#a6291f}.energy-cell time{display:block;margin-top:.35rem;color:#727c85;font:650 .62rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.sell-section{margin-top:1.4rem}.sell-head{margin-top:0}.sell-list{display:grid;gap:.7rem}.sell-alert{padding:.85rem;border:1px solid #cbded2;border-left:4px solid #159447;border-radius:7px;background:#f8fcf9}.sell-alert header{display:flex;justify-content:space-between;gap:1rem}.sell-alert header span{color:#087a37;font-size:.64rem;font-weight:900}.sell-alert h3{margin:.08rem 0 0;font-size:.95rem}.sell-alert time{color:#6c767f;font-size:.68rem}.sell-alert dl{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin:.7rem 0}.sell-alert dt{color:#7b848c;font-size:.62rem}.sell-alert dd{margin:.1rem 0 0;font-size:.72rem;font-weight:800}.sell-alert p{margin:0;color:#46525d;font-size:.72rem;line-height:1.55}.sell-empty{display:grid;justify-items:center;padding:1.35rem;border:1px dashed #cfd6dc;border-radius:7px;background:#fafbfc;text-align:center}.sell-empty div{display:flex;align-items:center;justify-content:center;width:1.65rem;height:1.65rem;border-radius:50%;background:#e9edf0;color:#5f6972;font-size:.8rem;font-weight:900}.sell-empty strong{margin-top:.4rem;font-size:.78rem}.sell-empty p{max-width:620px;margin:.18rem 0 0;color:#727c85;font-size:.68rem;line-height:1.5}.data-boundary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.7rem;align-items:center;margin-top:.8rem;padding:.7rem .8rem;border:1px solid #e3c67d;border-radius:7px;background:#fff9ec}.data-boundary>div{display:flex;align-items:center;justify-content:center;width:1.4rem;height:1.4rem;border-radius:50%;background:#895a00;color:#fff;font-size:.7rem;font-weight:900}.data-boundary strong{font-size:.75rem}.data-boundary p{margin:.08rem 0 0;color:#755d2d;font-size:.68rem;line-height:1.45}.data-boundary small{display:block;margin-top:.2rem;color:#806a3d;font-size:.62rem}.data-boundary details{min-width:112px}.data-boundary summary{color:#6f541f;font-size:.68rem;font-weight:850;cursor:pointer}.data-boundary details p{margin-top:.4rem}
+  @media(max-width:900px){.cycle-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-strip{grid-template-columns:repeat(3,1fr)}.status-strip article:nth-child(3){border-right:0}.status-strip article:nth-child(-n+3){border-bottom:1px solid #e5e9ed}}
+  @media(max-width:620px){main{width:calc(100% - 1rem);padding-top:.7rem}.energy-hero{grid-template-columns:1fr}.hero-main{padding:.8rem}.hero-status{border-top:1px solid #e2e7eb;border-left:0}.hero-status strong{font-size:1.55rem}.status-strip{grid-template-columns:1fr 1fr}.status-strip article{border-bottom:1px solid #e5e9ed}.status-strip article:nth-child(odd){border-right:1px solid #e5e9ed}.status-strip article:nth-child(even){border-right:0}.status-strip article:last-child{grid-column:1/-1;border-bottom:0}.basis-notice,.section-head{align-items:flex-start;flex-direction:column;gap:.25rem}.cycle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.energy-cell{min-height:110px;padding:.58rem}.sell-alert header{align-items:flex-start;flex-direction:column;gap:.2rem}.sell-alert dl{grid-template-columns:1fr}.data-boundary{grid-template-columns:auto 1fr;align-items:start}.data-boundary details{grid-column:2}}
+  @media(max-width:360px){.cycle-grid{grid-template-columns:1fr}.status-strip{grid-template-columns:1fr}.status-strip article,.status-strip article:nth-child(odd){grid-column:auto;border-right:0}.energy-cell{min-height:102px}}
 </style>
