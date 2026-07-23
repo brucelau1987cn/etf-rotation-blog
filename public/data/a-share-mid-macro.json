@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-07-22 22:06:38 CST",
+  "generated_at": "2026-07-23 22:06:38 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 1.49,
+          "value": 1.59,
           "unit": "pp",
-          "display": "1.49pp",
+          "display": "1.59pp",
           "as_of": "2026-07-22",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -95,12 +95,12 @@
           "detail": "国债/信用债ETF均值减沪深300收益",
           "change": null,
           "change_label": "较上期",
-          "tone": "neutral"
+          "tone": "warning"
         }
       ],
       "state": "逆风",
-      "score": 1.5,
-      "headline": "固收5日相对转强+1.49pp",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+1.59pp",
       "as_of": "2026-07-22"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": -3.62,
+          "value": -3.64,
           "unit": "%",
-          "display": "-3.62%",
+          "display": "-3.64%",
           "as_of": "2026-07-22",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 -2.48% · 汇率与溢折价会扰动",
+          "detail": "20日 -2.50% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "warning"
@@ -402,7 +402,7 @@
       ],
       "state": "逆风",
       "score": 2.25,
-      "headline": "海外映射ETF 5日均值-3.62%",
+      "headline": "海外映射ETF 5日均值-3.64%",
       "as_of": "2026-07-22"
     },
     {
@@ -493,11 +493,11 @@
       "key": "rates_fixed_income",
       "label": "固收相对权益强弱",
       "state": "逆风",
-      "score": 1.5,
-      "headline": "固收5日相对转强+1.49pp",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+1.59pp",
       "reasons": [
-        "固收5日相对转强+1.49pp",
-        "固收20日相对偏强+4.21pp"
+        "固收5日相对沪深300超额+1.59pp",
+        "固收20日相对偏强+4.31pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -512,22 +512,22 @@
       "metrics": {
         "bond_ret5": 0.08,
         "bond_ret20": 0.24,
-        "equity_ret5": -1.41,
-        "equity_ret20": -3.97,
-        "bond_vs_equity_5d_pp": 1.49,
-        "bond_vs_equity_20d_pp": 4.21
+        "equity_ret5": -1.51,
+        "equity_ret20": -4.07,
+        "bond_vs_equity_5d_pp": 1.59,
+        "bond_vs_equity_20d_pp": 4.31
       },
       "details": {
         "511260": {
           "ret5": 0.12,
           "ret20": 0.34,
-          "last": 135.1,
+          "last": 135.096,
           "date": "2026-07-22"
         },
         "511010": {
           "ret5": 0.06,
           "ret20": 0.2,
-          "last": 140.9,
+          "last": 140.899,
           "date": "2026-07-22"
         },
         "511110": {
@@ -537,9 +537,9 @@
           "date": "2026-07-22"
         },
         "510300": {
-          "ret5": -1.41,
-          "ret20": -3.97,
-          "last": 4.77,
+          "ret5": -1.51,
+          "ret20": -4.07,
+          "last": 4.765,
           "date": "2026-07-22"
         }
       },
@@ -550,9 +550,9 @@
       "label": "海外风险映射压力",
       "state": "逆风",
       "score": 2.25,
-      "headline": "海外映射ETF 5日均值-3.62%",
+      "headline": "海外映射ETF 5日均值-3.64%",
       "reasons": [
-        "海外映射ETF 5日均值-3.62%",
+        "海外映射ETF 5日均值-3.64%",
         "3只核心海外ETF 5日跌超2%",
         "海外相关池弱化占比75%（确认项）"
       ],
@@ -567,23 +567,23 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": -3.62,
-        "proxy_ret20_avg": -2.48,
+        "proxy_ret5_avg": -3.64,
+        "proxy_ret20_avg": -2.5,
         "proxy_weak_count_5d": 3,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.75
       },
       "details": {
         "159941": {
-          "ret5": -2.39,
-          "ret20": -3.28,
-          "last": 1.59,
+          "ret5": -2.58,
+          "ret20": -3.47,
+          "last": 1.587,
           "date": "2026-07-22"
         },
         "513500": {
-          "ret5": -1.72,
-          "ret20": -0.12,
-          "last": 2.52,
+          "ret5": -1.6,
+          "ret20": 0.0,
+          "last": 2.523,
           "date": "2026-07-22"
         },
         "159502": {
@@ -714,7 +714,7 @@
     "headwind_level": 3,
     "headwind_count": 3,
     "watch_count": 0,
-    "score_total": 5.75,
+    "score_total": 6.25,
     "label": "强逆风",
     "allow_chase": false,
     "allow_new_offense": false,
