@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-22T07:10:06.373473+00:00",
+  "updated_at": "2026-07-23T07:13:12.468304+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -81,6 +81,14 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-23",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
@@ -88,20 +96,20 @@
         {
           "symbol": "512800",
           "name": "银行ETF华宝",
-          "support": 0.766,
-          "target": 0.814,
-          "stop": 0.757,
-          "signal_date": "2026-07-22",
+          "support": 0.795,
+          "target": 0.824,
+          "stop": 0.774,
+          "signal_date": "2026-07-23",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "515180",
           "name": "红利ETF易方达",
-          "support": 1.342,
-          "target": 1.42,
-          "stop": 1.329,
-          "signal_date": "2026-07-22",
+          "support": 1.387,
+          "target": 1.436,
+          "stop": 1.356,
+          "signal_date": "2026-07-23",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -117,7 +125,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-11",
-      "cash": 12126.930113710938,
+      "cash": 6266.91305711426,
       "positions": {
         "SKYY": {
           "symbol": "SKYY",
@@ -130,7 +138,7 @@
           "stop": 128.94,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 136.16000366210938
+          "last_price": 133.27999877929688
         },
         "EFA": {
           "symbol": "EFA",
@@ -143,7 +151,7 @@
           "stop": 101.9,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 104.04010009765625
+          "last_price": 104.23999786376953
         },
         "XLU": {
           "symbol": "XLU",
@@ -156,7 +164,7 @@
           "stop": 44.25,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 44.8650016784668
+          "last_price": 45.935001373291016
         },
         "IBB": {
           "symbol": "IBB",
@@ -169,17 +177,56 @@
           "stop": 183.15,
           "level_basis": null,
           "signal_date": "2026-07-17",
-          "last_price": 189.25999450683594
+          "last_price": 187.27999877929688
+        },
+        "CIBR": {
+          "symbol": "CIBR",
+          "name": "First Trust Nasdaq Cybersecurity",
+          "quantity": 22,
+          "entry_price": 90.12000274658203,
+          "entry_cost": 1.99132,
+          "entry_at": "2026-07-22T13:35:12.465252+00:00",
+          "target": 94.71,
+          "stop": 85.08,
+          "level_basis": null,
+          "signal_date": "2026-07-21",
+          "last_price": 89.33499908447266
+        },
+        "XLV": {
+          "symbol": "XLV",
+          "name": "Health Care Select Sector",
+          "quantity": 12,
+          "entry_price": 159.72000122070312,
+          "entry_cost": 1.95832,
+          "entry_at": "2026-07-22T13:55:12.725869+00:00",
+          "target": 163.86,
+          "stop": 155.44,
+          "level_basis": null,
+          "signal_date": "2026-07-21",
+          "last_price": 159.3350067138672
+        },
+        "KRE": {
+          "symbol": "KRE",
+          "name": "SPDR S&P Regional Banking",
+          "quantity": 26,
+          "entry_price": 75.18499755859375,
+          "entry_cost": 1.977405,
+          "entry_at": "2026-07-22T14:55:13.575916+00:00",
+          "target": 77.97,
+          "stop": 73.32,
+          "level_basis": null,
+          "signal_date": "2026-07-21",
+          "last_price": 75.59500122070312
         }
       },
-      "equity": 19876.592086,
+      "equity": 19850.19314,
       "realized_pnl": -163.75916483398436,
-      "unrealized_pnl": 40.351251,
-      "daily_return": -0.0061704,
-      "cumulative_return": -0.0061704,
+      "unrealized_pnl": 13.952305,
+      "daily_return": -0.00749034,
+      "cumulative_return": -0.00749034,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.61011113,
+      "cash_ratio": 0.31571043,
       "history": [
         {
           "date": "2026-07-13",
@@ -310,56 +357,102 @@
           "price": 106.110001,
           "cost": 1.95499,
           "reason": "stop"
+        },
+        {
+          "id": "US:CIBR:buy:1784727067:plant",
+          "timestamp": "2026-07-22T13:35:12.465252+00:00",
+          "market": "US",
+          "symbol": "CIBR",
+          "name": "First Trust Nasdaq Cybersecurity",
+          "side": "buy",
+          "quantity": 22,
+          "price": 90.120003,
+          "cost": 1.99132,
+          "reason": "plant"
+        },
+        {
+          "id": "US:XLV:buy:1784728511:plant",
+          "timestamp": "2026-07-22T13:55:12.725869+00:00",
+          "market": "US",
+          "symbol": "XLV",
+          "name": "Health Care Select Sector",
+          "side": "buy",
+          "quantity": 12,
+          "price": 159.720001,
+          "cost": 1.95832,
+          "reason": "plant"
+        },
+        {
+          "id": "US:KRE:buy:1784732116:plant",
+          "timestamp": "2026-07-22T14:55:13.575916+00:00",
+          "market": "US",
+          "symbol": "KRE",
+          "name": "SPDR S&P Regional Banking",
+          "side": "buy",
+          "quantity": 26,
+          "price": 75.184998,
+          "cost": 1.977405,
+          "reason": "plant"
         }
       ],
       "pending_signals": [
         {
-          "symbol": "IYT",
-          "name": "iShares Transportation Average",
-          "support": 87.29,
-          "target": 90.28,
-          "stop": 85.57,
-          "signal_date": "2026-07-20",
-          "kind": "ready_plant",
-          "status": "候场"
+          "symbol": "SPY",
+          "name": "SPDR S&P 500 ETF",
+          "support": 744.98,
+          "target": 757.99,
+          "stop": 735.33,
+          "signal_date": "2026-07-21",
+          "kind": "plant",
+          "status": "伏击"
         },
         {
-          "symbol": "KRE",
-          "name": "SPDR S&P Regional Banking",
-          "support": 74.99,
-          "target": 77.85,
-          "stop": 73.27,
-          "signal_date": "2026-07-20",
+          "symbol": "VTI",
+          "name": "Vanguard Total Stock Market",
+          "support": 368.3,
+          "target": 374.35,
+          "stop": 362.91,
+          "signal_date": "2026-07-21",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "IGV",
+          "name": "iShares Expanded Tech-Software",
+          "support": 91.66,
+          "target": 95.62,
+          "stop": 86.76,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "XRT",
           "name": "SPDR S&P Retail ETF",
-          "support": 87.82,
-          "target": 91.38,
-          "stop": 85.68,
-          "signal_date": "2026-07-20",
+          "support": 87.96,
+          "target": 90.92,
+          "stop": 85.18,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "IGV",
-          "name": "iShares Expanded Tech-Software",
-          "support": 91.43,
-          "target": 96.81,
-          "stop": 87.87,
-          "signal_date": "2026-07-20",
+          "symbol": "HACK",
+          "name": "Amplify Cybersecurity ETF",
+          "support": 106.6,
+          "target": 113.15,
+          "stop": 100.89,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "CIBR",
-          "name": "First Trust Nasdaq Cybersecurity",
-          "support": 89.96,
-          "target": 95.93,
-          "stop": 86.26,
-          "signal_date": "2026-07-20",
+          "symbol": "KWEB",
+          "name": "KraneShares CSI China Internet",
+          "support": 26.37,
+          "target": 27.67,
+          "stop": 25.69,
+          "signal_date": "2026-07-21",
           "kind": "ready_plant",
           "status": "候场"
         }
