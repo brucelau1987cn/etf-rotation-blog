@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/a-rolling-public.schema.json",
+  "title": "A-share rolling strategy public projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "generated_at",
+    "data_as_of",
+    "freshness",
+    "stale_after_seconds",
+    "notice",
+    "delivery",
+    "signals"
+  ],
+  "properties": {
+    "schema_version": {"const": "a-rolling-public-v1"},
+    "mode": {"enum": ["demo", "live"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "data_as_of": {"type": "string", "format": "date-time"},
+    "freshness": {"enum": ["fresh", "stale", "unknown"]},
+    "stale_after_seconds": {"type": "integer", "minimum": 60, "maximum": 86400},
+    "notice": {"type": "string", "minLength": 1, "maxLength": 300},
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason"],
+      "properties": {
+        "state": {"enum": ["live", "lkg"]},
+        "reason": {"type": ["string", "null"], "maxLength": 200}
+      }
+    },
+    "signals": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "instrument_name",
+          "exchange",
+          "symbol",
+          "timeframe",
+          "direction",
+          "latest_signal_at",
+          "source",
+          "duration",
+          "phase_code",
+          "phase_label",
+          "alert_configured_count",
+          "live_verified_count"
+        ],
+        "properties": {
+          "instrument_name": {"type": "string", "minLength": 1, "maxLength": 60},
+          "exchange": {"enum": ["SSE", "SZSE"]},
+          "symbol": {"type": "string", "pattern": "^[0-9]{6}$"},
+          "timeframe": {"enum": ["10m", "30m", "1h", "2h", "3h", "4h", "5h", "6h", "1D"]},
+          "direction": {"enum": ["BUY", "SELL", "UNKNOWN", "CONFLICT"]},
+          "latest_signal_at": {"type": ["string", "null"], "format": "date-time"},
+          "source": {"enum": ["DEMO_FIXTURE", "UPSTREAM_PROJECTION"]},
+          "duration": {"type": "string", "minLength": 1, "maxLength": 80},
+          "phase_code": {"type": "string", "pattern": "^[A-Z0-9_]{3,80}$"},
+          "phase_label": {"type": "string", "minLength": 1, "maxLength": 120},
+          "alert_configured_count": {"type": "integer", "minimum": 0, "maximum": 100000},
+          "live_verified_count": {"type": "integer", "minimum": 0, "maximum": 100000}
+        }
+      }
+    }
+  }
+}

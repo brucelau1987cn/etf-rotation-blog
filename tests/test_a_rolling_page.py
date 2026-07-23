@@ -45,7 +45,14 @@ def test_rolling_terminal_uses_one_signal_dom_and_discloses_demo_boundary():
     assert source.count('class="signal-list"') == 1
     assert "mobile-signals" not in source
     assert "signal-table" not in source
+    assert "public/data/a-rolling-signals.json" in source
+    assert "a-rolling-signals-demo.json" not in source
+    assert "fetch('/api/public/v1/rolling-signals'" in source
+    assert "window.setInterval(refresh, 60000)" in source
+    assert "if (inFlight || document.hidden) return" in source
+    assert "实时检查失败，继续保留当前有效快照" in source
     assert "演示隔离模式" in source
+    assert "最后有效快照" in source
     assert "不生成仓位、价格或交易指令" in source
     assert "周期加权倾向" in source
     assert 'AStockSubnav active="rolling"' in source

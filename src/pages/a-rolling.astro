@@ -27,7 +27,11 @@ type Payload = {
   schema_version: string;
   mode: 'demo' | 'live';
   generated_at: string;
+  data_as_of: string;
+  freshness: 'fresh' | 'stale' | 'unknown';
+  stale_after_seconds: number;
   notice: string;
+  delivery: { state: 'live' | 'lkg'; reason: string | null };
   signals: Signal[];
 };
 type CycleGroup = {
@@ -38,7 +42,7 @@ type CycleGroup = {
 };
 
 const payload = JSON.parse(
-  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals-demo.json'), 'utf-8'),
+  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8'),
 ) as Payload;
 const timeframeOrder = ['10m', '30m', '1h', '2h', '3h', '4h', '5h', '6h', '1D'];
 const timeframeLabels: Record<string, string> = {
@@ -132,10 +136,10 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
             <div class="context-line">
               <span class="live-dot" aria-hidden="true"></span>
               <span>A股 · 九周期监控</span>
-              <span class="environment">{payload.mode === 'demo' ? '演示数据' : '实时数据'}</span>
+              <span class="environment" data-field="environment">{payload.mode === 'demo' ? '演示数据' : payload.delivery.state === 'live' ? '实时数据' : '有效快照'}</span>
             </div>
             <h1 id="rolling-title">滚动策略</h1>
-            <div class="instrument"><strong>{primary?.instrument_name || '暂无标的'}</strong><code>{primary?.symbol || '—'}</code><span>{primary?.exchange || '—'}</span></div>
+            <div class="instrument"><strong data-field="instrument-name">{primary?.instrument_name || '暂无标的'}</strong><code data-field="symbol">{primary?.symbol || '—'}</code><span data-field="exchange">{primary?.exchange || '—'}</span></div>
           </div>
           <div class="clock-slot">
             {payload.mode === 'demo' ? (
@@ -151,31 +155,31 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
         <div class="decision-band">
           <article class="decision-cell primary-decision">
             <span>策略阶段</span>
-            <strong>{primary?.phase_label || '等待状态数据'}</strong>
+            <strong data-field="phase-label">{primary?.phase_label || '等待状态数据'}</strong>
             <small>阶段由公开数据字段直接呈现</small>
           </article>
           <article class:list={['decision-cell', 'weighted', weightedTone]}>
             <span>周期加权倾向</span>
-            <strong>{weightedLabel} <b>{weightedPct > 0 ? '+' : ''}{weightedPct}</b></strong>
+            <strong data-field="weighted-label">{weightedLabel} <b data-field="weighted-value">{weightedPct > 0 ? '+' : ''}{weightedPct}</b></strong>
             <small>高周期权重更高 · 范围 -100 至 +100</small>
           </article>
           <article class:list={['decision-cell', longState.tone]}>
             <span>高周期约束</span>
-            <strong>{longState.label}</strong>
-            <small>6小时 / 日线 · {longState.summary}</small>
+            <strong data-field="long-label">{longState.label}</strong>
+            <small data-field="long-summary">6小时 / 日线 · {longState.summary}</small>
           </article>
           <article class="decision-cell latest">
             <span>最近变化</span>
-            <strong>{latestSignal ? `${timeframeLabels[latestSignal.timeframe]} ${directionLabel[latestSignal.direction]}` : '等待信号'}</strong>
-            <small>{formatTime(latestSignal?.latest_signal_at || null)} · {freshness(latestSignal?.latest_signal_at || null)}</small>
+            <strong data-field="latest-label">{latestSignal ? `${timeframeLabels[latestSignal.timeframe]} ${directionLabel[latestSignal.direction]}` : '等待信号'}</strong>
+            <small data-field="latest-summary">{formatTime(latestSignal?.latest_signal_at || null)} · {freshness(latestSignal?.latest_signal_at || null)}</small>
           </article>
         </div>
 
         <div class="terminal-meta">
-          <div><span>数据时间</span><strong>{formatTime(payload.generated_at, true)}</strong></div>
-          <div><span>周期覆盖</span><strong>{signals.length}/9</strong></div>
-          <div><span>方向计数</span><strong class="buy-text">{buyCount} 买</strong><i>·</i><strong class="sell-text">{sellCount} 卖</strong></div>
-          <div><span>待确认</span><strong>{unresolvedCount}</strong></div>
+          <div><span>数据时间</span><strong data-field="data-as-of">{formatTime(payload.data_as_of, true)}</strong></div>
+          <div><span>周期覆盖</span><strong data-field="coverage">{signals.length}/9</strong></div>
+          <div><span>方向计数</span><strong class="buy-text" data-field="buy-count">{buyCount} 买</strong><i>·</i><strong class="sell-text" data-field="sell-count">{sellCount} 卖</strong></div>
+          <div><span>待确认</span><strong data-field="unresolved-count">{unresolvedCount}</strong></div>
         </div>
       </section>
 
@@ -189,17 +193,17 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
             const rows = rowsFor(group);
             const state = groupState(rows);
             return (
-              <article class:list={['cycle-group', state.tone]}>
-                <header><div><span>{group.note}</span><h3>{group.label}</h3></div><strong>{state.label}</strong></header>
+              <article class:list={['cycle-group', state.tone]} data-cycle-group={group.key}>
+                <header><div><span>{group.note}</span><h3>{group.label}</h3></div><strong data-cycle-state>{state.label}</strong></header>
                 <div class="cycle-rail" aria-label={`${group.label}${state.summary}`}>
                   {rows.map((signal) => (
-                    <div class:list={['rail-node', directionClass[signal.direction]]} title={`${timeframeLabels[signal.timeframe]} ${directionLabel[signal.direction]}`}>
+                    <div class:list={['rail-node', directionClass[signal.direction]]} data-cycle-timeframe={signal.timeframe} title={`${timeframeLabels[signal.timeframe]} ${directionLabel[signal.direction]}`}>
                       <span>{timeframeLabels[signal.timeframe]}</span>
                       <b aria-hidden="true"></b>
                     </div>
                   ))}
                 </div>
-                <footer><span>{state.summary}</span><small>{group.timeframes.map((item) => timeframeLabels[item]).join(' · ')}</small></footer>
+                <footer><span data-cycle-summary>{state.summary}</span><small>{group.timeframes.map((item) => timeframeLabels[item]).join(' · ')}</small></footer>
               </article>
             );
           })}
@@ -230,17 +234,18 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
                 {rowsFor(group).map((signal) => (
                   <details
                     class:list={['signal-row', directionClass[signal.direction]]}
+                    data-timeframe={signal.timeframe}
                     data-direction={directionClass[signal.direction]}
                     data-latest={latestTimeframes.includes(signal.timeframe) ? 'true' : 'false'}
                   >
                     <summary>
                       <span class="timeframe">{timeframeLabels[signal.timeframe] || signal.timeframe}<small>权重 {timeframeWeights[signal.timeframe] || 1}</small></span>
-                      <span class:list={['direction', directionClass[signal.direction]]}><i aria-hidden="true"></i>{directionLabel[signal.direction]}</span>
-                      <span class="signal-time"><small>最近变化</small><strong>{formatTime(signal.latest_signal_at)}</strong><em>{freshness(signal.latest_signal_at)}</em></span>
+                      <span class:list={['direction', directionClass[signal.direction]]} data-row-direction><i aria-hidden="true"></i><span>{directionLabel[signal.direction]}</span></span>
+                      <span class="signal-time"><small>最近变化</small><strong data-row-time>{formatTime(signal.latest_signal_at)}</strong><em data-row-freshness>{freshness(signal.latest_signal_at)}</em></span>
                       <span class="row-state">{latestTimeframes.includes(signal.timeframe) && <b>6h内</b>}<i aria-hidden="true">⌄</i></span>
                     </summary>
                     <div class="signal-facts">
-                      <dl><div><dt>策略阶段</dt><dd>{signal.phase_label}</dd></div><div><dt>数据状态</dt><dd>{payload.mode === 'demo' ? '脱敏演示' : '实时接入'}</dd></div><div><dt>预警配置</dt><dd>{signal.alert_configured_count}</dd></div><div><dt>实时核验</dt><dd>{signal.live_verified_count}</dd></div></dl>
+                      <dl><div><dt>策略阶段</dt><dd data-row-phase>{signal.phase_label}</dd></div><div><dt>数据状态</dt><dd data-row-delivery>{payload.mode === 'demo' ? '脱敏演示' : payload.delivery.state === 'live' ? '实时接入' : '有效快照'}</dd></div><div><dt>预警配置</dt><dd data-row-alerts>{signal.alert_configured_count}</dd></div><div><dt>实时核验</dt><dd data-row-verified>{signal.live_verified_count}</dd></div></dl>
                     </div>
                   </details>
                 ))}
@@ -253,7 +258,7 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
 
       <aside class="data-boundary" aria-label="数据边界">
         <div class="boundary-icon" aria-hidden="true">i</div>
-        <div><strong>{payload.mode === 'demo' ? '演示隔离模式' : '数据运行状态'}</strong><p>{payload.notice} 当前页面呈现方向监控与周期结构，不生成仓位、价格或交易指令。</p></div>
+        <div><strong data-field="boundary-title">{payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照'}</strong><p><span data-field="notice">{payload.notice}</span> 当前页面呈现方向监控与周期结构，不生成仓位、价格或交易指令。</p><small class="refresh-state" data-refresh-state role="status" aria-live="polite">页面已载入有效快照，正在后台检查更新</small></div>
         <details><summary>查看数据边界</summary><p>页面读取公开静态快照；“周期加权倾向”仅用于避免九个周期机械等权，高周期拥有更高展示权重。它属于结构观察指标。</p></details>
       </aside>
     </main>
@@ -261,33 +266,161 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
 
     <script is:inline>
       (() => {
+        const TIMEFRAMES = ['10m', '30m', '1h', '2h', '3h', '4h', '5h', '6h', '1D'];
+        const LABELS = { '10m': '10分钟', '30m': '30分钟', '1h': '1小时', '2h': '2小时', '3h': '3小时', '4h': '4小时', '5h': '5小时', '6h': '6小时', '1D': '日线' };
+        const WEIGHTS = { '10m': 1, '30m': 1, '1h': 2, '2h': 2, '3h': 3, '4h': 3, '5h': 4, '6h': 5, '1D': 7 };
+        const GROUPS = { short: ['10m', '30m', '1h'], medium: ['2h', '3h', '4h', '5h'], long: ['6h', '1D'] };
+        const DIRECTIONS = { BUY: ['buy', '买入'], SELL: ['sell', '卖出'], UNKNOWN: ['unknown', '等待'], CONFLICT: ['conflict', '冲突'] };
         const buttons = [...document.querySelectorAll('[data-filter]')];
         const rows = [...document.querySelectorAll('.signal-row')];
         const groups = [...document.querySelectorAll('[data-signal-group]')];
         const status = document.getElementById('filter-status');
         const empty = document.querySelector('.empty-filter');
-        const labels = { all: '全部', buy: '买入', sell: '卖出', latest: '快照前6小时' };
+        const refreshState = document.querySelector('[data-refresh-state]');
+        const filterLabels = { all: '全部', buy: '买入', sell: '卖出', latest: '快照前6小时' };
+        let activeFilter = 'all';
+        let referenceMs = Date.now();
+        let inFlight = false;
 
-        const applyFilter = (filter) => {
+        const field = name => document.querySelector(`[data-field="${name}"]`);
+        const setText = (node, value) => { if (node) node.textContent = value; };
+        const formatTime = (value, includeYear = false) => {
+          if (!value) return '等待信号';
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) return String(value);
+          return date.toLocaleString('zh-CN', {
+            timeZone: 'Asia/Shanghai', hour12: false,
+            ...(includeYear ? { year: 'numeric' } : {}),
+            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+          });
+        };
+        const freshness = value => {
+          const signalMs = Date.parse(value || '');
+          if (!Number.isFinite(signalMs)) return '时间未知';
+          const hours = Math.max(0, Math.round((referenceMs - signalMs) / 36e5));
+          if (hours === 0) return '本小时变化';
+          if (hours < 24) return `${hours}小时前变化`;
+          return `${Math.round(hours / 24)}天前变化`;
+        };
+        const stateFor = list => {
+          const buys = list.filter(row => row.direction === 'BUY').length;
+          const sells = list.filter(row => row.direction === 'SELL').length;
+          const unresolved = list.length - buys - sells;
+          if (unresolved) return ['mixed', '待确认', `${unresolved}个信号未决`];
+          if (buys === list.length) return ['buy', '全部偏多', `${buys}/${list.length} 买入`];
+          if (sells === list.length) return ['sell', '全部偏空', `${sells}/${list.length} 卖出`];
+          if (buys > sells) return ['buy', '偏多', `${buys}买 · ${sells}卖`];
+          if (sells > buys) return ['sell', '偏空', `${buys}买 · ${sells}卖`];
+          return ['mixed', '方向分化', `${buys}买 · ${sells}卖`];
+        };
+        const applyFilter = filter => {
+          activeFilter = filter;
           let visible = 0;
           for (const row of rows) {
             const matches = filter === 'all' || row.dataset.direction === filter || (filter === 'latest' && row.dataset.latest === 'true');
             row.hidden = !matches;
             if (matches) visible += 1;
           }
-          for (const group of groups) {
-            group.hidden = !group.querySelector('.signal-row:not([hidden])');
-          }
+          for (const group of groups) group.hidden = !group.querySelector('.signal-row:not([hidden])');
           for (const button of buttons) {
             const active = button.dataset.filter === filter;
             button.classList.toggle('active', active);
             button.setAttribute('aria-pressed', String(active));
           }
-          if (status) status.textContent = `显示${labels[filter]} ${visible} 个周期`;
+          setText(status, `显示${filterLabels[filter]} ${visible} 个周期`);
           if (empty) empty.hidden = visible > 0;
+        };
+        const render = payload => {
+          if (!payload || payload.schema_version !== 'a-rolling-public-v1' || !Array.isArray(payload.signals) || payload.signals.length !== 9) throw new Error('invalid payload');
+          const signals = [...payload.signals].sort((a, b) => TIMEFRAMES.indexOf(a.timeframe) - TIMEFRAMES.indexOf(b.timeframe));
+          if (signals.some((row, index) => row.timeframe !== TIMEFRAMES[index] || !DIRECTIONS[row.direction])) throw new Error('invalid signal set');
+          const primary = signals[0];
+          referenceMs = Date.parse(payload.data_as_of || payload.generated_at);
+          if (!Number.isFinite(referenceMs)) throw new Error('invalid data timestamp');
+          const latestCutoff = referenceMs - 6 * 60 * 60 * 1000;
+          const latest = [...signals].filter(row => Number.isFinite(Date.parse(row.latest_signal_at))).sort((a, b) => Date.parse(b.latest_signal_at) - Date.parse(a.latest_signal_at))[0];
+          const buyCount = signals.filter(row => row.direction === 'BUY').length;
+          const sellCount = signals.filter(row => row.direction === 'SELL').length;
+          const unresolved = signals.length - buyCount - sellCount;
+          const totalWeight = signals.reduce((sum, row) => sum + WEIGHTS[row.timeframe], 0);
+          const score = signals.reduce((sum, row) => sum + (row.direction === 'BUY' ? 1 : row.direction === 'SELL' ? -1 : 0) * WEIGHTS[row.timeframe], 0);
+          const weightedPct = Math.round(score / totalWeight * 100);
+          const weightedTone = weightedPct >= 20 ? 'buy' : weightedPct <= -20 ? 'sell' : 'mixed';
+          const weightedLabel = weightedPct >= 20 ? '偏多' : weightedPct <= -20 ? '偏空' : '多空拉锯';
+          const deliveryLabel = payload.mode === 'demo' ? '脱敏演示' : payload.delivery.state === 'live' ? '实时接入' : '有效快照';
+
+          setText(field('environment'), payload.mode === 'demo' ? '演示数据' : payload.delivery.state === 'live' ? '实时数据' : '有效快照');
+          setText(field('instrument-name'), primary.instrument_name);
+          setText(field('symbol'), primary.symbol);
+          setText(field('exchange'), primary.exchange);
+          setText(field('phase-label'), primary.phase_label);
+          const weighted = field('weighted-label');
+          if (weighted) weighted.childNodes[0].nodeValue = `${weightedLabel} `;
+          setText(field('weighted-value'), `${weightedPct > 0 ? '+' : ''}${weightedPct}`);
+          const weightedCell = weighted?.closest('.decision-cell');
+          if (weightedCell) { weightedCell.classList.remove('buy', 'sell', 'mixed'); weightedCell.classList.add(weightedTone); }
+          const longState = stateFor(signals.filter(row => GROUPS.long.includes(row.timeframe)));
+          setText(field('long-label'), longState[1]);
+          setText(field('long-summary'), `6小时 / 日线 · ${longState[2]}`);
+          setText(field('latest-label'), latest ? `${LABELS[latest.timeframe]} ${DIRECTIONS[latest.direction][1]}` : '等待信号');
+          setText(field('latest-summary'), latest ? `${formatTime(latest.latest_signal_at)} · ${freshness(latest.latest_signal_at)}` : '等待信号');
+          setText(field('data-as-of'), formatTime(payload.data_as_of, true));
+          setText(field('coverage'), `${signals.length}/9`);
+          setText(field('buy-count'), `${buyCount} 买`);
+          setText(field('sell-count'), `${sellCount} 卖`);
+          setText(field('unresolved-count'), String(unresolved));
+          setText(field('boundary-title'), payload.mode === 'demo' ? '演示隔离模式' : payload.delivery.state === 'live' ? '实时数据运行' : '最后有效快照');
+          setText(field('notice'), payload.notice);
+
+          for (const signal of signals) {
+            const tone = DIRECTIONS[signal.direction][0];
+            const row = document.querySelector(`[data-timeframe="${signal.timeframe}"]`);
+            if (!row) continue;
+            row.dataset.direction = tone;
+            row.dataset.latest = String(Number.isFinite(Date.parse(signal.latest_signal_at)) && Date.parse(signal.latest_signal_at) >= latestCutoff);
+            row.classList.remove('buy', 'sell', 'unknown', 'conflict');
+            row.classList.add(tone);
+            const direction = row.querySelector('[data-row-direction]');
+            if (direction) { direction.classList.remove('buy', 'sell', 'unknown', 'conflict'); direction.classList.add(tone); setText(direction.querySelector('span'), DIRECTIONS[signal.direction][1]); }
+            setText(row.querySelector('[data-row-time]'), formatTime(signal.latest_signal_at));
+            setText(row.querySelector('[data-row-freshness]'), freshness(signal.latest_signal_at));
+            setText(row.querySelector('[data-row-phase]'), signal.phase_label);
+            setText(row.querySelector('[data-row-delivery]'), deliveryLabel);
+            setText(row.querySelector('[data-row-alerts]'), String(signal.alert_configured_count));
+            setText(row.querySelector('[data-row-verified]'), String(signal.live_verified_count));
+            const rail = document.querySelector(`[data-cycle-timeframe="${signal.timeframe}"]`);
+            if (rail) { rail.classList.remove('buy', 'sell', 'unknown', 'conflict'); rail.classList.add(tone); rail.title = `${LABELS[signal.timeframe]} ${DIRECTIONS[signal.direction][1]}`; }
+          }
+          for (const [key, timeframes] of Object.entries(GROUPS)) {
+            const card = document.querySelector(`[data-cycle-group="${key}"]`);
+            const groupState = stateFor(signals.filter(row => timeframes.includes(row.timeframe)));
+            if (card) { card.classList.remove('buy', 'sell', 'mixed'); card.classList.add(groupState[0]); setText(card.querySelector('[data-cycle-state]'), groupState[1]); setText(card.querySelector('[data-cycle-summary]'), groupState[2]); }
+          }
+          for (const button of buttons) {
+            const filter = button.dataset.filter;
+            const count = filter === 'all' ? signals.length : filter === 'buy' ? buyCount : filter === 'sell' ? sellCount : signals.filter(row => Number.isFinite(Date.parse(row.latest_signal_at)) && Date.parse(row.latest_signal_at) >= latestCutoff).length;
+            setText(button.querySelector('b'), String(count));
+          }
+          applyFilter(activeFilter);
+          setText(refreshState, payload.delivery.state === 'live' ? `实时数据已更新 · ${formatTime(payload.data_as_of)}` : `显示最后有效快照 · ${payload.delivery.reason || '实时源暂不可用'}`);
+        };
+        const refresh = async () => {
+          if (inFlight || document.hidden) return;
+          inFlight = true;
+          try {
+            const response = await fetch('/api/public/v1/rolling-signals', { headers: { accept: 'application/json' } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            render(await response.json());
+          } catch {
+            setText(refreshState, '实时检查失败，继续保留当前有效快照');
+          } finally {
+            inFlight = false;
+          }
         };
 
         for (const button of buttons) button.addEventListener('click', () => applyFilter(button.dataset.filter));
+        refresh();
+        window.setInterval(refresh, 60000);
       })();
     </script>
   </body>
@@ -408,6 +541,7 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
   .boundary-icon { display: flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #895a00; color: #fff; font-size: .7rem; font-weight: 900; }
   .data-boundary strong { font-size: .75rem; }
   .data-boundary p { margin: .08rem 0 0; color: #755d2d; font-size: .68rem; line-height: 1.45; }
+  .refresh-state { display: block; margin-top: .22rem; color: #806a3d; font-size: .62rem; line-height: 1.4; }
   .data-boundary details { min-width: 112px; }
   .data-boundary summary { color: #6f541f; font-size: .68rem; font-weight: 850; cursor: pointer; }
   .data-boundary details p { margin-top: .4rem; }
@@ -437,8 +571,8 @@ const pageDescription = 'A股滚动策略九周期决策终端，展示短中长
     .terminal-meta { grid-template-columns: 1fr 1fr; }
     .terminal-meta > div:nth-child(2) { border-right: 0; }
     .terminal-meta > div:nth-child(-n+2) { border-bottom: 1px solid #e5e9ed; }
-    .section-heading { align-items: flex-start; }
-    .section-heading p { max-width: 48%; font-size: .65rem; text-align: right; }
+    .section-heading { align-items: flex-start; flex-direction: column; gap: .25rem; }
+    .section-heading p { max-width: none; font-size: .65rem; text-align: left; }
     .cycle-group { padding: .65rem .7rem; }
     .workbench-head { align-items: stretch; flex-direction: column; }
     .filter-control { display: grid; grid-template-columns: repeat(4,1fr); width: 100%; }
