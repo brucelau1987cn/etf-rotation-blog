@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -69,3 +70,25 @@ def test_daily_fallback_is_coarse_and_never_strict_confirmation():
     assert record["strict_intraday"] is False
     assert result["data_quality"]["daily_fallback"] == 1
     assert result["by_category"]["伏击"]["confirmation_samples"] == 0
+
+
+def test_d1_retries_transient_fetch_failure_before_returning_rows():
+    failed = subprocess.CompletedProcess([], 1, "", '{"error":{"text":"fetch failed"}}')
+    succeeded = subprocess.CompletedProcess([], 0, '[{"success":true,"results":[{"id":7}]}]', "")
+    with patch.object(module.subprocess, "run", side_effect=[failed, succeeded]) as run_mock, patch.object(module.time, "sleep") as sleep_mock:
+        assert module.d1("SELECT 1") == [{"id": 7}]
+    assert run_mock.call_count == 2
+    sleep_mock.assert_called_once_with(module.D1_RETRY_DELAYS[0])
+
+
+def test_d1_does_not_retry_nontransient_database_error():
+    failed = subprocess.CompletedProcess([], 1, "", '{"error":{"text":"authentication failed"}}')
+    with patch.object(module.subprocess, "run", return_value=failed) as run_mock, patch.object(module.time, "sleep") as sleep_mock:
+        try:
+            module.d1("SELECT 1")
+        except RuntimeError as error:
+            assert "authentication failed" in str(error)
+        else:
+            raise AssertionError("d1 should raise for a nontransient error")
+    assert run_mock.call_count == 1
+    sleep_mock.assert_not_called()

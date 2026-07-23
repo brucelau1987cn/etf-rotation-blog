@@ -17,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DB_NAME = "etf-compass-auth"
 CLI = ["npx", "-y", "stock-api@2.7.3"]
 OPS = {"准备种花": "candidate", "种花": "伏击", "准备摘花": "止盈观察", "摘花": "兑现"}
+D1_RETRY_DELAYS = (2, 6)
+D1_TRANSIENT_ERRORS = ("fetch failed", "network", "econnreset", "etimedout", "timeout", "temporarily unavailable")
+
+
+def is_transient_d1_error(message: str) -> bool:
+    return any(marker in message.lower() for marker in D1_TRANSIENT_ERRORS)
 
 
 def d1(sql: str) -> list[dict[str, Any]]:
@@ -27,13 +33,27 @@ def d1(sql: str) -> list[dict[str, Any]]:
     if command_env.get('CF_GLOBAL_KEY') and global_email:
         command_env['CLOUDFLARE_API_KEY'] = command_env['CF_GLOBAL_KEY']
         command_env['CLOUDFLARE_EMAIL'] = global_email
-    proc = subprocess.run(["npx", "wrangler", "d1", "execute", DB_NAME, "--remote", "--json", "--command", sql], cwd=ROOT, text=True, capture_output=True, timeout=120, env=command_env)
-    if proc.returncode:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "D1 command failed")
-    payload = json.loads(proc.stdout)
-    if not payload or not payload[0].get("success", False):
-        raise RuntimeError(json.dumps(payload, ensure_ascii=False))
-    return payload[0].get("results", [])
+    command = ["npx", "wrangler", "d1", "execute", DB_NAME, "--remote", "--json", "--command", sql]
+    for attempt, delay in enumerate((*D1_RETRY_DELAYS, None), start=1):
+        try:
+            proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=120, env=command_env)
+        except subprocess.TimeoutExpired as exc:
+            message = f"D1 command timed out: {exc}"
+        else:
+            if not proc.returncode:
+                try:
+                    payload = json.loads(proc.stdout)
+                except json.JSONDecodeError as exc:
+                    raise RuntimeError(f"D1 returned invalid JSON: {exc}") from exc
+                if payload and payload[0].get("success", False):
+                    return payload[0].get("results", [])
+                message = json.dumps(payload, ensure_ascii=False)
+            else:
+                message = proc.stderr.strip() or proc.stdout.strip() or "D1 command failed"
+        if delay is None or not is_transient_d1_error(message):
+            raise RuntimeError(message)
+        time.sleep(delay)
+    raise AssertionError(f"unreachable D1 retry state after {attempt} attempts")
 
 
 def sql(value: Any) -> str:
