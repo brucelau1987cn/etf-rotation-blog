@@ -16,7 +16,7 @@ export async function onRequestPost({ request, env }) {
     const payload = await request.json();
 
     // 1. 验证 Token (优先从环境变量 TRADINGVIEW_WEBHOOK_TOKEN 取)
-    const expectedToken = env.TRADINGVIEW_WEBHOOK_TOKEN || 'default_secret_token';
+    const expectedToken = env.TRADINGVIEW_WEBHOOK_TOKEN || 'REDACTED_WEBHOOK_TOKEN';
     if (!payload.webhook_token || payload.webhook_token !== expectedToken) {
       return new Response(JSON.stringify({ error: 'invalid webhook token' }), {
         status: 401,
