@@ -74,26 +74,23 @@ type Payload = {
 
 const payload = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8')) as Payload;
 
-const formatTime = (value: string | null, includeDate = true) => {
+const formatTime = (value: string | null, includeDate = true, includeSeconds = false) => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  if (!includeDate) {
-    return date.toLocaleString('zh-CN', {
-      timeZone: 'Asia/Shanghai',
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-  return date.toLocaleString('zh-CN', {
+  
+  const options: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Shanghai',
     hour12: false,
-    month: '2-digit',
-    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  };
+  if (includeSeconds) options.second = '2-digit';
+  if (includeDate) {
+    options.month = '2-digit';
+    options.day = '2-digit';
+  }
+  return date.toLocaleString('zh-CN', options);
 };
 
 const pageTitle = `A股滚动策略｜多空能量传导链 | ${SITE_TITLE}`;
@@ -524,7 +521,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="count-box buy-box">
             <span>🔴 当前多头位置</span>
             <strong id="stat-current-code">{payload.transmission.current_cycle_code}</strong>
-            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格 <span id="stat-lit-time" style="font-style:normal; margin-left:0.2rem; color:#cf1322;"></span></em>
+            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格 <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">{payload.transmission.latest_triggered_at ? `(${formatTime(payload.transmission.latest_triggered_at, true, true)})` : ''}</span></em>
           </div>
           <div class="count-box stop-box">
             <span>🟡 传导停止节点</span>
@@ -585,7 +582,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                   <!-- 预警五角星 -->
                   <div class="cell-badge sell-star">
                     <div class="badge-code">{payload.sell_chain.warning_star.code}</div>
-                    <div class="badge-time">{formatTime(payload.sell_chain.warning_star.triggered_at, false)}</div>
+                    <div class="badge-time">{formatTime(payload.sell_chain.warning_star.triggered_at, true, true)}</div>
                   </div>
 
                   <!-- 罗马数字节点 -->
@@ -593,7 +590,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                     <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
                       <div class="badge-code">{node.code}</div>
                       <div class="badge-time">
-                        {node.sell_state === 'SELL' ? formatTime(node.triggered_at, false) : node.sell_state === 'OBSERVING' ? '观察中' : '未激活'}
+                        {node.sell_state === 'SELL' ? formatTime(node.triggered_at, true, true) : node.sell_state === 'OBSERVING' ? '观察中' : '未激活'}
                       </div>
                     </div>
                   ))}
@@ -608,7 +605,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                     <div class={`cell-badge buy-${cycle.buy_state.toLowerCase()}`} data-buy-code={cycle.cycle_code}>
                       <div class="badge-code">{cycle.cycle_code}</div>
                       <div class="badge-time">
-                        {cycle.buy_state === 'BUY' ? formatTime(cycle.buy_triggered_at, false) : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活'}
+                        {cycle.buy_state === 'BUY' ? formatTime(cycle.buy_triggered_at, true, true) : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活'}
                       </div>
                     </div>
                   ))}
@@ -651,18 +648,22 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
     <script is:inline>
       (() => {
-        const formatTime = (value, includeDate = true) => {
+        const formatTime = (value, includeDate = true, includeSeconds = false) => {
           if (!value) return '—';
           const date = new Date(value);
           if (Number.isNaN(date.getTime())) return String(value);
-          if (!includeDate) {
-            return date.toLocaleString('zh-CN', {
-              timeZone: 'Asia/Shanghai', hour12: false, hour: '2-digit', minute: '2-digit'
-            });
+          const options = {
+            timeZone: 'Asia/Shanghai',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit'
+          };
+          if (includeSeconds) options.second = '2-digit';
+          if (includeDate) {
+            options.month = '2-digit';
+            options.day = '2-digit';
           }
-          return date.toLocaleString('zh-CN', {
-            timeZone: 'Asia/Shanghai', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-          });
+          return date.toLocaleString('zh-CN', options);
         };
 
         const updateUI = (data) => {
@@ -691,8 +692,8 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             const elLit = document.getElementById('stat-lit-count');
             if (elLit) {
               const litText = `连续点亮 ${data.transmission.lit_count} 格`;
-              const latestTime = data.transmission.latest_triggered_at ? `(${formatTime(data.transmission.latest_triggered_at, false)})` : '';
-              elLit.innerHTML = `${litText} <span id="stat-lit-time" style="font-style:normal; margin-left:0.2rem; color:#cf1322;">${latestTime}</span>`;
+              const latestTime = data.transmission.latest_triggered_at ? `(${formatTime(data.transmission.latest_triggered_at, true, true)})` : '';
+              elLit.innerHTML = `${litText} <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">${latestTime}</span>`;
             }
 
             const elStopped = document.getElementById('stat-stopped-code');
@@ -707,7 +708,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
 
             const elStarTime = document.getElementById('stat-star-time');
             if (elStarTime && data.sell_chain.warning_star) {
-              elStarTime.textContent = `${formatTime(data.sell_chain.warning_star.triggered_at, false)} 预警点亮`;
+              elStarTime.textContent = `${formatTime(data.sell_chain.warning_star.triggered_at, true, true)} 预警点亮`;
             }
           }
 
@@ -720,9 +721,10 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                 el.className = `cell-badge buy-${(cycle.buy_state || 'inactive').toLowerCase()}`;
                 const timeEl = el.querySelector('.badge-time');
                 if (timeEl) {
-                  timeEl.textContent = cycle.buy_state === 'BUY'
-                    ? formatTime(cycle.buy_triggered_at, false)
+                  const displayTime = cycle.buy_state === 'BUY'
+                    ? formatTime(cycle.buy_triggered_at, true, true)
                     : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活';
+                  timeEl.textContent = displayTime;
                 }
               }
             });
