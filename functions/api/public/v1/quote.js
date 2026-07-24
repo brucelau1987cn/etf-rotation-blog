@@ -1,13 +1,12 @@
 /**
- * GET /api/public/v1/quote?symbol=600021&exchange=SSE
- * 代理并解析腾讯股票极速行情接口，带 Cloudflare 5s 缓存与安全 CORS
+ * GET /api/public/v1/quote?symbols=600021.SH,517520.SH,159915.SZ
+ * 单个/批量代理解析腾讯股票/ETF极速行情接口，带 Cloudflare Edge 5s 缓存
  */
 
 export async function onRequestGet({ request }) {
   const url = new URL(request.url);
-  const symbol = url.searchParams.get('symbol') || '600021';
-  const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
-  const secCode = exchange === 'SZSE' ? `sz${symbol}` : `sh${symbol}`;
+  const rawSymbols = url.searchParams.get('symbols') || url.searchParams.get('symbol') || '600021';
+  const defaultExchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
 
   const defaultHeaders = {
     'content-type': 'application/json; charset=utf-8',
@@ -16,8 +15,26 @@ export async function onRequestGet({ request }) {
     'access-control-allow-origin': '*',
   };
 
+  // 解析请求中的多个标的 (支持 "600021.SH,517520.SH" 或 "600021,517520")
+  const items = rawSymbols.split(',').map(s => s.trim()).filter(Boolean).slice(0, 50);
+  
+  if (items.length === 0) {
+    return new Response(JSON.stringify({ status: 'error', message: 'no symbols provided' }), {
+      status: 400,
+      headers: defaultHeaders,
+    });
+  }
+
+  const secCodes = items.map(item => {
+    const parts = item.split('.');
+    const code = parts[0];
+    let ex = parts[1]?.toUpperCase();
+    if (!ex) ex = defaultExchange === 'SZSE' || code.startsWith('159') || code.startsWith('300') || code.startsWith('00') ? 'SZ' : 'SH';
+    return ex === 'SZ' || ex === 'SZSE' ? `sz${code}` : `sh${code}`;
+  });
+
   try {
-    const upstreamUrl = `https://qt.gtimg.cn/q=${secCode}`;
+    const upstreamUrl = `https://qt.gtimg.cn/q=${secCodes.join(',')}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
 
@@ -37,71 +54,64 @@ export async function onRequestGet({ request }) {
     const decoder = new TextDecoder('gbk');
     const text = decoder.decode(buffer);
 
-    // 解析 v_sh600021="1~上海电力~600021~14.74~15.34~..."
-    const match = text.match(/="([^"]+)"/);
-    if (!match) {
-      throw new Error('invalid quote payload format');
+    const quotes = {};
+    const lines = text.split(';');
+
+    for (const line of lines) {
+      const match = line.match(/v_(s[hz]\d+)="([^"]+)"/);
+      if (!match) continue;
+
+      const secKey = match[1]; // sh600021 或 sz159915
+      const parts = match[2].split('~');
+      if (parts.length < 35) continue;
+
+      const name = parts[1] || '';
+      const code = parts[2] || secKey.slice(2);
+      const currentPrice = parseFloat(parts[3]) || 0;
+      const prevClose = parseFloat(parts[4]) || 0;
+      const openPrice = parseFloat(parts[5]) || 0;
+      const volume = parseInt(parts[6], 10) || 0;
+      const changeAmount = parseFloat(parts[31]) || (currentPrice - prevClose);
+      const changePercent = parseFloat(parts[32]) || 0;
+      const highPrice = parseFloat(parts[33]) || 0;
+      const lowPrice = parseFloat(parts[34]) || 0;
+      const rawTime = parts[30] || '';
+
+      let quoteTime = new Date().toISOString();
+      if (rawTime && rawTime.length === 14) {
+        quoteTime = `${rawTime.slice(0, 4)}-${rawTime.slice(4, 6)}-${rawTime.slice(6, 8)}T${rawTime.slice(8, 10)}:${rawTime.slice(10, 12)}:${rawTime.slice(12, 14)}+08:00`;
+      }
+
+      quotes[code] = {
+        symbol: code,
+        sec_code: secKey,
+        name,
+        price: currentPrice,
+        prev_close: prevClose,
+        open: openPrice,
+        high: highPrice,
+        low: lowPrice,
+        change_amount: parseFloat(changeAmount.toFixed(3)),
+        change_percent: parseFloat(changePercent.toFixed(2)),
+        volume_hands: volume,
+        quote_time: quoteTime,
+        status: 'ok',
+      };
     }
 
-    const parts = match[1].split('~');
-    if (parts.length < 35) {
-      throw new Error('insufficient quote fields');
+    // 单个标的兼容单对象格式
+    if (items.length === 1 && !url.searchParams.get('symbols')) {
+      const singleCode = items[0].split('.')[0];
+      const result = quotes[singleCode] || { symbol: singleCode, status: 'error', message: 'not found' };
+      return new Response(JSON.stringify(result), { status: 200, headers: defaultHeaders });
     }
 
-    const name = parts[1] || '上海电力';
-    const code = parts[2] || symbol;
-    const currentPrice = parseFloat(parts[3]) || 0;
-    const prevClose = parseFloat(parts[4]) || 0;
-    const openPrice = parseFloat(parts[5]) || 0;
-    const volume = parseInt(parts[6], 10) || 0; // 手
-    const changeAmount = parseFloat(parts[31]) || (currentPrice - prevClose);
-    const changePercent = parseFloat(parts[32]) || 0;
-    const highPrice = parseFloat(parts[33]) || 0;
-    const lowPrice = parseFloat(parts[34]) || 0;
-    const rawTime = parts[30] || ''; // YYYYMMDDHHMMSS
-
-    let quoteTime = new Date().toISOString();
-    if (rawTime && rawTime.length === 14) {
-      const year = rawTime.slice(0, 4);
-      const month = rawTime.slice(4, 6);
-      const day = rawTime.slice(6, 8);
-      const hour = rawTime.slice(8, 10);
-      const minute = rawTime.slice(10, 12);
-      const second = rawTime.slice(12, 14);
-      quoteTime = `${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`;
-    }
-
-    const quoteData = {
-      symbol: code,
-      exchange,
-      name,
-      price: currentPrice,
-      prev_close: prevClose,
-      open: openPrice,
-      high: highPrice,
-      low: lowPrice,
-      change_amount: parseFloat(changeAmount.toFixed(2)),
-      change_percent: parseFloat(changePercent.toFixed(2)),
-      volume_hands: volume,
-      quote_time: quoteTime,
-      status: 'ok',
-    };
-
-    return new Response(JSON.stringify(quoteData), {
+    return new Response(JSON.stringify({ quotes, status: 'ok', count: Object.keys(quotes).length }), {
       status: 200,
       headers: defaultHeaders,
     });
   } catch (err) {
-    const fallback = {
-      symbol,
-      exchange,
-      name: '上海电力',
-      price: null,
-      change_percent: null,
-      status: 'error',
-      message: err.message,
-    };
-    return new Response(JSON.stringify(fallback), {
+    return new Response(JSON.stringify({ status: 'error', message: err.message, quotes: {} }), {
       status: 200,
       headers: defaultHeaders,
     });

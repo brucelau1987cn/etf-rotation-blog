@@ -173,7 +173,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
           <div class="actions-head"><h3>优先动作</h3><small>Top 3 · {aQuoteDate} 行情</small></div>
           <div class="action-list">
             {aActions.map(item => (
-              <div class={`action ${aTone(item.status)}`}>
+              <div class={`action ${aTone(item.status)}`} data-code={item.code}>
                 <div class="action-top">
                   <div class="identity">
                     <strong>{item.code} · {item.name}</strong>
@@ -182,7 +182,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
                   <span class="state">{item.status}</span>
                 </div>
                 <div class="levels">
-                  <div class="level"><span>现价</span><strong>{number(item.price)}</strong></div>
+                  <div class="level"><span>现价</span><strong id={`home-live-price-${item.code}`}>{number(item.price)}</strong><span id={`home-live-change-${item.code}`} style="font-size:0.65rem; font-weight:700;"></span></div>
                   <div class="level active"><span>{actionLevelLabel(item)}</span><strong>{number(actionLevel(item))}</strong></div>
                   <div class="level"><span>防守线</span><strong>{number(item.stop)}</strong></div>
                   <div class="level"><span>距动作位</span><strong>{distance(item.distance_pct)}</strong></div>
@@ -247,6 +247,34 @@ const aLevelBaseline = garden.level_data_as_of || '';
           </nav>
         </article>
       </section>
+      <script is:inline>
+        (function() {
+          const codes = Array.from(document.querySelectorAll('[data-code]')).map(el => el.dataset.code).filter(Boolean);
+          if (codes.length === 0) return;
+          const symbols = codes.map(c => c.length === 6 ? `${c}.${c.startsWith('159') || c.startsWith('300') || c.startsWith('00') ? 'SZ' : 'SH'}` : c).join(',');
+          
+          fetch(`/api/public/v1/quote?symbols=${symbols}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (!data || data.status !== 'ok' || !data.quotes) return;
+              codes.forEach(code => {
+                const quote = data.quotes[code];
+                if (!quote || typeof quote.price !== 'number') return;
+                const priceEl = document.getElementById(`home-live-price-${code}`);
+                const changeEl = document.getElementById(`home-live-change-${code}`);
+                if (priceEl) priceEl.textContent = `¥${quote.price.toFixed(quote.price >= 10 ? 2 : 3)}`;
+                if (changeEl) {
+                  const isUp = quote.change_percent > 0;
+                  const isDown = quote.change_percent < 0;
+                  const sign = isUp ? '+' : '';
+                  changeEl.textContent = `${sign}${quote.change_percent.toFixed(2)}%`;
+                  changeEl.style.color = isUp ? '#cf1322' : isDown ? '#389e0d' : '#64748b';
+                }
+              });
+            })
+            .catch(() => {});
+        })();
+      </script>
     </main>
     <Footer />
   </body>
