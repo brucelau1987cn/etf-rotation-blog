@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-23T07:13:12.468304+00:00",
+  "updated_at": "2026-07-24T07:10:40.315996+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -89,6 +89,14 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-24",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
@@ -96,20 +104,20 @@
         {
           "symbol": "512800",
           "name": "银行ETF华宝",
-          "support": 0.795,
-          "target": 0.824,
-          "stop": 0.774,
-          "signal_date": "2026-07-23",
+          "support": 0.779,
+          "target": 0.827,
+          "stop": 0.77,
+          "signal_date": "2026-07-24",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "515180",
           "name": "红利ETF易方达",
-          "support": 1.387,
-          "target": 1.436,
-          "stop": 1.356,
-          "signal_date": "2026-07-23",
+          "support": 1.368,
+          "target": 1.45,
+          "stop": 1.341,
+          "signal_date": "2026-07-24",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -125,7 +133,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-11",
-      "cash": 6266.91305711426,
+      "cash": 6362.1810107299825,
       "positions": {
         "SKYY": {
           "symbol": "SKYY",
@@ -138,7 +146,7 @@
           "stop": 128.94,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 133.27999877929688
+          "last_price": 129.75
         },
         "EFA": {
           "symbol": "EFA",
@@ -151,20 +159,7 @@
           "stop": 101.9,
           "level_basis": null,
           "signal_date": "2026-07-16",
-          "last_price": 104.23999786376953
-        },
-        "XLU": {
-          "symbol": "XLU",
-          "name": "Utilities Select Sector",
-          "quantity": 44,
-          "entry_price": 45.34000015258789,
-          "entry_cost": 1.99748,
-          "entry_at": "2026-07-17T16:55:44.758952+00:00",
-          "target": 46.38,
-          "stop": 44.25,
-          "level_basis": null,
-          "signal_date": "2026-07-16",
-          "last_price": 45.935001373291016
+          "last_price": 102.78500366210938
         },
         "IBB": {
           "symbol": "IBB",
@@ -177,7 +172,7 @@
           "stop": 183.15,
           "level_basis": null,
           "signal_date": "2026-07-17",
-          "last_price": 187.27999877929688
+          "last_price": 188.9499969482422
         },
         "CIBR": {
           "symbol": "CIBR",
@@ -190,7 +185,7 @@
           "stop": 85.08,
           "level_basis": null,
           "signal_date": "2026-07-21",
-          "last_price": 89.33499908447266
+          "last_price": 87.66999816894531
         },
         "XLV": {
           "symbol": "XLV",
@@ -203,7 +198,7 @@
           "stop": 155.44,
           "level_basis": null,
           "signal_date": "2026-07-21",
-          "last_price": 159.3350067138672
+          "last_price": 161.05499267578125
         },
         "KRE": {
           "symbol": "KRE",
@@ -216,17 +211,30 @@
           "stop": 73.32,
           "level_basis": null,
           "signal_date": "2026-07-21",
-          "last_price": 75.59500122070312
+          "last_price": 75.05500030517578
+        },
+        "XLP": {
+          "symbol": "XLP",
+          "name": "Consumer Staples",
+          "quantity": 23,
+          "entry_price": 83.1500015258789,
+          "entry_cost": 1.956225,
+          "entry_at": "2026-07-23T13:30:26.997811+00:00",
+          "target": 86.32,
+          "stop": 81.79,
+          "level_basis": null,
+          "signal_date": "2026-07-22",
+          "last_price": 83.08499908447266
         }
       },
-      "equity": 19850.19314,
-      "realized_pnl": -163.75916483398436,
-      "unrealized_pnl": 13.952305,
-      "daily_return": -0.00749034,
-      "cumulative_return": -0.00749034,
+      "equity": 19744.880908,
+      "realized_pnl": -151.04243783691405,
+      "unrealized_pnl": -104.076654,
+      "daily_return": -0.01275595,
+      "cumulative_return": -0.01275595,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.31571043,
+      "cash_ratio": 0.32221926,
       "history": [
         {
           "date": "2026-07-13",
@@ -393,66 +401,50 @@
           "price": 75.184998,
           "cost": 1.977405,
           "reason": "plant"
+        },
+        {
+          "id": "US:XLU:sell:1784813431:harvest",
+          "timestamp": "2026-07-23T13:30:26.997811+00:00",
+          "market": "US",
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "side": "sell",
+          "quantity": 44,
+          "price": 45.720001,
+          "cost": 2.00584,
+          "reason": "harvest"
+        },
+        {
+          "id": "US:XLP:buy:1784813429:plant",
+          "timestamp": "2026-07-23T13:30:26.997811+00:00",
+          "market": "US",
+          "symbol": "XLP",
+          "name": "Consumer Staples",
+          "side": "buy",
+          "quantity": 23,
+          "price": 83.150002,
+          "cost": 1.956225,
+          "reason": "plant"
         }
       ],
       "pending_signals": [
         {
-          "symbol": "SPY",
-          "name": "SPDR S&P 500 ETF",
-          "support": 744.98,
-          "target": 757.99,
-          "stop": 735.33,
-          "signal_date": "2026-07-21",
-          "kind": "plant",
-          "status": "伏击"
-        },
-        {
-          "symbol": "VTI",
-          "name": "Vanguard Total Stock Market",
-          "support": 368.3,
-          "target": 374.35,
-          "stop": 362.91,
-          "signal_date": "2026-07-21",
-          "kind": "plant",
-          "status": "伏击"
-        },
-        {
-          "symbol": "IGV",
-          "name": "iShares Expanded Tech-Software",
-          "support": 91.66,
-          "target": 95.62,
-          "stop": 86.76,
-          "signal_date": "2026-07-21",
-          "kind": "ready_plant",
-          "status": "候场"
-        },
-        {
-          "symbol": "XRT",
-          "name": "SPDR S&P Retail ETF",
-          "support": 87.96,
-          "target": 90.92,
-          "stop": 85.18,
-          "signal_date": "2026-07-21",
-          "kind": "ready_plant",
-          "status": "候场"
-        },
-        {
-          "symbol": "HACK",
-          "name": "Amplify Cybersecurity ETF",
-          "support": 106.6,
-          "target": 113.15,
-          "stop": 100.89,
-          "signal_date": "2026-07-21",
+          "symbol": "IHF",
+          "name": "iShares U.S. Healthcare Providers",
+          "support": 56.44,
+          "target": 57.88,
+          "stop": 54.66,
+          "signal_date": "2026-07-22",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "KWEB",
           "name": "KraneShares CSI China Internet",
-          "support": 26.37,
-          "target": 27.67,
-          "stop": 25.69,
-          "signal_date": "2026-07-21",
+          "support": 25.87,
+          "target": 27.01,
+          "stop": 25.68,
+          "signal_date": "2026-07-22",
           "kind": "ready_plant",
           "status": "候场"
         }
