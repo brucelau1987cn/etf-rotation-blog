@@ -28,6 +28,7 @@ test('tradingview webhook accepts valid token and stores signal to KV', async ()
   const env = {
     TRADINGVIEW_WEBHOOK_TOKEN: token,
     ROLLING_KV: {
+      get: async (key) => kvStore.get(key) || null,
       put: async (key, val) => kvStore.set(key, val),
     },
   };
