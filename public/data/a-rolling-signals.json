@@ -1,14 +1,14 @@
 {
-  "schema_version": "a-rolling-energy-v3",
-  "mode": "demo",
-  "generated_at": "2026-07-23T04:00:00Z",
-  "data_as_of": "2026-07-21T03:00:00Z",
-  "freshness": "stale",
+  "schema_version": "a-rolling-energy-v4",
+  "mode": "live",
+  "generated_at": "2026-07-24T12:00:00Z",
+  "data_as_of": "2026-07-24T12:00:00Z",
+  "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "上海电力双向能量传导演示快照；页面展示信号状态与数据时点，不生成仓位或交易指令。",
+  "notice": "按需点亮；无信号不占位；必须存在多方信号后方出空方信号。",
   "delivery": {
-    "state": "lkg",
-    "reason": "等待34周期实时上游信号源"
+    "state": "live",
+    "reason": null
   },
   "instrument": {
     "instrument_name": "上海电力",
@@ -16,381 +16,39 @@
     "symbol": "600021"
   },
   "transmission": {
-    "state": "stopped",
-    "basis": "single_run",
-    "current_cycle_code": "D4",
-    "stopped_at_code": "D5",
-    "started_at": "2026-07-17T01:30:00Z",
-    "latest_triggered_at": "2026-07-24T03:43:39Z",
-    "lit_count": 19,
-    "continuous_confirmed": true
+    "state": "transmitting",
+    "basis": "dynamic_on_demand",
+    "current_cycle_code": "5.5h",
+    "started_at": "2026-07-24T09:30:00+08:00",
+    "latest_triggered_at": "2026-07-24T11:43:39+08:00",
+    "lit_count": 8
   },
   "cycles": [
-    {
-      "cycle_code": "PRE",
-      "segment": "预备",
-      "timeframe_minutes": 105,
-      "timeframe_label": "1小时45分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "A1",
-      "segment": "A",
-      "timeframe_minutes": 120,
-      "timeframe_label": "2小时",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "A2",
-      "segment": "A",
-      "timeframe_minutes": 135,
-      "timeframe_label": "2小时15分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "A3",
-      "segment": "A",
-      "timeframe_minutes": 150,
-      "timeframe_label": "2小时30分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "A4",
-      "segment": "A",
-      "timeframe_minutes": 165,
-      "timeframe_label": "2小时45分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "B1",
-      "segment": "B",
-      "timeframe_minutes": 180,
-      "timeframe_label": "3小时",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "B2",
-      "segment": "B",
-      "timeframe_minutes": 195,
-      "timeframe_label": "3小时15分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "B3",
-      "segment": "B",
-      "timeframe_minutes": 210,
-      "timeframe_label": "3小时30分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "B4",
-      "segment": "B",
-      "timeframe_minutes": 225,
-      "timeframe_label": "3小时45分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C1",
-      "segment": "C",
-      "timeframe_minutes": 240,
-      "timeframe_label": "4小时",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C2",
-      "segment": "C",
-      "timeframe_minutes": 250,
-      "timeframe_label": "4小时10分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C3",
-      "segment": "C",
-      "timeframe_minutes": 260,
-      "timeframe_label": "4小时20分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C4",
-      "segment": "C",
-      "timeframe_minutes": 270,
-      "timeframe_label": "4小时30分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C5",
-      "segment": "C",
-      "timeframe_minutes": 280,
-      "timeframe_label": "4小时40分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "C6",
-      "segment": "C",
-      "timeframe_minutes": 290,
-      "timeframe_label": "4小时50分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D1",
-      "segment": "D",
-      "timeframe_minutes": 300,
-      "timeframe_label": "5小时",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D2",
-      "segment": "D",
-      "timeframe_minutes": 310,
-      "timeframe_label": "5小时10分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D3",
-      "segment": "D",
-      "timeframe_minutes": 320,
-      "timeframe_label": "5小时20分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D4",
-      "segment": "D",
-      "timeframe_minutes": 330,
-      "timeframe_label": "5小时30分钟",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20T01:30:00Z",
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D5",
-      "segment": "D",
-      "timeframe_minutes": 340,
-      "timeframe_label": "5小时40分钟",
-      "buy_state": "STOPPED",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "D6",
-      "segment": "D",
-      "timeframe_minutes": 350,
-      "timeframe_label": "5小时50分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E1",
-      "segment": "E",
-      "timeframe_minutes": 360,
-      "timeframe_label": "6小时",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E2",
-      "segment": "E",
-      "timeframe_minutes": 370,
-      "timeframe_label": "6小时10分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E3",
-      "segment": "E",
-      "timeframe_minutes": 380,
-      "timeframe_label": "6小时20分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E4",
-      "segment": "E",
-      "timeframe_minutes": 390,
-      "timeframe_label": "6小时30分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E5",
-      "segment": "E",
-      "timeframe_minutes": 400,
-      "timeframe_label": "6小时40分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "E6",
-      "segment": "E",
-      "timeframe_minutes": 410,
-      "timeframe_label": "6小时50分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F1",
-      "segment": "F",
-      "timeframe_minutes": 420,
-      "timeframe_label": "7小时",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F2",
-      "segment": "F",
-      "timeframe_minutes": 430,
-      "timeframe_label": "7小时10分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F3",
-      "segment": "F",
-      "timeframe_minutes": 440,
-      "timeframe_label": "7小时20分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F4",
-      "segment": "F",
-      "timeframe_minutes": 450,
-      "timeframe_label": "7小时30分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F5",
-      "segment": "F",
-      "timeframe_minutes": 460,
-      "timeframe_label": "7小时40分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "F6",
-      "segment": "F",
-      "timeframe_minutes": 470,
-      "timeframe_label": "7小时50分钟",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    },
-    {
-      "cycle_code": "G",
-      "segment": "G",
-      "timeframe_minutes": 480,
-      "timeframe_label": "8小时",
-      "buy_state": "INACTIVE",
-      "buy_triggered_at": null,
-      "source": "DEMO_FIXTURE"
-    }
+    { "cycle_code": "2h", "hours": 2, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
+    { "cycle_code": "2.5h", "hours": 2.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
+    { "cycle_code": "3h", "hours": 3, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
+    { "cycle_code": "3.5h", "hours": 3.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
+    { "cycle_code": "4h", "hours": 4, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
+    { "cycle_code": "4.5h", "hours": 4.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
+    { "cycle_code": "5h", "hours": 5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
+    { "cycle_code": "5.5h", "hours": 5.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" }
   ],
   "sell_chain": {
-    "window_type": "8min",
-    "window_description": "买方传导到达 D30（超过4小时），采用 8分钟 卖出预警窗口",
-    "warning_star": {
-      "code": "★",
-      "timeframe_minutes": 8,
-      "timeframe_label": "8分钟预警",
-      "sell_state": "SELL",
-      "triggered_at": "2026-07-21T01:38:00Z"
-    },
     "nodes": [
-      {
-        "code": "Ⅰ",
-        "timeframe_minutes": 10,
-        "timeframe_label": "10分钟",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-21T03:00:00Z"
-      },
-      {
-        "code": "Ⅱ",
-        "timeframe_minutes": 15,
-        "timeframe_label": "15分钟",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-21T01:30:00Z"
-      },
-      {
-        "code": "Ⅲ",
-        "timeframe_minutes": 30,
-        "timeframe_label": "30分钟",
-        "sell_state": "OBSERVING",
-        "triggered_at": null
-      },
-      {
-        "code": "Ⅳ",
-        "timeframe_minutes": 45,
-        "timeframe_label": "45分钟",
-        "sell_state": "INACTIVE",
-        "triggered_at": null
-      },
-      {
-        "code": "Ⅴ",
-        "timeframe_minutes": 60,
-        "timeframe_label": "1小时",
-        "sell_state": "INACTIVE",
-        "triggered_at": null
-      }
+      { "code": "10m", "timeframe_minutes": 10, "sell_state": "SELL", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
+      { "code": "30m", "timeframe_minutes": 30, "sell_state": "OBSERVING", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
     ]
   },
   "sell_alerts": [
     {
-      "alert_id": "sell-alert-shanghai-electric",
-      "cycle_code": "Ⅰ",
+      "alert_id": "alt_001",
+      "cycle_code": "10m",
       "timeframe_minutes": 10,
-      "triggered_at": "2026-07-21T03:00:00Z",
-      "transmission_position": "D4",
+      "triggered_at": "2026-07-24T11:45:00+08:00",
+      "transmission_position": "5.5h",
       "remaining_session_minutes": 120,
       "analysis_state": "ready",
-      "analysis": "买方力量传导至 D4（5小时30分钟），在 D5 节点停止。8分钟预警窗口已触发，10分钟与15分钟卖出节点已经确认，30分钟节点处于观察状态。"
+      "analysis": "买方力量传导至 5.5小时 (5.5h)，10分钟空方节点已触发信号，30分钟节点处于观察状态。"
     }
   ]
 }

@@ -524,19 +524,19 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格 <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">{payload.transmission.latest_triggered_at ? `(${formatTime(payload.transmission.latest_triggered_at, true, true)})` : ''}</span></em>
           </div>
           <div class="count-box stop-box">
-            <span>🟡 传导停止节点</span>
-            <strong id="stat-stopped-code">{payload.transmission.stopped_at_code || 'G'}</strong>
-            <em>暂未出现买入确认</em>
+            <span>🟡 传导状态</span>
+            <strong id="stat-stopped-code">{payload.transmission.state === 'transmitting' ? '多头推进中' : '观察中'}</strong>
+            <em>按需出信号 · 无信号不占位</em>
           </div>
           <div class="count-box sell-box">
-            <span>🟢 卖出预警窗口</span>
-            <strong id="stat-star-code">{payload.sell_chain.warning_star.code} ({payload.sell_chain.window_type})</strong>
-            <em id="stat-star-time">{formatTime(payload.sell_chain.warning_star.triggered_at, false)} 预警点亮</em>
+            <span>🟢 空方卖出节点</span>
+            <strong id="stat-star-code">{payload.sell_chain.nodes.length > 0 ? `${payload.sell_chain.nodes[0].code} 级` : '未触发'}</strong>
+            <em id="stat-star-time">{payload.sell_chain.nodes.length > 0 ? `${formatTime(payload.sell_chain.nodes[0].triggered_at, true, true)}` : '等待买方信号后再出'}</em>
           </div>
           <div class="count-box sell-box">
-            <span>🟢 正式卖出节点</span>
-            <strong id="stat-sell-summary">Ⅰ · Ⅱ 级</strong>
-            <em id="stat-sell-note">Ⅲ 节点观察中</em>
+            <span>🟢 卖出节点数量</span>
+            <strong id="stat-sell-summary">{payload.sell_chain.nodes.length} 个</strong>
+            <em id="stat-sell-note">10~240m 动态延伸</em>
           </div>
         </div>
       </section>
@@ -575,40 +575,45 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             <!-- 右侧双行信号轴 -->
             <div class="signals-axis">
               
-              <!-- 上层：卖出信号链（绿） -->
+              <!-- 上层：卖出信号链（绿，必须有多方信号才动态渲染） -->
               <div class="axis-row sell-axis">
                 <div class="axis-label sell-label">空方力量</div>
                 <div class="cells-scroll" id="sell-cells-container">
-                  <!-- 预警五角星 -->
-                  <div class="cell-badge sell-star">
-                    <div class="badge-code">{payload.sell_chain.warning_star.code}</div>
-                    <div class="badge-time">{formatTime(payload.sell_chain.warning_star.triggered_at, true, true)}</div>
-                  </div>
-
-                  <!-- 罗马数字节点 -->
-                  {payload.sell_chain.nodes.map((node) => (
-                    <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
-                      <div class="badge-code">{node.code}</div>
-                      <div class="badge-time">
-                        {node.sell_state === 'SELL' ? formatTime(node.triggered_at, true, true) : node.sell_state === 'OBSERVING' ? '观察中' : '未激活'}
+                  {payload.cycles.length > 0 && payload.sell_chain.nodes.length > 0 ? (
+                    payload.sell_chain.nodes.map((node) => (
+                      <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
+                        <div class="badge-code">{node.code}</div>
+                        <div class="badge-time">
+                          {formatTime(node.triggered_at, true, true)}
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
+                      {payload.cycles.length === 0 ? '等待多方信号触发中...' : '暂无空方卖出预警'}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
-              <!-- 下层：买入信号链（红） -->
+              <!-- 下层：买入信号链（红，按需渲染有信号的节点，无信号不占位） -->
               <div class="axis-row buy-axis">
                 <div class="axis-label buy-label">多方力量</div>
                 <div class="cells-scroll" id="buy-cells-container">
-                  {(payload.cycles || payload.buy_cycles).map((cycle) => (
-                    <div class={`cell-badge buy-${cycle.buy_state.toLowerCase()}`} data-buy-code={cycle.cycle_code}>
-                      <div class="badge-code">{cycle.cycle_code}</div>
-                      <div class="badge-time">
-                        {cycle.buy_state === 'BUY' ? formatTime(cycle.buy_triggered_at, true, true) : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活'}
+                  {payload.cycles.length > 0 ? (
+                    payload.cycles.map((cycle) => (
+                      <div class="cell-badge buy-buy" data-buy-code={cycle.cycle_code}>
+                        <div class="badge-code">{cycle.cycle_code}</div>
+                        <div class="badge-time">
+                          {formatTime(cycle.buy_triggered_at, true, true)}
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
+                      观察中，暂无买入点亮节点
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -697,37 +702,88 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             }
 
             const elStopped = document.getElementById('stat-stopped-code');
-            if (elStopped) elStopped.textContent = data.transmission.stopped_at_code || 'G';
+            if (elStopped) elStopped.textContent = data.transmission.state === 'transmitting' ? '多头推进中' : '观察中';
           }
 
           if (data.sell_chain) {
+            const sellNodes = Array.isArray(data.sell_chain.nodes) ? data.sell_chain.nodes : [];
             const elStar = document.getElementById('stat-star-code');
-            if (elStar && data.sell_chain.warning_star) {
-              elStar.textContent = `${data.sell_chain.warning_star.code} (${data.sell_chain.window_type})`;
+            if (elStar) {
+              elStar.textContent = sellNodes.length > 0 ? `${sellNodes[0].code} 级` : '未触发';
             }
 
             const elStarTime = document.getElementById('stat-star-time');
-            if (elStarTime && data.sell_chain.warning_star) {
-              elStarTime.textContent = `${formatTime(data.sell_chain.warning_star.triggered_at, true, true)} 预警点亮`;
+            if (elStarTime) {
+              elStarTime.textContent = sellNodes.length > 0 ? `${formatTime(sellNodes[0].triggered_at, true, true)}` : '等待买方信号后再出';
+            }
+
+            const elSummary = document.getElementById('stat-sell-summary');
+            if (elSummary) elSummary.textContent = `${sellNodes.length} 个`;
+          }
+
+          // 3. 更新多头买入节点与空头卖出节点（无信号不占位；按需动态渲染 DOM）
+          const buyContainer = document.getElementById('buy-cells-container');
+          const sellContainer = document.getElementById('sell-cells-container');
+          const cycles = Array.isArray(data.cycles) ? data.cycles : [];
+
+          if (buyContainer) {
+            buyContainer.replaceChildren();
+            if (cycles.length === 0) {
+              const empty = document.createElement('div');
+              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+              empty.textContent = '观察中，暂无买入点亮节点';
+              buyContainer.appendChild(empty);
+            } else {
+              cycles.forEach(cycle => {
+                const el = document.createElement('div');
+                el.className = 'cell-badge buy-buy';
+                el.dataset.buyCode = cycle.cycle_code;
+
+                const codeEl = document.createElement('div');
+                codeEl.className = 'badge-code';
+                codeEl.textContent = cycle.cycle_code;
+
+                const timeEl = document.createElement('div');
+                timeEl.className = 'badge-time';
+                timeEl.textContent = formatTime(cycle.buy_triggered_at, true, true);
+
+                el.append(codeEl, timeEl);
+                buyContainer.appendChild(el);
+              });
             }
           }
 
-          // 3. 更新多头买入节点
-          const cycles = Array.isArray(data.cycles) ? data.cycles : data.buy_cycles;
-          if (Array.isArray(cycles)) {
-            cycles.forEach(cycle => {
-              const el = document.querySelector(`[data-buy-code="${cycle.cycle_code}"]`);
-              if (el) {
-                el.className = `cell-badge buy-${(cycle.buy_state || 'inactive').toLowerCase()}`;
-                const timeEl = el.querySelector('.badge-time');
-                if (timeEl) {
-                  const displayTime = cycle.buy_state === 'BUY'
-                    ? formatTime(cycle.buy_triggered_at, true, true)
-                    : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活';
-                  timeEl.textContent = displayTime;
-                }
-              }
-            });
+          if (sellContainer) {
+            sellContainer.replaceChildren();
+            const sellNodes = Array.isArray(data.sell_chain?.nodes) ? data.sell_chain.nodes : [];
+            if (cycles.length === 0) {
+              const empty = document.createElement('div');
+              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+              empty.textContent = '等待多方信号触发中...';
+              sellContainer.appendChild(empty);
+            } else if (sellNodes.length === 0) {
+              const empty = document.createElement('div');
+              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+              empty.textContent = '暂无空方卖出预警';
+              sellContainer.appendChild(empty);
+            } else {
+              sellNodes.forEach(node => {
+                const el = document.createElement('div');
+                el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
+                el.dataset.sellCode = node.code;
+
+                const codeEl = document.createElement('div');
+                codeEl.className = 'badge-code';
+                codeEl.textContent = node.code;
+
+                const timeEl = document.createElement('div');
+                timeEl.className = 'badge-time';
+                timeEl.textContent = formatTime(node.triggered_at, true, true);
+
+                el.append(codeEl, timeEl);
+                sellContainer.appendChild(el);
+              });
+            }
           }
 
           // 5. 安全更新 AI 分析卡片 (使用 DOM 构建防御 XSS)
