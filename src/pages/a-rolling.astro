@@ -524,7 +524,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="count-box buy-box">
             <span>🔴 当前多头位置</span>
             <strong id="stat-current-code">{payload.transmission.current_cycle_code}</strong>
-            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格</em>
+            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格 <span id="stat-lit-time" style="font-style:normal; margin-left:0.2rem; color:#cf1322;"></span></em>
           </div>
           <div class="count-box stop-box">
             <span>🟡 传导停止节点</span>
@@ -689,7 +689,11 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             if (elCurrent) elCurrent.textContent = data.transmission.current_cycle_code || '—';
             
             const elLit = document.getElementById('stat-lit-count');
-            if (elLit) elLit.textContent = `连续点亮 ${data.transmission.lit_count} 格`;
+            if (elLit) {
+              const litText = `连续点亮 ${data.transmission.lit_count} 格`;
+              const latestTime = data.transmission.latest_triggered_at ? `(${formatTime(data.transmission.latest_triggered_at, false)})` : '';
+              elLit.innerHTML = `${litText} <span id="stat-lit-time" style="font-style:normal; margin-left:0.2rem; color:#cf1322;">${latestTime}</span>`;
+            }
 
             const elStopped = document.getElementById('stat-stopped-code');
             if (elStopped) elStopped.textContent = data.transmission.stopped_at_code || 'G';

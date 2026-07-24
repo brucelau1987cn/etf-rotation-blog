@@ -74,6 +74,7 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
   const stoppedAtCode = litCount < cycles.length ? cycles[litCount].cycle_code : null;
   const currentCycleCode = litCount > 0 ? cycles[litCount - 1].cycle_code : null;
   const startedAt = litCount > 0 ? cycles[0].buy_triggered_at : null;
+  const latestTriggeredAt = litCount > 0 ? cycles[litCount - 1].buy_triggered_at : null;
 
   const payload = {
     schema_version: 'a-rolling-energy-v3',
@@ -91,6 +92,7 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
       current_cycle_code: currentCycleCode,
       stopped_at_code: stoppedAtCode,
       started_at: startedAt,
+      latest_triggered_at: latestTriggeredAt,
       lit_count: litCount,
       continuous_confirmed: true
     },
