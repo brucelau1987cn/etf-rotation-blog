@@ -378,95 +378,96 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         flex: 1;
       }
 
-      /* Badge 小方块精美 UI 重构 */
-      .cell-badge {
-        min-width: 105px;
-        padding: 0.5rem 0.65rem;
-        border-radius: 10px;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border: 1px solid transparent;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-        cursor: default;
-        position: relative;
-        overflow: hidden;
+      /* Badge 小方块精美 UI 重构 (is:global 绝不被 Astro Scoping 剥离) */
+      :global(.cell-badge) {
+        min-width: 105px !important;
+        padding: 0.5rem 0.65rem !important;
+        border-radius: 10px !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        border: 1.5px solid transparent !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+        cursor: default !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
       }
-      .cell-badge:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      :global(.cell-badge:hover) {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1) !important;
       }
-      .badge-code {
-        font-weight: 800;
-        font-size: 1rem;
-        line-height: 1.15;
-        letter-spacing: -0.01em;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      :global(.badge-code) {
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.01em !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace !important;
       }
-      .badge-time {
-        font-size: 0.7rem;
-        margin-top: 0.35rem;
-        line-height: 1.2;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-weight: 600;
-        white-space: nowrap;
+      :global(.badge-time) {
+        font-size: 0.7rem !important;
+        margin-top: 0.35rem !important;
+        line-height: 1.2 !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
       }
 
       /* 多头买方小方块精致配色 (亮眼红调渐变卡片 + 顶部高亮色条) */
-      .cell-badge.buy-buy, .cell-badge.buy-active {
-        background: linear-gradient(145deg, #ffffff 0%, #fff1f0 100%);
-        border: 1.5px solid #ff7875;
-        color: #cf1322;
-        box-shadow: 0 3px 8px rgba(207, 19, 34, 0.12);
+      :global(.cell-badge.buy-buy), :global(.cell-badge.buy-active) {
+        background: linear-gradient(145deg, #ffffff 0%, #fff1f0 100%) !important;
+        border: 1.5px solid #ff7875 !important;
+        color: #cf1322 !important;
+        box-shadow: 0 3px 8px rgba(207, 19, 34, 0.12) !important;
       }
-      .cell-badge.buy-buy::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: #ff4d4f;
+      :global(.cell-badge.buy-buy::before) {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 4px !important;
+        background: #ff4d4f !important;
       }
-      .cell-badge.buy-stopped {
-        background: linear-gradient(145deg, #ffffff 0%, #fffbe6 100%);
-        border: 1.5px solid #ffd666;
-        color: #d48806;
+      :global(.cell-badge.buy-stopped) {
+        background: linear-gradient(145deg, #ffffff 0%, #fffbe6 100%) !important;
+        border: 1.5px solid #ffd666 !important;
+        color: #d48806 !important;
       }
-      .cell-badge.buy-inactive {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        color: #94a3b8;
+      :global(.cell-badge.buy-inactive) {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #94a3b8 !important;
       }
 
       /* 空头卖方小方块精致配色 (亮眼绿调渐变卡片 + 顶部高亮色条) */
-      .cell-badge.sell-sell, .cell-badge.sell-active, .cell-badge.sell-star {
-        background: linear-gradient(145deg, #ffffff 0%, #f6ffed 100%);
-        border: 1.5px solid #95de64;
-        color: #237804;
-        box-shadow: 0 3px 8px rgba(35, 120, 4, 0.12);
+      :global(.cell-badge.sell-sell), :global(.cell-badge.sell-active), :global(.cell-badge.sell-star) {
+        background: linear-gradient(145deg, #ffffff 0%, #f6ffed 100%) !important;
+        border: 1.5px solid #95de64 !important;
+        color: #237804 !important;
+        box-shadow: 0 3px 8px rgba(35, 120, 4, 0.12) !important;
       }
-      .cell-badge.sell-sell::before, .cell-badge.sell-star::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: #52c41a;
+      :global(.cell-badge.sell-sell::before), :global(.cell-badge.sell-star::before) {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 4px !important;
+        background: #52c41a !important;
       }
-      .cell-badge.sell-observing {
-        background: #ffffff;
-        border: 1px dashed #73d13d;
-        color: #389e0d;
+      :global(.cell-badge.sell-observing) {
+        background: #ffffff !important;
+        border: 1.5px dashed #73d13d !important;
+        color: #389e0d !important;
       }
-      .cell-badge.sell-inactive {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        color: #94a3b8;
+      :global(.cell-badge.sell-inactive) {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #94a3b8 !important;
       }
 
       /* AI 解读与底栏 */
