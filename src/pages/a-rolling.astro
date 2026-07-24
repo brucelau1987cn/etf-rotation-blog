@@ -93,8 +93,8 @@ const formatTime = (value: string | null, includeDate = true, includeSeconds = f
   return date.toLocaleString('zh-CN', options);
 };
 
-const pageTitle = `A股滚动策略｜多空能量传导链 | ${SITE_TITLE}`;
-const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟预备窗口和A至G共34个周期观察点展示买方力量与卖方预警的动态延伸。';
+const pageTitle = `A股滚动｜多空能量传导链 | ${SITE_TITLE}`;
+const pageDescription = 'A股滚动多空能量传导终端，展示买方力量与卖方预警的动态延伸。';
 ---
 
 <!doctype html>
@@ -527,7 +527,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         <div class="hero-top">
           <div class="hero-copy">
             <div class="meta-line">
-              <span class="pill pill-red">🇨🇳 A股 · 滚动策略</span>
+              <span class="pill pill-red">🇨🇳 A股 · 滚动</span>
               <span class="pill" id="pill-stock-quote" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1;">行情获取中...</span>
               <span class="pill pill-amber" id="pill-as-of">数据时点：{formatTime(payload.data_as_of)}</span>
               <span class="pill pill-blue" id="pill-mode">模式：{payload.mode === 'demo' ? '基准演示' : '实时数据'}</span>
