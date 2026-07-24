@@ -382,69 +382,95 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         flex: 1;
       }
 
-      /* Badge 卡片基础 */
+      /* Badge 小方块精美 UI 重构 */
       .cell-badge {
-        min-width: 82px;
-        padding: 0.4rem 0.5rem;
-        border-radius: 8px;
+        min-width: 96px;
+        padding: 0.45rem 0.6rem;
+        border-radius: 10px;
         text-align: center;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
         border: 1px solid transparent;
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        cursor: default;
+        position: relative;
+        overflow: hidden;
+      }
+      .cell-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
       }
       .badge-code {
         font-weight: 800;
-        font-size: 0.9rem;
-        line-height: 1.2;
+        font-size: 0.95rem;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
       }
       .badge-time {
-        font-size: 0.7rem;
-        margin-top: 0.25rem;
-        line-height: 1.1;
+        font-size: 0.68rem;
+        margin-top: 0.3rem;
+        line-height: 1.2;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        opacity: 0.9;
+        white-space: nowrap;
       }
 
-      /* 多头配色 */
-      .cell-badge.buy-active {
-        background: #fff1f0;
-        border-color: #ffa39e;
+      /* 多头买方小方块精致配色 (精美红调渐变与阴影) */
+      .cell-badge.buy-buy, .cell-badge.buy-active {
+        background: linear-gradient(145deg, #fff5f5 0%, #ffe3e3 100%);
+        border: 1px solid #ffbb96;
         color: #cf1322;
+        box-shadow: 0 2px 4px rgba(207, 19, 34, 0.08);
+      }
+      .cell-badge.buy-buy::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: #ff4d4f;
       }
       .cell-badge.buy-stopped {
-        background: #fffbe6;
-        border-color: #ffe58f;
+        background: linear-gradient(145deg, #fffbe6 0%, #fff1b8 100%);
+        border: 1px solid #ffe58f;
         color: #d48806;
       }
       .cell-badge.buy-inactive {
-        background: #f5f5f5;
-        border-color: #e8e8e8;
-        color: #bfbfbf;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #94a3b8;
       }
 
-      /* 空头配色 */
-      .cell-badge.sell-star {
-        background: #f6ffed;
-        border-color: #b7eb8f;
-        color: #389e0d;
+      /* 空头卖方小方块精致配色 (精美绿调渐变与阴影) */
+      .cell-badge.sell-sell, .cell-badge.sell-active, .cell-badge.sell-star {
+        background: linear-gradient(145deg, #f6ffed 0%, #d9f7be 100%);
+        border: 1px solid #b7eb8f;
+        color: #237804;
+        box-shadow: 0 2px 4px rgba(35, 120, 4, 0.08);
       }
-      .cell-badge.sell-star .badge-code {
-        font-size: 1.1rem;
-      }
-      .cell-badge.sell-active {
-        background: #f6ffed;
-        border-color: #b7eb8f;
-        color: #389e0d;
+      .cell-badge.sell-sell::before, .cell-badge.sell-star::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: #52c41a;
       }
       .cell-badge.sell-observing {
         background: #ffffff;
-        border: 1px dashed #b7eb8f;
-        color: #52c41a;
+        border: 1px dashed #73d13d;
+        color: #389e0d;
       }
       .cell-badge.sell-inactive {
-        background: #f5f5f5;
-        border-color: #e8e8e8;
-        color: #bfbfbf;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #94a3b8;
       }
 
       /* AI 解读与底栏 */
@@ -586,7 +612,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                         <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
                       </div>
                     ) : (
-                      <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
+                      <div style="min-width: 96px; visibility: hidden; pointer-events: none;"></div>
                     )
                   ))}
                 </div>
@@ -603,7 +629,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                         <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
                       </div>
                     ) : (
-                      <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
+                      <div style="min-width: 96px; visibility: hidden; pointer-events: none;"></div>
                     )
                   ))}
                 </div>
@@ -760,7 +786,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                   buyContainer.appendChild(buyBadge);
 
                   const sellSpacer = document.createElement('div');
-                  sellSpacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
+                  sellSpacer.style.cssText = 'min-width: 96px; visibility: hidden; pointer-events: none;';
                   sellContainer.appendChild(sellSpacer);
                 } else if (item.type === 'SELL') {
                   // 空方节点渲染在上层，下层放置透明占位
@@ -780,7 +806,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
                   sellContainer.appendChild(sellBadge);
 
                   const buySpacer = document.createElement('div');
-                  buySpacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
+                  buySpacer.style.cssText = 'min-width: 96px; visibility: hidden; pointer-events: none;';
                   buyContainer.appendChild(buySpacer);
                 }
               });
