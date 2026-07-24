@@ -575,22 +575,33 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             <!-- 右侧双行信号轴 -->
             <div class="signals-axis">
               
-              <!-- 上层：卖出信号链（绿，必须有多方信号才动态渲染） -->
+              <!-- 上层：卖出信号链（绿，必须在最后一个多方买入信号之后排列占位/渲染） -->
               <div class="axis-row sell-axis">
                 <div class="axis-label sell-label">空方力量</div>
                 <div class="cells-scroll" id="sell-cells-container">
-                  {payload.cycles.length > 0 && payload.sell_chain.nodes.length > 0 ? (
-                    payload.sell_chain.nodes.map((node) => (
-                      <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
-                        <div class="badge-code">{node.code}</div>
-                        <div class="badge-time">
-                          {formatTime(node.triggered_at, true, true)}
+                  {payload.cycles.length > 0 ? (
+                    <>
+                      {Array.from({ length: Math.max(0, payload.cycles.length - 1) }).map(() => (
+                        <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
+                      ))}
+                      {payload.sell_chain.nodes.length > 0 ? (
+                        payload.sell_chain.nodes.map((node) => (
+                          <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
+                            <div class="badge-code">{node.code}</div>
+                            <div class="badge-time">
+                              {formatTime(node.triggered_at, true, true)}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
+                          暂无空方卖出预警
                         </div>
-                      </div>
-                    ))
+                      )}
+                    </>
                   ) : (
                     <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
-                      {payload.cycles.length === 0 ? '等待多方信号触发中...' : '暂无空方卖出预警'}
+                      等待多方信号触发中...
                     </div>
                   )}
                 </div>
@@ -721,10 +732,11 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             if (elSummary) elSummary.textContent = `${sellNodes.length} 个`;
           }
 
-          // 3. 更新多头买入节点与空头卖出节点（无信号不占位；按需动态渲染 DOM）
+          // 3. 更新多头买入节点与空头卖出节点（空信号排在多信号后面对齐，无信号不占位）
           const buyContainer = document.getElementById('buy-cells-container');
           const sellContainer = document.getElementById('sell-cells-container');
           const cycles = Array.isArray(data.cycles) ? data.cycles : [];
+          const sellNodes = Array.isArray(data.sell_chain?.nodes) ? data.sell_chain.nodes : [];
 
           if (buyContainer) {
             buyContainer.replaceChildren();
@@ -755,34 +767,43 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
 
           if (sellContainer) {
             sellContainer.replaceChildren();
-            const sellNodes = Array.isArray(data.sell_chain?.nodes) ? data.sell_chain.nodes : [];
             if (cycles.length === 0) {
               const empty = document.createElement('div');
               empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
               empty.textContent = '等待多方信号触发中...';
               sellContainer.appendChild(empty);
-            } else if (sellNodes.length === 0) {
-              const empty = document.createElement('div');
-              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
-              empty.textContent = '暂无空方卖出预警';
-              sellContainer.appendChild(empty);
             } else {
-              sellNodes.forEach(node => {
-                const el = document.createElement('div');
-                el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
-                el.dataset.sellCode = node.code;
+              // 关键对齐修改：前 cycles.length - 1 个位置填充与下方多方节点宽同高的透明占位块
+              const offsetCount = Math.max(0, cycles.length - 1);
+              for (let i = 0; i < offsetCount; i++) {
+                const spacer = document.createElement('div');
+                spacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
+                sellContainer.appendChild(spacer);
+              }
 
-                const codeEl = document.createElement('div');
-                codeEl.className = 'badge-code';
-                codeEl.textContent = node.code;
+              if (sellNodes.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+                empty.textContent = '暂无空方卖出预警';
+                sellContainer.appendChild(empty);
+              } else {
+                sellNodes.forEach(node => {
+                  const el = document.createElement('div');
+                  el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
+                  el.dataset.sellCode = node.code;
 
-                const timeEl = document.createElement('div');
-                timeEl.className = 'badge-time';
-                timeEl.textContent = formatTime(node.triggered_at, true, true);
+                  const codeEl = document.createElement('div');
+                  codeEl.className = 'badge-code';
+                  codeEl.textContent = node.code;
 
-                el.append(codeEl, timeEl);
-                sellContainer.appendChild(el);
-              });
+                  const timeEl = document.createElement('div');
+                  timeEl.className = 'badge-time';
+                  timeEl.textContent = formatTime(node.triggered_at, true, true);
+
+                  el.append(codeEl, timeEl);
+                  sellContainer.appendChild(el);
+                });
+              }
             }
           }
 
