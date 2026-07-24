@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-24T12:00:00Z",
-  "data_as_of": "2026-07-24T12:00:00Z",
+  "generated_at": "2026-07-24T14:00:00Z",
+  "data_as_of": "2026-07-24T10:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "每个时间段独立一格，多空上下交替对齐，按实际接收信号时间排序。",
+  "notice": "正式多空信号数据投影。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -19,50 +19,52 @@
     "state": "transmitting",
     "basis": "chronological_sequence",
     "current_cycle_code": "30m",
-    "started_at": "2026-07-24T09:30:00+08:00",
-    "latest_triggered_at": "2026-07-24T11:50:00+08:00",
-    "lit_count": 10,
+    "started_at": "2026-07-17T09:30:00+08:00",
+    "latest_triggered_at": "2026-07-24T10:30:00+08:00",
+    "lit_count": 11,
     "buy_count": 8,
-    "sell_count": 2
+    "sell_count": 3
   },
   "timeline": [
-    { "type": "BUY", "code": "2h", "triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
-    { "type": "BUY", "code": "2.5h", "triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
-    { "type": "BUY", "code": "3h", "triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
-    { "type": "BUY", "code": "3.5h", "triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
-    { "type": "BUY", "code": "4h", "triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
-    { "type": "BUY", "code": "4.5h", "triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
-    { "type": "BUY", "code": "5h", "triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
-    { "type": "BUY", "code": "5.5h", "triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" },
-    { "type": "SELL", "code": "10m", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
-    { "type": "SELL", "code": "30m", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
+    { "type": "BUY", "code": "2h", "triggered_at": "2026-07-17T09:30:00+08:00", "label": "2小时00分钟" },
+    { "type": "BUY", "code": "2.5h", "triggered_at": "2026-07-17T09:30:00+08:00", "label": "2小时30分钟" },
+    { "type": "BUY", "code": "3h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "3小时00分钟" },
+    { "type": "BUY", "code": "3.5h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "3小时30分钟" },
+    { "type": "BUY", "code": "4h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "4小时00分钟" },
+    { "type": "BUY", "code": "4.5h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "4小时30分钟" },
+    { "type": "BUY", "code": "5h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "5小时00分钟" },
+    { "type": "BUY", "code": "5.5h", "triggered_at": "2026-07-20T09:30:00+08:00", "label": "5小时30分钟" },
+    { "type": "SELL", "code": "15m", "triggered_at": "2026-07-21T09:30:00+08:00", "label": "15分钟" },
+    { "type": "SELL", "code": "10m", "triggered_at": "2026-07-21T11:00:00+08:00", "label": "10分钟" },
+    { "type": "SELL", "code": "30m", "triggered_at": "2026-07-24T10:30:00+08:00", "label": "30分钟" }
   ],
   "cycles": [
-    { "cycle_code": "2h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
-    { "cycle_code": "2.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
-    { "cycle_code": "3h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
-    { "cycle_code": "3.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
-    { "cycle_code": "4h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
-    { "cycle_code": "4.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
-    { "cycle_code": "5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
-    { "cycle_code": "5.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" }
+    { "cycle_code": "2h", "buy_state": "BUY", "buy_triggered_at": "2026-07-17T09:30:00+08:00", "label": "2小时00分钟" },
+    { "cycle_code": "2.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-17T09:30:00+08:00", "label": "2小时30分钟" },
+    { "cycle_code": "3h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "3小时00分钟" },
+    { "cycle_code": "3.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "3小时30分钟" },
+    { "cycle_code": "4h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "4小时00分钟" },
+    { "cycle_code": "4.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "4小时30分钟" },
+    { "cycle_code": "5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "5小时00分钟" },
+    { "cycle_code": "5.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-20T09:30:00+08:00", "label": "5小时30分钟" }
   ],
   "sell_chain": {
     "nodes": [
-      { "code": "10m", "sell_state": "SELL", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
-      { "code": "30m", "sell_state": "SELL", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
+      { "code": "15m", "sell_state": "SELL", "triggered_at": "2026-07-21T09:30:00+08:00", "label": "15分钟" },
+      { "code": "10m", "sell_state": "SELL", "triggered_at": "2026-07-21T11:00:00+08:00", "label": "10分钟" },
+      { "code": "30m", "sell_state": "SELL", "triggered_at": "2026-07-24T10:30:00+08:00", "label": "30分钟" }
     ]
   },
   "sell_alerts": [
     {
-      "alert_id": "alt_001",
-      "cycle_code": "10m",
-      "timeframe_minutes": 10,
-      "triggered_at": "2026-07-24T11:45:00+08:00",
+      "alert_id": "alt_formal_01",
+      "cycle_code": "30m",
+      "timeframe_minutes": 30,
+      "triggered_at": "2026-07-24T10:30:00+08:00",
       "transmission_position": "5.5h",
-      "remaining_session_minutes": 120,
+      "remaining_session_minutes": 150,
       "analysis_state": "ready",
-      "analysis": "买方力量传导至 5.5小时 (5.5h)，10分钟空方节点已触发信号，30分钟节点处于观察状态。"
+      "analysis": "买方力量于 7月20日 传导至 5.5小时 (5.5h)。空方分别于 7月21日09:30 触发15分钟节点、7月21日11:00 触发10分钟节点，并于 7月24日10:30 确认30分钟卖出预警。"
     }
   ]
 }
