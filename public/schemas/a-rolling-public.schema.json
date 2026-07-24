@@ -100,6 +100,16 @@
         "symbol": {
           "type": "string",
           "pattern": "^[0-9]{6}$"
+        },
+        "last_price": {
+          "type": ["number", "null"]
+        },
+        "change_percent": {
+          "type": ["number", "null"]
+        },
+        "quote_time": {
+          "type": ["string", "null"],
+          "format": "date-time"
         }
       }
     },

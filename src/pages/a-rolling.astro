@@ -480,9 +480,10 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="hero-copy">
             <div class="meta-line">
               <span class="pill pill-red">🇨🇳 A股 · 滚动策略</span>
+              <span class="pill" id="pill-stock-quote" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1;">行情获取中...</span>
               <span class="pill pill-amber" id="pill-as-of">数据时点：{formatTime(payload.data_as_of)}</span>
               <span class="pill pill-blue" id="pill-mode">模式：{payload.mode === 'demo' ? '基准演示' : '实时数据'}</span>
-              <span class="pill">协议：a-rolling-energy-v2</span>
+              <span class="pill">协议：a-rolling-energy-v3</span>
               <span class="pill live-pill" id="live-status-pill" style="background:#e6f4ff; color:#0958d9; border-color:#91caff;">实时连接中</span>
             </div>
             <h1 id="page-title">多空能量传导链</h1>
@@ -536,6 +537,9 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             <div class="stock-sticky">
               <div class="stock-name-title" id="inst-name">{payload.instrument.instrument_name}</div>
               <div class="stock-code-tag" id="inst-symbol">{payload.instrument.symbol}</div>
+              <div class="stock-price-tag" id="stock-quote-badge" style="font-size: 0.78rem; font-weight: 700; margin-top: 0.35rem; color: #64748b; font-family: monospace;">
+                加载行情...
+              </div>
             </div>
 
             <!-- 右侧双行信号轴 -->
@@ -671,22 +675,6 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           }
 
           // 3. 更新多头买入节点
-          if (Array.isArray(data.buy_cycles)) {
-            data.buy_cycles.forEach(cycle => {
-              const el = document.querySelector(`[data-buy-code="${cycle.cycle_code}"]`);
-              if (el) {
-                el.className = `cell-badge buy-${(cycle.buy_state || 'inactive').toLowerCase()}`;
-                const timeEl = el.querySelector('.badge-time');
-                if (timeEl) {
-                  timeEl.textContent = cycle.buy_state === 'BUY'
-                    ? formatTime(cycle.buy_triggered_at, false)
-                    : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活';
-                }
-              }
-            });
-          }
-
-          // 3. 更新多头买入节点
           const cycles = Array.isArray(data.cycles) ? data.cycles : data.buy_cycles;
           if (Array.isArray(cycles)) {
             cycles.forEach(cycle => {
@@ -753,6 +741,45 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           }
         };
 
+        const updateQuoteUI = (quote) => {
+          if (!quote || quote.status !== 'ok' || typeof quote.price !== 'number') return;
+          const badge = document.getElementById('stock-quote-badge');
+          const pill = document.getElementById('pill-stock-quote');
+          
+          const isUp = quote.change_percent > 0;
+          const isDown = quote.change_percent < 0;
+          const color = isUp ? '#cf1322' : isDown ? '#389e0d' : '#475569';
+          const bg = isUp ? '#fff1f0' : isDown ? '#f6ffed' : '#f1f5f9';
+          const border = isUp ? '#ffa39e' : isDown ? '#b7eb8f' : '#cbd5e1';
+
+          const sign = isUp ? '+' : '';
+          const text = `¥${quote.price.toFixed(2)} ${sign}${quote.change_percent.toFixed(2)}%`;
+
+          if (badge) {
+            badge.textContent = text;
+            badge.style.color = color;
+          }
+
+          if (pill) {
+            pill.textContent = `实时行情：${text}`;
+            pill.style.color = color;
+            pill.style.background = bg;
+            pill.style.borderColor = border;
+          }
+        };
+
+        const fetchStockQuote = async () => {
+          if (document.hidden) return;
+          try {
+            const res = await fetch('/api/public/v1/quote?symbol=600021&exchange=SSE');
+            if (!res.ok) return;
+            const data = await res.json();
+            updateQuoteUI(data);
+          } catch (e) {
+            // 静默失败
+          }
+        };
+
         let inFlight = false;
         const fetchLatestSignals = async () => {
           if (inFlight || document.hidden) return;
@@ -769,9 +796,13 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           }
         };
 
-        // 页面打开后 1 秒刷新，之后每 30 秒轮询更新（标签页隐藏时自动暂停）
-        setTimeout(fetchLatestSignals, 1000);
+        setTimeout(function() {
+          fetchLatestSignals();
+          fetchStockQuote();
+        }, 500);
+
         setInterval(fetchLatestSignals, 30000);
+        setInterval(fetchStockQuote, 15000);
 
     </script>
   </body>
