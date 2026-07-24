@@ -247,6 +247,34 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         gap: 0.75rem;
         margin-bottom: 1rem;
       }
+      .matrix-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .view-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 6px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .view-toggle-btn:hover {
+        background: #e2e8f0;
+        border-color: #94a3b8;
+      }
+      .table-outer.compact-mode .cell-badge.buy-inactive,
+      .table-outer.compact-mode .cell-badge.sell-inactive {
+        display: none !important;
+      }
       .section-head-title h2 {
         font-size: 1.2rem;
         font-weight: 800;
@@ -522,16 +550,21 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
           <div class="section-head-title">
             <h2 id="matrix-title">双向能量传导轨道</h2>
           </div>
-          <div class="legend-list">
-            <span class="legend-item"><i class="dot dot-red"></i>买方点亮</span>
-            <span class="legend-item"><i class="dot dot-amber"></i>传导停止</span>
-            <span class="legend-item"><i class="dot dot-green"></i>卖方预警/确认</span>
-            <span class="legend-item"><i class="dot dot-gray"></i>未激活/观察中</span>
+          <div class="matrix-controls">
+            <button id="toggle-view-btn" class="view-toggle-btn" type="button">
+              ⚡ 模式：精简按需点亮
+            </button>
+            <div class="legend-list">
+              <span class="legend-item"><i class="dot dot-red"></i>买方点亮</span>
+              <span class="legend-item"><i class="dot dot-amber"></i>传导停止</span>
+              <span class="legend-item"><i class="dot dot-green"></i>卖方预警/确认</span>
+              <span class="legend-item"><i class="dot dot-gray"></i>未激活/观察中</span>
+            </div>
           </div>
         </div>
 
         <!-- 卷轴横向双层表格 -->
-        <div class="table-outer">
+        <div class="table-outer compact-mode" id="table-outer-wrapper">
           <div class="table-grid">
             <!-- 左侧固定标的列 -->
             <div class="stock-sticky">
@@ -795,6 +828,31 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             inFlight = false;
           }
         };
+
+        // 模式切换与记忆
+        const tableWrapper = document.getElementById('table-outer-wrapper');
+        const toggleBtn = document.getElementById('toggle-view-btn');
+        let isCompact = localStorage.getItem('rolling_view_mode') !== 'full';
+
+        const applyViewMode = () => {
+          if (!tableWrapper || !toggleBtn) return;
+          if (isCompact) {
+            tableWrapper.classList.add('compact-mode');
+            toggleBtn.textContent = '⚡ 模式：精简按需点亮';
+          } else {
+            tableWrapper.classList.remove('compact-mode');
+            toggleBtn.textContent = '📊 模式：显示完整 34 轨道';
+          }
+        };
+
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', () => {
+            isCompact = !isCompact;
+            localStorage.setItem('rolling_view_mode', isCompact ? 'compact' : 'full');
+            applyViewMode();
+          });
+        }
+        applyViewMode();
 
         setTimeout(function() {
           fetchLatestSignals();

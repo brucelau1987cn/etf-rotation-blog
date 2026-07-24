@@ -25,6 +25,6 @@ def test_energy_page_renders_dual_chain_and_resilient_polling():
     assert "双向能量传导轨道" in source
     assert "AI 卖出预警实时研判" in source
     assert "fetch('/api/public/v1/rolling-signals')" in source
-    assert "if (inFlight || document.hidden) return;" in source
-    assert "container.replaceChildren();" in source
+    assert "toggle-view-btn" in source
+    assert "compact-mode" in source
     assert 'AStockSubnav active="rolling"' in source
