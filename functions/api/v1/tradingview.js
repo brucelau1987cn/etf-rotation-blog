@@ -1,10 +1,18 @@
 /**
  * POST /api/v1/tradingview
- * 接收来自 TradingView 的多空能量传导预警信号 (Webhook)
+ * 接收 TradingView Webhook 多空信号并存入 Cloudflare KV (ROLLING_KV)
  */
 
 export async function onRequestPost({ request, env }) {
   try {
+    const expectedToken = String(env.TRADINGVIEW_WEBHOOK_TOKEN || '').trim();
+    if (!expectedToken) {
+      return new Response(JSON.stringify({ error: 'TRADINGVIEW_WEBHOOK_TOKEN missing on server' }), {
+        status: 500,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       return new Response(JSON.stringify({ error: 'content-type must be application/json' }), {
@@ -13,20 +21,24 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
-    const payload = await request.json();
+    let payload;
+    try {
+      payload = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'invalid json payload' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
 
-    // 1. 验证 Token (优先从环境变量 TRADINGVIEW_WEBHOOK_TOKEN 取)
-    const expectedToken = env.TRADINGVIEW_WEBHOOK_TOKEN || 'REDACTED_WEBHOOK_TOKEN';
-    if (!payload.webhook_token || payload.webhook_token !== expectedToken) {
+    if (!payload || typeof payload !== 'object' || payload.webhook_token !== expectedToken) {
       return new Response(JSON.stringify({ error: 'invalid webhook token' }), {
         status: 401,
         headers: { 'content-type': 'application/json' },
       });
     }
 
-    // 2. 解析核心信号数据
     const {
-      instrument_name = '上海电力',
       symbol = '600021',
       cycle_code,
       signal, // 'BUY' 或 'SELL'
@@ -41,22 +53,34 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
-    // 3. 如果绑定了 Cloudflare KV (如 env.ROLLING_KV)，可以将事件存入持久化存储
+    const eventId = event_id || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const receivedAt = new Date().toISOString();
+
     if (env.ROLLING_KV) {
       const storageKey = `signal:${symbol}:${cycle_code}:${signal}`;
-      await env.ROLLING_KV.put(storageKey, JSON.stringify({
-        ...payload,
-        received_at: new Date().toISOString(),
-      }));
+      const latestKey = `latest:${symbol}`;
+      
+      const record = {
+        symbol,
+        cycle_code,
+        signal,
+        trigger_time_utc,
+        event_id: eventId,
+        received_at: receivedAt,
+      };
+
+      await Promise.all([
+        env.ROLLING_KV.put(storageKey, JSON.stringify(record)),
+        env.ROLLING_KV.put(latestKey, JSON.stringify(record)),
+      ]);
     }
 
-    // 4. 返回 200 成功响应
     return new Response(
       JSON.stringify({
         success: true,
         message: `Signal ${signal} for cycle ${cycle_code} accepted`,
-        event_id: event_id || `evt_${Date.now()}`,
-        received_at: new Date().toISOString(),
+        event_id: eventId,
+        received_at: receivedAt,
       }),
       {
         status: 200,

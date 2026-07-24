@@ -126,7 +126,7 @@ def project_upstream(upstream: Any, *, generated_at: str, stale_after_seconds: i
         if raw.get("timeframe_minutes") != minutes:
             raise ValueError(f"upstream cycle {code} has invalid minutes")
         state = raw.get("buy_state")
-        if state not in {"BUY", "INACTIVE", "UNKNOWN"}:
+        if state not in {"BUY", "STOPPED", "INACTIVE", "UNKNOWN"}:
             raise ValueError(f"upstream cycle {code} has invalid buy_state")
         triggered = iso_utc(raw["buy_triggered_at"], f"{code}.buy_triggered_at") if raw.get("buy_triggered_at") else None
         cycles.append({"cycle_code": code, "segment": segment, "timeframe_minutes": minutes, "timeframe_label": timeframe_label(minutes), "buy_state": state, "buy_triggered_at": triggered, "source": "UPSTREAM_PROJECTION"})
@@ -136,13 +136,26 @@ def project_upstream(upstream: Any, *, generated_at: str, stale_after_seconds: i
     data_as_of = iso_utc(upstream.get("data_as_of") or upstream.get("generated_at"), "upstream.data_as_of")
     generated = iso_utc(generated_at, "generated_at")
     age = max(0, int((parse_timestamp(generated, "generated_at") - parse_timestamp(data_as_of, "data_as_of")).total_seconds()))
+    stopped_at_code = cycles[lit_count]["cycle_code"] if lit_count < len(CYCLES) else None
+    sell_chain = upstream.get("sell_chain") or {
+        "window_type": "none",
+        "window_description": "买方尚未触发预警窗口",
+        "warning_star": {"code": "★", "timeframe_minutes": 8, "timeframe_label": "8分钟预警", "sell_state": "INACTIVE", "triggered_at": None},
+        "nodes": [
+            {"code": "Ⅰ", "timeframe_minutes": 10, "timeframe_label": "10分钟", "sell_state": "INACTIVE", "triggered_at": None},
+            {"code": "Ⅱ", "timeframe_minutes": 15, "timeframe_label": "15分钟", "sell_state": "INACTIVE", "triggered_at": None},
+            {"code": "Ⅲ", "timeframe_minutes": 30, "timeframe_label": "30分钟", "sell_state": "INACTIVE", "triggered_at": None},
+            {"code": "Ⅳ", "timeframe_minutes": 45, "timeframe_label": "45分钟", "sell_state": "INACTIVE", "triggered_at": None},
+            {"code": "Ⅴ", "timeframe_minutes": 60, "timeframe_label": "1小时", "sell_state": "INACTIVE", "triggered_at": None},
+        ]
+    }
     payload = {
-        "schema_version": "a-rolling-energy-v2", "mode": "live", "generated_at": generated,
+        "schema_version": "a-rolling-energy-v3", "mode": "live", "generated_at": generated,
         "data_as_of": data_as_of, "freshness": "fresh" if age <= stale_after_seconds else "stale",
         "stale_after_seconds": stale_after_seconds, "notice": "只读公开投影；买卖信号事实由上游信号系统提供。",
         "delivery": {"state": "live", "reason": None}, "instrument": upstream.get("instrument"),
-        "transmission": {"state": "complete" if lit_count == len(CYCLES) else "transmitting" if lit_count else "observing", "basis": "single_run", "current_cycle_code": cycles[lit_count - 1]["cycle_code"] if lit_count else None, "started_at": cycles[0]["buy_triggered_at"] if lit_count else None, "lit_count": lit_count, "continuous_confirmed": True},
-        "cycles": cycles, "sell_alerts": upstream.get("sell_alerts") or [],
+        "transmission": {"state": "complete" if lit_count == len(CYCLES) else "transmitting" if lit_count else "observing", "basis": "single_run", "current_cycle_code": cycles[lit_count - 1]["cycle_code"] if lit_count else None, "stopped_at_code": stopped_at_code, "started_at": cycles[0]["buy_triggered_at"] if lit_count else None, "lit_count": lit_count, "continuous_confirmed": True},
+        "cycles": cycles, "sell_chain": sell_chain, "sell_alerts": upstream.get("sell_alerts") or [],
     }
     return validate_public_payload(payload)
 

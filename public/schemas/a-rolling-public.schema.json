@@ -1,22 +1,402 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://etf.peekabo.cc/schemas/a-rolling-public.schema.json",
-  "title": "A-share buyer-energy transmission public projection",
+  "title": "A-share dual energy transmission public projection",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "mode", "generated_at", "data_as_of", "freshness", "stale_after_seconds", "notice", "delivery", "instrument", "transmission", "cycles", "sell_alerts"],
+  "required": [
+    "schema_version",
+    "mode",
+    "generated_at",
+    "data_as_of",
+    "freshness",
+    "stale_after_seconds",
+    "notice",
+    "delivery",
+    "instrument",
+    "transmission",
+    "cycles",
+    "sell_chain",
+    "sell_alerts"
+  ],
   "properties": {
-    "schema_version": {"const": "a-rolling-energy-v2"},
-    "mode": {"enum": ["demo", "live"]},
-    "generated_at": {"type": "string", "format": "date-time"},
-    "data_as_of": {"type": "string", "format": "date-time"},
-    "freshness": {"enum": ["fresh", "stale", "unknown"]},
-    "stale_after_seconds": {"type": "integer", "minimum": 60, "maximum": 86400},
-    "notice": {"type": "string", "minLength": 1, "maxLength": 300},
-    "delivery": {"type": "object", "additionalProperties": false, "required": ["state", "reason"], "properties": {"state": {"enum": ["live", "lkg"]}, "reason": {"type": ["string", "null"], "maxLength": 200}}},
-    "instrument": {"type": "object", "additionalProperties": false, "required": ["instrument_name", "exchange", "symbol"], "properties": {"instrument_name": {"type": "string", "minLength": 1, "maxLength": 60}, "exchange": {"enum": ["SSE", "SZSE"]}, "symbol": {"type": "string", "pattern": "^[0-9]{6}$"}}},
-    "transmission": {"type": "object", "additionalProperties": false, "required": ["state", "basis", "current_cycle_code", "started_at", "lit_count", "continuous_confirmed"], "properties": {"state": {"enum": ["observing", "transmitting", "stopped", "complete", "unknown"]}, "basis": {"enum": ["latest_buy_by_cycle", "single_run"]}, "current_cycle_code": {"type": ["string", "null"]}, "started_at": {"type": ["string", "null"], "format": "date-time"}, "lit_count": {"type": "integer", "minimum": 0, "maximum": 34}, "continuous_confirmed": {"type": "boolean"}}},
-    "cycles": {"type": "array", "minItems": 34, "maxItems": 34, "items": {"type": "object", "additionalProperties": false, "required": ["cycle_code", "segment", "timeframe_minutes", "timeframe_label", "buy_state", "buy_triggered_at", "source"], "properties": {"cycle_code": {"type": "string", "pattern": "^(PRE|[A-F][1-6]|G)$"}, "segment": {"enum": ["预备", "A", "B", "C", "D", "E", "F", "G"]}, "timeframe_minutes": {"type": "integer", "minimum": 105, "maximum": 480}, "timeframe_label": {"type": "string", "minLength": 2, "maxLength": 20}, "buy_state": {"enum": ["BUY", "INACTIVE", "UNKNOWN"]}, "buy_triggered_at": {"type": ["string", "null"], "format": "date-time"}, "source": {"enum": ["DEMO_FIXTURE", "UPSTREAM_PROJECTION"]}}}},
-    "sell_alerts": {"type": "array", "maxItems": 100, "items": {"type": "object", "additionalProperties": false, "required": ["alert_id", "cycle_code", "timeframe_minutes", "triggered_at", "transmission_position", "remaining_session_minutes", "analysis_state", "analysis"], "properties": {"alert_id": {"type": "string", "minLength": 1, "maxLength": 100}, "cycle_code": {"type": "string"}, "timeframe_minutes": {"type": "integer"}, "triggered_at": {"type": "string", "format": "date-time"}, "transmission_position": {"type": ["string", "null"]}, "remaining_session_minutes": {"type": "integer", "minimum": 0, "maximum": 240}, "analysis_state": {"enum": ["pending", "ready", "unavailable"]}, "analysis": {"type": "string", "maxLength": 1200}}}}
+    "schema_version": {
+      "const": "a-rolling-energy-v3"
+    },
+    "mode": {
+      "enum": [
+        "demo",
+        "live"
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "freshness": {
+      "enum": [
+        "fresh",
+        "stale",
+        "unknown"
+      ]
+    },
+    "stale_after_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 86400
+    },
+    "notice": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "reason"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "live",
+            "lkg"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        }
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_name",
+        "exchange",
+        "symbol"
+      ],
+      "properties": {
+        "instrument_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "exchange": {
+          "enum": [
+            "SSE",
+            "SZSE"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        }
+      }
+    },
+    "transmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "basis",
+        "current_cycle_code",
+        "stopped_at_code",
+        "started_at",
+        "lit_count",
+        "continuous_confirmed"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "observing",
+            "transmitting",
+            "stopped",
+            "complete",
+            "unknown"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "latest_buy_by_cycle",
+            "single_run"
+          ]
+        },
+        "current_cycle_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stopped_at_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "lit_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 34
+        },
+        "continuous_confirmed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "cycles": {
+      "type": "array",
+      "minItems": 34,
+      "maxItems": 34,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cycle_code",
+          "segment",
+          "timeframe_minutes",
+          "timeframe_label",
+          "buy_state",
+          "buy_triggered_at",
+          "source"
+        ],
+        "properties": {
+          "cycle_code": {
+            "type": "string",
+            "pattern": "^(PRE|[A-F][1-6]|G)$"
+          },
+          "segment": {
+            "enum": [
+              "预备",
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G"
+            ]
+          },
+          "timeframe_minutes": {
+            "type": "integer",
+            "minimum": 105,
+            "maximum": 480
+          },
+          "timeframe_label": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20
+          },
+          "buy_state": {
+            "enum": [
+              "BUY",
+              "STOPPED",
+              "INACTIVE",
+              "UNKNOWN"
+            ]
+          },
+          "buy_triggered_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "source": {
+            "enum": [
+              "DEMO_FIXTURE",
+              "UPSTREAM_PROJECTION",
+              "WEBHOOK_STATE"
+            ]
+          }
+        }
+      }
+    },
+    "sell_chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_type",
+        "window_description",
+        "warning_star",
+        "nodes"
+      ],
+      "properties": {
+        "window_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "window_description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "warning_star": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "timeframe_minutes",
+            "timeframe_label",
+            "sell_state",
+            "triggered_at"
+          ],
+          "properties": {
+            "code": {
+              "const": "★"
+            },
+            "timeframe_minutes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 240
+            },
+            "timeframe_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 30
+            },
+            "sell_state": {
+              "enum": [
+                "SELL",
+                "INACTIVE"
+              ]
+            },
+            "triggered_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "timeframe_minutes",
+              "timeframe_label",
+              "sell_state",
+              "triggered_at"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "Ⅰ",
+                  "Ⅱ",
+                  "Ⅲ",
+                  "Ⅳ",
+                  "Ⅴ"
+                ]
+              },
+              "timeframe_minutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 240
+              },
+              "timeframe_label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 30
+              },
+              "sell_state": {
+                "enum": [
+                  "SELL",
+                  "OBSERVING",
+                  "INACTIVE"
+                ]
+              },
+              "triggered_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sell_alerts": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "alert_id",
+          "cycle_code",
+          "timeframe_minutes",
+          "triggered_at",
+          "transmission_position",
+          "remaining_session_minutes",
+          "analysis_state",
+          "analysis"
+        ],
+        "properties": {
+          "alert_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "cycle_code": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "timeframe_minutes": {
+            "type": "integer"
+          },
+          "triggered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "transmission_position": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "remaining_session_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240
+          },
+          "analysis_state": {
+            "enum": [
+              "pending",
+              "ready",
+              "unavailable"
+            ]
+          },
+          "analysis": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        }
+      }
+    }
   }
 }

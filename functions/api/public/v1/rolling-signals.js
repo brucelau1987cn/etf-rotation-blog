@@ -25,14 +25,13 @@ const readJsonResponse = async response => {
   return JSON.parse(text);
 };
 
-const fetchWithTimeout = async (url, timeoutMs) => {
+const fetchWithTimeout = async (url, timeoutMs, request) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
-      headers: { accept: 'application/json', 'user-agent': 'ETF-Rolling-Public/1.0' },
-      signal: controller.signal,
-    });
+    return await fetch(new Request(url, {
+      headers: { accept: 'application/json', 'user-agent': 'ETF-Rolling-Public/1.0' }
+    }), { signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -70,7 +69,9 @@ export async function handleRollingSignals(request, env = {}) {
       Math.max(Number(env.A_ROLLING_STALE_AFTER_SECONDS) || DEFAULT_STALE_AFTER_SECONDS, 60),
       86400,
     );
-    const upstream = await readJsonResponse(await fetchWithTimeout(parsed, timeoutMs));
+    const upstreamRes = await fetchWithTimeout(parsed, timeoutMs);
+    if (!upstreamRes.ok) throw new Error(`upstream returned HTTP ${upstreamRes.status}`);
+    const upstream = await readJsonResponse(upstreamRes);
     return json(projectUpstream(upstream, new Date().toISOString(), staleAfterSeconds));
   } catch (error) {
     return json(asLkg(lkg, publicReason(error)));

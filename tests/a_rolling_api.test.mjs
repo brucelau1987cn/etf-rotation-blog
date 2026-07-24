@@ -11,7 +11,8 @@ const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signal
 const assets = { fetch: async () => new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } }) };
 const upstream = () => ({
   generated_at: '2026-07-23T04:00:00Z', data_as_of: '2026-07-23T03:59:00Z', private_note: 'hidden', instrument: fixture.instrument,
-  cycles: fixture.cycles.map((row, index) => ({ cycle_code: row.cycle_code, timeframe_minutes: row.timeframe_minutes, buy_state: 'BUY', buy_triggered_at: '2026-07-23T01:30:00Z', internal_id: index })), sell_alerts: [],
+  cycles: fixture.cycles.map((row, index) => ({ cycle_code: row.cycle_code, timeframe_minutes: row.timeframe_minutes, buy_state: 'BUY', buy_triggered_at: '2026-07-23T01:30:00Z', internal_id: index })),
+  sell_chain: fixture.sell_chain, sell_alerts: [],
 });
 const withFetch = async (implementation, fn) => { const previous = globalThis.fetch; globalThis.fetch = implementation; try { await fn(); } finally { globalThis.fetch = previous; } };
 
@@ -19,7 +20,7 @@ test('unconfigured upstream returns validated 34-cycle LKG', async () => {
   const response = await handleRollingSignals(request, { ASSETS: assets });
   const body = await response.json();
   assert.equal(response.status, 200); assert.equal(response.headers.get('x-rolling-delivery'), 'lkg');
-  assert.equal(body.schema_version, 'a-rolling-energy-v2'); assert.equal(body.delivery.state, 'lkg'); assert.equal(body.cycles.length, 34);
+  assert.equal(body.schema_version, 'a-rolling-energy-v3'); assert.equal(body.delivery.state, 'lkg'); assert.equal(body.cycles.length, 34);
 });
 
 test('valid upstream is strictly projected as a continuous single run', async () => {

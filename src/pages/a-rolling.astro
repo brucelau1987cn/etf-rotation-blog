@@ -292,6 +292,8 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
       
       /* 左侧固定标的列 */
       .stock-sticky {
+        position: sticky;
+        left: 0;
         width: 130px;
         background: #ffffff;
         border-right: 1px solid #cbd5e1;
@@ -301,7 +303,8 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
         align-items: center;
         padding: 1rem 0.5rem;
         flex-shrink: 0;
-        z-index: 2;
+        z-index: 10;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.04);
       }
       .stock-name-title {
         font-size: 1.2rem;
@@ -564,7 +567,7 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
               <div class="axis-row buy-axis">
                 <div class="axis-label buy-label">多方力量</div>
                 <div class="cells-scroll" id="buy-cells-container">
-                  {payload.buy_cycles.map((cycle) => (
+                  {(payload.cycles || payload.buy_cycles).map((cycle) => (
                     <div class={`cell-badge buy-${cycle.buy_state.toLowerCase()}`} data-buy-code={cycle.cycle_code}>
                       <div class="badge-code">{cycle.cycle_code}</div>
                       <div class="badge-time">
@@ -683,45 +686,77 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             });
           }
 
-          // 4. 更新空头卖出节点
-          if (data.sell_chain && Array.isArray(data.sell_chain.nodes)) {
-            data.sell_chain.nodes.forEach(node => {
-              const el = document.querySelector(`[data-sell-code="${node.code}"]`);
+          // 3. 更新多头买入节点
+          const cycles = Array.isArray(data.cycles) ? data.cycles : data.buy_cycles;
+          if (Array.isArray(cycles)) {
+            cycles.forEach(cycle => {
+              const el = document.querySelector(`[data-buy-code="${cycle.cycle_code}"]`);
               if (el) {
-                el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
+                el.className = `cell-badge buy-${(cycle.buy_state || 'inactive').toLowerCase()}`;
                 const timeEl = el.querySelector('.badge-time');
                 if (timeEl) {
-                  timeEl.textContent = node.sell_state === 'SELL'
-                    ? formatTime(node.triggered_at, false)
-                    : node.sell_state === 'OBSERVING' ? '观察中' : '未激活';
+                  timeEl.textContent = cycle.buy_state === 'BUY'
+                    ? formatTime(cycle.buy_triggered_at, false)
+                    : cycle.buy_state === 'STOPPED' ? '未确认' : '未激活';
                 }
               }
             });
           }
 
-          // 5. 更新 AI 分析卡片
+          // 5. 安全更新 AI 分析卡片 (使用 DOM 构建防御 XSS)
           if (Array.isArray(data.sell_alerts)) {
             const container = document.getElementById('ai-alerts-container');
             if (container) {
+              container.replaceChildren();
               if (data.sell_alerts.length === 0) {
-                container.innerHTML = `<div style="color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;">当前多头传导有序，暂无空方卖出预警。</div>`;
+                const empty = document.createElement('div');
+                empty.style.cssText = 'color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;';
+                empty.textContent = '当前多头传导有序，暂无空方卖出预警。';
+                container.appendChild(empty);
               } else {
-                container.innerHTML = data.sell_alerts.map(alert => `
-                  <div class="ai-alert-box">
-                    <div class="ai-alert-meta">
-                      <span>触发节点：<strong>${alert.cycle_code} (${alert.timeframe_minutes}分钟)</strong></span>
-                      <span>多头极限位置：<strong>${alert.transmission_position}</strong></span>
-                      <span>今日剩余交易时间：<strong>${alert.remaining_session_minutes}分钟</strong></span>
-                    </div>
-                    <p class="ai-alert-text">${alert.analysis}</p>
-                  </div>
-                `).join('');
+                data.sell_alerts.forEach(alert => {
+                  const box = document.createElement('div');
+                  box.className = 'ai-alert-box';
+
+                  const meta = document.createElement('div');
+                  meta.className = 'ai-alert-meta';
+
+                  const span1 = document.createElement('span');
+                  span1.textContent = '触发节点：';
+                  const s1 = document.createElement('strong');
+                  s1.textContent = `${alert.cycle_code} (${alert.timeframe_minutes}分钟)`;
+                  span1.appendChild(s1);
+
+                  const span2 = document.createElement('span');
+                  span2.textContent = '多头极限位置：';
+                  const s2 = document.createElement('strong');
+                  s2.textContent = alert.transmission_position || '—';
+                  span2.appendChild(s2);
+
+                  const span3 = document.createElement('span');
+                  span3.textContent = '今日剩余交易时间：';
+                  const s3 = document.createElement('strong');
+                  s3.textContent = `${alert.remaining_session_minutes}分钟`;
+                  span3.appendChild(s3);
+
+                  meta.append(span1, span2, span3);
+
+                  const p = document.createElement('p');
+                  p.className = 'ai-alert-text';
+                  p.textContent = alert.analysis;
+
+                  box.append(meta, p);
+                  container.appendChild(box);
+                });
               }
             }
           }
         };
 
+        let inFlight = false;
         const fetchLatestSignals = async () => {
+          if (inFlight || document.hidden) return;
+          inFlight = true;
           try {
             const res = await fetch('/api/public/v1/rolling-signals');
             if (!res.ok) return;
@@ -729,13 +764,15 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             updateUI(data);
           } catch (e) {
             // 静默失败，保持 DOM 现状
+          } finally {
+            inFlight = false;
           }
         };
 
-        // 页面打开后立即拉取一次最新信号，之后每 15 秒轮询更新一次
+        // 页面打开后 1 秒刷新，之后每 30 秒轮询更新（标签页隐藏时自动暂停）
         setTimeout(fetchLatestSignals, 1000);
-        setInterval(fetchLatestSignals, 15000);
-      })();
+        setInterval(fetchLatestSignals, 30000);
+
     </script>
   </body>
 </html>

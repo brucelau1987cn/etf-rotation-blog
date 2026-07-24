@@ -26,37 +26,43 @@ def upstream_payload() -> dict:
             {
                 "cycle_code": row["cycle_code"],
                 "timeframe_minutes": row["timeframe_minutes"],
-                "buy_state": row["buy_state"],
+                "buy_state": "BUY",
                 "buy_triggered_at": "2026-07-23T01:30:00Z",
                 "internal_id": index,
             }
             for index, row in enumerate(fixture["cycles"])
         ],
+        "sell_chain": fixture["sell_chain"],
         "sell_alerts": [],
     }
 
 
-def test_committed_lkg_passes_v2_schema_and_canonical_sequence():
+def test_committed_lkg_passes_v3_schema_and_canonical_sequence():
     payload = json.loads(LKG.read_text(encoding="utf-8"))
     assert validate_public_payload(payload, SCHEMA) == payload
-    assert payload["schema_version"] == "a-rolling-energy-v2"
+    assert payload["schema_version"] == "a-rolling-energy-v3"
     assert len(payload["cycles"]) == 34
     assert [(row["cycle_code"], row["segment"], row["timeframe_minutes"]) for row in payload["cycles"]] == list(CYCLES)
     assert payload["cycles"][22]["cycle_code"] == "E2"
     assert payload["cycles"][22]["timeframe_minutes"] == 370
-    assert payload["transmission"]["basis"] == "latest_buy_by_cycle"
-    assert payload["transmission"]["continuous_confirmed"] is False
-    assert payload["sell_alerts"] == []
+    assert payload["transmission"]["basis"] == "single_run"
+    assert payload["transmission"]["continuous_confirmed"] is True
+    assert payload["transmission"]["stopped_at_code"] == "D5"
+    assert payload["sell_chain"]["warning_star"]["code"] == "★"
+    assert [row["code"] for row in payload["sell_chain"]["nodes"]] == ["Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ"]
 
 
 def test_projection_allowlists_fields_and_builds_single_run_transmission():
     result = project_upstream(upstream_payload(), generated_at="2026-07-23T04:00:00Z")
+    assert result["schema_version"] == "a-rolling-energy-v3"
     assert result["mode"] == "live"
     assert result["freshness"] == "fresh"
     assert result["delivery"] == {"state": "live", "reason": None}
     assert result["transmission"]["basis"] == "single_run"
     assert result["transmission"]["continuous_confirmed"] is True
     assert result["transmission"]["current_cycle_code"] == "G"
+    assert result["transmission"]["stopped_at_code"] is None
+    assert result["sell_chain"]["warning_star"]["code"] == "★"
     assert all(row["source"] == "UPSTREAM_PROJECTION" for row in result["cycles"])
     assert "private_note" not in result
     assert "internal_id" not in result["cycles"][0]
