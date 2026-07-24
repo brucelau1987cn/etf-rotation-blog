@@ -1,36 +1,7 @@
-export const BUY_TIME_CYCLES = [
-  { code: '2', hours: 2, label: '2小时' },
-  { code: '2.5', hours: 2.5, label: '2.5小时' },
-  { code: '3', hours: 3, label: '3小时' },
-  { code: '3.5', hours: 3.5, label: '3.5小时' },
-  { code: '4', hours: 4, label: '4小时' },
-  { code: '4.5', hours: 4.5, label: '4.5小时' },
-  { code: '5', hours: 5, label: '5小时' },
-  { code: '5.5', hours: 5.5, label: '5.5小时' },
-  { code: '6', hours: 6, label: '6小时' },
-  { code: '6.5', hours: 6.5, label: '6.5小时' },
-  { code: '7', hours: 7, label: '7小时' },
-  { code: '7.5', hours: 7.5, label: '7.5小时' },
-  { code: '8', hours: 8, label: '8小时' }
-];
-
-export const SELL_MINUTE_CYCLES = [
-  { code: '10m', minutes: 10, label: '10分钟' },
-  { code: '30m', minutes: 30, label: '30分钟' },
-  { code: '60m', minutes: 60, label: '60分钟' },
-  { code: '90m', minutes: 90, label: '90分钟' },
-  { code: '120m', minutes: 120, label: '120分钟' },
-  { code: '150m', minutes: 150, label: '150分钟' },
-  { code: '180m', minutes: 180, label: '180分钟' },
-  { code: '210m', minutes: 210, label: '210分钟' },
-  { code: '240m', minutes: 240, label: '240分钟' }
-];
-
 export function validatePublicPayload(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('payload must be an object');
   if (payload.schema_version !== 'a-rolling-energy-v4') throw new Error('unsupported schema_version');
-  if (!Array.isArray(payload.cycles)) throw new Error('cycles must be an array');
-  if (!payload.sell_chain || typeof payload.sell_chain !== 'object') throw new Error('sell_chain must be an object');
+  if (!Array.isArray(payload.timeline)) throw new Error('timeline must be an array');
   if (!payload.transmission || typeof payload.transmission !== 'object') throw new Error('transmission must be an object');
   return payload;
 }
@@ -38,36 +9,52 @@ export function validatePublicPayload(payload) {
 export function projectUpstream(upstream, generatedAt = new Date().toISOString(), staleAfterSeconds = 900) {
   if (!upstream || typeof upstream !== 'object') throw new Error('upstream must be an object');
 
-  // 多方买入节点按需投影：有信号则显示，无信号不占位
-  const rawCycles = Array.isArray(upstream.cycles) ? upstream.cycles : [];
-  const cycles = rawCycles
-    .filter(c => c && c.buy_state === 'BUY')
-    .map(c => ({
-      cycle_code: String(c.cycle_code || c.code),
-      hours: parseFloat(c.hours) || parseFloat(c.cycle_code) || 0,
-      buy_state: 'BUY',
-      buy_triggered_at: c.buy_triggered_at || c.triggered_at || generatedAt,
-      label: c.label || `${c.cycle_code}小时`
-    }));
+  // 支持通用按接收时间平铺的时序序列 (timeline)
+  let rawTimeline = Array.isArray(upstream.timeline) ? upstream.timeline : [];
+  
+  if (rawTimeline.length === 0) {
+    // 从旧结构降级聚合为统一 timeline 顺序
+    const rawCycles = Array.isArray(upstream.cycles) ? upstream.cycles : [];
+    const rawSellNodes = Array.isArray(upstream.sell_chain?.nodes) ? upstream.sell_chain.nodes : [];
 
-  const litCount = cycles.length;
-  const currentCycleCode = litCount > 0 ? cycles[litCount - 1].cycle_code : null;
-  const startedAt = litCount > 0 ? cycles[0].buy_triggered_at : null;
-  const latestTriggeredAt = litCount > 0 ? cycles[litCount - 1].buy_triggered_at : null;
+    const buyItems = rawCycles
+      .filter(c => c && (c.buy_state === 'BUY' || c.state === 'BUY'))
+      .map(c => ({
+        type: 'BUY',
+        code: String(c.cycle_code || c.code),
+        triggered_at: c.buy_triggered_at || c.triggered_at || generatedAt,
+        label: c.label || `${c.cycle_code}h`
+      }));
 
-  // 空方卖出节点：必须在多方产生买入信号后才依次显示；无信号不占位
-  const rawSellNodes = Array.isArray(upstream.sell_chain?.nodes) ? upstream.sell_chain.nodes : [];
-  const sellNodes = litCount > 0 
-    ? rawSellNodes
-        .filter(n => n && (n.sell_state === 'SELL' || n.sell_state === 'OBSERVING'))
-        .map(n => ({
-          code: String(n.code || n.cycle_code),
-          timeframe_minutes: parseInt(n.timeframe_minutes, 10) || parseInt(n.code, 10) || 0,
-          sell_state: n.sell_state,
-          triggered_at: n.triggered_at || generatedAt,
-          label: n.label || `${n.code}分钟`
-        }))
-    : [];
+    // 只有存在多方信号时，空方信号才出现
+    const sellItems = buyItems.length > 0 
+      ? rawSellNodes
+          .filter(n => n && (n.sell_state === 'SELL' || n.sell_state === 'OBSERVING' || n.state === 'SELL'))
+          .map(n => ({
+            type: 'SELL',
+            code: String(n.code || n.cycle_code),
+            triggered_at: n.triggered_at || generatedAt,
+            label: n.label || `${n.code}m`
+          }))
+      : [];
+
+    rawTimeline = [...buyItems, ...sellItems];
+  }
+
+  // 按接收时间先后升序排列
+  const timeline = rawTimeline
+    .filter(item => item && (item.type === 'BUY' || item.type === 'SELL'))
+    .map(item => ({
+      type: item.type, // 'BUY' (多) 或 'SELL' (空)
+      code: String(item.code || item.cycle_code),
+      triggered_at: item.triggered_at || item.buy_triggered_at || generatedAt,
+      label: item.label || `${item.code}`
+    }))
+    .sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
+
+  const buyCount = timeline.filter(t => t.type === 'BUY').length;
+  const sellCount = timeline.filter(t => t.type === 'SELL').length;
+  const lastItem = timeline.length > 0 ? timeline[timeline.length - 1] : null;
 
   const payload = {
     schema_version: 'a-rolling-energy-v4',
@@ -76,20 +63,23 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
     data_as_of: upstream.data_as_of || generatedAt,
     freshness: 'fresh',
     stale_after_seconds: staleAfterSeconds,
-    notice: '按需点亮；无信号不占位；必须存在多方信号后方出空方信号。',
+    notice: '每个时间段独立一格，多空上下交替对齐，按实际接收信号时间排序。',
     delivery: { state: 'live', reason: null },
     instrument: upstream.instrument || { instrument_name: '上海电力', exchange: 'SSE', symbol: '600021' },
     transmission: {
-      state: litCount > 0 ? 'transmitting' : 'observing',
-      basis: 'dynamic_on_demand',
-      current_cycle_code: currentCycleCode,
-      started_at: startedAt,
-      latest_triggered_at: latestTriggeredAt,
-      lit_count: litCount
+      state: timeline.length > 0 ? 'transmitting' : 'observing',
+      basis: 'chronological_sequence',
+      current_cycle_code: lastItem ? lastItem.code : null,
+      started_at: timeline.length > 0 ? timeline[0].triggered_at : null,
+      latest_triggered_at: lastItem ? lastItem.triggered_at : null,
+      lit_count: timeline.length,
+      buy_count: buyCount,
+      sell_count: sellCount
     },
-    cycles,
+    timeline,
+    cycles: timeline.filter(t => t.type === 'BUY').map(t => ({ cycle_code: t.code, buy_state: 'BUY', buy_triggered_at: t.triggered_at, label: t.label })),
     sell_chain: {
-      nodes: sellNodes
+      nodes: timeline.filter(t => t.type === 'SELL').map(t => ({ code: t.code, sell_state: 'SELL', triggered_at: t.triggered_at, label: t.label }))
     },
     sell_alerts: upstream.sell_alerts || []
   };

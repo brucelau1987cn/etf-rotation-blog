@@ -575,56 +575,37 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             <!-- 右侧双行信号轴 -->
             <div class="signals-axis">
               
-              <!-- 上层：卖出信号链（绿，必须在最后一个多方买入信号之后排列占位/渲染） -->
+              <!-- 上层：空方力量（绿，按实际时间戳放置在专属列，未触发列透明隐形） -->
               <div class="axis-row sell-axis">
                 <div class="axis-label sell-label">空方力量</div>
                 <div class="cells-scroll" id="sell-cells-container">
-                  {payload.cycles.length > 0 ? (
-                    <>
-                      {Array.from({ length: Math.max(0, payload.cycles.length - 1) }).map(() => (
-                        <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
-                      ))}
-                      {payload.sell_chain.nodes.length > 0 ? (
-                        payload.sell_chain.nodes.map((node) => (
-                          <div class={`cell-badge sell-${node.sell_state.toLowerCase()}`} data-sell-code={node.code}>
-                            <div class="badge-code">{node.code}</div>
-                            <div class="badge-time">
-                              {formatTime(node.triggered_at, true, true)}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
-                          暂无空方卖出预警
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
-                      等待多方信号触发中...
-                    </div>
-                  )}
+                  {(payload.timeline || []).map((item) => (
+                    item.type === 'SELL' ? (
+                      <div class="cell-badge sell-sell" data-sell-code={item.code}>
+                        <div class="badge-code">{item.code}</div>
+                        <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
+                      </div>
+                    ) : (
+                      <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
+                    )
+                  ))}
                 </div>
               </div>
 
-              <!-- 下层：买入信号链（红，按需渲染有信号的节点，无信号不占位） -->
+              <!-- 下层：多方力量（红，按实际时间戳放置在专属列，未触发列透明隐形） -->
               <div class="axis-row buy-axis">
                 <div class="axis-label buy-label">多方力量</div>
                 <div class="cells-scroll" id="buy-cells-container">
-                  {payload.cycles.length > 0 ? (
-                    payload.cycles.map((cycle) => (
-                      <div class="cell-badge buy-buy" data-buy-code={cycle.cycle_code}>
-                        <div class="badge-code">{cycle.cycle_code}</div>
-                        <div class="badge-time">
-                          {formatTime(cycle.buy_triggered_at, true, true)}
-                        </div>
+                  {(payload.timeline || []).map((item) => (
+                    item.type === 'BUY' ? (
+                      <div class="cell-badge buy-buy" data-buy-code={item.code}>
+                        <div class="badge-code">{item.code}</div>
+                        <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
                       </div>
-                    ))
-                  ) : (
-                    <div style="font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;">
-                      观察中，暂无买入点亮节点
-                    </div>
-                  )}
+                    ) : (
+                      <div style="min-width: 82px; visibility: hidden; pointer-events: none;"></div>
+                    )
+                  ))}
                 </div>
               </div>
 
@@ -732,78 +713,77 @@ const pageDescription = 'A股滚动策略多空能量传导终端，以105分钟
             if (elSummary) elSummary.textContent = `${sellNodes.length} 个`;
           }
 
-          // 3. 更新多头买入节点与空头卖出节点（空信号排在多信号后面对齐，无信号不占位）
+          // 3. 更新多头买入节点与空头卖出节点（按接收信号时间升序统一排列，多空上下独占一格，不重叠）
           const buyContainer = document.getElementById('buy-cells-container');
           const sellContainer = document.getElementById('sell-cells-container');
-          const cycles = Array.isArray(data.cycles) ? data.cycles : [];
-          const sellNodes = Array.isArray(data.sell_chain?.nodes) ? data.sell_chain.nodes : [];
+          const rawTimeline = Array.isArray(data.timeline) ? data.timeline : [];
 
-          if (buyContainer) {
-            buyContainer.replaceChildren();
-            if (cycles.length === 0) {
-              const empty = document.createElement('div');
-              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
-              empty.textContent = '观察中，暂无买入点亮节点';
-              buyContainer.appendChild(empty);
-            } else {
-              cycles.forEach(cycle => {
-                const el = document.createElement('div');
-                el.className = 'cell-badge buy-buy';
-                el.dataset.buyCode = cycle.cycle_code;
-
-                const codeEl = document.createElement('div');
-                codeEl.className = 'badge-code';
-                codeEl.textContent = cycle.cycle_code;
-
-                const timeEl = document.createElement('div');
-                timeEl.className = 'badge-time';
-                timeEl.textContent = formatTime(cycle.buy_triggered_at, true, true);
-
-                el.append(codeEl, timeEl);
-                buyContainer.appendChild(el);
-              });
-            }
+          // 若数据中未提供 timeline，按接收时间从 cycles 和 sell_chain 自动归并
+          let timeline = rawTimeline;
+          if (timeline.length === 0) {
+            const buyItems = (data.cycles || []).map(c => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at }));
+            const sellItems = (data.sell_chain?.nodes || []).map(n => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at }));
+            timeline = [...buyItems, ...sellItems].sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
           }
 
-          if (sellContainer) {
+          if (buyContainer && sellContainer) {
+            buyContainer.replaceChildren();
             sellContainer.replaceChildren();
-            if (cycles.length === 0) {
-              const empty = document.createElement('div');
-              empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
-              empty.textContent = '等待多方信号触发中...';
-              sellContainer.appendChild(empty);
-            } else {
-              // 关键对齐修改：前 cycles.length - 1 个位置填充与下方多方节点宽同高的透明占位块
-              const offsetCount = Math.max(0, cycles.length - 1);
-              for (let i = 0; i < offsetCount; i++) {
-                const spacer = document.createElement('div');
-                spacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
-                sellContainer.appendChild(spacer);
-              }
 
-              if (sellNodes.length === 0) {
-                const empty = document.createElement('div');
-                empty.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
-                empty.textContent = '暂无空方卖出预警';
-                sellContainer.appendChild(empty);
-              } else {
-                sellNodes.forEach(node => {
-                  const el = document.createElement('div');
-                  el.className = `cell-badge sell-${(node.sell_state || 'inactive').toLowerCase()}`;
-                  el.dataset.sellCode = node.code;
+            if (timeline.length === 0) {
+              const emptyBuy = document.createElement('div');
+              emptyBuy.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+              emptyBuy.textContent = '观察中，暂无买入点亮节点';
+              buyContainer.appendChild(emptyBuy);
+
+              const emptySell = document.createElement('div');
+              emptySell.style.cssText = 'font-size: 0.8rem; color: #94a3b8; padding: 0.6rem 0.5rem; display: flex; align-items: center;';
+              emptySell.textContent = '等待多方信号触发中...';
+              sellContainer.appendChild(emptySell);
+            } else {
+              timeline.forEach(item => {
+                if (item.type === 'BUY') {
+                  // 多方节点渲染在下层，上层放置透明占位
+                  const buyBadge = document.createElement('div');
+                  buyBadge.className = 'cell-badge buy-buy';
+                  buyBadge.dataset.buyCode = item.code;
 
                   const codeEl = document.createElement('div');
                   codeEl.className = 'badge-code';
-                  codeEl.textContent = node.code;
+                  codeEl.textContent = item.code;
 
                   const timeEl = document.createElement('div');
                   timeEl.className = 'badge-time';
-                  timeEl.textContent = formatTime(node.triggered_at, true, true);
+                  timeEl.textContent = formatTime(item.triggered_at, true, true);
 
-                  el.append(codeEl, timeEl);
-                  sellContainer.appendChild(el);
-                });
-              }
+                  buyBadge.append(codeEl, timeEl);
+                  buyContainer.appendChild(buyBadge);
+
+                  const sellSpacer = document.createElement('div');
+                  sellSpacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
+                  sellContainer.appendChild(sellSpacer);
+                } else if (item.type === 'SELL') {
+                  // 空方节点渲染在上层，下层放置透明占位
+                  const sellBadge = document.createElement('div');
+                  sellBadge.className = `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
+                  sellBadge.dataset.sellCode = item.code;
+
+                  const codeEl = document.createElement('div');
+                  codeEl.className = 'badge-code';
+                  codeEl.textContent = item.code;
+
+                  const timeEl = document.createElement('div');
+                  timeEl.className = 'badge-time';
+                  timeEl.textContent = formatTime(item.triggered_at, true, true);
+
+                  sellBadge.append(codeEl, timeEl);
+                  sellContainer.appendChild(sellBadge);
+
+                  const buySpacer = document.createElement('div');
+                  buySpacer.style.cssText = 'min-width: 82px; visibility: hidden; pointer-events: none;';
+                  buyContainer.appendChild(buySpacer);
+                }
+              });
             }
           }
 

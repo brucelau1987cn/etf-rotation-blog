@@ -5,7 +5,7 @@
   "data_as_of": "2026-07-24T12:00:00Z",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "按需点亮；无信号不占位；必须存在多方信号后方出空方信号。",
+  "notice": "每个时间段独立一格，多空上下交替对齐，按实际接收信号时间排序。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -17,26 +17,40 @@
   },
   "transmission": {
     "state": "transmitting",
-    "basis": "dynamic_on_demand",
-    "current_cycle_code": "5.5h",
+    "basis": "chronological_sequence",
+    "current_cycle_code": "30m",
     "started_at": "2026-07-24T09:30:00+08:00",
-    "latest_triggered_at": "2026-07-24T11:43:39+08:00",
-    "lit_count": 8
+    "latest_triggered_at": "2026-07-24T11:50:00+08:00",
+    "lit_count": 10,
+    "buy_count": 8,
+    "sell_count": 2
   },
+  "timeline": [
+    { "type": "BUY", "code": "2h", "triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
+    { "type": "BUY", "code": "2.5h", "triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
+    { "type": "BUY", "code": "3h", "triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
+    { "type": "BUY", "code": "3.5h", "triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
+    { "type": "BUY", "code": "4h", "triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
+    { "type": "BUY", "code": "4.5h", "triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
+    { "type": "BUY", "code": "5h", "triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
+    { "type": "BUY", "code": "5.5h", "triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" },
+    { "type": "SELL", "code": "10m", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
+    { "type": "SELL", "code": "30m", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
+  ],
   "cycles": [
-    { "cycle_code": "2h", "hours": 2, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
-    { "cycle_code": "2.5h", "hours": 2.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
-    { "cycle_code": "3h", "hours": 3, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
-    { "cycle_code": "3.5h", "hours": 3.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
-    { "cycle_code": "4h", "hours": 4, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
-    { "cycle_code": "4.5h", "hours": 4.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
-    { "cycle_code": "5h", "hours": 5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
-    { "cycle_code": "5.5h", "hours": 5.5, "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" }
+    { "cycle_code": "2h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:30:00+08:00", "label": "2小时" },
+    { "cycle_code": "2.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T09:45:00+08:00", "label": "2.5小时" },
+    { "cycle_code": "3h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:00:00+08:00", "label": "3小时" },
+    { "cycle_code": "3.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:15:00+08:00", "label": "3.5小时" },
+    { "cycle_code": "4h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:30:00+08:00", "label": "4小时" },
+    { "cycle_code": "4.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T10:45:00+08:00", "label": "4.5小时" },
+    { "cycle_code": "5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:15:00+08:00", "label": "5小时" },
+    { "cycle_code": "5.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-24T11:43:39+08:00", "label": "5.5小时" }
   ],
   "sell_chain": {
     "nodes": [
-      { "code": "10m", "timeframe_minutes": 10, "sell_state": "SELL", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
-      { "code": "30m", "timeframe_minutes": 30, "sell_state": "OBSERVING", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
+      { "code": "10m", "sell_state": "SELL", "triggered_at": "2026-07-24T11:45:00+08:00", "label": "10分钟" },
+      { "code": "30m", "sell_state": "SELL", "triggered_at": "2026-07-24T11:50:00+08:00", "label": "30分钟" }
     ]
   },
   "sell_alerts": [
