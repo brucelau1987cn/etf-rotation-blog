@@ -9,13 +9,21 @@ BASE_URL="${BASE_URL:-https://etf.peekabo.cc}"
 TS="$(date +%s)"
 fail=0
 
+fetch() {
+  local url="$1"
+  curl -fsSL \
+    -H 'Cache-Control: no-cache' \
+    -H 'Pragma: no-cache' \
+    -H 'User-Agent: HermesPagesProbe/1.0' \
+    "$url"
+}
+
 check_page() {
   local path="$1"
   shift
   local url="${BASE_URL}${path}?t=${TS}"
   local html
-  # Follow redirects and disable intermediary caches where possible.
-  html="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "$url")"
+  html="$(fetch "$url")"
   echo "== ${url}"
   for marker in "$@"; do
     if printf '%s' "$html" | grep -Fq "$marker"; then
@@ -27,28 +35,47 @@ check_page() {
   done
 }
 
+check_asset() {
+  local path="$1"
+  local url="${BASE_URL}${path}?t=${TS}"
+  local body
+  body="$(fetch "$url")"
+  echo "== asset ${url}"
+  if printf '%s' "$body" | grep -Fq "$2"; then
+    echo "  OK  asset contains: $2"
+  else
+    echo "  FAIL asset missing: $2"
+    fail=1
+  fi
+}
+
+# Shared browser assets (source of truth for adapter / poll helper)
+check_asset "/js/normalize-quote-payload.js" "EtfQuote"
+check_asset "/js/etf-live-poll.js" "startLivePoll"
+
+# Page HTML only needs to reference the shared scripts + page-specific hooks.
 check_page "/a-rolling/" \
-  "normalize-quote-payload.js" \
-  "EtfQuote" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
   "/api/public/v1/quote"
 
 check_page "/a-compass/" \
-  "normalize-quote-payload.js" \
-  "EtfQuote" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
   "/api/public/v1/quote"
 
 check_page "/" \
-  "normalize-quote-payload.js" \
-  "EtfQuote"
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js"
 
 check_page "/a-momentum/" \
-  "normalize-quote-payload.js" \
-  "EtfQuote" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
   "/api/public/v1/quote"
 
 check_page "/futures-compass/" \
-  "normalize-quote-payload.js" \
-  "EtfQuote" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
   "nf_AU0" \
   "/data/futures-compass.json"
 
@@ -57,7 +84,7 @@ check_page "/us-compass/" \
   "us-live-status" \
   "data-us-live-card"
 
-quote_json="$(curl -fsSL "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}")"
+quote_json="$(fetch "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}")"
 if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
   echo "OK  quote API status=ok"
 else
