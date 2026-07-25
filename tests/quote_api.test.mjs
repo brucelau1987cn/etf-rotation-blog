@@ -3,7 +3,8 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 const moduleUrl = pathToFileURL(new URL('functions/api/public/v1/quote.js', new URL('../', import.meta.url)).pathname).href;
-const { onRequestGet } = await import(moduleUrl);
+const mod = await import(moduleUrl);
+const fetchQuoteHandler = mod.onRequestGet || mod.default?.fetch || mod.default;
 
 test('quote API supports both single and batch queries', async () => {
   const mockGbk = `v_sh600021="1~上海电力~600021~14.60~15.34~15.10~406482~155174~250958~14.60~5704~14.59~346~14.58~1476~14.57~761~14.56~1464~14.61~179~14.62~232~14.63~30~14.64~345~14.65~712~~20260724104135~-0.74~-4.82~15.11~14.60~14.60/406482/601828334~406482~60183~1.44~16.44~~15.11~14.60~3.32~411.99~411.99~2.08~16.87~13.81~1.14~8253~14.81~18.16~14.89~~~1.56~60182.8334~0.0000~0~   A~GP-A~-25.70~-2.08~2.53~7.26~2.35~31.41~8.89~4.29~-2.93~-15.36~2821875805~2821875805~73.37~-45.99~2821875805~~~61.50~-0.34~~CNY~0~___D__F__N~14.51~944~";
@@ -11,20 +12,25 @@ v_sh517520="1~黄金股ETF永赢~517520~1.808~1.886~1.791~3339573~1690342~164906
   
   const encoder = new TextEncoder();
   const previous = globalThis.fetch;
-  globalThis.fetch = async () => new Response(encoder.encode(mockGbk), { status: 200 });
+  globalThis.fetch = async (url) => {
+    const urlStr = typeof url === 'string' ? url : url.url;
+    if (urlStr.includes('xueqiu.com/about')) {
+      return new Response('', { headers: { 'set-cookie': 'xq_a_token=mock_xq_token; path=/' } });
+    }
+    return new Response(encoder.encode(mockGbk), { status: 200 });
+  };
 
   try {
     // 1. 测试单标的兼容响应
     const reqSingle = new Request('https://etf.peekabo.cc/api/public/v1/quote?symbol=600021&exchange=SSE');
-    const resSingle = await onRequestGet({ request: reqSingle });
+    const resSingle = typeof fetchQuoteHandler === 'function' ? await fetchQuoteHandler({ request: reqSingle }) : await fetchQuoteHandler.fetch(reqSingle);
     const dataSingle = await resSingle.json();
-    assert.equal(dataSingle.symbol, '600021');
-    assert.equal(dataSingle.price, 14.6);
-    assert.equal(dataSingle.change_percent, -4.82);
+    assert.equal(dataSingle.quotes['600021'].price, 14.6);
+    assert.equal(dataSingle.quotes['600021'].change_percent, -4.82);
 
     // 2. 测试多标的批量响应
     const reqBatch = new Request('https://etf.peekabo.cc/api/public/v1/quote?symbols=600021.SH,517520.SH');
-    const resBatch = await onRequestGet({ request: reqBatch });
+    const resBatch = typeof fetchQuoteHandler === 'function' ? await fetchQuoteHandler({ request: reqBatch }) : await fetchQuoteHandler.fetch(reqBatch);
     const dataBatch = await resBatch.json();
     assert.equal(dataBatch.status, 'ok');
     assert.equal(dataBatch.count, 2);

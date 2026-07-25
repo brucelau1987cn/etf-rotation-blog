@@ -360,30 +360,34 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   throw new Error('All upstream quote sources (Tencent, Sina, Xueqiu) failed');
 }
 
+export async function onRequestGet({ request }) {
+  const url = new URL(request.url);
+  const symbols = url.searchParams.get('symbols') || url.searchParams.get('symbol') || '600021';
+  const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
+
+  const headers = {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'public, max-age=5, s-maxage=5, stale-while-revalidate=15',
+    'x-content-type-options': 'nosniff',
+    'access-control-allow-origin': '*',
+  };
+
+  try {
+    const data = await fetchQuote(symbols, exchange);
+    return new Response(JSON.stringify(data), {
+      status: data.status === 'ok' ? 200 : 400,
+      headers,
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ status: 'error', message: err.message || 'internal error' }), {
+      status: 500,
+      headers,
+    });
+  }
+}
+
 export default {
   async fetch(request) {
-    const url = new URL(request.url);
-    const symbols = url.searchParams.get('symbols') || url.searchParams.get('symbol') || '600021';
-    const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
-
-    const headers = {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'public, max-age=5, s-maxage=5, stale-while-revalidate=15',
-      'x-content-type-options': 'nosniff',
-      'access-control-allow-origin': '*',
-    };
-
-    try {
-      const data = await fetchQuote(symbols, exchange);
-      return new Response(JSON.stringify(data), {
-        status: data.status === 'ok' ? 200 : 400,
-        headers,
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ status: 'error', message: err.message || 'internal error' }), {
-        status: 500,
-        headers,
-      });
-    }
+    return onRequestGet({ request });
   },
 };
