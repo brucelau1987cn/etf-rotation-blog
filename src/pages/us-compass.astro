@@ -346,7 +346,7 @@ const countTone = (section: { key: string; tone: string }) => {
     </main>
     <Footer />
     <script is:inline>
-      const US_LIVE_URL = 'https://etf-live.peekabo.cc/api/us-etf-garden/live';
+      const US_LIVE_URL = '/api/public/v1/quote';
       const usLiveStatus = document.getElementById('us-live-status');
       const usLiveCards = [...document.querySelectorAll('[data-us-live-card]')];
       let usLiveLoading = false;
