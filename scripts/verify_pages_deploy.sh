@@ -14,7 +14,8 @@ check_page() {
   shift
   local url="${BASE_URL}${path}?t=${TS}"
   local html
-  html="$(curl -fsSL "$url")"
+  # Follow redirects and disable intermediary caches where possible.
+  html="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "$url")"
   echo "== ${url}"
   for marker in "$@"; do
     if printf '%s' "$html" | grep -Fq "$marker"; then
