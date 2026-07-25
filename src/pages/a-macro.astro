@@ -5,6 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
+import AShareMetaPills from '../components/AShareMetaPills.astro';
 
 const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-share-mid-macro.json'), 'utf-8'));
 const constraint = data.constraint || {};
@@ -86,13 +87,15 @@ const levelCopy = [
           <h1 id="page-title">A股宏观雷达</h1>
           <p>从流动性、信用、增长、通胀、汇率和市场资金六个维度观察A股环境。日度风险闸门采用三项及时代理，月度与季度事实数据作为背景层单独披露。</p>
         </div>
-        <div class="meta-line" aria-label="数据元信息">
-          <span class="pill pill-amber">适用：{applyDate}</span>
-          <span class="pill">截止：{updatedAt}</span>
-          <span class="pill">市场：A股 · {timezoneLabel}</span>
-          <span class="pill">{modelVersion}</span>
-          <span class="pill live-pill" role="status" aria-live="polite">日度闸门 {liveGateReady}/{liveGateCount || 3}</span>
-        </div>
+        <AShareMetaPills
+          applyDate={applyDate}
+          updatedAt={updatedAt}
+          extra={[
+            { text: `市场：A股 · ${timezoneLabel}` },
+            { text: modelVersion },
+            { text: `日度闸门 ${liveGateReady}/${liveGateCount || 3}`, class: 'live-pill' },
+          ]}
+        />
       </div>
       <section class="gate" aria-label="当前宏观风险闸门">
         <div><span class="gate-label"><i class="gate-dot"></i>当前风险闸门</span><h2>{constraint.label} · 逆风等级 {constraint.headwind_level}/3</h2><p>{constraint.equity_constraint}</p></div>

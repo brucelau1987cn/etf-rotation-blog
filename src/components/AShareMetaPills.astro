@@ -1,0 +1,27 @@
+---
+/**
+ * Shared A-share hero metadata pills.
+ * Keep markup minimal so pages control surrounding layout/CSS.
+ */
+const {
+  applyLabel = '适用',
+  applyDate = '',
+  updatedLabel = '截止',
+  updatedAt = '',
+  extra = [],
+  liveId = '',
+  liveText = '',
+  liveClass = 'live-pill',
+} = Astro.props;
+---
+<div class="meta-line" aria-label="数据元信息">
+  {applyDate && <span class="pill pill-amber">{applyLabel}：{applyDate}</span>}
+  {updatedAt && <span class="pill">{updatedLabel}：{updatedAt}</span>}
+  {extra.map((item) => (
+    <span class:list={['pill', item.class]}>{item.text}</span>
+  ))}
+  {liveId && (
+    <span class={liveClass} id={liveId} role="status" aria-live="polite">{liveText}</span>
+  )}
+  <slot />
+</div>

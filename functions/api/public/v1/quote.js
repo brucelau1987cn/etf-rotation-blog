@@ -116,6 +116,7 @@ async function fetchTencent(parsedList) {
         const name = parts[13] || secKey;
         const dateStr = parts[12] || '';
         const timeStr = parts[6] || '';
+        if (!(price > 0)) continue;
         const changePercent = prevClose ? parseFloat(((changeAmount / prevClose) * 100).toFixed(2)) : 0;
 
         quotes[secKey] = {
@@ -216,12 +217,52 @@ async function fetchSina(parsedList) {
   const lines = text.split('\n');
 
   for (const line of lines) {
-    const match = line.match(/hq_str_([a-zA-Z0-9_]+)="([^"]+)"/);
+    const match = line.match(/hq_str_([a-zA-Z0-9_]+)=\"([^\"]+)\"/);
     if (!match) continue;
 
     const secKey = match[1];
     const parts = match[2].split(',');
     if (parts.length < 8) continue;
+
+    // Domestic continuous futures: nf_AU0 / nf_SC0 ...
+    // Sina layout: name,time,open,high,low,...,buy,sell,last,...,prevSettle,...,date
+    if (secKey.startsWith('nf_') || secKey.startsWith('hf_')) {
+      const name = parts[0] || secKey;
+      const openPrice = parseFloat(parts[2]) || 0;
+      const highPrice = parseFloat(parts[3]) || 0;
+      const lowPrice = parseFloat(parts[4]) || 0;
+      // Prefer last trade; fall back to sell/buy when market is quiet.
+      const last = parseFloat(parts[8]) || parseFloat(parts[7]) || parseFloat(parts[6]) || 0;
+      const prevClose = parseFloat(parts[10]) || parseFloat(parts[5]) || 0;
+      const price = last || prevClose;
+      if (!(price > 0)) continue;
+      const changePercent = prevClose
+        ? parseFloat((((price - prevClose) / prevClose) * 100).toFixed(2))
+        : 0;
+      const dateStr = parts[17] || '';
+      const timeRaw = (parts[1] || '').padStart(6, '0');
+      const quoteTime = dateStr && timeRaw.length === 6
+        ? `${dateStr}T${timeRaw.slice(0, 2)}:${timeRaw.slice(2, 4)}:${timeRaw.slice(4, 6)}+08:00`
+        : new Date().toISOString();
+
+      quotes[secKey] = {
+        symbol: secKey,
+        sec_code: secKey,
+        name,
+        market: 'FUTURES',
+        price,
+        prev_close: prevClose,
+        open: openPrice,
+        high: highPrice,
+        low: lowPrice,
+        change_amount: parseFloat((price - prevClose).toFixed(3)),
+        change_percent: changePercent,
+        quote_time: quoteTime,
+        source: 'sina',
+        status: 'ok',
+      };
+      continue;
+    }
 
     const name = parts[0];
     let price = 0, openPrice = 0, prevClose = 0, highPrice = 0, lowPrice = 0, changePercent = 0, code = secKey;
@@ -242,7 +283,11 @@ async function fetchSina(parsedList) {
       lowPrice = parseFloat(parts[7]) || 0;
       prevClose = parseFloat(parts[26]) || 0;
       code = secKey.slice(3).toUpperCase();
+    } else {
+      continue;
     }
+
+    if (!(price > 0)) continue;
 
     quotes[code] = {
       symbol: code,
@@ -326,11 +371,12 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   if (rawItems.length === 0) return { status: 'error', message: 'no symbols provided' };
 
   const parsedList = rawItems.map(item => parseSymbol(item, defaultExchange)).filter(Boolean);
+  const hasValidPrice = (quotes) => Object.values(quotes || {}).some((q) => Number(q?.price) > 0);
 
   // 1. 尝试腾讯
   try {
     const quotes = await fetchTencent(parsedList);
-    if (Object.keys(quotes).length > 0) {
+    if (hasValidPrice(quotes)) {
       return { status: 'ok', source: 'tencent', count: Object.keys(quotes).length, quotes };
     }
   } catch (err) {
@@ -340,7 +386,7 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   // 2. 尝试新浪
   try {
     const quotes = await fetchSina(parsedList);
-    if (Object.keys(quotes).length > 0) {
+    if (hasValidPrice(quotes)) {
       return { status: 'ok', source: 'sina', count: Object.keys(quotes).length, quotes };
     }
   } catch (err) {
@@ -350,7 +396,7 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   // 3. 尝试雪球 (自动 Token)
   try {
     const quotes = await fetchXueqiu(parsedList);
-    if (Object.keys(quotes).length > 0) {
+    if (hasValidPrice(quotes)) {
       return { status: 'ok', source: 'xueqiu', count: Object.keys(quotes).length, quotes };
     }
   } catch (err) {
