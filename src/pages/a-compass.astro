@@ -457,7 +457,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
               const edgeData = await edgeRes.json();
               if (edgeData.status === 'ok' && edgeData.quotes) {
                 const items = Object.values(edgeData.quotes).map(q => ({
-                  code: q.symbol,
+                  code: String(q.symbol || '').split('.')[0],
                   price: q.price,
                   change_pct: q.change_percent,
                   source: 'Cloudflare-Edge-Quote',

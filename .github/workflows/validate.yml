@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Python tests
         run: python -m pytest -q
+      - name: Node tests
+        run: node --test tests/*.test.mjs
       - name: Validate dashboard payloads
         run: python scripts/validate_dashboard_batches.py
       - name: Build static site

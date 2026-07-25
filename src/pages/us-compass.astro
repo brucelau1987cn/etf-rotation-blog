@@ -345,10 +345,14 @@ const countTone = (section: { key: string; tone: string }) => {
       <details class="method card"><summary>如何理解趋势、风险与战术信号</summary><div class="rules"><p><strong>趋势强度</strong><br/>回答过去一段时间是否强势。</p><p><strong>交易风险</strong><br/>回答当前位置是否值得追入。</p><p><strong>行业广度</strong><br/>同类ETF共同走强才算扩散。</p><p><strong>执行纪律</strong><br/>退出与兑现优先于新增伏击。</p></div><p>{data.disclaimer} 历史表现不代表未来收益。</p><div class="links"><a href="/paper/">模拟盘</a><a href="/us-momentum/">趋势风控</a><a href="/us-compass/history/">历史成绩</a><a href="/a-compass/">A股ETF罗盘</a></div></details>
     </main>
     <Footer />
-    <script is:inline>
+    <script>
+      import { normalizeQuotePayload } from '../lib/normalizeQuotePayload.mjs';
+
       const US_LIVE_URL = '/api/public/v1/quote';
       const usLiveStatus = document.getElementById('us-live-status');
       const usLiveCards = [...document.querySelectorAll('[data-us-live-card]')];
+      const usLiveSymbols = [...new Set(usLiveCards.map((card) => card.dataset.symbol).filter(Boolean))];
+      const US_LIVE_BATCH_URL = `${US_LIVE_URL}?symbols=${encodeURIComponent(usLiveSymbols.join(','))}`;
       let usLiveLoading = false;
       const num = (value) => {
         if (value === null || value === undefined || value === '') return null;
@@ -498,9 +502,9 @@ const countTone = (section: { key: string; tone: string }) => {
         if (usLiveLoading || document.hidden) return;
         usLiveLoading = true;
         try {
-          const response = await fetch(US_LIVE_URL);
+          const response = await fetch(US_LIVE_BATCH_URL);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const payload = await response.json();
+          const payload = normalizeQuotePayload(await response.json());
           if (!payload.ok || !Array.isArray(payload.items)) throw new Error('行情格式异常');
           applyUsLive(payload);
         } catch (error) {
@@ -519,7 +523,7 @@ const countTone = (section: { key: string; tone: string }) => {
         try {
           const response = await fetch(`${US_LIVE_URL}?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`, { cache: 'no-store' });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const payload = await response.json();
+          const payload = normalizeQuotePayload(await response.json());
           if (!payload.ok || payload.count !== 1 || !Array.isArray(payload.items)) throw new Error('单股行情格式异常');
           applyUsLive(payload);
           const quote = payload.items[0];

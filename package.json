@@ -9,7 +9,7 @@
     "dev": "astro dev",
     "build": "python3 scripts/bootstrap_build_python.py && .build-venv/bin/python scripts/validate_dashboard_batches.py && .build-venv/bin/python scripts/generate_public_dashboard_payloads.py && .build-venv/bin/python scripts/generate_data_catalog.py && .build-venv/bin/python scripts/validate_public_data_contracts.py && astro build",
     "audit": "python3 scripts/audit_static_site.py",
-    "test": "python3 -m pytest -q",
+    "test": "python3 scripts/bootstrap_build_python.py && .build-venv/bin/python -m pytest -q && node --test tests/*.test.mjs",
     "check": "npm run test && npm run build && npm run audit",
     "preview": "astro preview",
     "astro": "astro"

@@ -666,8 +666,9 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
     <Footer />
 
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
-    <script is:inline>
-      (() => {
+    <script>
+      import { normalizeQuotePayload } from '../lib/normalizeQuotePayload.mjs';
+      (function() {
         const formatTime = (value, includeDate = true, includeSeconds = false) => {
           if (!value) return '—';
           const date = new Date(value);
@@ -861,18 +862,18 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
         };
 
         const updateQuoteUI = (quote) => {
-          if (!quote || quote.status !== 'ok' || typeof quote.price !== 'number') return;
+          const item = quote?.items?.[0] || quote?.quotes?.['600021'] || quote;
+          if (!item || typeof item.price !== 'number') return;
+          const changePct = typeof item.change_percent === 'number' ? item.change_percent : item.change_pct;
           const badge = document.getElementById('stock-quote-badge');
           const pill = document.getElementById('pill-stock-quote');
-          
-          const isUp = quote.change_percent > 0;
-          const isDown = quote.change_percent < 0;
+          const isUp = changePct > 0;
+          const isDown = changePct < 0;
           const color = isUp ? '#cf1322' : isDown ? '#389e0d' : '#475569';
           const bg = isUp ? '#fff1f0' : isDown ? '#f6ffed' : '#f1f5f9';
           const border = isUp ? '#ffa39e' : isDown ? '#b7eb8f' : '#cbd5e1';
-
           const sign = isUp ? '+' : '';
-          const text = `¥${quote.price.toFixed(2)} ${sign}${quote.change_percent.toFixed(2)}%`;
+          const text = `¥${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
 
           if (badge) {
             badge.textContent = text;
@@ -892,7 +893,7 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
           try {
             const res = await fetch('/api/public/v1/quote?symbol=600021&exchange=SSE');
             if (!res.ok) return;
-            const data = await res.json();
+            const data = normalizeQuotePayload(await res.json());
             updateQuoteUI(data);
           } catch (e) {
             // 静默失败
