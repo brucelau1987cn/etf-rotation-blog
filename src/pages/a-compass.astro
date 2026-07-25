@@ -6,6 +6,7 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
 import AShareMetaPills from '../components/AShareMetaPills.astro';
+import AShareSignalCard from '../components/AShareSignalCard.astro';
 import MarketClock from '../components/MarketClock.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
 import { SITE_TITLE } from '../consts';
@@ -131,27 +132,6 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
       .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; }
       .meta-line :global(.market-clock) { width: 100%; flex-basis: 100%; }
-      .count-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin-top: 1rem; }
-      .count { padding: .75rem .8rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.4rem; display: flex; flex-direction: column; justify-content: space-between; }
-      .count span { display: block; color: rgb(var(--gray)); font-size: .74rem; font-weight: 800; letter-spacing: .02em; }
-      .count strong { font-size: 1.55rem; line-height: 1; margin-top: .35rem; }
-      .count.harvest { background: linear-gradient(180deg, #f3fbf6, #fff); border-color: rgba(31,122,78,.16); }
-      .count.plant { background: linear-gradient(180deg, #fff7f5, #fff); border-color: rgba(214,61,46,.14); }
-      .count.harvest strong { color: var(--green); }
-      .count.plant strong { color: var(--accent); }
-      .count .count-note { margin-top: .28rem; font-size: .68rem; color: rgb(var(--gray)); font-weight: 700; }
-      .decision-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin-top: .7rem; }
-      .decision-box { padding: .72rem .8rem; border: 1px solid var(--border); border-radius: 13px; background: var(--warm-2); min-height: 4.1rem; }
-      .decision-box span { display: block; color: rgb(var(--gray)); font-size: .72rem; font-weight: 850; letter-spacing: .03em; }
-      .decision-box strong { display: block; margin-top: .22rem; font-size: .95rem; line-height: 1.35; }
-      .decision-box small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .67rem; }
-      .decision-box.mainline { grid-column: 1 / -1; background: #fff; min-height: auto; }
-      .decision-box.mainline strong { font-size: .88rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      .top-action { margin-top: .7rem; padding: .85rem 1rem; border-radius: 14px; background: rgb(var(--black)); color: #fff; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75rem; align-items: center; }
-      .top-action .rank { font-size: 1.25rem; }
-      .top-action span, .top-action strong { color: #fff; }
-      .top-action small { display: block; opacity: .7; }
-      .top-action strong { display: block; line-height: 1.5; }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
       .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }
@@ -170,60 +150,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-factor strong { display: block; margin-top: .12rem; font-size: .78rem; }
       .macro-factor em { display: block; margin-top: .18rem; font-style: normal; color: rgb(var(--gray-dark)); font-size: .72rem; line-height: 1.4; }
       .macro-hint { color: rgb(var(--gray)); font-size: .72rem; }
-      .section-head { display: flex; justify-content: space-between; align-items: end; gap: .8rem; margin: 1.5rem 0 .7rem; }
-      .section-head h2 { margin: .25rem 0 0; }
-      .section-head p { margin: 0; color: rgb(var(--gray)); font-size: .84rem; }
-      .signal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: .75rem; }
-      .signal-card { position: relative; overflow: hidden; padding: .9rem; border-left: 5px solid var(--accent); min-width: 0; }
-      .signal-card.harvest { border-left-color: var(--green); }
-      .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .55rem; }
-      .identity { min-width: 0; }
-      .identity code { font-size: .9rem; font-weight: 900; background: transparent; border: 0; padding: 0; }
-      .identity h3 { margin: .12rem 0 0; font-size: 1rem; }
-      .badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; }
-      .status, .priority { white-space: nowrap; border-radius: 999px; padding: .18rem .45rem; font-size: .7rem; font-weight: 900; }
-      .status { background: var(--accent-soft); color: var(--accent-dark); }
-      .harvest .status { background: var(--green-soft); color: var(--green); }
-      .priority { background: var(--warm); border: 1px solid var(--border); }
-      .live-pill { display: inline-flex; align-items: center; gap: .35rem; }
-      .live-pill::before { content: ''; width: .5rem; height: .5rem; border-radius: 50%; background: #b7791f; box-shadow: 0 0 0 3px rgba(183,121,31,.12); }
-      .live-pill.online::before { background: var(--green); box-shadow: 0 0 0 3px rgba(31,122,78,.14); }
-      .live-pill.error::before { background: var(--accent); box-shadow: 0 0 0 3px rgba(214,61,46,.14); }
-      .live-trigger { background: #eef6ff; color: #1d4f91; border: 1px solid #cfe2fa; }
-      .live-trigger.triggered { background: var(--accent-soft); color: var(--accent-dark); border-color: rgba(214,61,46,.22); }
-      .harvest .live-trigger.triggered { background: var(--green-soft); color: var(--green); border-color: rgba(31,122,78,.22); }
-      .live-price { transition: color .2s ease; }
-      .live-price.updated { color: #1d4f91; }
-      .level-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin: .72rem 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-      .level { padding: .55rem .38rem; text-align: center; background: var(--warm-2); border-right: 1px solid var(--border); }
-      .level:last-child { border: 0; }
-      .level.active { background: var(--accent-soft); }
-      .harvest .level.active { background: var(--green-soft); }
-      .level span { display: block; font-size: .66rem; color: rgb(var(--gray)); white-space: nowrap; }
-      .level b { font-size: .9rem; }
-      .distance { display: flex; justify-content: space-between; gap: .5rem; font-size: .73rem; color: rgb(var(--gray)); margin: -.25rem 0 .55rem; }
-      .action-copy { margin: 0; padding: .62rem .7rem; border-radius: 10px; background: var(--accent-soft); font-size: .86rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-      .harvest .action-copy { background: var(--green-soft); }
-      .reason { margin: .45rem 0 0; color: rgb(var(--gray-dark)); font-size: .8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      .signal-card.blocked { opacity: .94; border-style: dashed; }
-      .signal-card.level-invalid { border-color: #f0c36d; }
-      .empty-signal { padding: 1rem; color: rgb(var(--gray-dark)); font-size: .92rem; }
-      .watch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
-      .watch { padding: .85rem; }
-      .watch strong { display: block; margin-bottom: .2rem; }
-      .watch span { font-size: .84rem; color: rgb(var(--gray-dark)); }
-      .risk-note { margin: 1rem 0; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: 12px; background: var(--amber-soft); font-size: .8rem; }
-      .links-panel { padding: .9rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .7rem; }
-      .links-panel p { margin: 0; color: rgb(var(--gray)); font-size: .84rem; }
-      .button-row { display: flex; flex-wrap: wrap; gap: .45rem; }
-      .button { display: inline-flex; padding: .55rem .75rem; border-radius: 999px; background: var(--warm); border: 1px solid var(--border); text-decoration: none; font-size: .8rem; font-weight: 900; color: rgb(var(--black)); }
-      .button.primary { background: rgb(var(--black)); color: #fff; }
       @media (max-width: 940px) {
         .hero-top { grid-template-columns: 1fr; gap: .8rem; }
         .hero-copy, .meta-line { grid-column: 1; }
         .meta-line { justify-content: flex-start; max-width: none; }
-        .signal-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-        .decision-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
         .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
@@ -231,22 +161,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
-        .count-strip { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .4rem; }
         .count { padding: .55rem .55rem; min-height: 3.8rem; }
         .count strong { font-size: 1.25rem; }
-        .decision-grid, .signal-grid, .watch-grid { grid-template-columns: 1fr; }
-        .decision-box.mainline strong { -webkit-line-clamp: 3; }
-        .top-action { grid-template-columns: auto 1fr; padding: .7rem .8rem; }
         .macro-gate summary { grid-template-columns: auto 1fr; }
         .macro-gate summary b { grid-column: 1/-1; justify-self: start; }
-        .section-head { align-items: flex-start; margin-top: 1.15rem; }
-        .section-head p { display: none; }
-        .level-grid { grid-template-columns: repeat(2, 1fr); }
-        .level:nth-child(2) { border-right: 0; }
-        .level:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
-        .links-panel { display: grid; }
-        .button-row { display: grid; grid-template-columns: repeat(2, 1fr); }
-        .button { justify-content: center; }
       }
     </style>
     <style is:global>
@@ -325,18 +243,17 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       <section aria-labelledby="harvest-title">
               <div class="section-head"><div><span class="pill pill-green">🟢 风险优先</span><h2 id="harvest-title">{counts.harvest > 0 ? `兑现 ${counts.harvest}` : '兑现 0'}{counts.readyHarvest > 0 ? ` · 止盈观察 ${counts.readyHarvest}` : ''}</h2></div><p>先处理兑现和失效风险；关键位无效仅观察</p></div>
               <div class="signal-grid">
-                {harvest.map((item) => <article class={`signal-card harvest card${item.level_status === 'invalid' ? ' level-invalid' : ''}`} id={`etf-${item.code}`} data-live-card data-side="harvest" data-code={item.code} data-action-level={actionLevelFor(item, 'harvest')} data-stop={item.stop} data-snapshot-price={item.price}>
-                  <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span>{item.level_status === 'invalid' && <span class="status">关键位无效</span>}<span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
-                  <div class="level-grid" aria-label={`${item.name}关键价位`}>
-                    <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
-                    <div class="level active"><span>{actionLabelFor(item, 'harvest')}</span><b>{formatPrice(actionLevelFor(item, 'harvest'))}</b></div>
-                    <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-                    <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
-                  </div>
-                  <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'harvest'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
-                  <p class="action-copy"><strong>动作：</strong>{item.action}</p>
-                  <p class="reason"><strong>依据：</strong>{item.trigger}</p>
-                </article>)}
+                {harvest.map((item) => (
+                  <AShareSignalCard
+                    item={item}
+                    side="harvest"
+                    actionLabel={actionLabelFor(item, 'harvest')}
+                    actionLevel={actionLevelFor(item, 'harvest')}
+                    distanceText={formatDistance(distanceFor(item, 'harvest'))}
+                    snapshotDate={item.price_date || data.level_data_as_of || data.data_as_of || '待更新'}
+                    formatPrice={formatPrice}
+                  />
+                ))}
               </div>
             </section>
 
@@ -346,18 +263,17 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
                 <div class="empty-signal card">今日无候场/伏击标的。中观约束下不机械凑数。</div>
               ) : (
               <div class="signal-grid">
-                {plant.map((item) => <article class={`signal-card card${item.eligibility === 'blocked' ? ' blocked' : ''}`} id={`etf-${item.code}`} data-live-card data-side="plant" data-code={item.code} data-action-level={actionLevelFor(item, 'plant')} data-stop={item.stop} data-snapshot-price={item.price}>
-                  <div class="card-top"><div class="identity"><code>{item.code}</code><h3>{item.name}</h3></div><div class="badges"><span class="status">{item.status}</span><span class="priority">{item.priority}</span>{item.eligibility === 'blocked' && <span class="status">不可执行</span>}<span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span></div></div>
-                  <div class="level-grid" aria-label={`${item.name}关键价位`}>
-                    <div class="level"><span>实时现价</span><b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b></div>
-                    <div class="level active"><span>{actionLabelFor(item, 'plant')}</span><b>{formatPrice(actionLevelFor(item, 'plant'))}</b></div>
-                    <div class="level"><span>观察目标</span><b>{formatPrice(item.target)}</b></div>
-                    <div class="level"><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
-                  </div>
-                  <div class="distance"><span id={`live-distance-${item.code}`}>距动作位 {formatDistance(distanceFor(item, 'plant'))}</span><span id={`live-meta-${item.code}`}>快照{item.price_date || data.level_data_as_of || data.data_as_of || '待更新'} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span></div>
-                  <p class="action-copy"><strong>动作：</strong>{item.action}</p>
-                  <p class="reason"><strong>依据：</strong>{item.trigger}</p>
-                </article>)}
+                {plant.map((item) => (
+                  <AShareSignalCard
+                    item={item}
+                    side="plant"
+                    actionLabel={actionLabelFor(item, 'plant')}
+                    actionLevel={actionLevelFor(item, 'plant')}
+                    distanceText={formatDistance(distanceFor(item, 'plant'))}
+                    snapshotDate={item.price_date || data.level_data_as_of || data.data_as_of || '待更新'}
+                    formatPrice={formatPrice}
+                  />
+                ))}
               </div>
               )}
             </section>

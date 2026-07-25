@@ -1,0 +1,101 @@
+---
+/**
+ * A-share compass signal card with live quote hooks.
+ * IDs stay stable for the page-level Edge live overlay script.
+ */
+type SignalItem = {
+  code: string;
+  name: string;
+  status?: string;
+  priority?: string;
+  action?: string;
+  trigger?: string;
+  price?: number | null;
+  support?: number | null;
+  target?: number | null;
+  stop?: number | null;
+  action_level?: number | null;
+  action_level_label?: string;
+  trend_level?: string;
+  risk_level?: string;
+  price_date?: string;
+  level_status?: string;
+  eligibility?: string;
+};
+
+type Props = {
+  item: SignalItem;
+  side: 'harvest' | 'plant';
+  actionLabel: string;
+  actionLevel: number | null | undefined;
+  distanceText: string;
+  snapshotDate?: string;
+  formatPrice: (value?: number | null) => string;
+};
+
+const {
+  item,
+  side,
+  actionLabel,
+  actionLevel,
+  distanceText,
+  snapshotDate = '待更新',
+  formatPrice,
+} = Astro.props;
+
+const cardClass = [
+  'signal-card',
+  'card',
+  side === 'harvest' ? 'harvest' : '',
+  item.level_status === 'invalid' ? 'level-invalid' : '',
+  item.eligibility === 'blocked' ? 'blocked' : '',
+].filter(Boolean).join(' ');
+---
+<article
+  class={cardClass}
+  id={`etf-${item.code}`}
+  data-live-card
+  data-side={side}
+  data-code={item.code}
+  data-action-level={actionLevel}
+  data-stop={item.stop}
+  data-snapshot-price={item.price}
+>
+  <div class="card-top">
+    <div class="identity">
+      <code>{item.code}</code>
+      <h3>{item.name}</h3>
+    </div>
+    <div class="badges">
+      <span class="status">{item.status}</span>
+      <span class="priority">{item.priority}</span>
+      {item.level_status === 'invalid' && <span class="status">关键位无效</span>}
+      {item.eligibility === 'blocked' && <span class="status">不可执行</span>}
+      <span class="status live-trigger" id={`live-trigger-${item.code}`}>静态快照</span>
+    </div>
+  </div>
+  <div class="level-grid" aria-label={`${item.name}关键价位`}>
+    <div class="level">
+      <span>实时现价</span>
+      <b class="live-price" id={`live-price-${item.code}`}>{formatPrice(item.price)}</b>
+    </div>
+    <div class="level active">
+      <span>{actionLabel}</span>
+      <b>{formatPrice(actionLevel)}</b>
+    </div>
+    <div class="level">
+      <span>观察目标</span>
+      <b>{formatPrice(item.target)}</b>
+    </div>
+    <div class="level">
+      <span>防守线</span>
+      <b>{formatPrice(item.stop)}</b>
+    </div>
+  </div>
+  <div class="distance">
+    <span id={`live-distance-${item.code}`}>距动作位 {distanceText}</span>
+    <span id={`live-meta-${item.code}`}>快照{item.price_date || snapshotDate} · 趋势{item.trend_level || '—'} · 风险{item.risk_level || '—'}</span>
+  </div>
+  <p class="action-copy"><strong>动作：</strong>{item.action}</p>
+  <p class="reason"><strong>依据：</strong>{item.trigger}</p>
+</article>

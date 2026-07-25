@@ -77,7 +77,7 @@ check_page "/futures-compass/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
   "nf_AU0" \
-  "/data/futures-compass.json"
+  "SNAPSHOT_URL"
 
 # us-compass uses shared IIFE adapter + live status markers.
 check_page "/us-compass/" \
