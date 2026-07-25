@@ -360,6 +360,10 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   throw new Error('All upstream quote sources (Tencent, Sina, Xueqiu) failed');
 }
 
+/**
+ * Cloudflare Pages Functions entry (functions/api/public/v1/quote.js)
+ * and Workers entry (export default.fetch) share this handler.
+ */
 export async function onRequestGet({ request }) {
   const url = new URL(request.url);
   const symbols = url.searchParams.get('symbols') || url.searchParams.get('symbol') || '600021';

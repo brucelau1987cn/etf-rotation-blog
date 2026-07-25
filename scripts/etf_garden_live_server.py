@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 """
+DEPRECATED — do not start for production live quotes.
+
+Public live quotes now go through Cloudflare Edge:
+  GET /api/public/v1/quote  (functions/api/public/v1/quote.js
+  synced from brucelau1987cn/edge-quote-api)
+
+This local HTTP server (127.0.0.1:8766) remains only as a historical fallback
+for offline experiments. Prefer Edge API + normalizeQuotePayload adapter.
+
 ETF Garden live quote HTTP server. Listens on 127.0.0.1:8766.
 - ThreadingHTTPServer for concurrent browser requests
 - 30s shared in-memory cache to reduce stock-api pressure across browser tabs

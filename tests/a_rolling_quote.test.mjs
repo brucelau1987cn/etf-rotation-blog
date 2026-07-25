@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { normalizeQuotePayload } from '../src/lib/normalizeQuotePayload.mjs';
+import { findQuoteItem, normalizeQuotePayload } from '../src/lib/normalizeQuotePayload.mjs';
 
 test('extracts single quote directly for stock-quote UI', () => {
   const payload = {
@@ -19,9 +19,11 @@ test('extracts single quote directly for stock-quote UI', () => {
   };
 
   const normalized = normalizeQuotePayload(payload);
-  const quote = normalized.items.find((item) => item.symbol === '600021') || normalized.items[0];
+  const quote = findQuoteItem(normalized, '600021');
 
   assert.ok(quote);
+  assert.equal(quote.symbol, '600021');
+  assert.equal(quote.code, '600021');
   assert.equal(quote.price, 14.21);
   assert.equal(quote.change_percent, -7.37);
 });

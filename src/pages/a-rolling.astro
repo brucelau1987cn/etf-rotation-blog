@@ -664,32 +664,16 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
     </main>
     <Footer />
 
+    <!-- Shared Edge quote adapter (must load before live polling) -->
+    <script is:inline src="/js/normalize-quote-payload.js"></script>
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
     <script is:inline>
       (function() {
-        const normalizeQuotePayload = (payload) => {
-          if (payload && payload.ok === true && Array.isArray(payload.items)) return payload;
-          if (!payload || payload.status !== 'ok' || !payload.quotes || typeof payload.quotes !== 'object') {
-            return { ok: false, count: 0, items: [] };
-          }
-          const items = Object.entries(payload.quotes).map(([key, quote]) => {
-            const secCode = String(quote?.sec_code || '');
-            let symbol = String(quote?.symbol || key || '');
-            if (secCode.startsWith('us') && secCode.length > 2) symbol = secCode.slice(2);
-            else symbol = symbol.split('.')[0].replace(/^us/i, '');
-            return {
-              symbol: symbol.toUpperCase(),
-              price: quote?.price,
-              low: quote?.low,
-              change_pct: quote?.change_percent,
-              change_percent: quote?.change_percent,
-              quote_time: quote?.quote_time,
-              status: quote?.status || 'ok',
-            };
-          });
-          const generatedAt = items.map((item) => item.quote_time).filter(Boolean).sort().at(-1);
-          return { ok: true, count: items.length, generated_at: generatedAt, items };
-        };
+        const { normalizeQuotePayload, findQuoteItem } = window.EtfQuote || {};
+        if (!normalizeQuotePayload || !findQuoteItem) {
+          console.error('EtfQuote adapter missing');
+          return;
+        }
 
         const formatTime = (value, includeDate = true, includeSeconds = false) => {
           if (!value) return '—';
@@ -884,10 +868,7 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
         };
 
         const updateQuoteUI = (payload) => {
-          const item = (payload?.items || []).find((q) => String(q.symbol) === '600021')
-            || payload?.items?.[0]
-            || payload?.quotes?.['600021']
-            || null;
+          const item = findQuoteItem(payload, '600021') || payload?.items?.[0] || null;
           if (!item || typeof item.price !== 'number') {
             const badge = document.getElementById('stock-quote-badge');
             const pill = document.getElementById('pill-stock-quote');

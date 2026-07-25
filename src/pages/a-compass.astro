@@ -365,13 +365,16 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       <section class="links-panel card"><p>完整过程、历史命中与策略验证保留独立归档。</p><div class="button-row"><a class="button primary" href="/paper/">模拟盘</a><a class="button" href="/a-momentum/">A股趋势风控雷达</a><a class="button" href="/a-macro/">A股宏观雷达</a><a class="button" href="/blog/">A股盘后复盘</a><a class="button" href="/a-compass/history/">历史复盘</a><a class="button" href="/research/">策略档案</a></div></section>
     </main>
     <Footer />
+    <script is:inline src="/js/normalize-quote-payload.js"></script>
     <script is:inline>
       const LIVE_URL = 'https://etf-live.peekabo.cc/api/etf-garden/live';
+      const EDGE_QUOTE_URL = '/api/public/v1/quote';
       const liveStatus = document.getElementById('live-quote-status');
       let liveLoading = false;
       const liveCards = [...document.querySelectorAll('[data-live-card]')];
       const liveCodes = [...new Set(liveCards.map(card => card.dataset.code).filter(Boolean))];
       const LIVE_QUERY_URL = liveCodes.length ? `${LIVE_URL}?codes=${encodeURIComponent(liveCodes.join(','))}` : LIVE_URL;
+      const { normalizeQuotePayload, aShareSymbolsParam, quoteMapByCode } = window.EtfQuote || {};
       const numberOf = (value) => {
         if (value === null || value === undefined || value === '') return null;
         const parsed = Number(value);
@@ -448,29 +451,37 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         if (liveLoading || document.hidden) return;
         liveLoading = true;
         try {
-          // 优先通过 Cloudflare Edge 极速多标的 API 抓取盘中实时报价
+          // Prefer Cloudflare Edge multi-symbol quote API.
           const codes = Array.from(liveCards).map(c => c.dataset.code).filter(Boolean);
-          if (codes.length > 0) {
-            const symbolsParam = codes.map(c => c.length === 6 ? `${c}.${c.startsWith('159') || c.startsWith('300') || c.startsWith('00') ? 'SZ' : 'SH'}` : c).join(',');
-            const edgeRes = await fetch(`/api/public/v1/quote?symbols=${symbolsParam}`);
+          if (codes.length > 0 && normalizeQuotePayload && aShareSymbolsParam) {
+            const symbolsParam = aShareSymbolsParam(codes);
+            const edgeRes = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbolsParam)}&t=${Date.now()}`, { cache: 'no-store' });
             if (edgeRes.ok) {
-              const edgeData = await edgeRes.json();
-              if (edgeData.status === 'ok' && edgeData.quotes) {
-                const items = Object.values(edgeData.quotes).map(q => ({
-                  code: String(q.symbol || '').split('.')[0],
+              const normalized = normalizeQuotePayload(await edgeRes.json());
+              if (normalized.ok && normalized.items.length) {
+                const items = normalized.items.map((q) => ({
+                  code: q.code || q.symbol,
                   price: q.price,
-                  change_pct: q.change_percent,
-                  source: 'Cloudflare-Edge-Quote',
+                  change_pct: q.change_pct ?? q.change_percent,
+                  source: q.source || 'Cloudflare-Edge-Quote',
                 }));
-                applyLive({ ok: true, generated_at: new Date().toISOString(), source: 'Cloudflare-Edge', items });
+                applyLive({
+                  ok: true,
+                  generated_at: normalized.generated_at || new Date().toISOString(),
+                  source: normalized.source || 'Cloudflare-Edge',
+                  items,
+                });
                 return;
               }
             }
           }
 
-          const response = await fetch(LIVE_URL);
+          // Legacy fallback only if Edge adapter is unavailable or empty.
+          const response = await fetch(LIVE_QUERY_URL);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const payload = await response.json();
+          const payload = normalizeQuotePayload
+            ? normalizeQuotePayload(await response.json())
+            : await response.json();
           if (!payload.ok || !Array.isArray(payload.items)) throw new Error('行情格式异常');
           applyLive(payload);
         } catch (error) {

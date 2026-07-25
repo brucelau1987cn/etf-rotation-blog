@@ -9,6 +9,7 @@ ETF罗盘是一个面向 A 股与美股 ETF 的静态研究和决策支持站点
 - `/a-compass/`：A 股 ETF 罗盘与正式动作摘要
 - `/a-momentum/`：A 股 ETF 动量和全池浏览
 - `/a-macro/`：A 股中观与风险约束
+- `/a-rolling/`：A 股滚动多空能量传导
 - `/us-compass/`、`/us-momentum/`、`/us-macro/`：美股 ETF 对应页面
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型结果
@@ -24,9 +25,20 @@ ETF罗盘是一个面向 A 股与美股 ETF 的静态研究和决策支持站点
 
 目录记录核心公开文件的角色、市场、Schema 版本、观察日、生成时间、完整率、降级状态、通用来源类别、稳定语义摘要、原始 SHA-256、字节数和公开 URL。稳定 `batch_id` 由数据语义生成，不依赖文件修改时间。
 
+## 实时行情契约
+
+- Edge API：`GET /api/public/v1/quote?symbols=600021.SH,XLC`
+- 响应：`{ status: "ok", source, count, quotes: { [code]: { price, change_percent, ... } } }`
+- 客户端统一适配：`src/lib/normalizeQuotePayload.mjs`（ESM）与 `/js/normalize-quote-payload.js`（浏览器 IIFE，`window.EtfQuote`）
+- 行情服务源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)
+  - 修改源仓后执行 `npm run sync:quote` 拷贝到 `functions/api/public/v1/quote.js`
+  - 改适配器后执行 `npm run sync:adapter` 做 ESM/IIFE 行为校验
+
+`git push` 只更新 GitHub；**生产站点以 Cloudflare Pages 直接部署为准**。
+
 ## 开发
 
-要求 Node.js 22.12+ 与 Python 3.12（Python 3.11 亦可用于当前本地测试）。
+要求 Node.js 22.12+ 与 Python 3.12（Python 3.11 亦可用于当前本地测试）。包管理使用 **npm**（`package-lock.json`）；`pnpm-lock.yaml` 仅为历史残留，请勿混用。
 
 ```sh
 npm ci
@@ -37,7 +49,7 @@ npm run dev
 ## 验证与构建
 
 ```sh
-python3 -m pytest -q
+npm run test
 npm run build
 npm run audit
 git diff --check
@@ -53,15 +65,46 @@ git diff --check
 
 契约验证会阻断哈希或字节数不一致、错误 URL/角色/日期、未披露的未知或降级状态、重复证券代码、批次漂移、敏感字段、私有路径、HTML 分隔符及非有限数值。
 
+## 生产发布（Cloudflare Pages）
+
+校验通过后，正式上线必须直接部署 `dist`：
+
+```sh
+# 1) 构建
+npm run build
+
+# 2) 加载 Cloudflare token（本机约定路径）
+source ~/.hermes/credentials/cloudflare-pages.env
+
+# 3) 部署
+npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
+
+# 4) 探针：确认线上 HTML 已含新适配器与 quote 路径
+npm run verify:pages
+```
+
+或合并构建+部署：
+
+```sh
+source ~/.hermes/credentials/cloudflare-pages.env
+npm run deploy:pages
+npm run verify:pages
+```
+
+探针会检查 `/`、`/a-rolling/`、`/a-compass/`、`/us-compass/` 是否包含 `EtfQuote` / `normalize-quote-payload.js` / quote API 标记，并抽样请求 `/api/public/v1/quote`。
+
 ## 项目结构
 
 ```text
 public/data/       公开 JSON 快照与目录
+public/js/         浏览器共享脚本（行情适配器）
 public/schemas/    版本化 JSON Schema
-scripts/           数据生成、验证与静态审计
+functions/         Cloudflare Pages Functions（quote / webhook / auth）
+scripts/           数据生成、验证、同步与静态审计
 src/pages/         Astro 路由
+src/lib/           前端共享库（含 normalizeQuotePayload）
 src/content/       研究文章与历史内容
-tests/             Python 单元和流水线测试
+tests/             Python 单元和流水线测试 + Node quote 测试
 docs/              方法与契约文档
 ```
 
