@@ -5,6 +5,7 @@ import AStockSubnav from '../components/AStockSubnav.astro';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
 import { SITE_TITLE } from '../consts';
 
 type BuyCycle = {
@@ -664,8 +665,8 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
     </main>
     <Footer />
 
-    <!-- Shared Edge quote adapter (must load before live polling) -->
-    <script is:inline src="/js/normalize-quote-payload.js"></script>
+    <!-- Shared Edge quote adapter + live poll helper -->
+    <QuoteLiveScripts />
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
     <script is:inline>
       (function() {
@@ -963,14 +964,23 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
           fetchStockQuote();
         }, 500);
 
-        setInterval(fetchLatestSignals, 30000);
-        setInterval(fetchStockQuote, 15000);
-        document.addEventListener('visibilitychange', () => {
-          if (!document.hidden) {
-            void fetchLatestSignals();
-            void fetchStockQuote();
-          }
-        });
+        if (window.EtfLivePoll?.startLivePoll) {
+          window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => {
+            await fetchStockQuote();
+          }});
+          window.EtfLivePoll.startLivePoll({ intervalMs: 30000, immediate: false, tick: async () => {
+            await fetchLatestSignals();
+          }});
+        } else {
+          setInterval(fetchLatestSignals, 30000);
+          setInterval(fetchStockQuote, 15000);
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+              void fetchLatestSignals();
+              void fetchStockQuote();
+            }
+          });
+        }
       })();
 
     </script>

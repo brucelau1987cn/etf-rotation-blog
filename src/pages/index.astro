@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
 import { SITE_TITLE } from '../consts';
 
 type AAction = { code:string; name:string; status:string; action:string; price?:number; support?:number; target?:number; stop?:number; action_level?:number; action_level_label?:string; distance_pct?:number; risk_level?:string; price_date?:string };
@@ -248,6 +249,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
         </article>
       </section>
       <script is:inline src="/js/normalize-quote-payload.js"></script>
+      <script is:inline src="/js/etf-live-poll.js"></script>
       <script is:inline>
         (function() {
           const adapter = window.EtfQuote;

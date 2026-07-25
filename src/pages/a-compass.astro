@@ -6,6 +6,7 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
 import MarketClock from '../components/MarketClock.astro';
+import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
 import { SITE_TITLE } from '../consts';
 
 type Recommendation = {
@@ -366,6 +367,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
     </main>
     <Footer />
     <script is:inline src="/js/normalize-quote-payload.js"></script>
+    <script is:inline src="/js/etf-live-poll.js"></script>
     <script is:inline>
       const LIVE_URL = 'https://etf-live.peekabo.cc/api/etf-garden/live';
       const EDGE_QUOTE_URL = '/api/public/v1/quote';
@@ -493,10 +495,14 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       }
 
       void loadLive();
-      window.setInterval(loadLive, 30_000);
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) void loadLive();
-      });
+      if (window.EtfLivePoll?.startLivePoll) {
+        window.EtfLivePoll.startLivePoll({ intervalMs: 30_000, immediate: false, tick: loadLive });
+      } else {
+        window.setInterval(loadLive, 30_000);
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) void loadLive();
+        });
+      }
     </script>
   </body>
 </html>

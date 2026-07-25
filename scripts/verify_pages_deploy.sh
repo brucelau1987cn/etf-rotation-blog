@@ -46,6 +46,12 @@ check_page "/a-momentum/" \
   "EtfQuote" \
   "/api/public/v1/quote"
 
+check_page "/futures-compass/" \
+  "normalize-quote-payload.js" \
+  "EtfQuote" \
+  "nf_AU0" \
+  "/data/futures-compass.json"
+
 # us-compass ships quote path inside hashed /_astro module; probe stable HTML markers.
 check_page "/us-compass/" \
   "us-live-status" \
