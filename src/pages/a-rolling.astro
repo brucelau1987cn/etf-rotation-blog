@@ -666,9 +666,32 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
     <Footer />
 
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
-    <script>
-      import { normalizeQuotePayload } from '../lib/normalizeQuotePayload.mjs';
+    <script is:inline>
       (function() {
+        const normalizeQuotePayload = (payload) => {
+          if (payload && payload.ok === true && Array.isArray(payload.items)) return payload;
+          if (!payload || payload.status !== 'ok' || !payload.quotes || typeof payload.quotes !== 'object') {
+            return { ok: false, count: 0, items: [] };
+          }
+          const items = Object.entries(payload.quotes).map(([key, quote]) => {
+            const secCode = String(quote?.sec_code || '');
+            let symbol = String(quote?.symbol || key || '');
+            if (secCode.startsWith('us') && secCode.length > 2) symbol = secCode.slice(2);
+            else symbol = symbol.split('.')[0].replace(/^us/i, '');
+            return {
+              symbol: symbol.toUpperCase(),
+              price: quote?.price,
+              low: quote?.low,
+              change_pct: quote?.change_percent,
+              change_percent: quote?.change_percent,
+              quote_time: quote?.quote_time,
+              status: quote?.status || 'ok',
+            };
+          });
+          const generatedAt = items.map((item) => item.quote_time).filter(Boolean).sort().at(-1);
+          return { ok: true, count: items.length, generated_at: generatedAt, items };
+        };
+
         const formatTime = (value, includeDate = true, includeSeconds = false) => {
           if (!value) return '—';
           const date = new Date(value);
@@ -861,9 +884,23 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
           }
         };
 
-        const updateQuoteUI = (quote) => {
-          const item = quote?.items?.[0] || quote?.quotes?.['600021'] || quote;
-          if (!item || typeof item.price !== 'number') return;
+        const updateQuoteUI = (payload) => {
+          const item = (payload?.items || []).find((q) => String(q.symbol) === '600021')
+            || payload?.items?.[0]
+            || payload?.quotes?.['600021']
+            || null;
+          if (!item || typeof item.price !== 'number') {
+            const badge = document.getElementById('stock-quote-badge');
+            const pill = document.getElementById('pill-stock-quote');
+            if (badge) badge.textContent = '行情暂不可用';
+            if (pill) {
+              pill.textContent = '行情暂不可用';
+              pill.style.color = '#64748b';
+              pill.style.background = '#f1f5f9';
+              pill.style.borderColor = '#cbd5e1';
+            }
+            return;
+          }
           const changePct = typeof item.change_percent === 'number' ? item.change_percent : item.change_pct;
           const badge = document.getElementById('stock-quote-badge');
           const pill = document.getElementById('pill-stock-quote');
@@ -891,12 +928,12 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
         const fetchStockQuote = async () => {
           if (document.hidden) return;
           try {
-            const res = await fetch('/api/public/v1/quote?symbol=600021&exchange=SSE');
-            if (!res.ok) return;
+            const res = await fetch('/api/public/v1/quote?symbol=600021&exchange=SSE&t=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = normalizeQuotePayload(await res.json());
             updateQuoteUI(data);
           } catch (e) {
-            // 静默失败
+            updateQuoteUI(null);
           }
         };
 
