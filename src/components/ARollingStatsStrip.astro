@@ -1,0 +1,52 @@
+---
+/**
+ * A-rolling 4-column stats strip.
+ * IDs are stable for the live polling script.
+ */
+type Props = {
+  currentCode?: string | null;
+  litCount?: number;
+  litTimeText?: string;
+  transmissionState?: string;
+  sellNodeCode?: string | null;
+  sellNodeTime?: string;
+  sellNodeCount?: number;
+};
+
+const {
+  currentCode = '—',
+  litCount = 0,
+  litTimeText = '',
+  transmissionState = '观察中',
+  sellNodeCode = null,
+  sellNodeTime = '等待买方信号后再出',
+  sellNodeCount = 0,
+} = Astro.props;
+---
+<div class="count-strip" aria-label="核心指标看板">
+  <div class="count-box buy-box">
+    <span>🔴 当前多头位置</span>
+    <strong id="stat-current-code">{currentCode}</strong>
+    <em id="stat-lit-count">
+      连续点亮 {litCount} 格
+      <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">
+        {litTimeText}
+      </span>
+    </em>
+  </div>
+  <div class="count-box stop-box">
+    <span>🟡 传导状态</span>
+    <strong id="stat-stopped-code">{transmissionState === 'transmitting' ? '多头推进中' : '观察中'}</strong>
+    <em>按需出信号 · 无信号不占位</em>
+  </div>
+  <div class="count-box sell-box">
+    <span>🟢 空方卖出节点</span>
+    <strong id="stat-star-code">{sellNodeCode ? `${sellNodeCode} 级` : '未触发'}</strong>
+    <em id="stat-star-time">{sellNodeTime}</em>
+  </div>
+  <div class="count-box sell-box">
+    <span>🟢 卖出节点数量</span>
+    <strong id="stat-sell-summary">{sellNodeCount} 个</strong>
+    <em id="stat-sell-note">10~240m 动态延伸</em>
+  </div>
+</div>

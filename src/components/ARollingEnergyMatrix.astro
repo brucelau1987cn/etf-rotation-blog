@@ -1,0 +1,94 @@
+---
+/**
+ * Dual-rail energy matrix: sticky instrument + sell/buy timeline cells.
+ * Containers keep stable IDs for live DOM updates.
+ */
+type TimelineItem = {
+  type: 'BUY' | 'SELL' | string;
+  code: string;
+  triggered_at?: string | null;
+  sell_state?: string;
+};
+
+type Props = {
+  instrumentName: string;
+  symbol: string;
+  timeline?: TimelineItem[];
+  formatTime: (value: string | null | undefined, includeDate?: boolean, includeSeconds?: boolean) => string;
+};
+
+const {
+  instrumentName,
+  symbol,
+  timeline = [],
+  formatTime,
+} = Astro.props;
+---
+<section class="matrix-section card" aria-labelledby="matrix-title">
+  <div class="matrix-top">
+    <div class="section-head-title">
+      <h2 id="matrix-title">双向能量传导轨道</h2>
+    </div>
+    <div class="matrix-controls">
+      <button id="toggle-view-btn" class="view-toggle-btn" type="button">
+        ⚡ 模式：精简按需点亮
+      </button>
+      <div class="legend-list">
+        <span class="legend-item"><i class="dot dot-red"></i>买方点亮</span>
+        <span class="legend-item"><i class="dot dot-amber"></i>传导停止</span>
+        <span class="legend-item"><i class="dot dot-green"></i>卖方预警/确认</span>
+        <span class="legend-item"><i class="dot dot-gray"></i>未激活/观察中</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-outer compact-mode" id="table-outer-wrapper">
+    <div class="table-grid">
+      <div class="stock-sticky">
+        <div class="stock-name-title" id="inst-name">{instrumentName}</div>
+        <div class="stock-code-tag" id="inst-symbol">{symbol}</div>
+        <div
+          class="stock-price-tag"
+          id="stock-quote-badge"
+          style="font-size: 0.78rem; font-weight: 700; margin-top: 0.35rem; color: #64748b; font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;"
+        >
+          加载行情...
+        </div>
+      </div>
+
+      <div class="signals-axis">
+        <div class="axis-row sell-axis">
+          <div class="axis-label sell-label">空方力量</div>
+          <div class="cells-scroll" id="sell-cells-container">
+            {timeline.map((item) => (
+              item.type === 'SELL' ? (
+                <div class="cell-badge sell-sell" data-sell-code={item.code}>
+                  <div class="badge-code">{item.code}</div>
+                  <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
+                </div>
+              ) : (
+                <div style="min-width: 105px; visibility: hidden; pointer-events: none;"></div>
+              )
+            ))}
+          </div>
+        </div>
+
+        <div class="axis-row buy-axis">
+          <div class="axis-label buy-label">多方力量</div>
+          <div class="cells-scroll" id="buy-cells-container">
+            {timeline.map((item) => (
+              item.type === 'BUY' ? (
+                <div class="cell-badge buy-buy" data-buy-code={item.code}>
+                  <div class="badge-code">{item.code}</div>
+                  <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
+                </div>
+              ) : (
+                <div style="min-width: 105px; visibility: hidden; pointer-events: none;"></div>
+              )
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

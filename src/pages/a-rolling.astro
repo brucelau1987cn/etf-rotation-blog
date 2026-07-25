@@ -6,7 +6,11 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
+import ARollingStatsStrip from '../components/ARollingStatsStrip.astro';
+import ARollingEnergyMatrix from '../components/ARollingEnergyMatrix.astro';
+import ARollingAiAlerts from '../components/ARollingAiAlerts.astro';
 import { SITE_TITLE } from '../consts';
+import '../styles/a-rolling.css';
 
 type BuyCycle = {
   cycle_code: string;
@@ -44,6 +48,13 @@ type SellAlert = {
   analysis: string;
 };
 
+type TimelineItem = {
+  type: 'BUY' | 'SELL' | string;
+  code: string;
+  triggered_at?: string | null;
+  sell_state?: string;
+};
+
 type Payload = {
   schema_version: string;
   mode: 'demo' | 'live';
@@ -62,8 +73,10 @@ type Payload = {
     started_at: string | null;
     lit_count: number;
     continuous_confirmed: boolean;
+    latest_triggered_at?: string | null;
   };
   buy_cycles: BuyCycle[];
+  cycles?: BuyCycle[];
   sell_chain: {
     window_type: string;
     window_description: string;
@@ -71,15 +84,16 @@ type Payload = {
     nodes: SellNode[];
   };
   sell_alerts: SellAlert[];
+  timeline?: TimelineItem[];
 };
 
 const payload = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-rolling-signals.json'), 'utf-8')) as Payload;
 
-const formatTime = (value: string | null, includeDate = true, includeSeconds = false) => {
+const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  
+
   const options: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Shanghai',
     hour12: false,
@@ -94,6 +108,27 @@ const formatTime = (value: string | null, includeDate = true, includeSeconds = f
   return date.toLocaleString('zh-CN', options);
 };
 
+const timeline: TimelineItem[] = Array.isArray(payload.timeline) && payload.timeline.length
+  ? payload.timeline
+  : [
+      ...(payload.buy_cycles || payload.cycles || []).map((c) => ({
+        type: 'BUY' as const,
+        code: c.cycle_code,
+        triggered_at: c.buy_triggered_at,
+      })),
+      ...(payload.sell_chain?.nodes || []).map((n) => ({
+        type: 'SELL' as const,
+        code: n.code,
+        triggered_at: n.triggered_at,
+        sell_state: n.sell_state,
+      })),
+    ].sort((a, b) => new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime());
+
+const sellNodes = payload.sell_chain?.nodes || [];
+const litTimeText = payload.transmission?.latest_triggered_at
+  ? `(${formatTime(payload.transmission.latest_triggered_at, true, true)})`
+  : '';
+
 const pageTitle = `A股滚动｜多空能量传导链 | ${SITE_TITLE}`;
 const pageDescription = 'A股滚动多空能量传导终端，展示买方力量与卖方预警的动态延伸。';
 ---
@@ -102,427 +137,12 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
 <html lang="zh-CN">
   <head>
     <BaseHead title={pageTitle} description={pageDescription} />
-    <style>
-      main {
-        width: var(--shell-width);
-        padding: 1rem 0 3rem;
-        margin: 0 auto;
-      }
-      .card {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: var(--shadow-sm);
-      }
-      .dashboard-hero {
-        padding: clamp(1rem, 2.5vw, 1.35rem);
-        background: linear-gradient(135deg, #fffcfb 0%, #fff 100%);
-        margin-bottom: 1rem;
-      }
-      .hero-top {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-      .hero-copy h1 {
-        margin: 0.35rem 0 0.35rem;
-        font-size: clamp(1.85rem, 5vw, 2.8rem);
-        letter-spacing: -0.045em;
-        font-weight: 800;
-        color: rgb(var(--black));
-      }
-      .hero-copy p {
-        margin: 0;
-        color: rgb(var(--gray-dark));
-        font-size: 0.92rem;
-        line-height: 1.55;
-      }
-      
-      /* 胶囊标签系统 */
-      .meta-line {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.4rem;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 9999px;
-        background: var(--warm-2);
-        border: 1px solid var(--border);
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: rgb(var(--gray-dark));
-      }
-      .pill-red {
-        background: #fff1f0;
-        border-color: #ffa39e;
-        color: #cf1322;
-      }
-      .pill-green {
-        background: #f6ffed;
-        border-color: #b7eb8f;
-        color: #389e0d;
-      }
-      .pill-amber {
-        background: #fffbe6;
-        border-color: #ffe58f;
-        color: #d48806;
-      }
-      .pill-blue {
-        background: #e6f4ff;
-        border-color: #91caff;
-        color: #0958d9;
-      }
-
-      /* 4列统计核心条 */
-      .count-strip {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.6rem;
-        margin-top: 1rem;
-      }
-      .count-box {
-        padding: 0.75rem 0.9rem;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      }
-      .count-box span {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: rgb(var(--gray));
-      }
-      .count-box strong {
-        font-size: 1.35rem;
-        font-weight: 800;
-        line-height: 1.1;
-        margin-top: 0.25rem;
-      }
-      .count-box em {
-        font-size: 0.7rem;
-        font-style: normal;
-        margin-top: 0.2rem;
-        color: rgb(var(--gray));
-      }
-      .count-box.buy-box {
-        background: linear-gradient(180deg, #fff1f0 0%, #fff 100%);
-        border-color: rgba(207, 19, 34, 0.2);
-      }
-      .count-box.buy-box strong { color: #cf1322; }
-
-      .count-box.stop-box {
-        background: linear-gradient(180deg, #fffbe6 0%, #fff 100%);
-        border-color: rgba(212, 136, 6, 0.2);
-      }
-      .count-box.stop-box strong { color: #d48806; }
-
-      .count-box.sell-box {
-        background: linear-gradient(180deg, #f6ffed 0%, #fff 100%);
-        border-color: rgba(56, 158, 13, 0.2);
-      }
-      .count-box.sell-box strong { color: #389e0d; }
-
-      /* 核心矩阵区域 */
-      .matrix-section {
-        margin-top: 1.25rem;
-        padding: 1.25rem;
-      }
-      .matrix-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-      }
-      .matrix-controls {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .view-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.25rem 0.65rem;
-        border-radius: 6px;
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: #334155;
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .view-toggle-btn:hover {
-        background: #e2e8f0;
-        border-color: #94a3b8;
-      }
-      .section-head-title h2 {
-        font-size: 1.2rem;
-        font-weight: 800;
-        margin: 0;
-        color: #0f172a;
-      }
-      .legend-list {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 0.78rem;
-        color: #475569;
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-      }
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        display: inline-block;
-      }
-      .dot-red { background: #ff4d4f; }
-      .dot-amber { background: #faad14; }
-      .dot-green { background: #52c41a; }
-      .dot-gray { background: #d9d9d9; }
-
-      /* 卷轴式双层表格 */
-      .table-outer {
-        width: 100%;
-        overflow-x: auto;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        background: #f8fafc;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-      }
-      .table-grid {
-        display: flex;
-        min-width: 1160px;
-      }
-      
-      /* 左侧固定标的列 */
-      .stock-sticky {
-        position: sticky;
-        left: 0;
-        width: 130px;
-        background: #ffffff;
-        border-right: 1px solid #cbd5e1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 1rem 0.5rem;
-        flex-shrink: 0;
-        z-index: 10;
-        box-shadow: 2px 0 4px rgba(0,0,0,0.04);
-      }
-      .stock-name-title {
-        font-size: 1.2rem;
-        font-weight: 800;
-        color: #0f172a;
-      }
-      .stock-code-tag {
-        font-size: 0.78rem;
-        background: #f1f5f9;
-        color: #475569;
-        padding: 0.1rem 0.4rem;
-        border-radius: 4px;
-        margin-top: 0.25rem;
-        font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-      }
-
-      /* 右侧双行信号轴 */
-      .signals-axis {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .axis-row {
-        display: flex;
-        align-items: center;
-        min-height: 76px;
-      }
-      .axis-row.sell-axis {
-        background: #fcfdfe;
-        border-bottom: 1px dashed #cbd5e1;
-      }
-      .axis-row.buy-axis {
-        background: #ffffff;
-      }
-      .axis-label {
-        width: 90px;
-        padding-left: 0.8rem;
-        font-size: 0.8rem;
-        font-weight: 800;
-        flex-shrink: 0;
-      }
-      .axis-label.sell-label { color: #276749; }
-      .axis-label.buy-label { color: #9b2c2c; }
-
-      .cells-scroll {
-        display: flex;
-        gap: 0.6rem;
-        padding: 0.75rem 1rem;
-        flex: 1;
-      }
-
-      /* Badge 小方块精美 UI 重构 (is:global 绝不被 Astro Scoping 剥离) */
-      :global(.cell-badge) {
-        min-width: 105px !important;
-        padding: 0.5rem 0.65rem !important;
-        border-radius: 10px !important;
-        text-align: center !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        border: 1.5px solid transparent !important;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
-        cursor: default !important;
-        position: relative !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-      }
-      :global(.cell-badge:hover) {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1) !important;
-      }
-      :global(.badge-code) {
-        font-weight: 800 !important;
-        font-size: 1rem !important;
-        line-height: 1.15 !important;
-        letter-spacing: -0.01em !important;
-        font-family: inherit !important;
-      }
-      :global(.badge-time) {
-        font-size: 0.7rem !important;
-        margin-top: 0.35rem !important;
-        line-height: 1.2 !important;
-        font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
-        font-weight: 600 !important;
-        white-space: nowrap !important;
-      }
-
-      /* 多头买方小方块精致配色 (亮眼红调渐变卡片 + 顶部高亮色条) */
-      :global(.cell-badge.buy-buy), :global(.cell-badge.buy-active) {
-        background: linear-gradient(145deg, #ffffff 0%, #fff1f0 100%) !important;
-        border: 1.5px solid #ff7875 !important;
-        color: #cf1322 !important;
-        box-shadow: 0 3px 8px rgba(207, 19, 34, 0.12) !important;
-      }
-      :global(.cell-badge.buy-buy::before) {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 4px !important;
-        background: #ff4d4f !important;
-      }
-      :global(.cell-badge.buy-stopped) {
-        background: linear-gradient(145deg, #ffffff 0%, #fffbe6 100%) !important;
-        border: 1.5px solid #ffd666 !important;
-        color: #d48806 !important;
-      }
-      :global(.cell-badge.buy-inactive) {
-        background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #94a3b8 !important;
-      }
-
-      /* 空头卖方小方块精致配色 (亮眼绿调渐变卡片 + 顶部高亮色条) */
-      :global(.cell-badge.sell-sell), :global(.cell-badge.sell-active), :global(.cell-badge.sell-star) {
-        background: linear-gradient(145deg, #ffffff 0%, #f6ffed 100%) !important;
-        border: 1.5px solid #95de64 !important;
-        color: #237804 !important;
-        box-shadow: 0 3px 8px rgba(35, 120, 4, 0.12) !important;
-      }
-      :global(.cell-badge.sell-sell::before), :global(.cell-badge.sell-star::before) {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 4px !important;
-        background: #52c41a !important;
-      }
-      :global(.cell-badge.sell-observing) {
-        background: #ffffff !important;
-        border: 1.5px dashed #73d13d !important;
-        color: #389e0d !important;
-      }
-      :global(.cell-badge.sell-inactive) {
-        background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #94a3b8 !important;
-      }
-
-      /* AI 解读与底栏 */
-      .ai-wrapper {
-        margin-top: 1.25rem;
-        padding: 1.25rem;
-      }
-      .ai-head {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-      }
-      .ai-head h3 {
-        margin: 0;
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #0f172a;
-      }
-      .ai-alert-box {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-left: 5px solid #16a34a;
-        padding: 1rem 1.25rem;
-        border-radius: 8px;
-      }
-      .ai-alert-meta {
-        display: flex;
-        gap: 1.5rem;
-        font-size: 0.82rem;
-        color: #166534;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
-      .ai-alert-text {
-        font-size: 0.9rem;
-        color: #14532d;
-        line-height: 1.6;
-        margin: 0;
-      }
-
-      @media (max-width: 768px) {
-        main {
-          width: var(--shell-width);
-        }
-        .count-strip { grid-template-columns: repeat(2, 1fr); }
-      }
-    </style>
   </head>
   <body>
     <Header />
-    <main id="main-content">
+    <main id="main-content" class="a-rolling-main">
       <AStockSubnav active="rolling" />
 
-      <!-- Dashboard Hero 顶部导航与元数据 -->
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
           <div class="hero-copy">
@@ -539,133 +159,28 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
           </div>
         </div>
 
-        <!-- 4 列精美指标卡片 -->
-        <div class="count-strip" aria-label="核心指标看板">
-          <div class="count-box buy-box">
-            <span>🔴 当前多头位置</span>
-            <strong id="stat-current-code">{payload.transmission.current_cycle_code}</strong>
-            <em id="stat-lit-count">连续点亮 {payload.transmission.lit_count} 格 <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">{payload.transmission.latest_triggered_at ? `(${formatTime(payload.transmission.latest_triggered_at, true, true)})` : ''}</span></em>
-          </div>
-          <div class="count-box stop-box">
-            <span>🟡 传导状态</span>
-            <strong id="stat-stopped-code">{payload.transmission.state === 'transmitting' ? '多头推进中' : '观察中'}</strong>
-            <em>按需出信号 · 无信号不占位</em>
-          </div>
-          <div class="count-box sell-box">
-            <span>🟢 空方卖出节点</span>
-            <strong id="stat-star-code">{payload.sell_chain.nodes.length > 0 ? `${payload.sell_chain.nodes[0].code} 级` : '未触发'}</strong>
-            <em id="stat-star-time">{payload.sell_chain.nodes.length > 0 ? `${formatTime(payload.sell_chain.nodes[0].triggered_at, true, true)}` : '等待买方信号后再出'}</em>
-          </div>
-          <div class="count-box sell-box">
-            <span>🟢 卖出节点数量</span>
-            <strong id="stat-sell-summary">{payload.sell_chain.nodes.length} 个</strong>
-            <em id="stat-sell-note">10~240m 动态延伸</em>
-          </div>
-        </div>
+        <ARollingStatsStrip
+          currentCode={payload.transmission?.current_cycle_code || '—'}
+          litCount={payload.transmission?.lit_count || 0}
+          litTimeText={litTimeText}
+          transmissionState={payload.transmission?.state || '观察中'}
+          sellNodeCode={sellNodes[0]?.code || null}
+          sellNodeTime={sellNodes[0]?.triggered_at ? formatTime(sellNodes[0].triggered_at, true, true) : '等待买方信号后再出'}
+          sellNodeCount={sellNodes.length}
+        />
       </section>
 
-      <!-- 核心双层横向矩阵卡片 -->
-      <section class="matrix-section card" aria-labelledby="matrix-title">
-        <div class="matrix-top">
-          <div class="section-head-title">
-            <h2 id="matrix-title">双向能量传导轨道</h2>
-          </div>
-          <div class="matrix-controls">
-            <button id="toggle-view-btn" class="view-toggle-btn" type="button">
-              ⚡ 模式：精简按需点亮
-            </button>
-            <div class="legend-list">
-              <span class="legend-item"><i class="dot dot-red"></i>买方点亮</span>
-              <span class="legend-item"><i class="dot dot-amber"></i>传导停止</span>
-              <span class="legend-item"><i class="dot dot-green"></i>卖方预警/确认</span>
-              <span class="legend-item"><i class="dot dot-gray"></i>未激活/观察中</span>
-            </div>
-          </div>
-        </div>
+      <ARollingEnergyMatrix
+        instrumentName={payload.instrument.instrument_name}
+        symbol={payload.instrument.symbol}
+        timeline={timeline}
+        formatTime={formatTime}
+      />
 
-        <!-- 卷轴横向双层表格 -->
-        <div class="table-outer compact-mode" id="table-outer-wrapper">
-          <div class="table-grid">
-            <!-- 左侧固定标的列 -->
-            <div class="stock-sticky">
-              <div class="stock-name-title" id="inst-name">{payload.instrument.instrument_name}</div>
-              <div class="stock-code-tag" id="inst-symbol">{payload.instrument.symbol}</div>
-              <div class="stock-price-tag" id="stock-quote-badge" style="font-size: 0.78rem; font-weight: 700; margin-top: 0.35rem; color: #64748b; font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
-                加载行情...
-              </div>
-            </div>
-
-            <!-- 右侧双行信号轴 -->
-            <div class="signals-axis">
-              
-              <!-- 上层：空方力量（绿，按实际时间戳放置在专属列，未触发列透明隐形） -->
-              <div class="axis-row sell-axis">
-                <div class="axis-label sell-label">空方力量</div>
-                <div class="cells-scroll" id="sell-cells-container">
-                  {(payload.timeline || []).map((item) => (
-                    item.type === 'SELL' ? (
-                      <div class="cell-badge sell-sell" data-sell-code={item.code}>
-                        <div class="badge-code">{item.code}</div>
-                        <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
-                      </div>
-                    ) : (
-                      <div style="min-width: 105px; visibility: hidden; pointer-events: none;"></div>
-                    )
-                  ))}
-                </div>
-              </div>
-
-              <!-- 下层：多方力量（红，按实际时间戳放置在专属列，未触发列透明隐形） -->
-              <div class="axis-row buy-axis">
-                <div class="axis-label buy-label">多方力量</div>
-                <div class="cells-scroll" id="buy-cells-container">
-                  {(payload.timeline || []).map((item) => (
-                    item.type === 'BUY' ? (
-                      <div class="cell-badge buy-buy" data-buy-code={item.code}>
-                        <div class="badge-code">{item.code}</div>
-                        <div class="badge-time">{formatTime(item.triggered_at, true, true)}</div>
-                      </div>
-                    ) : (
-                      <div style="min-width: 105px; visibility: hidden; pointer-events: none;"></div>
-                    )
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 下方：AI 卖出预警研判区域 -->
-      <section class="ai-wrapper card" aria-labelledby="ai-title">
-        <div class="ai-head">
-          <span style="font-size: 1.25rem;">⚡</span>
-          <h3 id="ai-title">AI 卖出预警实时研判</h3>
-        </div>
-        <div id="ai-alerts-container">
-          {payload.sell_alerts.length > 0 ? (
-            payload.sell_alerts.map((alert) => (
-              <div class="ai-alert-box">
-                <div class="ai-alert-meta">
-                  <span>触发节点：<strong>{alert.cycle_code} ({alert.timeframe_minutes}分钟)</strong></span>
-                  <span>多头极限位置：<strong>{alert.transmission_position}</strong></span>
-                  <span>今日剩余交易时间：<strong>{alert.remaining_session_minutes}分钟</strong></span>
-                </div>
-                <p class="ai-alert-text">{alert.analysis}</p>
-              </div>
-            ))
-          ) : (
-            <div style="color: #64748b; font-size: 0.88rem; text-align: center; padding: 1.5rem;">
-              当前多头传导有序，暂无空方卖出预警。
-            </div>
-          )}
-        </div>
-      </section>
+      <ARollingAiAlerts alerts={payload.sell_alerts || []} />
     </main>
     <Footer />
 
-    <!-- Shared Edge quote adapter + live poll helper -->
     <QuoteLiveScripts />
     <!-- 客户端后台自动轮询刷新脚本：支持 TradingView Webhook 推送后无缝点亮 -->
     <script is:inline>
@@ -697,10 +212,9 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
         const updateUI = (data) => {
           if (!data) return;
 
-          // 1. 更新顶部元数据
           const pillAsOf = document.getElementById('pill-as-of');
           if (pillAsOf) pillAsOf.textContent = `数据时点：${formatTime(data.data_as_of)}`;
-          
+
           const pillMode = document.getElementById('pill-mode');
           if (pillMode) pillMode.textContent = `模式：${data.mode === 'demo' ? '基准演示' : '实时数据'}`;
 
@@ -712,11 +226,10 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
             liveStatus.style.background = '#f6ffed';
           }
 
-          // 2. 更新 4 列统计条
           if (data.transmission) {
             const elCurrent = document.getElementById('stat-current-code');
             if (elCurrent) elCurrent.textContent = data.transmission.current_cycle_code || '—';
-            
+
             const elLit = document.getElementById('stat-lit-count');
             if (elLit) {
               const litText = `连续点亮 ${data.transmission.lit_count} 格`;
@@ -744,15 +257,13 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
             if (elSummary) elSummary.textContent = `${sellNodes.length} 个`;
           }
 
-          // 3. 更新多头买入节点与空头卖出节点（按接收信号时间升序统一排列，多空上下独占一格，不重叠）
           const buyContainer = document.getElementById('buy-cells-container');
           const sellContainer = document.getElementById('sell-cells-container');
           const rawTimeline = Array.isArray(data.timeline) ? data.timeline : [];
 
-          // 若数据中未提供 timeline，按接收时间从 cycles 和 sell_chain 自动归并
           let timeline = rawTimeline;
           if (timeline.length === 0) {
-            const buyItems = (data.cycles || []).map(c => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at }));
+            const buyItems = (data.cycles || data.buy_cycles || []).map(c => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at }));
             const sellItems = (data.sell_chain?.nodes || []).map(n => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at }));
             timeline = [...buyItems, ...sellItems].sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
           }
@@ -774,7 +285,6 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
             } else {
               timeline.forEach(item => {
                 if (item.type === 'BUY') {
-                  // 多方节点渲染在下层，上层放置透明占位
                   const buyBadge = document.createElement('div');
                   buyBadge.className = 'cell-badge buy-buy';
                   buyBadge.dataset.buyCode = item.code;
@@ -794,7 +304,6 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
                   sellSpacer.style.cssText = 'min-width: 105px; visibility: hidden; pointer-events: none;';
                   sellContainer.appendChild(sellSpacer);
                 } else if (item.type === 'SELL') {
-                  // 空方节点渲染在上层，下层放置透明占位
                   const sellBadge = document.createElement('div');
                   sellBadge.className = `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
                   sellBadge.dataset.sellCode = item.code;
@@ -818,7 +327,6 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
             }
           }
 
-          // 5. 安全更新 AI 分析卡片 (使用 DOM 构建防御 XSS)
           if (Array.isArray(data.sell_alerts)) {
             const container = document.getElementById('ai-alerts-container');
             if (container) {
@@ -928,13 +436,12 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
             const data = await res.json();
             updateUI(data);
           } catch (e) {
-            // 静默失败，保持 DOM 现状
+            // keep DOM
           } finally {
             inFlight = false;
           }
         };
 
-        // 模式切换与记忆
         const tableWrapper = document.getElementById('table-outer-wrapper');
         const toggleBtn = document.getElementById('toggle-view-btn');
         let isCompact = localStorage.getItem('rolling_view_mode') !== 'full';
@@ -982,7 +489,6 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
           });
         }
       })();
-
     </script>
   </body>
 </html>
