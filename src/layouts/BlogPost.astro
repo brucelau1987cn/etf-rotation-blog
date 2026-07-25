@@ -35,7 +35,7 @@ const jsonLd = {
     <BaseHead title={displayTitle} description={readableDescription} type="article" />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <style>
-      main { width: min(1080px, calc(100% - 2rem)); }
+      main { width: var(--shell-width); }
       .hero-image { width: 100%; margin-top: 1rem; }
       .hero-image img { display: block; width: 100%; margin: 0 auto; border-radius: 20px; box-shadow: var(--box-shadow); }
       .title { margin: 1.5rem 0 1.35rem; padding: clamp(1.2rem, 4vw, 2rem); border-radius: 22px; border: 1px solid var(--border); background: linear-gradient(135deg, #fff 0%, var(--warm-2) 64%, var(--accent-soft) 100%); box-shadow: var(--box-shadow); }
@@ -74,7 +74,7 @@ const jsonLd = {
         .sidebar details:not([open]) .disclaimer, .sidebar details:not([open]) .back-top { display: none; }
       }
       @media (max-width: 620px) {
-        main { width: min(100% - 1rem, 1080px); }
+        main { width: var(--shell-width); }
         .title { margin-top: 0.8rem; border-radius: 18px; }
         .title h1 { font-size: clamp(1.8rem, 9vw, 2.35rem); }
         .description { font-size: 0.96rem; }

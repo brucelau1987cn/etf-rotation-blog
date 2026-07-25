@@ -19,7 +19,7 @@ const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) 
   <head>
     <BaseHead title="ETF模拟盘｜前向交易验证" description="A股与美股ETF模拟盘的规则化交易、持仓、净值和前向验证记录。" />
     <style>
-      main{width:min(1120px,calc(100% - 1rem));padding:1rem 0 3rem}.card{border:1px solid var(--border);box-shadow:0 10px 30px rgba(26,36,30,.05)}
+      main{width: var(--shell-width);padding:1rem 0 3rem}.card{border:1px solid var(--border);box-shadow:0 10px 30px rgba(26,36,30,.05)}
       .hero{padding:1.1rem;background:linear-gradient(135deg,#eef7f1,#fffaf1)}h1{margin:.3rem 0}.hero p{margin:.35rem 0}.muted{color:rgb(var(--gray));font-size:.8rem}
       .accounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;margin-top:1rem}.account{padding:1rem}.account-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}.account h2{margin:.1rem 0}.account-head small{color:rgb(var(--gray))}
       .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin:.8rem 0}.metric{padding:.65rem;background:var(--warm-2);border-radius:10px}.metric span{display:block;font-size:.68rem;color:rgb(var(--gray));margin-bottom:.16rem}.metric b{font-size:.94rem}.positive{color:var(--market-up)}.negative{color:var(--market-down)}.neutral{color:rgb(var(--gray))}

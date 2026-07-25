@@ -103,7 +103,7 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
     <BaseHead title={pageTitle} description={pageDescription} />
     <style>
       main {
-        width: min(1180px, calc(100% - 1.5rem));
+        width: var(--shell-width);
         padding: 1rem 0 3rem;
         margin: 0 auto;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -511,7 +511,7 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
 
       @media (max-width: 768px) {
         main {
-          width: min(100% - 1rem, 1180px);
+          width: var(--shell-width);
         }
         .count-strip { grid-template-columns: repeat(2, 1fr); }
       }

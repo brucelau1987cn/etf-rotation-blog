@@ -74,7 +74,7 @@ const countTone = (section: { key: string; tone: string }) => {
   <head>
     <BaseHead title="美股ETF罗盘｜今日动作" description="美股ETF交易仪表盘：优先展示退出、兑现、伏击动作及现价、伏击位、兑现位和防守线。" />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
+      main { width: var(--shell-width); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #f3f8ff, #fff); }
       .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero-copy h1 { margin: .35rem 0; font-size: clamp(1.85rem, 5vw, 2.8rem); }
@@ -202,7 +202,7 @@ const countTone = (section: { key: string; tone: string }) => {
         .signal-grid, .secondary-grid { grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); }
       }
       @media (max-width: 620px) {
-        main { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
+        main { width: var(--shell-width); padding-top: 1rem; }
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }

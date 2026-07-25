@@ -51,7 +51,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       --history-red: var(--action-buy);
       --history-amber: #a46c00;
     }
-    main.history-page { width: min(1180px, calc(100% - 1.5rem)); max-width: none; margin: auto; padding: 1rem 0 3.5rem; }
+    main.history-page { width: var(--shell-width); max-width: none; margin: auto; padding: 1rem 0 3.5rem; }
     .history-page .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--box-shadow); }
     .history-page .history-hero { position: relative; min-height: 343px; box-sizing: border-box; overflow: hidden; padding: clamp(1.1rem, 3vw, 1.7rem); color: #fff; background: linear-gradient(135deg, #122033, #1b304a 65%, #244666); }
     .history-hero::after { content: ''; position: absolute; width: 360px; height: 360px; right: -150px; top: -185px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255,255,255,.025), 0 0 0 110px rgba(255,255,255,.02); }
@@ -157,7 +157,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       .signal-list { padding-left: 125px; }
     }
     @media (max-width: 620px) {
-      main.history-page { width: min(100% - 1rem, 1180px); padding-top: 1rem; }
+      main.history-page { width: var(--shell-width); padding-top: 1rem; }
       .history-page .history-hero { min-height: 0; padding: 1rem; }
       .hero-copy h1 { font-size: 2rem; }
       .hero-meta span:nth-child(2) { display: none; }

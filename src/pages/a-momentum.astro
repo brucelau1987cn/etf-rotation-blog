@@ -13,7 +13,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
   <head>
     <BaseHead title={title} description={description} />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
+      main { width: var(--shell-width); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
       .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); letter-spacing: -.045em; }
@@ -116,7 +116,7 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
       .status-line { margin: .2rem 0 0; color: rgb(var(--gray)); font-size: .78rem; }
       .error { color: #b42318; font-weight: 800; }
       @media (max-width: 980px) { .hero-top { display: grid; } .meta-line { justify-content: flex-start; flex-wrap: wrap; max-width: none; } .toolbar { grid-template-columns: repeat(3,minmax(0,1fr)); } .side-stack { grid-template-columns: 1fr; } }
-      @media (max-width: 720px) { main { width: min(100% - 1rem,1180px); } .dashboard-hero { padding: .85rem; } .count-strip { grid-template-columns: repeat(2,minmax(0,1fr)); gap: .4rem; } .decision-grid { grid-template-columns: 1fr; } .decision-box.mainline { grid-column: auto; } .toolbar { grid-template-columns: repeat(2,minmax(0,1fr)); } .table-wrap { display: none; } .mobile-pool { display: grid; } .page-numbers { display: none; } .section-head p { display: none; } }
+      @media (max-width: 720px) { main { width: var(--shell-width); } .dashboard-hero { padding: .85rem; } .count-strip { grid-template-columns: repeat(2,minmax(0,1fr)); gap: .4rem; } .decision-grid { grid-template-columns: 1fr; } .decision-box.mainline { grid-column: auto; } .toolbar { grid-template-columns: repeat(2,minmax(0,1fr)); } .table-wrap { display: none; } .mobile-pool { display: grid; } .page-numbers { display: none; } .section-head p { display: none; } }
       @media (max-width: 520px) { .toolbar,.rec-list { grid-template-columns: 1fr; } .count { min-height: 3.8rem; padding: .58rem; } .count strong { font-size: 1.2rem; } .hero-copy h1 { font-size: 1.8rem; } .side-stack { display: grid; } }
     </style>
     <style is:global>

@@ -61,7 +61,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
   <head>
     <BaseHead title={SITE_TITLE} description="ETF罗盘双市场今日仪表盘：集中展示A股与美股市场结论、仓位建议、趋势风控、宏观风险和优先动作。" />
     <style>
-      main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem}
+      main{width: var(--shell-width);padding:1rem 0 3rem}
       .dashboard-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border)}
       .dashboard-head h1{margin:.25rem 0;font-size:clamp(1.8rem,4.5vw,2.75rem)}
       .dashboard-head p{margin:0;color:rgb(var(--gray));max-width:620px;line-height:1.55}
@@ -118,7 +118,7 @@ const aLevelBaseline = garden.level_data_as_of || '';
       .market-links a{flex:1 1 30%;text-align:center;padding:.5rem .55rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;font-weight:850;text-decoration:none;white-space:nowrap}
       @media(max-width:960px){.markets{grid-template-columns:1fr}.dashboard-head{align-items:flex-start}.dates{grid-template-columns:1fr}}
       @media(max-width:620px){
-        main{width:min(100% - 1rem,1180px);padding-top:.55rem}
+        main{width: var(--shell-width);padding-top:.55rem}
         .dashboard-head{display:block}
         .dashboard-head p{font-size:.82rem}
         .dates{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.65rem}

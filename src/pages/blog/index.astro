@@ -31,7 +31,7 @@ const shortTitle = (title: string) => title
   <head>
     <BaseHead title={`A股ETF复盘 | ${SITE_TITLE}`} description={`A股ETF复盘：${SITE_DESCRIPTION}`} />
     <style>
-      main { width: min(1180px, calc(100% - 1.5rem)); padding: 1rem 0 3rem; }
+      main { width: var(--shell-width); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
       .hero-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); letter-spacing: -.045em; }
@@ -87,7 +87,7 @@ const shortTitle = (title: string) => title
       .archive-row a:hover { color: var(--accent-dark); }
       .archive-row .stage { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: .2rem .48rem; background: var(--warm-2); border: 1px solid var(--border); color: rgb(var(--gray-dark)); font-size: .68rem; font-weight: 800; }
       @media (max-width: 820px) { .hero-top,.latest-card { display: grid; grid-template-columns: 1fr; } .meta-line { justify-content: flex-start; max-width: none; } .latest-side { border-left: 0; border-top: 1px solid var(--border); } .recent-grid { grid-template-columns: 1fr; } }
-      @media (max-width: 620px) { main { width: min(100% - 1rem,1180px); } .dashboard-hero { padding: .85rem; } .count-strip { grid-template-columns: repeat(2,minmax(0,1fr)); } .count:last-child { grid-column: 1/-1; } .recent-card { grid-template-columns: 5.4rem minmax(0,1fr); } .archive-row { grid-template-columns: 4.8rem minmax(0,1fr); } .archive-row .stage { display: none; } .section-head p { display: none; } }
+      @media (max-width: 620px) { main { width: var(--shell-width); } .dashboard-hero { padding: .85rem; } .count-strip { grid-template-columns: repeat(2,minmax(0,1fr)); } .count:last-child { grid-column: 1/-1; } .recent-card { grid-template-columns: 5.4rem minmax(0,1fr); } .archive-row { grid-template-columns: 4.8rem minmax(0,1fr); } .archive-row .stage { display: none; } .section-head p { display: none; } }
     </style>
   </head>
   <body>
