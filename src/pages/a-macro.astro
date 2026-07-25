@@ -5,7 +5,6 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
-import MarketClock from '../components/MarketClock.astro';
 
 const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/a-share-mid-macro.json'), 'utf-8'));
 const constraint = data.constraint || {};
@@ -64,7 +63,7 @@ const levelCopy = [
   <style>
     :root{--m-ink:#182235;--m-muted:#687386;--m-line:#dfe4ea;--m-panel:#f7f8fa;--m-navy:#17243a;--m-blue:#335f8a;--m-risk:#a9473f;--m-risk-soft:#fbf2f0;--m-support:#2f7055;--m-support-soft:#eef7f2;--m-warn:#8a681f;--m-warn-soft:#faf6e9}
     main{width:min(1180px,calc(100% - 1.5rem));padding:1rem 0 3rem;color:var(--m-ink)}
-    .macro-hero{padding:clamp(1rem,3vw,1.55rem);background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%);border-color:#d9dfe6}.hero-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,1fr);gap:1rem;align-items:start}.hero-copy{min-width:0}.eyebrow,.section-kicker{display:block;color:var(--m-blue);font-size:.69rem;font-weight:900;letter-spacing:.12em}.hero-row h1{margin:.35rem 0 .45rem;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.045em;text-wrap:balance}.hero-row p{max-width:68ch;margin:0;color:var(--m-muted);font-size:.93rem;line-height:1.7}.meta-line{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.35rem;max-width:none}.meta-line :global(.market-clock){width:100%;flex-basis:100%;margin-top:.1rem}.meta-line .pill{white-space:nowrap}.live-pill{background:#edf9f1;color:#137547;border-color:rgba(19,117,71,.16)}
+    .macro-hero{padding:clamp(1rem,3vw,1.55rem);background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%);border-color:#d9dfe6}.hero-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,1fr);gap:1rem;align-items:start}.hero-copy{min-width:0}.eyebrow,.section-kicker{display:block;color:var(--m-blue);font-size:.69rem;font-weight:900;letter-spacing:.12em}.hero-row h1{margin:.35rem 0 .45rem;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.045em;text-wrap:balance}.hero-row p{max-width:68ch;margin:0;color:var(--m-muted);font-size:.93rem;line-height:1.7}.meta-line{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.35rem;max-width:none;align-content:start}.meta-line .pill{white-space:nowrap}.live-pill{background:#edf9f1;color:#137547;border-color:rgba(19,117,71,.16)}
     .gate{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,.42fr);gap:1rem;margin-top:1rem;padding:1rem 1.05rem;border-radius:17px;background:var(--m-navy);color:#fff}.gate-label{display:flex;align-items:center;gap:.55rem;color:#b9c6d7;font-size:.68rem;font-weight:850;letter-spacing:.08em}.gate-dot{width:.58rem;height:.58rem;border-radius:50%;background:#d97a6c;box-shadow:0 0 0 5px rgba(217,122,108,.12)}.gate h2{margin:.4rem 0 .3rem;color:#fff;font-size:clamp(1.15rem,3vw,1.45rem)}.gate p{margin:0;color:#d4dce7;font-size:.82rem;line-height:1.55}.allocation{display:grid;align-content:center;padding:.75rem .85rem;border:1px solid rgba(255,255,255,.14);border-radius:13px;background:rgba(255,255,255,.07)}.allocation span{color:#b9c6d7;font-size:.68rem}.allocation strong{margin-top:.2rem;color:#fff;font-size:.94rem;line-height:1.45}
     .scope-note{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:start;margin-top:.75rem;padding:.72rem .82rem;border:1px solid #eadfc6;border-radius:12px;background:#fffaf0;color:#655735;font-size:.78rem;line-height:1.55}.scope-note b{white-space:nowrap}.legend-note{margin-top:.45rem;color:#66583a;font-size:.72rem}
     .section-head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin:1.55rem 0 .72rem}.section-head h2{margin:.2rem 0 0;font-size:1.45rem;letter-spacing:-.025em}.section-head p{max-width:46ch;margin:0;color:var(--m-muted);font-size:.78rem;text-align:right;line-height:1.5}
@@ -93,7 +92,6 @@ const levelCopy = [
           <span class="pill">市场：A股 · {timezoneLabel}</span>
           <span class="pill">{modelVersion}</span>
           <span class="pill live-pill" role="status" aria-live="polite">日度闸门 {liveGateReady}/{liveGateCount || 3}</span>
-          <MarketClock market="a-share" />
         </div>
       </div>
       <section class="gate" aria-label="当前宏观风险闸门">
