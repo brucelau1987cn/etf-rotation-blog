@@ -1,0 +1,171 @@
+/* Shared A-share / US compass dashboard primitives.
+ * Pages can keep page-specific hero layouts; prefer these class names for new sections.
+ */
+
+.count-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .55rem;
+  margin-top: 1rem;
+}
+
+.count {
+  padding: .75rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  min-height: 4.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.count span {
+  display: block;
+  color: rgb(var(--gray));
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.count strong {
+  font-size: 1.55rem;
+  line-height: 1;
+  margin-top: .35rem;
+}
+
+.count.harvest {
+  background: linear-gradient(180deg, #f3fbf6, #fff);
+  border-color: rgba(31,122,78,.16);
+}
+
+.count.plant {
+  background: linear-gradient(180deg, #fff7f5, #fff);
+  border-color: rgba(214,61,46,.14);
+}
+
+.count.harvest strong { color: var(--green); }
+.count.plant strong { color: var(--accent); }
+
+.count .count-note {
+  margin-top: .28rem;
+  font-size: .68rem;
+  color: rgb(var(--gray));
+  font-weight: 700;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: .8rem;
+  margin: 1.5rem 0 .7rem;
+}
+
+.section-head h2 { margin: .25rem 0 0; }
+.section-head p {
+  margin: 0;
+  color: rgb(var(--gray));
+  font-size: .84rem;
+}
+
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: .75rem;
+}
+
+.signal-card {
+  position: relative;
+  overflow: hidden;
+  padding: .9rem;
+  border-left: 5px solid var(--accent);
+  min-width: 0;
+}
+
+.signal-card.harvest { border-left-color: var(--green); }
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .55rem;
+}
+
+.identity { min-width: 0; }
+.identity code {
+  font-size: .9rem;
+  font-weight: 900;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.identity h3 {
+  margin: .12rem 0 0;
+  font-size: 1rem;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.live-pill::before {
+  content: '';
+  width: .5rem;
+  height: .5rem;
+  border-radius: 50%;
+  background: #b7791f;
+  box-shadow: 0 0 0 3px rgba(183,121,31,.12);
+}
+
+.live-pill.online::before {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(31,122,78,.14);
+}
+
+.live-pill.error::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(214,61,46,.14);
+}
+
+.live-price { transition: color .2s ease; }
+.live-price.updated { color: #1d4f91; }
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  margin: .72rem 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.level {
+  padding: .55rem .38rem;
+  text-align: center;
+  background: var(--warm-2);
+  border-right: 1px solid var(--border);
+}
+
+.level:last-child { border: 0; }
+.level.active { background: var(--accent-soft); }
+.harvest .level.active { background: var(--green-soft); }
+.level span {
+  display: block;
+  font-size: .66rem;
+  color: rgb(var(--gray));
+  white-space: nowrap;
+}
+.level b { font-size: .9rem; }
+
+@media (max-width: 900px) {
+  .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .count-strip { grid-template-columns: 1fr 1fr; }
+  .section-head { align-items: flex-start; }
+  .level-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}

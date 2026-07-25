@@ -79,10 +79,13 @@ check_page "/futures-compass/" \
   "nf_AU0" \
   "/data/futures-compass.json"
 
-# us-compass ships quote path inside hashed /_astro module; probe stable HTML markers.
+# us-compass uses shared IIFE adapter + live status markers.
 check_page "/us-compass/" \
   "us-live-status" \
-  "data-us-live-card"
+  "data-us-live-card" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
+  "/api/public/v1/quote"
 
 quote_json="$(fetch "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}")"
 if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
