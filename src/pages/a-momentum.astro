@@ -200,10 +200,13 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
     </main>
     <Footer />
 
+    <script is:inline src="/js/normalize-quote-payload.js"></script>
     <script is:inline>
       const DATA_URL = '/data/a-compass-dashboard.json';
-      const LIVE_URL = 'https://etf-live.peekabo.cc/api/etf-garden/live';
+      const EDGE_QUOTE_URL = '/api/public/v1/quote';
+      const LEGACY_LIVE_URL = 'https://etf-live.peekabo.cc/api/etf-garden/live';
       const $ = (id) => document.getElementById(id);
+      const adapter = window.EtfQuote || null;
       let payload = null;
       let rawRows = [];
       let livePayload = null;
@@ -400,13 +403,58 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
         document.querySelector('.data-details').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       }
       async function loadLive() {
-        if (!payload || liveLoading) return;
+        if (!payload || liveLoading || document.hidden) return;
         liveLoading = true;
         try {
-          livePayload = await fetch(LIVE_URL).then(r => {
+          const codes = [...new Set((rawRows || []).map((row) => row.code).filter(Boolean))];
+          if (codes.length && adapter?.aShareSymbolsParam && adapter?.normalizeQuotePayload) {
+            // Edge caps batch size; chunk to stay under 50 symbols per request.
+            const chunkSize = 45;
+            const items = [];
+            let source = 'Cloudflare-Edge';
+            let generatedAt = null;
+            for (let i = 0; i < codes.length; i += chunkSize) {
+              const chunk = codes.slice(i, i + chunkSize);
+              const symbols = adapter.aShareSymbolsParam(chunk);
+              const res = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
+              if (!res.ok) throw new Error(`Edge HTTP ${res.status}`);
+              const normalized = adapter.normalizeQuotePayload(await res.json());
+              if (!normalized.ok || !normalized.items.length) continue;
+              source = normalized.source || source;
+              generatedAt = normalized.generated_at || generatedAt;
+              for (const item of normalized.items) {
+                items.push({
+                  code: item.code || item.symbol,
+                  price: item.price,
+                  prev_close: item.prev_close,
+                  change_pct: item.change_pct ?? item.change_percent,
+                  high: item.high,
+                  low: item.low,
+                  source: item.source || source,
+                });
+              }
+            }
+            if (items.length) {
+              livePayload = {
+                ok: true,
+                generated_at: generatedAt || new Date().toISOString(),
+                source,
+                items,
+              };
+              render();
+              return;
+            }
+          }
+
+          // Legacy fallback when adapter/chunk path is empty.
+          livePayload = await fetch(LEGACY_LIVE_URL).then((r) => {
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             return r.json();
           });
+          if (adapter?.normalizeQuotePayload) {
+            const normalized = adapter.normalizeQuotePayload(livePayload);
+            if (normalized.ok) livePayload = normalized;
+          }
           render();
         } catch (err) {
           $('status-line').innerHTML = `<span class="error">实时行情暂时不可用：${err.message}；已保留最新静态快照。</span>`;
@@ -427,7 +475,12 @@ const description = 'A股趋势风控雷达：通过ETF罗盘91池的趋势强�
           rawRows = payload.all_rows || [...(payload.core_pool || []), ...(payload.watch_pool || [])];
           render();
           void loadLive();
-          if (!liveTimer) liveTimer = setInterval(loadLive, 60000);
+          if (!liveTimer) {
+            liveTimer = setInterval(loadLive, 60000);
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) void loadLive();
+            });
+          }
         } catch (err) {
           $('status-line').innerHTML = `<span class="error">加载失败：${err.message}</span>`;
           $('etf-body').innerHTML = `<tr><td colspan="10">91池加载失败，请稍后刷新。</td></tr>`;

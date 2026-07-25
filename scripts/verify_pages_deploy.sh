@@ -40,6 +40,11 @@ check_page "/" \
   "normalize-quote-payload.js" \
   "EtfQuote"
 
+check_page "/a-momentum/" \
+  "normalize-quote-payload.js" \
+  "EtfQuote" \
+  "/api/public/v1/quote"
+
 # us-compass ships adapter as hashed /_astro module; probe API path + live status id.
 check_page "/us-compass/" \
   "us-live-status" \

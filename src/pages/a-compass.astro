@@ -494,6 +494,9 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
 
       void loadLive();
       window.setInterval(loadLive, 30_000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) void loadLive();
+      });
     </script>
   </body>
 </html>

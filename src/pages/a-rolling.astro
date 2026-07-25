@@ -965,6 +965,12 @@ const pageDescription = 'A股滚动多空能量传导终端，展示买方力量
 
         setInterval(fetchLatestSignals, 30000);
         setInterval(fetchStockQuote, 15000);
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) {
+            void fetchLatestSignals();
+            void fetchStockQuote();
+          }
+        });
       })();
 
     </script>
