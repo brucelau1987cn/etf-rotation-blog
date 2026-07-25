@@ -45,10 +45,10 @@ check_page "/a-momentum/" \
   "EtfQuote" \
   "/api/public/v1/quote"
 
-# us-compass ships adapter as hashed /_astro module; probe API path + live status id.
+# us-compass ships quote path inside hashed /_astro module; probe stable HTML markers.
 check_page "/us-compass/" \
   "us-live-status" \
-  "/api/public/v1/quote"
+  "data-us-live-card"
 
 quote_json="$(curl -fsSL "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}")"
 if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
