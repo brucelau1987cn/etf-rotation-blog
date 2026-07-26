@@ -171,21 +171,25 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         flex: 0 0 auto;
         white-space: nowrap;
       }
-      /* Title + clock share the next row. */
+      /* Title + clock share the next row.
+         Clock width aligns with the last 2 of 5 count cards
+         (正式伏击 + 候场). */
       .hero-main {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(18rem, 34rem);
-        gap: .75rem 1rem;
+        /* 3/5 title + 2/5 clock, same .55rem gap as count-strip */
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: .55rem;
         align-items: center;
       }
       .hero-clock {
         min-width: 0;
-        justify-self: end;
-        width: min(100%, 34rem);
+        width: 100%;
+        justify-self: stretch;
       }
       .hero-clock :global(.market-clock) {
         width: 100%;
         max-width: 100%;
+        min-width: 0;
       }
       .count-strip {
         display: grid;
@@ -252,10 +256,11 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-factor em { display: block; margin-top: .18rem; font-style: normal; color: rgb(var(--gray-dark)); font-size: .72rem; line-height: 1.4; }
       .macro-hint { color: rgb(var(--gray)); font-size: .72rem; }
       @media (max-width: 940px) {
-        .hero-main { grid-template-columns: 1fr; gap: .8rem; }
-        .hero-clock { justify-self: stretch; width: 100%; }
-        .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .macro-factors { grid-template-columns: 1fr; }
+              .hero-main { grid-template-columns: 1fr; gap: .8rem; }
+              .hero-clock { justify-self: stretch; width: 100%; }
+              .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+              .macro-factors { grid-template-columns: 1fr; }
+            }
       }
       @media (max-width: 620px) {
         main { width: var(--shell-width); padding-top: 1rem; }
