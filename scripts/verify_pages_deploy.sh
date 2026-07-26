@@ -230,9 +230,12 @@ check_page "/lab/" \
   "kronos-content"
 
 quote_ok=0
+quote_headers=""
 attempt=1
 while (( attempt <= RETRIES )); do
   quote_json="$(fetch "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}" || true)"
+  quote_headers="$(curl -fsSIL -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' \
+    "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}" 2>/dev/null || true)"
   if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
     quote_ok=1
     break
@@ -246,6 +249,59 @@ if (( quote_ok == 1 )); then
 else
   echo "FAIL quote API response: ${quote_json:0:200}"
   fail=1
+fi
+
+# Prefer GET for Functions header reliability; fall back to prior HEAD dump.
+quote_hdr_body="$(curl -fsSI -X GET -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' \
+  -D - -o /dev/null "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}" 2>/dev/null || true)"
+if [[ -z "$quote_hdr_body" ]]; then
+  quote_hdr_body="$quote_headers"
+fi
+quote_hdr_lower="$(printf '%s' "$quote_hdr_body" | tr '[:upper:]' '[:lower:]')"
+
+if printf '%s' "$quote_hdr_lower" | grep -Eq 'x-quote-cache:[[:space:]]*(hit|miss|bypass)'; then
+  echo "OK  quote header x-quote-cache present"
+else
+  echo "FAIL quote header x-quote-cache missing"
+  printf '%s\n' "$quote_hdr_body" | sed -n '1,25p'
+  fail=1
+fi
+
+ttl_line="$(printf '%s' "$quote_hdr_lower" | grep -E 'x-quote-cache-ttl-ms:' | head -n1 || true)"
+ttl_ms="$(printf '%s' "$ttl_line" | sed -E 's/.*x-quote-cache-ttl-ms:[[:space:]]*([0-9]+).*/\1/' | tr -cd '0-9')"
+if [[ -n "$ttl_ms" ]] && (( ttl_ms >= 1000 && ttl_ms <= 120000 )); then
+  echo "OK  quote header x-quote-cache-ttl-ms=${ttl_ms}"
+else
+  echo "FAIL quote header x-quote-cache-ttl-ms invalid: ${ttl_line:-missing}"
+  fail=1
+fi
+
+session_line="$(printf '%s' "$quote_hdr_lower" | grep -E 'x-quote-cache-session:' | head -n1 || true)"
+session_val="$(printf '%s' "$session_line" | sed -E 's/.*x-quote-cache-session:[[:space:]]*([a-z_]+).*/\1/' | tr -cd 'a-z_')"
+case "$session_val" in
+  open_cn|open_us|open_overlap|closed|weekend)
+    echo "OK  quote header x-quote-cache-session=${session_val}"
+    ;;
+  *)
+    echo "FAIL quote header x-quote-cache-session invalid: ${session_line:-missing}"
+    fail=1
+    ;;
+esac
+
+if [[ -n "$session_val" && -n "$ttl_ms" ]]; then
+  expected_min=4000
+  expected_max=4000
+  case "$session_val" in
+    open_cn|open_us|open_overlap) expected_min=4000; expected_max=4000 ;;
+    closed) expected_min=30000; expected_max=30000 ;;
+    weekend) expected_min=60000; expected_max=60000 ;;
+  esac
+  if (( ttl_ms >= expected_min && ttl_ms <= expected_max )); then
+    echo "OK  quote session/TTL policy match (${session_val}/${ttl_ms})"
+  else
+    echo "FAIL quote session/TTL mismatch: session=${session_val} ttl=${ttl_ms} expected=${expected_min}"
+    fail=1
+  fi
 fi
 
 if [[ "$fail" -ne 0 ]]; then

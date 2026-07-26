@@ -244,12 +244,22 @@ BASE_URL=https://etf.peekabo.cc bash scripts/verify_pages_deploy.sh
 
 ### 6.4 Quote API 抽样
 
-探针会请求 `/api/public/v1/quote`，要求 `status=ok`。
+探针会请求 `/api/public/v1/quote`，并校验：
+
+1. body：`status=ok`
+2. 响应头：
+   - `x-quote-cache` ∈ `HIT|MISS|BYPASS`
+   - `x-quote-cache-session` ∈ `open_cn|open_us|open_overlap|closed|weekend`
+   - `x-quote-cache-ttl-ms` 与 session 策略一致：
+     - open* = `4000`
+     - closed = `30000`
+     - weekend = `60000`
 
 手工复核缓存时可看：
 
 ```sh
-curl -sI 'https://etf.peekabo.cc/api/public/v1/quote?symbols=600021&exchange=SSE' | rg -i 'x-quote-cache|x-quote-source|cache-control'
+curl -sI -X GET 'https://etf.peekabo.cc/api/public/v1/quote?symbols=600021&exchange=SSE' \
+  | rg -i 'x-quote-cache|x-quote-source|cache-control'
 # 连打 2~3 次，期望出现 HIT + layer=edge|memory
 ```
 
