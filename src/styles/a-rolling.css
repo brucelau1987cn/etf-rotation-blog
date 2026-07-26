@@ -181,6 +181,23 @@
 .a-rolling-main .dot-green { background: #52c41a; }
 .a-rolling-main .dot-gray { background: #d9d9d9; }
 
+.a-rolling-main .matrix-sub {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.a-rolling-main .board-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.a-rolling-main .instrument-board {
+  margin: 0;
+}
+
 .a-rolling-main .table-outer {
   width: 100%;
   overflow-x: auto;
@@ -192,66 +209,64 @@
 
 .a-rolling-main .table-grid {
   display: flex;
-  min-width: 1160px;
+  min-width: 980px;
 }
 
 .a-rolling-main .stock-sticky {
   position: sticky;
   left: 0;
-  width: 148px;
+  width: 132px;
   background: #ffffff;
   border-right: 1px solid #cbd5e1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1rem 0.55rem;
+  padding: 0.85rem 0.5rem;
   flex-shrink: 0;
   z-index: 10;
   box-shadow: 2px 0 4px rgba(0,0,0,0.04);
-  gap: 0.2rem;
-}
-
-.a-rolling-main .instrument-switch {
-  width: 100%;
-  display: grid;
   gap: 0.18rem;
-  margin-bottom: 0.25rem;
-}
-
-.a-rolling-main .instrument-switch-label {
-  font-size: 0.62rem;
-  font-weight: 850;
-  color: #64748b;
-  text-align: left;
-}
-
-.a-rolling-main .instrument-switch select {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  color: #0f172a;
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 0.28rem 0.3rem;
 }
 
 .a-rolling-main .stock-name-title {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0f172a;
+  text-align: center;
 }
 
 .a-rolling-main .stock-code-tag {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   background: #f1f5f9;
   color: #475569;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  margin-top: 0.25rem;
-  font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.a-rolling-main .stock-price-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+}
+
+.a-rolling-main .stock-signal-meta {
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.a-rolling-main .empty-rail {
+  min-width: 140px;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #fff;
 }
 
 .a-rolling-main .signals-axis {
@@ -263,7 +278,7 @@
 .a-rolling-main .axis-row {
   display: flex;
   align-items: center;
-  min-height: 76px;
+  min-height: 72px;
 }
 
 .a-rolling-main .axis-row.sell-axis {
@@ -274,10 +289,10 @@
 .a-rolling-main .axis-row.buy-axis { background: #ffffff; }
 
 .a-rolling-main .axis-label {
-  width: 90px;
-  padding-left: 0.8rem;
-  font-size: 0.8rem;
-  font-weight: 800;
+  width: 72px;
+  padding-left: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 850;
   flex-shrink: 0;
 }
 
@@ -286,8 +301,10 @@
 
 .a-rolling-main .cells-scroll {
   display: flex;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.55rem 0.7rem 0.55rem 0.2rem;
+  align-items: center;
   flex: 1;
 }
 
