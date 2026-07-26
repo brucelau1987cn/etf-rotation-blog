@@ -5,7 +5,8 @@
  * Observation dots:
  *  - buy: red, lit by 1.75h / 105m
  *  - sell: green, lit by 10m
- * Formal buy cells: 2h → 8h (observation excluded from rail badges)
+ * Formal rails:
+ *  - buy / sell each show the latest 4 formal windows only (max 8 badges)
  */
 (function() {
   const { normalizeQuotePayload, findQuoteItem } = window.EtfQuote || {};
@@ -16,6 +17,7 @@
 
   const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
   const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+  const MAX_FORMAL_PER_SIDE = 4;
   const INSTRUMENTS = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
     { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
@@ -55,6 +57,17 @@
   const isBuyObservation = (code) => code === '1.75h' || code === '105m';
   const isSellObservation = (code) => code === '10m';
 
+  /** Higher cycle rank is treated as the newer display window. */
+  const takeLatestFormal = (items, orderIndex, limit = MAX_FORMAL_PER_SIDE) => {
+    const sorted = items.slice().sort((a, b) => {
+      const oa = orderIndex(a.code);
+      const ob = orderIndex(b.code);
+      if (oa !== ob) return oa - ob;
+      return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+    });
+    return sorted.slice(Math.max(0, sorted.length - limit));
+  };
+
   const normalizeTimeline = (data) => {
     let timeline = Array.isArray(data?.timeline) ? data.timeline.slice() : [];
     if (timeline.length === 0) {
@@ -76,25 +89,19 @@
     const buyObservation = timeline.find(item => item && item.type === 'BUY' && isBuyObservation(item.code)) || null;
     const sellObservation = timeline.find(item => item && item.type === 'SELL' && isSellObservation(item.code)) || null;
 
-    const buys = timeline
-      .filter(item => item && item.type === 'BUY' && !isBuyObservation(item.code))
-      .sort((a, b) => {
-        const oa = buyOrderIndex(a.code);
-        const ob = buyOrderIndex(b.code);
-        if (oa !== ob) return oa - ob;
-        return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
-      });
+    const allBuys = timeline.filter(item => item && item.type === 'BUY' && !isBuyObservation(item.code));
+    const allSells = timeline.filter(item => item && item.type === 'SELL' && !isSellObservation(item.code));
+    const buys = takeLatestFormal(allBuys, buyOrderIndex);
+    const sells = takeLatestFormal(allSells, sellOrderIndex);
 
-    const sells = timeline
-      .filter(item => item && item.type === 'SELL' && !isSellObservation(item.code))
-      .sort((a, b) => {
-        const oa = sellOrderIndex(a.code);
-        const ob = sellOrderIndex(b.code);
-        if (oa !== ob) return oa - ob;
-        return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
-      });
-
-    return { buys, sells, buyObservation, sellObservation };
+    return {
+      buys,
+      sells,
+      buyObservation,
+      sellObservation,
+      buyTotal: allBuys.length,
+      sellTotal: allSells.length,
+    };
   };
 
   const setWatchDot = (el, lit, titleLit, titleOff) => {
@@ -171,14 +178,14 @@
     if (nameEl && data.instrument?.instrument_name) nameEl.textContent = data.instrument.instrument_name;
     if (symbolEl && data.instrument?.symbol) symbolEl.textContent = data.instrument.symbol;
 
-    const { buys, sells, buyObservation, sellObservation } = normalizeTimeline(data);
+    const { buys, sells, buyObservation, sellObservation, buyTotal, sellTotal } = normalizeTimeline(data);
     renderCells(
       board.querySelector('[data-role="buy-cells"]'),
       board.querySelector('[data-role="sell-cells"]'),
       buys,
       sells
     );
-    if (metaEl) metaEl.textContent = `买 ${buys.length} · 卖 ${sells.length}`;
+    if (metaEl) metaEl.textContent = `买 ${buyTotal} · 卖 ${sellTotal}`;
 
     setWatchDot(
       board.querySelector('[data-role="buy-watch-dot"]'),

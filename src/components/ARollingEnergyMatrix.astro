@@ -5,6 +5,9 @@
  *  - left stock panel is fixed (never pans)
  *  - right signal panel scrolls horizontally
  *  - formal sell cells follow buy cells on the right
+ * Display cap:
+ *  - formal buy rail: latest 4 windows only
+ *  - formal sell rail: latest 4 windows only
  * Observation dots:
  *  - buy rail: red, lit by 1.75h (105m)
  *  - sell rail: green, lit by 10m
@@ -33,6 +36,7 @@ const { instruments = [], formatTime } = Astro.props;
 
 const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
 const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+const MAX_FORMAL_PER_SIDE = 4;
 
 const buyOrderIndex = (code: string) => {
   const i = FORMAL_BUY_ORDER.indexOf(code);
@@ -47,26 +51,36 @@ const sellOrderIndex = (code: string) => {
 const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
 const isSellObservation = (code: string) => code === '10m';
 
+/** Keep the most advanced formal windows (higher cycle rank = newer display). */
+const takeLatestFormal = <T extends TimelineItem>(
+  items: T[],
+  orderIndex: (code: string) => number,
+  limit = MAX_FORMAL_PER_SIDE,
+) => {
+  const sorted = items.slice().sort((a, b) => {
+    const oa = orderIndex(a.code);
+    const ob = orderIndex(b.code);
+    if (oa !== ob) return oa - ob;
+    return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+  });
+  return sorted.slice(Math.max(0, sorted.length - limit));
+};
+
 const splitTimeline = (timeline: TimelineItem[] = []) => {
   const buyObservation = timeline.find((item) => item.type === 'BUY' && isBuyObservation(item.code)) || null;
   const sellObservation = timeline.find((item) => item.type === 'SELL' && isSellObservation(item.code)) || null;
-  const buys = timeline
-    .filter((item) => item.type === 'BUY' && !isBuyObservation(item.code))
-    .sort((a, b) => {
-      const oa = buyOrderIndex(a.code);
-      const ob = buyOrderIndex(b.code);
-      if (oa !== ob) return oa - ob;
-      return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
-    });
-  const sells = timeline
-    .filter((item) => item.type === 'SELL' && !isSellObservation(item.code))
-    .sort((a, b) => {
-      const oa = sellOrderIndex(a.code);
-      const ob = sellOrderIndex(b.code);
-      if (oa !== ob) return oa - ob;
-      return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
-    });
-  return { buys, sells, buyObservation, sellObservation };
+  const allBuys = timeline.filter((item) => item.type === 'BUY' && !isBuyObservation(item.code));
+  const allSells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
+  const buys = takeLatestFormal(allBuys, buyOrderIndex);
+  const sells = takeLatestFormal(allSells, sellOrderIndex);
+  return {
+    buys,
+    sells,
+    buyObservation,
+    sellObservation,
+    buyTotal: allBuys.length,
+    sellTotal: allSells.length,
+  };
 };
 ---
 <section class="matrix-section card" aria-labelledby="matrix-title">
@@ -74,7 +88,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
     <div class="section-head-title">
       <h2 id="matrix-title">多标的双向能量传导</h2>
       <p class="matrix-sub">
-        正式多方窗口：2h → 8h（按标的实际触发显示）。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定；超过 4 个标的时看板上下滑动。
+        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定；超过 4 个标的时看板上下滑动。
       </p>
     </div>
     <div class="matrix-controls">
@@ -88,7 +102,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
 
   <div class="board-list" id="rolling-board-list">
     {instruments.map((inst) => {
-      const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
+      const { buys, sells, buyObservation, sellObservation, buyTotal, sellTotal } = splitTimeline(inst.timeline || []);
       return (
         <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
           <div class="board-row">
@@ -97,7 +111,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
               <div class="stock-code-tag" data-role="inst-symbol">{inst.symbol}</div>
               <div class="stock-price-tag" data-role="quote" data-symbol={inst.symbol}>加载行情...</div>
               <div class="stock-signal-meta" data-role="signal-meta">
-                买 {buys.length} · 卖 {sells.length}
+                买 {buyTotal} · 卖 {sellTotal}
               </div>
             </div>
 
