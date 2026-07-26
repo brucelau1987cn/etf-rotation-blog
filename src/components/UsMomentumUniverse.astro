@@ -1,0 +1,86 @@
+---
+/**
+ * Full US ETF universe filters + table + mobile cards + pager.
+ */
+---
+<div class="section-head" id="universe-section">
+  <div>
+    <span class="kicker">FULL UNIVERSE</span>
+    <h2>完整<span id="universe-pool-size">ETF</span>池</h2>
+  </div>
+  <b id="count">—</b>
+</div>
+<section class="toolbar card">
+  <label>资产类型
+    <select id="type">
+      <option value="全部">全部</option>
+      <option>宽基</option>
+      <option>行业</option>
+      <option>主题</option>
+      <option>因子</option>
+      <option>海外</option>
+      <option>债券</option>
+      <option>商品</option>
+      <option>加密资产</option>
+      <option>现金</option>
+      <option>宏观</option>
+    </select>
+  </label>
+  <label>交易状态
+    <select id="state">
+      <option value="全部">全部</option>
+      <option>可持有</option>
+      <option>回踩候选</option>
+      <option>禁止追高</option>
+      <option>观察</option>
+      <option>退出</option>
+    </select>
+  </label>
+  <label>排序
+    <select id="sort">
+      <option value="trend_score">趋势评分</option>
+      <option value="relative_spy20">相对SPY</option>
+      <option value="ret20">20日收益</option>
+      <option value="trading_risk_score">交易风险</option>
+    </select>
+  </label>
+  <label>每页
+    <select id="page-size">
+      <option value="10">10只</option>
+      <option value="20">20只</option>
+      <option value="all">全部</option>
+    </select>
+  </label>
+  <label class="check"><input id="pass-only" type="checkbox" />仅看趋势通过</label>
+</section>
+<section class="table-card card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ETF</th>
+          <th>类型/主题</th>
+          <th>趋势</th>
+          <th>状态</th>
+          <th>价格</th>
+          <th>20日</th>
+          <th>相对SPY</th>
+          <th>风险</th>
+          <th>关键位</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="9">加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="mobile-cards" class="mobile-cards"></div>
+  <nav class="pager" aria-label="完整ETF池分页">
+    <span id="page-info">—</span>
+    <div>
+      <button id="prev-page" type="button">‹ 上一页</button>
+      <span id="page-numbers"></span>
+      <button id="next-page" type="button">下一页 ›</button>
+    </div>
+  </nav>
+</section>

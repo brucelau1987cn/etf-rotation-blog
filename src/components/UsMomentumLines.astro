@@ -1,0 +1,46 @@
+---
+/**
+ * Leaders / risks dual panels with mobile tabs.
+ */
+---
+<div class="section-head">
+  <div>
+    <span class="kicker">LEADERS & RISK</span>
+    <h2>主线与风险线</h2>
+  </div>
+  <a href="/us-compass/">进入今日动作 →</a>
+</div>
+<div class="line-tabs" role="tablist" aria-label="主线与风险线切换">
+  <button class="active" type="button" role="tab" aria-selected="true" data-panel="main">🟢 趋势主线 <span id="main-tab-count">—</span></button>
+  <button type="button" role="tab" aria-selected="false" data-panel="risk">🟠 弱线与风险 <span id="risk-tab-count">—</span></button>
+</div>
+<section class="split" id="line-panels">
+  <article class="line-panel main-line card" id="main-panel">
+    <header class="panel-head">
+      <div>
+        <h3>🟢 趋势主线</h3>
+        <p>按相对SPY强度排序，主题去重</p>
+      </div>
+      <b class="panel-count" id="main-count">—</b>
+    </header>
+    <div class="panel-list" id="leaders">加载中…</div>
+    <footer class="panel-foot">
+      <span>点击ETF展开关键位与执行纪律</span>
+      <button class="jump-universe" type="button">查看完整池 ↓</button>
+    </footer>
+  </article>
+  <article class="line-panel risk-line card" id="risk-panel">
+    <header class="panel-head">
+      <div>
+        <h3>🟠 弱线与风险</h3>
+        <p>按交易风险排序，退出信号优先</p>
+      </div>
+      <b class="panel-count" id="risk-count">—</b>
+    </header>
+    <div class="panel-list" id="risks">加载中…</div>
+    <footer class="panel-foot">
+      <span>点击ETF查看风险理由与防守线</span>
+      <button class="jump-universe" type="button">查看完整池 ↓</button>
+    </footer>
+  </article>
+</section>
