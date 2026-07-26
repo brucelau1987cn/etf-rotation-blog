@@ -1,7 +1,8 @@
 ---
 /**
  * Multi-instrument dual-rail energy board.
- * Each instrument is a full row; no selector switch.
+ * Layout rule: formal sell cells follow buy cells on the right
+ * (sell rail is left-padded by buy count).
  * Observation dots:
  *  - buy rail: red, lit by 1.75h (105m)
  *  - sell rail: green, lit by 10m
@@ -71,7 +72,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
     <div class="section-head-title">
       <h2 id="matrix-title">三标的双向能量传导</h2>
       <p class="matrix-sub">
-        正式多方窗口：2h → 5.5h。标签后小圆圈为观察窗：多方红点=1.75h（105分钟），空方绿点=10分钟。
+        正式多方窗口：2h → 5.5h。空方正式信号排在多方序列右侧紧跟其后。标签后小圆：多方红点=1.75h，空方绿点=10m。
       </p>
     </div>
     <div class="matrix-controls">
@@ -111,8 +112,14 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                     ></i>
                   </div>
                   <div class="cells-scroll" data-role="sell-cells">
+                    {/* Left-pad sell rail so formal sells start after the buy sequence. */}
+                    {buys.map((item) => (
+                      <div class="cell-spacer" data-align-buy={item.code} aria-hidden="true"></div>
+                    ))}
                     {sells.length === 0 ? (
-                      <div class="empty-rail">卖出信号暂无</div>
+                      buys.length === 0 ? (
+                        <div class="empty-rail">卖出信号暂无</div>
+                      ) : null
                     ) : (
                       sells.map((item) => (
                         <div class="cell-badge sell-sell" data-sell-code={item.code}>
@@ -136,14 +143,25 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                   </div>
                   <div class="cells-scroll" data-role="buy-cells">
                     {buys.length === 0 ? (
-                      <div class="empty-rail">买入信号暂无</div>
+                      sells.length === 0 ? (
+                        <div class="empty-rail">买入信号暂无</div>
+                      ) : (
+                        sells.map((item) => (
+                          <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                        ))
+                      )
                     ) : (
-                      buys.map((item) => (
-                        <div class="cell-badge buy-buy" data-buy-code={item.code}>
-                          <div class="badge-code">{item.code}</div>
-                          <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
-                        </div>
-                      ))
+                      <>
+                        {buys.map((item) => (
+                          <div class="cell-badge buy-buy" data-buy-code={item.code}>
+                            <div class="badge-code">{item.code}</div>
+                            <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
+                          </div>
+                        ))}
+                        {sells.map((item) => (
+                          <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>

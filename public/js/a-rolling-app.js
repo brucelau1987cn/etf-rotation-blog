@@ -102,19 +102,24 @@
     el.setAttribute('aria-label', lit ? titleLit : titleOff);
   };
 
-  const renderCells = (container, items, kind) => {
-    if (!container) return;
-    container.replaceChildren();
-    if (!items.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-rail';
-      empty.textContent = kind === 'BUY' ? '买入信号暂无' : '卖出信号暂无';
-      container.appendChild(empty);
-      return;
-    }
-    items.forEach(item => {
+  const renderCells = (buyContainer, sellContainer, buys, sells) => {
+    if (!buyContainer || !sellContainer) return;
+    buyContainer.replaceChildren();
+    sellContainer.replaceChildren();
+
+    const appendSpacer = (container, key) => {
+      const spacer = document.createElement('div');
+      spacer.className = 'cell-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
+      if (key) spacer.dataset.alignKey = key;
+      container.appendChild(spacer);
+    };
+
+    const appendBadge = (container, item, kind) => {
       const badge = document.createElement('div');
-      badge.className = kind === 'BUY' ? 'cell-badge buy-buy' : `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
+      badge.className = kind === 'BUY'
+        ? 'cell-badge buy-buy'
+        : `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
       if (kind === 'BUY') badge.dataset.buyCode = item.code;
       else badge.dataset.sellCode = item.code;
       const codeEl = document.createElement('div');
@@ -125,7 +130,34 @@
       timeEl.textContent = formatTime(item.triggered_at, true, false);
       badge.append(codeEl, timeEl);
       container.appendChild(badge);
-    });
+    };
+
+    // Sell rail is left-padded by buy count so formal sells sit after buys.
+    buys.forEach((item) => appendSpacer(sellContainer, item.code));
+    if (sells.length === 0) {
+      if (buys.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-rail';
+        empty.textContent = '卖出信号暂无';
+        sellContainer.appendChild(empty);
+      }
+    } else {
+      sells.forEach((item) => appendBadge(sellContainer, item, 'SELL'));
+    }
+
+    if (buys.length === 0) {
+      if (sells.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-rail';
+        empty.textContent = '买入信号暂无';
+        buyContainer.appendChild(empty);
+      } else {
+        sells.forEach((item) => appendSpacer(buyContainer, item.code));
+      }
+    } else {
+      buys.forEach((item) => appendBadge(buyContainer, item, 'BUY'));
+      sells.forEach((item) => appendSpacer(buyContainer, item.code));
+    }
   };
 
   const updateBoard = (symbol, data) => {
@@ -138,8 +170,12 @@
     if (symbolEl && data.instrument?.symbol) symbolEl.textContent = data.instrument.symbol;
 
     const { buys, sells, buyObservation, sellObservation } = normalizeTimeline(data);
-    renderCells(board.querySelector('[data-role="buy-cells"]'), buys, 'BUY');
-    renderCells(board.querySelector('[data-role="sell-cells"]'), sells, 'SELL');
+    renderCells(
+      board.querySelector('[data-role="buy-cells"]'),
+      board.querySelector('[data-role="sell-cells"]'),
+      buys,
+      sells
+    );
     if (metaEl) metaEl.textContent = `买 ${buys.length} · 卖 ${sells.length}`;
 
     setWatchDot(
