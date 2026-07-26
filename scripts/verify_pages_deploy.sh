@@ -105,6 +105,7 @@ check_asset "/js/normalize-quote-payload.js" "EtfQuote"
 check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
+check_asset "/js/token-app.js" "minimax"
 
 # Cache policy: versioned public JS should be long-lived/immutable.
 # Prefer a versioned URL (how pages actually load assets) and retry briefly
@@ -208,6 +209,12 @@ check_page "/us-momentum/" \
   "/js/us-momentum-app.js" \
   "us-momentum-main" \
   "hero-pool-size"
+
+check_page "/token/" \
+  "/js/token-app.js" \
+  "data-token-dashboard" \
+  "data-api-base" \
+  "btn-refresh"
 
 quote_ok=0
 attempt=1
