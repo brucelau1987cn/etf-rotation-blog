@@ -1,0 +1,114 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import QuoteLiveScripts from '../../components/QuoteLiveScripts.astro';
+import RollingSubnav from '../../components/RollingSubnav.astro';
+import ARollingStatsStrip from '../../components/ARollingStatsStrip.astro';
+import ARollingEnergyMatrix from '../../components/ARollingEnergyMatrix.astro';
+import ARollingAiAlerts from '../../components/ARollingAiAlerts.astro';
+import { SITE_TITLE } from '../../consts';
+import '../../styles/a-rolling.css';
+
+type TimelineItem = {
+  type: 'BUY' | 'SELL' | string;
+  code: string;
+  triggered_at?: string | null;
+  sell_state?: string;
+  label?: string;
+};
+
+type Payload = {
+  data_as_of: string;
+  instrument: { instrument_name: string; exchange: string; symbol: string };
+  cycles?: Array<{ cycle_code: string; buy_triggered_at?: string | null; label?: string }>;
+  sell_chain?: { nodes?: Array<{ code: string; triggered_at?: string | null; sell_state?: string }> };
+  sell_alerts?: Array<any>;
+  timeline?: TimelineItem[];
+};
+
+const payload = JSON.parse(
+  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals-TSLA.json'), 'utf-8'),
+) as Payload;
+
+const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Shanghai', hour12: false, hour: '2-digit', minute: '2-digit',
+  };
+  if (includeSeconds) options.second = '2-digit';
+  if (includeDate) { options.month = '2-digit'; options.day = '2-digit'; }
+  return date.toLocaleString('zh-CN', options);
+};
+
+const timeline: TimelineItem[] = Array.isArray(payload.timeline) && payload.timeline.length
+  ? payload.timeline
+  : [
+      ...(payload.cycles || []).map((c) => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at, label: c.label })),
+      ...(payload.sell_chain?.nodes || []).map((n) => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at, sell_state: n.sell_state })),
+    ];
+const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
+const isSellObservation = (code: string) => code === '10m';
+const buys = timeline.filter((item) => item.type === 'BUY' && !isBuyObservation(item.code));
+const sells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
+const latest = timeline
+  .filter((item) => item.triggered_at)
+  .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
+const summary = {
+  name: payload.instrument.instrument_name,
+  symbol: payload.instrument.symbol,
+  exchange: payload.instrument.exchange,
+  timeline,
+  buyCount: buys.length,
+  sellCount: sells.length,
+  buyWatch: timeline.some((item) => item.type === 'BUY' && isBuyObservation(item.code)),
+  sellWatch: timeline.some((item) => item.type === 'SELL' && isSellObservation(item.code)),
+  latest,
+};
+const latestAction = latest
+  ? `最新 ${summary.name} ${latest.type === 'BUY' ? '买入' : '卖出'} ${latest.code} · ${formatTime(latest.triggered_at)}`
+  : '等待信号';
+const latestAsOf = [latest?.triggered_at, payload.data_as_of]
+  .filter(Boolean)
+  .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+const pageTitle = `美股滚动｜特斯拉多空能量看板 | ${SITE_TITLE}`;
+const pageDescription = '美股滚动看板：特斯拉的多方正式窗口、空方预警和观察信号。';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={pageTitle} description={pageDescription} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="a-rolling-main">
+      <RollingSubnav active="us" />
+      <section class="dashboard-hero card" aria-labelledby="page-title">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <div class="status-row" aria-label="数据元信息">
+              <span class="pill pill-blue">🇺🇸 美股 · 滚动</span>
+              <span class="pill" id="pill-refresh-countdown">实时：准备刷新…</span>
+              <span class="pill pill-amber" id="pill-as-of">信号时间：{formatTime(latestAsOf)}</span>
+              <span class="pill live-pill" id="live-status-pill">实时连接中</span>
+            </div>
+            <h1 id="page-title">美股滚动</h1>
+            <p>特斯拉独立展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。</p>
+          </div>
+        </div>
+        <ARollingStatsStrip buyTotal={summary.buyCount} sellTotal={summary.sellCount} instruments={[summary]} latestAction={latestAction} />
+      </section>
+      <ARollingEnergyMatrix
+        instruments={[{ instrumentName: summary.name, symbol: summary.symbol, exchange: summary.exchange, timeline: summary.timeline }]}
+        formatTime={formatTime}
+      />
+      <ARollingAiAlerts alerts={payload.sell_alerts || []} />
+    </main>
+    <Footer />
+    <QuoteLiveScripts />
+    <script is:inline src="/js/a-rolling-app.js" data-market="us"></script>
+  </body>
+</html>

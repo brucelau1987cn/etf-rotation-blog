@@ -158,13 +158,12 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                   </div>
                   <div class="cells-scroll" data-role="buy-cells">
                     {buys.length === 0 ? (
-                      sells.length === 0 ? (
+                      <>
                         <div class="empty-rail">买入信号暂无</div>
-                      ) : (
-                        sells.map((item) => (
+                        {sells.map((item) => (
                           <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
-                        ))
-                      )
+                        ))}
+                      </>
                     ) : (
                       <>
                         {buys.map((item) => (

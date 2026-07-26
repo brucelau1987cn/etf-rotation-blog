@@ -89,7 +89,7 @@ export async function onRequestPost({ request, env }) {
         if (tgToken && chatId) {
           const signalEmoji = signal === 'BUY' ? '🔴【多头买入信号】' : '🟢【空方卖出预警】';
           const timeStr = new Date(receivedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-          const text = `${signalEmoji}\n\n• 标的：${symbol}\n• 节点：${cycle_code}\n• 动作：${signal}\n• 时间：${timeStr}\n• 事件ID：${eventId.slice(0, 12)}\n\n🔗 终端：https://etf.peekabo.cc/a-rolling/`;
+          const text = `${signalEmoji}\n\n• 标的：${symbol}\n• 节点：${cycle_code}\n• 动作：${signal}\n• 时间：${timeStr}\n• 事件ID：${eventId.slice(0, 12)}\n\n🔗 终端：https://etf.peekabo.cc/rolling/`;
 
           try {
             await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {

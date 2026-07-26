@@ -13,6 +13,8 @@ const INSTRUMENT_SNAPSHOTS = {
   '301362': '/data/a-rolling-signals-301362.json',
   '688041': '/data/a-rolling-signals-688041.json',
   '600637': '/data/a-rolling-signals-600637.json',
+  '300077': '/data/a-rolling-signals-300077.json',
+  '01378': '/data/a-rolling-signals-01378.json',
   'TSLA': '/data/a-rolling-signals-TSLA.json',
 };
 
@@ -28,7 +30,7 @@ const json = (payload, status = 200) => new Response(JSON.stringify(payload), {
   headers: headers(payload?.delivery?.state || 'error'),
 });
 
-const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS)$/i, '');
+const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
 
 const snapshotPathForSymbol = symbol => {
   const key = normalizeSymbol(symbol) || '600021';

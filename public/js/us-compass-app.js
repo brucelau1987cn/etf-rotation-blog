@@ -177,6 +177,17 @@
     }
   }
   async function refreshUsSymbol(symbol, button) {
+    try {
+      const calendar = await window.EtfLivePoll?.getCalendar?.('US');
+      const phase = window.EtfLivePoll?.marketPhase?.('US', calendar);
+      if (phase && !phase.active) {
+        setUsLiveStatus(phase.label || '当前休市');
+        return;
+      }
+    } catch (_) {
+      setUsLiveStatus('交易日历暂不可用', 'error');
+      return;
+    }
     if (!symbol || button.classList.contains('loading')) return;
     button.classList.add('loading');
     button.disabled = true;
@@ -202,8 +213,11 @@
   document.querySelectorAll('[data-live-refresh]').forEach((button) => {
     button.addEventListener('click', () => void refreshUsSymbol(button.dataset.liveRefresh, button));
   });
-  if (window.EtfLivePoll?.startLivePoll) {
-    window.EtfLivePoll.startLivePoll({ intervalMs: 30_000, tick: loadUsLive });
+  if (window.EtfLivePoll?.startMarketPoll) {
+    window.EtfLivePoll.startMarketPoll({
+      market: 'US', intervalMs: 15_000, tick: loadUsLive,
+      onStatus: (text, state) => setUsLiveStatus(text, state?.active ? 'online' : ''),
+    });
   } else {
     document.addEventListener('visibilitychange', () => { if (!document.hidden) void loadUsLive(); });
     void loadUsLive();

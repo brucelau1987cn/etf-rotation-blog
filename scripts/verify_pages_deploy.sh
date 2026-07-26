@@ -191,12 +191,26 @@ else
 fi
 
 # Page HTML only needs to reference the shared scripts + page-specific hooks.
-check_page "/a-rolling/" \
+check_page "/rolling/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
   "/js/a-rolling-app.js" \
   "buy-cells-container" \
   "stat-current-code"
+
+check_page "/rolling/us/" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
+  "/js/a-rolling-app.js" \
+  "特斯拉" \
+  "美股滚动"
+
+check_page "/rolling/hk/" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
+  "/js/a-rolling-app.js" \
+  "中国宏桥" \
+  "港股滚动"
 
 check_asset "/js/a-rolling-app.js" "fetchStockQuote"
 

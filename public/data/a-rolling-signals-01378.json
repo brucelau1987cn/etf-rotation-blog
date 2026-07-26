@@ -1,0 +1,41 @@
+{
+  "schema_version": "a-rolling-energy-v4",
+  "mode": "live",
+  "generated_at": "2026-07-26T20:31:44+08:00",
+  "data_as_of": "2026-07-14T09:30:00+08:00",
+  "freshness": "fresh",
+  "stale_after_seconds": 900,
+  "notice": "中国宏桥：多方 1.75h 观察已触发；正式买入 5h、5.5h、6h、6.5h；空方暂无信号。",
+  "delivery": { "state": "live", "reason": null },
+  "instrument": {
+    "instrument_name": "中国宏桥",
+    "exchange": "HKEX",
+    "symbol": "01378"
+  },
+  "transmission": {
+    "state": "transmitting",
+    "basis": "formal_window_order",
+    "current_cycle_code": "6.5h",
+    "started_at": "2026-07-13T14:45:00+08:00",
+    "latest_triggered_at": "2026-07-14T09:30:00+08:00",
+    "lit_count": 5,
+    "buy_count": 4,
+    "sell_count": 0
+  },
+  "timeline": [
+    { "type": "BUY", "code": "1.75h", "triggered_at": "2026-07-13T14:45:00+08:00", "label": "1小时45分钟·观察窗口" },
+    { "type": "BUY", "code": "5h", "triggered_at": "2026-07-14T09:30:00+08:00", "label": "5小时00分钟" },
+    { "type": "BUY", "code": "5.5h", "triggered_at": "2026-07-14T09:30:00+08:00", "label": "5小时30分钟" },
+    { "type": "BUY", "code": "6h", "triggered_at": "2026-07-14T09:30:00+08:00", "label": "6小时00分钟" },
+    { "type": "BUY", "code": "6.5h", "triggered_at": "2026-07-14T09:30:00+08:00", "label": "6小时30分钟" }
+  ],
+  "cycles": [
+    { "cycle_code": "1.75h", "buy_state": "BUY", "buy_triggered_at": "2026-07-13T14:45:00+08:00", "label": "1小时45分钟·观察窗口" },
+    { "cycle_code": "5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-14T09:30:00+08:00", "label": "5小时00分钟" },
+    { "cycle_code": "5.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-14T09:30:00+08:00", "label": "5小时30分钟" },
+    { "cycle_code": "6h", "buy_state": "BUY", "buy_triggered_at": "2026-07-14T09:30:00+08:00", "label": "6小时00分钟" },
+    { "cycle_code": "6.5h", "buy_state": "BUY", "buy_triggered_at": "2026-07-14T09:30:00+08:00", "label": "6小时30分钟" }
+  ],
+  "sell_chain": { "nodes": [] },
+  "sell_alerts": []
+}

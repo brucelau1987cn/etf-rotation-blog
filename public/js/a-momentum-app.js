@@ -265,10 +265,12 @@ async function load() {
     });
     rawRows = payload.all_rows || [...(payload.core_pool || []), ...(payload.watch_pool || [])];
     render();
-    void loadLive();
     if (!liveTimer) {
-      if (window.EtfLivePoll?.startLivePoll) {
-        liveTimer = window.EtfLivePoll.startLivePoll({ intervalMs: 60000, immediate: false, tick: loadLive });
+      if (window.EtfLivePoll?.startMarketPoll) {
+        liveTimer = window.EtfLivePoll.startMarketPoll({
+          market: 'CN_A', intervalMs: 15000, immediate: false, tick: loadLive,
+          onStatus: (text) => { const node = $('status-line'); if (node) node.textContent = text; },
+        });
       } else {
         liveTimer = setInterval(loadLive, 60000);
         document.addEventListener('visibilitychange', () => {

@@ -221,7 +221,7 @@ cache-control: public, max-age=5, s-maxage=5, stale-while-revalidate=15
 | `home-live-app.js` | `/` |
 | `a-compass-app.js` | `/a-compass/` |
 | `us-compass-app.js` | `/us-compass/` |
-| `a-rolling-app.js` | `/a-rolling/` |
+| `a-rolling-app.js` | `/rolling/`、`/rolling/hk/`、`/rolling/us/` |
 | `a-momentum-app.js` | `/a-momentum/` |
 | `us-momentum-app.js` | `/us-momentum/` |
 | `futures-compass-app.js` | `/futures-compass/` |
@@ -275,7 +275,9 @@ BASE_URL=https://etf.peekabo.cc bash scripts/verify_pages_deploy.sh
 |---|---|
 | `/` | `home-live-app.js`、`home-live-price`、`?v=` |
 | `/a-compass/` | `a-compass-app.js`、`data-live-card` |
-| `/a-rolling/` | `a-rolling-app.js`、`buy-cells-container` |
+| `/rolling/` | `a-rolling-app.js`、`buy-cells-container` |
+| `/rolling/hk/` | `a-rolling-app.js`、`中国宏桥`、`港股滚动` |
+| `/rolling/us/` | `a-rolling-app.js`、`特斯拉`、`美股滚动` |
 | `/a-momentum/` | `a-momentum-app.js`、`etf-body` |
 | `/us-compass/` | `us-compass-app.js`、`us-live-status` |
 | `/us-momentum/` | `us-momentum-app.js`、`hero-pool-size` |

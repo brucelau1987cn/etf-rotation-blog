@@ -124,6 +124,39 @@ const distanceFor = (item: Recommendation, side: 'harvest' | 'plant') => {
   const level = actionLevelFor(item, side);
   return typeof item.price === 'number' && typeof level === 'number' && level > 0 ? (item.price / level - 1) * 100 : null;
 };
+const compactMarketState = (raw: string) => {
+  const breadth = raw.match(/(\d+)池(\d+)绿\/(\d+)红\/(\d+)平（([\d.]+)%下跌）/);
+  const momentum = raw.match(/动量通过(\d+)只（昨日(\d+)只）/);
+  const state = raw.match(/市场状态([^；，]+)/)?.[1] || '待确认';
+  return {
+    headline: breadth ? `${state}｜${breadth[2]}跌 · ${breadth[3]}涨 · ${breadth[4]}平` : raw.split('；')[0],
+    detail: [
+      breadth ? `下跌 ${breadth[5]}%` : '',
+      momentum ? `动量 ${momentum[1]}只，昨日 ${momentum[2]}只` : '',
+    ].filter(Boolean).join('｜'),
+  };
+};
+const compactPosition = (raw: string) => {
+  const parts = raw.split(/[；;]/).map((item) => item.trim()).filter(Boolean);
+  return { headline: parts[0] || raw, detail: parts.slice(1).join('｜') };
+};
+const compactMainline = (raw: string) => raw
+  .replace(/；正式伏击\d+项/g, '')
+  .replace('科技不接飞刀', '回避科技飞刀')
+  .replace('防御加商品保留底仓', '保留防御、商品底仓')
+  .replace(/(\d{6})([^；]+?)与(\d{6})([^；]+?)观察独立阿尔法延续/, '关注 $1、$3');
+const compactConstraint = (raw: string) => raw
+  .replace(/^中观[^：:]*[：:]?/, '')
+  .replace(/[，,]/g, '｜')
+  .replace('只回踩不追高', '只回踩');
+const compactTopAction = (raw: string) => raw
+  .replace('已有仓分批', '持仓')
+  .replace('空仓不追', '空仓观望')
+  .split(/[；;]/)[0]
+  .replace(/[，,]/g, '｜');
+const topActionReason = topAction?.action?.split(/[；;]/).slice(1).join('；') || '';
+const marketState = compactMarketState(data.market_state);
+const position = compactPosition(data.position);
 const pageTitle = `A股ETF罗盘｜今日动作 | ${SITE_TITLE}`;
 const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结论、伏击兑现动作、当前价、关键位、兑现位与防守线。';
 ---
@@ -178,6 +211,9 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         gap: .55rem;
         margin-top: 1rem;
       }
+      .action-legend { margin-top: .38rem; color: rgb(var(--gray)); font-size: .68rem; text-align: right; }
+      .decision-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .decision-box .decision-detail { margin-top: .2rem; color: rgb(var(--gray)); font-size: .72rem; line-height: 1.35; }
       .count .status-label {
         display: inline-flex;
         align-items: center;
@@ -287,44 +323,44 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           <div class="count harvest">
             <span class="status-label"><i class="status-dot exit" aria-hidden="true"></i>破位撤退</span>
             <strong>{counts.retreat}</strong>
-            <em class="count-note">最高优先</em>
+            <em class="count-note">优先</em>
           </div>
           <div class="count harvest">
             <span class="status-label"><i class="status-dot harvest" aria-hidden="true"></i>兑现触发</span>
             <strong>{counts.harvest}</strong>
-            <em class="count-note">正式兑现</em>
+
           </div>
           <div class="count harvest">
             <span class="status-label"><i class="status-dot take-profit" aria-hidden="true"></i>止盈观察</span>
             <strong>{counts.readyHarvest}</strong>
-            <em class="count-note">接近兑现位</em>
+
           </div>
           <div class="count plant">
             <span class="status-label"><i class="status-dot plant" aria-hidden="true"></i>正式伏击</span>
             <strong>{counts.plant}</strong>
-            <em class="count-note">可执行低吸</em>
+
           </div>
           <div class="count plant">
             <span class="status-label"><i class="status-dot watch" aria-hidden="true"></i>候场</span>
             <strong>{counts.readyPlant}</strong>
-            <em class="count-note">仅观察</em>
+
           </div>
         </div>
-        <div class="decision-grid">
-          <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
-          <div class="decision-box"><span>仓位建议</span><strong>{data.position}</strong></div>
-          <div class="decision-box"><span>颜色规则</span><strong>🔴低吸 / 🟢兑现</strong><small>行情：🔴上涨 / 🟢下跌</small></div>
-          <div class="decision-box mainline"><span>今日主线</span><strong title={data.mainline}>{data.mainline}</strong></div>
+        <div class="action-legend">动作：红=低吸，绿=兑现｜行情：红涨，绿跌</div>
+        <div class="decision-grid compact">
+          <div class="decision-box"><span>市场状态</span><strong>{marketState.headline}</strong>{marketState.detail && <div class="decision-detail">{marketState.detail}</div>}</div>
+          <div class="decision-box"><span>仓位</span><strong>{position.headline}</strong>{position.detail && <div class="decision-detail">{position.detail}</div>}</div>
+          <div class="decision-box mainline"><span>今日主线</span><strong title={data.mainline}>{compactMainline(data.mainline)}</strong></div>
         </div>
         {midMacro && (
           <details class={`macro-gate ${midTone}`} aria-label="中观三因子约束">
             <summary>
               <span>{midIcon}</span>
               <div>
-                <strong>中观约束：{midLabel} · 逆风等级 {midLevel}/3</strong>
-                <small>{midConstraint}{midMacro.base_position ? `｜微观原建议 ${midMacro.base_position}` : ''}</small>
+                <strong>中观：{midLabel} {midLevel}/3</strong>
+                <small>{compactConstraint(midConstraint)}</small>
               </div>
-              <b>{midMacro.allow_chase ? '允许按位执行' : midMacro.allow_new_offense === false ? '停开进攻仓' : '禁止追高'}</b>
+              <b>{midMacro.allow_chase ? '按位执行' : midMacro.allow_new_offense === false ? '停开进攻仓' : '不追高'}</b>
             </summary>
             <div class="macro-more">
               <div class="macro-hint">点击标题可收起。三因子只压缩权益上限与追高资格，不改关键位触发。</div>
@@ -342,7 +378,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
             </div>
           </details>
         )}
-        {topAction && <div class="top-action" aria-label="最高优先级动作"><span class="rank">⚡</span><div><small>第一优先级｜{topAction.status} · {topAction.priority}</small><strong>{topAction.code} {topAction.name}：{topAction.action}</strong></div></div>}
+        {topAction && <div class="top-action" aria-label="最高优先级动作"><span class="rank">⚡</span><div><small>优先{topAction.status}｜{topAction.code} {topAction.name}</small><strong>{compactTopAction(topAction.action)}</strong>{topActionReason && <small>{topActionReason}</small>}</div></div>}
       </section>
 
       <section aria-labelledby="harvest-title">

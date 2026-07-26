@@ -18,7 +18,7 @@
   const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
   const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
   const MAX_FORMAL_PER_SIDE = 4;
-  const INSTRUMENTS = [
+  const A_INSTRUMENTS = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
     { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
     { name: '三安光电', exchange: 'SSE', symbol: '600703' },
@@ -27,8 +27,18 @@
     { name: '民爆光电', exchange: 'SZSE', symbol: '301362' },
     { name: '海光信息', exchange: 'SSE', symbol: '688041' },
     { name: '东方明珠', exchange: 'SSE', symbol: '600637' },
+    { name: '国民技术', exchange: 'SZSE', symbol: '300077' },
+  ];
+  const HK_INSTRUMENTS = [
+    { name: '中国宏桥', exchange: 'HKEX', symbol: '01378' },
+  ];
+  const US_INSTRUMENTS = [
     { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },
   ];
+  const currentScript = document.currentScript;
+  const market = ['a', 'hk', 'us'].includes(currentScript?.dataset?.market) ? currentScript.dataset.market : 'a';
+  const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : 'CN_A';
+  const INSTRUMENTS = market === 'us' ? US_INSTRUMENTS : market === 'hk' ? HK_INSTRUMENTS : A_INSTRUMENTS;
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
     if (!value) return '—';
@@ -159,14 +169,11 @@
     }
 
     if (buys.length === 0) {
-      if (sells.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-rail';
-        empty.textContent = '买入信号暂无';
-        buyContainer.appendChild(empty);
-      } else {
-        sells.forEach((item) => appendSpacer(buyContainer, item.code));
-      }
+      const empty = document.createElement('div');
+      empty.className = 'empty-rail';
+      empty.textContent = '买入信号暂无';
+      buyContainer.appendChild(empty);
+      sells.forEach((item) => appendSpacer(buyContainer, item.code));
     } else {
       buys.forEach((item) => appendBadge(buyContainer, item, 'BUY'));
       sells.forEach((item) => appendSpacer(buyContainer, item.code));
@@ -282,10 +289,12 @@
     const isDown = changePct < 0;
     const color = isUp ? '#cf1322' : isDown ? '#389e0d' : '#475569';
     const sign = isUp ? '+' : '';
+    const isHk = String(item.market || item.exchange || '').toUpperCase().includes('HK')
+      || String(item.market || '').toUpperCase().includes('HONG KONG');
     const isUs = /^[A-Za-z]/.test(String(symbol || ''))
       || String(item.market || item.exchange || '').toUpperCase().includes('US')
       || String(item.market || '').toUpperCase().includes('NASDAQ');
-    const currency = isUs ? '$' : '¥';
+    const currency = isUs ? '$' : isHk ? 'HK$' : '¥';
     const text = `${currency}${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
     if (badge) {
       badge.textContent = text;
@@ -335,7 +344,9 @@
   };
 
   const fetchOneQuote = async (meta) => {
-    const symbolParam = /^[A-Za-z]/.test(meta.symbol) ? `${meta.symbol}.US` : meta.symbol;
+    const symbolParam = meta.exchange === 'HKEX'
+      ? `${meta.symbol}.HK`
+      : /^[A-Za-z]/.test(meta.symbol) ? `${meta.symbol}.US` : meta.symbol;
     const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(symbolParam)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return normalizeQuotePayload(await res.json());
@@ -379,25 +390,19 @@
     }
   };
 
-  setTimeout(() => {
-    fetchAllSignals();
-    fetchAllQuotes();
-  }, 400);
+  setTimeout(() => { fetchAllSignals(); }, 400);
 
-  countdownTimer = window.setInterval(paintCountdown, 250);
-  paintCountdown();
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      armQuoteCountdown();
-      void fetchAllSignals();
-      void fetchAllQuotes();
-    } else {
-      paintCountdown();
-    }
-  });
-
-  if (window.EtfLivePoll?.startLivePoll) {
-    window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllQuotes(); }});
+  if (window.EtfLivePoll?.startMarketPoll) {
+    window.EtfLivePoll.startMarketPoll({
+      market: calendarMarket,
+      intervalMs: QUOTE_INTERVAL_MS,
+      immediate: true,
+      tick: async () => { await fetchAllQuotes(); },
+      onStatus: (text) => {
+        const pill = document.getElementById('pill-refresh-countdown');
+        if (pill) pill.textContent = text;
+      },
+    });
     window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
   } else {
     setInterval(fetchAllSignals, SIGNAL_INTERVAL_MS);

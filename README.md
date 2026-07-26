@@ -1,6 +1,15 @@
 # ETF罗盘
 
-ETF罗盘是一个面向 A 股与美股 ETF 的静态研究和决策支持站点，包含市场罗盘、动量观察、宏观风险、历史记录、模拟交易和研究实验室。项目强调可复现数据、正式信号与影子研究隔离、缺失值诚实披露，以及构建前的机器校验。
+[![在线网站](https://img.shields.io/badge/在线网站-etf.peekabo.cc-111827?style=flat-square)](https://etf.peekabo.cc/)
+[![Astro](https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white)](https://astro.build/)
+[![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
+[![Build](https://img.shields.io/github/actions/workflow/status/brucelau1987cn/etf-rotation-blog/validate.yml?branch=main&style=flat-square&label=build)](https://github.com/brucelau1987cn/etf-rotation-blog/actions/workflows/validate.yml)
+
+面向 A股、港股与美股的 ETF/股票研究和交易决策仪表盘，提供实时行情、滚动多空信号、趋势风控、宏观约束、历史验证和模拟交易。前端基于 Astro，生产环境运行于 Cloudflare Pages、Functions 与 D1。
+
+**在线访问：[https://etf.peekabo.cc/](https://etf.peekabo.cc/)**
+
+快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动轮盘](https://etf.peekabo.cc/rolling/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/)
 
 > 本项目提供研究与教育信息，不构成投资建议。影子模型仅用于研究和审计，不改变正式动作、权重、关键位或模拟执行规则。
 
@@ -9,10 +18,30 @@ ETF罗盘是一个面向 A 股与美股 ETF 的静态研究和决策支持站点
 - `/a-compass/`：A 股 ETF 罗盘与正式动作摘要
 - `/a-momentum/`：A 股 ETF 动量和全池浏览
 - `/a-macro/`：A 股中观与风险约束
-- `/a-rolling/`：A 股滚动多空能量传导
+- `/rolling/`、`/rolling/hk/`、`/rolling/us/`：A股、港股与美股滚动多空能量传导
 - `/us-compass/`、`/us-momentum/`、`/us-macro/`：美股 ETF 对应页面
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型结果
+
+## 核心能力
+
+- **多市场决策罗盘**：A股、港股、美股及商品期货统一导航与状态呈现。
+- **实时行情覆盖**：Cloudflare Edge 行情接口，支持批量报价、缓存分层和多数据源降级。
+- **滚动多空信号**：观察窗口与正式窗口分层显示，多标的同屏、信号时间精确到秒。
+- **交易时段控制**：D1 保存 A股、港股、美股交易日历；仅在有效交易时段刷新行情，休市自动暂停。
+- **风险与研究隔离**：正式动作、影子模型、历史审计和模拟交易保持明确边界。
+- **数据契约与构建门禁**：公开 JSON Schema、批次一致性、敏感字段与静态产物自动校验。
+
+## 技术架构
+
+```text
+Astro 静态页面
+  ├─ Cloudflare Pages
+  ├─ Pages Functions：行情、市场日历、Webhook、登录与上传 API
+  ├─ Cloudflare D1：用户会话与多市场交易日历
+  ├─ Edge Quote API：腾讯 → 新浪 → 雪球降级链路
+  └─ JSON 数据契约：Schema、目录、快照与审计记录
+```
 
 现有路由由 `src/pages/` 定义；Phase 1 数据契约不调整页面路径。
 
