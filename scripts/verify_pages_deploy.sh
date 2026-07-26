@@ -108,6 +108,7 @@ check_asset "/js/site-a11y.js" "main-content"
 check_asset "/js/token-app.js" "minimax"
 check_asset "/js/login-app.js" "change-password"
 check_asset "/js/lab-app.js" "a-share-research-audit"
+check_asset "/js/blog-post-app.js" "article-toc"
 
 # Cache policy: versioned public JS should be long-lived/immutable.
 # Prefer a versioned URL (how pages actually load assets) and retry briefly
@@ -308,6 +309,7 @@ fi
 # so allow a few rapid retries within the current session TTL window.
 quote_hit_ok=0
 quote_hit_layer=""
+quote_hit_age_ms=""
 stable_quote_url="${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE"
 # seed/warm
 curl -fsS -H 'User-Agent: Hermes-Deploy-Probe' "$stable_quote_url" >/dev/null 2>&1 || true
@@ -318,13 +320,35 @@ while (( hit_attempt <= RETRIES )); do
   if printf '%s' "$hit_lower" | grep -Eq 'x-quote-cache:[[:space:]]*hit'; then
     quote_hit_ok=1
     quote_hit_layer="$(printf '%s' "$hit_lower" | grep -E 'x-quote-cache-layer:' | head -n1 | sed -E 's/.*x-quote-cache-layer:[[:space:]]*([a-z_]+).*/\1/' | tr -cd 'a-z_')"
+    quote_hit_age_ms="$(printf '%s' "$hit_lower" | grep -E 'x-quote-cache-age-ms:' | head -n1 | sed -E 's/.*x-quote-cache-age-ms:[[:space:]]*([0-9]+).*/\1/' | tr -cd '0-9')"
     break
   fi
   sleep 1
   hit_attempt=$((hit_attempt + 1))
 done
 if (( quote_hit_ok == 1 )); then
-  echo "OK  quote cache HIT recheck (layer=${quote_hit_layer:-unknown})"
+  echo "OK  quote cache HIT recheck (layer=${quote_hit_layer:-unknown}, age_ms=${quote_hit_age_ms:-na})"
+  if [[ -n "$quote_hit_age_ms" && -n "$ttl_ms" ]]; then
+    # age must be non-negative and strictly below current session TTL.
+    if (( quote_hit_age_ms >= 0 && quote_hit_age_ms < ttl_ms )); then
+      echo "OK  quote cache age_ms within TTL (${quote_hit_age_ms}<${ttl_ms})"
+    else
+      echo "FAIL quote cache age_ms out of range: age=${quote_hit_age_ms} ttl=${ttl_ms}"
+      fail=1
+    fi
+  else
+    echo "FAIL quote cache age_ms missing on HIT"
+    fail=1
+  fi
+  case "$quote_hit_layer" in
+    edge|memory)
+      echo "OK  quote cache HIT layer=${quote_hit_layer}"
+      ;;
+    *)
+      echo "FAIL quote cache HIT layer invalid: ${quote_hit_layer:-missing}"
+      fail=1
+      ;;
+  esac
 else
   echo "FAIL quote cache HIT recheck: expected HIT within ${RETRIES} rapid retries"
   printf '%s\n' "$hit_headers" | sed -n '1,25p'
