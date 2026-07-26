@@ -6,17 +6,19 @@
 let cachedXqToken = null;
 let xqTokenExpireAt = 0;
 
-/** In-isolate short cache for identical quote batches (Worker / Pages Function). */
+/** Short cache for identical quote batches (L1 isolate Map + L2 caches.default). */
 export const QUOTE_CACHE_TTL_MS = 4000;
 const QUOTE_CACHE_MAX_ENTRIES = 200;
 const quoteCache = new Map(); // key -> { expiresAt, payload, source, storedAt }
-const quoteCacheStats = { hit: 0, miss: 0, store: 0 };
+const quoteCacheStats = { hit: 0, miss: 0, store: 0, edge_hit: 0, memory_hit: 0 };
 
 export function clearQuoteCache() {
   quoteCache.clear();
   quoteCacheStats.hit = 0;
   quoteCacheStats.miss = 0;
   quoteCacheStats.store = 0;
+  quoteCacheStats.edge_hit = 0;
+  quoteCacheStats.memory_hit = 0;
 }
 
 export function getQuoteCacheStats() {
@@ -33,7 +35,23 @@ function normalizeQuoteCacheKey(symbolsStr, exchange) {
   return `${String(exchange || 'SSE').toUpperCase()}|${items.join(',')}`;
 }
 
-function readQuoteCache(key) {
+function quoteCacheRequest(key) {
+  // Stable synthetic URL for Cache API matching (ignore client query noise).
+  return new Request(`https://quote-cache.internal/v1?k=${encodeURIComponent(key)}`, {
+    method: 'GET',
+  });
+}
+
+function getEdgeCache() {
+  try {
+    if (typeof caches !== 'undefined' && caches?.default) return caches.default;
+  } catch (_) {
+    // unit tests / non-CF runtimes
+  }
+  return null;
+}
+
+function readMemoryQuoteCache(key) {
   const row = quoteCache.get(key);
   if (!row) return null;
   if (Date.now() >= row.expiresAt) {
@@ -46,20 +64,83 @@ function readQuoteCache(key) {
   return row;
 }
 
-function writeQuoteCache(key, payload) {
+function writeMemoryQuoteCache(key, payload, storedAt = Date.now()) {
   if (!payload || payload.status !== 'ok') return;
   if (quoteCache.has(key)) quoteCache.delete(key);
   quoteCache.set(key, {
     payload,
     source: payload.source || 'unknown',
-    storedAt: Date.now(),
-    expiresAt: Date.now() + QUOTE_CACHE_TTL_MS,
+    storedAt,
+    expiresAt: storedAt + QUOTE_CACHE_TTL_MS,
   });
-  quoteCacheStats.store += 1;
   while (quoteCache.size > QUOTE_CACHE_MAX_ENTRIES) {
     const oldest = quoteCache.keys().next().value;
     quoteCache.delete(oldest);
   }
+}
+
+async function readEdgeQuoteCache(key) {
+  const edge = getEdgeCache();
+  if (!edge) return null;
+  try {
+    const cached = await edge.match(quoteCacheRequest(key));
+    if (!cached || !cached.ok) return null;
+    const storedAt = Number(cached.headers.get('x-quote-stored-at') || 0);
+    if (storedAt && Date.now() - storedAt >= QUOTE_CACHE_TTL_MS) {
+      // best-effort expire; Cache API TTL is controlled via cache-control below
+      return null;
+    }
+    const payload = await cached.json();
+    if (!payload || payload.status !== 'ok') return null;
+    const source = cached.headers.get('x-quote-source') || payload.source || 'unknown';
+    // promote to L1
+    writeMemoryQuoteCache(key, payload, storedAt || Date.now());
+    return {
+      payload,
+      source,
+      storedAt: storedAt || Date.now(),
+      layer: 'edge',
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeEdgeQuoteCache(key, payload, storedAt = Date.now()) {
+  const edge = getEdgeCache();
+  if (!edge || !payload || payload.status !== 'ok') return false;
+  try {
+    const ttlSec = Math.max(1, Math.ceil(QUOTE_CACHE_TTL_MS / 1000));
+    const response = new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        // Cloudflare Cache API honors this for edge object lifetime.
+        'cache-control': `public, max-age=${ttlSec}`,
+        'x-quote-stored-at': String(storedAt),
+        'x-quote-source': String(payload.source || 'unknown'),
+      },
+    });
+    await edge.put(quoteCacheRequest(key), response);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function readQuoteCache(key) {
+  const mem = readMemoryQuoteCache(key);
+  if (mem) return { ...mem, layer: 'memory' };
+  return readEdgeQuoteCache(key);
+}
+
+async function writeQuoteCache(key, payload) {
+  if (!payload || payload.status !== 'ok') return;
+  const storedAt = Date.now();
+  writeMemoryQuoteCache(key, payload, storedAt);
+  const edgeOk = await writeEdgeQuoteCache(key, payload, storedAt);
+  quoteCacheStats.store += 1;
+  return edgeOk;
 }
 
 /**
@@ -483,16 +564,20 @@ export async function onRequestGet({ request }) {
 
   try {
     if (!bypassCache) {
-      const hit = readQuoteCache(cacheKey);
+      const hit = await readQuoteCache(cacheKey);
       if (hit) {
         quoteCacheStats.hit += 1;
+        if (hit.layer === 'edge') quoteCacheStats.edge_hit += 1;
+        if (hit.layer === 'memory') quoteCacheStats.memory_hit += 1;
         const ageMs = Math.max(0, Date.now() - hit.storedAt);
         headers['x-quote-cache'] = 'HIT';
+        headers['x-quote-cache-layer'] = hit.layer || 'memory';
         headers['x-quote-cache-age-ms'] = String(ageMs);
         headers['x-quote-source'] = String(hit.source || hit.payload?.source || 'unknown');
         console.log(JSON.stringify({
           event: 'quote_cache',
           result: 'HIT',
+          layer: hit.layer || 'memory',
           key: cacheKey,
           age_ms: ageMs,
           source: hit.source,
@@ -508,14 +593,16 @@ export async function onRequestGet({ request }) {
     quoteCacheStats.miss += 1;
     const data = await fetchQuote(symbols, exchange);
     if (!bypassCache && data?.status === 'ok') {
-      writeQuoteCache(cacheKey, data);
+      await writeQuoteCache(cacheKey, data);
     }
     headers['x-quote-cache'] = bypassCache ? 'BYPASS' : 'MISS';
+    headers['x-quote-cache-layer'] = 'none';
     headers['x-quote-cache-age-ms'] = '0';
     headers['x-quote-source'] = String(data?.source || 'unknown');
     console.log(JSON.stringify({
       event: 'quote_cache',
       result: bypassCache ? 'BYPASS' : 'MISS',
+      layer: 'none',
       key: cacheKey,
       source: data?.source || null,
       count: data?.count || 0,
@@ -527,6 +614,7 @@ export async function onRequestGet({ request }) {
     });
   } catch (err) {
     headers['x-quote-cache'] = 'ERROR';
+    headers['x-quote-cache-layer'] = 'none';
     headers['x-quote-source'] = 'none';
     console.error(JSON.stringify({
       event: 'quote_cache',
