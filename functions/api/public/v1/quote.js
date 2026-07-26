@@ -6,6 +6,62 @@
 let cachedXqToken = null;
 let xqTokenExpireAt = 0;
 
+/** In-isolate short cache for identical quote batches (Worker / Pages Function). */
+export const QUOTE_CACHE_TTL_MS = 4000;
+const QUOTE_CACHE_MAX_ENTRIES = 200;
+const quoteCache = new Map(); // key -> { expiresAt, payload, source, storedAt }
+const quoteCacheStats = { hit: 0, miss: 0, store: 0 };
+
+export function clearQuoteCache() {
+  quoteCache.clear();
+  quoteCacheStats.hit = 0;
+  quoteCacheStats.miss = 0;
+  quoteCacheStats.store = 0;
+}
+
+export function getQuoteCacheStats() {
+  return { ...quoteCacheStats, size: quoteCache.size, ttl_ms: QUOTE_CACHE_TTL_MS };
+}
+
+function normalizeQuoteCacheKey(symbolsStr, exchange) {
+  const items = String(symbolsStr || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 50)
+    .sort((a, b) => a.localeCompare(b));
+  return `${String(exchange || 'SSE').toUpperCase()}|${items.join(',')}`;
+}
+
+function readQuoteCache(key) {
+  const row = quoteCache.get(key);
+  if (!row) return null;
+  if (Date.now() >= row.expiresAt) {
+    quoteCache.delete(key);
+    return null;
+  }
+  // refresh LRU order
+  quoteCache.delete(key);
+  quoteCache.set(key, row);
+  return row;
+}
+
+function writeQuoteCache(key, payload) {
+  if (!payload || payload.status !== 'ok') return;
+  if (quoteCache.has(key)) quoteCache.delete(key);
+  quoteCache.set(key, {
+    payload,
+    source: payload.source || 'unknown',
+    storedAt: Date.now(),
+    expiresAt: Date.now() + QUOTE_CACHE_TTL_MS,
+  });
+  quoteCacheStats.store += 1;
+  while (quoteCache.size > QUOTE_CACHE_MAX_ENTRIES) {
+    const oldest = quoteCache.keys().next().value;
+    quoteCache.delete(oldest);
+  }
+}
+
 /**
  * 自动获取雪球访客 Token (xq_a_token)
  */
@@ -414,21 +470,70 @@ export async function onRequestGet({ request }) {
   const url = new URL(request.url);
   const symbols = url.searchParams.get('symbols') || url.searchParams.get('symbol') || '600021';
   const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
+  const bypassCache = url.searchParams.get('nocache') === '1' || url.searchParams.get('refresh') === '1';
+  const cacheKey = normalizeQuoteCacheKey(symbols, exchange);
 
   const headers = {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'public, max-age=5, s-maxage=5, stale-while-revalidate=15',
     'x-content-type-options': 'nosniff',
     'access-control-allow-origin': '*',
+    'x-quote-cache-ttl-ms': String(QUOTE_CACHE_TTL_MS),
   };
 
   try {
+    if (!bypassCache) {
+      const hit = readQuoteCache(cacheKey);
+      if (hit) {
+        quoteCacheStats.hit += 1;
+        const ageMs = Math.max(0, Date.now() - hit.storedAt);
+        headers['x-quote-cache'] = 'HIT';
+        headers['x-quote-cache-age-ms'] = String(ageMs);
+        headers['x-quote-source'] = String(hit.source || hit.payload?.source || 'unknown');
+        console.log(JSON.stringify({
+          event: 'quote_cache',
+          result: 'HIT',
+          key: cacheKey,
+          age_ms: ageMs,
+          source: hit.source,
+          count: hit.payload?.count,
+        }));
+        return new Response(JSON.stringify(hit.payload), {
+          status: 200,
+          headers,
+        });
+      }
+    }
+
+    quoteCacheStats.miss += 1;
     const data = await fetchQuote(symbols, exchange);
+    if (!bypassCache && data?.status === 'ok') {
+      writeQuoteCache(cacheKey, data);
+    }
+    headers['x-quote-cache'] = bypassCache ? 'BYPASS' : 'MISS';
+    headers['x-quote-cache-age-ms'] = '0';
+    headers['x-quote-source'] = String(data?.source || 'unknown');
+    console.log(JSON.stringify({
+      event: 'quote_cache',
+      result: bypassCache ? 'BYPASS' : 'MISS',
+      key: cacheKey,
+      source: data?.source || null,
+      count: data?.count || 0,
+      status: data?.status || 'error',
+    }));
     return new Response(JSON.stringify(data), {
       status: data.status === 'ok' ? 200 : 400,
       headers,
     });
   } catch (err) {
+    headers['x-quote-cache'] = 'ERROR';
+    headers['x-quote-source'] = 'none';
+    console.error(JSON.stringify({
+      event: 'quote_cache',
+      result: 'ERROR',
+      key: cacheKey,
+      message: err.message || 'internal error',
+    }));
     return new Response(JSON.stringify({ status: 'error', message: err.message || 'internal error' }), {
       status: 500,
       headers,
