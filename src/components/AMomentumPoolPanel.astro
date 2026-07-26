@@ -1,0 +1,103 @@
+---
+/**
+ * Full ETF pool panel: filters, desktop table, mobile cards, pager.
+ * All IDs remain stable for the page client render loop.
+ */
+---
+<details class="data-details card">
+  <summary>
+    <span>
+      全部ETF数据
+      <small>查看趋势、状态、收益、位置与风险排序</small>
+    </span>
+  </summary>
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>ETF池数据</h2>
+        <p class="status-line" id="status-line" role="status" aria-live="polite">准备加载数据…</p>
+      </div>
+    </div>
+    <div class="toolbar" aria-label="策略筛选">
+      <div class="field">
+        <label for="type-filter">资产类型</label>
+        <select id="type-filter">
+          <option value="全部">全部</option>
+          <option value="海外">海外</option>
+          <option value="宽基">宽基</option>
+          <option value="行业">行业</option>
+          <option value="商品">商品</option>
+          <option value="货币">货币</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="state-filter">交易状态</label>
+        <select id="state-filter">
+          <option value="全部">全部</option>
+          <option value="可持有">可持有</option>
+          <option value="回踩候选">回踩候选</option>
+          <option value="禁止追高">禁止追高</option>
+          <option value="观察">观察</option>
+          <option value="退出">退出</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sort-key">排序方式</label>
+        <select id="sort-key">
+          <option value="signal_score">综合评分</option>
+          <option value="ret20">20日收益</option>
+          <option value="ret10">10日收益</option>
+          <option value="ret3">3日收益</option>
+          <option value="trading_risk_score">交易风险</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="page-size">每页</label>
+        <select id="page-size">
+          <option value="10">10只</option>
+          <option value="20">20只</option>
+          <option value="all">全部</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>范围</label>
+        <label class="checkline"><input type="checkbox" id="absolute-only" />只看趋势通过</label>
+      </div>
+      <div class="field">
+        <label>结果</label>
+        <span class="checkline" id="filter-result">等待数据</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">A股ETF池趋势、收益、交易状态和风险数据</caption>
+        <thead>
+          <tr>
+            <th scope="col">名称</th>
+            <th scope="col">代码</th>
+            <th scope="col">类型</th>
+            <th scope="col">趋势</th>
+            <th scope="col">状态</th>
+            <th scope="col">5日%</th>
+            <th scope="col">20日%</th>
+            <th scope="col">位置</th>
+            <th scope="col">交易风险</th>
+            <th scope="col">风险提示</th>
+          </tr>
+        </thead>
+        <tbody id="etf-body">
+          <tr><td colspan="10">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="mobile-pool" id="mobile-pool" aria-live="polite"><p>加载中…</p></div>
+    <nav class="pager" aria-label="A股ETF池分页">
+      <span id="page-info">加载中…</span>
+      <div class="pager-controls">
+        <button type="button" id="prev-page">上一页</button>
+        <div class="page-numbers" id="page-numbers"></div>
+        <button type="button" id="next-page">下一页</button>
+      </div>
+    </nav>
+  </div>
+</details>

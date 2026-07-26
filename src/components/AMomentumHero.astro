@@ -1,0 +1,44 @@
+---
+/**
+ * A-momentum hero shell with stable live metric IDs.
+ */
+---
+<section class="dashboard-hero card" aria-labelledby="page-title">
+  <div class="hero-top">
+    <div class="hero-copy">
+      <span class="pill pill-red">A股ETF趋势风控</span>
+      <h1 id="page-title">A股趋势风控雷达</h1>
+      <details>
+        <summary>查看方法说明</summary>
+        <p>用于确认市场结构、趋势强弱与过热风险，再判断候选是否具备伏击资格。这里提供风险过滤和观察排序。</p>
+      </details>
+    </div>
+    <div class="meta-line" aria-label="数据元信息">
+      <span class="pill" id="date-pill">模型 —｜行情 —</span>
+      <span class="pill" id="metric-time">行情连接中</span>
+      <span class="pill">行情：🔴上涨 / 🟢下跌</span>
+      <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新行情</button>
+    </div>
+  </div>
+  <div class="count-strip" aria-label="趋势风控摘要">
+    <div class="count state"><span>市场状态</span><strong id="metric-regime">—</strong><em>决定权益风险预算</em></div>
+    <div class="count pass"><span>趋势通过</span><strong id="metric-pass">—</strong><em>具备继续观察资格</em></div>
+    <div class="count"><span>代表观察</span><strong id="metric-rec">—</strong><em>同主题最多一只</em></div>
+    <div class="count"><span>ETF池</span><strong id="metric-total">—</strong><em>宽基·行业·海外·商品</em></div>
+  </div>
+  <div class="decision-grid">
+    <div class="decision-box action"><span>当前动作</span><strong id="decision-action">等待数据</strong></div>
+    <div class="decision-box"><span>风险尾部</span><strong id="decision-risk">等待数据</strong></div>
+    <div class="decision-box"><span>数据覆盖</span><strong id="decision-source">数据加载中</strong></div>
+    <div class="decision-box mainline">
+      <span>今日主线</span>
+      <h2 id="decision-title">读取今日趋势风控结论…</h2>
+      <p id="decision-subtitle">市场状态、代表观察与风险提示会随行情刷新。</p>
+      <div class="decision-badges" id="decision-badges"></div>
+    </div>
+  </div>
+  <details class="scope-details">
+    <summary>数据更新口径与模型边界</summary>
+    <p class="scope-note" id="scope-note">模型分数、风险和仓位来自基准快照；盘中更新当前价、收益估算和MA20状态。</p>
+  </details>
+</section>
