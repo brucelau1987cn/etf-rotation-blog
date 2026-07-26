@@ -122,19 +122,44 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
     <style>
       main { width: var(--shell-width); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
-      .hero-top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; align-items: flex-start; }
-      .hero-copy { grid-column: 1 / 3; }
+      .hero-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(18rem, .95fr);
+        gap: .75rem 1rem;
+        align-items: start;
+      }
+      .hero-copy { min-width: 0; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); }
       .hero-copy p { margin: 0; max-width: 72ch; color: rgb(var(--gray-dark)); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
       .hero-copy details { margin-top: .35rem; }
       .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
-      .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; min-width: 0; }
-      .meta-line :global(.market-clock) {
+      /* Status pills sit on one row next to CN badge, left-aligned. */
+      .status-row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: .35rem;
+        min-width: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .status-row::-webkit-scrollbar { display: none; }
+      .status-row :global(.pill),
+      .status-row :global(.live-pill) {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+      .hero-clock {
+        min-width: 0;
+        justify-self: end;
+        width: min(100%, 34rem);
+      }
+      .hero-clock :global(.market-clock) {
         width: 100%;
-        flex: 1 1 100%;
-        min-width: min(100%, 18rem);
         max-width: 100%;
       }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
@@ -157,8 +182,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-hint { color: rgb(var(--gray)); font-size: .72rem; }
       @media (max-width: 940px) {
         .hero-top { grid-template-columns: 1fr; gap: .8rem; }
-        .hero-copy, .meta-line { grid-column: 1; }
-        .meta-line { justify-content: flex-start; max-width: none; }
+        .hero-clock { justify-self: stretch; width: 100%; }
         .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
@@ -184,26 +208,30 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
           <div class="hero-copy">
-            <span class="pill pill-red">🇨🇳A股ETF交易仪表盘</span>
+            <div class="status-row" aria-label="数据元信息">
+              <span class="pill pill-red">🇨🇳A股ETF交易仪表盘</span>
+              <AShareMetaPills
+                bare={true}
+                applyDate={data.date}
+                updatedAt={data.updated_at}
+                extra={[
+                  { text: `策略基线：${data.level_data_as_of || data.data_as_of || '待更新'}` },
+                  { text: data.level_model_version || '关键位静态冻结' },
+                ]}
+                liveId="live-quote-status"
+                liveText="实时行情连接中"
+                liveClass="pill live-pill"
+              />
+            </div>
             <h1 id="page-title">A股ETF罗盘</h1>
             <details>
               <summary>查看完整结论</summary>
               <p>{data.summary}</p>
             </details>
           </div>
-          <AShareMetaPills
-            applyDate={data.date}
-            updatedAt={data.updated_at}
-            extra={[
-              { text: `策略基线：${data.level_data_as_of || data.data_as_of || '待更新'}` },
-              { text: data.level_model_version || '关键位静态冻结' },
-            ]}
-            liveId="live-quote-status"
-            liveText="实时行情连接中"
-            liveClass="pill live-pill"
-          >
+          <div class="hero-clock">
             <MarketClock market="a-share" />
-          </AShareMetaPills>
+          </div>
         </div>
         <div class="count-strip" aria-label="今日动作数量">
           <div class="count harvest"><span>🟢 兑现</span><strong>{counts.harvest}</strong><em class="count-note">正式减仓</em></div>

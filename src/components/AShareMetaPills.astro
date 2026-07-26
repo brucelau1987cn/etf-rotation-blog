@@ -2,6 +2,7 @@
 /**
  * Shared A-share hero metadata pills.
  * Keep markup minimal so pages control surrounding layout/CSS.
+ * When nested inside a page status row, render as a fragment-like span group.
  */
 const {
   applyLabel = '适用',
@@ -12,9 +13,12 @@ const {
   liveId = '',
   liveText = '',
   liveClass = 'live-pill',
+  bare = false,
 } = Astro.props;
+
+const Tag = bare ? 'span' : 'div';
 ---
-<div class="meta-line" aria-label="数据元信息">
+<Tag class:list={[!bare && 'meta-line']} aria-label={bare ? undefined : '数据元信息'} style={bare ? 'display:contents' : undefined}>
   {applyDate && <span class="pill pill-amber">{applyLabel}：{applyDate}</span>}
   {updatedAt && <span class="pill">{updatedLabel}：{updatedAt}</span>}
   {extra.map((item) => (
@@ -24,4 +28,4 @@ const {
     <span class={liveClass} id={liveId} role="status" aria-live="polite">{liveText}</span>
   )}
   <slot />
-</div>
+</Tag>
