@@ -117,7 +117,10 @@ check_asset "/js/a-rolling-app.js" "fetchStockQuote"
 check_page "/a-compass/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
-  "/api/public/v1/quote"
+  "/js/a-compass-app.js" \
+  "data-live-card"
+
+check_asset "/js/a-compass-app.js" "EDGE_QUOTE_URL"
 
 check_page "/" \
   "/js/normalize-quote-payload.js" \
@@ -146,7 +149,9 @@ check_page "/us-compass/" \
   "data-us-live-card" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
-  "/api/public/v1/quote"
+  "/js/us-compass-app.js"
+
+check_asset "/js/us-compass-app.js" "US_LIVE_URL"
 
 check_page "/us-momentum/" \
   "/js/momentum-shared.js" \
