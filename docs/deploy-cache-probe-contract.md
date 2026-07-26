@@ -112,8 +112,9 @@ GET /api/public/v1/quote?symbols=600021.SH,XLC,nf_AU0
 
 | 层 | 介质 | TTL | 作用 |
 |---|---|---:|---|
-| L1 | isolate 内存 Map | 4s | 同 isolate 超快 HIT |
-| L2 | `caches.default` | 4s | 跨 isolate HIT |
+| L1 | isolate 内存 Map | 开市 4s / 休市 30s / 周末 60s | 同 isolate 超快 HIT |
+| L2 | `caches.default` | 同上 | 跨 isolate HIT |
+| 策略 | `resolveQuoteCacheTtlMs()` | 动态 | CN/US 常规时段判定 |
 
 查询参数：
 
@@ -128,7 +129,8 @@ GET /api/public/v1/quote?symbols=600021.SH,XLC,nf_AU0
 | `x-quote-cache-layer` | `memory` / `edge` / `none` |
 | `x-quote-cache-age-ms` | 缓存年龄 |
 | `x-quote-source` | 上游源 |
-| `x-quote-cache-ttl-ms` | `4000` |
+| `x-quote-cache-ttl-ms` | 当前策略 TTL |
+| `x-quote-cache-session` | `open_cn` / `open_us` / `open_overlap` / `closed` / `weekend` |
 
 日志事件：`event=quote_cache`（结构化 JSON）。
 

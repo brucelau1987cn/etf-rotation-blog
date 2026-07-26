@@ -7,9 +7,12 @@ let cachedXqToken = null;
 let xqTokenExpireAt = 0;
 
 /** Short cache for identical quote batches (L1 isolate Map + L2 caches.default). */
-export const QUOTE_CACHE_TTL_MS = 4000;
+export const QUOTE_CACHE_TTL_MS = 4000; // legacy alias: open-session baseline
+export const QUOTE_CACHE_TTL_OPEN_MS = 4000;
+export const QUOTE_CACHE_TTL_CLOSED_MS = 30000;
+export const QUOTE_CACHE_TTL_WEEKEND_MS = 60000;
 const QUOTE_CACHE_MAX_ENTRIES = 200;
-const quoteCache = new Map(); // key -> { expiresAt, payload, source, storedAt }
+const quoteCache = new Map(); // key -> { expiresAt, payload, source, storedAt, ttlMs }
 const quoteCacheStats = { hit: 0, miss: 0, store: 0, edge_hit: 0, memory_hit: 0 };
 
 export function clearQuoteCache() {
@@ -21,8 +24,73 @@ export function clearQuoteCache() {
   quoteCacheStats.memory_hit = 0;
 }
 
+/**
+ * Session-aware TTL.
+ * Open windows stay short for freshness; closed/weekend can reuse longer.
+ * Markets covered loosely: CN (A/HK) + US regular hours in local zones.
+ */
+export function resolveQuoteCacheTtlMs(now = new Date()) {
+  const cnParts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Shanghai',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(now)
+      .filter((p) => p.type !== 'literal')
+      .map((p) => [p.type, p.value]),
+  );
+  const usParts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(now)
+      .filter((p) => p.type !== 'literal')
+      .map((p) => [p.type, p.value]),
+  );
+
+  const cnWeekend = cnParts.weekday === 'Sat' || cnParts.weekday === 'Sun';
+  const usWeekend = usParts.weekday === 'Sat' || usParts.weekday === 'Sun';
+  const cnMinutes = Number(cnParts.hour) * 60 + Number(cnParts.minute);
+  const usMinutes = Number(usParts.hour) * 60 + Number(usParts.minute);
+
+  // A-share regular: 09:15-11:30, 13:00-15:05 (include call auction / close tail)
+  const cnOpen = !cnWeekend && (
+    (cnMinutes >= 9 * 60 + 15 && cnMinutes < 11 * 60 + 30)
+    || (cnMinutes >= 13 * 60 && cnMinutes < 15 * 60 + 5)
+  );
+  // US regular: 09:30-16:00 ET
+  const usOpen = !usWeekend && usMinutes >= 9 * 60 + 30 && usMinutes < 16 * 60;
+
+  if (cnOpen || usOpen) {
+    return {
+      ttlMs: QUOTE_CACHE_TTL_OPEN_MS,
+      session: cnOpen && usOpen ? 'open_overlap' : (cnOpen ? 'open_cn' : 'open_us'),
+    };
+  }
+  if (cnWeekend && usWeekend) {
+    return { ttlMs: QUOTE_CACHE_TTL_WEEKEND_MS, session: 'weekend' };
+  }
+  return { ttlMs: QUOTE_CACHE_TTL_CLOSED_MS, session: 'closed' };
+}
+
 export function getQuoteCacheStats() {
-  return { ...quoteCacheStats, size: quoteCache.size, ttl_ms: QUOTE_CACHE_TTL_MS };
+  const policy = resolveQuoteCacheTtlMs();
+  return {
+    ...quoteCacheStats,
+    size: quoteCache.size,
+    ttl_ms: policy.ttlMs,
+    session: policy.session,
+    open_ttl_ms: QUOTE_CACHE_TTL_OPEN_MS,
+    closed_ttl_ms: QUOTE_CACHE_TTL_CLOSED_MS,
+    weekend_ttl_ms: QUOTE_CACHE_TTL_WEEKEND_MS,
+  };
 }
 
 function normalizeQuoteCacheKey(symbolsStr, exchange) {
@@ -51,10 +119,10 @@ function getEdgeCache() {
   return null;
 }
 
-function readMemoryQuoteCache(key) {
+function readMemoryQuoteCache(key, nowMs = Date.now()) {
   const row = quoteCache.get(key);
   if (!row) return null;
-  if (Date.now() >= row.expiresAt) {
+  if (nowMs >= row.expiresAt) {
     quoteCache.delete(key);
     return null;
   }
@@ -64,14 +132,15 @@ function readMemoryQuoteCache(key) {
   return row;
 }
 
-function writeMemoryQuoteCache(key, payload, storedAt = Date.now()) {
+function writeMemoryQuoteCache(key, payload, storedAt = Date.now(), ttlMs = QUOTE_CACHE_TTL_OPEN_MS) {
   if (!payload || payload.status !== 'ok') return;
   if (quoteCache.has(key)) quoteCache.delete(key);
   quoteCache.set(key, {
     payload,
     source: payload.source || 'unknown',
     storedAt,
-    expiresAt: storedAt + QUOTE_CACHE_TTL_MS,
+    ttlMs,
+    expiresAt: storedAt + ttlMs,
   });
   while (quoteCache.size > QUOTE_CACHE_MAX_ENTRIES) {
     const oldest = quoteCache.keys().next().value;
@@ -79,26 +148,28 @@ function writeMemoryQuoteCache(key, payload, storedAt = Date.now()) {
   }
 }
 
-async function readEdgeQuoteCache(key) {
+async function readEdgeQuoteCache(key, nowMs = Date.now()) {
   const edge = getEdgeCache();
   if (!edge) return null;
   try {
     const cached = await edge.match(quoteCacheRequest(key));
     if (!cached || !cached.ok) return null;
     const storedAt = Number(cached.headers.get('x-quote-stored-at') || 0);
-    if (storedAt && Date.now() - storedAt >= QUOTE_CACHE_TTL_MS) {
+    const ttlMs = Number(cached.headers.get('x-quote-ttl-ms') || QUOTE_CACHE_TTL_OPEN_MS);
+    if (storedAt && nowMs - storedAt >= ttlMs) {
       // best-effort expire; Cache API TTL is controlled via cache-control below
       return null;
     }
     const payload = await cached.json();
     if (!payload || payload.status !== 'ok') return null;
     const source = cached.headers.get('x-quote-source') || payload.source || 'unknown';
-    // promote to L1
-    writeMemoryQuoteCache(key, payload, storedAt || Date.now());
+    // promote to L1 with remaining lifetime
+    writeMemoryQuoteCache(key, payload, storedAt || nowMs, ttlMs);
     return {
       payload,
       source,
-      storedAt: storedAt || Date.now(),
+      storedAt: storedAt || nowMs,
+      ttlMs,
       layer: 'edge',
     };
   } catch (_) {
@@ -106,11 +177,11 @@ async function readEdgeQuoteCache(key) {
   }
 }
 
-async function writeEdgeQuoteCache(key, payload, storedAt = Date.now()) {
+async function writeEdgeQuoteCache(key, payload, storedAt = Date.now(), ttlMs = QUOTE_CACHE_TTL_OPEN_MS) {
   const edge = getEdgeCache();
   if (!edge || !payload || payload.status !== 'ok') return false;
   try {
-    const ttlSec = Math.max(1, Math.ceil(QUOTE_CACHE_TTL_MS / 1000));
+    const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
     const response = new Response(JSON.stringify(payload), {
       status: 200,
       headers: {
@@ -118,6 +189,7 @@ async function writeEdgeQuoteCache(key, payload, storedAt = Date.now()) {
         // Cloudflare Cache API honors this for edge object lifetime.
         'cache-control': `public, max-age=${ttlSec}`,
         'x-quote-stored-at': String(storedAt),
+        'x-quote-ttl-ms': String(ttlMs),
         'x-quote-source': String(payload.source || 'unknown'),
       },
     });
@@ -129,16 +201,17 @@ async function writeEdgeQuoteCache(key, payload, storedAt = Date.now()) {
 }
 
 async function readQuoteCache(key) {
-  const mem = readMemoryQuoteCache(key);
+  const nowMs = Date.now();
+  const mem = readMemoryQuoteCache(key, nowMs);
   if (mem) return { ...mem, layer: 'memory' };
-  return readEdgeQuoteCache(key);
+  return readEdgeQuoteCache(key, nowMs);
 }
 
-async function writeQuoteCache(key, payload) {
+async function writeQuoteCache(key, payload, ttlMs = QUOTE_CACHE_TTL_OPEN_MS) {
   if (!payload || payload.status !== 'ok') return;
   const storedAt = Date.now();
-  writeMemoryQuoteCache(key, payload, storedAt);
-  const edgeOk = await writeEdgeQuoteCache(key, payload, storedAt);
+  writeMemoryQuoteCache(key, payload, storedAt, ttlMs);
+  const edgeOk = await writeEdgeQuoteCache(key, payload, storedAt, ttlMs);
   quoteCacheStats.store += 1;
   return edgeOk;
 }
@@ -553,13 +626,15 @@ export async function onRequestGet({ request }) {
   const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
   const bypassCache = url.searchParams.get('nocache') === '1' || url.searchParams.get('refresh') === '1';
   const cacheKey = normalizeQuoteCacheKey(symbols, exchange);
+  const cachePolicy = resolveQuoteCacheTtlMs();
 
   const headers = {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'public, max-age=5, s-maxage=5, stale-while-revalidate=15',
     'x-content-type-options': 'nosniff',
     'access-control-allow-origin': '*',
-    'x-quote-cache-ttl-ms': String(QUOTE_CACHE_TTL_MS),
+    'x-quote-cache-ttl-ms': String(cachePolicy.ttlMs),
+    'x-quote-cache-session': cachePolicy.session,
   };
 
   try {
@@ -574,12 +649,15 @@ export async function onRequestGet({ request }) {
         headers['x-quote-cache-layer'] = hit.layer || 'memory';
         headers['x-quote-cache-age-ms'] = String(ageMs);
         headers['x-quote-source'] = String(hit.source || hit.payload?.source || 'unknown');
+        if (hit.ttlMs) headers['x-quote-cache-ttl-ms'] = String(hit.ttlMs);
         console.log(JSON.stringify({
           event: 'quote_cache',
           result: 'HIT',
           layer: hit.layer || 'memory',
           key: cacheKey,
           age_ms: ageMs,
+          ttl_ms: hit.ttlMs || cachePolicy.ttlMs,
+          session: cachePolicy.session,
           source: hit.source,
           count: hit.payload?.count,
         }));
@@ -593,7 +671,7 @@ export async function onRequestGet({ request }) {
     quoteCacheStats.miss += 1;
     const data = await fetchQuote(symbols, exchange);
     if (!bypassCache && data?.status === 'ok') {
-      await writeQuoteCache(cacheKey, data);
+      await writeQuoteCache(cacheKey, data, cachePolicy.ttlMs);
     }
     headers['x-quote-cache'] = bypassCache ? 'BYPASS' : 'MISS';
     headers['x-quote-cache-layer'] = 'none';
@@ -604,6 +682,8 @@ export async function onRequestGet({ request }) {
       result: bypassCache ? 'BYPASS' : 'MISS',
       layer: 'none',
       key: cacheKey,
+      ttl_ms: cachePolicy.ttlMs,
+      session: cachePolicy.session,
       source: data?.source || null,
       count: data?.count || 0,
       status: data?.status || 'error',
@@ -620,6 +700,7 @@ export async function onRequestGet({ request }) {
       event: 'quote_cache',
       result: 'ERROR',
       key: cacheKey,
+      session: cachePolicy.session,
       message: err.message || 'internal error',
     }));
     return new Response(JSON.stringify({ status: 'error', message: err.message || 'internal error' }), {
