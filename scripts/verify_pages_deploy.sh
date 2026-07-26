@@ -124,7 +124,11 @@ check_page "/a-momentum/" \
   "/js/etf-live-poll.js" \
   "/js/momentum-shared.js" \
   "/js/a-momentum-app.js" \
-  "/api/public/v1/quote"
+  "etf-body" \
+  "metric-regime"
+
+check_asset "/js/a-momentum-app.js" "EDGE_QUOTE_URL"
+check_asset "/js/us-momentum-app.js" "renderMatrix"
 
 check_page "/futures-compass/" \
   "/js/normalize-quote-payload.js" \
