@@ -1,0 +1,43 @@
+---
+type Dimension = {
+  title: string;
+  tone: string;
+  state: string;
+  headline: string;
+  detail: string;
+  impact: string;
+  symbols: string[];
+  as_of?: string;
+};
+
+type Props = {
+  dimensions: Dimension[];
+  toneIcon: (tone: string) => string;
+};
+
+const { dimensions, toneIcon } = Astro.props;
+---
+<section>
+  <div class="section-head">
+    <div>
+      <span class="section-kicker">FOUR-DIMENSION GATE</span>
+      <h2>四维风险矩阵</h2>
+    </div>
+    <p>每张卡使用自己的观察日期，避免把低频数据伪装成实时。</p>
+  </div>
+  <div class="dimension-grid">
+    {dimensions.map((item) => (
+      <article class={`dimension card ${item.tone}`}>
+        <div class="dim-top">
+          <span>{item.title}</span>
+          <span class="dim-state">{toneIcon(item.tone)} {item.state}</span>
+        </div>
+        <h3>{item.headline}</h3>
+        <p>{item.detail}</p>
+        <div class="dim-impact">{item.impact}</div>
+        <div class="symbols">{item.symbols.map((symbol) => <b>{symbol}</b>)}</div>
+        <small class="asof">观察日 {item.as_of || 'N/A'}</small>
+      </article>
+    ))}
+  </div>
+</section>

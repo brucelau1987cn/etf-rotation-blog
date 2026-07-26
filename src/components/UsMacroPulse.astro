@@ -1,0 +1,40 @@
+---
+type PulseItem = {
+  label: string;
+  symbol: string;
+  impact: string;
+  value?: number;
+  change_5d_pct?: number;
+  stale?: boolean;
+};
+
+type Props = {
+  marketCards: PulseItem[];
+};
+
+const { marketCards } = Astro.props;
+---
+<section>
+  <div class="section-head">
+    <div>
+      <span class="section-kicker">CROSS-ASSET PULSE</span>
+      <h2>跨资产脉搏</h2>
+    </div>
+    <p>只作方向验证，不冒充资金净流入。</p>
+  </div>
+  <div class="pulse-grid">
+    {marketCards.map((item) => (
+      <article class="pulse card">
+        <span>{item.label} · {item.symbol}</span>
+        <strong>{typeof item.value === 'number' ? item.value.toFixed(2) : 'N/A'}</strong>
+        <small>
+          {item.stale ? '旧快照 · ' : ''}
+          {typeof item.change_5d_pct === 'number'
+            ? `5日 ${item.change_5d_pct >= 0 ? '+' : ''}${item.change_5d_pct.toFixed(2)}%`
+            : '数据暂缺'}
+          · {item.impact}
+        </small>
+      </article>
+    ))}
+  </div>
+</section>

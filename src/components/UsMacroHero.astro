@@ -1,0 +1,42 @@
+---
+type Risk = {
+  label: string;
+  headline: string;
+  equity_constraint: string;
+  score: number;
+};
+
+type Props = {
+  riskIcon: string;
+  risk: Risk;
+  generatedAtText: string;
+};
+
+const { riskIcon, risk, generatedAtText } = Astro.props;
+---
+<section class="macro-hero card">
+  <div class="hero-top">
+    <div>
+      <span class="eyebrow">US MACRO RISK TERMINAL</span>
+      <h1>美股宏观雷达</h1>
+      <p>先决定风险预算，再选择ETF，最后等待关键价位。宏观只约束仓位，不替代交易触发。</p>
+    </div>
+    <div class="hero-meta">
+      <span>数据截止 {generatedAtText}</span>
+      <span>时区 America/New_York</span>
+      <span>免费公开数据 · 无券商权限</span>
+    </div>
+  </div>
+  <div class="risk-command">
+    <div class="risk-icon">{riskIcon}</div>
+    <div>
+      <span>MACRO RISK GATE</span>
+      <strong>{risk.label} · {risk.headline}</strong>
+      <p>{risk.equity_constraint}</p>
+    </div>
+    <div class="allocation">
+      <small>风险评分 · 越高风险越大</small>
+      <b>{risk.score} / 10</b>
+    </div>
+  </div>
+</section>

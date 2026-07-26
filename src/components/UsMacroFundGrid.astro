@@ -1,0 +1,50 @@
+---
+type FundItem = {
+  title: string;
+  tone?: string;
+  stale?: boolean;
+  frequency?: string;
+  value: string;
+  detail: string;
+  as_of?: string;
+  source?: string;
+  source_url?: string;
+};
+
+type Props = {
+  kicker: string;
+  title: string;
+  note: string;
+  items: FundItem[];
+};
+
+const { kicker, title, note, items } = Astro.props;
+---
+<section>
+  <div class="section-head">
+    <div>
+      <span class="section-kicker">{kicker}</span>
+      <h2>{title}</h2>
+    </div>
+    <p>{note}</p>
+  </div>
+  <div class="fund-grid">
+    {items.map((item) => (
+      <article class={`fund card ${item.tone || ''}`}>
+        <div class="fund-top">
+          <span>{item.title}</span>
+          <span>{item.stale ? '旧快照' : item.frequency}</span>
+        </div>
+        <h3>{item.value}</h3>
+        <p>{item.detail}</p>
+        <small>
+          观察日 {item.as_of || 'N/A'} · {
+            item.source_url
+              ? <a href={item.source_url} target="_blank" rel="noopener noreferrer">{item.source} ↗</a>
+              : item.source
+          }
+        </small>
+      </article>
+    ))}
+  </div>
+</section>

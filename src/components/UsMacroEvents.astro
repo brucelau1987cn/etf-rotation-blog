@@ -1,0 +1,67 @@
+---
+type EventItem = {
+  date: string;
+  time_et: string;
+  title: string;
+  discipline: string;
+  symbols: string[];
+  importance: string;
+};
+
+type ImpactItem = {
+  driver: string;
+  benefit: string[];
+  pressure: string[];
+  discipline: string;
+};
+
+type Props = {
+  events: EventItem[];
+  impacts: ImpactItem[];
+  calendarDate: (raw: string) => string;
+};
+
+const { events, impacts, calendarDate } = Astro.props;
+---
+<section>
+  <div class="section-head">
+    <div>
+      <span class="section-kicker">EVENT & ETF IMPACT</span>
+      <h2>事件与ETF影响</h2>
+    </div>
+    <p>只有会改变执行的事件才升级为告警。</p>
+  </div>
+  <div class="event-layout">
+    <div class="events card">
+      <h3>未来核心事件</h3>
+      {events.length ? events.map((event) => (
+        <article class="event">
+          <div class="event-date">
+            <b>{calendarDate(event.date)}</b>
+            <small>{event.time_et} ET</small>
+          </div>
+          <div>
+            <h3>{event.title}</h3>
+            <p>{event.discipline} · 影响 {event.symbols.join(' / ')}</p>
+          </div>
+          <span class="event-tag">{event.importance}影响</span>
+        </article>
+      )) : (
+        <p>官方事件日历暂未获得可靠数据，不猜测日期。</p>
+      )}
+    </div>
+    <div class="impact-map card">
+      <h3>当前冲击映射</h3>
+      {impacts.map((item) => (
+        <article class="impact">
+          <strong>{item.driver}</strong>
+          <div class="impact-row">
+            受益 <b>{item.benefit.length ? item.benefit.join(' / ') : '—'}</b>
+            · 承压 <b>{item.pressure.length ? item.pressure.join(' / ') : '—'}</b>
+          </div>
+          <p>{item.discipline}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
