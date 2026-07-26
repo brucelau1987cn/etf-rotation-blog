@@ -116,6 +116,24 @@ GET /api/public/v1/quote?symbols=600021.SH,XLC,nf_AU0
 | L2 | `caches.default` | 同上 | 跨 isolate HIT |
 | 策略 | `resolveQuoteCacheTtlMs()` | 动态 | CN/US 常规时段判定 |
 
+### 3.4 双活路径（Pages 主 / Worker 次）
+
+| 路径 | 状态 | 说明 |
+|---|---|---|
+| Pages Functions `etf.peekabo.cc/api/public/v1/quote` | **生产主路径** | `npm run sync:quote` + Pages deploy |
+| 独立 Worker `edge-quote-api` | 可选次路径 | 需 Workers Scripts:Edit token |
+
+edge 仓库命令：
+
+```sh
+cd edge-quote-api
+npm run verify:dual          # 验证 Pages；若有 EDGE_QUOTE_WORKER_URL 再验证 Worker
+npm run deploy:dual          # 尝试 Worker 部署（权限不足时明确失败）
+```
+
+当前常见阻塞：Pages token 可部署站点，但 Workers 写接口返回 `Authentication error [code: 10000]`。  
+在 Worker 权限补齐前，**不要**把生产前端切到 workers.dev；继续以 Pages Functions 为准。
+
 查询参数：
 
 - 默认：走缓存
