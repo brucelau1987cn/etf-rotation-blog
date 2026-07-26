@@ -187,6 +187,7 @@ cache-control: public, max-age=5, s-maxage=5, stale-while-revalidate=15
 | `token-app.js` | `/token/` |
 | `login-app.js` | `/login/` |
 | `lab-app.js` | `/lab/` |
+| `blog-post-app.js` | BlogPost 文章布局（`/blog/*`） |
 
 约定：
 
@@ -241,6 +242,7 @@ BASE_URL=https://etf.peekabo.cc bash scripts/verify_pages_deploy.sh
 | `/token/` | `token-app.js`、`data-token-dashboard` |
 | `/login/` | `login-app.js`、`login-form` |
 | `/lab/` | `lab-app.js`、`upload-form`、`audit-content` |
+| `/blog/2026-05-31-etf-rotation-framework/` | `blog-post-app.js`、`article-toc`、`article-content` |
 
 ### 6.4 Quote API 抽样
 

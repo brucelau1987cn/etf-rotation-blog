@@ -230,6 +230,12 @@ check_page "/lab/" \
   "audit-content" \
   "kronos-content"
 
+# Stable historical article using BlogPost layout client.
+check_page "/blog/2026-05-31-etf-rotation-framework/" \
+  "/js/blog-post-app.js" \
+  "article-toc" \
+  "article-content"
+
 quote_ok=0
 quote_headers=""
 attempt=1
