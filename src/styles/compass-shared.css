@@ -54,6 +54,46 @@
   font-weight: 700;
 }
 
+/* Compact status dots on action count cards (A/US compass). */
+.count .status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  line-height: 1.2;
+}
+
+.count .status-dot {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  min-height: 6px !important;
+  max-width: 6px !important;
+  max-height: 6px !important;
+  border-radius: 50%;
+  flex: 0 0 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+  vertical-align: middle;
+  box-shadow: none !important;
+}
+
+.count .status-dot.exit,
+.count .status-dot.harvest,
+.count .status-dot.take-profit {
+  background: #159447 !important;
+}
+
+.count .status-dot.plant,
+.count .status-dot.watch {
+  background: #d63d2e !important;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;

@@ -200,27 +200,38 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         color: rgb(var(--gray-dark));
         font-size: .78rem;
         font-weight: 850;
+        line-height: 1.2;
       }
+      /* Empty <i> can inherit text metrics and look huge; lock to 6px disc. */
       .count .status-dot {
-        width: 6px;
-        height: 6px;
-        min-width: 6px;
-        min-height: 6px;
-        max-width: 6px;
-        max-height: 6px;
-        border-radius: 50%;
-        flex: 0 0 auto;
-        box-shadow: none;
         display: inline-block;
+        box-sizing: border-box;
+        width: 6px !important;
+        height: 6px !important;
+        min-width: 6px !important;
+        min-height: 6px !important;
+        max-width: 6px !important;
+        max-height: 6px !important;
+        border-radius: 50%;
+        flex: 0 0 6px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        overflow: hidden;
+        vertical-align: middle;
+        box-shadow: none !important;
+        background-clip: padding-box;
       }
       .count .status-dot.exit,
       .count .status-dot.harvest,
       .count .status-dot.take-profit {
-        background: var(--green);
+        background: #159447 !important;
       }
       .count .status-dot.plant,
       .count .status-dot.watch {
-        background: var(--accent);
+        background: #d63d2e !important;
       }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
