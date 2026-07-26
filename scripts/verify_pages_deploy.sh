@@ -108,7 +108,11 @@ check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_page "/a-rolling/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
-  "/api/public/v1/quote"
+  "/js/a-rolling-app.js" \
+  "buy-cells-container" \
+  "stat-current-code"
+
+check_asset "/js/a-rolling-app.js" "fetchStockQuote"
 
 check_page "/a-compass/" \
   "/js/normalize-quote-payload.js" \
