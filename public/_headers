@@ -5,3 +5,24 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
   Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://minimax.peekabo.cc
+
+# HTML pages: short cache so script ?v= hash updates roll out quickly.
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Versioned public JS modules (queried as /js/*.js?v=<hash>).
+# Long-lived immutable caching is safe because content changes bump the hash.
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# Hashed Astro build assets.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Static data snapshots: short cache, always revalidate.
+/data/*
+  Cache-Control: public, max-age=60, stale-while-revalidate=300

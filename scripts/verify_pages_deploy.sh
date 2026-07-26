@@ -106,6 +106,30 @@ check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
 
+# Cache policy: versioned public JS should be long-lived/immutable.
+js_headers="$(curl -fsSIL -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' "${BASE_URL}/js/normalize-quote-payload.js?t=${TS}" 2>/dev/null || true)"
+if printf '%s' "$js_headers" | tr '[:upper:]' '[:lower:]' | grep -Eq 'cache-control:.*max-age=31536000'; then
+  echo "OK  /js/* Cache-Control long-lived"
+else
+  echo "FAIL /js/* Cache-Control missing long max-age"
+  printf '%s\n' "$js_headers" | sed -n '1,20p'
+  fail=1
+fi
+if printf '%s' "$js_headers" | tr '[:upper:]' '[:lower:]' | grep -Eq 'cache-control:.*immutable'; then
+  echo "OK  /js/* Cache-Control immutable"
+else
+  echo "FAIL /js/* Cache-Control missing immutable"
+  fail=1
+fi
+
+html_headers="$(curl -fsSIL -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' "${BASE_URL}/?t=${TS}" 2>/dev/null || true)"
+if printf '%s' "$html_headers" | tr '[:upper:]' '[:lower:]' | grep -Eq 'cache-control:.*(max-age=0|no-cache|must-revalidate)'; then
+  echo "OK  HTML short/revalidate Cache-Control"
+else
+  echo "WARN HTML Cache-Control not short; got:"
+  printf '%s\n' "$html_headers" | tr '[:upper:]' '[:lower:]' | grep -i 'cache-control' || true
+fi
+
 # Page HTML only needs to reference the shared scripts + page-specific hooks.
 check_page "/a-rolling/" \
   "/js/normalize-quote-payload.js" \
