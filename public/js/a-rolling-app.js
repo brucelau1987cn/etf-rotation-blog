@@ -260,7 +260,6 @@
   const updateQuoteUI = (symbol, payload) => {
     const item = findQuoteItem(payload, symbol) || payload?.items?.[0] || null;
     const badge = document.querySelector(`.instrument-board[data-symbol="${symbol}"] [data-role="quote"]`);
-    const pill = document.getElementById('pill-stock-quote');
     if (!item || typeof item.price !== 'number') {
       if (badge) badge.textContent = '行情暂不可用';
       return;
@@ -275,12 +274,41 @@
       badge.textContent = text;
       badge.style.color = color;
     }
-    if (pill && symbol === INSTRUMENTS[0].symbol) {
-      pill.textContent = `实时：${INSTRUMENTS[0].name} ${text}`;
-      pill.style.color = color;
-      pill.style.background = isUp ? '#fff1f0' : isDown ? '#f6ffed' : '#f1f5f9';
-      pill.style.borderColor = isUp ? '#ffa39e' : isDown ? '#b7eb8f' : '#cbd5e1';
+  };
+
+  const QUOTE_INTERVAL_MS = 15000;
+  const SIGNAL_INTERVAL_MS = 30000;
+  let nextQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
+  let countdownTimer = null;
+
+  const paintCountdown = () => {
+    const pill = document.getElementById('pill-refresh-countdown');
+    if (!pill) return;
+    if (document.hidden) {
+      pill.textContent = '实时：页面后台暂停';
+      pill.style.color = '#64748b';
+      pill.style.background = '#f1f5f9';
+      pill.style.borderColor = '#cbd5e1';
+      return;
     }
+    const remainMs = Math.max(0, nextQuoteAt - Date.now());
+    const remainSec = Math.ceil(remainMs / 1000);
+    if (remainSec <= 0) {
+      pill.textContent = '实时：刷新中…';
+      pill.style.color = '#0958d9';
+      pill.style.background = '#e6f4ff';
+      pill.style.borderColor = '#91caff';
+      return;
+    }
+    pill.textContent = `实时：${remainSec}s 后刷新`;
+    pill.style.color = '#334155';
+    pill.style.background = '#f1f5f9';
+    pill.style.borderColor = '#cbd5e1';
+  };
+
+  const armQuoteCountdown = () => {
+    nextQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
+    paintCountdown();
   };
 
   const fetchOneSignals = async (symbol) => {
@@ -329,6 +357,7 @@
       }));
     } finally {
       quoteInFlight = false;
+      armQuoteCountdown();
     }
   };
 
@@ -337,17 +366,23 @@
     fetchAllQuotes();
   }, 400);
 
+  countdownTimer = window.setInterval(paintCountdown, 250);
+  paintCountdown();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      armQuoteCountdown();
+      void fetchAllSignals();
+      void fetchAllQuotes();
+    } else {
+      paintCountdown();
+    }
+  });
+
   if (window.EtfLivePoll?.startLivePoll) {
-    window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => { await fetchAllQuotes(); }});
-    window.EtfLivePoll.startLivePoll({ intervalMs: 30000, immediate: false, tick: async () => { await fetchAllSignals(); }});
+    window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllQuotes(); }});
+    window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
   } else {
-    setInterval(fetchAllSignals, 30000);
-    setInterval(fetchAllQuotes, 15000);
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        void fetchAllSignals();
-        void fetchAllQuotes();
-      }
-    });
+    setInterval(fetchAllSignals, SIGNAL_INTERVAL_MS);
+    setInterval(fetchAllQuotes, QUOTE_INTERVAL_MS);
   }
 })();
