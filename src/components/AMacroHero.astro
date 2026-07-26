@@ -1,6 +1,4 @@
 ---
-import AShareMetaPills from './AShareMetaPills.astro';
-
 type Constraint = {
   label?: string;
   headwind_level?: number;
@@ -22,9 +20,6 @@ type Props = {
 
 const {
   applyDate,
-  updatedAt,
-  timezoneLabel,
-  modelVersion,
   liveGateReady,
   liveGateCount,
   constraint,
@@ -34,17 +29,9 @@ const {
 ---
 <section class="macro-hero card" aria-labelledby="page-title">
   <div class="status-row" aria-label="数据元信息">
-    <span class="pill pill-red">🇨🇳A股宏观雷达</span>
-    <AShareMetaPills
-      bare={true}
-      applyDate={applyDate}
-      updatedAt={updatedAt}
-      extra={[
-        { text: `市场：A股 · ${timezoneLabel}` },
-        { text: modelVersion },
-        { text: `日度闸门 ${liveGateReady}/${liveGateCount || 3}`, class: 'live-pill' },
-      ]}
-    />
+    <span class="pill pill-red">🇨🇳 A股 · 宏观</span>
+    <span class="pill pill-amber">适用：{applyDate}</span>
+    <span class="pill live-pill">闸门 {liveGateReady}/{liveGateCount || 3}</span>
   </div>
   <div class="hero-row">
     <div class="hero-copy">

@@ -5,7 +5,6 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import AStockSubnav from '../components/AStockSubnav.astro';
-import AShareMetaPills from '../components/AShareMetaPills.astro';
 import AShareSignalCard from '../components/AShareSignalCard.astro';
 import MarketClock from '../components/MarketClock.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
@@ -267,19 +266,9 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="hero-top">
           <div class="status-row" aria-label="数据元信息">
-            <span class="pill pill-red">🇨🇳A股ETF交易仪表盘</span>
-            <AShareMetaPills
-              bare={true}
-              applyDate={data.date}
-              updatedAt={data.updated_at}
-              extra={[
-                { text: `策略基线：${data.level_data_as_of || data.data_as_of || '待更新'}` },
-                { text: data.level_model_version || '关键位静态冻结' },
-              ]}
-              liveId="live-quote-status"
-              liveText="实时行情连接中"
-              liveClass="pill live-pill"
-            />
+            <span class="pill pill-red">🇨🇳 A股 · 今日动作</span>
+            <span class="pill pill-amber">适用：{data.date}</span>
+            <span class="pill live-pill" id="live-quote-status" role="status" aria-live="polite">最新快照连接中</span>
           </div>
           <div class="hero-main">
             <div class="hero-copy">

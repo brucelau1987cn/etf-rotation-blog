@@ -94,10 +94,9 @@ const shortTitle = (title: string) => title
       <AStockSubnav active="review" />
       <section class="dashboard-hero card" aria-labelledby="page-title">
         <div class="status-row" aria-label="数据元信息">
-          <span class="pill pill-red">🇨🇳A股ETF复盘档案</span>
+          <span class="pill pill-red">🇨🇳 A股 · 复盘</span>
           <span class="pill pill-amber">最新：{latest ? <FormattedDate date={latest.data.pubDate} /> : '待更新'}</span>
-          <span class="pill">预测 → 修正 → 收盘 → 验证</span>
-          <span class="pill">共 {posts.length} 篇</span>
+          <span class="pill live-pill">共 {posts.length} 篇</span>
         </div>
         <div class="hero-copy">
           <h1 id="page-title">盘后复盘</h1>

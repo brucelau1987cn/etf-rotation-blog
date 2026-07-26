@@ -1,16 +1,15 @@
 ---
 /**
  * A-momentum hero shell with stable live metric IDs.
- * First row matches A-compass status pills.
+ * Status row follows A-rolling: 标识 · 模型/行情 · 连接状态 · 刷新
  */
 ---
 <section class="dashboard-hero card" aria-labelledby="page-title">
   <div class="status-row" aria-label="数据元信息">
-    <span class="pill pill-red">🇨🇳A股ETF趋势风控</span>
+    <span class="pill pill-red">🇨🇳 A股 · 趋势</span>
     <span class="pill" id="date-pill">模型 —｜行情 —</span>
-    <span class="pill" id="metric-time">行情连接中</span>
-    <span class="pill">行情：🔴上涨 / 🟢下跌</span>
-    <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新行情</button>
+    <span class="pill live-pill" id="metric-time">行情连接中</span>
+    <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新</button>
   </div>
   <div class="hero-copy">
     <h1 id="page-title">A股趋势风控雷达</h1>
