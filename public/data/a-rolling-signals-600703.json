@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-26T07:20:00Z",
+  "generated_at": "2026-07-26T08:40:00Z",
   "data_as_of": "2026-07-06T09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "三安光电买入暂无；空方 15m~240m 卖出链已确认。",
+  "notice": "三安光电：多方 1.75h 观察 + 2h~5.5h 正式买入；空方 10m 观察 + 15m~240m 正式卖出。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -17,15 +17,25 @@
   },
   "transmission": {
     "state": "transmitting",
-    "basis": "chronological_sequence",
-    "current_cycle_code": "120m",
-    "started_at": "2026-06-29T10:00:00+08:00",
+    "basis": "formal_window_order",
+    "current_cycle_code": "150m",
+    "started_at": "2026-06-16T09:30:00+08:00",
     "latest_triggered_at": "2026-07-06T09:30:00+08:00",
-    "lit_count": 9,
-    "buy_count": 0,
-    "sell_count": 9
+    "lit_count": 19,
+    "buy_count": 9,
+    "sell_count": 10
   },
   "timeline": [
+    { "type": "BUY", "code": "1.75h", "triggered_at": "2026-06-16T09:30:00+08:00", "label": "1小时45分钟·观察窗口" },
+    { "type": "BUY", "code": "2h", "triggered_at": "2026-06-17T09:30:00+08:00", "label": "2小时00分钟" },
+    { "type": "BUY", "code": "2.5h", "triggered_at": "2026-06-17T09:30:00+08:00", "label": "2小时30分钟" },
+    { "type": "BUY", "code": "3h", "triggered_at": "2026-06-17T09:30:00+08:00", "label": "3小时00分钟" },
+    { "type": "BUY", "code": "3.5h", "triggered_at": "2026-06-17T09:30:00+08:00", "label": "3小时30分钟" },
+    { "type": "BUY", "code": "4h", "triggered_at": "2026-06-17T09:30:00+08:00", "label": "4小时00分钟" },
+    { "type": "BUY", "code": "4.5h", "triggered_at": "2026-06-18T09:30:00+08:00", "label": "4小时30分钟" },
+    { "type": "BUY", "code": "5h", "triggered_at": "2026-06-18T09:30:00+08:00", "label": "5小时00分钟" },
+    { "type": "BUY", "code": "5.5h", "triggered_at": "2026-06-18T09:30:00+08:00", "label": "5小时30分钟" },
+    { "type": "SELL", "code": "10m", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "10分钟·观察窗口" },
     { "type": "SELL", "code": "15m", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "15分钟" },
     { "type": "SELL", "code": "30m", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "30分钟" },
     { "type": "SELL", "code": "60m", "triggered_at": "2026-06-29T10:30:00+08:00", "label": "60分钟" },
@@ -36,9 +46,20 @@
     { "type": "SELL", "code": "120m", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "120分钟" },
     { "type": "SELL", "code": "150m", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "150分钟" }
   ],
-  "cycles": [],
+  "cycles": [
+    { "cycle_code": "1.75h", "buy_state": "BUY", "buy_triggered_at": "2026-06-16T09:30:00+08:00", "label": "1小时45分钟·观察窗口" },
+    { "cycle_code": "2h", "buy_state": "BUY", "buy_triggered_at": "2026-06-17T09:30:00+08:00", "label": "2小时00分钟" },
+    { "cycle_code": "2.5h", "buy_state": "BUY", "buy_triggered_at": "2026-06-17T09:30:00+08:00", "label": "2小时30分钟" },
+    { "cycle_code": "3h", "buy_state": "BUY", "buy_triggered_at": "2026-06-17T09:30:00+08:00", "label": "3小时00分钟" },
+    { "cycle_code": "3.5h", "buy_state": "BUY", "buy_triggered_at": "2026-06-17T09:30:00+08:00", "label": "3小时30分钟" },
+    { "cycle_code": "4h", "buy_state": "BUY", "buy_triggered_at": "2026-06-17T09:30:00+08:00", "label": "4小时00分钟" },
+    { "cycle_code": "4.5h", "buy_state": "BUY", "buy_triggered_at": "2026-06-18T09:30:00+08:00", "label": "4小时30分钟" },
+    { "cycle_code": "5h", "buy_state": "BUY", "buy_triggered_at": "2026-06-18T09:30:00+08:00", "label": "5小时00分钟" },
+    { "cycle_code": "5.5h", "buy_state": "BUY", "buy_triggered_at": "2026-06-18T09:30:00+08:00", "label": "5小时30分钟" }
+  ],
   "sell_chain": {
     "nodes": [
+      { "code": "10m", "sell_state": "WATCH", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "10分钟·观察窗口" },
       { "code": "15m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "15分钟" },
       { "code": "30m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "30分钟" },
       { "code": "60m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:30:00+08:00", "label": "60分钟" },
