@@ -216,12 +216,82 @@
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
+  /* Always reserve a visible horizontal scroll track. */
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e2e8f0;
+  touch-action: pan-x;
+}
+
+.a-rolling-main .table-outer::-webkit-scrollbar {
+  height: 12px;
+  display: block;
+}
+
+.a-rolling-main .table-outer::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+  margin: 0 8px 4px;
+}
+
+.a-rolling-main .table-outer::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 999px;
+  border: 2px solid #e2e8f0;
+  min-width: 48px;
+}
+
+.a-rolling-main .table-outer::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }
 
 .a-rolling-main .table-grid {
   display: flex;
-  min-width: max(100%, 760px);
+  /* Force horizontal overflow on phone widths so the scroll track is usable. */
+  min-width: 1100px;
   width: max-content;
+}
+
+.a-rolling-main .scroll-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.35rem 0.2rem 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.a-rolling-main .scroll-hint strong {
+  color: #0f172a;
+  font-weight: 850;
+}
+
+.a-rolling-main .scroll-track {
+  position: relative;
+  height: 12px;
+  margin: 0.35rem 0.15rem 0.15rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.a-rolling-main .scroll-thumb {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  height: 10px;
+  min-width: 42px;
+  border-radius: 999px;
+  background: #64748b;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+
+.a-rolling-main .scroll-thumb:active {
+  background: #334155;
 }
 
 .a-rolling-main .stock-sticky {

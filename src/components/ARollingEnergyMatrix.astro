@@ -89,7 +89,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
       const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       return (
         <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
-          <div class="table-outer">
+          <div class="table-outer" data-role="signal-scroller">
             <div class="table-grid">
               <div class="stock-sticky">
                 <div class="stock-name-title" data-role="inst-name">{inst.instrumentName}</div>
@@ -112,7 +112,6 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                     ></i>
                   </div>
                   <div class="cells-scroll" data-role="sell-cells">
-                    {/* Left-pad sell rail so formal sells start after the buy sequence. */}
                     {buys.map((item) => (
                       <div class="cell-spacer" data-align-buy={item.code} aria-hidden="true"></div>
                     ))}
@@ -167,6 +166,13 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                 </div>
               </div>
             </div>
+          </div>
+          <div class="scroll-hint">
+            <span><strong>左右滑动</strong>查看完整信号序列</span>
+            <span data-role="scroll-range">标的固定 · 信号可滑</span>
+          </div>
+          <div class="scroll-track" data-role="scroll-track" aria-hidden="true">
+            <div class="scroll-thumb" data-role="scroll-thumb"></div>
           </div>
         </article>
       );
