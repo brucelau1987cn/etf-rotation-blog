@@ -49,63 +49,146 @@
   gap: 0.4rem;
 }
 
-.a-rolling-main .count-strip {
+.a-rolling-main .signal-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
   margin-top: 1rem;
 }
 
-.a-rolling-main .count-box {
-  padding: 0.75rem 0.9rem;
+.a-rolling-main .signal-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #fff;
+  padding: 0.85rem 0.95rem;
+  min-height: 118px;
   display: flex;
   flex-direction: column;
+  gap: 0.35rem;
+}
+
+.a-rolling-main .signal-card-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.a-rolling-main .count-box span {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: rgb(var(--gray));
-}
-
-.a-rolling-main .count-box strong {
-  font-size: 1.35rem;
+.a-rolling-main .signal-kicker {
+  font-size: 0.78rem;
   font-weight: 800;
-  line-height: 1.1;
-  margin-top: 0.25rem;
+  color: #475569;
 }
 
-.a-rolling-main .count-box em {
-  font-size: 0.7rem;
+.a-rolling-main .signal-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.08rem 0.45rem;
+  white-space: nowrap;
+}
+
+.a-rolling-main .signal-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+}
+
+.a-rolling-main .signal-metric strong {
+  font-size: clamp(1.8rem, 4vw, 2.35rem);
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+}
+
+.a-rolling-main .signal-metric em {
   font-style: normal;
-  margin-top: 0.2rem;
-  color: rgb(var(--gray));
+  font-size: 0.9rem;
+  font-weight: 750;
+  color: #64748b;
 }
 
-.a-rolling-main .count-box.buy-box {
-  background: linear-gradient(180deg, #fff1f0 0%, #fff 100%);
-  border-color: rgba(207, 19, 34, 0.2);
+.a-rolling-main .signal-breakdown {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
-.a-rolling-main .count-box.buy-box strong { color: #cf1322; }
-
-.a-rolling-main .count-box.stop-box {
-  background: linear-gradient(180deg, #fffbe6 0%, #fff 100%);
-  border-color: rgba(212, 136, 6, 0.2);
+.a-rolling-main .buy-card {
+  background: linear-gradient(180deg, #fff1f0 0%, #fff 72%);
+  border-color: rgba(207, 19, 34, 0.18);
 }
 
-.a-rolling-main .count-box.stop-box strong { color: #d48806; }
+.a-rolling-main .buy-card .signal-metric strong { color: #cf1322; }
+.a-rolling-main .buy-card .signal-kicker { color: #a8071a; }
 
-.a-rolling-main .count-box.sell-box {
-  background: linear-gradient(180deg, #f6ffed 0%, #fff 100%);
-  border-color: rgba(56, 158, 13, 0.2);
+.a-rolling-main .sell-card {
+  background: linear-gradient(180deg, #f6ffed 0%, #fff 72%);
+  border-color: rgba(56, 158, 13, 0.18);
 }
 
-.a-rolling-main .count-box.sell-box strong { color: #389e0d; }
+.a-rolling-main .sell-card .signal-metric strong { color: #389e0d; }
+.a-rolling-main .sell-card .signal-kicker { color: #237804; }
+
+.a-rolling-main .watch-card {
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 72%);
+}
+
+.a-rolling-main .watch-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.a-rolling-main .watch-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.a-rolling-main .watch-item strong {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+.a-rolling-main .watch-item span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.a-rolling-main .watch-item .watch-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 10px;
+  background: #d9d9d9;
+}
+
+.a-rolling-main .watch-item .watch-dot.buy-watch.lit {
+  background: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.16);
+}
+
+.a-rolling-main .watch-item .watch-dot.sell-watch.lit {
+  background: #52c41a;
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.16);
+}
 
 .a-rolling-main .matrix-section {
   margin-top: 1.25rem;
@@ -548,7 +631,10 @@
   .a-rolling-main {
     width: var(--shell-width);
   }
-  .a-rolling-main .count-strip {
-    grid-template-columns: repeat(2, 1fr);
+  .a-rolling-main .signal-summary {
+    grid-template-columns: 1fr;
+  }
+  .a-rolling-main .signal-metric strong {
+    font-size: 2rem;
   }
 }

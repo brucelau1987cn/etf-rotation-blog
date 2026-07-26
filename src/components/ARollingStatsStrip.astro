@@ -1,52 +1,82 @@
 ---
 /**
- * A-rolling 4-column stats strip.
- * IDs are stable for the live polling script.
+ * A-rolling hero stats: buy / sell / observation at a glance.
+ * Stable IDs are used by public/js/a-rolling-app.js.
  */
+type InstrumentStat = {
+  name: string;
+  symbol: string;
+  buyCount: number;
+  sellCount: number;
+  buyWatch: boolean;
+  sellWatch: boolean;
+};
+
 type Props = {
-  currentCode?: string | null;
-  litCount?: number;
-  litTimeText?: string;
-  transmissionState?: string;
-  sellNodeCode?: string | null;
-  sellNodeTime?: string;
-  sellNodeCount?: number;
+  buyTotal?: number;
+  sellTotal?: number;
+  instruments?: InstrumentStat[];
+  latestAction?: string;
 };
 
 const {
-  currentCode = '—',
-  litCount = 0,
-  litTimeText = '',
-  transmissionState = '观察中',
-  sellNodeCode = null,
-  sellNodeTime = '等待买方信号后再出',
-  sellNodeCount = 0,
+  buyTotal = 0,
+  sellTotal = 0,
+  instruments = [],
+  latestAction = '等待信号',
 } = Astro.props;
+
+const buyWatchLit = instruments.filter((item) => item.buyWatch).length;
+const sellWatchLit = instruments.filter((item) => item.sellWatch).length;
+const buyParts = instruments.map((item) => `${item.name}${item.buyCount}`).join(' · ') || '—';
+const sellParts = instruments.map((item) => `${item.name}${item.sellCount}`).join(' · ') || '—';
 ---
-<div class="count-strip" aria-label="核心指标看板">
-  <div class="count-box buy-box">
-    <span>🔴 当前多头位置</span>
-    <strong id="stat-current-code">{currentCode}</strong>
-    <em id="stat-lit-count">
-      连续点亮 {litCount} 格
-      <span id="stat-lit-time" style="font-style:normal; margin-left:0.25rem; color:#cf1322; font-weight:700;">
-        {litTimeText}
-      </span>
-    </em>
+<div class="signal-summary" aria-label="买卖信号总览">
+  <div class="signal-card buy-card">
+    <div class="signal-card-head">
+      <span class="signal-kicker">🔴 买入信号</span>
+      <span class="signal-chip">正式 2h→5.5h</span>
+    </div>
+    <div class="signal-metric">
+      <strong id="stat-buy-total">{buyTotal}</strong>
+      <em>个</em>
+    </div>
+    <p class="signal-breakdown" id="stat-buy-breakdown">{buyParts}</p>
   </div>
-  <div class="count-box stop-box">
-    <span>🟡 传导状态</span>
-    <strong id="stat-stopped-code">{transmissionState === 'transmitting' ? '多头推进中' : '观察中'}</strong>
-    <em>按需出信号 · 无信号不占位</em>
+
+  <div class="signal-card sell-card">
+    <div class="signal-card-head">
+      <span class="signal-kicker">🟢 卖出信号</span>
+      <span class="signal-chip">正式 15m→240m</span>
+    </div>
+    <div class="signal-metric">
+      <strong id="stat-sell-total">{sellTotal}</strong>
+      <em>个</em>
+    </div>
+    <p class="signal-breakdown" id="stat-sell-breakdown">{sellParts}</p>
   </div>
-  <div class="count-box sell-box">
-    <span>🟢 空方卖出节点</span>
-    <strong id="stat-star-code">{sellNodeCode ? `${sellNodeCode} 级` : '未触发'}</strong>
-    <em id="stat-star-time">{sellNodeTime}</em>
-  </div>
-  <div class="count-box sell-box">
-    <span>🟢 卖出节点数量</span>
-    <strong id="stat-sell-summary">{sellNodeCount} 个</strong>
-    <em id="stat-sell-note">10~240m 动态延伸</em>
+
+  <div class="signal-card watch-card">
+    <div class="signal-card-head">
+      <span class="signal-kicker">观察窗</span>
+      <span class="signal-chip">1.75h / 10m</span>
+    </div>
+    <div class="watch-row">
+      <div class="watch-item">
+        <i class="watch-dot buy-watch lit" aria-hidden="true"></i>
+        <div>
+          <strong id="stat-buy-watch">{buyWatchLit}</strong>
+          <span>多方红点亮</span>
+        </div>
+      </div>
+      <div class="watch-item">
+        <i class="watch-dot sell-watch lit" aria-hidden="true"></i>
+        <div>
+          <strong id="stat-sell-watch">{sellWatchLit}</strong>
+          <span>空方绿点亮</span>
+        </div>
+      </div>
+    </div>
+    <p class="signal-breakdown" id="stat-latest-action">{latestAction}</p>
   </div>
 </div>

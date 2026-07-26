@@ -208,23 +208,53 @@
     const pillAsOf = document.getElementById('pill-as-of');
     if (pillAsOf && latest) pillAsOf.textContent = `数据时点：${formatTime(latest)}`;
 
-    const pillMode = document.getElementById('pill-mode');
-    if (pillMode) pillMode.textContent = '模式：三标的看板';
+    const rows = INSTRUMENTS.map((meta) => {
+      const payload = payloads.find(p => p?.instrument?.symbol === meta.symbol) || null;
+      const split = normalizeTimeline(payload || {});
+      return {
+        name: payload?.instrument?.instrument_name || meta.name,
+        symbol: meta.symbol,
+        buyCount: split.buys.length,
+        sellCount: split.sells.length,
+        buyWatch: !!split.buyObservation,
+        sellWatch: !!split.sellObservation,
+        latest: [...split.buys, ...split.sells]
+          .filter(item => item?.triggered_at)
+          .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null,
+      };
+    });
 
-    const buyTotal = payloads.reduce((sum, p) => sum + normalizeTimeline(p).buys.length, 0);
-    const sellTotal = payloads.reduce((sum, p) => sum + normalizeTimeline(p).sells.length, 0);
-    const elLit = document.getElementById('stat-lit-count');
-    if (elLit) elLit.textContent = `买 ${buyTotal} / 卖 ${sellTotal}`;
-    const elCurrent = document.getElementById('stat-current-code');
-    if (elCurrent) elCurrent.textContent = '三标的';
-    const elStopped = document.getElementById('stat-stopped-code');
-    if (elStopped) elStopped.textContent = (buyTotal + sellTotal) > 0 ? '信号推进中' : '观察中';
-    const elStar = document.getElementById('stat-star-code');
-    if (elStar) elStar.textContent = sellTotal > 0 ? `${sellTotal} 个卖点` : '未触发';
-    const elStarTime = document.getElementById('stat-star-time');
-    if (elStarTime) elStarTime.textContent = sellTotal > 0 ? '见各标的空方轨' : '卖出信号暂无';
-    const elSummary = document.getElementById('stat-sell-summary');
-    if (elSummary) elSummary.textContent = `${sellTotal} 个`;
+    const buyTotal = rows.reduce((sum, row) => sum + row.buyCount, 0);
+    const sellTotal = rows.reduce((sum, row) => sum + row.sellCount, 0);
+    const buyWatchLit = rows.filter(row => row.buyWatch).length;
+    const sellWatchLit = rows.filter(row => row.sellWatch).length;
+    const latestEvent = rows
+      .map(row => row.latest && ({
+        name: row.name,
+        type: row.latest.type,
+        code: row.latest.code,
+        at: row.latest.triggered_at,
+      }))
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime())[0] || null;
+
+    const setText = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    setText('stat-buy-total', String(buyTotal));
+    setText('stat-sell-total', String(sellTotal));
+    setText('stat-buy-breakdown', rows.map(row => `${row.name}${row.buyCount}`).join(' · ') || '—');
+    setText('stat-sell-breakdown', rows.map(row => `${row.name}${row.sellCount}`).join(' · ') || '—');
+    setText('stat-buy-watch', String(buyWatchLit));
+    setText('stat-sell-watch', String(sellWatchLit));
+    setText(
+      'stat-latest-action',
+      latestEvent
+        ? `最新 ${latestEvent.name} ${latestEvent.type === 'BUY' ? '买入' : '卖出'} ${latestEvent.code} · ${formatTime(latestEvent.at)}`
+        : '等待信号'
+    );
   };
 
   const updateQuoteUI = (symbol, payload) => {
