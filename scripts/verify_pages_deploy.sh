@@ -361,12 +361,64 @@ else
   fail=1
 fi
 
+# Secondary dual-live path: independent Worker (optional but default-on).
+WORKER_QUOTE_URL="${WORKER_QUOTE_URL:-https://edge-quote-api.brucelau1987.workers.dev}"
+if [[ "${SKIP_WORKER_PROBE:-0}" == "1" ]]; then
+  echo "SKIP worker dual-live probe (SKIP_WORKER_PROBE=1)"
+else
+  worker_ok=0
+  worker_attempt=1
+  worker_json=""
+  while (( worker_attempt <= RETRIES )); do
+    worker_json="$(curl -fsS -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' \
+      "${WORKER_QUOTE_URL}?symbol=600021&exchange=SSE&t=${TS}" 2>/dev/null || true)"
+    if printf '%s' "$worker_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+      worker_ok=1
+      break
+    fi
+    sleep "$RETRY_SLEEP"
+    worker_attempt=$((worker_attempt + 1))
+  done
+  if (( worker_ok == 1 )); then
+    echo "OK  worker quote status=ok (${WORKER_QUOTE_URL})"
+  else
+    echo "FAIL worker quote status!=ok (${WORKER_QUOTE_URL}): ${worker_json:0:180}"
+    fail=1
+  fi
+
+  worker_hit_ok=0
+  worker_hit_layer=""
+  worker_stable_url="${WORKER_QUOTE_URL}?symbol=600021&exchange=SSE"
+  curl -fsS -H 'User-Agent: Hermes-Deploy-Probe' "$worker_stable_url" >/dev/null 2>&1 || true
+  worker_hit_attempt=1
+  while (( worker_hit_attempt <= RETRIES )); do
+    worker_hit_headers="$(curl -fsSI -X GET -H 'User-Agent: Hermes-Deploy-Probe' -D - -o /dev/null "$worker_stable_url" 2>/dev/null || true)"
+    worker_hit_lower="$(printf '%s' "$worker_hit_headers" | tr '[:upper:]' '[:lower:]')"
+    if printf '%s' "$worker_hit_lower" | grep -Eq 'x-quote-cache:[[:space:]]*hit'; then
+      worker_hit_ok=1
+      worker_hit_layer="$(printf '%s' "$worker_hit_lower" | grep -E 'x-quote-cache-layer:' | head -n1 | sed -E 's/.*x-quote-cache-layer:[[:space:]]*([a-z_]+).*/\1/' | tr -cd 'a-z_')"
+      break
+    fi
+    sleep 1
+    worker_hit_attempt=$((worker_hit_attempt + 1))
+  done
+  if (( worker_hit_ok == 1 )); then
+    echo "OK  worker quote HIT recheck (layer=${worker_hit_layer:-unknown})"
+  else
+    echo "FAIL worker quote HIT recheck: expected HIT within ${RETRIES} rapid retries"
+    printf '%s\n' "${worker_hit_headers:-}" | sed -n '1,25p'
+    fail=1
+  fi
+fi
+
 if [[ "$fail" -ne 0 ]]; then
   echo
   echo "Production probe failed. If git push already happened, run:"
   echo "  npm run build"
   echo "  source ~/.hermes/credentials/cloudflare-pages.env"
   echo "  npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true"
+  echo "  # quote worker secondary:"
+  echo "  cd ../edge-quote-api && npm run deploy:dual"
   exit 1
 fi
 

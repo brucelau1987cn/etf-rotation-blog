@@ -278,11 +278,17 @@ BASE_URL=https://etf.peekabo.cc bash scripts/verify_pages_deploy.sh
    - `x-quote-cache: HIT`
    - `x-quote-cache-layer` ∈ `edge|memory`
    - `0 <= x-quote-cache-age-ms < x-quote-cache-ttl-ms`
+4. **Worker 次路径**（默认开启，`SKIP_WORKER_PROBE=1` 可跳过）：
+   - `WORKER_QUOTE_URL` 默认 `https://edge-quote-api.brucelau1987.workers.dev`
+   - body：`status=ok`
+   - warm 后出现 `x-quote-cache: HIT`
 
 手工复核缓存时可看：
 
 ```sh
 curl -sI -X GET 'https://etf.peekabo.cc/api/public/v1/quote?symbols=600021&exchange=SSE' \
+  | rg -i 'x-quote-cache|x-quote-source|cache-control'
+curl -sI -X GET 'https://edge-quote-api.brucelau1987.workers.dev?symbols=600021&exchange=SSE' \
   | rg -i 'x-quote-cache|x-quote-source|cache-control'
 # 连打 2~3 次，期望出现 HIT + layer=edge|memory
 ```

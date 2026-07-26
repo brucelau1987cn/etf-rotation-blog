@@ -97,8 +97,9 @@ npm run verify:pages
 
 - 共享脚本与页面 app 资产内容标记
 - `/js/*` 长缓存（`max-age=31536000, immutable`）与 HTML 短缓存
-- 主交易页 / 工具页关键 DOM 与脚本引用
-- 抽样请求 `/api/public/v1/quote`
+- 主交易页 / 工具页 / 文章页关键 DOM 与脚本引用
+- Pages quote：`status=ok` + session/TTL + warm HIT/age
+- Worker 次路径：`https://edge-quote-api.brucelau1987.workers.dev` status + HIT（可用 `SKIP_WORKER_PROBE=1` 跳过）
 
 完整契约见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)。
 
