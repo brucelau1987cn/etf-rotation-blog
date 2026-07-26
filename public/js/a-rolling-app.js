@@ -1,6 +1,11 @@
 /**
  * A-share rolling multi-instrument board.
  * Depends on /js/normalize-quote-payload.js and /js/etf-live-poll.js.
+ *
+ * Observation dots:
+ *  - buy: red, lit by 1.75h / 105m
+ *  - sell: green, lit by 10m
+ * Formal buy cells: 2h → 5.5h (observation excluded from rail badges)
  */
 (function() {
   const { normalizeQuotePayload, findQuoteItem } = window.EtfQuote || {};
@@ -10,6 +15,7 @@
   }
 
   const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h'];
+  const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
   const INSTRUMENTS = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
     { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
@@ -34,10 +40,18 @@
     return date.toLocaleString('zh-CN', options);
   };
 
-  const orderIndex = (code) => {
+  const buyOrderIndex = (code) => {
     const i = FORMAL_BUY_ORDER.indexOf(code);
     return i === -1 ? 999 : i;
   };
+
+  const sellOrderIndex = (code) => {
+    const i = FORMAL_SELL_ORDER.indexOf(code);
+    return i === -1 ? 999 : i;
+  };
+
+  const isBuyObservation = (code) => code === '1.75h' || code === '105m';
+  const isSellObservation = (code) => code === '10m';
 
   const normalizeTimeline = (data) => {
     let timeline = Array.isArray(data?.timeline) ? data.timeline.slice() : [];
@@ -56,19 +70,36 @@
       }));
       timeline = [...buyItems, ...sellItems];
     }
-    // Drop observation window and sort formal buys by fixed window order.
+
+    const buyObservation = timeline.find(item => item && item.type === 'BUY' && isBuyObservation(item.code)) || null;
+    const sellObservation = timeline.find(item => item && item.type === 'SELL' && isSellObservation(item.code)) || null;
+
     const buys = timeline
-      .filter(item => item && item.type === 'BUY' && item.code !== '1.75h')
+      .filter(item => item && item.type === 'BUY' && !isBuyObservation(item.code))
       .sort((a, b) => {
-        const oa = orderIndex(a.code);
-        const ob = orderIndex(b.code);
+        const oa = buyOrderIndex(a.code);
+        const ob = buyOrderIndex(b.code);
         if (oa !== ob) return oa - ob;
         return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
       });
+
     const sells = timeline
-      .filter(item => item && item.type === 'SELL')
-      .sort((a, b) => new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime());
-    return { buys, sells };
+      .filter(item => item && item.type === 'SELL' && !isSellObservation(item.code))
+      .sort((a, b) => {
+        const oa = sellOrderIndex(a.code);
+        const ob = sellOrderIndex(b.code);
+        if (oa !== ob) return oa - ob;
+        return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+      });
+
+    return { buys, sells, buyObservation, sellObservation };
+  };
+
+  const setWatchDot = (el, lit, titleLit, titleOff) => {
+    if (!el) return;
+    el.classList.toggle('lit', !!lit);
+    el.title = lit ? titleLit : titleOff;
+    el.setAttribute('aria-label', lit ? titleLit : titleOff);
   };
 
   const renderCells = (container, items, kind) => {
@@ -106,10 +137,23 @@
     if (nameEl && data.instrument?.instrument_name) nameEl.textContent = data.instrument.instrument_name;
     if (symbolEl && data.instrument?.symbol) symbolEl.textContent = data.instrument.symbol;
 
-    const { buys, sells } = normalizeTimeline(data);
+    const { buys, sells, buyObservation, sellObservation } = normalizeTimeline(data);
     renderCells(board.querySelector('[data-role="buy-cells"]'), buys, 'BUY');
     renderCells(board.querySelector('[data-role="sell-cells"]'), sells, 'SELL');
     if (metaEl) metaEl.textContent = `买 ${buys.length} · 卖 ${sells.length}`;
+
+    setWatchDot(
+      board.querySelector('[data-role="buy-watch-dot"]'),
+      !!buyObservation,
+      `1.75h 观察已触发 ${formatTime(buyObservation?.triggered_at, true, false)}`,
+      '1.75h 观察窗口未触发'
+    );
+    setWatchDot(
+      board.querySelector('[data-role="sell-watch-dot"]'),
+      !!sellObservation,
+      `10m 观察已触发 ${formatTime(sellObservation?.triggered_at, true, false)}`,
+      '10m 观察窗口未触发'
+    );
   };
 
   const updateHeroSummary = (payloads) => {
@@ -138,7 +182,7 @@
     const elCurrent = document.getElementById('stat-current-code');
     if (elCurrent) elCurrent.textContent = '三标的';
     const elStopped = document.getElementById('stat-stopped-code');
-    if (elStopped) elStopped.textContent = buyTotal > 0 ? '多头推进中' : '观察中';
+    if (elStopped) elStopped.textContent = (buyTotal + sellTotal) > 0 ? '信号推进中' : '观察中';
     const elStar = document.getElementById('stat-star-code');
     if (elStar) elStar.textContent = sellTotal > 0 ? `${sellTotal} 个卖点` : '未触发';
     const elStarTime = document.getElementById('stat-star-time');
@@ -165,7 +209,6 @@
       badge.textContent = text;
       badge.style.color = color;
     }
-    // Hero pill shows the first instrument quote as a compact summary.
     if (pill && symbol === INSTRUMENTS[0].symbol) {
       pill.textContent = `实时：${INSTRUMENTS[0].name} ${text}`;
       pill.style.color = color;
@@ -213,8 +256,7 @@
     try {
       await Promise.all(INSTRUMENTS.map(async (meta) => {
         try {
-          const data = await fetchOneQuote(meta);
-          updateQuoteUI(meta.symbol, data);
+          updateQuoteUI(meta.symbol, await fetchOneQuote(meta));
         } catch {
           updateQuoteUI(meta.symbol, null);
         }

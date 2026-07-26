@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-26T05:45:00Z",
-  "data_as_of": "2026-07-26T05:45:00Z",
+  "generated_at": "2026-07-26T07:20:00Z",
+  "data_as_of": "2026-07-06T09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "三安光电暂无已确认多空信号。",
+  "notice": "三安光电买入暂无；空方 15m~240m 卖出链已确认。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -16,19 +16,39 @@
     "symbol": "600703"
   },
   "transmission": {
-    "state": "observing",
+    "state": "transmitting",
     "basis": "chronological_sequence",
-    "current_cycle_code": null,
-    "started_at": null,
-    "latest_triggered_at": null,
-    "lit_count": 0,
+    "current_cycle_code": "120m",
+    "started_at": "2026-06-29T10:00:00+08:00",
+    "latest_triggered_at": "2026-07-06T09:30:00+08:00",
+    "lit_count": 9,
     "buy_count": 0,
-    "sell_count": 0
+    "sell_count": 9
   },
-  "timeline": [],
+  "timeline": [
+    { "type": "SELL", "code": "15m", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "15分钟" },
+    { "type": "SELL", "code": "30m", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "30分钟" },
+    { "type": "SELL", "code": "60m", "triggered_at": "2026-06-29T10:30:00+08:00", "label": "60分钟" },
+    { "type": "SELL", "code": "180m", "triggered_at": "2026-07-03T12:30:00+08:00", "label": "180分钟" },
+    { "type": "SELL", "code": "210m", "triggered_at": "2026-07-03T13:00:00+08:00", "label": "210分钟" },
+    { "type": "SELL", "code": "240m", "triggered_at": "2026-07-03T13:30:00+08:00", "label": "240分钟" },
+    { "type": "SELL", "code": "90m", "triggered_at": "2026-07-03T14:00:00+08:00", "label": "90分钟" },
+    { "type": "SELL", "code": "120m", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "120分钟" },
+    { "type": "SELL", "code": "150m", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "150分钟" }
+  ],
   "cycles": [],
   "sell_chain": {
-    "nodes": []
+    "nodes": [
+      { "code": "15m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "15分钟" },
+      { "code": "30m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:00:00+08:00", "label": "30分钟" },
+      { "code": "60m", "sell_state": "SELL", "triggered_at": "2026-06-29T10:30:00+08:00", "label": "60分钟" },
+      { "code": "90m", "sell_state": "SELL", "triggered_at": "2026-07-03T14:00:00+08:00", "label": "90分钟" },
+      { "code": "120m", "sell_state": "SELL", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "120分钟" },
+      { "code": "150m", "sell_state": "SELL", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "150分钟" },
+      { "code": "180m", "sell_state": "SELL", "triggered_at": "2026-07-03T12:30:00+08:00", "label": "180分钟" },
+      { "code": "210m", "sell_state": "SELL", "triggered_at": "2026-07-03T13:00:00+08:00", "label": "210分钟" },
+      { "code": "240m", "sell_state": "SELL", "triggered_at": "2026-07-03T13:30:00+08:00", "label": "240分钟" }
+    ]
   },
   "sell_alerts": []
 }

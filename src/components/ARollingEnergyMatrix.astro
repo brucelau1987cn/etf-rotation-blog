@@ -2,6 +2,9 @@
 /**
  * Multi-instrument dual-rail energy board.
  * Each instrument is a full row; no selector switch.
+ * Observation dots:
+ *  - buy rail: red, lit by 1.75h (105m)
+ *  - sell rail: green, lit by 10m
  */
 type TimelineItem = {
   type: 'BUY' | 'SELL' | string;
@@ -26,48 +29,63 @@ type Props = {
 const { instruments = [], formatTime } = Astro.props;
 
 const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h'];
-const orderIndex = (code: string) => {
+const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+
+const buyOrderIndex = (code: string) => {
   const i = FORMAL_BUY_ORDER.indexOf(code);
   return i === -1 ? 999 : i;
 };
 
-const sortTimeline = (timeline: TimelineItem[] = []) => {
+const sellOrderIndex = (code: string) => {
+  const i = FORMAL_SELL_ORDER.indexOf(code);
+  return i === -1 ? 999 : i;
+};
+
+const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
+const isSellObservation = (code: string) => code === '10m';
+
+const splitTimeline = (timeline: TimelineItem[] = []) => {
+  const buyObservation = timeline.find((item) => item.type === 'BUY' && isBuyObservation(item.code)) || null;
+  const sellObservation = timeline.find((item) => item.type === 'SELL' && isSellObservation(item.code)) || null;
   const buys = timeline
-    .filter((item) => item.type === 'BUY' && item.code !== '1.75h')
+    .filter((item) => item.type === 'BUY' && !isBuyObservation(item.code))
     .sort((a, b) => {
-      const oa = orderIndex(a.code);
-      const ob = orderIndex(b.code);
+      const oa = buyOrderIndex(a.code);
+      const ob = buyOrderIndex(b.code);
       if (oa !== ob) return oa - ob;
       return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
     });
   const sells = timeline
-    .filter((item) => item.type === 'SELL')
-    .sort((a, b) => new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime());
-  // Display as formal buy windows first for cross-instrument comparison,
-  // then sell events after buys (sells still use chronological order).
-  return [...buys, ...sells];
+    .filter((item) => item.type === 'SELL' && !isSellObservation(item.code))
+    .sort((a, b) => {
+      const oa = sellOrderIndex(a.code);
+      const ob = sellOrderIndex(b.code);
+      if (oa !== ob) return oa - ob;
+      return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+    });
+  return { buys, sells, buyObservation, sellObservation };
 };
 ---
 <section class="matrix-section card" aria-labelledby="matrix-title">
   <div class="matrix-top">
     <div class="section-head-title">
       <h2 id="matrix-title">三标的双向能量传导</h2>
-      <p class="matrix-sub">正式窗口固定顺序：2h → 5.5h；格子内时间为实际触发时刻。卖出暂无则显示空轨。</p>
+      <p class="matrix-sub">
+        正式多方窗口：2h → 5.5h。标签后小圆圈为观察窗：多方红点=1.75h（105分钟），空方绿点=10分钟。
+      </p>
     </div>
     <div class="matrix-controls">
       <div class="legend-list">
-        <span class="legend-item"><i class="dot dot-red"></i>买方点亮</span>
-        <span class="legend-item"><i class="dot dot-green"></i>卖方预警/确认</span>
-        <span class="legend-item"><i class="dot dot-gray"></i>暂无信号</span>
+        <span class="legend-item"><i class="dot dot-red"></i>多方 1.75h 观察</span>
+        <span class="legend-item"><i class="dot dot-green"></i>空方 10m 观察</span>
+        <span class="legend-item"><i class="dot dot-gray"></i>观察未触发</span>
       </div>
     </div>
   </div>
 
   <div class="board-list" id="rolling-board-list">
     {instruments.map((inst) => {
-      const timeline = sortTimeline(inst.timeline || []);
-      const buys = timeline.filter((item) => item.type === 'BUY');
-      const sells = timeline.filter((item) => item.type === 'SELL');
+      const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       return (
         <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
           <div class="table-outer">
@@ -83,7 +101,15 @@ const sortTimeline = (timeline: TimelineItem[] = []) => {
 
               <div class="signals-axis">
                 <div class="axis-row sell-axis">
-                  <div class="axis-label sell-label">空方</div>
+                  <div class="axis-label sell-label">
+                    <span>空方力量</span>
+                    <i
+                      class={`watch-dot sell-watch ${sellObservation ? 'lit' : ''}`}
+                      data-role="sell-watch-dot"
+                      title={sellObservation ? `10m 观察已触发 ${formatTime(sellObservation.triggered_at, true, false)}` : '10m 观察窗口未触发'}
+                      aria-label={sellObservation ? '空方观察窗口已点亮' : '空方观察窗口未点亮'}
+                    ></i>
+                  </div>
                   <div class="cells-scroll" data-role="sell-cells">
                     {sells.length === 0 ? (
                       <div class="empty-rail">卖出信号暂无</div>
@@ -99,7 +125,15 @@ const sortTimeline = (timeline: TimelineItem[] = []) => {
                 </div>
 
                 <div class="axis-row buy-axis">
-                  <div class="axis-label buy-label">多方</div>
+                  <div class="axis-label buy-label">
+                    <span>多方力量</span>
+                    <i
+                      class={`watch-dot buy-watch ${buyObservation ? 'lit' : ''}`}
+                      data-role="buy-watch-dot"
+                      title={buyObservation ? `1.75h 观察已触发 ${formatTime(buyObservation.triggered_at, true, false)}` : '1.75h 观察窗口未触发'}
+                      aria-label={buyObservation ? '多方观察窗口已点亮' : '多方观察窗口未点亮'}
+                    ></i>
+                  </div>
                   <div class="cells-scroll" data-role="buy-cells">
                     {buys.length === 0 ? (
                       <div class="empty-rail">买入信号暂无</div>

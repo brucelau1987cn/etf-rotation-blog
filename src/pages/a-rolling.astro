@@ -109,11 +109,11 @@ const allAlerts = [
 ];
 
 const buyTotal = boardInstruments.reduce(
-  (sum, inst) => sum + inst.timeline.filter((item) => item.type === 'BUY' && item.code !== '1.75h').length,
+  (sum, inst) => sum + inst.timeline.filter((item) => item.type === 'BUY' && item.code !== '1.75h' && item.code !== '105m').length,
   0,
 );
 const sellTotal = boardInstruments.reduce(
-  (sum, inst) => sum + inst.timeline.filter((item) => item.type === 'SELL').length,
+  (sum, inst) => sum + inst.timeline.filter((item) => item.type === 'SELL' && item.code !== '10m').length,
   0,
 );
 
@@ -144,10 +144,11 @@ const pageDescription = 'A股滚动三标的看板：上海电力、创新医疗
               <span class="pill pill-amber" id="pill-as-of">数据时点：{formatTime(latestAsOf)}</span>
               <span class="pill pill-blue" id="pill-mode">模式：三标的看板</span>
               <span class="pill">正式窗口：2h→5.5h</span>
+              <span class="pill">观察：多方1.75h / 空方10m</span>
               <span class="pill live-pill" id="live-status-pill" style="background:#e6f4ff; color:#0958d9; border-color:#91caff;">实时连接中</span>
             </div>
             <h1 id="page-title">三标的多空能量看板</h1>
-            <p>上海电力 / 创新医疗 / 三安光电 同屏对照。多方按正式窗口 2h→5.5h 排序；格子内显示实际触发时间。</p>
+            <p>上海电力 / 创新医疗 / 三安光电 同屏对照。正式多方按 2h→5.5h 排序；标签后红/绿小圆为 1.75h 与 10m 观察窗。</p>
           </div>
         </div>
 
