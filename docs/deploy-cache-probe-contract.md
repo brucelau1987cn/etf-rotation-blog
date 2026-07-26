@@ -121,18 +121,18 @@ GET /api/public/v1/quote?symbols=600021.SH,XLC,nf_AU0
 | 路径 | 状态 | 说明 |
 |---|---|---|
 | Pages Functions `etf.peekabo.cc/api/public/v1/quote` | **生产主路径** | `npm run sync:quote` + Pages deploy |
-| 独立 Worker `edge-quote-api` | 可选次路径 | 需 Workers Scripts:Edit token |
+| 独立 Worker `https://edge-quote-api.brucelau1987.workers.dev` | **已上线次路径** | `edge-quote-api` 仓库 `npm run deploy:dual` |
 
 edge 仓库命令：
 
 ```sh
 cd edge-quote-api
-npm run verify:dual          # 验证 Pages；若有 EDGE_QUOTE_WORKER_URL 再验证 Worker
-npm run deploy:dual          # 尝试 Worker 部署（权限不足时明确失败）
+npm run verify:dual          # 验证 Pages + Worker
+npm run deploy:dual          # 更新 Worker 并验证
 ```
 
-当前常见阻塞：Pages token 可部署站点，但 Workers 写接口返回 `Authentication error [code: 10000]`。  
-在 Worker 权限补齐前，**不要**把生产前端切到 workers.dev；继续以 Pages Functions 为准。
+前端继续优先使用同源 Pages quote，避免跨域与自定义域名切换成本。  
+Worker 作为备用/独立观测入口；两端共享同一 `src/index.js` 源码与缓存策略。
 
 查询参数：
 
