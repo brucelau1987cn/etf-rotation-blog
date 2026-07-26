@@ -24,6 +24,9 @@
     { name: '三安光电', exchange: 'SSE', symbol: '600703' },
     { name: '深科技', exchange: 'SZSE', symbol: '000021' },
     { name: '德福科技', exchange: 'SZSE', symbol: '301511' },
+    { name: '民爆光电', exchange: 'SZSE', symbol: '301362' },
+    { name: '海光信息', exchange: 'SSE', symbol: '688041' },
+    { name: '东方明珠', exchange: 'SSE', symbol: '600637' },
   ];
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
