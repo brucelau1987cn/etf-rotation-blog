@@ -107,15 +107,28 @@ check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
 
 # Cache policy: versioned public JS should be long-lived/immutable.
-js_headers="$(curl -fsSIL -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' "${BASE_URL}/js/normalize-quote-payload.js?t=${TS}" 2>/dev/null || true)"
-if printf '%s' "$js_headers" | tr '[:upper:]' '[:lower:]' | grep -Eq 'cache-control:.*max-age=31536000'; then
+# Prefer a versioned URL (how pages actually load assets) and retry briefly
+# because custom domain edge objects can lag a few seconds after deploy.
+js_cache_ok=0
+js_immutable_ok=0
+attempt=1
+while (( attempt <= RETRIES )); do
+  js_headers="$(curl -fsSIL -H 'User-Agent: Hermes-Deploy-Probe' -H 'Cache-Control: no-cache' "${BASE_URL}/js/normalize-quote-payload.js?v=${TS}" 2>/dev/null || true)"
+  lower="$(printf '%s' "$js_headers" | tr '[:upper:]' '[:lower:]')"
+  if printf '%s' "$lower" | grep -Eq 'cache-control:.*max-age=31536000'; then js_cache_ok=1; fi
+  if printf '%s' "$lower" | grep -Eq 'cache-control:.*immutable'; then js_immutable_ok=1; fi
+  if (( js_cache_ok == 1 && js_immutable_ok == 1 )); then break; fi
+  sleep "$RETRY_SLEEP"
+  attempt=$((attempt + 1))
+done
+if (( js_cache_ok == 1 )); then
   echo "OK  /js/* Cache-Control long-lived"
 else
   echo "FAIL /js/* Cache-Control missing long max-age"
   printf '%s\n' "$js_headers" | sed -n '1,20p'
   fail=1
 fi
-if printf '%s' "$js_headers" | tr '[:upper:]' '[:lower:]' | grep -Eq 'cache-control:.*immutable'; then
+if (( js_immutable_ok == 1 )); then
   echo "OK  /js/* Cache-Control immutable"
 else
   echo "FAIL /js/* Cache-Control missing immutable"
