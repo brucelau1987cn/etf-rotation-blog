@@ -206,7 +206,7 @@
       .filter(Boolean)
       .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
     const pillAsOf = document.getElementById('pill-as-of');
-    if (pillAsOf && latest) pillAsOf.textContent = `数据时点：${formatTime(latest)}`;
+    if (pillAsOf && latest) pillAsOf.textContent = `信号时间：${formatTime(latest)}`;
 
     const rows = INSTRUMENTS.map((meta) => {
       const payload = payloads.find(p => p?.instrument?.symbol === meta.symbol) || null;
