@@ -44,6 +44,8 @@ const loadPayload = (file: string): Payload =>
 const shanghai = loadPayload('a-rolling-signals.json');
 const chuangxin = loadPayload('a-rolling-signals-002173.json');
 const sanan = loadPayload('a-rolling-signals-600703.json');
+const shenkeji = loadPayload('a-rolling-signals-000021.json');
+const defu = loadPayload('a-rolling-signals-301511.json');
 
 const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
   if (!value) return '—';
@@ -109,6 +111,8 @@ const boardSummaries = [
   summarizeInstrument(shanghai),
   summarizeInstrument(chuangxin),
   summarizeInstrument(sanan),
+  summarizeInstrument(shenkeji),
+  summarizeInstrument(defu),
 ];
 
 const boardInstruments = boardSummaries.map((item) => ({
@@ -122,6 +126,8 @@ const allAlerts = [
   ...(shanghai.sell_alerts || []),
   ...(chuangxin.sell_alerts || []),
   ...(sanan.sell_alerts || []),
+  ...(shenkeji.sell_alerts || []),
+  ...(defu.sell_alerts || []),
 ];
 
 const buyTotal = boardSummaries.reduce((sum, item) => sum + item.buyCount, 0);
@@ -141,12 +147,17 @@ const latestAction = latestEvent
   ? `最新 ${latestEvent.name} ${latestEvent.type === 'BUY' ? '买入' : '卖出'} ${latestEvent.code} · ${formatTime(latestEvent.at)}`
   : '等待信号';
 
-const latestAsOf = [shanghai.data_as_of, chuangxin.data_as_of, sanan.data_as_of]
+const latestAsOf = boardSummaries
+  .map((item) => {
+    // prefer data_as_of from original payloads via latest event/time fields already summarized
+    return item.latest?.triggered_at || null;
+  })
+  .concat([shanghai.data_as_of, chuangxin.data_as_of, sanan.data_as_of, shenkeji.data_as_of, defu.data_as_of])
   .filter(Boolean)
   .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
 
-const pageTitle = `A股滚动｜三标的多空能量看板 | ${SITE_TITLE}`;
-const pageDescription = 'A股滚动三标的看板：上海电力、创新医疗、三安光电的多方正式窗口与空方预警同屏展示。';
+const pageTitle = `A股滚动｜多标的多空能量看板 | ${SITE_TITLE}`;
+const pageDescription = 'A股滚动多标的看板：上海电力、创新医疗、三安光电、深科技、德福科技的多方正式窗口与空方预警同屏展示。';
 ---
 
 <!doctype html>
@@ -168,8 +179,8 @@ const pageDescription = 'A股滚动三标的看板：上海电力、创新医疗
               <span class="pill pill-amber" id="pill-as-of">信号时间：{formatTime(latestAsOf)}</span>
               <span class="pill live-pill" id="live-status-pill" style="background:#e6f4ff; color:#0958d9; border-color:#91caff;">实时连接中</span>
             </div>
-            <h1 id="page-title">三标的多空能量看板</h1>
-            <p>先看买入/卖出总数，再看各标的信号轨。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。</p>
+            <h1 id="page-title">多标的多空能量看板</h1>
+            <p>上海电力 / 创新医疗 / 三安光电 / 深科技 / 德福科技 同屏。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。超过 4 个标的时看板上下滑动。</p>
           </div>
         </div>
 

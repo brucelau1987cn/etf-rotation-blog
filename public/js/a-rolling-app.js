@@ -5,7 +5,7 @@
  * Observation dots:
  *  - buy: red, lit by 1.75h / 105m
  *  - sell: green, lit by 10m
- * Formal buy cells: 2h → 5.5h (observation excluded from rail badges)
+ * Formal buy cells: 2h → 8h (observation excluded from rail badges)
  */
 (function() {
   const { normalizeQuotePayload, findQuoteItem } = window.EtfQuote || {};
@@ -14,12 +14,14 @@
     return;
   }
 
-  const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h'];
+  const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
   const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
   const INSTRUMENTS = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
     { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
     { name: '三安光电', exchange: 'SSE', symbol: '600703' },
+    { name: '深科技', exchange: 'SZSE', symbol: '000021' },
+    { name: '德福科技', exchange: 'SZSE', symbol: '301511' },
   ];
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
@@ -195,7 +197,7 @@
   const updateHeroSummary = (payloads) => {
     const liveStatus = document.getElementById('live-status-pill');
     if (liveStatus) {
-      liveStatus.textContent = '● 三标的已同步';
+      liveStatus.textContent = `● ${INSTRUMENTS.length} 标的已同步`;
       liveStatus.style.color = '#389e0d';
       liveStatus.style.borderColor = '#b7eb8f';
       liveStatus.style.background = '#f6ffed';

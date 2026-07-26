@@ -8,6 +8,8 @@ const INSTRUMENT_SNAPSHOTS = {
   '600021': '/data/a-rolling-signals.json',
   '002173': '/data/a-rolling-signals-002173.json',
   '600703': '/data/a-rolling-signals-600703.json',
+  '000021': '/data/a-rolling-signals-000021.json',
+  '301511': '/data/a-rolling-signals-301511.json',
 };
 
 const headers = state => ({
