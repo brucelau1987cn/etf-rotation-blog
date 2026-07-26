@@ -126,9 +126,11 @@ check_page "/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
   "/js/home-live-app.js" \
-  "home-live-price"
+  "home-live-price" \
+  "?v="
 
 check_asset "/js/home-live-app.js" "home-live-price"
+check_asset "/js/home-live-app.js" "EtfLivePoll"
 
 check_page "/a-momentum/" \
   "/js/normalize-quote-payload.js" \

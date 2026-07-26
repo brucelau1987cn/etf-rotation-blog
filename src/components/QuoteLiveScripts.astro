@@ -2,7 +2,10 @@
 /**
  * Shared browser quote adapter + live poll helper.
  * Loads before page-specific <script is:inline> blocks.
+ * Query version is injected by scripts/inject_public_js_version.mjs during build.
  */
+const v = import.meta.env.PUBLIC_JS_ASSET_VERSION || 'dev';
+const q = `?v=${encodeURIComponent(v)}`;
 ---
-<script is:inline src="/js/normalize-quote-payload.js"></script>
-<script is:inline src="/js/etf-live-poll.js"></script>
+<script is:inline src={`/js/normalize-quote-payload.js${q}`}></script>
+<script is:inline src={`/js/etf-live-poll.js${q}`}></script>
