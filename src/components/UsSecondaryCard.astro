@@ -1,0 +1,37 @@
+---
+/**
+ * Secondary US observation card with live price refresh hook.
+ */
+type UsSignal = {
+  symbol: string;
+  name: string;
+  theme: string;
+  price: number;
+  support_gap?: number;
+};
+
+type Props = {
+  item: UsSignal;
+  formatPrice: (value?: number | null) => string;
+};
+
+const { item, formatPrice } = Astro.props;
+const gapText = typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—';
+---
+<article class="secondary-card card" data-us-live-card data-symbol={item.symbol}>
+  <div>
+    <span class="pill">{item.theme}</span>
+    <h3>{item.symbol} · {item.name}</h3>
+    <span class="secondary-distance">距伏击位 {gapText} · 完整关键位进入雷达查看</span>
+  </div>
+  <button
+    type="button"
+    class="secondary-price live-refresh-button"
+    data-live-refresh={item.symbol}
+    aria-label={`刷新 ${item.symbol} 实时价格`}
+  >
+    <span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span>
+    <b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b>
+    <small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small>
+  </button>
+</article>

@@ -7,6 +7,8 @@ import Footer from '../components/Footer.astro';
 import UsSubnav from '../components/UsSubnav.astro';
 import MarketClock from '../components/MarketClock.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
+import UsSignalCard from '../components/UsSignalCard.astro';
+import UsSecondaryCard from '../components/UsSecondaryCard.astro';
 
 type UsSignal = {
   symbol: string; name: string; theme: string; price: number; support: number; target: number; stop: number;
@@ -300,37 +302,14 @@ const countTone = (section: { key: string; tone: string }) => {
                     ) : (
                     <div class="signal-grid" id={`us-grid-${section.key}`}>
                       {section.items.map((item) => (
-                        <article
-                          class={`signal-card card ${section.tone}`}
-                          data-us-live-card
-                          data-symbol={item.symbol}
-                          data-side={section.key}
-                          data-origin-section={section.key}
-                          data-current-section={section.key}
-                          data-support={item.support}
-                          data-target={item.target}
-                          data-stop={item.stop}
-                        >
-                          <div class="card-top">
-                            <div class="identity">
-                              <h3>{item.symbol} · {item.name}</h3>
-                              <small>{item.theme}</small>
-                            </div>
-                            <span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span>
-                          </div>
-                          <div class="level-grid" aria-label={`${item.symbol}关键价位`}>
-                            <button type="button" class="level live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}>
-                              <span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span>
-                              <b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b>
-                            </button>
-                            <div class={`level ${activeLabel(section.key) === '伏击位' ? 'active' : ''}`}><span>伏击位</span><b>{formatPrice(item.support)}</b></div>
-                            <div class={`level ${activeLabel(section.key) === '兑现位' ? 'active' : ''}`}><span>兑现位</span><b>{formatPrice(item.target)}</b></div>
-                            <div class={`level ${activeLabel(section.key) === '防守线' ? 'active' : ''}`}><span>防守线</span><b>{formatPrice(item.stop)}</b></div>
-                          </div>
-                          <div class="signal-meta"><span>趋势 {item.strength_level} / {item.trend_score}</span><span>交易风险 {item.risk_level}</span></div>
-                          <div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div>
-                          <p class="basis" id={`us-live-basis-${item.symbol}`}><strong>动作：</strong>{actionCopy(section.key)} · {item.trigger_basis}</p>
-                        </article>
+                        <UsSignalCard
+                          item={item}
+                          sectionKey={section.key}
+                          tone={section.tone}
+                          actionText={actionCopy(section.key)}
+                          activeLabel={activeLabel}
+                          formatPrice={formatPrice}
+                        />
                       ))}
                     </div>
                     )}
@@ -339,7 +318,9 @@ const countTone = (section: { key: string; tone: string }) => {
               })}
             </section>
 
-            {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">次级观察</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => <article class="secondary-card card" data-us-live-card data-symbol={item.symbol}><div><span class="pill">{item.theme}</span><h3>{item.symbol} · {item.name}</h3><span class="secondary-distance">距伏击位 {typeof item.support_gap === 'number' ? `${Math.abs(item.support_gap).toFixed(1)}%` : '—'} · 完整关键位进入雷达查看</span></div><button type="button" class="secondary-price live-refresh-button" data-live-refresh={item.symbol} aria-label={`刷新 ${item.symbol} 实时价格`}><span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span><b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b><small class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>等待实时行情</small></button></article>)}</div></section>}
+            {secondaryRecommendations.length > 0 && <section aria-labelledby="secondary-title"><div class="section-head"><div><span class="pill">次级观察</span><h2 id="secondary-title">未触发主题代表</h2></div><a href="/us-momentum/">查看完整观察池 →</a></div><div class="secondary-grid">{secondaryRecommendations.map((item) => (
+              <UsSecondaryCard item={item} formatPrice={formatPrice} />
+            ))}</div></section>}
 
             <section aria-labelledby="breadth-title"><div class="section-head"><div><span class="pill">行业广度</span><h2 id="breadth-title">行业广度 Top 3</h2></div><a href="/us-momentum/">查看全部行业 →</a></div><div class="breadth-strip">{topBreadth.map((group) => <article class="breadth-item card"><div><strong>{group.group}</strong><small>{group.state}</small></div><b>{group.passed}/{group.total} · {group.ratio}%</b></article>)}</div></section>
 

@@ -8,45 +8,96 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-https://etf.peekabo.cc}"
 TS="$(date +%s)"
 fail=0
+RETRIES="${PROBE_RETRIES:-3}"
+RETRY_SLEEP="${PROBE_RETRY_SLEEP:-2}"
 
 fetch() {
   local url="$1"
-  curl -fsSL \
-    -H 'Cache-Control: no-cache' \
-    -H 'Pragma: no-cache' \
-    -H 'User-Agent: HermesPagesProbe/1.0' \
-    "$url"
+  local attempt=1
+  local body=""
+  while (( attempt <= RETRIES )); do
+    if body="$(curl -fsSL \
+      -H 'Cache-Control: no-cache' \
+      -H 'Pragma: no-cache' \
+      -H 'User-Agent: HermesPagesProbe/1.0' \
+      "${url}&r=${attempt}" 2>/dev/null || true)"; then
+      if [[ -n "$body" ]]; then
+        printf '%s' "$body"
+        return 0
+      fi
+    fi
+    sleep "$RETRY_SLEEP"
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
+
+has_all_markers() {
+  local html="$1"
+  shift
+  local marker
+  for marker in "$@"; do
+    if ! printf '%s' "$html" | grep -Fq "$marker"; then
+      return 1
+    fi
+  done
+  return 0
 }
 
 check_page() {
   local path="$1"
   shift
   local url="${BASE_URL}${path}?t=${TS}"
-  local html
-  html="$(fetch "$url")"
+  local html=""
+  local attempt=1
+  local ok=0
   echo "== ${url}"
-  for marker in "$@"; do
-    if printf '%s' "$html" | grep -Fq "$marker"; then
-      echo "  OK  marker: $marker"
-    else
-      echo "  FAIL marker missing: $marker"
-      fail=1
+  while (( attempt <= RETRIES )); do
+    if html="$(fetch "$url")"; then
+      if has_all_markers "$html" "$@"; then
+        ok=1
+        break
+      fi
     fi
+    sleep "$RETRY_SLEEP"
+    attempt=$((attempt + 1))
   done
+
+  if (( ok == 1 )); then
+    for marker in "$@"; do
+      echo "  OK  marker: $marker"
+    done
+  else
+    for marker in "$@"; do
+      if printf '%s' "$html" | grep -Fq "$marker"; then
+        echo "  OK  marker: $marker"
+      else
+        echo "  FAIL marker missing: $marker"
+        fail=1
+      fi
+    done
+  fi
 }
 
 check_asset() {
   local path="$1"
+  local needle="$2"
   local url="${BASE_URL}${path}?t=${TS}"
-  local body
-  body="$(fetch "$url")"
+  local body=""
+  local attempt=1
   echo "== asset ${url}"
-  if printf '%s' "$body" | grep -Fq "$2"; then
-    echo "  OK  asset contains: $2"
-  else
-    echo "  FAIL asset missing: $2"
-    fail=1
-  fi
+  while (( attempt <= RETRIES )); do
+    if body="$(fetch "$url")"; then
+      if printf '%s' "$body" | grep -Fq "$needle"; then
+        echo "  OK  asset contains: $needle"
+        return 0
+      fi
+    fi
+    sleep "$RETRY_SLEEP"
+    attempt=$((attempt + 1))
+  done
+  echo "  FAIL asset missing: $needle"
+  fail=1
 }
 
 # Shared browser assets (source of truth for adapter / poll helper)
@@ -87,8 +138,19 @@ check_page "/us-compass/" \
   "/js/etf-live-poll.js" \
   "/api/public/v1/quote"
 
-quote_json="$(fetch "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}")"
-if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+quote_ok=0
+attempt=1
+while (( attempt <= RETRIES )); do
+  quote_json="$(fetch "${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE&t=${TS}" || true)"
+  if printf '%s' "$quote_json" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+    quote_ok=1
+    break
+  fi
+  sleep "$RETRY_SLEEP"
+  attempt=$((attempt + 1))
+done
+
+if (( quote_ok == 1 )); then
   echo "OK  quote API status=ok"
 else
   echo "FAIL quote API response: ${quote_json:0:200}"

@@ -1,0 +1,88 @@
+---
+/**
+ * US compass tactical signal card with live-quote hooks.
+ * Keep data-* and id attributes stable for the page live overlay script.
+ */
+type UsSignal = {
+  symbol: string;
+  name: string;
+  theme: string;
+  price: number;
+  support: number;
+  target: number;
+  stop: number;
+  strength_level: string;
+  trend_score: number;
+  risk_level: string;
+  trade_state: string;
+  trigger_basis: string;
+};
+
+type Props = {
+  item: UsSignal;
+  sectionKey: string;
+  tone: string;
+  actionText: string;
+  activeLabel: (key: string) => string;
+  formatPrice: (value?: number | null) => string;
+};
+
+const {
+  item,
+  sectionKey,
+  tone,
+  actionText,
+  activeLabel,
+  formatPrice,
+} = Astro.props;
+---
+<article
+  class={`signal-card card ${tone}`}
+  data-us-live-card
+  data-symbol={item.symbol}
+  data-side={sectionKey}
+  data-origin-section={sectionKey}
+  data-current-section={sectionKey}
+  data-support={item.support}
+  data-target={item.target}
+  data-stop={item.stop}
+>
+  <div class="card-top">
+    <div class="identity">
+      <h3>{item.symbol} · {item.name}</h3>
+      <small>{item.theme}</small>
+    </div>
+    <span class="state" id={`us-live-trigger-${item.symbol}`}>{item.trade_state}</span>
+  </div>
+  <div class="level-grid" aria-label={`${item.symbol}关键价位`}>
+    <button
+      type="button"
+      class="level live-refresh-button"
+      data-live-refresh={item.symbol}
+      aria-label={`刷新 ${item.symbol} 实时价格`}
+    >
+      <span>实时现价 · <i class="refresh-icon" aria-hidden="true">↻</i></span>
+      <b class="live-price" id={`us-live-price-${item.symbol}`}>{formatPrice(item.price)}</b>
+    </button>
+    <div class={`level ${activeLabel(sectionKey) === '伏击位' ? 'active' : ''}`}>
+      <span>伏击位</span>
+      <b>{formatPrice(item.support)}</b>
+    </div>
+    <div class={`level ${activeLabel(sectionKey) === '兑现位' ? 'active' : ''}`}>
+      <span>兑现位</span>
+      <b>{formatPrice(item.target)}</b>
+    </div>
+    <div class={`level ${activeLabel(sectionKey) === '防守线' ? 'active' : ''}`}>
+      <span>防守线</span>
+      <b>{formatPrice(item.stop)}</b>
+    </div>
+  </div>
+  <div class="signal-meta">
+    <span>趋势 {item.strength_level} / {item.trend_score}</span>
+    <span>交易风险 {item.risk_level}</span>
+  </div>
+  <div class="live-quote-meta" id={`us-live-meta-${item.symbol}`}>收盘快照 · 等待实时行情</div>
+  <p class="basis" id={`us-live-basis-${item.symbol}`}>
+    <strong>动作：</strong>{actionText} · {item.trigger_basis}
+  </p>
+</article>
