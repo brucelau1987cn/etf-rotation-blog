@@ -140,26 +140,48 @@
 .live-pill {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
+  gap: .38rem;
+  padding: .17rem .55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 154, 0, .22);
+  background: #fff7df;
+  color: #8a5a00;
+  font-size: .72rem;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .live-pill::before {
   content: '';
-  width: .5rem;
-  height: .5rem;
+  width: .48rem;
+  height: .48rem;
   border-radius: 50%;
-  background: #b7791f;
-  box-shadow: 0 0 0 3px rgba(183,121,31,.12);
+  background: #d99a00;
+  box-shadow: 0 0 0 3px rgb(217 154 0 / 12%);
+  flex: 0 0 auto;
+}
+
+.live-pill.online {
+  background: #edf9f1;
+  color: #137547;
+  border-color: rgba(19, 117, 71, .18);
 }
 
 .live-pill.online::before {
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(31,122,78,.14);
+  background: #137547;
+  box-shadow: 0 0 0 3px rgba(31, 122, 78, .14);
+}
+
+.live-pill.error {
+  background: #fff0ef;
+  color: #a3201d;
+  border-color: rgba(163, 32, 29, .16);
 }
 
 .live-pill.error::before {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(214,61,46,.14);
+  background: #c5221f;
+  box-shadow: 0 0 0 3px rgba(214, 61, 46, .14);
 }
 
 .live-trigger {
