@@ -189,7 +189,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .hero-clock :global(.market-clock) {
         width: 100%;
         max-width: 100%;
-        min-width: 0;
+        min-width: 0 !important;
       }
       .count-strip {
         display: grid;
@@ -256,11 +256,10 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .macro-factor em { display: block; margin-top: .18rem; font-style: normal; color: rgb(var(--gray-dark)); font-size: .72rem; line-height: 1.4; }
       .macro-hint { color: rgb(var(--gray)); font-size: .72rem; }
       @media (max-width: 940px) {
-              .hero-main { grid-template-columns: 1fr; gap: .8rem; }
-              .hero-clock { justify-self: stretch; width: 100%; }
-              .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-              .macro-factors { grid-template-columns: 1fr; }
-            }
+        .hero-main { grid-template-columns: 1fr; gap: .8rem; }
+        .hero-clock { justify-self: stretch; width: 100%; }
+        .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
         main { width: var(--shell-width); padding-top: 1rem; }
