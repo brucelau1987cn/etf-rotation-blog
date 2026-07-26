@@ -122,6 +122,8 @@ check_page "/" \
 check_page "/a-momentum/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
+  "/js/momentum-shared.js" \
+  "/js/a-momentum-app.js" \
   "/api/public/v1/quote"
 
 check_page "/futures-compass/" \
@@ -137,6 +139,12 @@ check_page "/us-compass/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
   "/api/public/v1/quote"
+
+check_page "/us-momentum/" \
+  "/js/momentum-shared.js" \
+  "/js/us-momentum-app.js" \
+  "us-momentum-main" \
+  "hero-pool-size"
 
 quote_ok=0
 attempt=1
