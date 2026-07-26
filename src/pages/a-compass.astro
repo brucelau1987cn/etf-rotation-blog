@@ -122,31 +122,20 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
     <style>
       main { width: var(--shell-width); padding: 1rem 0 3rem; }
       .dashboard-hero { padding: clamp(1rem, 3vw, 1.45rem); background: linear-gradient(135deg, #fff8f5, #fff); }
-      .hero-top { display: grid; grid-template-columns: 1fr; gap: .55rem; align-items: flex-start; }
-      .hero-copy { grid-column: 1; }
+      .hero-top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; align-items: flex-start; }
+      .hero-copy { grid-column: 1 / 3; }
       .hero-copy h1 { margin: .35rem 0 .35rem; font-size: clamp(1.85rem, 5vw, 2.8rem); }
       .hero-copy p { margin: 0; max-width: 72ch; color: rgb(var(--gray-dark)); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
       .hero-copy details { margin-top: .35rem; }
       .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
-      /* First meta row starts from the left: 适用 → 截止 → 策略基线 → 版本 → 最新快照 → 时钟 */
-      .meta-line {
-        grid-column: 1;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        align-items: flex-start;
-        gap: .35rem;
-        max-width: none;
-        min-width: 0;
-      }
+      .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; min-width: 0; }
       .meta-line :global(.market-clock) {
         width: 100%;
         flex: 1 1 100%;
         min-width: min(100%, 18rem);
         max-width: 100%;
-        order: 99;
       }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }

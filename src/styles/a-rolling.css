@@ -44,9 +44,23 @@
 
 .a-rolling-main .meta-line {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.4rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.a-rolling-main .meta-line::-webkit-scrollbar {
+  display: none;
+}
+
+.a-rolling-main .meta-line .pill,
+.a-rolling-main .meta-line .live-pill {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .a-rolling-main .signal-summary {
