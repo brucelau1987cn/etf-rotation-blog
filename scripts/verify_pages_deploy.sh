@@ -100,6 +100,49 @@ check_asset() {
   fail=1
 }
 
+# Critical: hashed CSS must remain real CSS, never HTML error/index pages.
+# A poisoned immutable cache of Header.*.css unstyles the whole site.
+check_css_assets() {
+  local html
+  local css_path
+  local css_body
+  local headers
+  local ct
+  local page
+  local pages=("/" "/a-compass/" "/us-compass/")
+  echo "== CSS content-type / body sanity"
+  for page in "${pages[@]}"; do
+    html="$(fetch "${BASE_URL}${page}?t=${TS}" || true)"
+    if [[ -z "$html" ]]; then
+      echo "FAIL css probe: empty HTML for ${page}"
+      fail=1
+      continue
+    fi
+    while IFS= read -r css_path; do
+      [[ -n "$css_path" ]] || continue
+      headers="$(curl -fsSIL -H 'User-Agent: HermesPagesProbe/1.0' -H 'Cache-Control: no-cache' "${BASE_URL}${css_path}?t=${TS}" 2>/dev/null || true)"
+      ct="$(printf '%s\n' "$headers" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print tolower($2); exit}')"
+      css_body="$(curl -fsSL -H 'User-Agent: HermesPagesProbe/1.0' -H 'Cache-Control: no-cache' "${BASE_URL}${css_path}?t=${TS}" 2>/dev/null || true)"
+      if [[ -z "$css_body" ]]; then
+        echo "FAIL css empty: ${css_path} (from ${page})"
+        fail=1
+        continue
+      fi
+      if [[ "$ct" == *text/html* ]] || printf '%s' "$css_body" | head -c 64 | grep -Eqi '<!doctype|<html'; then
+        echo "FAIL css poisoned as HTML: ${css_path} content-type=${ct:-unknown}"
+        fail=1
+        continue
+      fi
+      if [[ "$ct" != *text/css* && "$ct" != *css* ]]; then
+        echo "FAIL css bad content-type: ${css_path} content-type=${ct:-unknown}"
+        fail=1
+        continue
+      fi
+      echo "OK  css ${css_path} (${ct})"
+    done < <(printf '%s' "$html" | grep -oE '/_astro/[^" ]+\.css' | sort -u)
+  done
+}
+
 # Shared browser assets (source of truth for adapter / poll helper)
 check_asset "/js/normalize-quote-payload.js" "EtfQuote"
 check_asset "/js/etf-live-poll.js" "startLivePoll"
@@ -411,6 +454,9 @@ else
   fi
 fi
 
+# Guard against CDN poisoning: CSS must stay CSS, never HTML.
+check_css_assets
+
 if [[ "$fail" -ne 0 ]]; then
   echo
   echo "Production probe failed. If git push already happened, run:"
@@ -419,6 +465,7 @@ if [[ "$fail" -ne 0 ]]; then
   echo "  npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true"
   echo "  # quote worker secondary:"
   echo "  cd ../edge-quote-api && npm run deploy:dual"
+  echo "  # if CSS still looks unstyled on custom domain, purge CF cache for peekabo.cc"
   exit 1
 fi
 
