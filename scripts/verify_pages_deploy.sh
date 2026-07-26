@@ -124,7 +124,11 @@ check_asset "/js/a-compass-app.js" "EDGE_QUOTE_URL"
 
 check_page "/" \
   "/js/normalize-quote-payload.js" \
-  "/js/etf-live-poll.js"
+  "/js/etf-live-poll.js" \
+  "/js/home-live-app.js" \
+  "home-live-price"
+
+check_asset "/js/home-live-app.js" "home-live-price"
 
 check_page "/a-momentum/" \
   "/js/normalize-quote-payload.js" \
@@ -140,8 +144,13 @@ check_asset "/js/us-momentum-app.js" "renderMatrix"
 check_page "/futures-compass/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
-  "nf_AU0" \
-  "SNAPSHOT_URL"
+  "/js/futures-compass-app.js" \
+  "data-code" \
+  "refresh-button"
+
+check_asset "/js/futures-compass-app.js" "SNAPSHOT_URL"
+check_asset "/js/futures-compass-app.js" "EDGE_QUOTE_URL"
+check_asset "/js/futures-compass-app.js" "nf_AU0"
 
 # us-compass uses shared IIFE adapter + live status markers.
 check_page "/us-compass/" \
