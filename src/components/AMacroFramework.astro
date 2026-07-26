@@ -1,0 +1,85 @@
+---
+type Observation = {
+  title: string;
+  frequency?: string;
+  display: string;
+  detail: string;
+  tone?: string;
+  change?: number;
+  change_label?: string;
+  as_of?: string;
+};
+
+type FrameworkItem = {
+  label: string;
+  coverage?: string;
+  question?: string;
+  official_indicators?: string[];
+  observations?: Observation[];
+  frequency?: string;
+  primary_source?: string;
+  headline?: string;
+  state?: string;
+  links?: Array<{ url: string; label: string; type?: string }>;
+};
+
+type Props = {
+  framework: FrameworkItem[];
+  stateClass: (state: string) => string;
+  coverageLabel: (coverage: string) => string;
+};
+
+const { framework, stateClass, coverageLabel } = Astro.props;
+---
+<div class="section-head">
+  <div>
+    <span class="section-kicker">OBJECTIVE FRAMEWORK</span>
+    <h2>A股宏观六维框架</h2>
+  </div>
+  <p>完整框架覆盖经济与金融条件；数据覆盖状态公开显示。</p>
+</div>
+<section class="framework-grid">
+  {framework.map((item) => (
+    <article class={`framework-card card ${stateClass(item.state || '')}`}>
+      <div class="framework-top">
+        <h3>{item.label}</h3>
+        <span class="coverage">{coverageLabel(item.coverage || '')}</span>
+      </div>
+      <p>{item.question}</p>
+      <div class="indicator-list">
+        {(item.official_indicators || []).map((indicator) => <span>{indicator}</span>)}
+      </div>
+      <div class="observation-grid">
+        {(item.observations || []).map((observation) => (
+          <article class={`observation ${observation.tone || ''}`}>
+            <div class="observation-top">
+              <span>{observation.title}</span>
+              <span>{observation.frequency}</span>
+            </div>
+            <strong>{observation.display}</strong>
+            <p>{observation.detail}</p>
+            <small>
+              {typeof observation.change === 'number'
+                ? `${observation.change_label} ${observation.change >= 0 ? '+' : ''}${observation.change.toFixed(2)} · `
+                : ''}
+              数据期 {observation.as_of}
+            </small>
+          </article>
+        ))}
+      </div>
+      <div class="framework-meta">
+        <span>频率 <b>{item.frequency}</b></span>
+        <span>来源 <b>{item.primary_source}</b></span>
+        <span>当前 <b>{item.headline}</b></span>
+      </div>
+      <div class="data-links" aria-label={`${item.label}数据与发布链接`}>
+        {(item.links || []).map((link) => (
+          <a href={link.url} target="_blank" rel="noopener noreferrer">
+            <span>{link.label} ↗</span>
+            <small>{link.type}</small>
+          </a>
+        ))}
+      </div>
+    </article>
+  ))}
+</section>

@@ -1,0 +1,62 @@
+---
+type LiveCard = {
+  dimensionLabel: string;
+  question: string;
+  coverageLabel: string;
+  factor: {
+    key: string;
+    state?: string;
+    headline?: string;
+    score?: number;
+    metrics?: Record<string, unknown>;
+    reasons?: string[];
+    as_of?: string;
+  };
+  metrics: Array<{ label: string; value: string }>;
+};
+
+type Props = {
+  cards: LiveCard[];
+  stateClass: (state: string) => string;
+  stateIcon: (state: string) => string;
+};
+
+const { cards, stateClass, stateIcon } = Astro.props;
+---
+<div class="section-head">
+  <div>
+    <span class="section-kicker">TIMELY RISK GATE</span>
+    <h2>日度三项风险闸门</h2>
+  </div>
+  <p>用于调节仓位和追高资格，属于市场隐含的金融条件代理。</p>
+</div>
+<section class="live-grid">
+  {cards.map((card) => (
+    <article class={`live-card card ${stateClass(card.factor.state || '')}`}>
+      <div class="card-head">
+        <span class="dimension-name">{card.dimensionLabel}</span>
+        <b class={`state ${stateClass(card.factor.state || '')}`}>
+          {stateIcon(card.factor.state || '')} {card.factor.state}
+        </b>
+      </div>
+      <h3>{card.factor.headline}</h3>
+      <p class="factor-question">{card.question}</p>
+      <div class="score-row">
+        <span>压力分</span>
+        <b>{card.factor.score} / 3</b>
+      </div>
+      <div class="metrics">
+        {card.metrics.map((metric) => (
+          <div class="metric">
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+          </div>
+        ))}
+      </div>
+      <ul class="reason">
+        {(card.factor.reasons || []).slice(1, 4).map((reason) => <li>{reason}</li>)}
+      </ul>
+      <small class="asof">观察日 {card.factor.as_of || 'N/A'} · {card.coverageLabel}</small>
+    </article>
+  ))}
+</section>

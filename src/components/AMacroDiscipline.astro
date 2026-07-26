@@ -1,0 +1,56 @@
+---
+type Props = {
+  rules: string[];
+  marginSource: string;
+  priceSource: string;
+  dailyMissing: number;
+  officialCoverage: number;
+  disclaimer?: string;
+};
+
+const {
+  rules,
+  marginSource,
+  priceSource,
+  dailyMissing,
+  officialCoverage,
+  disclaimer = '',
+} = Astro.props;
+---
+<div class="section-head">
+  <div>
+    <span class="section-kicker">DISCIPLINE &amp; SOURCES</span>
+    <h2>执行纪律与来源</h2>
+  </div>
+  <p>区分官方月度背景、日度市场代理和交易触发层。</p>
+</div>
+<section class="bottom-grid">
+  <article class="discipline card">
+    <h3>当前执行规则</h3>
+    <div class="rule-list">
+      {rules.map((rule, index) => (
+        <div class="rule">
+          <b>{String(index + 1).padStart(2, '0')}</b>
+          <span>{rule}</span>
+        </div>
+      ))}
+    </div>
+    <div class="action-links">
+      <a class="primary" href="/a-compass/">今日动作</a>
+      <a href="/a-momentum/">趋势风控</a>
+      <a href="/blog/">盘后复盘</a>
+    </div>
+  </article>
+  <article class="sources card">
+    <h3>当前数据来源</h3>
+    <div class="source-list">
+      <div class="source"><span>利率代理</span><b>十年国债ETF / 国债ETF / 公司债ETF / 沪深300ETF</b></div>
+      <div class="source"><span>外部代理</span><b>纳指ETF / 标普500ETF / 美国生物科技ETF / 日经ETF</b></div>
+      <div class="source"><span>两融</span><b>{marginSource}</b></div>
+      <div class="source"><span>价格</span><b>{priceSource}</b></div>
+      <div class="source"><span>日度输入</span><b>缺失 {dailyMissing}/3</b></div>
+      <div class="source"><span>官方背景</span><b>已有具体数据 {officialCoverage}/3 个低频维度</b></div>
+    </div>
+    <small class="asof">{disclaimer}</small>
+  </article>
+</section>

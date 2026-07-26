@@ -1,0 +1,72 @@
+---
+import AShareMetaPills from './AShareMetaPills.astro';
+
+type Constraint = {
+  label?: string;
+  headwind_level?: number;
+  equity_constraint?: string;
+  position?: string;
+};
+
+type Props = {
+  applyDate: string;
+  updatedAt: string;
+  timezoneLabel: string;
+  modelVersion: string;
+  liveGateReady: number;
+  liveGateCount: number;
+  constraint: Constraint;
+  scoringNote: string;
+  pressureScore: number;
+};
+
+const {
+  applyDate,
+  updatedAt,
+  timezoneLabel,
+  modelVersion,
+  liveGateReady,
+  liveGateCount,
+  constraint,
+  scoringNote,
+  pressureScore,
+} = Astro.props;
+---
+<section class="macro-hero card" aria-labelledby="page-title">
+  <div class="hero-row">
+    <div class="hero-copy">
+      <span class="eyebrow">A-SHARE MACRO &amp; FINANCIAL CONDITIONS</span>
+      <h1 id="page-title">A股宏观雷达</h1>
+      <p>从流动性、信用、增长、通胀、汇率和市场资金六个维度观察A股环境。日度风险闸门采用三项及时代理，月度与季度事实数据作为背景层单独披露。</p>
+    </div>
+    <AShareMetaPills
+      applyDate={applyDate}
+      updatedAt={updatedAt}
+      extra={[
+        { text: `市场：A股 · ${timezoneLabel}` },
+        { text: modelVersion },
+        { text: `日度闸门 ${liveGateReady}/${liveGateCount || 3}`, class: 'live-pill' },
+      ]}
+    />
+  </div>
+  <section class="gate" aria-label="当前宏观风险闸门">
+    <div>
+      <span class="gate-label"><i class="gate-dot"></i>当前风险闸门</span>
+      <h2>{constraint.label} · 逆风等级 {constraint.headwind_level}/3</h2>
+      <p>{constraint.equity_constraint}</p>
+    </div>
+    <div class="allocation">
+      <span>约束后风险预算</span>
+      <strong>{constraint.position}</strong>
+    </div>
+  </section>
+  <div class="scope-note">
+    <b>评分边界</b>
+    <div>
+      <span>
+        {scoringNote} 当前综合压力 {pressureScore.toFixed(2)}/9；3项逆风或总分≥5.5进入 Level 3。
+      </span>
+      <div class="legend-note">状态颜色表示对A股风险预算的影响方向；行情涨跌继续遵循红涨绿跌。</div>
+    </div>
+  </div>
+</section>

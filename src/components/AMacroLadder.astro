@@ -1,0 +1,33 @@
+---
+type Level = {
+  level: number;
+  label: string;
+  discipline: string;
+};
+
+type Props = {
+  levels: Level[];
+  currentLevel?: number;
+};
+
+const { levels, currentLevel } = Astro.props;
+---
+<div class="section-head">
+  <div>
+    <span class="section-kicker">RISK-BUDGET LADDER</span>
+    <h2>风险预算阶梯</h2>
+  </div>
+  <p>宏观等级只压缩权益上限，不替代ETF伏击位、防守线和资金确认。</p>
+</div>
+<section class="ladder">
+  {levels.map((item) => (
+    <article class={`level ${currentLevel === item.level ? 'current' : ''}`}>
+      <div class="level-number">
+        <span>LEVEL {item.level}</span>
+        {currentLevel === item.level && <b class="current-tag">当前</b>}
+      </div>
+      <h3>{item.label}</h3>
+      <p>{item.discipline}</p>
+    </article>
+  ))}
+</section>
