@@ -1,8 +1,10 @@
 ---
 /**
  * Multi-instrument dual-rail energy board.
- * Layout rule: formal sell cells follow buy cells on the right
- * (sell rail is left-padded by buy count).
+ * Layout:
+ *  - left stock panel is fixed (never pans)
+ *  - right signal panel scrolls horizontally
+ *  - formal sell cells follow buy cells on the right
  * Observation dots:
  *  - buy rail: red, lit by 1.75h (105m)
  *  - sell rail: green, lit by 10m
@@ -72,7 +74,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
     <div class="section-head-title">
       <h2 id="matrix-title">三标的双向能量传导</h2>
       <p class="matrix-sub">
-        正式多方窗口：2h → 5.5h。空方正式信号排在多方序列右侧紧跟其后。信号区左右滑动，左侧标的固定；超过 4 个标的时看板上下滑动。
+        正式多方窗口：2h → 5.5h。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定；超过 4 个标的时看板上下滑动。
       </p>
     </div>
     <div class="matrix-controls">
@@ -89,18 +91,18 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
       const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       return (
         <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
-          <div class="table-outer" data-role="signal-scroller">
-            <div class="table-grid">
-              <div class="stock-sticky">
-                <div class="stock-name-title" data-role="inst-name">{inst.instrumentName}</div>
-                <div class="stock-code-tag" data-role="inst-symbol">{inst.symbol}</div>
-                <div class="stock-price-tag" data-role="quote" data-symbol={inst.symbol}>加载行情...</div>
-                <div class="stock-signal-meta" data-role="signal-meta">
-                  买 {buys.length} · 卖 {sells.length}
-                </div>
+          <div class="board-row">
+            <div class="stock-panel">
+              <div class="stock-name-title" data-role="inst-name">{inst.instrumentName}</div>
+              <div class="stock-code-tag" data-role="inst-symbol">{inst.symbol}</div>
+              <div class="stock-price-tag" data-role="quote" data-symbol={inst.symbol}>加载行情...</div>
+              <div class="stock-signal-meta" data-role="signal-meta">
+                买 {buys.length} · 卖 {sells.length}
               </div>
+            </div>
 
-              <div class="signals-axis">
+            <div class="signal-panel" data-role="signal-scroller" tabindex="0" aria-label={`${inst.instrumentName} 信号横向滚动区`}>
+              <div class="signal-canvas">
                 <div class="axis-row sell-axis">
                   <div class="axis-label sell-label">
                     <span>空方力量</span>
@@ -167,11 +169,12 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
               </div>
             </div>
           </div>
+
           <div class="scroll-hint">
             <span><strong>左右滑动</strong>查看完整信号序列</span>
             <span data-role="scroll-range">标的固定 · 信号可滑</span>
           </div>
-          <div class="scroll-track" data-role="scroll-track" aria-hidden="true">
+          <div class="scroll-track" data-role="scroll-track" role="scrollbar" aria-orientation="horizontal" aria-controls={`scroll-${inst.symbol}`}>
             <div class="scroll-thumb" data-role="scroll-thumb"></div>
           </div>
         </article>

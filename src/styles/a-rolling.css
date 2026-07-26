@@ -203,52 +203,76 @@
 
 .a-rolling-main .instrument-board {
   margin: 0;
-}
-
-.a-rolling-main .table-outer {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   background: #f8fafc;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-  /* Always reserve a visible horizontal scroll track. */
-  scrollbar-width: auto;
-  scrollbar-color: #64748b #e2e8f0;
-  touch-action: pan-x;
+  padding: 0.35rem 0.35rem 0.45rem;
 }
 
-.a-rolling-main .table-outer::-webkit-scrollbar {
+.a-rolling-main .board-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.a-rolling-main .stock-panel {
+  width: 118px;
+  flex: 0 0 118px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.7rem 0.4rem;
+  gap: 0.18rem;
+  z-index: 2;
+}
+
+.a-rolling-main .signal-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 0; /* force flex child to shrink so overflow can scroll */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e2e8f0;
+  margin-left: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.a-rolling-main .signal-panel::-webkit-scrollbar {
   height: 12px;
   display: block;
 }
 
-.a-rolling-main .table-outer::-webkit-scrollbar-track {
+.a-rolling-main .signal-panel::-webkit-scrollbar-track {
   background: #e2e8f0;
   border-radius: 999px;
   margin: 0 8px 4px;
 }
 
-.a-rolling-main .table-outer::-webkit-scrollbar-thumb {
+.a-rolling-main .signal-panel::-webkit-scrollbar-thumb {
   background: #64748b;
   border-radius: 999px;
   border: 2px solid #e2e8f0;
   min-width: 48px;
 }
 
-.a-rolling-main .table-outer::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-}
-
-.a-rolling-main .table-grid {
+.a-rolling-main .signal-canvas {
   display: flex;
-  /* Force horizontal overflow on phone widths so the scroll track is usable. */
-  min-width: 1100px;
+  flex-direction: column;
   width: max-content;
+  min-width: 1100px;
 }
 
 .a-rolling-main .scroll-hint {
@@ -256,7 +280,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin: 0.35rem 0.2rem 0;
+  margin: 0.4rem 0.15rem 0;
   color: #64748b;
   font-size: 0.72rem;
   font-weight: 700;
@@ -269,8 +293,8 @@
 
 .a-rolling-main .scroll-track {
   position: relative;
-  height: 12px;
-  margin: 0.35rem 0.15rem 0.15rem;
+  height: 14px;
+  margin: 0.35rem 0.1rem 0.05rem;
   border-radius: 999px;
   background: #e2e8f0;
   overflow: hidden;
@@ -281,34 +305,17 @@
 
 .a-rolling-main .scroll-thumb {
   position: absolute;
-  top: 1px;
+  top: 2px;
   left: 0;
   height: 10px;
-  min-width: 42px;
+  min-width: 48px;
   border-radius: 999px;
-  background: #64748b;
+  background: #475569;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
 }
 
 .a-rolling-main .scroll-thumb:active {
-  background: #334155;
-}
-
-.a-rolling-main .stock-sticky {
-  position: sticky;
-  left: 0;
-  width: 132px;
-  background: #ffffff;
-  border-right: 1px solid #cbd5e1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0.85rem 0.5rem;
-  flex-shrink: 0;
-  z-index: 12;
-  box-shadow: 2px 0 8px rgba(15, 23, 42, 0.08);
-  gap: 0.18rem;
+  background: #1e293b;
 }
 
 .a-rolling-main .stock-name-title {
@@ -351,17 +358,12 @@
   background: #fff;
 }
 
-.a-rolling-main .signals-axis {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .a-rolling-main .axis-row {
   display: flex;
   align-items: center;
   min-height: 72px;
+  width: max-content;
+  min-width: 100%;
 }
 
 .a-rolling-main .axis-row.sell-axis {
@@ -372,10 +374,7 @@
 .a-rolling-main .axis-row.buy-axis { background: #ffffff; }
 
 .a-rolling-main .axis-label {
-  position: sticky;
-  left: 132px;
-  z-index: 11;
-  width: 92px;
+  width: 88px;
   padding-left: 0.55rem;
   font-size: 0.74rem;
   font-weight: 850;
@@ -384,7 +383,6 @@
   align-items: center;
   gap: 0.32rem;
   background: inherit;
-  box-shadow: 2px 0 6px rgba(15, 23, 42, 0.04);
 }
 
 .a-rolling-main .axis-label.sell-label {

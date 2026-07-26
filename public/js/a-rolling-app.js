@@ -273,7 +273,7 @@
       const payloads = await Promise.all(INSTRUMENTS.map(async (meta) => {
         try {
           const data = await fetchOneSignals(meta.symbol);
-          updateBoard(meta.symbol, data);
+          paintBoard(meta.symbol, data);
           return data;
         } catch {
           return null;
@@ -405,14 +405,14 @@
     });
   };
 
-  initAllScrollers();
-  // Re-sync after live data repaint expands cell width.
-  const _updateBoard = updateBoard;
-  updateBoard = (symbol, data) => {
-    _updateBoard(symbol, data);
+  let applyBoard = updateBoard;
+  const paintBoard = (symbol, data) => {
+    applyBoard(symbol, data);
     const board = document.querySelector(`.instrument-board[data-symbol="${symbol}"]`);
     if (board) requestAnimationFrame(() => syncScrollUi(board));
   };
+
+  initAllScrollers();
 
   if (window.EtfLivePoll?.startLivePoll) {
     window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => { await fetchAllQuotes(); }});
