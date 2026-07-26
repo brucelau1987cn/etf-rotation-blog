@@ -94,13 +94,27 @@ const midIcon = midLevel >= 3 ? '🔴' : midLevel >= 2 ? '🟠' : midLevel >= 1 
 const harvest = data.harvest || [];
 const plant = data.plant || [];
 const watch = data.watch || [];
+const allActions = [
+  ...harvest.map((item) => ({ ...item, _side: 'harvest' as const })),
+  ...plant.map((item) => ({ ...item, _side: 'plant' as const })),
+  ...watch.map((item) => ({
+    status: item.status || '',
+    code: item.code || '',
+    name: item.name || item.label || '',
+    priority: '观察',
+    trigger: item.text || '',
+    action: item.action || item.text || '',
+    _side: 'watch' as const,
+  })),
+];
 const priorityRank: Record<string, number> = { 高: 4, 中高: 3, 中: 2, 观察: 1 };
 const topAction = [...harvest, ...plant].sort((a, b) => (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0))[0];
 const counts = {
-  harvest: harvest.filter((item) => item.status === '兑现').length,
-  readyHarvest: harvest.filter((item) => item.status === '止盈观察').length,
-  plant: plant.filter((item) => item.status === '伏击').length,
-  readyPlant: plant.filter((item) => item.status === '候场').length,
+  retreat: allActions.filter((item) => item.status === '破位撤退').length,
+  harvest: allActions.filter((item) => item.status === '兑现').length,
+  readyHarvest: allActions.filter((item) => item.status === '止盈观察').length,
+  plant: allActions.filter((item) => item.status === '伏击' || item.status === '正式伏击').length,
+  readyPlant: allActions.filter((item) => item.status === '候场').length,
 };
 const formatPrice = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '待更新';
 const formatDistance = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? `${Math.abs(value).toFixed(1)}%` : '待更新';
@@ -173,6 +187,41 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         width: 100%;
         max-width: 100%;
       }
+      .count-strip {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: .55rem;
+        margin-top: 1rem;
+      }
+      .count .status-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        color: rgb(var(--gray-dark));
+        font-size: .78rem;
+        font-weight: 850;
+      }
+      .count .status-dot {
+        width: 6px;
+        height: 6px;
+        min-width: 6px;
+        min-height: 6px;
+        max-width: 6px;
+        max-height: 6px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        box-shadow: none;
+        display: inline-block;
+      }
+      .count .status-dot.exit,
+      .count .status-dot.harvest,
+      .count .status-dot.take-profit {
+        background: var(--green);
+      }
+      .count .status-dot.plant,
+      .count .status-dot.watch {
+        background: var(--accent);
+      }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
       .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }
@@ -194,6 +243,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       @media (max-width: 940px) {
         .hero-main { grid-template-columns: 1fr; gap: .8rem; }
         .hero-clock { justify-self: stretch; width: 100%; }
+        .count-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .macro-factors { grid-template-columns: 1fr; }
       }
       @media (max-width: 620px) {
@@ -201,6 +251,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
         .dashboard-hero { padding: .85rem; }
         .hero-copy h1 { font-size: 1.8rem; }
         .hero-copy p { font-size: .88rem; }
+        .count-strip { grid-template-columns: 1fr 1fr; }
         .count { padding: .55rem .55rem; min-height: 3.8rem; }
         .count strong { font-size: 1.25rem; }
         .macro-gate summary { grid-template-columns: auto 1fr; }
@@ -246,11 +297,32 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
             </div>
           </div>
         </div>
-        <div class="count-strip" aria-label="今日动作数量">
-          <div class="count harvest"><span>🟢 兑现</span><strong>{counts.harvest}</strong><em class="count-note">正式减仓</em></div>
-          <div class="count harvest"><span>🟢 止盈观察</span><strong>{counts.readyHarvest}</strong><em class="count-note">接近兑现位</em></div>
-          <div class="count plant"><span>🔴 正式伏击</span><strong>{counts.plant}</strong><em class="count-note">可执行低吸</em></div>
-          <div class="count plant"><span>🔴 候场</span><strong>{counts.readyPlant}</strong><em class="count-note">仅观察</em></div>
+        <div class="count-strip" aria-label="今日五类动作数量">
+          <div class="count harvest">
+            <span class="status-label"><i class="status-dot exit" aria-hidden="true"></i>破位撤退</span>
+            <strong>{counts.retreat}</strong>
+            <em class="count-note">最高优先</em>
+          </div>
+          <div class="count harvest">
+            <span class="status-label"><i class="status-dot harvest" aria-hidden="true"></i>兑现触发</span>
+            <strong>{counts.harvest}</strong>
+            <em class="count-note">正式兑现</em>
+          </div>
+          <div class="count harvest">
+            <span class="status-label"><i class="status-dot take-profit" aria-hidden="true"></i>止盈观察</span>
+            <strong>{counts.readyHarvest}</strong>
+            <em class="count-note">接近兑现位</em>
+          </div>
+          <div class="count plant">
+            <span class="status-label"><i class="status-dot plant" aria-hidden="true"></i>正式伏击</span>
+            <strong>{counts.plant}</strong>
+            <em class="count-note">可执行低吸</em>
+          </div>
+          <div class="count plant">
+            <span class="status-label"><i class="status-dot watch" aria-hidden="true"></i>候场</span>
+            <strong>{counts.readyPlant}</strong>
+            <em class="count-note">仅观察</em>
+          </div>
         </div>
         <div class="decision-grid">
           <div class="decision-box"><span>市场状态</span><strong>{data.market_state}</strong></div>
