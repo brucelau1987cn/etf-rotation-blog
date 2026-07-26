@@ -254,6 +254,7 @@ BASE_URL=https://etf.peekabo.cc bash scripts/verify_pages_deploy.sh
      - open* = `4000`
      - closed = `30000`
      - weekend = `60000`
+3. **HIT 复测**：对稳定 query（不加随机 `t=`）先 warm，再连打；在重试窗口内应出现 `x-quote-cache: HIT`（`layer=edge|memory`）
 
 手工复核缓存时可看：
 

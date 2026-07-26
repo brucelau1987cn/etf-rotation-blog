@@ -304,6 +304,33 @@ if [[ -n "$session_val" && -n "$ttl_ms" ]]; then
   fi
 fi
 
+# Warm + HIT recheck on a stable key (no changing t=). Cross-isolate may MISS once,
+# so allow a few rapid retries within the current session TTL window.
+quote_hit_ok=0
+quote_hit_layer=""
+stable_quote_url="${BASE_URL}/api/public/v1/quote?symbol=600021&exchange=SSE"
+# seed/warm
+curl -fsS -H 'User-Agent: Hermes-Deploy-Probe' "$stable_quote_url" >/dev/null 2>&1 || true
+hit_attempt=1
+while (( hit_attempt <= RETRIES )); do
+  hit_headers="$(curl -fsSI -X GET -H 'User-Agent: Hermes-Deploy-Probe' -D - -o /dev/null "$stable_quote_url" 2>/dev/null || true)"
+  hit_lower="$(printf '%s' "$hit_headers" | tr '[:upper:]' '[:lower:]')"
+  if printf '%s' "$hit_lower" | grep -Eq 'x-quote-cache:[[:space:]]*hit'; then
+    quote_hit_ok=1
+    quote_hit_layer="$(printf '%s' "$hit_lower" | grep -E 'x-quote-cache-layer:' | head -n1 | sed -E 's/.*x-quote-cache-layer:[[:space:]]*([a-z_]+).*/\1/' | tr -cd 'a-z_')"
+    break
+  fi
+  sleep 1
+  hit_attempt=$((hit_attempt + 1))
+done
+if (( quote_hit_ok == 1 )); then
+  echo "OK  quote cache HIT recheck (layer=${quote_hit_layer:-unknown})"
+else
+  echo "FAIL quote cache HIT recheck: expected HIT within ${RETRIES} rapid retries"
+  printf '%s\n' "$hit_headers" | sed -n '1,25p'
+  fail=1
+fi
+
 if [[ "$fail" -ne 0 ]]; then
   echo
   echo "Production probe failed. If git push already happened, run:"
