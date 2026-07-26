@@ -49,6 +49,7 @@ const defu = loadPayload('a-rolling-signals-301511.json');
 const minbao = loadPayload('a-rolling-signals-301362.json');
 const haiguang = loadPayload('a-rolling-signals-688041.json');
 const dongfang = loadPayload('a-rolling-signals-600637.json');
+const tesla = loadPayload('a-rolling-signals-TSLA.json');
 
 const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
   if (!value) return '—';
@@ -119,6 +120,7 @@ const boardSummaries = [
   summarizeInstrument(minbao),
   summarizeInstrument(haiguang),
   summarizeInstrument(dongfang),
+  summarizeInstrument(tesla),
 ];
 
 const boardInstruments = boardSummaries.map((item) => ({
@@ -137,6 +139,7 @@ const allAlerts = [
   ...(minbao.sell_alerts || []),
   ...(haiguang.sell_alerts || []),
   ...(dongfang.sell_alerts || []),
+  ...(tesla.sell_alerts || []),
 ];
 
 const buyTotal = boardSummaries.reduce((sum, item) => sum + item.buyCount, 0);
@@ -167,12 +170,13 @@ const latestAsOf = boardSummaries
     minbao.data_as_of,
     haiguang.data_as_of,
     dongfang.data_as_of,
+    tesla.data_as_of,
   ])
   .filter(Boolean)
   .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
 
 const pageTitle = `A股滚动｜多标的多空能量看板 | ${SITE_TITLE}`;
-const pageDescription = 'A股滚动多标的看板：上海电力、创新医疗、三安光电、深科技、德福科技、民爆光电、海光信息、东方明珠的多方正式窗口与空方预警同屏展示。';
+const pageDescription = 'A股滚动多标的看板：上海电力、创新医疗、三安光电、深科技、德福科技、民爆光电、海光信息、东方明珠、特斯拉的多方正式窗口与空方预警同屏展示。';
 ---
 
 <!doctype html>
@@ -195,7 +199,7 @@ const pageDescription = 'A股滚动多标的看板：上海电力、创新医疗
               <span class="pill live-pill" id="live-status-pill">实时连接中</span>
             </div>
             <h1 id="page-title">多标的多空能量看板</h1>
-            <p>上海电力 / 创新医疗 / 三安光电 / 深科技 / 德福科技 / 民爆光电 / 海光信息 / 东方明珠 同屏。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个；超过 4 个标的时看板上下滑动。</p>
+            <p>上海电力 / 创新医疗 / 三安光电 / 深科技 / 德福科技 / 民爆光电 / 海光信息 / 东方明珠 / 特斯拉 同屏。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个；超过 4 个标的时看板上下滑动。</p>
           </div>
         </div>
 

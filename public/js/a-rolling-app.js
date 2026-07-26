@@ -27,6 +27,7 @@
     { name: '民爆光电', exchange: 'SZSE', symbol: '301362' },
     { name: '海光信息', exchange: 'SSE', symbol: '688041' },
     { name: '东方明珠', exchange: 'SSE', symbol: '600637' },
+    { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },
   ];
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
@@ -226,8 +227,8 @@
       return {
         name: payload?.instrument?.instrument_name || meta.name,
         symbol: meta.symbol,
-        buyCount: split.buys.length,
-        sellCount: split.sells.length,
+        buyCount: split.buyTotal,
+        sellCount: split.sellTotal,
         buyWatch: !!split.buyObservation,
         sellWatch: !!split.sellObservation,
         latest: [...split.buys, ...split.sells]
@@ -281,7 +282,11 @@
     const isDown = changePct < 0;
     const color = isUp ? '#cf1322' : isDown ? '#389e0d' : '#475569';
     const sign = isUp ? '+' : '';
-    const text = `¥${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
+    const isUs = /^[A-Za-z]/.test(String(symbol || ''))
+      || String(item.market || item.exchange || '').toUpperCase().includes('US')
+      || String(item.market || '').toUpperCase().includes('NASDAQ');
+    const currency = isUs ? '$' : '¥';
+    const text = `${currency}${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
     if (badge) {
       badge.textContent = text;
       badge.style.color = color;
@@ -330,7 +335,8 @@
   };
 
   const fetchOneQuote = async (meta) => {
-    const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(meta.symbol)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
+    const symbolParam = /^[A-Za-z]/.test(meta.symbol) ? `${meta.symbol}.US` : meta.symbol;
+    const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(symbolParam)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return normalizeQuotePayload(await res.json());
   };
