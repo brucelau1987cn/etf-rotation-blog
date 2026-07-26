@@ -106,6 +106,8 @@ check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
 check_asset "/js/token-app.js" "minimax"
+check_asset "/js/login-app.js" "change-password"
+check_asset "/js/lab-app.js" "a-share-research-audit"
 
 # Cache policy: versioned public JS should be long-lived/immutable.
 # Prefer a versioned URL (how pages actually load assets) and retry briefly
@@ -215,6 +217,17 @@ check_page "/token/" \
   "data-token-dashboard" \
   "data-api-base" \
   "btn-refresh"
+
+check_page "/login/" \
+  "/js/login-app.js" \
+  "login-form" \
+  "change-form"
+
+check_page "/lab/" \
+  "/js/lab-app.js" \
+  "upload-form" \
+  "audit-content" \
+  "kronos-content"
 
 quote_ok=0
 attempt=1
