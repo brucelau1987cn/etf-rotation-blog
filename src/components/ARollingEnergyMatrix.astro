@@ -169,14 +169,6 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
               </div>
             </div>
           </div>
-
-          <div class="scroll-hint">
-            <span><strong>左右滑动</strong>查看完整信号序列</span>
-            <span data-role="scroll-range">标的固定 · 信号可滑</span>
-          </div>
-          <div class="scroll-track" data-role="scroll-track" role="scrollbar" aria-orientation="horizontal" aria-controls={`scroll-${inst.symbol}`}>
-            <div class="scroll-thumb" data-role="scroll-thumb"></div>
-          </div>
         </article>
       );
     })}

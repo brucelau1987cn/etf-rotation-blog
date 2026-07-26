@@ -273,7 +273,7 @@
       const payloads = await Promise.all(INSTRUMENTS.map(async (meta) => {
         try {
           const data = await fetchOneSignals(meta.symbol);
-          paintBoard(meta.symbol, data);
+          updateBoard(meta.symbol, data);
           return data;
         } catch {
           return null;
@@ -306,113 +306,6 @@
     fetchAllSignals();
     fetchAllQuotes();
   }, 400);
-
-  // Custom horizontal scroll track under each instrument board.
-  // Mobile browsers often hide native scrollbars; this keeps a visible slider.
-  const syncScrollUi = (board) => {
-    const scroller = board.querySelector('[data-role="signal-scroller"]');
-    const track = board.querySelector('[data-role="scroll-track"]');
-    const thumb = board.querySelector('[data-role="scroll-thumb"]');
-    const range = board.querySelector('[data-role="scroll-range"]');
-    if (!scroller || !track || !thumb) return;
-
-    const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-    if (maxScroll <= 1) {
-      track.style.opacity = '0.35';
-      thumb.style.width = '100%';
-      thumb.style.left = '0px';
-      if (range) range.textContent = '已显示全部';
-      return;
-    }
-
-    track.style.opacity = '1';
-    const trackWidth = track.clientWidth || 1;
-    const thumbWidth = Math.max(42, Math.round((scroller.clientWidth / scroller.scrollWidth) * trackWidth));
-    const maxThumbLeft = Math.max(0, trackWidth - thumbWidth);
-    const left = Math.round((scroller.scrollLeft / maxScroll) * maxThumbLeft);
-    thumb.style.width = `${thumbWidth}px`;
-    thumb.style.left = `${left}px`;
-    if (range) range.textContent = `可滑 ${maxScroll}px`;
-  };
-
-  const bindScroller = (board) => {
-    const scroller = board.querySelector('[data-role="signal-scroller"]');
-    const track = board.querySelector('[data-role="scroll-track"]');
-    const thumb = board.querySelector('[data-role="scroll-thumb"]');
-    if (!scroller || !track || !thumb || board.dataset.scrollBound === '1') return;
-    board.dataset.scrollBound = '1';
-
-    const onScroll = () => syncScrollUi(board);
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-
-    let dragging = false;
-    let startX = 0;
-    let startLeft = 0;
-
-    const maxThumbLeft = () => {
-      const trackWidth = track.clientWidth || 1;
-      const thumbWidth = thumb.offsetWidth || 42;
-      return Math.max(0, trackWidth - thumbWidth);
-    };
-
-    const scrollFromThumbLeft = (thumbLeft) => {
-      const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-      const mtl = maxThumbLeft();
-      const ratio = mtl > 0 ? Math.min(1, Math.max(0, thumbLeft / mtl)) : 0;
-      scroller.scrollLeft = ratio * maxScroll;
-      syncScrollUi(board);
-    };
-
-    const onPointerDown = (event) => {
-      dragging = true;
-      startX = event.clientX;
-      startLeft = thumb.offsetLeft || 0;
-      thumb.setPointerCapture?.(event.pointerId);
-      event.preventDefault();
-    };
-    const onPointerMove = (event) => {
-      if (!dragging) return;
-      const next = startLeft + (event.clientX - startX);
-      scrollFromThumbLeft(Math.min(maxThumbLeft(), Math.max(0, next)));
-    };
-    const onPointerUp = (event) => {
-      if (!dragging) return;
-      dragging = false;
-      try { thumb.releasePointerCapture?.(event.pointerId); } catch {}
-    };
-
-    thumb.addEventListener('pointerdown', onPointerDown);
-    thumb.addEventListener('pointermove', onPointerMove);
-    thumb.addEventListener('pointerup', onPointerUp);
-    thumb.addEventListener('pointercancel', onPointerUp);
-
-    track.addEventListener('pointerdown', (event) => {
-      if (event.target === thumb) return;
-      const rect = track.getBoundingClientRect();
-      const x = event.clientX - rect.left - (thumb.offsetWidth / 2);
-      scrollFromThumbLeft(x);
-    });
-
-    window.addEventListener('resize', onScroll, { passive: true });
-    // Wait one frame for layout after live signal updates.
-    requestAnimationFrame(() => syncScrollUi(board));
-  };
-
-  const initAllScrollers = () => {
-    document.querySelectorAll('.instrument-board').forEach((board) => {
-      bindScroller(board);
-      syncScrollUi(board);
-    });
-  };
-
-  let applyBoard = updateBoard;
-  const paintBoard = (symbol, data) => {
-    applyBoard(symbol, data);
-    const board = document.querySelector(`.instrument-board[data-symbol="${symbol}"]`);
-    if (board) requestAnimationFrame(() => syncScrollUi(board));
-  };
-
-  initAllScrollers();
 
   if (window.EtfLivePoll?.startLivePoll) {
     window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => { await fetchAllQuotes(); }});
