@@ -1,8 +1,8 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "e07844927e3e8dc6c8db0aeb21df35aeb24b3d0abea300f5498931aaed3d8738",
+  "batch_id": "66ca6d9fbb3c9bb6d03ed3a50aa341f8d117d2f64dbea74a5439114785296c3c",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-07-24T22:31:58Z",
+  "generated_at": "2026-07-26T16:05:18Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
@@ -145,6 +145,34 @@
       "sha256": "fceec4826b79e842e35497782dfec566d512a95d5a49834ffbf1b5976b59e474",
       "bytes": 8377,
       "public_url": "/data/model-lab/a-share-research-audit.json"
+    },
+    {
+      "dataset_id": "investment-research-layer",
+      "role": "shadow",
+      "market": "MULTI",
+      "schema_version": "investment-research-layer-v1",
+      "observation_date": "2026-07-27",
+      "generated_at": "2026-07-27T00:05:18+08:00",
+      "completeness": {
+        "status": "unknown",
+        "ratio": null,
+        "observed": null,
+        "expected": null,
+        "reason": "dataset does not publish a comparable observed/expected count"
+      },
+      "degradation": {
+        "status": "unknown",
+        "reasons": [
+          "dataset does not publish a comparable observed/expected count"
+        ]
+      },
+      "source_categories": [
+        "derived_research"
+      ],
+      "semantic_sha256": "db231051ad06db1bc1154857513544dcaf9ac3898474952c976d04b5f90c3e73",
+      "sha256": "12261391fcb60328e100f0a423e02aed8bdb7eee8a828fb1b089b1f870a6ea7c",
+      "bytes": 4424,
+      "public_url": "/data/research/investment-research-layer.json"
     },
     {
       "dataset_id": "a-share-path-shadow",

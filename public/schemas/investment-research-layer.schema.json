@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/investment-research-layer.schema.json",
+  "title": "ETF Compass investment research layer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "as_of", "mode", "production_signals_changed", "principles", "modules", "decision_pipeline", "source_policy", "current_state"],
+  "properties": {
+    "schema_version": {"const": "investment-research-layer-v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "as_of": {"type": "string", "format": "date"},
+    "mode": {"const": "research_sidecar"},
+    "production_signals_changed": {"const": false},
+    "principles": {"type": "array", "minItems": 4, "items": {"type": "string", "minLength": 1}},
+    "modules": {
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["module_id", "name", "purpose", "trigger", "required_inputs", "outputs", "gate"],
+        "properties": {
+          "module_id": {"enum": ["theme-bottleneck", "company-adversarial", "evidence-rigor", "thesis-tracker", "news-pulse"]},
+          "name": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "trigger": {"type": "string", "minLength": 1},
+          "required_inputs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "outputs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "gate": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "decision_pipeline": {"type": "array", "minItems": 4, "items": {"type": "string"}},
+    "source_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minimum_independent_sources", "primary_source_required", "numeric_tolerance_pct", "fail_closed"],
+      "properties": {
+        "minimum_independent_sources": {"type": "integer", "minimum": 2},
+        "primary_source_required": {"type": "boolean"},
+        "numeric_tolerance_pct": {"type": "number", "exclusiveMinimum": 0},
+        "fail_closed": {"type": "boolean"}
+      }
+    },
+    "current_state": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "active_themes", "company_reviews", "tracked_theses", "open_news_reviews", "note"],
+      "properties": {
+        "status": {"enum": ["ready", "active", "degraded", "unknown"]},
+        "active_themes": {"type": "integer", "minimum": 0},
+        "company_reviews": {"type": "integer", "minimum": 0},
+        "tracked_theses": {"type": "integer", "minimum": 0},
+        "open_news_reviews": {"type": "integer", "minimum": 0},
+        "note": {"type": "string"}
+      }
+    }
+  }
+}

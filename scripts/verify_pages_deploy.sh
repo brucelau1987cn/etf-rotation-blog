@@ -195,8 +195,8 @@ check_page "/rolling/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \
   "/js/a-rolling-app.js" \
-  "buy-cells-container" \
-  "stat-current-code"
+  "rolling-board-list" \
+  "stat-latest-action"
 
 check_page "/rolling/us/" \
   "/js/normalize-quote-payload.js" \
@@ -212,7 +212,7 @@ check_page "/rolling/hk/" \
   "中国宏桥" \
   "港股滚动"
 
-check_asset "/js/a-rolling-app.js" "fetchStockQuote"
+check_asset "/js/a-rolling-app.js" "fetchOneQuote"
 
 check_page "/a-compass/" \
   "/js/normalize-quote-payload.js" \
@@ -286,6 +286,17 @@ check_page "/lab/" \
   "upload-form" \
   "audit-content" \
   "kronos-content"
+
+check_page "/research-framework/" \
+  "投资研究框架" \
+  "风口瓶颈扫描" \
+  "公司多空对抗研究" \
+  "research_sidecar"
+
+check_page "/data/research/investment-research-layer.json" \
+  '"schema_version": "investment-research-layer-v1"' \
+  '"production_signals_changed": false' \
+  '"fail_closed": true'
 
 # Stable historical article using BlogPost layout client.
 check_page "/blog/2026-05-31-etf-rotation-framework/" \

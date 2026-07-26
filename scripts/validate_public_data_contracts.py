@@ -27,6 +27,7 @@ SCHEMAS = ROOT / "public/schemas"
 SCHEMA_FILES = (
     "data-catalog.schema.json", "a-compass-dashboard.schema.json",
     "forward-evidence-ledger.schema.json", "decision-thesis.schema.json", "decision-drift.schema.json",
+    "investment-research-layer.schema.json",
 )
 ROLES = {"production", "shadow", "history", "runtime", "export"}
 SOURCE_CATEGORIES = {
@@ -217,16 +218,20 @@ def validate(data_dir: Path = DATA, schema_dir: Path = SCHEMAS) -> ValidationRes
     try:
         catalog = parse_json(data_dir / "catalog.json")
         dashboard = parse_json(data_dir / "a-compass-dashboard.json")
+        research_layer = parse_json(data_dir / "research/investment-research-layer.json")
     except ValueError as exc:
         return ValidationResult("error", errors + [str(exc)])
-    if not isinstance(catalog, dict) or not isinstance(dashboard, dict):
-        return ValidationResult("error", errors + ["catalog and dashboard roots must be objects"])
+    if not isinstance(catalog, dict) or not isinstance(dashboard, dict) or not isinstance(research_layer, dict):
+        return ValidationResult("error", errors + ["catalog, dashboard and research layer roots must be objects"])
     if "data-catalog.schema.json" in schemas:
         errors.extend(f"catalog schema: {message}" for message in schema_errors(schemas["data-catalog.schema.json"], catalog))
     if "a-compass-dashboard.schema.json" in schemas:
         errors.extend(f"dashboard schema: {message}" for message in schema_errors(schemas["a-compass-dashboard.schema.json"], dashboard))
+    if "investment-research-layer.schema.json" in schemas:
+        errors.extend(f"research layer schema: {message}" for message in schema_errors(schemas["investment-research-layer.schema.json"], research_layer))
     errors.extend(f"catalog {message}" for message in unsafe_paths(catalog))
     errors.extend(f"a-compass-dashboard {message}" for message in unsafe_paths(dashboard))
+    errors.extend(f"investment-research-layer {message}" for message in unsafe_paths(research_layer))
     validate_catalog(data_dir, catalog, errors)
     validate_dashboard(data_dir, dashboard, errors)
     return ValidationResult("ok" if not errors else "error", errors)

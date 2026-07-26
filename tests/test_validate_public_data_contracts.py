@@ -69,6 +69,8 @@ def prepare_tree(tmp_path: Path) -> tuple[Path, Path]:
             "summary": {"universe_count": 1, "valid_count": 1}, "data_quality": {"failed": 0},
             "all_rows": valid_dashboard()["all_rows"], "rows": [{"symbol": "SPY"}],
         }
+        if item.dataset_id == "investment-research-layer":
+            payload = json.loads((Path(__file__).resolve().parents[1] / "public/data/research/investment-research-layer.json").read_text(encoding="utf-8"))
         write_json(data / item.relative_path, payload)
     dashboard = module.build_dashboard_payload(json.loads((data / "etf-garden-pool.json").read_text(encoding="utf-8")))
     write_json(data / "a-compass-dashboard.json", dashboard)

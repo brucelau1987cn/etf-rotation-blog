@@ -34,6 +34,7 @@ DATASETS = (
     DatasetSpec("etf-garden-pool", "etf-garden-pool.json", "runtime", "CN", "legacy-unversioned", ("market_data", "derived_research"), ("latest_trade_date", "evaluation_date", "run_date"), ("generated_at",)),
     DatasetSpec("a-share-mid-macro", "a-share-mid-macro.json", "production", "CN", "a-share-mid-macro-v2", ("market_data", "official_statistics", "derived_research"), ("__latest_as_of__",), ("generated_at",)),
     DatasetSpec("a-share-research-audit", "model-lab/a-share-research-audit.json", "shadow", "CN", "research-audit-v1", ("historical_market_data", "derived_research"), ("dataset.as_of",), ("generated_at",)),
+    DatasetSpec("investment-research-layer", "research/investment-research-layer.json", "shadow", "MULTI", "investment-research-layer-v1", ("derived_research",), ("as_of",), ("generated_at",)),
     DatasetSpec("a-share-path-shadow", "model-lab/a-share-path-shadow.json", "shadow", "CN", "a-share-path-shadow-v1", ("historical_market_data", "model_output"), ("latest_trade_date",), ("generated_at",)),
     DatasetSpec("us-etf-garden", "us-etf-garden.json", "production", "US", "legacy-unversioned", ("market_data", "derived_research"), ("date",), ("updated_at",)),
     DatasetSpec("us-etf-pool", "us-etf-pool.json", "runtime", "US", "legacy-unversioned", ("market_data", "derived_research"), ("quote_trade_date", "model_date"), ("generated_at",)),

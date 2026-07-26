@@ -1,0 +1,99 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import framework from '../../public/data/research/investment-research-layer.json';
+
+const moduleTone: Record<string, string> = {
+  'theme-bottleneck': 'theme',
+  'company-adversarial': 'company',
+  'evidence-rigor': 'evidence',
+  'thesis-tracker': 'thesis',
+  'news-pulse': 'news',
+};
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <BaseHead title="投资研究框架｜ETF罗盘" description="ETF罗盘的风口瓶颈、公司多空对抗、证据校验、投资论文和异动归因研究框架。" />
+  <style>
+    main { padding-bottom: 5rem; }
+    .intro { padding: 2rem 0 1rem; border-bottom: 1px solid var(--border); }
+    .intro h1 { margin: .45rem 0 .55rem; font-size: clamp(1.9rem,5vw,3rem); letter-spacing: -.045em; }
+    .intro p { max-width: 780px; margin: 0; color: rgb(var(--gray)); line-height: 1.75; }
+    .status-line { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; margin-top: .9rem; font-size: .8rem; color: rgb(var(--gray-dark)); }
+    .pipeline { margin-top: 1.35rem; padding: .85rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .pipeline ol { display: flex; flex-wrap: wrap; gap: .4rem .85rem; margin: 0; padding-left: 1.25rem; }
+    .pipeline li { padding-right: .8rem; color: rgb(var(--gray-dark)); font-size: .84rem; font-weight: 750; }
+    .modules { margin-top: 1.5rem; }
+    .module { display: grid; grid-template-columns: minmax(150px,.34fr) minmax(0,1fr); gap: 1.2rem; padding: 1rem 0; border-top: 1px solid var(--border); }
+    .module:first-of-type { border-top: 0; }
+    .module h2 { margin: 0; font-size: 1.05rem; }
+    .module .id { display: block; margin-top: .3rem; color: rgb(var(--gray)); font-size: .7rem; font-family: ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .module p { margin: 0; line-height: 1.65; }
+    .module dl { display: grid; grid-template-columns: 5rem 1fr; gap: .38rem .7rem; margin: .72rem 0 0; font-size: .8rem; }
+    .module dt { color: rgb(var(--gray)); }
+    .module dd { margin: 0; }
+    .module.theme h2 { color: #9b4c18; }
+    .module.company h2 { color: #7c3f77; }
+    .module.evidence h2 { color: #245c86; }
+    .module.thesis h2 { color: #276a48; }
+    .module.news h2 { color: #8a5a00; }
+    .policy { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1px; margin-top: 1.5rem; border: 1px solid var(--border); background: var(--border); }
+    .policy div { padding: .75rem; background: var(--paper); }
+    .policy span { display: block; color: rgb(var(--gray)); font-size: .7rem; }
+    .policy strong { display: block; margin-top: .2rem; font-size: .9rem; }
+    .boundary { margin-top: 1.4rem; padding: .9rem 0; border-top: 1px solid var(--border); color: rgb(var(--gray)); font-size: .8rem; line-height: 1.65; }
+    @media(max-width:720px){ .module{grid-template-columns:1fr;gap:.45rem}.policy{grid-template-columns:repeat(2,1fr)} }
+  </style>
+</head>
+<body>
+  <Header />
+  <main id="main-content" class="site-shell">
+    <section class="intro">
+      <div class="kicker"><span class="pill pill-red">旁路研究</span><span class="pill">正式信号保持原规则</span></div>
+      <h1>投资研究框架</h1>
+      <p>把ETF罗盘的市场状态、最热主线和实时信号，与产业链瓶颈、公司反证、财务校验、投资论文和异动归因连接起来。研究层决定是否值得深入与持有，行情层决定当前交易阶段。</p>
+      <div class="status-line">
+        <span>状态：{framework.current_state.status}</span>
+        <span>主题 {framework.current_state.active_themes}</span>
+        <span>公司研究 {framework.current_state.company_reviews}</span>
+        <span>跟踪论文 {framework.current_state.tracked_theses}</span>
+        <span>截至 {framework.as_of}</span>
+      </div>
+    </section>
+
+    <section class="pipeline" aria-label="研究决策链">
+      <ol>{framework.decision_pipeline.map((step) => <li>{step}</li>)}</ol>
+    </section>
+
+    <section class="modules" aria-labelledby="modules-title">
+      <div class="section-heading"><h2 id="modules-title">五个研究模块</h2><span class="pill">research_sidecar</span></div>
+      {framework.modules.map((item) => (
+        <article class:list={['module', moduleTone[item.module_id]]}>
+          <header><h2>{item.name}</h2><span class="id">{item.module_id}</span></header>
+          <div>
+            <p>{item.purpose}</p>
+            <dl>
+              <dt>触发</dt><dd>{item.trigger}</dd>
+              <dt>输入</dt><dd>{item.required_inputs.join('、')}</dd>
+              <dt>输出</dt><dd>{item.outputs.join('、')}</dd>
+              <dt>门禁</dt><dd>{item.gate}</dd>
+            </dl>
+          </div>
+        </article>
+      ))}
+    </section>
+
+    <section class="policy" aria-label="证据准出规则">
+      <div><span>独立来源</span><strong>至少 {framework.source_policy.minimum_independent_sources} 个</strong></div>
+      <div><span>一手来源</span><strong>{framework.source_policy.primary_source_required ? '必须' : '可选'}</strong></div>
+      <div><span>数字偏差线</span><strong>{framework.source_policy.numeric_tolerance_pct}%</strong></div>
+      <div><span>失败策略</span><strong>{framework.source_policy.fail_closed ? '关闭准出' : '降级继续'}</strong></div>
+    </section>
+
+    <p class="boundary">{framework.current_state.note}。完整数据契约见 <a href="/data/research/investment-research-layer.json">JSON</a>，研究实施说明见仓库文档。</p>
+  </main>
+  <Footer />
+</body>
+</html>

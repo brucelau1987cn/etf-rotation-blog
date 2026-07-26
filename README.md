@@ -22,6 +22,7 @@
 - `/us-compass/`、`/us-momentum/`、`/us-macro/`：美股 ETF 对应页面
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型结果
+- `/research-framework/`：风口瓶颈、公司对抗研究、证据校验、论文追踪与异动归因
 
 ## 核心能力
 
@@ -158,6 +159,7 @@ public/js/         浏览器共享脚本与页面 app（行情适配器 / 轮询
 public/schemas/    版本化 JSON Schema
 functions/         Cloudflare Pages Functions（quote / webhook / auth）
 scripts/           数据生成、验证、同步、版本注入与静态审计
+docs/investment-research-layer.md  投资研究层实施与写入边界
 src/pages/         Astro 路由
 src/lib/           前端共享库（含 normalizeQuotePayload）
 src/content/       研究文章与历史内容
