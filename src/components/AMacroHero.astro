@@ -33,13 +33,10 @@ const {
 } = Astro.props;
 ---
 <section class="macro-hero card" aria-labelledby="page-title">
-  <div class="hero-row">
-    <div class="hero-copy">
-      <span class="eyebrow">A-SHARE MACRO &amp; FINANCIAL CONDITIONS</span>
-      <h1 id="page-title">A股宏观雷达</h1>
-      <p>从流动性、信用、增长、通胀、汇率和市场资金六个维度观察A股环境。日度风险闸门采用三项及时代理，月度与季度事实数据作为背景层单独披露。</p>
-    </div>
+  <div class="status-row" aria-label="数据元信息">
+    <span class="pill pill-red">🇨🇳A股宏观雷达</span>
     <AShareMetaPills
+      bare={true}
       applyDate={applyDate}
       updatedAt={updatedAt}
       extra={[
@@ -48,6 +45,12 @@ const {
         { text: `日度闸门 ${liveGateReady}/${liveGateCount || 3}`, class: 'live-pill' },
       ]}
     />
+  </div>
+  <div class="hero-row">
+    <div class="hero-copy">
+      <h1 id="page-title">A股宏观雷达</h1>
+      <p>从流动性、信用、增长、通胀、汇率和市场资金六个维度观察A股环境。日度风险闸门采用三项及时代理，月度与季度事实数据作为背景层单独披露。</p>
+    </div>
   </div>
   <section class="gate" aria-label="当前宏观风险闸门">
     <div>

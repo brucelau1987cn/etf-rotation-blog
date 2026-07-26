@@ -11,10 +11,10 @@
 }
 
 .a-momentum-main .hero-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .55rem;
+  align-items: start;
 }
 
 .a-momentum-main .hero-copy h1 {
@@ -46,15 +46,6 @@
 .a-momentum-main .hero-copy details[open] p {
   display: block;
   -webkit-line-clamp: unset;
-}
-
-.a-momentum-main .meta-line {
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: .35rem;
-  max-width: none;
 }
 
 .a-momentum-main .count-strip {
@@ -582,11 +573,6 @@
 
 @media (max-width: 980px) {
   .a-momentum-main .hero-top { display: grid; }
-  .a-momentum-main .meta-line {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    max-width: none;
-  }
   .a-momentum-main .toolbar { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .a-momentum-main .side-stack { grid-template-columns: 1fr; }
 }

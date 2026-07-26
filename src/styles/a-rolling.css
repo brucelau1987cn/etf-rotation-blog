@@ -42,7 +42,8 @@
   line-height: 1.55;
 }
 
-.a-rolling-main .meta-line {
+.a-rolling-main .meta-line,
+.a-rolling-main .status-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -53,12 +54,15 @@
   scrollbar-width: none;
 }
 
-.a-rolling-main .meta-line::-webkit-scrollbar {
+.a-rolling-main .meta-line::-webkit-scrollbar,
+.a-rolling-main .status-row::-webkit-scrollbar {
   display: none;
 }
 
 .a-rolling-main .meta-line .pill,
-.a-rolling-main .meta-line .live-pill {
+.a-rolling-main .meta-line .live-pill,
+.a-rolling-main .status-row .pill,
+.a-rolling-main .status-row .live-pill {
   flex: 0 0 auto;
   white-space: nowrap;
 }

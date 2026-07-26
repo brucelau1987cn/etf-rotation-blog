@@ -2,6 +2,31 @@
  * Pages keep only page-specific hero layouts; prefer these class names for new sections.
  */
 
+/* First hero row: status pills left-aligned on one line (match /a-compass/ 今日动作). */
+.status-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .35rem;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.status-row::-webkit-scrollbar {
+  display: none;
+}
+
+.status-row .pill,
+.status-row .live-pill,
+.status-row .primary,
+.status-row button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .count-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

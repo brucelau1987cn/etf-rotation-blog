@@ -153,24 +153,6 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
-      /* Status pills: one left-aligned row under nav. */
-      .status-row {
-        display: flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        justify-content: flex-start;
-        gap: .35rem;
-        min-width: 0;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-      }
-      .status-row::-webkit-scrollbar { display: none; }
-      .status-row :global(.pill),
-      .status-row :global(.live-pill) {
-        flex: 0 0 auto;
-        white-space: nowrap;
-      }
       /* Title + clock share the next row.
          Clock width aligns with the last 2 of 5 count cards
          (正式伏击 + 候场). */

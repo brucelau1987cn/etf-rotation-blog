@@ -1,24 +1,23 @@
 ---
 /**
  * A-momentum hero shell with stable live metric IDs.
+ * First row matches A-compass status pills.
  */
 ---
 <section class="dashboard-hero card" aria-labelledby="page-title">
-  <div class="hero-top">
-    <div class="hero-copy">
-      <span class="pill pill-red">A股ETF趋势风控</span>
-      <h1 id="page-title">A股趋势风控雷达</h1>
-      <details>
-        <summary>查看方法说明</summary>
-        <p>用于确认市场结构、趋势强弱与过热风险，再判断候选是否具备伏击资格。这里提供风险过滤和观察排序。</p>
-      </details>
-    </div>
-    <div class="meta-line" aria-label="数据元信息">
-      <span class="pill" id="date-pill">模型 —｜行情 —</span>
-      <span class="pill" id="metric-time">行情连接中</span>
-      <span class="pill">行情：🔴上涨 / 🟢下跌</span>
-      <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新行情</button>
-    </div>
+  <div class="status-row" aria-label="数据元信息">
+    <span class="pill pill-red">🇨🇳A股ETF趋势风控</span>
+    <span class="pill" id="date-pill">模型 —｜行情 —</span>
+    <span class="pill" id="metric-time">行情连接中</span>
+    <span class="pill">行情：🔴上涨 / 🟢下跌</span>
+    <button class="primary" id="refresh-btn" type="button" aria-describedby="status-line">刷新行情</button>
+  </div>
+  <div class="hero-copy">
+    <h1 id="page-title">A股趋势风控雷达</h1>
+    <details>
+      <summary>查看方法说明</summary>
+      <p>用于确认市场结构、趋势强弱与过热风险，再判断候选是否具备伏击资格。这里提供风险过滤和观察排序。</p>
+    </details>
   </div>
   <div class="count-strip" aria-label="趋势风控摘要">
     <div class="count state"><span>市场状态</span><strong id="metric-regime">—</strong><em>决定权益风险预算</em></div>
