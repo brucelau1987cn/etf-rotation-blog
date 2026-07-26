@@ -21,10 +21,33 @@
 
 ## 2. 标准发布流程
 
+推荐一键：
+
+```sh
+cd /path/to/etf-rotation-blog
+npm run release:dual
+# = edge deploy:dual + sync:quote + deploy:pages + verify:dual
+```
+
+只发 Pages：
+
+```sh
+npm run release:pages
+```
+
+只跑探针：
+
+```sh
+bash scripts/release_dual_live.sh --verify-only
+```
+
+分步流程：
+
 ```sh
 # 0) 若改了 edge-quote-api
 cd /path/to/edge-quote-api
 OFFLINE=1 npm test
+npm run deploy:dual
 # 提交并 push 源仓后：
 cd /path/to/etf-rotation-blog
 npm run sync:quote
@@ -38,7 +61,7 @@ npm run build
 source ~/.hermes/credentials/cloudflare-pages.env
 npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
 
-# 3) 探针
+# 3) 探针（含 Worker 次路径）
 npm run verify:pages
 ```
 

@@ -16,6 +16,8 @@
     "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true",
     "verify:pages": "bash scripts/verify_pages_deploy.sh",
     "verify:dual": "bash scripts/verify_pages_deploy.sh",
+    "release:dual": "bash scripts/release_dual_live.sh",
+    "release:pages": "bash scripts/release_dual_live.sh --skip-worker",
     "preview": "astro preview",
     "astro": "astro"
   },

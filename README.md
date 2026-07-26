@@ -93,6 +93,24 @@ npm run deploy:pages
 npm run verify:pages
 ```
 
+### 一键双活发布（推荐）
+
+```sh
+# edge Worker 次路径 + blog Pages 主路径 + 探针
+npm run release:dual
+
+# 只发 Pages（跳过 Worker）
+npm run release:pages
+
+# 只跑生产探针
+bash scripts/release_dual_live.sh --verify-only
+```
+
+凭证约定（本机，不入库）：
+
+- Pages：`~/.hermes/credentials/cloudflare-pages.env`
+- Workers：`~/.hermes/credentials/cloudflare-global.env`
+
 探针会检查：
 
 - 共享脚本与页面 app 资产内容标记
