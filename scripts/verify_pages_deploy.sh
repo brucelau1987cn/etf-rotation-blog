@@ -103,6 +103,8 @@ check_asset() {
 # Shared browser assets (source of truth for adapter / poll helper)
 check_asset "/js/normalize-quote-payload.js" "EtfQuote"
 check_asset "/js/etf-live-poll.js" "startLivePoll"
+check_asset "/js/market-clock.js" "data-market-clock"
+check_asset "/js/site-a11y.js" "main-content"
 
 # Page HTML only needs to reference the shared scripts + page-specific hooks.
 check_page "/a-rolling/" \
