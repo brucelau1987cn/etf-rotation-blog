@@ -9,6 +9,19 @@
     return;
   }
 
+  const INSTRUMENTS = {
+    '600021': { name: '上海电力', exchange: 'SSE', symbol: '600021' },
+    '002173': { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
+    '600703': { name: '三安光电', exchange: 'SSE', symbol: '600703' },
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  let currentSymbol = String(params.get('symbol') || params.get('code') || '600021').replace(/\.(SH|SZ|SS)$/i, '');
+  if (!INSTRUMENTS[currentSymbol]) currentSymbol = '600021';
+
+  const instrumentSelect = document.getElementById('instrument-select');
+  if (instrumentSelect) instrumentSelect.value = currentSymbol;
+
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
     if (!value) return '—';
     const date = new Date(value);
@@ -27,8 +40,17 @@
     return date.toLocaleString('zh-CN', options);
   };
 
+  const setInstrumentHeader = (instrument) => {
+    const nameEl = document.getElementById('inst-name');
+    const symbolEl = document.getElementById('inst-symbol');
+    if (nameEl) nameEl.textContent = instrument?.instrument_name || INSTRUMENTS[currentSymbol]?.name || '—';
+    if (symbolEl) symbolEl.textContent = instrument?.symbol || currentSymbol;
+    if (instrumentSelect && instrument?.symbol) instrumentSelect.value = instrument.symbol;
+  };
+
   const updateUI = (data) => {
     if (!data) return;
+    if (data.instrument) setInstrumentHeader(data.instrument);
 
     const pillAsOf = document.getElementById('pill-as-of');
     if (pillAsOf) pillAsOf.textContent = `数据时点：${formatTime(data.data_as_of)}`;
@@ -62,9 +84,7 @@
     if (data.sell_chain) {
       const sellNodes = Array.isArray(data.sell_chain.nodes) ? data.sell_chain.nodes : [];
       const elStar = document.getElementById('stat-star-code');
-      if (elStar) {
-        elStar.textContent = sellNodes.length > 0 ? `${sellNodes[0].code} 级` : '未触发';
-      }
+      if (elStar) elStar.textContent = sellNodes.length > 0 ? `${sellNodes[0].code} 级` : '未触发';
 
       const elStarTime = document.getElementById('stat-star-time');
       if (elStarTime) {
@@ -78,7 +98,6 @@
     const buyContainer = document.getElementById('buy-cells-container');
     const sellContainer = document.getElementById('sell-cells-container');
     const rawTimeline = Array.isArray(data.timeline) ? data.timeline : [];
-
     let timeline = rawTimeline;
     if (timeline.length === 0) {
       const buyItems = (data.cycles || data.buy_cycles || []).map(c => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at }));
@@ -106,18 +125,14 @@
             const buyBadge = document.createElement('div');
             buyBadge.className = 'cell-badge buy-buy';
             buyBadge.dataset.buyCode = item.code;
-
             const codeEl = document.createElement('div');
             codeEl.className = 'badge-code';
             codeEl.textContent = item.code;
-
             const timeEl = document.createElement('div');
             timeEl.className = 'badge-time';
             timeEl.textContent = formatTime(item.triggered_at, true, true);
-
             buyBadge.append(codeEl, timeEl);
             buyContainer.appendChild(buyBadge);
-
             const sellSpacer = document.createElement('div');
             sellSpacer.style.cssText = 'min-width: 105px; visibility: hidden; pointer-events: none;';
             sellContainer.appendChild(sellSpacer);
@@ -125,18 +140,14 @@
             const sellBadge = document.createElement('div');
             sellBadge.className = `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
             sellBadge.dataset.sellCode = item.code;
-
             const codeEl = document.createElement('div');
             codeEl.className = 'badge-code';
             codeEl.textContent = item.code;
-
             const timeEl = document.createElement('div');
             timeEl.className = 'badge-time';
             timeEl.textContent = formatTime(item.triggered_at, true, true);
-
             sellBadge.append(codeEl, timeEl);
             sellContainer.appendChild(sellBadge);
-
             const buySpacer = document.createElement('div');
             buySpacer.style.cssText = 'min-width: 105px; visibility: hidden; pointer-events: none;';
             buyContainer.appendChild(buySpacer);
@@ -158,34 +169,27 @@
           data.sell_alerts.forEach(alert => {
             const box = document.createElement('div');
             box.className = 'ai-alert-box';
-
             const meta = document.createElement('div');
             meta.className = 'ai-alert-meta';
-
             const span1 = document.createElement('span');
             span1.textContent = '触发节点：';
             const s1 = document.createElement('strong');
             s1.textContent = `${alert.cycle_code} (${alert.timeframe_minutes}分钟)`;
             span1.appendChild(s1);
-
             const span2 = document.createElement('span');
             span2.textContent = '多头极限位置：';
             const s2 = document.createElement('strong');
             s2.textContent = alert.transmission_position || '—';
             span2.appendChild(s2);
-
             const span3 = document.createElement('span');
             span3.textContent = '今日剩余交易时间：';
             const s3 = document.createElement('strong');
             s3.textContent = `${alert.remaining_session_minutes}分钟`;
             span3.appendChild(s3);
-
             meta.append(span1, span2, span3);
-
             const p = document.createElement('p');
             p.className = 'ai-alert-text';
             p.textContent = alert.analysis;
-
             box.append(meta, p);
             container.appendChild(box);
           });
@@ -195,7 +199,7 @@
   };
 
   const updateQuoteUI = (payload) => {
-    const item = findQuoteItem(payload, '600021') || payload?.items?.[0] || null;
+    const item = findQuoteItem(payload, currentSymbol) || payload?.items?.[0] || null;
     if (!item || typeof item.price !== 'number') {
       const badge = document.getElementById('stock-quote-badge');
       const pill = document.getElementById('pill-stock-quote');
@@ -218,12 +222,10 @@
     const border = isUp ? '#ffa39e' : isDown ? '#b7eb8f' : '#cbd5e1';
     const sign = isUp ? '+' : '';
     const text = `¥${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
-
     if (badge) {
       badge.textContent = text;
       badge.style.color = color;
     }
-
     if (pill) {
       pill.textContent = `实时行情：${text}`;
       pill.style.color = color;
@@ -234,11 +236,11 @@
 
   const fetchStockQuote = async () => {
     if (document.hidden) return;
+    const meta = INSTRUMENTS[currentSymbol] || INSTRUMENTS['600021'];
     try {
-      const res = await fetch('/api/public/v1/quote?symbol=600021&exchange=SSE&t=' + Date.now(), { cache: 'no-store' });
+      const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(meta.symbol)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = normalizeQuotePayload(await res.json());
-      updateQuoteUI(data);
+      updateQuoteUI(normalizeQuotePayload(await res.json()));
     } catch (e) {
       updateQuoteUI(null);
     }
@@ -249,10 +251,9 @@
     if (inFlight || document.hidden) return;
     inFlight = true;
     try {
-      const res = await fetch('/api/public/v1/rolling-signals');
+      const res = await fetch(`/api/public/v1/rolling-signals?symbol=${encodeURIComponent(currentSymbol)}&t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return;
-      const data = await res.json();
-      updateUI(data);
+      updateUI(await res.json());
     } catch (e) {
       // keep DOM
     } finally {
@@ -260,10 +261,24 @@
     }
   };
 
+  const switchInstrument = async (symbol) => {
+    currentSymbol = INSTRUMENTS[symbol] ? symbol : '600021';
+    const url = new URL(window.location.href);
+    url.searchParams.set('symbol', currentSymbol);
+    window.history.replaceState({}, '', url);
+    setInstrumentHeader(INSTRUMENTS[currentSymbol]);
+    await Promise.all([fetchLatestSignals(), fetchStockQuote()]);
+  };
+
+  if (instrumentSelect) {
+    instrumentSelect.addEventListener('change', () => {
+      void switchInstrument(instrumentSelect.value);
+    });
+  }
+
   const tableWrapper = document.getElementById('table-outer-wrapper');
   const toggleBtn = document.getElementById('toggle-view-btn');
   let isCompact = localStorage.getItem('rolling_view_mode') !== 'full';
-
   const applyViewMode = () => {
     if (!tableWrapper || !toggleBtn) return;
     if (isCompact) {
@@ -274,7 +289,6 @@
       toggleBtn.textContent = '📊 模式：显示完整 34 轨道';
     }
   };
-
   if (toggleBtn) {
     toggleBtn.addEventListener('click', () => {
       isCompact = !isCompact;
@@ -283,6 +297,7 @@
     });
   }
   applyViewMode();
+  setInstrumentHeader(INSTRUMENTS[currentSymbol]);
 
   setTimeout(function() {
     fetchLatestSignals();
@@ -290,12 +305,8 @@
   }, 500);
 
   if (window.EtfLivePoll?.startLivePoll) {
-    window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => {
-      await fetchStockQuote();
-    }});
-    window.EtfLivePoll.startLivePoll({ intervalMs: 30000, immediate: false, tick: async () => {
-      await fetchLatestSignals();
-    }});
+    window.EtfLivePoll.startLivePoll({ intervalMs: 15000, immediate: false, tick: async () => { await fetchStockQuote(); }});
+    window.EtfLivePoll.startLivePoll({ intervalMs: 30000, immediate: false, tick: async () => { await fetchLatestSignals(); }});
   } else {
     setInterval(fetchLatestSignals, 30000);
     setInterval(fetchStockQuote, 15000);

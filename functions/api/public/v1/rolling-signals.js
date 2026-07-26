@@ -4,6 +4,12 @@ const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_STALE_AFTER_SECONDS = 900;
 
+const INSTRUMENT_SNAPSHOTS = {
+  '600021': '/data/a-rolling-signals.json',
+  '002173': '/data/a-rolling-signals-002173.json',
+  '600703': '/data/a-rolling-signals-600703.json',
+};
+
 const headers = state => ({
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'public, max-age=0, s-maxage=30, stale-while-revalidate=120',
@@ -16,6 +22,13 @@ const json = (payload, status = 200) => new Response(JSON.stringify(payload), {
   headers: headers(payload?.delivery?.state || 'error'),
 });
 
+const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS)$/i, '');
+
+const snapshotPathForSymbol = symbol => {
+  const key = normalizeSymbol(symbol) || '600021';
+  return INSTRUMENT_SNAPSHOTS[key] || INSTRUMENT_SNAPSHOTS['600021'];
+};
+
 const readJsonResponse = async response => {
   if (!response.ok) throw new Error(`source returned HTTP ${response.status}`);
   const contentType = response.headers.get('content-type') || '';
@@ -25,7 +38,7 @@ const readJsonResponse = async response => {
   return JSON.parse(text);
 };
 
-const fetchWithTimeout = async (url, timeoutMs, request) => {
+const fetchWithTimeout = async (url, timeoutMs) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -37,8 +50,9 @@ const fetchWithTimeout = async (url, timeoutMs, request) => {
   }
 };
 
-const loadLkg = async (request, env) => {
-  const url = new URL('/data/a-rolling-signals.json', request.url);
+const loadLkg = async (request, env, symbol) => {
+  const path = snapshotPathForSymbol(symbol);
+  const url = new URL(path, request.url);
   const response = env.ASSETS?.fetch
     ? await env.ASSETS.fetch(new Request(url, { headers: { accept: 'application/json' } }))
     : await fetchWithTimeout(url, DEFAULT_TIMEOUT_MS);
@@ -51,12 +65,18 @@ const publicReason = error => {
 };
 
 export async function handleRollingSignals(request, env = {}) {
+  const requestUrl = new URL(request.url);
+  const symbol = normalizeSymbol(requestUrl.searchParams.get('symbol') || requestUrl.searchParams.get('code') || '600021');
+
   let lkg;
   try {
-    lkg = await loadLkg(request, env);
+    lkg = await loadLkg(request, env, symbol);
   } catch {
-    return json({ error: 'rolling signal snapshot unavailable' }, 503);
+    return json({ error: 'rolling signal snapshot unavailable', symbol }, 503);
   }
+
+  // Non-default instruments currently serve static LKG snapshots.
+  if (symbol !== '600021') return json(lkg);
 
   const upstreamUrl = String(env.A_ROLLING_UPSTREAM_URL || '').trim();
   if (!upstreamUrl) return json(asLkg(lkg, '尚未配置只读上游信号源'));

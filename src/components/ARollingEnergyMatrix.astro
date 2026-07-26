@@ -45,12 +45,20 @@ const {
   <div class="table-outer compact-mode" id="table-outer-wrapper">
     <div class="table-grid">
       <div class="stock-sticky">
+        <label class="instrument-switch" for="instrument-select">
+          <span class="instrument-switch-label">标的</span>
+          <select id="instrument-select" aria-label="切换滚动标的">
+            <option value="600021" selected={symbol === '600021'}>上海电力 600021</option>
+            <option value="002173" selected={symbol === '002173'}>创新医疗 002173</option>
+            <option value="600703" selected={symbol === '600703'}>三安光电 600703</option>
+          </select>
+        </label>
         <div class="stock-name-title" id="inst-name">{instrumentName}</div>
         <div class="stock-code-tag" id="inst-symbol">{symbol}</div>
         <div
           class="stock-price-tag"
           id="stock-quote-badge"
-          style="font-size: 0.78rem; font-weight: 700; margin-top: 0.35rem; color: #64748b; font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;"
+          style="font-size: 0.78rem; font-weight: 700; margin-top: 0.35rem; color: #64748b;"
         >
           加载行情...
         </div>
