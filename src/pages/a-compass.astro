@@ -130,8 +130,13 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
       .hero-copy summary { cursor: pointer; color: rgb(var(--gray-dark)); font-size: .75rem; font-weight: 850; list-style: none; }
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
-      .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; }
-      .meta-line :global(.market-clock) { width: 100%; flex-basis: 100%; }
+      .meta-line { grid-column: 3 / 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: none; min-width: 0; }
+      .meta-line :global(.market-clock) {
+        width: 100%;
+        flex: 1 1 100%;
+        min-width: min(100%, 18rem);
+        max-width: 100%;
+      }
       .macro-gate { margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: 14px; background: #f7fafc; }
       .macro-gate.ok { border-color: #b7e0c8; background: #f3fbf6; }
       .macro-gate.watch { border-color: #f0d48a; background: #fffaf0; }

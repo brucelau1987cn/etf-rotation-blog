@@ -87,7 +87,13 @@ const countTone = (section: { key: string; tone: string }) => {
       .hero-copy summary::-webkit-details-marker { display: none; }
       .hero-copy details[open] p { -webkit-line-clamp: unset; display: block; }
       .us-pill { background: #e8f2ff; color: #174ea6; }
-      .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 620px; }
+      .meta-line { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; max-width: 620px; min-width: 0; }
+      .meta-line :global(.market-clock) {
+        width: 100%;
+        flex: 1 1 100%;
+        min-width: min(100%, 18rem);
+        max-width: 100%;
+      }
       .count-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-top: 1rem; }
       .count { padding: .7rem .65rem; border: 1px solid var(--border); border-radius: 14px; background: #fff; min-height: 4.5rem; display: flex; flex-direction: column; justify-content: space-between; }
       .count.exit, .count.harvest, .count.ready { background: linear-gradient(180deg, #f3fbf6, #fff); border-color: rgba(31,122,78,.16); }

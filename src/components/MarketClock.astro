@@ -49,32 +49,173 @@ const config = market === 'a-share'
 </div>
 
 <style>
-  .market-clock { flex: 1 0 100%; min-width: min(100%, 390px); display: grid; grid-template-columns: auto minmax(0,.72fr) minmax(190px,1.28fr); gap: .7rem; align-items: center; padding: .68rem .75rem; border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(135deg,#fff,var(--warm-2)); box-shadow: 0 8px 22px rgba(30,35,40,.045); }
-  .clock-face { position: relative; width: 2.8rem; height: 2.8rem; border: 2px solid rgb(var(--black)); border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 3px var(--warm-2); }
-  .clock-face::before,.clock-face::after { content: ''; position: absolute; background: rgba(0,0,0,.14); }
-  .clock-face::before { width: 1px; height: 100%; left: 50%; top: 0; }
-  .clock-face::after { height: 1px; width: 100%; top: 50%; left: 0; }
-  .clock-hand { position: absolute; left: 50%; bottom: 50%; width: 2px; border-radius: 99px; background: rgb(var(--black)); transform-origin: 50% 100%; transform: translateX(-50%) rotate(0deg); z-index: 2; }
-  .clock-hand.hour { height: .72rem; width: 3px; }
-  .clock-hand.minute { height: .98rem; }
-  .clock-hand.second { height: 1.08rem; width: 1px; background: var(--accent); z-index: 3; }
-  .clock-face b { position: absolute; left: 50%; top: 50%; width: .28rem; height: .28rem; border-radius: 50%; background: var(--accent); transform: translate(-50%,-50%); z-index: 4; }
-  .clock-copy,.clock-market { min-width: 0; }
-  .clock-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
-  .clock-heading strong { font-size: .74rem; }
-  .clock-heading span { padding: .12rem .34rem; border-radius: 999px; background: #fff7df; color: #8a5a00; font-size: .62rem; font-weight: 850; }
-  .clock-heading span.synced { background: #edf9f1; color: #137547; }
-  .clock-copy time { display: block; margin-top: .14rem; font-family: inherit; font-size: 1.22rem; font-weight: 900; line-height: 1.1; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
-  .clock-copy small,.clock-market small { display: block; margin-top: .12rem; color: rgb(var(--gray)); font-size: .65rem; line-height: 1.35; }
-  .clock-market { padding-left: .7rem; border-left: 1px solid var(--border); }
-  .clock-market strong { display: block; font-size: .78rem; }
-  .clock-market strong.open { color: #137547; }
-  .clock-market strong.break { color: #9a6700; }
-  .clock-market span { display: block; margin-top: .14rem; font-size: .7rem; font-weight: 800; line-height: 1.4; }
-  @media (max-width: 620px) {
-    .market-clock { grid-template-columns: auto 1fr; min-width: 0; gap: .55rem; padding: .62rem; }
-    .clock-face { width: 2.55rem; height: 2.55rem; }
-    .clock-market { grid-column: 1/-1; padding: .52rem 0 0; border-left: 0; border-top: 1px solid var(--border); }
+  .market-clock {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: min(100%, 18rem);
+    display: grid;
+    grid-template-columns: auto minmax(8.5rem, max-content) minmax(10rem, 1fr);
+    gap: .7rem;
+    align-items: center;
+    padding: .68rem .75rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fff, var(--warm-2));
+    box-shadow: 0 8px 22px rgba(30, 35, 40, .045);
+  }
+  .clock-face {
+    position: relative;
+    width: 2.8rem;
+    height: 2.8rem;
+    flex: 0 0 auto;
+    border: 2px solid rgb(var(--black));
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: inset 0 0 0 3px var(--warm-2);
+  }
+  .clock-face::before,
+  .clock-face::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 0, 0, .14);
+  }
+  .clock-face::before {
+    width: 1px;
+    height: 100%;
+    left: 50%;
+    top: 0;
+  }
+  .clock-face::after {
+    height: 1px;
+    width: 100%;
+    top: 50%;
+    left: 0;
+  }
+  .clock-hand {
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    width: 2px;
+    border-radius: 99px;
+    background: rgb(var(--black));
+    transform-origin: 50% 100%;
+    transform: translateX(-50%) rotate(0deg);
+    z-index: 2;
+  }
+  .clock-hand.hour {
+    height: .72rem;
+    width: 3px;
+  }
+  .clock-hand.minute {
+    height: .98rem;
+  }
+  .clock-hand.second {
+    height: 1.08rem;
+    width: 1px;
+    background: var(--accent);
+    z-index: 3;
+  }
+  .clock-face b {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: .28rem;
+    height: .28rem;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+  .clock-copy,
+  .clock-market {
+    min-width: 0;
+  }
+  .clock-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+  }
+  .clock-heading strong {
+    font-size: .74rem;
+  }
+  .clock-heading span {
+    padding: .12rem .34rem;
+    border-radius: 999px;
+    background: #fff7df;
+    color: #8a5a00;
+    font-size: .62rem;
+    font-weight: 850;
+    white-space: nowrap;
+  }
+  .clock-heading span.synced {
+    background: #edf9f1;
+    color: #137547;
+  }
+  .clock-copy time {
+    display: block;
+    margin-top: .14rem;
+    font-family: inherit;
+    font-size: clamp(1.05rem, 2.4vw, 1.28rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: .03em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .clock-copy small,
+  .clock-market small {
+    display: block;
+    margin-top: .12rem;
+    color: rgb(var(--gray));
+    font-size: .65rem;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+  .clock-market {
+    padding-left: .7rem;
+    border-left: 1px solid var(--border);
+  }
+  .clock-market strong {
+    display: block;
+    font-size: .78rem;
+    white-space: nowrap;
+  }
+  .clock-market strong.open {
+    color: #137547;
+  }
+  .clock-market strong.break {
+    color: #9a6700;
+  }
+  .clock-market span {
+    display: block;
+    margin-top: .14rem;
+    font-size: .7rem;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+  /* Stack market session text under the time when the panel is too narrow for 3 columns. */
+  @media (max-width: 720px) {
+    .market-clock {
+      grid-template-columns: auto minmax(0, 1fr);
+      min-width: 0;
+      gap: .55rem;
+      padding: .62rem .68rem;
+    }
+    .clock-face {
+      width: 2.55rem;
+      height: 2.55rem;
+    }
+    .clock-market {
+      grid-column: 1 / -1;
+      padding: .52rem 0 0;
+      border-left: 0;
+      border-top: 1px solid var(--border);
+    }
+    .clock-market span,
+    .clock-market small {
+      white-space: normal;
+    }
   }
 </style>
 
