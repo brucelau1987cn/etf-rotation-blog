@@ -30,9 +30,11 @@ ETF罗盘是一个面向 A 股与美股 ETF 的静态研究和决策支持站点
 - Edge API：`GET /api/public/v1/quote?symbols=600021.SH,XLC`
 - 响应：`{ status: "ok", source, count, quotes: { [code]: { price, change_percent, ... } } }`
 - 客户端统一适配：`src/lib/normalizeQuotePayload.mjs`（ESM）与 `/js/normalize-quote-payload.js`（浏览器 IIFE，`window.EtfQuote`）
+- 可见性轮询：`/js/etf-live-poll.js`（`window.EtfLivePoll`）
 - 行情服务源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)
   - 修改源仓后执行 `npm run sync:quote` 拷贝到 `functions/api/public/v1/quote.js`
   - 改适配器后执行 `npm run sync:adapter` 做 ESM/IIFE 行为校验
+- Edge 双层短缓存 + 静态资源长缓存 + 生产探针：详见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)
 
 `git push` 只更新 GitHub；**生产站点以 Cloudflare Pages 直接部署为准**。
 
@@ -79,7 +81,7 @@ source ~/.hermes/credentials/cloudflare-pages.env
 # 3) 部署
 npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
 
-# 4) 探针：确认线上 HTML 已含新适配器与 quote 路径
+# 4) 探针：确认线上 HTML 已含新适配器、页面 app 脚本、缓存头与 quote 路径
 npm run verify:pages
 ```
 
@@ -91,16 +93,23 @@ npm run deploy:pages
 npm run verify:pages
 ```
 
-探针会检查 `/`、`/a-rolling/`、`/a-compass/`、`/us-compass/` 是否包含 `EtfQuote` / `normalize-quote-payload.js` / quote API 标记，并抽样请求 `/api/public/v1/quote`。
+探针会检查：
+
+- 共享脚本与页面 app 资产内容标记
+- `/js/*` 长缓存（`max-age=31536000, immutable`）与 HTML 短缓存
+- 主交易页 / 工具页关键 DOM 与脚本引用
+- 抽样请求 `/api/public/v1/quote`
+
+完整契约见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)。
 
 ## 项目结构
 
 ```text
 public/data/       公开 JSON 快照与目录
-public/js/         浏览器共享脚本（行情适配器）
+public/js/         浏览器共享脚本与页面 app（行情适配器 / 轮询 / 各页客户端）
 public/schemas/    版本化 JSON Schema
 functions/         Cloudflare Pages Functions（quote / webhook / auth）
-scripts/           数据生成、验证、同步与静态审计
+scripts/           数据生成、验证、同步、版本注入与静态审计
 src/pages/         Astro 路由
 src/lib/           前端共享库（含 normalizeQuotePayload）
 src/content/       研究文章与历史内容
