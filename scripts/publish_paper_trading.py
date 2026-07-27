@@ -15,6 +15,8 @@ except ModuleNotFoundError:
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER_JSON = "public/data/paper-trading.json"
+CATALOG_JSON = "public/data/catalog.json"
+PUBLISH_FILES = (PAPER_JSON, CATALOG_JSON)
 LOCK_PATH = Path("/root/.hermes/state/etf-paper-publish.lock")
 
 
@@ -30,7 +32,11 @@ def deploy_and_probe() -> None:
     release_pages([
         "https://etf.peekabo.cc/paper/",
         "https://etf.peekabo.cc/data/paper-trading.json",
-    ], {"https://etf.peekabo.cc/data/paper-trading.json": Path(PAPER_JSON)})
+        "https://etf.peekabo.cc/data/catalog.json",
+    ], {
+        "https://etf.peekabo.cc/data/paper-trading.json": Path(PAPER_JSON),
+        "https://etf.peekabo.cc/data/catalog.json": Path(CATALOG_JSON),
+    })
 
 
 @contextmanager
@@ -50,14 +56,13 @@ def sync_before_publish():
     branch = run(["git", "branch", "--show-current"]).stdout.strip()
     if branch != "main":
         raise RuntimeError(f"paper publisher requires main branch, got {branch!r}")
-    # The publisher owns only PAPER_JSON. Unrelated generated files may be dirty
-    # (for example selector shadow data), but no pre-staged content may exist and
-    # the paper snapshot itself must start clean. The later --only commit keeps
-    # unrelated work out of the publication commit.
+    # The publisher owns the paper snapshot and its catalog hash. Other generated
+    # files may be dirty, while the shared index and both owned paths must start clean.
     if run(["git", "diff", "--cached", "--quiet"], check=False).returncode != 0:
         raise RuntimeError("paper publisher requires a clean git index")
-    if run(["git", "diff", "--quiet", "--", PAPER_JSON], check=False).returncode != 0:
-        raise RuntimeError("paper snapshot already has uncommitted changes")
+    for path in PUBLISH_FILES:
+        if run(["git", "diff", "--quiet", "--", path], check=False).returncode != 0:
+            raise RuntimeError(f"paper publisher owned path already has uncommitted changes: {path}")
     run(["git", "fetch", "origin", "main"])
     if is_ancestor("origin/main", "HEAD"):
         # Retry a commit stranded by an earlier failed push before creating another snapshot.
@@ -93,9 +98,14 @@ def main(argv=None):
         changed = run(["git", "diff", "--quiet", "--", PAPER_JSON], check=False).returncode != 0
         if not changed:
             return
-        run(["npm", "run", "build"])
-        # --only + pathspec prevents unrelated staged content from entering this commit.
-        run(["git", "commit", "--only", "-m", f"data: update {args.market} paper trading snapshot", "--", PAPER_JSON])
+        try:
+            run(["npm", "run", "build"])
+            # Commit the snapshot and its catalog hash as one publication unit.
+            run(["git", "commit", "--only", "-m", f"data: update {args.market} paper trading snapshot", "--", *PUBLISH_FILES])
+        except Exception:
+            run(["git", "reset", "--quiet", "--", *PUBLISH_FILES], check=False)
+            run(["git", "checkout", "--", *PUBLISH_FILES], check=False)
+            raise
         run(["git", "fetch", "origin", "main"])
         if not is_ancestor("origin/main", "HEAD"):
             raise RuntimeError("origin/main changed during paper publication; retry after reconciliation")
