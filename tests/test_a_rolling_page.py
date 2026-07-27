@@ -9,6 +9,7 @@ STATS = ROOT / "src" / "components" / "ARollingStatsStrip.astro"
 STYLES = ROOT / "src" / "styles" / "a-rolling.css"
 HK_PAGE = ROOT / "src" / "pages" / "rolling" / "hk.astro"
 US_PAGE = ROOT / "src" / "pages" / "rolling" / "us.astro"
+FUTURES_PAGE = ROOT / "src" / "pages" / "rolling" / "futures.astro"
 HEADER = ROOT / "src" / "components" / "Header.astro"
 FOOTER = ROOT / "src" / "components" / "Footer.astro"
 SUBNAV = ROOT / "src" / "components" / "RollingSubnav.astro"
@@ -21,6 +22,14 @@ def test_primary_navigation_uses_rolling_compass_name():
     for source in (header, footer, subnav):
         assert "滚动罗盘" in source
         assert "滚动轮盘" not in source
+
+
+def test_rolling_subnav_order_is_a_futures_hk_us():
+    subnav = SUBNAV.read_text(encoding="utf-8")
+    header = HEADER.read_text(encoding="utf-8")
+    assert subnav.index("A股滚动") < subnav.index("期货滚动") < subnav.index("港股滚动") < subnav.index("美股滚动")
+    assert "/rolling/futures/" in subnav
+    assert "/rolling/futures" in header
 
 
 def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
@@ -102,7 +111,7 @@ def test_hk_and_us_rolling_use_market_specific_index_cards():
     hk = HK_PAGE.read_text(encoding="utf-8")
     us = US_PAGE.read_text(encoding="utf-8")
 
-    assert "indexMarket?: 'a' | 'hk' | 'us'" in stats
+    assert "indexMarket?: 'a' | 'futures' | 'hk' | 'us'" in stats
     assert 'indexMarket="hk"' in hk
     assert 'indexMarket="us"' in us
     for name in ("恒生指数", "恒生综合指数", "恒生科技指数"):
@@ -111,3 +120,29 @@ def test_hk_and_us_rolling_use_market_specific_index_cards():
         assert name in stats
     for symbol in ("HSI.HK", "HSCI.HK", "HSTECH.HK", "INX.US", "IXIC.US", "DJI.US"):
         assert symbol in app
+
+
+def test_futures_rolling_page_sits_between_a_and_hk():
+    futures = FUTURES_PAGE.read_text(encoding="utf-8")
+    stats = STATS.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    matrix = MATRIX.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    assert "期货滚动" in futures
+    assert 'active="futures"' in futures
+    assert 'data-market="futures"' in futures
+    assert 'indexMarket="futures"' in futures
+    assert "等待点名" in futures
+    assert "FUTURES_INSTRUMENTS" in app
+    assert "nf_AU0" in app
+    assert "nf_SC0" in app
+    assert "nf_M0" in app
+    assert "黄金连续" in stats
+    assert "原油连续" in stats
+    assert "豆粕连续" in stats
+    assert "empty-board-card" in matrix
+    assert "暂无滚动标的" in matrix
+    assert ".a-rolling-main .empty-board-card" in styles
+    # Free-running poll for futures (no stock session gate).
+    assert "market === 'futures' ? null" in app

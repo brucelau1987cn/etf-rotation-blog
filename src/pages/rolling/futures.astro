@@ -1,0 +1,75 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import QuoteLiveScripts from '../../components/QuoteLiveScripts.astro';
+import RollingSubnav from '../../components/RollingSubnav.astro';
+import ARollingStatsStrip from '../../components/ARollingStatsStrip.astro';
+import ARollingEnergyMatrix from '../../components/ARollingEnergyMatrix.astro';
+import ARollingAiAlerts from '../../components/ARollingAiAlerts.astro';
+import { SITE_TITLE } from '../../consts';
+import '../../styles/a-rolling.css';
+
+// Futures rolling instruments are added only when explicitly named by the user.
+const boardSummaries: Array<{
+  name: string;
+  symbol: string;
+  exchange: string;
+  timeline: Array<any>;
+  startDate: string | null;
+  buyCount: number;
+  sellCount: number;
+  buyWatch: boolean;
+  sellWatch: boolean;
+  latestBuy: null;
+  latestSell: null;
+  latest: null;
+}> = [];
+const boardInstruments = boardSummaries.map((item) => ({
+  instrumentName: item.name,
+  symbol: item.symbol,
+  exchange: item.exchange,
+  timeline: item.timeline,
+  startDate: item.startDate,
+}));
+const pageTitle = `期货滚动｜多空能量看板 | ${SITE_TITLE}`;
+const pageDescription = '期货滚动看板：商品期货标的的多方正式窗口、空方预警和观察信号。新标的需点名接入。';
+const latestAction = '等待点名期货标的';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={pageTitle} description={pageDescription} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="a-rolling-main">
+      <RollingSubnav active="futures" />
+      <section class="dashboard-hero card" aria-labelledby="page-title">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <div class="status-row" aria-label="数据元信息">
+              <span class="pill pill-amber">📦 期货 · 滚动</span>
+              <span class="pill" id="pill-refresh-countdown">实时：准备刷新…</span>
+              <span class="pill pill-amber" id="pill-as-of">信号时间：—</span>
+              <span class="pill live-pill" id="live-status-pill">等待点名标的</span>
+            </div>
+            <h1 id="page-title">期货滚动</h1>
+            <p>商品期货滚动能量传导看板。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。新标的须点名后接入，当前暂无已接入品种。</p>
+          </div>
+        </div>
+        <ARollingStatsStrip
+          buyTotal={0}
+          sellTotal={0}
+          instruments={boardSummaries}
+          latestAction={latestAction}
+          indexMarket="futures"
+        />
+      </section>
+      <ARollingEnergyMatrix instruments={boardInstruments} formatTime={(value) => value || '—'} />
+      <ARollingAiAlerts alerts={[]} />
+    </main>
+    <Footer />
+    <QuoteLiveScripts />
+    <script is:inline src="/js/a-rolling-app.js" data-market="futures"></script>
+  </body>
+</html>

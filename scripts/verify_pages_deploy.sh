@@ -198,6 +198,13 @@ check_page "/rolling/" \
   "rolling-board-list" \
   "stat-latest-action"
 
+check_page "/rolling/futures/" \
+  "/js/normalize-quote-payload.js" \
+  "/js/etf-live-poll.js" \
+  "/js/a-rolling-app.js" \
+  "期货滚动" \
+  "empty-board-card"
+
 check_page "/rolling/us/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \

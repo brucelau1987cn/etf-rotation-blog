@@ -27,7 +27,10 @@
     { name: '民爆光电', exchange: 'SZSE', symbol: '301362' },
     { name: '海光信息', exchange: 'SSE', symbol: '688041' },
     { name: '东方明珠', exchange: 'SSE', symbol: '600637' },
+    { name: '长鑫科技', exchange: 'SSE', symbol: '688825' },
     { name: '国民技术', exchange: 'SZSE', symbol: '300077' },
+    { name: '澜起科技', exchange: 'SSE', symbol: '688008' },
+    { name: '华天科技', exchange: 'SZSE', symbol: '002185' },
   ];
   const HK_INSTRUMENTS = [
     { name: '中国宏桥', exchange: 'HKEX', symbol: '01378' },
@@ -35,11 +38,18 @@
   const US_INSTRUMENTS = [
     { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },
   ];
+  // Futures instruments are added only when explicitly named by the user.
+  const FUTURES_INSTRUMENTS = [];
   const INDEX_SETS = {
     a: [
       { name: '上证指数', symbol: '000001', querySymbol: '000001.SH' },
       { name: '深证成指', symbol: '399001', querySymbol: '399001.SZ' },
       { name: '创业板指', symbol: '399006', querySymbol: '399006.SZ' },
+    ],
+    futures: [
+      { name: '黄金连续', symbol: 'AU0', querySymbol: 'nf_AU0' },
+      { name: '原油连续', symbol: 'SC0', querySymbol: 'nf_SC0' },
+      { name: '豆粕连续', symbol: 'M0', querySymbol: 'nf_M0' },
     ],
     hk: [
       { name: '恒生指数', symbol: 'HSI', querySymbol: 'HSI.HK' },
@@ -53,9 +63,16 @@
     ],
   };
   const currentScript = document.currentScript;
-  const market = ['a', 'hk', 'us'].includes(currentScript?.dataset?.market) ? currentScript.dataset.market : 'a';
-  const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : 'CN_A';
-  const INSTRUMENTS = market === 'us' ? US_INSTRUMENTS : market === 'hk' ? HK_INSTRUMENTS : A_INSTRUMENTS;
+  const market = ['a', 'futures', 'hk', 'us'].includes(currentScript?.dataset?.market) ? currentScript.dataset.market : 'a';
+  // Futures has day/night sessions per product; use free-running poll (no CN_A/HK/US gate).
+  const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : market === 'futures' ? null : 'CN_A';
+  const INSTRUMENTS = market === 'us'
+    ? US_INSTRUMENTS
+    : market === 'hk'
+      ? HK_INSTRUMENTS
+      : market === 'futures'
+        ? FUTURES_INSTRUMENTS
+        : A_INSTRUMENTS;
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
     if (!value) return '—';
@@ -192,7 +209,7 @@
       if (buys.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'empty-rail';
-        empty.textContent = '卖出信号暂无';
+        empty.textContent = '空方信号暂无';
         sellContainer.appendChild(empty);
       }
     } else {
@@ -202,7 +219,7 @@
     if (buys.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'empty-rail';
-      empty.textContent = '买入信号暂无';
+      empty.textContent = '多方信号暂无';
       buyContainer.appendChild(empty);
       sells.forEach((item) => {
         appendSpacer(buyContainer, item.code);
@@ -217,23 +234,54 @@
     }
   };
 
+  const formatStartDate = (value) => {
+    if (!value) return '—';
+    const raw = String(value).trim();
+    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return `${Number(m[1])}/${Number(m[2])}/${Number(m[3])}`;
+    const date = new Date(raw);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      }).replace(/年|月/g, '/').replace(/日/g, '');
+    }
+    return raw;
+  };
+
   const updateBoard = (symbol, data) => {
     const board = document.querySelector(`.instrument-board[data-symbol="${symbol}"]`);
     if (!board || !data) return;
     const nameEl = board.querySelector('[data-role="inst-name"]');
     const symbolEl = board.querySelector('[data-role="inst-symbol"]');
     const metaEl = board.querySelector('[data-role="signal-meta"]');
+    const startDateEl = board.querySelector('[data-role="start-date"]');
     if (nameEl && data.instrument?.instrument_name) nameEl.textContent = data.instrument.instrument_name;
     if (symbolEl && data.instrument?.symbol) symbolEl.textContent = data.instrument.symbol;
 
-    const { buys, sells, buyObservation, sellObservation, buyTotal, sellTotal } = normalizeTimeline(data);
+    const { buys, sells, buyObservation, sellObservation } = normalizeTimeline(data);
     renderCells(
       board.querySelector('[data-role="buy-cells"]'),
       board.querySelector('[data-role="sell-cells"]'),
       buys,
       sells
     );
-    if (metaEl) metaEl.textContent = `买 ${buyTotal} · 卖 ${sellTotal}`;
+    const startDate = data.transmission?.start_date || board.getAttribute('data-start-date') || '';
+    if (startDate) board.setAttribute('data-start-date', startDate);
+    if (startDateEl) startDateEl.textContent = formatStartDate(startDate);
+    if (metaEl && !startDateEl) {
+      metaEl.replaceChildren();
+      const label = document.createElement('span');
+      label.className = 'start-date-label';
+      label.textContent = '起始日期';
+      const value = document.createElement('strong');
+      value.className = 'start-date-value';
+      value.setAttribute('data-role', 'start-date');
+      value.textContent = formatStartDate(startDate);
+      metaEl.append(label, value);
+    }
 
     setWatchDot(
       board.querySelector('[data-role="buy-watch-dot"]'),
@@ -273,7 +321,7 @@
     if (!signals.length) {
       const empty = document.createElement('div');
       empty.className = 'summary-signal-empty';
-      empty.textContent = type === 'BUY' ? '等待买入信号' : '等待卖出信号';
+      empty.textContent = type === 'BUY' ? '等待多方信号' : '等待空方信号';
       track.appendChild(empty);
       startSummaryTicker(track);
       return;
@@ -335,13 +383,26 @@
   };
 
   const updateHeroSummary = (payloads) => {
-    if (!payloads.length) return;
     const liveStatus = document.getElementById('live-status-pill');
     if (liveStatus) {
-      liveStatus.textContent = `● ${INSTRUMENTS.length} 标的已同步`;
-      liveStatus.style.color = '#389e0d';
-      liveStatus.style.borderColor = '#b7eb8f';
-      liveStatus.style.background = '#f6ffed';
+      if (!INSTRUMENTS.length) {
+        liveStatus.textContent = '等待点名标的';
+        liveStatus.style.color = '#64748b';
+        liveStatus.style.borderColor = '#cbd5e1';
+        liveStatus.style.background = '#f8fafc';
+      } else {
+        liveStatus.textContent = `● ${INSTRUMENTS.length} 标的已同步`;
+        liveStatus.style.color = '#389e0d';
+        liveStatus.style.borderColor = '#b7eb8f';
+        liveStatus.style.background = '#f6ffed';
+      }
+    }
+    if (!payloads.length) {
+      renderSummarySignals('BUY', []);
+      renderSummarySignals('SELL', []);
+      renderTodaySignals('BUY', []);
+      renderTodaySignals('SELL', []);
+      return;
     }
 
     const latest = payloads
@@ -410,11 +471,20 @@
     const sign = isUp ? '+' : '';
     const isHk = String(item.market || item.exchange || '').toUpperCase().includes('HK')
       || String(item.market || '').toUpperCase().includes('HONG KONG');
-    const isUs = /^[A-Za-z]/.test(String(symbol || ''))
+    const isFutures = market === 'futures'
+      || String(item.type || '').toLowerCase() === 'futures'
+      || /^nf_/i.test(String(item.symbol || ''))
+      || /^hf_/i.test(String(item.symbol || ''));
+    const isUs = !isFutures && (
+      /^[A-Za-z]/.test(String(symbol || ''))
       || String(item.market || item.exchange || '').toUpperCase().includes('US')
-      || String(item.market || '').toUpperCase().includes('NASDAQ');
-    const currency = isUs ? '$' : isHk ? 'HK$' : '¥';
-    const text = `${currency}${item.price.toFixed(2)} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
+      || String(item.market || '').toUpperCase().includes('NASDAQ')
+    );
+    const currency = isUs ? '$' : isHk ? 'HK$' : isFutures ? '' : '¥';
+    const priceText = Number.isFinite(item.price)
+      ? (isFutures ? item.price.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) : item.price.toFixed(2))
+      : '—';
+    const text = `${currency}${priceText} ${sign}${typeof changePct === 'number' ? changePct.toFixed(2) : '0.00'}%`;
     if (badge) {
       badge.textContent = text;
       badge.style.color = color;
@@ -516,9 +586,16 @@
   };
 
   const fetchOneQuote = async (meta) => {
-    const symbolParam = meta.exchange === 'HKEX'
-      ? `${meta.symbol}.HK`
-      : /^[A-Za-z]/.test(meta.symbol) ? `${meta.symbol}.US` : meta.symbol;
+    let symbolParam;
+    if (meta.exchange === 'HKEX') {
+      symbolParam = `${meta.symbol}.HK`;
+    } else if (market === 'futures' || meta.exchange === 'FUTURES') {
+      symbolParam = meta.querySymbol || (String(meta.symbol || '').startsWith('nf_') ? meta.symbol : `nf_${meta.symbol}`);
+    } else if (/^[A-Za-z]/.test(meta.symbol)) {
+      symbolParam = `${meta.symbol}.US`;
+    } else {
+      symbolParam = meta.symbol;
+    }
     const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(symbolParam)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return normalizeQuotePayload(await res.json());
@@ -568,7 +645,7 @@
   setTimeout(() => { fetchAllSignals(); }, 400);
   const initialQuoteLoad = setTimeout(() => { fetchAllQuotes(); }, 120);
 
-  if (window.EtfLivePoll?.startMarketPoll) {
+  if (calendarMarket && window.EtfLivePoll?.startMarketPoll) {
     window.EtfLivePoll.startMarketPoll({
       market: calendarMarket,
       intervalMs: QUOTE_INTERVAL_MS,
@@ -579,6 +656,10 @@
         if (pill) pill.textContent = text;
       },
     });
+    window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
+  } else if (window.EtfLivePoll?.startLivePoll) {
+    // Futures (and any ungated market): free-running poll without stock session calendar.
+    window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: true, tick: async () => { await fetchAllQuotes(); }});
     window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
   } else {
     setInterval(fetchAllSignals, SIGNAL_INTERVAL_MS);

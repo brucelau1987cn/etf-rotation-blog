@@ -1,12 +1,15 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-26T10:20:00Z",
-  "data_as_of": "2026-07-06T09:30:00+08:00",
+  "generated_at": "2026-07-27T13:04:03Z",
+  "data_as_of": "2026-07-06 09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "民爆光电：多方 1.75h 观察已触发；正式买入 6.5h~8h；空方 10m 观察 + 150m~240m 正式卖出。",
-  "delivery": { "state": "live", "reason": null },
+  "notice": "民爆光电 初始化信号投影；起始日期 2026-07-01。",
+  "delivery": {
+    "state": "live",
+    "reason": null
+  },
   "instrument": {
     "instrument_name": "民爆光电",
     "exchange": "SZSE",
@@ -14,39 +17,80 @@
   },
   "transmission": {
     "state": "transmitting",
-    "basis": "formal_window_order",
+    "basis": "chronological_sequence",
     "current_cycle_code": "240m",
-    "started_at": "2026-01-13T09:30:00+08:00",
-    "latest_triggered_at": "2026-07-06T09:30:00+08:00",
-    "lit_count": 9,
-    "buy_count": 4,
-    "sell_count": 5
+    "started_at": "2026-06-22 10:20:00+08:00",
+    "latest_triggered_at": "2026-07-06 09:30:00+08:00",
+    "lit_count": 5,
+    "buy_count": 0,
+    "sell_count": 5,
+    "start_date": "2026-07-01"
   },
   "timeline": [
-    { "type": "BUY", "code": "1.75h", "triggered_at": "2026-12-25T13:00:00+08:00", "label": "1小时45分钟·观察窗口" },
-    { "type": "BUY", "code": "6.5h", "triggered_at": "2026-01-13T09:30:00+08:00", "label": "6小时30分钟" },
-    { "type": "BUY", "code": "7h", "triggered_at": "2026-01-13T09:30:00+08:00", "label": "7小时00分钟" },
-    { "type": "BUY", "code": "7.5h", "triggered_at": "2026-01-13T09:30:00+08:00", "label": "7小时30分钟" },
-    { "type": "BUY", "code": "8h", "triggered_at": "2026-01-13T09:30:00+08:00", "label": "8小时00分钟" },
-    { "type": "SELL", "code": "10m", "triggered_at": "2026-06-22T10:20:00+08:00", "label": "10分钟·观察窗口" },
-    { "type": "SELL", "code": "150m", "triggered_at": "2026-07-01T12:00:00+08:00", "label": "150分钟" },
-    { "type": "SELL", "code": "180m", "triggered_at": "2026-07-03T09:30:00+08:00", "label": "180分钟" },
-    { "type": "SELL", "code": "210m", "triggered_at": "2026-07-03T09:30:00+08:00", "label": "210分钟" },
-    { "type": "SELL", "code": "240m", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "240分钟" }
+    {
+      "type": "SELL",
+      "code": "10m",
+      "triggered_at": "2026-06-22 10:20:00+08:00",
+      "label": "10分钟"
+    },
+    {
+      "type": "SELL",
+      "code": "150m",
+      "triggered_at": "2026-07-01 12:00:00+08:00",
+      "label": "150分钟"
+    },
+    {
+      "type": "SELL",
+      "code": "180m",
+      "triggered_at": "2026-07-03 09:30:00+08:00",
+      "label": "180分钟"
+    },
+    {
+      "type": "SELL",
+      "code": "210m",
+      "triggered_at": "2026-07-03 09:30:00+08:00",
+      "label": "210分钟"
+    },
+    {
+      "type": "SELL",
+      "code": "240m",
+      "triggered_at": "2026-07-06 09:30:00+08:00",
+      "label": "240分钟"
+    }
   ],
-  "cycles": [
-    { "cycle_code": "6.5h", "buy_state": "BUY", "buy_triggered_at": "2026-01-13T09:30:00+08:00", "label": "6小时30分钟" },
-    { "cycle_code": "7h", "buy_state": "BUY", "buy_triggered_at": "2026-01-13T09:30:00+08:00", "label": "7小时00分钟" },
-    { "cycle_code": "7.5h", "buy_state": "BUY", "buy_triggered_at": "2026-01-13T09:30:00+08:00", "label": "7小时30分钟" },
-    { "cycle_code": "8h", "buy_state": "BUY", "buy_triggered_at": "2026-01-13T09:30:00+08:00", "label": "8小时00分钟" }
-  ],
+  "cycles": [],
   "sell_chain": {
     "nodes": [
-      { "code": "10m", "sell_state": "WATCH", "triggered_at": "2026-06-22T10:20:00+08:00", "label": "10分钟·观察窗口" },
-      { "code": "150m", "sell_state": "SELL", "triggered_at": "2026-07-01T12:00:00+08:00", "label": "150分钟" },
-      { "code": "180m", "sell_state": "SELL", "triggered_at": "2026-07-03T09:30:00+08:00", "label": "180分钟" },
-      { "code": "210m", "sell_state": "SELL", "triggered_at": "2026-07-03T09:30:00+08:00", "label": "210分钟" },
-      { "code": "240m", "sell_state": "SELL", "triggered_at": "2026-07-06T09:30:00+08:00", "label": "240分钟" }
+      {
+        "code": "10m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-06-22 10:20:00+08:00",
+        "label": "10分钟"
+      },
+      {
+        "code": "150m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-01 12:00:00+08:00",
+        "label": "150分钟"
+      },
+      {
+        "code": "180m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-03 09:30:00+08:00",
+        "label": "180分钟"
+      },
+      {
+        "code": "210m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-03 09:30:00+08:00",
+        "label": "210分钟"
+      },
+      {
+        "code": "240m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-06 09:30:00+08:00",
+        "label": "240分钟"
+      }
     ]
   },
   "sell_alerts": []

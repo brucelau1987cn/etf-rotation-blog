@@ -13,7 +13,10 @@ const INSTRUMENT_SNAPSHOTS = {
   '301362': '/data/a-rolling-signals-301362.json',
   '688041': '/data/a-rolling-signals-688041.json',
   '600637': '/data/a-rolling-signals-600637.json',
+  '688825': '/data/a-rolling-signals-688825.json',
   '300077': '/data/a-rolling-signals-300077.json',
+  '688008': '/data/a-rolling-signals-688008.json',
+  '002185': '/data/a-rolling-signals-002185.json',
   '01378': '/data/a-rolling-signals-01378.json',
   'TSLA': '/data/a-rolling-signals-TSLA.json',
 };

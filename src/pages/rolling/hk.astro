@@ -63,6 +63,7 @@ const summary = {
   symbol: payload.instrument.symbol,
   exchange: payload.instrument.exchange,
   timeline,
+  startDate: (payload as any)?.transmission?.start_date || null,
   buyCount: buys.length,
   sellCount: sells.length,
   buyWatch: timeline.some((item) => item.type === 'BUY' && isBuyObservation(item.code)),
@@ -102,7 +103,7 @@ const pageDescription = '港股滚动看板：中国宏桥的多方正式窗口�
         <ARollingStatsStrip buyTotal={summary.buyCount} sellTotal={summary.sellCount} instruments={[summary]} latestAction={latestAction} indexMarket="hk" />
       </section>
       <ARollingEnergyMatrix
-        instruments={[{ instrumentName: summary.name, symbol: summary.symbol, exchange: summary.exchange, timeline: summary.timeline }]}
+        instruments={[{ instrumentName: summary.name, symbol: summary.symbol, exchange: summary.exchange, timeline: summary.timeline, startDate: summary.startDate }]}
         formatTime={formatTime}
       />
       <ARollingAiAlerts alerts={payload.sell_alerts || []} />

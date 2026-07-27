@@ -19,7 +19,7 @@ type Props = {
   sellTotal?: number;
   instruments?: InstrumentStat[];
   latestAction?: string;
-  indexMarket?: 'a' | 'hk' | 'us';
+  indexMarket?: 'a' | 'futures' | 'hk' | 'us';
 };
 
 const {
@@ -36,6 +36,11 @@ const indexSets = {
     { symbol: '399001', name: '深证成指' },
     { symbol: '399006', name: '创业板指' },
   ],
+  futures: [
+    { symbol: 'AU0', name: '黄金连续' },
+    { symbol: 'SC0', name: '原油连续' },
+    { symbol: 'M0', name: '豆粕连续' },
+  ],
   hk: [
     { symbol: 'HSI', name: '恒生指数' },
     { symbol: 'HSCI', name: '恒生综合指数' },
@@ -47,7 +52,7 @@ const indexSets = {
     { symbol: 'DJI', name: '道琼斯工业平均指数' },
   ],
 };
-const marketIndices = indexSets[indexMarket];
+const marketIndices = indexSets[indexMarket] || indexSets.a;
 
 const formatSignalTime = (value?: string | null) => {
   if (!value) return '—';
@@ -75,9 +80,9 @@ const initialSells = latestSignals('SELL');
 <div class="signal-summary" aria-label="买卖信号总览">
   <div class="signal-card buy-card">
     <div class="signal-card-head">
-      <span class="signal-kicker">🔴 买入信号</span>
+      <span class="signal-kicker">🔴 多方信号</span>
     </div>
-    <div class="summary-signal-label">最新买入信号</div>
+    <div class="summary-signal-label">最新多方信号</div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="buy-signal-track">
         {initialBuys.length ? initialBuys.map((item) => (
@@ -86,7 +91,7 @@ const initialSells = latestSignals('SELL');
             <strong class="summary-signal-point">{item!.code}</strong>
             <time class="summary-signal-time">{formatSignalTime(item!.triggered_at)}</time>
           </div>
-        )) : <div class="summary-signal-empty">等待买入信号</div>}
+        )) : <div class="summary-signal-empty">等待多方信号</div>}
       </div>
     </div>
     <div class="today-signal-block">
@@ -97,9 +102,9 @@ const initialSells = latestSignals('SELL');
 
   <div class="signal-card sell-card">
     <div class="signal-card-head">
-      <span class="signal-kicker">🟢 卖出信号</span>
+      <span class="signal-kicker">🟢 空方信号</span>
     </div>
-    <div class="summary-signal-label">最新卖出信号</div>
+    <div class="summary-signal-label">最新空方信号</div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="sell-signal-track">
         {initialSells.length ? initialSells.map((item) => (
@@ -108,7 +113,7 @@ const initialSells = latestSignals('SELL');
             <strong class="summary-signal-point">{item!.code}</strong>
             <time class="summary-signal-time">{formatSignalTime(item!.triggered_at)}</time>
           </div>
-        )) : <div class="summary-signal-empty">等待卖出信号</div>}
+        )) : <div class="summary-signal-empty">等待空方信号</div>}
       </div>
     </div>
     <div class="today-signal-block">
@@ -117,9 +122,9 @@ const initialSells = latestSignals('SELL');
     </div>
   </div>
 
-  <div class="signal-card market-index-card" aria-label="A股主要指数实时行情">
+  <div class="signal-card market-index-card" aria-label={indexMarket === 'futures' ? '期货主力连续实时行情' : '主要指数实时行情'}>
     <div class="signal-card-head">
-      <span class="signal-kicker">三大指数</span>
+      <span class="signal-kicker">{indexMarket === 'futures' ? '主力连续' : '三大指数'}</span>
       <span class="signal-chip index-live-chip" id="index-refresh-countdown">15s 后刷新</span>
     </div>
     <div class="market-index-list">

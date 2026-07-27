@@ -49,7 +49,10 @@ const defu = loadPayload('a-rolling-signals-301511.json');
 const minbao = loadPayload('a-rolling-signals-301362.json');
 const haiguang = loadPayload('a-rolling-signals-688041.json');
 const dongfang = loadPayload('a-rolling-signals-600637.json');
+const changxin = loadPayload('a-rolling-signals-688825.json');
 const guomin = loadPayload('a-rolling-signals-300077.json');
+const lanqi = loadPayload('a-rolling-signals-688008.json');
+const huatian = loadPayload('a-rolling-signals-002185.json');
 
 const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
   if (!value) return '—';
@@ -101,6 +104,7 @@ const summarizeInstrument = (payload: Payload) => {
     symbol: payload.instrument.symbol,
     exchange: payload.instrument.exchange,
     timeline,
+    startDate: (payload as any)?.transmission?.start_date || null,
     buyCount: buys.length,
     sellCount: sells.length,
     buyWatch,
@@ -126,7 +130,10 @@ const boardSummaries = [
   summarizeInstrument(minbao),
   summarizeInstrument(haiguang),
   summarizeInstrument(dongfang),
+  summarizeInstrument(changxin),
   summarizeInstrument(guomin),
+  summarizeInstrument(lanqi),
+  summarizeInstrument(huatian),
 ];
 
 const boardInstruments = boardSummaries.map((item) => ({
@@ -134,6 +141,7 @@ const boardInstruments = boardSummaries.map((item) => ({
   symbol: item.symbol,
   exchange: item.exchange,
   timeline: item.timeline,
+  startDate: item.startDate || null,
 }));
 
 const allAlerts = [
@@ -145,7 +153,10 @@ const allAlerts = [
   ...(minbao.sell_alerts || []),
   ...(haiguang.sell_alerts || []),
   ...(dongfang.sell_alerts || []),
+  ...(changxin.sell_alerts || []),
   ...(guomin.sell_alerts || []),
+  ...(lanqi.sell_alerts || []),
+  ...(huatian.sell_alerts || []),
 ];
 
 const buyTotal = boardSummaries.reduce((sum, item) => sum + item.buyCount, 0);
@@ -176,7 +187,10 @@ const latestAsOf = boardSummaries
     minbao.data_as_of,
     haiguang.data_as_of,
     dongfang.data_as_of,
+    changxin.data_as_of,
     guomin.data_as_of,
+    lanqi.data_as_of,
+    huatian.data_as_of,
   ])
   .filter(Boolean)
   .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
@@ -204,7 +218,7 @@ const pageDescription = 'A股滚动看板：A股标的的多方正式窗口、�
               <span class="pill live-pill" id="live-status-pill">实时连接中</span>
             </div>
             <h1 id="page-title">A股滚动</h1>
-            <p>上海电力 / 创新医疗 / 三安光电 / 深科技 / 德福科技 / 民爆光电 / 海光信息 / 东方明珠 / 国民技术 同屏。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个；超过 4 个标的时看板上下滑动。</p>
+            <p>上海电力 / 创新医疗 / 三安光电 / 深科技 / 德福科技 / 民爆光电 / 海光信息 / 东方明珠 / 长鑫科技 / 国民技术 / 澜起科技 / 华天科技 同屏。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个；超过 4 个标的时看板上下滑动。</p>
           </div>
         </div>
 

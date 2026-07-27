@@ -9,7 +9,7 @@
 
 **在线访问：[https://etf.peekabo.cc/](https://etf.peekabo.cc/)**
 
-快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动轮盘](https://etf.peekabo.cc/rolling/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/)
+快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动罗盘](https://etf.peekabo.cc/rolling/) · [期货滚动](https://etf.peekabo.cc/rolling/futures/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/)
 
 > 本项目提供研究与教育信息，不构成投资建议。影子模型仅用于研究和审计，不改变正式动作、权重、关键位或模拟执行规则。
 
@@ -18,7 +18,7 @@
 - `/a-compass/`：A 股 ETF 罗盘与正式动作摘要
 - `/a-momentum/`：A 股 ETF 动量和全池浏览
 - `/a-macro/`：A 股中观与风险约束
-- `/rolling/`、`/rolling/hk/`、`/rolling/us/`：A股、港股与美股滚动多空能量传导
+- `/rolling/`、`/rolling/futures/`、`/rolling/hk/`、`/rolling/us/`：A股、期货、港股与美股滚动多空能量传导
 - `/us-compass/`、`/us-momentum/`、`/us-macro/`：美股 ETF 对应页面
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型结果

@@ -25,6 +25,7 @@ type BoardInstrument = {
   symbol: string;
   exchange: string;
   timeline: TimelineItem[];
+  startDate?: string | null;
 };
 
 type Props = {
@@ -50,6 +51,23 @@ const sellOrderIndex = (code: string) => {
 
 const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
 const isSellObservation = (code: string) => code === '10m';
+
+const formatStartDate = (value?: string | null) => {
+  if (!value) return '—';
+  const raw = String(value).trim();
+  const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return `${Number(m[1])}/${Number(m[2])}/${Number(m[3])}`;
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).replace(/年|月/g, '/').replace(/日/g, '');
+  }
+  return raw;
+};
 
 /** Keep the most advanced formal windows (higher cycle rank = newer display). */
 const takeLatestFormal = <T extends TimelineItem>(
@@ -101,17 +119,24 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
   </div>
 
   <div class="board-list" id="rolling-board-list">
-    {instruments.map((inst) => {
-      const { buys, sells, buyObservation, sellObservation, buyTotal, sellTotal } = splitTimeline(inst.timeline || []);
+    {instruments.length === 0 ? (
+      <div class="empty-board-card" role="status">
+        <strong>暂无滚动标的</strong>
+        <span>新标的须点名后接入。点名后会在此展示多方/空方正式窗口与观察点。</span>
+      </div>
+    ) : instruments.map((inst) => {
+      const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
+      const startDateText = formatStartDate(inst.startDate);
       return (
-        <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
+        <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} data-start-date={inst.startDate || ''} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
           <div class="board-row">
             <div class="stock-panel">
               <div class="stock-name-title" data-role="inst-name">{inst.instrumentName}</div>
               <div class="stock-code-tag" data-role="inst-symbol">{inst.symbol}</div>
               <div class="stock-price-tag" data-role="quote" data-symbol={inst.symbol}>加载行情...</div>
               <div class="stock-signal-meta" data-role="signal-meta">
-                买 {buyTotal} · 卖 {sellTotal}
+                <span class="start-date-label">起始日期</span>
+                <strong class="start-date-value" data-role="start-date">{startDateText}</strong>
               </div>
             </div>
 
@@ -133,7 +158,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                     ))}
                     {sells.length === 0 ? (
                       buys.length === 0 ? (
-                        <div class="empty-rail">卖出信号暂无</div>
+                        <div class="empty-rail">空方信号暂无</div>
                       ) : null
                     ) : (
                       sells.map((item) => (
@@ -167,7 +192,7 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                   <div class="cells-scroll" data-role="buy-cells">
                     {buys.length === 0 ? (
                       <>
-                        <div class="empty-rail">买入信号暂无</div>
+                        <div class="empty-rail">多方信号暂无</div>
                         {sells.map((item) => (
                           <>
                             <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
