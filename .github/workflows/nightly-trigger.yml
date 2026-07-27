@@ -1,0 +1,75 @@
+name: nightly-trigger
+
+# GitHub only knocks. Heavy compute still runs on CTYUN host via local trigger.
+# Required repo secret:
+#   A_SHARE_NIGHTLY_TRIGGER_URL   e.g. https://nightly-trigger.example/trigger
+#   A_SHARE_NIGHTLY_TRIGGER_TOKEN token value from host secret file
+
+on:
+  schedule:
+    # 20:50 / 21:00 / 21:50 Asia/Shanghai = 12:50 / 13:00 / 13:50 UTC
+    - cron: "50 12 * * 1-5"
+    - cron: "0 13 * * 1-5"
+    - cron: "50 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "precheck | cache | prepare | chain"
+        required: true
+        default: "precheck"
+        type: choice
+        options:
+          - precheck
+          - cache
+          - prepare
+          - chain
+
+permissions:
+  contents: read
+
+jobs:
+  knock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve stage from schedule or manual input
+        id: stage
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.stage }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # schedule cron expressions above map by UTC minute/hour
+          MINUTE=$(date -u +%M)
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" = "12" ] && [ "$MINUTE" = "50" ]; then
+            echo "value=precheck" >> "$GITHUB_OUTPUT"
+          elif [ "$HOUR" = "13" ] && [ "$MINUTE" = "00" ]; then
+            echo "value=cache" >> "$GITHUB_OUTPUT"
+          elif [ "$HOUR" = "13" ] && [ "$MINUTE" = "50" ]; then
+            echo "value=prepare" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=precheck" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger CTYUN nightly stage
+        env:
+          TRIGGER_URL: ${{ secrets.A_SHARE_NIGHTLY_TRIGGER_URL }}
+          TRIGGER_TOKEN: ${{ secrets.A_SHARE_NIGHTLY_TRIGGER_TOKEN }}
+          STAGE: ${{ steps.stage.outputs.value }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TRIGGER_URL}" ] || [ -z "${TRIGGER_TOKEN}" ]; then
+            echo "Missing secrets A_SHARE_NIGHTLY_TRIGGER_URL / A_SHARE_NIGHTLY_TRIGGER_TOKEN"
+            exit 1
+          fi
+          echo "Triggering stage=${STAGE}"
+          # async accept; host executes heavy work
+          code=$(curl -sS -o /tmp/nightly-trigger.json -w "%{http_code}" \
+            -X POST "$TRIGGER_URL" \
+            -H "content-type: application/json" \
+            -H "x-nightly-token: ${TRIGGER_TOKEN}" \
+            -d "{\"stage\":\"${STAGE}\",\"sync\":false}")
+          echo "HTTP ${code}"
+          cat /tmp/nightly-trigger.json
+          test "$code" = "202" -o "$code" = "200"

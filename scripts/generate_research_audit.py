@@ -118,6 +118,8 @@ def _without_volatile(value: Any) -> Any:
         }
     if isinstance(value, list):
         return [_without_volatile(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
     return value
 
 

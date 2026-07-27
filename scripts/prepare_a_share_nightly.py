@@ -214,6 +214,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     kronos = json.loads(kronos_path.read_text(encoding="utf-8")) if kronos_path.exists() else {}
     research_audit: dict = {}
     errors = []
+    warnings: list[str] = []
     if shadow.get("mode") != "shadow_research_only":
         errors.append("shadow mode must be shadow_research_only")
     if shadow.get("production_weights_changed") is not False:
@@ -231,7 +232,10 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         errors.append("pool latest_trade_date differs from gate qfq_date")
     if int((pool.get("summary") or {}).get("valid_count") or 0) < 82:
         errors.append("formal pool valid coverage below 82")
-    errors.extend(validate_kronos_snapshot(kronos, gate.get("qfq_date")))
+    # Kronos is display/audit-only research sidecar: soft-check, never block main publish.
+    kronos_errors = validate_kronos_snapshot(kronos, gate.get("qfq_date"))
+    if kronos_errors:
+        warnings.extend([f"kronos soft-check: {item}" for item in kronos_errors])
     macro_generation: dict = {}
     if not errors:
         try:
@@ -262,6 +266,7 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
             "trade_date": gate.get("qfq_date"),
             "prepared_at": current.isoformat(),
             "errors": errors,
+            "warnings": warnings,
             "gate": gate,
         }
         atomic_write(state_path, payload)
@@ -297,6 +302,8 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
             "label": macro_generation.get("label"),
             "failures": macro_generation.get("failures") or {},
         },
+        "warnings": warnings,
+        "kronos_status": "ok" if not kronos_errors else "soft_fail",
     }
     atomic_write(state_path, payload)
     return payload
