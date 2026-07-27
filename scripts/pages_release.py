@@ -16,7 +16,10 @@ PAGES_ENV = Path("/root/.hermes/credentials/cloudflare-pages.env")
 GLOBAL_ENV = Path("/root/.hermes/credentials/cloudflare-global.env")
 PROJECT = "etf-rotation-blog"
 ZONE_NAME = "peekabo.cc"
-EXTERNAL_DIRTY = {"public/data/korea-tech-factor-shadow.json"}
+EXTERNAL_DIRTY = {
+    "public/data/korea-tech-factor-shadow.json",
+    "public/data/us-selector-shadow.json",
+}
 JSON_PROBE_ATTEMPTS = 65
 JSON_PROBE_DELAY_SECONDS = 5
 

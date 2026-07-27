@@ -31,8 +31,9 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     assert calls[3] == ["json", "https://etf.peekabo.cc/data/paper-trading.json"]
 
 
-def test_release_scope_allows_only_external_korea_snapshot():
+def test_release_scope_allows_only_known_external_shadow_snapshots():
     assert pages_release.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
+    assert pages_release.foreign_dirty_paths([" M public/data/us-selector-shadow.json"]) == []
     assert pages_release.foreign_dirty_paths(["?? public/js/uncommitted.js"]) == ["public/js/uncommitted.js"]
 
 

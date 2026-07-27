@@ -17,7 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = "public/data/futures-compass.json"
 FUTURES_PYTHON = "/root/.cache/etf-futures/venv/bin/python"
 LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
-EXTERNAL_DIRTY = {"public/data/korea-tech-factor-shadow.json"}
+EXTERNAL_DIRTY = {
+    "public/data/korea-tech-factor-shadow.json",
+    "public/data/us-selector-shadow.json",
+}
 
 
 
