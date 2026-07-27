@@ -125,26 +125,72 @@ const distanceFor = (item: Recommendation, side: 'harvest' | 'plant') => {
   return typeof item.price === 'number' && typeof level === 'number' && level > 0 ? (item.price / level - 1) * 100 : null;
 };
 const compactMarketState = (raw: string) => {
-  const breadth = raw.match(/(\d+)池(\d+)绿\/(\d+)红\/(\d+)平（([\d.]+)%下跌）/);
-  const momentum = raw.match(/动量通过(\d+)只（昨日(\d+)只）/);
-  const state = raw.match(/市场状态([^；，]+)/)?.[1] || '待确认';
+  const text = String(raw || '').trim();
+  const breadth = text.match(/(\d+)池(\d+)绿\/(\d+)红\/(\d+)平（([\d.]+)%下跌）/);
+  const momentum = text.match(/动量通过(\d+)只（昨日(\d+)只）/);
+  const state = text.match(/市场状态([^；，]+)/)?.[1] || '';
+  if (breadth) {
+    return {
+      headline: `${state || '待确认'}｜${breadth[2]}跌 · ${breadth[3]}涨 · ${breadth[4]}平`,
+      detail: [
+        `下跌 ${breadth[5]}%`,
+        momentum ? `动量 ${momentum[1]}只，昨日 ${momentum[2]}只` : '',
+      ].filter(Boolean).join('｜'),
+    };
+  }
+  // Night/intraday long prose: keep stage + final action only.
+  if (text.length > 48) {
+    const stageMatch = text.match(/^(08:30|11:30|14:30|22:00)/);
+    const stage = stageMatch ? `${stageMatch[1]}${text.includes('夜间') ? '夜间' : ''}` : '';
+    const afterConclusion = text.match(/结论[：:]\s*([^。]+)/)?.[1]?.trim();
+    const parts = text.split(/[。；;]/).map((item) => item.trim()).filter(Boolean);
+    const rankedHit = parts.find((part) => /不追高|不开新|停开进攻|正式伏击0/.test(part))
+      || parts.find((part) => /按失效线|按防守线|只回踩|空仓|候场|撤退/.test(part))
+      || afterConclusion
+      || parts[0];
+    const conclusion = String(rankedHit || '')
+      .split(/[；;]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 1)
+      .join('；')
+      .replace(/相对14:30尾盘，?/, '')
+      .trim();
+    const short = [stage, conclusion].filter(Boolean).join('｜');
+    return {
+      headline: short.length <= 28 ? short : `${short.slice(0, 27)}…`,
+      detail: '',
+    };
+  }
   return {
-    headline: breadth ? `${state}｜${breadth[2]}跌 · ${breadth[3]}涨 · ${breadth[4]}平` : raw.split('；')[0],
-    detail: [
-      breadth ? `下跌 ${breadth[5]}%` : '',
-      momentum ? `动量 ${momentum[1]}只，昨日 ${momentum[2]}只` : '',
-    ].filter(Boolean).join('｜'),
+    headline: text.split('；')[0] || '待确认',
+    detail: '',
   };
 };
 const compactPosition = (raw: string) => {
   const parts = raw.split(/[；;]/).map((item) => item.trim()).filter(Boolean);
   return { headline: parts[0] || raw, detail: parts.slice(1).join('｜') };
 };
-const compactMainline = (raw: string) => raw
-  .replace(/；正式伏击\d+项/g, '')
-  .replace('科技不接飞刀', '回避科技飞刀')
-  .replace('防御加商品保留底仓', '保留防御、商品底仓')
-  .replace(/(\d{6})([^；]+?)与(\d{6})([^；]+?)观察独立阿尔法延续/, '关注 $1、$3');
+const compactMainline = (raw: string) => {
+  const text = String(raw || '')
+    .replace(/；正式伏击\d+项/g, '')
+    .replace('科技不接飞刀', '回避科技飞刀')
+    .replace('防御加商品保留底仓', '保留防御、商品底仓')
+    .replace(/(\d{6})([^；]+?)与(\d{6})([^；]+?)观察独立阿尔法延续/, '关注 $1、$3')
+    .trim();
+  if (text.length <= 28) return text;
+  const themes = Array.from(
+    text.matchAll(/(通信|电网|稀土|电池|创新药|医疗|半导体|设备|黄金股|有色|化工|科创50|煤炭|银行|红利|恒生科技)/g),
+  ).map((match) => match[1]);
+  const uniq = [...new Set(themes)].slice(0, 3);
+  const parts = text.split(/[。；;]/).map((item) => item.trim()).filter(Boolean);
+  const action = parts.find((part) => /不追高|不开新|停开进攻|正式伏击0/.test(part))
+    || parts.find((part) => /按失效线|按防守线|只回踩|空仓|候场|撤退|保留底仓|防御底仓/.test(part))
+    || parts[0]
+    || text;
+  const short = uniq.length ? `${uniq.join('/')}｜${action}` : action;
+  return short.length <= 28 ? short : `${short.slice(0, 27)}…`;
+};
 const compactConstraint = (raw: string) => raw
   .replace(/^中观[^：:]*[：:]?/, '')
   .replace(/[，,]/g, '｜')
