@@ -67,6 +67,35 @@ def test_calendar_fallback_uses_market_evidence():
     assert cron_gate.resolve_trading_day(None, stage="14:30", now=now, quote_date="2026-07-14", qfq_date="2026-07-13", qfq_coverage=91) == (True, "quote_timestamp")
 
 
+def test_calendar_source_is_preserved():
+    now = datetime.fromisoformat("2026-07-14T08:30:00").replace(tzinfo=CN)
+    result = cron_gate.resolve_trading_day(
+        True, stage="08:30", now=now, quote_date=None, qfq_date=None,
+        qfq_coverage=0, calendar_source="d1_exchange_calendar",
+    )
+    assert result == (True, "d1_exchange_calendar")
+
+
+def test_public_calendar_parses_open_and_closed_days(monkeypatch):
+    class Response:
+        def __init__(self, value):
+            self.value = value
+
+        def read(self):
+            return ('{"sessions":[{"trade_date":"2026-07-14","is_open":%d}]}' % self.value).encode()
+
+    monkeypatch.setattr(cron_gate.urllib.request, "urlopen", lambda *args, **kwargs: Response(1))
+    assert cron_gate.public_calendar_trading_day("2026-07-14") is True
+    monkeypatch.setattr(cron_gate.urllib.request, "urlopen", lambda *args, **kwargs: Response(0))
+    assert cron_gate.public_calendar_trading_day("2026-07-14") is False
+
+
+def test_trading_day_falls_back_to_baostock(monkeypatch):
+    monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "baostock_trading_day", lambda day: True)
+    assert cron_gate.is_trading_day("2026-07-14") == (True, "baostock")
+
+
 def test_stage_rank_prefers_0830_preopen():
     assert stage_rank("08:30盘前版") == 1
     assert stage_rank("07:30早盘版") == 1

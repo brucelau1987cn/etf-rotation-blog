@@ -10,6 +10,7 @@ import re
 import sqlite3
 import subprocess
 import time as time_module
+import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, time
@@ -28,6 +29,7 @@ DB = ROOT / "data/local/etf-compass.db"
 CN = ZoneInfo("Asia/Shanghai")
 EXPECTED_FORMAL = 91
 MINIMUM_COVERAGE = 82
+PUBLIC_CALENDAR_URL = "https://etf.peekabo.cc/api/public/v1/market-calendar"
 # Canonical stage keys. "07:30" remains accepted as a legacy alias of the
 # 08:30 pre-open plan so old prompts/tests keep working during migration.
 STAGE_ORDER = {"08:30": 1, "07:30": 1, "11:30": 2, "14:30": 3, "22:00": 4}
@@ -113,7 +115,30 @@ def quote_timestamp() -> str | None:
         return None
 
 
-def is_trading_day(day: str) -> bool | None:
+def public_calendar_trading_day(day: str) -> bool | None:
+    query = urllib.parse.urlencode({"market": "CN_A", "from": day, "limit": 1})
+    request = urllib.request.Request(
+        f"{PUBLIC_CALENDAR_URL}?{query}",
+        headers={"User-Agent": "ETF-Compass-Cron-Gate/1.0", "Cache-Control": "no-cache"},
+    )
+    for attempt in range(3):
+        try:
+            payload = json.loads(urllib.request.urlopen(request, timeout=10).read().decode("utf-8"))
+            sessions = payload.get("sessions") if isinstance(payload, dict) else None
+            if isinstance(sessions, list) and sessions:
+                session = sessions[0]
+                if isinstance(session, dict) and session.get("trade_date") == day:
+                    value = session.get("is_open")
+                    if value in (0, 1, False, True):
+                        return bool(value)
+        except (OSError, TimeoutError, ValueError, json.JSONDecodeError):
+            pass
+        if attempt < 2:
+            time_module.sleep(0.5)
+    return None
+
+
+def baostock_trading_day(day: str) -> bool | None:
     for attempt in range(3):
         try:
             import baostock as bs  # type: ignore[import-not-found]
@@ -137,12 +162,23 @@ def is_trading_day(day: str) -> bool | None:
     return None
 
 
+def is_trading_day(day: str) -> tuple[bool | None, str]:
+    public_value = public_calendar_trading_day(day)
+    if public_value is not None:
+        return public_value, "d1_exchange_calendar"
+    baostock_value = baostock_trading_day(day)
+    if baostock_value is not None:
+        return baostock_value, "baostock"
+    return None, "unavailable"
+
+
 def resolve_trading_day(
     calendar_value: bool | None, *, stage: str, now: datetime,
     quote_date: str | None, qfq_date: str | None, qfq_coverage: int,
+    calendar_source: str = "exchange_calendar",
 ) -> tuple[bool | None, str]:
     if calendar_value is not None:
-        return calendar_value, "baostock"
+        return calendar_value, calendar_source
     today = now.date().isoformat()
     if stage == "22:00" and quote_date == today and qfq_date == today and qfq_coverage >= MINIMUM_COVERAGE:
         return True, "quote_and_final_qfq"
@@ -199,9 +235,11 @@ def main() -> int:
     timestamp = args.quote_timestamp or quote_timestamp()
     quote_date = f"{timestamp[:4]}-{timestamp[4:6]}-{timestamp[6:8]}" if timestamp else None
     article_stage = args.article_stage if args.article_stage is not None else read_article_stage(day)
+    calendar_value, primary_calendar_source = is_trading_day(day)
     trading_day, calendar_source = resolve_trading_day(
-        is_trading_day(day), stage=args.stage, now=now, quote_date=quote_date,
+        calendar_value, stage=args.stage, now=now, quote_date=quote_date,
         qfq_date=qfq_date, qfq_coverage=qfq_coverage,
+        calendar_source=primary_calendar_source,
     )
     gate = GateInput(
         stage=args.stage,
