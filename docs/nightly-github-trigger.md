@@ -89,6 +89,28 @@ Service binds localhost only. External path is Cloudflare Tunnel:
 
 Do **not** expose this port raw to the public internet without HTTPS + token.
 
+## Concurrency control
+
+All knocker and Hermes cron stages go through:
+
+`/root/.hermes/scripts/run_a_share_nightly_stage.py`
+
+It holds:
+
+`/root/.hermes/state/a-share-nightly-stage.lock`
+
+Behavior:
+
+- second concurrent stage returns `busy=true` / exit `75`
+- Hermes wrappers soft-skip busy (exit 0, silent)
+- GitHub knocker still gets HTTP 202 for async accept; stage itself no-ops if busy
+
+Hermes cron wrappers:
+
+- `precheck_a_share_nightly_cron.py`
+- `update_a_share_cache_nightly_cron.py`
+- `prepare_a_share_nightly_cron.py`
+
 ## Fallback
 
 Hermes local crons remain primary for now:
