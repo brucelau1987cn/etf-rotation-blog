@@ -59,9 +59,29 @@ Schedule (UTC):
 - `0 13 * * 1-5` → 21:00 CST cache
 - `50 13 * * 1-5` → 21:50 CST prepare
 
+## Public endpoint (live)
+
+- URL: `https://nightly-trigger.peekabo.cc/trigger`
+- Health: `https://nightly-trigger.peekabo.cc/healthz`
+- Tunnel: `etf-nightly-trigger` (`2fd083b4-9238-4473-9168-d9c2b16f7400`)
+- systemd: `cloudflared-etf-nightly-trigger.service`
+- Local service: `a-share-nightly-trigger.service` on `127.0.0.1:18090`
+
+GitHub secrets:
+
+- `A_SHARE_NIGHTLY_TRIGGER_URL=https://nightly-trigger.peekabo.cc/trigger`
+- `A_SHARE_NIGHTLY_TRIGGER_TOKEN=<host token>`
+
+Verified:
+
+- public healthz ok
+- public token auth ok / bad token 401
+- workflow_dispatch precheck success (run `30276063493`)
+- local status file updated to precheck ok
+
 ## Public exposure options
 
-Service binds localhost only. Choose one external path:
+Service binds localhost only. External path is Cloudflare Tunnel:
 
 1. Existing reverse proxy / FRP route to `127.0.0.1:18090/trigger`
 2. Cloudflare Tunnel / Zero Trust protected hostname
