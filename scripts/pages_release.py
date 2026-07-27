@@ -17,6 +17,8 @@ GLOBAL_ENV = Path("/root/.hermes/credentials/cloudflare-global.env")
 PROJECT = "etf-rotation-blog"
 ZONE_NAME = "peekabo.cc"
 EXTERNAL_DIRTY = {"public/data/korea-tech-factor-shadow.json"}
+JSON_PROBE_ATTEMPTS = 65
+JSON_PROBE_DELAY_SECONDS = 5
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -125,7 +127,7 @@ def probe_urls(urls: Iterable[str]) -> None:
 def probe_json_matches(matches: dict[str, Path]) -> None:
     for url, local_path in matches.items():
         expected = json.loads((local_path if local_path.is_absolute() else ROOT / local_path).read_text(encoding="utf-8"))
-        for attempt in range(5):
+        for attempt in range(JSON_PROBE_ATTEMPTS):
             separator = "&" if "?" in url else "?"
             request = urllib.request.Request(
                 f"{url}{separator}bust={time.time_ns()}",
@@ -135,8 +137,8 @@ def probe_json_matches(matches: dict[str, Path]) -> None:
                 actual = json.load(response)
             if actual == expected:
                 break
-            if attempt < 4:
-                time.sleep(3)
+            if attempt < JSON_PROBE_ATTEMPTS - 1:
+                time.sleep(JSON_PROBE_DELAY_SECONDS)
         else:
             raise RuntimeError(f"production JSON differs from local release artifact after retries: {url}")
 
