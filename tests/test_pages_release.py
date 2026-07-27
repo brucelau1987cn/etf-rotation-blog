@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 from pathlib import Path
+import io
+import json
 
 from scripts import pages_release
 
@@ -32,3 +34,13 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
 def test_release_scope_allows_only_external_korea_snapshot():
     assert pages_release.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
     assert pages_release.foreign_dirty_paths(["?? public/js/uncommitted.js"]) == ["public/js/uncommitted.js"]
+
+
+def test_json_probe_retries_during_pages_eventual_consistency(tmp_path, monkeypatch):
+    expected_path = tmp_path / "snapshot.json"
+    expected_path.write_text(json.dumps({"generated_at": "new"}), encoding="utf-8")
+    responses = [io.BytesIO(json.dumps({"generated_at": "old"}).encode()), io.BytesIO(json.dumps({"generated_at": "new"}).encode())]
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", lambda *args, **kwargs: responses.pop(0))
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    pages_release.probe_json_matches({"https://example.test/data.json": expected_path})
+    assert responses == []

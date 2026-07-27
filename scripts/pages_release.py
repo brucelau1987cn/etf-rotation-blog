@@ -123,18 +123,22 @@ def probe_urls(urls: Iterable[str]) -> None:
 
 
 def probe_json_matches(matches: dict[str, Path]) -> None:
-    bust = int(time.time())
     for url, local_path in matches.items():
         expected = json.loads((local_path if local_path.is_absolute() else ROOT / local_path).read_text(encoding="utf-8"))
-        separator = "&" if "?" in url else "?"
-        request = urllib.request.Request(
-            f"{url}{separator}bust={bust}",
-            headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
-        )
-        with urllib.request.urlopen(request, timeout=30) as response:
-            actual = json.load(response)
-        if actual != expected:
-            raise RuntimeError(f"production JSON differs from local release artifact: {url}")
+        for attempt in range(5):
+            separator = "&" if "?" in url else "?"
+            request = urllib.request.Request(
+                f"{url}{separator}bust={time.time_ns()}",
+                headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                actual = json.load(response)
+            if actual == expected:
+                break
+            if attempt < 4:
+                time.sleep(3)
+        else:
+            raise RuntimeError(f"production JSON differs from local release artifact after retries: {url}")
 
 
 def release_pages(probes: Iterable[str], json_matches: dict[str, Path] | None = None) -> str:
