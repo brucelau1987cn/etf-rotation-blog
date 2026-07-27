@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from pathlib import Path
 
 from scripts import pages_release
 
@@ -15,12 +16,17 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     )
     monkeypatch.setattr(pages_release, "purge_custom_domain", lambda: calls.append(["purge"]))
     monkeypatch.setattr(pages_release, "probe_urls", lambda urls: calls.append(["probe", *urls]))
+    monkeypatch.setattr(pages_release, "probe_json_matches", lambda matches: calls.append(["json", *matches]))
 
-    pages_release.release_pages(["https://etf.peekabo.cc/paper/"])
+    pages_release.release_pages(
+        ["https://etf.peekabo.cc/paper/"],
+        {"https://etf.peekabo.cc/data/paper-trading.json": Path("public/data/paper-trading.json")},
+    )
 
     assert calls[0] == ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
     assert calls[1] == ["purge"]
     assert calls[2] == ["probe", "https://etf.peekabo.cc/paper/"]
+    assert calls[3] == ["json", "https://etf.peekabo.cc/data/paper-trading.json"]
 
 
 def test_release_scope_allows_only_external_korea_snapshot():

@@ -96,7 +96,7 @@ def publish(slot: str) -> dict[str, str]:
         release_pages([
             "https://etf.peekabo.cc/futures-compass/",
             "https://etf.peekabo.cc/data/futures-compass.json",
-        ])
+        ], {"https://etf.peekabo.cc/data/futures-compass.json": Path(SNAPSHOT)})
         return {"status": "published", "slot": slot}
 
 

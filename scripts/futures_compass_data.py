@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 import subprocess
@@ -49,13 +50,64 @@ def validate_public_snapshot(
     except ValueError:
         errors.append("futures snapshot generated_at is invalid")
 
-    items = payload.get("items")
     expected = [item["code"] for item in WATCHLIST]
+    if payload.get("ok") is not True:
+        errors.append("futures snapshot ok must be true")
+    if payload.get("stale") is not False:
+        errors.append("futures snapshot stale must be false")
+    if payload.get("expected_count") != len(expected):
+        errors.append(f"futures snapshot expected_count must equal {len(expected)}")
+    if not str(payload.get("source") or "").strip():
+        errors.append("futures snapshot source is required")
+    if payload.get("errors") != []:
+        errors.append("futures snapshot errors must be empty")
+
+    items = payload.get("items")
     actual = [str(item.get("code") or "") for item in items] if isinstance(items, list) else []
     if actual != expected or payload.get("count") != len(expected):
         errors.append(f"futures snapshot watchlist mismatch: expected={expected}, actual={actual}")
-    if payload.get("stale") is True:
-        errors.append("futures snapshot is explicitly stale")
+    summary = payload.get("summary")
+    ranking = summary.get("ranking") if isinstance(summary, dict) else None
+    if not isinstance(ranking, list) or len(ranking) != len(expected) or set(ranking) != set(expected):
+        errors.append("futures snapshot summary ranking must cover all six instruments")
+
+    required_strings = (
+        "continuous", "name", "exchange", "contract_code", "contract_name", "quote_time",
+        "trade_date", "source", "capital_state", "trend_state", "structure", "signal_label",
+    )
+    required_numbers = (
+        "price", "open", "high", "low", "prev_close", "volume", "open_interest",
+        "ma5", "ma10", "ma20", "atr14", "support", "resistance", "invalidation",
+    )
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            errors.append("futures snapshot item must be an object")
+            continue
+        code = str(item.get("code") or "<empty>")
+        missing = [field for field in required_strings if not str(item.get(field) or "").strip()]
+        invalid_numbers = []
+        for field in required_numbers:
+            value = number(item.get(field))
+            if value is None or not math.isfinite(value):
+                invalid_numbers.append(field)
+        if missing or invalid_numbers:
+            errors.append(f"futures snapshot {code} missing core fields: strings={missing}, numbers={invalid_numbers}")
+            continue
+        positive = ("price", "open", "high", "low", "prev_close", "ma5", "ma10", "ma20", "atr14", "support", "resistance", "invalidation")
+        if any((number(item.get(field)) or 0.0) <= 0 for field in positive):
+            errors.append(f"futures snapshot {code} core prices and indicators must be positive")
+        if (number(item.get("high")) or 0.0) < (number(item.get("low")) or 0.0):
+            errors.append(f"futures snapshot {code} high must be at least low")
+        fvg = item.get("fvg")
+        if not isinstance(fvg, dict) or not fvg.get("direction") or not fvg.get("status") or number(fvg.get("lower")) is None or number(fvg.get("upper")) is None:
+            errors.append(f"futures snapshot {code} FVG structure is incomplete")
+        warehouse = item.get("warehouse_receipt")
+        if not isinstance(warehouse, dict) or warehouse.get("status") not in {"known", "unknown"}:
+            errors.append(f"futures snapshot {code} warehouse receipt structure is incomplete")
+        elif warehouse.get("status") == "known" and (
+            not warehouse.get("trade_date") or number(warehouse.get("receipt")) is None or not warehouse.get("source")
+        ):
+            errors.append(f"futures snapshot {code} known warehouse receipt lacks data")
     return errors
 
 

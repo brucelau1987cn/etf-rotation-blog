@@ -30,7 +30,7 @@ def deploy_and_probe() -> None:
     release_pages([
         "https://etf.peekabo.cc/paper/",
         "https://etf.peekabo.cc/data/paper-trading.json",
-    ])
+    ], {"https://etf.peekabo.cc/data/paper-trading.json": Path(PAPER_JSON)})
 
 
 @contextmanager

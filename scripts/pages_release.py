@@ -122,8 +122,25 @@ def probe_urls(urls: Iterable[str]) -> None:
             response.read(1024)
 
 
-def release_pages(probes: Iterable[str]) -> str:
+def probe_json_matches(matches: dict[str, Path]) -> None:
+    bust = int(time.time())
+    for url, local_path in matches.items():
+        expected = json.loads((local_path if local_path.is_absolute() else ROOT / local_path).read_text(encoding="utf-8"))
+        separator = "&" if "?" in url else "?"
+        request = urllib.request.Request(
+            f"{url}{separator}bust={bust}",
+            headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            actual = json.load(response)
+        if actual != expected:
+            raise RuntimeError(f"production JSON differs from local release artifact: {url}")
+
+
+def release_pages(probes: Iterable[str], json_matches: dict[str, Path] | None = None) -> str:
     output = deploy_pages()
     purge_custom_domain()
     probe_urls(probes)
+    if json_matches:
+        probe_json_matches(json_matches)
     return output

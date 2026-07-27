@@ -16,6 +16,21 @@ SPEC.loader.exec_module(maintenance)
 data = sys.modules["futures_compass_data"]
 
 
+def valid_item(code):
+    return {
+        "code": code, "continuous": f"{code}0", "name": code, "exchange": "测试所",
+        "contract_code": f"{code}2609", "contract_name": f"{code}2609", "price": 100.0,
+        "open": 99.0, "high": 101.0, "low": 98.0, "prev_close": 99.0,
+        "volume": 1000.0, "open_interest": 2000.0, "quote_time": "08:20:00",
+        "trade_date": "2026-07-28", "source": "fixture", "ma5": 99.0, "ma10": 98.0,
+        "ma20": 97.0, "atr14": 2.0, "support": 95.0, "resistance": 105.0,
+        "invalidation": 93.0, "trend_state": "多头排列", "structure": "区间震荡",
+        "fvg": {"direction": "向上FVG", "lower": 98.0, "upper": 99.0, "status": "未回补"},
+        "warehouse_receipt": {"status": "unknown", "trade_date": None, "receipt": None, "change": None},
+        "capital_state": "增仓上涨", "signal_label": "趋势跟随",
+    }
+
+
 def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     writes = []
     monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {"status": "ok", "slot": slot})
@@ -35,10 +50,15 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
 def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
     now = datetime(2026, 7, 28, 8, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
     fresh = {
+        "ok": True,
+        "source": "fixture",
         "generated_at": "2026-07-28T08:20:00+08:00",
         "count": 6,
+        "expected_count": 6,
         "stale": False,
-        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "SC", "M")],
+        "errors": [],
+        "summary": {"ranking": ["LC", "PS", "SI", "AU", "SC", "M"]},
+        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "SC", "M")],
     }
     assert data.validate_public_snapshot(fresh, now=now) == []
 
@@ -47,6 +67,13 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
 
     incomplete = {**fresh, "count": 5, "items": fresh["items"][:-1]}
     assert any("watchlist" in error for error in data.validate_public_snapshot(incomplete, now=now))
+
+    shell = {
+        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 6,
+        "expected_count": 6, "stale": False, "errors": [], "summary": fresh["summary"],
+        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "SC", "M")],
+    }
+    assert any("missing core fields" in error for error in data.validate_public_snapshot(shell, now=now))
 
 
 def test_build_runs_futures_snapshot_freshness_gate():

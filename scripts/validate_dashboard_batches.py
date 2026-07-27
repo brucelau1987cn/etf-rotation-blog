@@ -349,6 +349,8 @@ def validate_harvest_selection(
         if not row or not reason:
             errors.append(f"garden-recommendations harvest {code} lacks current-pool qualification")
             continue
+        if str(row.get("date") or "") != pool_date:
+            errors.append(f"garden-recommendations harvest {code} source row date mismatch")
         if item.get("selected_from_pool_date") != pool_date or item.get("last_qualified_date") != pool_date:
             errors.append(f"garden-recommendations harvest {code} qualification date mismatch")
         if item.get("qualified_reason") != reason:

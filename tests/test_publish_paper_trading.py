@@ -89,7 +89,7 @@ def test_paper_runner_subprocess_inherits_shared_lock_marker():
 
 def test_paper_publisher_directly_deploys_and_probes(monkeypatch):
     probes = []
-    monkeypatch.setattr(publisher, "release_pages", lambda urls: probes.extend(urls))
+    monkeypatch.setattr(publisher, "release_pages", lambda urls, json_matches=None: probes.extend(urls))
     publisher.deploy_and_probe()
     assert probes == [
         "https://etf.peekabo.cc/paper/",

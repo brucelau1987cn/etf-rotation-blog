@@ -33,7 +33,7 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
     monkeypatch.setattr(publisher, "run", fake_run)
     monkeypatch.setattr(publisher, "restore_tracked_dist", lambda: None)
     probes = []
-    monkeypatch.setattr(publisher, "release_pages", lambda urls: probes.extend(urls))
+    monkeypatch.setattr(publisher, "release_pages", lambda urls, json_matches=None: probes.extend(urls))
     publisher.publish("day-close")
 
     assert [publisher.FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", "day-close"] in calls

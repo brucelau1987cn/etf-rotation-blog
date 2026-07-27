@@ -67,3 +67,17 @@ def test_harvest_validator_recomputes_current_pool_qualification_metadata():
     garden["harvest"][0]["source_fingerprint"] = "0" * 64
     validate_harvest_selection(errors, garden, pool)
     assert any("fingerprint" in error for error in errors)
+
+
+def test_harvest_validator_rejects_stale_pool_row_date_even_with_matching_fingerprint():
+    pool = {"evaluation_date": "2026-07-28", "summary": {"universe_count": 91}, "all_rows": pool_rows()}
+    garden = audit.apply_harvest_audit(
+        {"date": "2026-07-28", "harvest": [{"code": "KEEP", "name": "Keep", "status": "止盈观察"}]},
+        pool,
+    )
+    row = pool["all_rows"][0]
+    row["date"] = "2000-01-01"
+    garden["harvest"][0]["source_fingerprint"] = audit.row_fingerprint(row)
+    errors = []
+    validate_harvest_selection(errors, garden, pool)
+    assert any("source row date" in error for error in errors)
