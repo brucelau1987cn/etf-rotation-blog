@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import fcntl
 import hashlib
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
 
 STATE = Path("/root/.hermes/state/a-share-nightly-pipeline.json")
 LOCK = Path("/root/.hermes/state/a-share-nightly-publish.lock")
+PAPER_LOCK = Path("/root/.hermes/state/etf-paper-publish.lock")
 
 BACKTEST_FILE = "public/data/etf-garden-backtest.json"
 POOL_FILE = "public/data/etf-garden-pool.json"
@@ -19,6 +21,7 @@ RESEARCH_AUDIT_FILE = "public/data/model-lab/a-share-research-audit.json"
 DEPLOYMENT_MARKER_FILE = "public/data/a-share-nightly-deployment.json"
 RECOMMENDATIONS_FILE = "public/data/garden-recommendations.json"
 MID_MACRO_FILE = "public/data/a-share-mid-macro.json"
+PAPER_TRADING_FILE = "public/data/paper-trading.json"
 COMPACT_DASHBOARD_FILE = "public/data/a-compass-dashboard.json"
 DATA_CATALOG_FILE = "public/data/catalog.json"
 PUBLIC_SCHEMA_FILES = (
@@ -38,7 +41,7 @@ CATALOG_INPUT_FILES = (
     "public/data/us-etf-garden.json",
     "public/data/us-etf-pool.json",
     "public/data/us-macro-dashboard.json",
-    "public/data/paper-trading.json",
+    PAPER_TRADING_FILE,
     DEPLOYMENT_MARKER_FILE,
 )
 
@@ -55,6 +58,7 @@ GENERATED_PUBLIC_FILES = (COMPACT_DASHBOARD_FILE, DATA_CATALOG_FILE)
 PUBLIC_VERIFY_FILES = SNAPSHOT_FILES + (
     RECOMMENDATIONS_FILE,
     MID_MACRO_FILE,
+    PAPER_TRADING_FILE,
 ) + GENERATED_PUBLIC_FILES + PUBLIC_SCHEMA_FILES
 
 
@@ -63,6 +67,7 @@ def nightly_content_files(trade_date: str) -> tuple[str, ...]:
         f"src/content/blog/{trade_date}.md",
         RECOMMENDATIONS_FILE,
         MID_MACRO_FILE,
+        PAPER_TRADING_FILE,
     )
 
 
@@ -90,4 +95,21 @@ def nightly_lock():
         try:
             yield
         finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+@contextmanager
+def paper_publish_lock():
+    PAPER_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    with PAPER_LOCK.open("a+") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        previous = os.environ.get("PAPER_PUBLISH_LOCK_HELD")
+        os.environ["PAPER_PUBLISH_LOCK_HELD"] = "1"
+        try:
+            yield
+        finally:
+            if previous is None:
+                os.environ.pop("PAPER_PUBLISH_LOCK_HELD", None)
+            else:
+                os.environ["PAPER_PUBLISH_LOCK_HELD"] = previous
             fcntl.flock(handle, fcntl.LOCK_UN)

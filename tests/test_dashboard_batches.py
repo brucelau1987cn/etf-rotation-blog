@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from scripts.generate_research_audit import build_payload
+from scripts.generate_us_etf_garden import UNIVERSE, flower_signals
 import scripts.validate_dashboard_batches as validator
 from scripts.validate_dashboard_batches import validate
 
@@ -26,8 +27,20 @@ BACKTEST = {"records": [{
 RESEARCH_AUDIT = build_payload(BACKTEST, A_POOL, Path("/definitely/missing-turnover.json"), "2026-07-14T22:10:00+08:00")
 US_ROW = {
     "symbol": "SPY", "name": "SPY", "trade_state": "可持有", "strength_level": "A", "risk_level": "低",
-    "price": 600.0, "support": 590.0, "target": 630.0, "stop": 570.0,
+    "theme": "美国宽基", "price": 600.0, "support": 590.0, "target": 630.0, "stop": 570.0,
+    "trend_score": 80.0, "ret20": 5.0, "relative_spy20": 0.0, "trade_date": "2026-07-13",
+    "day_low": 595.0, "day_high": 605.0, "momentum_pass": True,
 }
+US_ROWS = [
+    copy.deepcopy(US_ROW) if symbol == "SPY" else {
+        "symbol": symbol, "name": name, "theme": theme, "trade_state": "观察", "strength_level": "D",
+        "risk_level": "低", "price": 100.0, "support": 50.0, "target": 120.0, "stop": 40.0,
+        "trend_score": 10.0, "ret20": -5.0, "relative_spy20": -5.0, "trade_date": "2026-07-13",
+        "day_low": 99.0, "day_high": 101.0, "momentum_pass": False,
+    }
+    for symbol, name, _asset_type, theme in UNIVERSE
+]
+US_FLOWERS = flower_signals(US_ROWS, {})
 FIXTURES = {
     "garden-recommendations.json": {
         "date": "2026-07-14", "applies_to": "2026-07-14", "level_data_as_of": "2026-07-14",
@@ -89,16 +102,30 @@ FIXTURES = {
     "us-etf-garden.json": {
         "date": "2026-07-13", "updated_at": "2026-07-13T18:31:00-04:00", "stage": "美股收盘版",
         "session_state": "closed", "market_regime": {"state": "risk-off"},
-        "flower_signals": {"ready_plant": [{
-            **US_ROW, "signal": "候场", "trade_date": "2026-07-13",
-        }], "plant": [], "ready_harvest": [], "harvest": [], "exit": []},
+        "flower_signals": US_FLOWERS,
+        "flower_counts": {key: len(value) for key, value in US_FLOWERS.items()},
     },
     "us-etf-pool.json": {
-        "model_date": "2026-07-13", "quote_trade_date": "2026-07-13", "session_state": "closed", "rows": [US_ROW],
+        "model_date": "2026-07-13", "quote_trade_date": "2026-07-13", "session_state": "closed",
+        "summary": {"universe": len(UNIVERSE), "valid": len(US_ROWS)}, "rows": US_ROWS, "trigger_base_rows": {},
     },
     "us-macro-dashboard.json": {
         "version": 2, "generated_at": "2026-07-13T18:31:54-04:00", "risk": {"label": "中性"},
         "market": {"spy": {"date": "2026-07-13"}}, "data_quality": {"failed": 0},
+    },
+    "paper-trading.json": {
+        "version": 1, "updated_at": "2026-07-14T14:00:00+00:00", "accounts": {
+            "A": {"market": "A", "positions": {}, "pending_signals": [], "public_pending_signals": [{
+                "symbol": "510300", "name": "沪深300ETF", "support": 3.9, "target": 4.3, "stop": 3.7,
+                "signal_date": "2026-07-14", "kind": "ready_plant", "status": "候场",
+                "source_date": "2026-07-14", "source_updated_at": "2026-07-14 22:00 CST",
+            }]},
+            "US": {"market": "US", "positions": {}, "pending_signals": [], "public_pending_signals": [{
+                "symbol": "SPY", "name": "SPY", "support": 590.0, "target": 630.0, "stop": 570.0,
+                "signal_date": "2026-07-13", "kind": "ready_plant", "status": "候场",
+                "source_date": "2026-07-13", "source_updated_at": "2026-07-13T18:31:00-04:00",
+            }]},
+        },
     },
 }
 
@@ -135,6 +162,10 @@ def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
         payloads["garden-recommendations.json"]["plant"].append({
             **payloads["garden-recommendations.json"]["plant"][0], "code": "510500", "price_date": "2026-07-13",
         })
+        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"].append({
+            **payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0],
+            "symbol": "510500",
+        })
         payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
         payloads["etf-garden-pool.json"]["all_rows"][0]["date"] = "2026-07-13"
         payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
@@ -156,6 +187,76 @@ def test_us_macro_mixed_batch_is_blocked(tmp_path):
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("US batch mismatch" in error for error in result.errors)
+
+
+def test_us_actions_must_belong_to_current_pool_and_trade_date(tmp_path):
+    def mutate(payloads):
+        item = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
+        item.update(symbol="ZZZ_NOT_IN_POOL", trade_date="2000-01-01")
+        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0].update(
+            symbol="ZZZ_NOT_IN_POOL", signal_date="2000-01-01"
+        )
+    write_fixtures(tmp_path, mutate)
+
+    result = validate(tmp_path)
+
+    assert result.status == "error"
+    assert any("US action" in error and "current pool" in error for error in result.errors)
+
+
+def test_us_pool_must_be_complete_74_rows(tmp_path):
+    def mutate(payloads):
+        payloads["us-etf-pool.json"]["rows"].pop()
+        payloads["us-etf-pool.json"]["summary"].update(universe=73, valid=73)
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("exactly 74 rows" in error for error in result.errors)
+
+
+def test_us_actions_must_equal_deterministic_current_pool_rebuild(tmp_path):
+    def mutate(payloads):
+        action = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
+        action["support"] = 1.0
+        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0]["support"] = 1.0
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("deterministic current-pool rebuild" in error for error in result.errors)
+
+
+def test_paper_public_pending_identity_must_match_current_formal_sources(tmp_path):
+    def mutate(payloads):
+        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]["symbol"] = "STALE"
+    write_fixtures(tmp_path, mutate)
+
+    result = validate(tmp_path)
+
+    assert result.status == "error"
+    assert any("paper-trading A public pending identity mismatch" in error for error in result.errors)
+
+
+def test_paper_public_pending_source_metadata_must_match_current_source(tmp_path):
+    def mutate(payloads):
+        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0]["source_updated_at"] = "stale"
+    write_fixtures(tmp_path, mutate)
+
+    result = validate(tmp_path)
+
+    assert result.status == "error"
+    assert any("paper-trading US public pending source metadata mismatch" in error for error in result.errors)
+
+
+def test_paper_public_pending_content_must_match_current_source(tmp_path):
+    def mutate(payloads):
+        item = payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]
+        item.update(name="stale", support=-999, target="stale", kind="wrong", signal_date="2000-01-01")
+    write_fixtures(tmp_path, mutate)
+
+    result = validate(tmp_path)
+
+    assert result.status == "error"
+    assert any("paper-trading A public pending content mismatch" in error for error in result.errors)
 
 
 def test_missing_file_is_blocked(tmp_path):
@@ -323,6 +424,7 @@ def test_explicit_invalid_level_is_allowed(tmp_path):
     def mutate(payloads):
         item = payloads["garden-recommendations.json"]["plant"][0]
         item.update({"support": 3.9, "target": 3.8, "stop": -1, "level_status": "invalid", "level_invalid_reason": "bad provider levels"})
+        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"] = []
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"

@@ -1,6 +1,10 @@
 import importlib.util
+import json
 import sys
+import tempfile
 import unittest
+from contextlib import contextmanager
+from unittest import mock
 from pathlib import Path
 
 P = Path(__file__).resolve().parents[1] / "scripts" / "paper_trade_runner.py"
@@ -125,6 +129,130 @@ class PaperTradingTests(unittest.TestCase):
         self.assertNotIn("processed_event_ids", public)
         self.assertNotIn("consumed_signal_ids", public)
         self.assertNotIn("armed_signals", public)
+
+    def test_public_pending_projection_tracks_current_sources_and_excludes_positions(self):
+        state = paper.new_state("2026-07-28T00:00:00+00:00")
+        state["accounts"]["A"]["positions"]["159920"] = {"symbol": "159920"}
+        state["accounts"]["US"]["positions"]["IBIT"] = {"symbol": "IBIT"}
+        sources = {
+            "A": {
+                "date": "2026-07-28", "updated_at": "2026-07-28 22:00 CST",
+                "plant": [
+                    {"code": "560080", "name": "央企ETF", "status": "候场", "support": 1, "target": 1.1, "stop": .9},
+                    {"code": "159920", "name": "恒生ETF", "status": "伏击", "support": 2, "target": 2.2, "stop": 1.8},
+                    {"code": "000000", "name": "无效", "status": "候场", "level_status": "invalid"},
+                ],
+            },
+            "US": {
+                "date": "2026-07-27", "updated_at": "2026-07-27T18:30:00-04:00",
+                "flower_signals": {
+                    "ready_plant": [{"symbol": "EWZ", "name": "Brazil", "signal": "候场", "support": 30, "target": 33, "stop": 28}],
+                    "plant": [{"symbol": "IBIT", "name": "Bitcoin", "signal": "伏击触发", "support": 50, "target": 55, "stop": 45}],
+                    "harvest": [{"symbol": "SPY", "name": "SPY", "signal": "兑现触发"}],
+                },
+            },
+        }
+
+        public = paper.project_public_pending(state, sources)
+
+        self.assertEqual([x["symbol"] for x in public["accounts"]["A"]["public_pending_signals"]], ["560080"])
+        self.assertEqual([x["symbol"] for x in public["accounts"]["US"]["public_pending_signals"]], ["EWZ"])
+        self.assertEqual(public["accounts"]["A"]["public_pending_signals"][0]["status"], "候场")
+        self.assertEqual(public["accounts"]["US"]["public_pending_signals"][0]["source_date"], "2026-07-27")
+        self.assertEqual(public["accounts"]["US"]["public_pending_signals"][0]["source_updated_at"], "2026-07-27T18:30:00-04:00")
+        self.assertEqual(state["accounts"]["A"]["pending_signals"], [])
+
+    def test_sync_public_snapshot_reads_sources_and_only_rewrites_public_export(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            export = root / "paper.json"
+            source_a = root / "a.json"
+            source_us = root / "us.json"
+            state = paper.new_state("2026-07-28T00:00:00+00:00")
+            state["accounts"]["A"]["pending_signals"] = [{"symbol": "OLD"}]
+            export.write_text(json.dumps(paper.public_view(state)), encoding="utf-8")
+            source_a.write_text(json.dumps({
+                "date": "2026-07-28", "updated_at": "a-ts",
+                "plant": [{"code": "560080", "name": "央企ETF", "status": "候场"}],
+            }), encoding="utf-8")
+            source_us.write_text(json.dumps({
+                "date": "2026-07-27", "updated_at": "us-ts",
+                "flower_signals": {"plant": [{"symbol": "IYT", "name": "IYT", "signal": "伏击触发"}]},
+            }), encoding="utf-8")
+
+            paper.sync_public_snapshot(export, {"A": source_a, "US": source_us})
+
+            saved = json.loads(export.read_text(encoding="utf-8"))
+            self.assertEqual(saved["accounts"]["A"]["pending_signals"], [{"symbol": "OLD"}])
+            self.assertEqual(saved["accounts"]["A"]["public_pending_signals"][0]["symbol"], "560080")
+            self.assertEqual(saved["accounts"]["US"]["public_pending_signals"][0]["status"], "伏击")
+
+    def test_sync_public_snapshot_uses_shared_publication_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            export = root / "paper.json"
+            source_a = root / "a.json"
+            source_us = root / "us.json"
+            export.write_text(json.dumps(paper.public_view(paper.new_state())), encoding="utf-8")
+            source_a.write_text(json.dumps({"date": "2026-07-28", "updated_at": "a", "plant": []}), encoding="utf-8")
+            source_us.write_text(json.dumps({"date": "2026-07-27", "updated_at": "us", "flower_signals": {}}), encoding="utf-8")
+            entered = []
+
+            @contextmanager
+            def guard():
+                entered.append(True)
+                yield
+
+            with mock.patch.object(paper, "public_write_lock", guard):
+                paper.sync_public_snapshot(export, {"A": source_a, "US": source_us})
+            self.assertEqual(entered, [True])
+
+    def test_sync_public_cli_needs_no_market_or_state(self):
+        with mock.patch.object(paper, "sync_public_snapshot") as sync:
+            paper.main(["--mode", "sync-public"])
+        sync.assert_called_once_with()
+
+    def test_init_export_preserves_current_public_projection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            export = root / "paper.json"
+            source_a = root / "a.json"
+            source_us = root / "us.json"
+            source_a.write_text(json.dumps({
+                "date": "2026-07-28", "updated_at": "a-ts",
+                "plant": [{"code": "560080", "name": "央企ETF", "status": "候场"}],
+            }), encoding="utf-8")
+            source_us.write_text(json.dumps({
+                "date": "2026-07-27", "updated_at": "us-ts",
+                "flower_signals": {"ready_plant": [{"symbol": "EWZ", "name": "Brazil", "signal": "候场"}]},
+            }), encoding="utf-8")
+            with mock.patch.object(paper, "EXPORT", export), mock.patch.object(
+                paper, "SOURCES", {"A": source_a, "US": source_us}
+            ):
+                paper.main(["--market", "A", "--mode", "init", "--state", str(state_path), "--now", "2026-07-28T00:00:00+00:00"])
+            saved = json.loads(export.read_text(encoding="utf-8"))
+            self.assertEqual([x["symbol"] for x in saved["accounts"]["A"]["public_pending_signals"]], ["560080"])
+            self.assertEqual([x["symbol"] for x in saved["accounts"]["US"]["public_pending_signals"]], ["EWZ"])
+
+    def test_init_source_failure_does_not_partially_write_private_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            export = root / "paper.json"
+            source_a = root / "a.json"
+            source_a.write_text(json.dumps({"date": "2026-07-28", "updated_at": "a-ts", "plant": []}), encoding="utf-8")
+            with mock.patch.object(paper, "EXPORT", export), mock.patch.object(
+                paper, "SOURCES", {"A": source_a, "US": root / "missing-us.json"}
+            ):
+                with self.assertRaises(FileNotFoundError):
+                    paper.main(["--market", "A", "--mode", "init", "--state", str(state_path), "--now", "2026-07-28T00:00:00+00:00"])
+            self.assertFalse(state_path.exists())
+            self.assertFalse(export.exists())
+
+    def test_paper_page_prefers_public_projection_with_legacy_fallback(self):
+        page = (P.parents[1] / "src/pages/paper.astro").read_text(encoding="utf-8")
+        self.assertIn("a.public_pending_signals ?? a.pending_signals ?? []", page)
 
     def test_market_windows_and_quote_freshness(self):
         self.assertTrue(paper.intraday_window("A", "2026-07-13T02:00:00+00:00"))  # 10:00 CST

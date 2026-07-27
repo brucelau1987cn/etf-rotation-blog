@@ -79,6 +79,11 @@ def test_refresh_reselects_candidates_before_macro_gate(tmp_path, monkeypatch):
 
     assert calls[0][1:] == ["scripts/select_a_share_candidates.py"]
     assert calls[1][1:] == ["scripts/generate_a_share_mid_macro.py"]
+    assert calls[2][1:] == ["scripts/audit_a_share_harvest.py"]
+    assert calls[3][1:] == ["scripts/enrich_garden_recommendations.py", "--validate"]
+    assert calls[4][1:] == ["scripts/paper_trade_runner.py", "--mode", "sync-public"]
+    assert calls[5][1:] == ["scripts/bootstrap_build_python.py"]
+    assert stage.PAPER_TRADING_FILE in stage.A_SHARE_MANAGED
 
 
 def test_candidate_validation_failure_prevents_ref_update_and_push(tmp_path, monkeypatch):

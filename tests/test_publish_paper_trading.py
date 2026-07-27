@@ -81,3 +81,17 @@ def test_preflight_rejects_dirty_paper_snapshot(monkeypatch):
         assert "paper snapshot" in str(exc)
     else:
         raise AssertionError("expected dirty-paper rejection")
+
+
+def test_paper_runner_subprocess_inherits_shared_lock_marker():
+    assert publisher.paper_subprocess_env()["PAPER_PUBLISH_LOCK_HELD"] == "1"
+
+
+def test_paper_publisher_directly_deploys_and_probes(monkeypatch):
+    probes = []
+    monkeypatch.setattr(publisher, "release_pages", lambda urls: probes.extend(urls))
+    publisher.deploy_and_probe()
+    assert probes == [
+        "https://etf.peekabo.cc/paper/",
+        "https://etf.peekabo.cc/data/paper-trading.json",
+    ]

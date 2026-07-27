@@ -12,6 +12,7 @@ const pct = (n: number) => `${((n || 0) * 100).toFixed(2)}%`;
 const tone = (n: number) => n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral';
 const formatTime = (value?: string) => value ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(value)) : '尚未开始';
 const label = (market: string) => market === 'A' ? '🇨🇳 A股账户' : '🇺🇸 美股账户';
+const pending = (a: any) => a.public_pending_signals ?? a.pending_signals ?? [];
 const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) => ({ ...e, currency: a.currency }))).sort((a: any, b: any) => b.timestamp.localeCompare(a.timestamp)).slice(0, 20);
 ---
 <!doctype html>
@@ -57,8 +58,8 @@ const recentEvents = accounts.flatMap((a: any) => (a.events || []).map((e: any) 
               <div class="position"><div><b>{p.symbol} · {p.name}</b><small>{p.quantity}份 · 成本 {p.entry_price} · 现价 {p.last_price}</small></div><b>{money(p.quantity*p.last_price,a.currency)}</b><div class="levels">目标 {p.target ?? '—'}｜失效 {p.stop ?? '—'}｜信号日 {p.signal_date ?? '—'}</div></div>
             )) : <p class="empty">暂无持仓，等待正式伏击信号触发。</p>}
 
-            <div class="subhead"><h3>待触发</h3><small>{(a.pending_signals || []).length}项</small></div>
-            {(a.pending_signals || []).length ? (a.pending_signals || []).map((p: any) => (
+            <div class="subhead"><h3>待触发</h3><small>{pending(a).length}项</small></div>
+            {pending(a).length ? pending(a).map((p: any) => (
               <div class="pending"><div><b>{p.symbol} · {p.name}</b><small>回踩 {p.support ?? '—'}｜目标 {p.target ?? '—'}｜失效 {p.stop ?? '—'}</small></div><span>观察</span></div>
             )) : <p class="empty">当前没有正式待成交信号；准备信号不会进入订单。</p>}
 

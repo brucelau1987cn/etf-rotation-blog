@@ -15,6 +15,11 @@ def test_pick_keeps_only_public_dashboard_fields():
     assert result == {"code": "510300", "name": "沪深300ETF", "price": 4.1}
 
 
+def test_public_dashboard_exports_fields_required_for_live_momentum_recompute():
+    required = {"ret3", "ret10", "ma20", "ma20_prev", "checks", "prev_close"}
+    assert required <= set(module.A_FIELDS)
+
+
 def test_write_atomic_outputs_compact_utf8_json(tmp_path):
     output = tmp_path / "dashboard.json"
     module.write_atomic(output, {"name": "罗盘", "rows": [{"code": "510300"}]})

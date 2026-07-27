@@ -16,10 +16,12 @@ try:
         CATALOG_INPUT_FILES,
         GENERATED_PUBLIC_FILES,
         MID_MACRO_FILE,
+        PAPER_TRADING_FILE,
         POOL_FILE,
         RECOMMENDATIONS_FILE,
         RESEARCH_AUDIT_FILE,
         nightly_lock,
+        paper_publish_lock,
     )
     from generate_research_audit import DEFAULT_TURNOVER, build_payload
     from publish_a_share_nightly import (
@@ -39,10 +41,12 @@ except ModuleNotFoundError:
         CATALOG_INPUT_FILES,
         GENERATED_PUBLIC_FILES,
         MID_MACRO_FILE,
+        PAPER_TRADING_FILE,
         POOL_FILE,
         RECOMMENDATIONS_FILE,
         RESEARCH_AUDIT_FILE,
         nightly_lock,
+        paper_publish_lock,
     )
     from scripts.generate_research_audit import DEFAULT_TURNOVER, build_payload
     from scripts.publish_a_share_nightly import (
@@ -69,6 +73,7 @@ A_SHARE_MANAGED = {
     POOL_FILE,
     MID_MACRO_FILE,
     RESEARCH_AUDIT_FILE,
+    PAPER_TRADING_FILE,
     *GENERATED_PUBLIC_FILES,
 }
 
@@ -108,11 +113,13 @@ def refresh_derived_artifacts(generated_at: str) -> None:
     env = project_subprocess_env()
     run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
     run([PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"], env=env, timeout=300)
+    run([PROJECT_PYTHON, "scripts/audit_a_share_harvest.py"], env=env)
     pool = json.loads((ROOT / POOL_FILE).read_text(encoding="utf-8"))
     backtest = json.loads((ROOT / BACKTEST_FILE).read_text(encoding="utf-8"))
     audit = build_payload(backtest, pool, DEFAULT_TURNOVER, generated_at)
     atomic_write_json(ROOT / RESEARCH_AUDIT_FILE, audit)
     run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+    run([PROJECT_PYTHON, "scripts/paper_trade_runner.py", "--mode", "sync-public"], env=env)
     run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
     run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
     run([BUILD_PYTHON, "scripts/generate_data_catalog.py"], env=env)
@@ -231,7 +238,7 @@ def main() -> int:
     parser.add_argument("--message")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    with nightly_lock():
+    with nightly_lock(), paper_publish_lock():
         result = publish_stage(args.stage, args.message, args.dry_run)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

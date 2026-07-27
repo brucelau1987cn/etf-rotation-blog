@@ -21,11 +21,13 @@
       "type": "array", "minItems": 1,
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["code", "name", "type", "theme", "status", "price", "ret5", "ret20", "close_position", "signal_score", "strength_level", "trading_risk_score", "trade_state", "action", "cooldown_state", "risk_flags", "risk_level", "agent_bull", "agent_bear", "agent_scores"],
+        "required": ["code", "name", "type", "theme", "status", "price", "prev_close", "ret3", "ret5", "ret10", "ret20", "ma20", "ma20_prev", "checks", "close_position", "signal_score", "strength_level", "trading_risk_score", "trade_state", "action", "cooldown_state", "risk_flags", "risk_level", "agent_bull", "agent_bear", "agent_scores"],
         "properties": {
           "code": {"type": "string", "pattern": "^[0-9]{6}$"}, "name": {"type": "string", "minLength": 1},
           "type": {"type": ["string", "null"]}, "theme": {"type": ["string", "null"]}, "status": {"type": ["string", "null"]},
-          "price": {"type": ["number", "null"]}, "ret5": {"type": ["number", "null"]}, "ret20": {"type": ["number", "null"]},
+          "price": {"type": ["number", "null"]}, "prev_close": {"type": ["number", "null"]},
+          "ret3": {"type": ["number", "null"]}, "ret5": {"type": ["number", "null"]}, "ret10": {"type": ["number", "null"]}, "ret20": {"type": ["number", "null"]},
+          "ma20": {"type": ["number", "null"]}, "ma20_prev": {"type": ["number", "null"]}, "checks": {"type": ["object", "null"]},
           "close_position": {"type": ["number", "null"]}, "signal_score": {"type": ["number", "null"]}, "strength_level": {"type": ["string", "null"]},
           "trading_risk_score": {"type": ["number", "null"]}, "trade_state": {"type": ["string", "null"]}, "action": {"type": ["string", "null"]},
           "cooldown_state": {"type": ["string", "null"]}, "risk_flags": {"type": "array", "items": {"type": "string"}}, "risk_level": {"type": ["string", "null"]},

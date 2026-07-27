@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TZ = {"A": ZoneInfo("Asia/Shanghai"), "US": ZoneInfo("America/New_York")}
 DEFAULT_STATE = Path("/root/.hermes/state/etf-paper-trading.json")
 EXPORT = ROOT / "public/data/paper-trading.json"
+PUBLIC_LOCK = Path("/root/.hermes/state/etf-paper-publish.lock")
 SOURCES = {"A": ROOT / "public/data/garden-recommendations.json", "US": ROOT / "public/data/us-etf-garden.json"}
 CONFIG = {"A": {"initial": 150000.0, "currency": "CNY", "reserve": .20, "lot": 100}, "US": {"initial": 20000.0, "currency": "USD", "reserve": .15, "lot": 1}}
 DISCLAIMER = "模拟交易仅用于验证规则，不构成投资建议；行情可能延迟，滑点与实际成交存在差异。"
@@ -253,6 +254,14 @@ def locked(path):
     fcntl.flock(lock,fcntl.LOCK_EX)
     try: yield
     finally: fcntl.flock(lock,fcntl.LOCK_UN); lock.close()
+
+@contextmanager
+def public_write_lock():
+    if os.environ.get("PAPER_PUBLISH_LOCK_HELD") == "1":
+        yield
+        return
+    with locked(PUBLIC_LOCK):
+        yield
 def load(path): return json.loads(path.read_text()) if path.exists() else new_state()
 def atomic_write(path,obj):
     path.parent.mkdir(parents=True,exist_ok=True); fd,tmp=tempfile.mkstemp(dir=path.parent,prefix=".paper-",text=True)
@@ -268,6 +277,44 @@ def public_view(state):
         a.pop("armed_signals",None)
         a.pop("consumed_signal_ids",None)
     return out
+
+def project_public_pending(state, sources):
+    """Project current formal/ready buy signals for display without mutating execution state."""
+    out=public_view(state)
+    for market in ("A","US"):
+        source=sources[market]; buys,_=normalize_signals(market,source)
+        held=set(out["accounts"][market].get("positions",{}))
+        items=[]
+        for signal in buys:
+            symbol=signal.get("symbol")
+            if not symbol or symbol in held:
+                continue
+            items.append({
+                "symbol":symbol,
+                "name":signal.get("name",symbol),
+                "support":signal.get("support"),
+                "target":signal.get("target"),
+                "stop":signal.get("stop"),
+                "signal_date":signal.get("_source_date"),
+                "kind":signal.get("kind","plant"),
+                "status":"候场" if signal.get("kind")=="ready_plant" or signal.get("pending_only") else "伏击",
+                "source_date":source.get("date"),
+                "source_updated_at":source.get("updated_at"),
+            })
+        out["accounts"][market]["public_pending_signals"]=items
+    return out
+
+def build_public_snapshot(state, source_paths=None):
+    paths=source_paths or SOURCES
+    sources={market:json.loads(path.read_text()) for market,path in paths.items()}
+    return project_public_pending(state,sources)
+
+def sync_public_snapshot(export=None, source_paths=None):
+    export=export or EXPORT
+    with public_write_lock():
+        current=json.loads(export.read_text())
+        atomic_write(export,build_public_snapshot(current,source_paths))
+
 
 def self_test():
     assert costs("A","buy",1,100)==5.05 and size_order("A",150000,150000,1)==14900
@@ -296,9 +343,10 @@ def format_close_notice(market, account, trades):
             "⚠️ 虚拟交易，不是实盘订单。")
 
 def main(argv=None):
-    p=argparse.ArgumentParser(); p.add_argument("--market",choices=["A","US"]); p.add_argument("--mode",choices=["init","intraday","close"]); p.add_argument("--state",type=Path,default=DEFAULT_STATE); p.add_argument("--now"); p.add_argument("--dry-run",action="store_true"); p.add_argument("--self-test",action="store_true")
+    p=argparse.ArgumentParser(); p.add_argument("--market",choices=["A","US"]); p.add_argument("--mode",choices=["init","intraday","close","sync-public"]); p.add_argument("--state",type=Path,default=DEFAULT_STATE); p.add_argument("--now"); p.add_argument("--dry-run",action="store_true"); p.add_argument("--self-test",action="store_true")
     args=p.parse_args(argv)
     if args.self_test:return self_test()
+    if args.mode=="sync-public": return sync_public_snapshot()
     if not args.market or not args.mode:p.error("--market and --mode are required")
     if args.mode=="intraday" and not intraday_window(args.market,args.now): return
     ts=now_iso(args.now)
@@ -327,9 +375,10 @@ def main(argv=None):
             held=set(account["positions"])
             account["pending_signals"]=[{"symbol":x["symbol"],"name":x.get("name",x["symbol"]),"support":x.get("support"),"target":x.get("target"),"stop":x.get("stop"),"signal_date":x.get("_source_date"),"kind":x.get("kind","plant"),"status":("候场" if x.get("kind")=="ready_plant" or x.get("pending_only") else "伏击")} for x in signals[0] if x["symbol"] not in held and x.get("_signal_id") not in account["consumed_signal_ids"]]
         state["updated_at"]=ts
+        public_snapshot=build_public_snapshot(state) if args.mode in {"init","close"} else None
         if not args.dry_run:
             atomic_write(args.state,state)
-            if args.mode in {"init","close"}: atomic_write(EXPORT,public_view(state))
+            if public_snapshot is not None: atomic_write(EXPORT,public_snapshot)
     account=state["accounts"][args.market]
     visible=trades if args.market=="A" or args.mode=="close" else [x for x in trades if x["side"]=="sell" and x["reason"]=="stop"]
     message=format_close_notice(args.market,account,trades) if args.mode=="close" else format_trade_notice(args.market,visible,account)

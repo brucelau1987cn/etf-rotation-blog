@@ -19,13 +19,13 @@ from zoneinfo import ZoneInfo
 
 try:
     from a_share_nightly_contract import (
-        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
-        STATE, file_hashes, nightly_content_files, nightly_lock,
+        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PAPER_TRADING_FILE, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
+        STATE, file_hashes, nightly_content_files, nightly_lock, paper_publish_lock,
     )
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import (
-        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
-        STATE, file_hashes, nightly_content_files, nightly_lock,
+        CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PAPER_TRADING_FILE, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
+        STATE, file_hashes, nightly_content_files, nightly_lock, paper_publish_lock,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -339,7 +339,9 @@ def refresh_nightly_recommendations(env: dict[str, str]) -> None:
     """Rebuild candidate identity before applying the macro eligibility gate."""
     run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
     run([PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"], env=env, timeout=300)
+    run([PROJECT_PYTHON, "scripts/audit_a_share_harvest.py"], env=env)
     run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+    run([PROJECT_PYTHON, "scripts/paper_trade_runner.py", "--mode", "sync-public"], env=env)
 
 
 def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | None = None) -> dict[str, Any]:
@@ -562,7 +564,7 @@ def main() -> int:
         print("publish_a_share_nightly self-test: OK")
         return 0
     now = datetime.fromisoformat(args.now).astimezone(CN) if args.now else None
-    with nightly_lock():
+    with nightly_lock(), paper_publish_lock():
         result = publish(args.state, args.dry_run, now=now)
     print(format_receipt(result))
     return 0

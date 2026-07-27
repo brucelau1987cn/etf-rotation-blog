@@ -13,11 +13,17 @@ from typing import Any
 
 try:
     from a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
+    from audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
+    from generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
+    from paper_trade_runner import project_public_pending
     from path_shadow_public_schema import validate_public_payload
 except ModuleNotFoundError:  # imported as scripts.validate_dashboard_batches in tests
     from scripts.a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
+    from scripts.audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from scripts.generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
+    from scripts.generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
+    from scripts.paper_trade_runner import project_public_pending
     from scripts.path_shadow_public_schema import validate_public_payload
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -180,6 +186,168 @@ def validate_candidate_selection(
         errors.append("garden-recommendations candidate_selection selected_codes differs from plant order")
     if selection.get("unchanged_from_previous") is True:
         warnings.append("A-share candidate set unchanged from previous batch; current-day qualification metadata verified")
+
+
+def validate_public_pending(
+    errors: list[str], paper: dict[str, Any], garden: dict[str, Any], us: dict[str, Any],
+) -> None:
+    accounts = paper.get("accounts")
+    if not isinstance(accounts, dict):
+        errors.append("paper-trading accounts must be an object")
+        return
+    sources = {"A": garden, "US": us}
+    expected_projection = project_public_pending(paper, sources)
+    for market, source in sources.items():
+        account = accounts.get(market)
+        if not isinstance(account, dict):
+            errors.append(f"paper-trading {market} account is missing")
+            continue
+        positions = account.get("positions")
+        held = set(positions) if isinstance(positions, dict) else set()
+        expected: list[tuple[str, str]] = []
+        if market == "A":
+            for item in source.get("plant") or []:
+                if not isinstance(item, dict) or item.get("level_status") == "invalid":
+                    continue
+                status = item.get("status")
+                if status in {"伏击", "种花"} and item.get("eligibility") != "blocked":
+                    public_status = "伏击"
+                elif status in {"候场", "准备种花"}:
+                    public_status = "候场"
+                else:
+                    continue
+                symbol = str(item.get("code") or "")
+                if symbol and symbol not in held:
+                    expected.append((symbol, public_status))
+        else:
+            signals = source.get("flower_signals") or {}
+            for section, accepted, public_status in (
+                ("plant", {"伏击触发", "种花", "伏击"}, "伏击"),
+                ("ready_plant", {"候场", "准备种花"}, "候场"),
+            ):
+                for item in signals.get(section) or []:
+                    if not isinstance(item, dict) or item.get("signal") not in accepted:
+                        continue
+                    symbol = str(item.get("symbol") or "")
+                    if symbol and symbol not in held:
+                        expected.append((symbol, public_status))
+        public_items = account.get("public_pending_signals")
+        if not isinstance(public_items, list):
+            errors.append(f"paper-trading {market} public_pending_signals must be an array")
+            continue
+        actual = [
+            (str(item.get("symbol") or ""), str(item.get("status") or ""))
+            for item in public_items if isinstance(item, dict)
+        ]
+        if actual != expected or len(actual) != len(public_items):
+            errors.append(
+                f"paper-trading {market} public pending identity mismatch: expected={expected}, actual={actual}"
+            )
+        source_date = source.get("date")
+        source_updated_at = source.get("updated_at")
+        if any(
+            not isinstance(item, dict)
+            or item.get("source_date") != source_date
+            or item.get("source_updated_at") != source_updated_at
+            for item in public_items
+        ):
+            errors.append(f"paper-trading {market} public pending source metadata mismatch")
+        expected_items = expected_projection.get("accounts", {}).get(market, {}).get("public_pending_signals", [])
+        if public_items != expected_items:
+            errors.append(f"paper-trading {market} public pending content mismatch")
+
+
+def validate_us_candidate_selection(
+    errors: list[str], us: dict[str, Any], us_pool: dict[str, Any],
+) -> None:
+    sections = ("ready_plant", "plant", "ready_harvest", "harvest", "exit")
+    signals = us.get("flower_signals")
+    if not isinstance(signals, dict) or set(signals) != set(sections):
+        errors.append("US action sections must contain the complete five-section contract")
+        return
+    rows = us_pool.get("rows")
+    expected_pool_size = len(US_UNIVERSE)
+    raw_summary = us_pool.get("summary")
+    summary: dict[str, Any] = raw_summary if isinstance(raw_summary, dict) else {}
+    if not isinstance(rows, list) or len(rows) != expected_pool_size:
+        errors.append(f"US current pool must contain exactly {expected_pool_size} rows")
+        return
+    if summary.get("universe") != expected_pool_size or summary.get("valid") != expected_pool_size:
+        errors.append(f"US current pool summary must report {expected_pool_size} universe and valid rows")
+    pool_symbols = {
+        str(item.get("symbol") or "") for item in rows or [] if isinstance(item, dict)
+    } if isinstance(rows, list) else set()
+    model_date = str(us_pool.get("model_date") or "")
+    seen: set[str] = set()
+    actual_counts: dict[str, int] = {}
+    for section in sections:
+        items = signals.get(section)
+        if not isinstance(items, list):
+            errors.append(f"US action section {section} must be an array")
+            continue
+        actual_counts[section] = len(items)
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            symbol = str(item.get("symbol") or "")
+            if symbol not in pool_symbols or item.get("trade_date") != model_date:
+                errors.append(
+                    f"US action {symbol or '<empty>'} must belong to current pool and trade_date {model_date}"
+                )
+            if symbol in seen:
+                errors.append(f"US action symbol appears in multiple sections: {symbol}")
+            seen.add(symbol)
+    if us.get("flower_counts") != actual_counts:
+        errors.append(f"US flower_counts differs from action arrays: expected={actual_counts}")
+    trigger_base = us_pool.get("trigger_base_rows")
+    previous = trigger_base if isinstance(trigger_base, dict) else {}
+    try:
+        rebuilt = rebuild_us_flower_signals(rows, previous)
+    except (KeyError, TypeError, ValueError) as exc:
+        errors.append(f"US actions cannot be rebuilt from current pool: {exc}")
+    else:
+        if signals != rebuilt:
+            errors.append("US actions differ from deterministic current-pool rebuild")
+
+
+def validate_harvest_selection(
+    errors: list[str], garden: dict[str, Any], pool: dict[str, Any],
+) -> None:
+    selection = garden.get("harvest_selection")
+    if not isinstance(selection, dict):
+        errors.append("garden-recommendations harvest_selection is required")
+        return
+    pool_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or "")
+    rows = pool.get("all_rows")
+    row_map = {
+        str(row.get("code") or ""): row for row in rows or [] if isinstance(row, dict)
+    } if isinstance(rows, list) else {}
+    items = garden.get("harvest")
+    harvest_items = items if isinstance(items, list) else []
+    codes = [str(item.get("code") or "") for item in harvest_items if isinstance(item, dict)]
+    if selection.get("rule_version") != HARVEST_RULE_VERSION:
+        errors.append("garden-recommendations harvest rule version mismatch")
+    if selection.get("selection_mode") != "current_tracked_harvest_requalification":
+        errors.append("garden-recommendations harvest selection_mode mismatch")
+    if selection.get("selected_from_pool_date") != pool_date:
+        errors.append("garden-recommendations harvest selected_from_pool_date mismatch")
+    if selection.get("selected_codes") != codes or selection.get("selected_count") != len(codes):
+        errors.append("garden-recommendations harvest selected_codes differs from harvest order")
+    for item in harvest_items:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("code") or "")
+        row = row_map.get(code)
+        reason = harvest_qualified_reason(row) if row else None
+        if not row or not reason:
+            errors.append(f"garden-recommendations harvest {code} lacks current-pool qualification")
+            continue
+        if item.get("selected_from_pool_date") != pool_date or item.get("last_qualified_date") != pool_date:
+            errors.append(f"garden-recommendations harvest {code} qualification date mismatch")
+        if item.get("qualified_reason") != reason:
+            errors.append(f"garden-recommendations harvest {code} qualification reason mismatch")
+        if item.get("source_fingerprint") != harvest_row_fingerprint(row):
+            errors.append(f"garden-recommendations harvest {code} source fingerprint mismatch")
 
 
 def validate_runtime_schema(
@@ -524,10 +692,15 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         us = load_json(data_dir / "us-etf-garden.json")
         us_pool = load_json(data_dir / "us-etf-pool.json")
         us_macro = load_json(data_dir / "us-macro-dashboard.json")
+        paper = load_json(data_dir / "paper-trading.json")
     except ValueError as exc:
         return CheckResult("error", [str(exc)], warnings, batches)
 
     validate_runtime_schema(errors, warnings, garden, a_pool, a_mid, shadow, kronos, us, us_pool, us_macro)
+    validate_us_candidate_selection(errors, us, us_pool)
+    if garden.get("harvest_selection") is not None or str(garden.get("date") or "") >= "2026-07-28":
+        validate_harvest_selection(errors, garden, a_pool)
+    validate_public_pending(errors, paper, garden, us)
 
     audit_dataset = validate_research_audit(errors, research_audit, backtest, a_pool)
 

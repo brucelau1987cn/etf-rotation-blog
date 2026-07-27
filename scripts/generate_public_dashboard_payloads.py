@@ -15,7 +15,8 @@ SCHEMA_VERSION = "a-compass-dashboard-v1"
 CONTRACT_URL = "/schemas/a-compass-dashboard.schema.json"
 
 A_FIELDS = (
-    "code", "name", "type", "theme", "status", "price", "ret5", "ret20",
+    "code", "name", "type", "theme", "status", "price", "prev_close",
+    "ret3", "ret5", "ret10", "ret20", "ma20", "ma20_prev", "checks",
     "close_position", "signal_score", "strength_level", "trading_risk_score",
     "trade_state", "action", "cooldown_state", "risk_flags", "risk_level",
     "agent_bull", "agent_bear", "agent_scores",

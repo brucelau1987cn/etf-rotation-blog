@@ -2,18 +2,35 @@
 """Serialize close/export/build/commit/push for paper-trading snapshots."""
 import argparse
 import fcntl
+import os
 import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
+
+try:
+    from pages_release import release_pages
+except ModuleNotFoundError:
+    from scripts.pages_release import release_pages
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER_JSON = "public/data/paper-trading.json"
 LOCK_PATH = Path("/root/.hermes/state/etf-paper-publish.lock")
 
 
-def run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=ROOT, check=check, text=True, capture_output=True)
+def run(cmd: list[str], check: bool = True, **kwargs) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, cwd=ROOT, check=check, text=True, capture_output=True, **kwargs)
+
+
+def paper_subprocess_env() -> dict[str, str]:
+    return {**os.environ, "PAPER_PUBLISH_LOCK_HELD": "1"}
+
+
+def deploy_and_probe() -> None:
+    release_pages([
+        "https://etf.peekabo.cc/paper/",
+        "https://etf.peekabo.cc/data/paper-trading.json",
+    ])
 
 
 @contextmanager
@@ -69,7 +86,10 @@ def main(argv=None):
 
     with publish_lock():
         sync_before_publish()
-        close = run([sys.executable, "scripts/paper_trade_runner.py", "--market", args.market, "--mode", "close", "--state", args.state])
+        close = run(
+            [sys.executable, "scripts/paper_trade_runner.py", "--market", args.market, "--mode", "close", "--state", args.state],
+            env=paper_subprocess_env(),
+        )
         changed = run(["git", "diff", "--quiet", "--", PAPER_JSON], check=False).returncode != 0
         if not changed:
             return
@@ -80,6 +100,7 @@ def main(argv=None):
         if not is_ancestor("origin/main", "HEAD"):
             raise RuntimeError("origin/main changed during paper publication; retry after reconciliation")
         run(["git", "push", "origin", "HEAD:main"])
+        deploy_and_probe()
         if close.stdout.strip():
             print(close.stdout.strip())
 

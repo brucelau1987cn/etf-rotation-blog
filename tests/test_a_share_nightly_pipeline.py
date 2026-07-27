@@ -283,8 +283,12 @@ def test_nightly_refresh_reselects_before_macro_and_validation(monkeypatch):
     assert calls == [
         [publish.PROJECT_PYTHON, "scripts/select_a_share_candidates.py"],
         [publish.PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"],
+        [publish.PROJECT_PYTHON, "scripts/audit_a_share_harvest.py"],
         [publish.PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"],
+        [publish.PROJECT_PYTHON, "scripts/paper_trade_runner.py", "--mode", "sync-public"],
     ]
+    assert publish.PAPER_TRADING_FILE in publish.nightly_content_files("2026-07-14")
+    assert publish.PAPER_TRADING_FILE in publish.PUBLIC_VERIFY_FILES
 
 
 def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
