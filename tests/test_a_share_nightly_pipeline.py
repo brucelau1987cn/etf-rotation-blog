@@ -199,9 +199,12 @@ def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeyp
     assert json.loads(audit_path.read_text()) == {"sentinel": True}
 
 
-def test_prepare_blocks_invalid_kronos_snapshot(tmp_path, monkeypatch):
+def test_prepare_soft_checks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
     monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))
+    monkeypatch.setattr(prepare, "validate_research_audit", lambda errors, audit, backtest, pool: audit.get("dataset", {}))
+    monkeypatch.setattr(prepare, "generate_macro_snapshot", lambda: {"status": "ok"})
+    monkeypatch.setattr(prepare, "git_head", lambda: "a" * 40)
     (tmp_path / "public/data/model-lab").mkdir(parents=True)
     (tmp_path / "public/data/etf-garden-pool.json").write_text(json.dumps({
         "latest_trade_date": "2026-07-14", "summary": {"valid_count": 91}
@@ -216,8 +219,8 @@ def test_prepare_blocks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     write_macro_fixture(tmp_path)
     monkeypatch.setattr(prepare, "run_json", lambda command: {"decision": "run", "qfq_date": "2026-07-14"})
     result = prepare.prepare(now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=tmp_path / "state.json")
-    assert result["status"] == "blocked"
-    assert any("89/89" in error for error in result["errors"])
+    assert result["status"] == "prepared"
+    assert any("89/89" in warning for warning in result["warnings"])
 
 
 def test_macro_snapshot_validation_requires_all_dimensions_and_finite_values():
@@ -265,6 +268,23 @@ def prepared_state():
         "snapshot_files": list(publish.SNAPSHOT_FILES),
         "snapshot_hashes": {path: "0" * 64 for path in publish.SNAPSHOT_FILES},
     }
+
+
+def test_nightly_refresh_reselects_before_macro_and_validation(monkeypatch):
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(publish, "run", fake_run)
+    publish.refresh_nightly_recommendations({"PYTHONPATH": "."})
+
+    assert calls == [
+        [publish.PROJECT_PYTHON, "scripts/select_a_share_candidates.py"],
+        [publish.PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"],
+        [publish.PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"],
+    ]
 
 
 def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from scripts.generate_research_audit import build_payload
+import scripts.validate_dashboard_batches as validator
 from scripts.validate_dashboard_batches import validate
 
 
@@ -247,6 +248,50 @@ def test_research_audit_rejects_unpurged_t_plus_one_fold(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert any("purge/no-lookahead" in error for error in result.errors)
+
+
+def test_candidate_selection_metadata_is_required_for_new_batches():
+    garden = {
+        "date": "2026-07-28",
+        "plant": [{"code": "510300", "status": "候场"}],
+    }
+    pool = {"evaluation_date": "2026-07-28", "all_rows": [{"code": "510300", "theme": "宽基"}]}
+    errors, warnings = [], []
+
+    validator.validate_candidate_selection(errors, warnings, garden, pool)
+
+    assert any("candidate_selection is required" in error for error in errors)
+    assert any("selected_from_pool_date" in error for error in errors)
+
+
+def test_unchanged_candidate_set_emits_audit_warning():
+    item = {
+        "code": "510300",
+        "status": "候场",
+        "selected_from_pool_date": "2026-07-28",
+        "last_qualified_date": "2026-07-28",
+        "selection_score": 70.0,
+        "selection_rank": 1,
+        "qualified_reason": ["趋势B"],
+        "selection_rule_version": "a-candidate-v1",
+    }
+    garden = {
+        "date": "2026-07-28",
+        "plant": [item],
+        "candidate_selection": {
+            "evaluation_date": "2026-07-28",
+            "selected_codes": ["510300"],
+            "unchanged_from_previous": True,
+            "rule_version": "a-candidate-v1",
+        },
+    }
+    pool = {"evaluation_date": "2026-07-28", "all_rows": [{"code": "510300", "theme": "宽基"}]}
+    errors, warnings = [], []
+
+    validator.validate_candidate_selection(errors, warnings, garden, pool)
+
+    assert errors == []
+    assert any("unchanged" in warning for warning in warnings)
 
 
 def test_invalid_stage_and_status_are_blocked(tmp_path):

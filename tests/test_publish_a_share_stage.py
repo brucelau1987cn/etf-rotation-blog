@@ -59,6 +59,28 @@ def test_managed_paths_rejects_foreign_catalog_input():
         stage.managed_paths("2026-07-23", {"public/data/us-etf-pool.json"})
 
 
+def test_refresh_reselects_candidates_before_macro_gate(tmp_path, monkeypatch):
+    monkeypatch.setattr(stage, "ROOT", tmp_path)
+    data = tmp_path / "public/data"
+    data.mkdir(parents=True)
+    (data / "etf-garden-pool.json").write_text(json.dumps({"all_rows": []}), encoding="utf-8")
+    (data / "etf-garden-backtest.json").write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return completed(command)
+
+    monkeypatch.setattr(stage, "run", fake_run)
+    monkeypatch.setattr(stage, "build_payload", lambda *args: {})
+    monkeypatch.setattr(stage, "atomic_write_json", lambda *args: None)
+
+    stage.refresh_derived_artifacts("2026-07-28T08:30:00+08:00")
+
+    assert calls[0][1:] == ["scripts/select_a_share_candidates.py"]
+    assert calls[1][1:] == ["scripts/generate_a_share_mid_macro.py"]
+
+
 def test_candidate_validation_failure_prevents_ref_update_and_push(tmp_path, monkeypatch):
     monkeypatch.setattr(stage, "ROOT", tmp_path)
     write_stage_files(tmp_path)

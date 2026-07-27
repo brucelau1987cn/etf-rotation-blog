@@ -106,6 +106,7 @@ def article_path(trade_date: str) -> str:
 
 def refresh_derived_artifacts(generated_at: str) -> None:
     env = project_subprocess_env()
+    run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
     run([PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"], env=env, timeout=300)
     pool = json.loads((ROOT / POOL_FILE).read_text(encoding="utf-8"))
     backtest = json.loads((ROOT / BACKTEST_FILE).read_text(encoding="utf-8"))

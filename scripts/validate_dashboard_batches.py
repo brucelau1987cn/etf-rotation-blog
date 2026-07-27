@@ -121,6 +121,61 @@ def validate_levels(
         findings.append(f"{label} requires target > support")
 
 
+def validate_candidate_selection(
+    errors: list[str], warnings: list[str], garden: dict[str, Any], a_pool: dict[str, Any],
+) -> None:
+    """Require auditable current-pool candidate identity for new batches."""
+    garden_date = date_prefix(garden.get("date"))
+    if garden_date is None or garden_date < "2026-07-28":
+        return
+    pool_date = date_prefix(a_pool.get("evaluation_date"))
+    selection = garden.get("candidate_selection")
+    if not isinstance(selection, dict):
+        errors.append("garden-recommendations candidate_selection is required for batches on/after 2026-07-28")
+        selection = {}
+    require_fields(errors, "garden-recommendations candidate_selection", selection, ("evaluation_date", "rule_version", "selected_codes"))
+    if date_prefix(selection.get("evaluation_date")) != pool_date:
+        errors.append("garden-recommendations candidate_selection evaluation_date differs from current pool")
+
+    raw_pool_rows = a_pool.get("all_rows")
+    pool_rows: list[Any] = raw_pool_rows if isinstance(raw_pool_rows, list) else []
+    pool_map = {str(row.get("code")): row for row in pool_rows if isinstance(row, dict) and row.get("code")}
+    raw_plants = garden.get("plant")
+    plants: list[Any] = raw_plants if isinstance(raw_plants, list) else []
+    selected_codes: list[str] = []
+    defensive_count = 0
+    for index, item in enumerate(plants):
+        if not isinstance(item, dict):
+            continue
+        label = f"garden-recommendations plant[{index}] candidate audit"
+        require_fields(errors, label, item, (
+            "selected_from_pool_date", "last_qualified_date", "selection_score", "selection_rank",
+            "qualified_reason", "selection_rule_version",
+        ))
+        code = str(item.get("code") or "")
+        selected_codes.append(code)
+        if code not in pool_map:
+            errors.append(f"{label} code {code!r} is absent from current formal pool")
+        if date_prefix(item.get("selected_from_pool_date")) != pool_date:
+            errors.append(f"{label} selected_from_pool_date differs from current pool")
+        if date_prefix(item.get("last_qualified_date")) != pool_date:
+            errors.append(f"{label} last_qualified_date differs from current pool")
+        if number(item.get("selection_score")) is None or not isinstance(item.get("selection_rank"), int):
+            errors.append(f"{label} has invalid selection score/rank")
+        if not isinstance(item.get("qualified_reason"), list) or not item.get("qualified_reason"):
+            errors.append(f"{label} qualified_reason must be a non-empty array")
+        row = pool_map.get(code) or {}
+        defensive_text = " ".join(str(row.get(key) or "") for key in ("theme", "name", "category"))
+        if any(token in defensive_text for token in ("银行", "红利", "低波", "现金流", "国债", "债券", "货币")):
+            defensive_count += 1
+    if defensive_count > 1:
+        errors.append("garden-recommendations candidate selection exceeds defensive candidate limit 1")
+    if selection.get("selected_codes") != selected_codes:
+        errors.append("garden-recommendations candidate_selection selected_codes differs from plant order")
+    if selection.get("unchanged_from_previous") is True:
+        warnings.append("A-share candidate set unchanged from previous batch; current-day qualification metadata verified")
+
+
 def validate_runtime_schema(
     errors: list[str], warnings: list[str], garden: dict[str, Any], a_pool: dict[str, Any], a_mid: dict[str, Any],
     shadow: dict[str, Any], kronos: dict[str, Any], us: dict[str, Any], us_pool: dict[str, Any], us_macro: dict[str, Any],
@@ -153,6 +208,7 @@ def validate_runtime_schema(
             if item.get("status") == "伏击" and item.get("eligibility") == "blocked":
                 errors.append(f"{label} blocked item cannot be formal 伏击")
 
+    validate_candidate_selection(errors, warnings, garden, a_pool)
     summary = a_pool.get("summary") or {}
     rows = a_pool.get("all_rows")
     if not isinstance(rows, list) or not rows:
@@ -184,7 +240,8 @@ def validate_runtime_schema(
             )
 
     require_fields(errors, "a-share-mid-macro", a_mid, ("version", "generated_at", "market", "factors", "constraint"))
-    if a_mid.get("market") != "CN" or not isinstance(a_mid.get("factors"), list) or len(a_mid.get("factors")) != 3:
+    mid_factors = a_mid.get("factors")
+    if a_mid.get("market") != "CN" or not isinstance(mid_factors, list) or len(mid_factors) != 3:
         errors.append("a-share-mid-macro requires market=CN and exactly 3 factors")
     if shadow.get("mode") != "shadow_research_only" or shadow.get("production_weights_changed") is not False:
         errors.append("a-share-shadow must remain shadow_research_only with unchanged production weights")

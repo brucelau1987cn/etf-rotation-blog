@@ -335,6 +335,13 @@ def ensure_pub_date(article: Path, trade_date: str, *, write: bool = True) -> No
     article.write_text(text[:match.start("header")] + updated_header + text[match.end("header"):], encoding="utf-8")
 
 
+def refresh_nightly_recommendations(env: dict[str, str]) -> None:
+    """Rebuild candidate identity before applying the macro eligibility gate."""
+    run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
+    run([PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"], env=env, timeout=300)
+    run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+
+
 def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | None = None) -> dict[str, Any]:
     state = load_state(state_path)
     trade_date = state["trade_date"]
@@ -447,7 +454,7 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
     expected_snapshots = set(SNAPSHOT_FILES)
     allowed = expected_content | expected_snapshots | set(GENERATED_PUBLIC_FILES)
     env = project_subprocess_env()
-    run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
+    refresh_nightly_recommendations(env)
     batch = run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
     run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
     run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
