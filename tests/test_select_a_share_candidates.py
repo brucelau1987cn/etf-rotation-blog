@@ -74,7 +74,7 @@ def test_daily_reselection_removes_unqualified_incumbents():
     assert audit["evaluated_count"] == 2
 
 
-def test_continuity_bonus_only_applies_after_current_day_qualification():
+def test_continuity_bonus_keeps_age_but_refreshes_action_text():
     mod = load_module()
     pool = {
         "evaluation_date": "2026-07-28",
@@ -96,7 +96,23 @@ def test_continuity_bonus_only_applies_after_current_day_qualification():
 
     assert selected[0]["code"] == "KEEP01"
     assert selected[0]["candidate_since"] == "2026-07-25"
-    assert selected[0]["action"] == "保留已有盘中说明"
+    assert selected[0]["action"] != "保留已有盘中说明"
+    assert "等待回踩" in selected[0]["action"]
+
+
+def test_harvest_codes_are_excluded_before_candidate_ranking():
+    mod = load_module()
+    pool = {
+        "evaluation_date": "2026-07-28",
+        "all_rows": [
+            row("SELL01", score=90, rank=1, theme="通信"),
+            row("BUY001", score=70, rank=2, theme="中药"),
+        ],
+    }
+
+    selected, _ = mod.select_candidates(pool, [], limit=3, excluded_codes={"SELL01"})
+
+    assert [item["code"] for item in selected] == ["BUY001"]
 
 
 def test_selection_limits_defensive_candidates_to_one():
@@ -135,9 +151,12 @@ def test_apply_selection_replaces_entire_plant_array():
         "plant": [{"code": "STALE1", "status": "候场"}],
         "harvest": [],
     }
+    rows = [row("LIVE01", score=72, rank=1, theme="中药")]
+    rows.extend(row(f"WEAK{i:02d}", score=30, rank=90, strength="D", momentum=False) for i in range(90))
     pool = {
         "evaluation_date": "2026-07-28",
-        "all_rows": [row("LIVE01", score=72, rank=1, theme="中药")],
+        "summary": {"universe_count": 91},
+        "all_rows": rows,
     }
 
     result = mod.apply_selection(recommendations, pool, limit=3)
@@ -145,3 +164,20 @@ def test_apply_selection_replaces_entire_plant_array():
     assert [item["code"] for item in result["plant"]] == ["LIVE01"]
     assert result["candidate_selection"]["selected_codes"] == ["LIVE01"]
     assert result["candidate_selection"]["rule_version"] == mod.RULE_VERSION
+
+
+def test_apply_selection_fails_closed_on_partial_formal_pool():
+    mod = load_module()
+    recommendations = {"date": "2026-07-28", "plant": [], "harvest": []}
+    pool = {
+        "evaluation_date": "2026-07-28",
+        "summary": {"universe_count": 90},
+        "all_rows": [row("ONLY01")],
+    }
+
+    try:
+        mod.apply_selection(recommendations, pool)
+    except ValueError as exc:
+        assert "91" in str(exc)
+    else:
+        raise AssertionError("partial pool must fail closed")

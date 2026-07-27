@@ -139,6 +139,12 @@ def validate_candidate_selection(
 
     raw_pool_rows = a_pool.get("all_rows")
     pool_rows: list[Any] = raw_pool_rows if isinstance(raw_pool_rows, list) else []
+    pool_universe_count = (a_pool.get("summary") or {}).get("universe_count")
+    if len(pool_rows) != 91 or pool_universe_count != 91:
+        errors.append(
+            f"etf-garden-pool candidate selection requires exactly 91 formal rows: "
+            f"rows={len(pool_rows)}, summary={pool_universe_count!r}"
+        )
     pool_map = {str(row.get("code")): row for row in pool_rows if isinstance(row, dict) and row.get("code")}
     raw_plants = garden.get("plant")
     plants: list[Any] = raw_plants if isinstance(raw_plants, list) else []

@@ -625,6 +625,22 @@ def build_constraint(factors: list[dict[str, Any]], base_position: str | None, m
     }
 
 
+def sync_candidate_selection_audit(reco: dict[str, Any], headwind_level: int) -> None:
+    audit = reco.get("candidate_selection")
+    if not isinstance(audit, dict):
+        return
+    raw_pre_macro_codes = audit.get("selected_codes")
+    pre_macro_codes = [str(code) for code in raw_pre_macro_codes] if isinstance(raw_pre_macro_codes, list) else []
+    raw_plants = reco.get("plant")
+    plants: list[Any] = raw_plants if isinstance(raw_plants, list) else []
+    final_codes = [str(item.get("code")) for item in plants if isinstance(item, dict) and item.get("code")]
+    audit["pre_macro_selected_codes"] = pre_macro_codes
+    audit["selected_codes"] = final_codes
+    audit["selected_count"] = len(final_codes)
+    audit["macro_gate_removed_codes"] = [code for code in pre_macro_codes if code not in final_codes]
+    audit["macro_headwind_level"] = headwind_level
+
+
 def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str, Any]], generated_at: str) -> dict[str, Any] | None:
     if not RECO.exists():
         return None
@@ -716,6 +732,8 @@ def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str,
             reco["plant"] = (ok_items + watch)[:2]
         else:
             reco["plant"] = filtered
+
+    sync_candidate_selection_audit(reco, int(constraint["headwind_level"]))
 
     if constraint["headwind_level"] >= 2:
         summary = str(reco.get("summary") or "")

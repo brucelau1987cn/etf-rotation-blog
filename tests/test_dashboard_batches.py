@@ -262,6 +262,7 @@ def test_candidate_selection_metadata_is_required_for_new_batches():
 
     assert any("candidate_selection is required" in error for error in errors)
     assert any("selected_from_pool_date" in error for error in errors)
+    assert any("exactly 91" in error for error in errors)
 
 
 def test_unchanged_candidate_set_emits_audit_warning():
@@ -285,7 +286,13 @@ def test_unchanged_candidate_set_emits_audit_warning():
             "rule_version": "a-candidate-v1",
         },
     }
-    pool = {"evaluation_date": "2026-07-28", "all_rows": [{"code": "510300", "theme": "宽基"}]}
+    pool_rows = [{"code": "510300", "theme": "宽基"}]
+    pool_rows.extend({"code": f"X{i:05d}", "theme": "行业"} for i in range(90))
+    pool = {
+        "evaluation_date": "2026-07-28",
+        "summary": {"universe_count": 91},
+        "all_rows": pool_rows,
+    }
     errors, warnings = [], []
 
     validator.validate_candidate_selection(errors, warnings, garden, pool)

@@ -97,6 +97,24 @@ class MidMacroConstraintTests(unittest.TestCase):
         self.assertTrue(observations)
         self.assertEqual(observations[0]["display"], "50.30")
 
+    def test_macro_gate_syncs_final_candidate_audit(self) -> None:
+        reco = {
+            "plant": [{"code": "A"}, {"code": "B"}],
+            "candidate_selection": {
+                "selected_codes": ["A", "B", "C"],
+                "selected_count": 3,
+            },
+        }
+
+        self.mod.sync_candidate_selection_audit(reco, headwind_level=3)
+
+        audit = reco["candidate_selection"]
+        self.assertEqual(audit["pre_macro_selected_codes"], ["A", "B", "C"])
+        self.assertEqual(audit["selected_codes"], ["A", "B"])
+        self.assertEqual(audit["selected_count"], 2)
+        self.assertEqual(audit["macro_gate_removed_codes"], ["C"])
+        self.assertEqual(audit["macro_headwind_level"], 3)
+
     def test_macro_framework_is_complete_and_honest(self) -> None:
         dimensions = self.mod.MACRO_FRAMEWORK
         self.assertEqual(len(dimensions), 6)

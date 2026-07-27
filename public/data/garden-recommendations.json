@@ -179,7 +179,7 @@
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-07-27",
-      "selection_score": 76.11,
+      "selection_score": 77.61,
       "selection_rank": 1,
       "candidate_since": "2026-07-27",
       "last_qualified_date": "2026-07-27",
@@ -219,7 +219,7 @@
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-07-27",
-      "selection_score": 71.33,
+      "selection_score": 72.83,
       "selection_rank": 2,
       "candidate_since": "2026-07-27",
       "last_qualified_date": "2026-07-27",
@@ -260,7 +260,7 @@
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-07-27",
-      "selection_score": 59.54,
+      "selection_score": 61.04,
       "selection_rank": 3,
       "candidate_since": "2026-07-27",
       "last_qualified_date": "2026-07-27",
@@ -656,7 +656,7 @@
     "rule_version": "a-candidate-v1",
     "evaluation_date": "2026-07-27",
     "evaluated_count": 91,
-    "eligible_count": 8,
+    "eligible_count": 7,
     "selected_count": 3,
     "selected_codes": [
       "560080",
@@ -664,11 +664,26 @@
       "512890"
     ],
     "previous_codes": [
-      "512800",
-      "515180"
+      "560080",
+      "159920",
+      "512890"
     ],
-    "unchanged_from_previous": false,
+    "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
-    "defensive_limit": 1
+    "defensive_limit": 1,
+    "excluded_harvest_codes": [
+      "159326",
+      "159992",
+      "512400",
+      "515220",
+      "517520"
+    ],
+    "pre_macro_selected_codes": [
+      "560080",
+      "159920",
+      "512890"
+    ],
+    "macro_gate_removed_codes": [],
+    "macro_headwind_level": 1
   }
 }

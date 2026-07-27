@@ -19,6 +19,7 @@ RECOMMENDATIONS = ROOT / "public/data/garden-recommendations.json"
 POOL = ROOT / "public/data/etf-garden-pool.json"
 RULE_VERSION = "a-candidate-v1"
 DEFAULT_LIMIT = 3
+EXPECTED_FORMAL_POOL = 91
 CONTINUITY_BONUS = 1.5
 DEFENSIVE_THEME_TOKENS = ("银行", "红利", "低波", "现金流", "国债", "债券", "货币")
 
@@ -110,8 +111,8 @@ def generated_action(row: dict[str, Any]) -> str:
 def make_candidate(row: dict[str, Any], previous: dict[str, Any] | None, evaluation_date: str, score: float, rank: int) -> dict[str, Any]:
     proven_incumbent = bool(previous and previous.get("last_qualified_date"))
     previous_item = previous or {}
-    action = str(previous_item.get("action") or "") if proven_incumbent else generated_action(row)
-    trigger = str(previous_item.get("trigger") or "") if proven_incumbent else action
+    action = generated_action(row)
+    trigger = action
     candidate_since = str(previous_item.get("candidate_since")) if proven_incumbent and previous_item.get("candidate_since") else evaluation_date
     return {
         "status": "候场",
@@ -148,7 +149,10 @@ def make_candidate(row: dict[str, Any], previous: dict[str, Any] | None, evaluat
     }
 
 
-def select_candidates(pool: dict[str, Any], previous_items: list[dict[str, Any]], limit: int = DEFAULT_LIMIT) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def select_candidates(
+    pool: dict[str, Any], previous_items: list[dict[str, Any]], limit: int = DEFAULT_LIMIT,
+    excluded_codes: set[str] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     evaluation_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or "")
     if not evaluation_date:
         raise ValueError("pool evaluation date is missing")
@@ -156,9 +160,10 @@ def select_candidates(pool: dict[str, Any], previous_items: list[dict[str, Any]]
     if not isinstance(rows, list):
         raise ValueError("pool all_rows is missing")
     previous_map = {str(item.get("code")): item for item in previous_items if isinstance(item, dict) and item.get("code")}
+    excluded = excluded_codes or set()
     eligible: list[tuple[float, dict[str, Any]]] = []
     for row in rows:
-        if not isinstance(row, dict) or not row.get("code") or not qualifies(row):
+        if not isinstance(row, dict) or not row.get("code") or str(row.get("code")) in excluded or not qualifies(row):
             continue
         previous = previous_map.get(str(row["code"]))
         incumbent = bool(previous and previous.get("last_qualified_date"))
@@ -205,8 +210,18 @@ def apply_selection(recommendations: dict[str, Any], pool: dict[str, Any], limit
     evaluation_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or "")
     if str(result.get("date") or "") != evaluation_date:
         raise ValueError(f"recommendation/pool date mismatch: {result.get('date')!r} != {evaluation_date!r}")
+    rows = pool.get("all_rows")
+    universe_count = (pool.get("summary") or {}).get("universe_count")
+    if not isinstance(rows, list) or len(rows) != EXPECTED_FORMAL_POOL or universe_count != EXPECTED_FORMAL_POOL:
+        raise ValueError(
+            f"formal pool must be exactly {EXPECTED_FORMAL_POOL}: rows={len(rows) if isinstance(rows, list) else 'missing'}, "
+            f"summary={universe_count!r}"
+        )
     previous = result.get("plant") if isinstance(result.get("plant"), list) else []
-    selected, audit = select_candidates(pool, previous, limit=limit)
+    harvest = result.get("harvest") if isinstance(result.get("harvest"), list) else []
+    excluded_codes = {str(item.get("code")) for item in harvest if isinstance(item, dict) and item.get("code")}
+    selected, audit = select_candidates(pool, previous, limit=limit, excluded_codes=excluded_codes)
+    audit["excluded_harvest_codes"] = sorted(excluded_codes)
     result["plant"] = selected
     result["candidate_selection"] = audit
     return result
