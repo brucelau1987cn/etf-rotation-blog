@@ -105,6 +105,12 @@ const summarizeInstrument = (payload: Payload) => {
     sellCount: sells.length,
     buyWatch,
     sellWatch,
+    latestBuy: buys
+      .filter((item) => item.triggered_at)
+      .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null,
+    latestSell: sells
+      .filter((item) => item.triggered_at)
+      .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null,
     latest: timeline
       .filter((item) => item.triggered_at)
       .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null,

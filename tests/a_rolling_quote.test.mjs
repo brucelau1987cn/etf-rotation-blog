@@ -27,3 +27,22 @@ test('extracts single quote directly for stock-quote UI', () => {
   assert.equal(quote.price, 14.21);
   assert.equal(quote.change_percent, -7.37);
 });
+
+test('matches Tencent US suffix symbols to bare rolling tickers', () => {
+  const payload = {
+    status: 'ok',
+    count: 4,
+    quotes: {
+      '.INX': { symbol: '.INX', sec_code: 'usINX', price: 7411.98, change_percent: 0.05 },
+      '.IXIC': { symbol: '.IXIC', sec_code: 'usIXIC', price: 24975.82, change_percent: -0.64 },
+      '.DJI': { symbol: '.DJI', sec_code: 'usDJI', price: 51947.25, change_percent: 0.46 },
+      'TSLA.OQ': { symbol: 'TSLA.OQ', sec_code: 'usTSLA', price: 313.03, change_percent: -2.08 },
+    },
+  };
+
+  const normalized = normalizeQuotePayload(payload);
+  assert.equal(findQuoteItem(normalized, 'INX')?.price, 7411.98);
+  assert.equal(findQuoteItem(normalized, 'IXIC')?.price, 24975.82);
+  assert.equal(findQuoteItem(normalized, 'DJI')?.price, 51947.25);
+  assert.equal(findQuoteItem(normalized, 'TSLA')?.price, 313.03);
+});

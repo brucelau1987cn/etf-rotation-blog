@@ -5,6 +5,22 @@ PAGE = ROOT / "src" / "pages" / "rolling.astro"
 MATRIX = ROOT / "src" / "components" / "ARollingEnergyMatrix.astro"
 ALERTS = ROOT / "src" / "components" / "ARollingAiAlerts.astro"
 APP = ROOT / "public" / "js" / "a-rolling-app.js"
+STATS = ROOT / "src" / "components" / "ARollingStatsStrip.astro"
+STYLES = ROOT / "src" / "styles" / "a-rolling.css"
+HK_PAGE = ROOT / "src" / "pages" / "rolling" / "hk.astro"
+US_PAGE = ROOT / "src" / "pages" / "rolling" / "us.astro"
+HEADER = ROOT / "src" / "components" / "Header.astro"
+FOOTER = ROOT / "src" / "components" / "Footer.astro"
+SUBNAV = ROOT / "src" / "components" / "RollingSubnav.astro"
+
+
+def test_primary_navigation_uses_rolling_compass_name():
+    header = HEADER.read_text(encoding="utf-8")
+    footer = FOOTER.read_text(encoding="utf-8")
+    subnav = SUBNAV.read_text(encoding="utf-8")
+    for source in (header, footer, subnav):
+        assert "滚动罗盘" in source
+        assert "滚动轮盘" not in source
 
 
 def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
@@ -19,3 +35,79 @@ def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
     assert "/api/public/v1/rolling-signals" in app
     assert "startMarketPoll" in app
     assert "calendarMarket" in app
+    assert "initialQuoteLoad" in app
+
+
+def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
+    stats = STATS.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    assert 'market-index-card' in stats
+    assert 'class="watch-card"' not in stats
+    assert 'id="stat-buy-total"' not in stats
+    assert 'id="stat-sell-total"' not in stats
+    assert 'id="buy-signal-track"' in stats
+    assert 'id="sell-signal-track"' in stats
+    assert 'class="summary-signal-point"' in stats
+    assert 'class="summary-signal-time"' in stats
+    assert 'id="index-refresh-countdown"' in stats
+    assert '最新 4 条' not in stats
+    assert '每股最新 1 条' not in stats
+    assert stats.count('signal-chip') == 1
+    assert ".slice(0, 4)" not in stats
+    assert ".slice(0, 4)" not in app
+
+    index_order = [stats.index(name) for name in ("上证指数", "深证成指", "创业板指")]
+    assert index_order == sorted(index_order)
+    for symbol in ("000001.SH", "399001.SZ", "399006.SZ"):
+        assert symbol in app
+
+    assert "renderSummarySignals" in app
+    assert "startSummaryTicker" in app
+    assert "index-refresh-countdown" in app
+    assert "QUOTE_INTERVAL_MS" in app
+    assert "min-height: 236px" in styles
+    assert ".a-rolling-main .summary-signal-viewport" in styles
+    assert ".a-rolling-main .market-index-row" in styles
+
+
+def test_summary_shows_today_updates_and_240m_stop_validation_card():
+    stats = STATS.read_text(encoding="utf-8")
+    matrix = MATRIX.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    for marker in (
+        'id="buy-today-track"',
+        'id="sell-today-track"',
+        '当日更新',
+        '暂无',
+    ):
+        assert marker in stats
+    assert "isTodayShanghai" in app
+    assert "renderTodaySignals" in app
+    assert "stop-validation-card" in app
+    assert "停止验证" in app
+    assert "stop-validation-card" in matrix
+    assert "停止验证" in matrix
+    assert "item.code === '240m'" in matrix
+    assert ".a-rolling-main .today-signal-row" in styles
+    assert ".a-rolling-main .stop-validation-card" in styles
+
+
+def test_hk_and_us_rolling_use_market_specific_index_cards():
+    stats = STATS.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    hk = HK_PAGE.read_text(encoding="utf-8")
+    us = US_PAGE.read_text(encoding="utf-8")
+
+    assert "indexMarket?: 'a' | 'hk' | 'us'" in stats
+    assert 'indexMarket="hk"' in hk
+    assert 'indexMarket="us"' in us
+    for name in ("恒生指数", "恒生综合指数", "恒生科技指数"):
+        assert name in stats
+    for name in ("标普500指数", "纳斯达克综合指数", "道琼斯工业平均指数"):
+        assert name in stats
+    for symbol in ("HSI.HK", "HSCI.HK", "HSTECH.HK", "INX.US", "IXIC.US", "DJI.US"):
+        assert symbol in app

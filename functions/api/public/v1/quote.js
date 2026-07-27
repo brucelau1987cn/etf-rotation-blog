@@ -260,8 +260,14 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
     const code = parts[0];
     const ex = parts[1].toUpperCase();
 
-    if (ex === 'HK') return { tencent: `hk${code.padStart(5, '0')}`, sina: `hk${code.padStart(5, '0')}`, xueqiu: `${code.padStart(5, '0')}`, displayCode: code, type: 'hk' };
-    if (ex === 'US') return { tencent: `us${code}`, sina: `gb_${code.toLowerCase()}`, xueqiu: code.toUpperCase(), displayCode: code, type: 'us' };
+    if (ex === 'HK') {
+      const normalized = /^\d+$/.test(code) ? code.padStart(5, '0') : code.toUpperCase();
+      return { tencent: `hk${normalized}`, sina: `hk${normalized}`, xueqiu: normalized, displayCode: normalized, type: 'hk' };
+    }
+    if (ex === 'US') {
+      const normalized = code.replace(/^\./, '').toUpperCase();
+      return { tencent: `us${normalized}`, sina: `gb_${normalized.toLowerCase()}`, xueqiu: normalized, displayCode: normalized, type: 'us' };
+    }
     if (ex === 'SZ' || ex === 'SZSE') return { tencent: `sz${code}`, sina: `sz${code}`, xueqiu: `SZ${code}`, displayCode: code, type: 'a' };
     if (ex === 'SH' || ex === 'SSE') return { tencent: `sh${code}`, sina: `sh${code}`, xueqiu: `SH${code}`, displayCode: code, type: 'a' };
     if (ex === 'BJ') return { tencent: `bj${code}`, sina: `bj${code}`, xueqiu: `BJ${code}`, displayCode: code, type: 'a' };
@@ -397,6 +403,43 @@ async function fetchTencent(parsedList) {
   }
 
   return quotes;
+}
+
+async function fetchHangSengComposite() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3500);
+  const response = await fetch('https://www.hsi.com.hk/data/eng/rt/dashboard.do?5500', {
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timer));
+  if (!response.ok) throw new Error(`HSI dashboard HTTP ${response.status}`);
+  const data = await response.json();
+  const hongKong = (data?.regions || []).find(region => region?.regionId === 'hongkong');
+  const item = (hongKong?.dashboardList || []).find(index => index?.url === 'hsci' || index?.indexCode === '00011.00');
+  if (!item) throw new Error('Hang Seng Composite Index missing');
+  const price = Number(item.indexValue);
+  const prevClose = Number(item.previousClose);
+  const changeAmount = Number(item.changeValue);
+  const changePercent = Number(item.changePercentage);
+  if (!(price > 0)) throw new Error('Hang Seng Composite Index invalid price');
+  return {
+    HSCI: {
+      symbol: 'HSCI',
+      sec_code: 'hsi:00011.00',
+      name: '恒生综合指数',
+      market: 'HK-SHARE',
+      price,
+      prev_close: prevClose,
+      open: 0,
+      high: 0,
+      low: 0,
+      change_amount: Number(changeAmount.toFixed(3)),
+      change_percent: Number(changePercent.toFixed(2)),
+      quote_time: item.lastUpdate ? `${item.lastUpdate.replace(' ', 'T')}+08:00` : new Date().toISOString(),
+      source: 'hang-seng-indexes',
+      status: 'ok',
+    },
+  };
 }
 
 /**
@@ -583,11 +626,20 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   const parsedList = rawItems.map(item => parseSymbol(item, defaultExchange)).filter(Boolean);
   const hasValidPrice = (quotes) => Object.values(quotes || {}).some((q) => Number(q?.price) > 0);
 
-  // 1. 尝试腾讯
+  // 1. 尝试腾讯；恒生综合指数由恒生指数公司官方看板补齐。
   try {
     const quotes = await fetchTencent(parsedList);
+    if (rawItems.some(item => item.toUpperCase() === 'HSCI.HK' || item.toUpperCase() === 'HKHSCI')) {
+      try {
+        Object.assign(quotes, await fetchHangSengComposite());
+      } catch (err) {
+        console.warn('Hang Seng Composite official source failed:', err.message);
+      }
+    }
     if (hasValidPrice(quotes)) {
-      return { status: 'ok', source: 'tencent', count: Object.keys(quotes).length, quotes };
+      const sources = new Set(Object.values(quotes).map(quote => quote.source).filter(Boolean));
+      const source = sources.size > 1 ? 'mixed' : (sources.values().next().value || 'tencent');
+      return { status: 'ok', source, count: Object.keys(quotes).length, quotes };
     }
   } catch (err) {
     console.warn('Primary source (Tencent) failed, falling back to Sina:', err.message);

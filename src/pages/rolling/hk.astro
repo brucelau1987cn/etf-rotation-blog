@@ -99,7 +99,7 @@ const pageDescription = '港股滚动看板：中国宏桥的多方正式窗口�
             <p>中国宏桥独立展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。</p>
           </div>
         </div>
-        <ARollingStatsStrip buyTotal={summary.buyCount} sellTotal={summary.sellCount} instruments={[summary]} latestAction={latestAction} />
+        <ARollingStatsStrip buyTotal={summary.buyCount} sellTotal={summary.sellCount} instruments={[summary]} latestAction={latestAction} indexMarket="hk" />
       </section>
       <ARollingEnergyMatrix
         instruments={[{ instrumentName: summary.name, symbol: summary.symbol, exchange: summary.exchange, timeline: summary.timeline }]}

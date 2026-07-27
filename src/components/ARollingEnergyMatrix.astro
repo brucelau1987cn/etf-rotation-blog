@@ -137,10 +137,18 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                       ) : null
                     ) : (
                       sells.map((item) => (
-                        <div class="cell-badge sell-sell" data-sell-code={item.code}>
-                          <div class="badge-code">{item.code}</div>
-                          <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
-                        </div>
+                        <>
+                          <div class="cell-badge sell-sell" data-sell-code={item.code}>
+                            <div class="badge-code">{item.code}</div>
+                            <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
+                          </div>
+                          {item.code === '240m' ? (
+                            <div class="stop-validation-card" data-role="stop-validation" aria-label="空方力量达到240分钟，停止验证">
+                              <strong>停止验证</strong>
+                              <span>空方已达 240m</span>
+                            </div>
+                          ) : null}
+                        </>
                       ))
                     )}
                   </div>
@@ -161,7 +169,10 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                       <>
                         <div class="empty-rail">买入信号暂无</div>
                         {sells.map((item) => (
-                          <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                          <>
+                            <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                            {item.code === '240m' ? <div class="cell-spacer" data-align-sell="stop-validation" aria-hidden="true"></div> : null}
+                          </>
                         ))}
                       </>
                     ) : (
@@ -173,7 +184,10 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
                           </div>
                         ))}
                         {sells.map((item) => (
-                          <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                          <>
+                            <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
+                            {item.code === '240m' ? <div class="cell-spacer" data-align-sell="stop-validation" aria-hidden="true"></div> : null}
+                          </>
                         ))}
                       </>
                     )}
