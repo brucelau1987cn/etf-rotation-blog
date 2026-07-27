@@ -1,16 +1,16 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "66ca6d9fbb3c9bb6d03ed3a50aa341f8d117d2f64dbea74a5439114785296c3c",
+  "batch_id": "a8fd1b13326bbff799d17067ceb9ed95bbff08b62f3c062d4253f7b2a8d8ff7d",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-07-26T16:05:18Z",
+  "generated_at": "2026-07-27T14:06:38Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
       "role": "production",
       "market": "CN",
       "schema_version": "legacy-unversioned",
-      "observation_date": "2026-07-24",
-      "generated_at": "2026-07-24 22:00 CST",
+      "observation_date": "2026-07-27",
+      "generated_at": "2026-07-27 08:30 CST",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -28,9 +28,9 @@
         "market_data",
         "derived_research"
       ],
-      "semantic_sha256": "f3bd72f549f6d2c9533575276574e567fe5a54bb77c6a5e60aca5688adcf5adb",
-      "sha256": "889617d4cea127f79a2cb4d54af3afd1d44860397a6135d05ba2cdb9e5bce7c2",
-      "bytes": 14045,
+      "semantic_sha256": "36664c354dff511125a0e1f2e0fe616cfaa47cd92d823132fdcada64d4d4a9e6",
+      "sha256": "892d325133b099f5b1359350ca8af6cb3b32ef9ea8f03a54d2f998f286233990",
+      "bytes": 15862,
       "public_url": "/data/garden-recommendations.json"
     },
     {
@@ -39,7 +39,7 @@
       "market": "CN",
       "schema_version": "a-compass-dashboard-v1",
       "observation_date": "2026-07-24",
-      "generated_at": "2026-07-24 21:01:22 UTC+08:00",
+      "generated_at": "2026-07-27 09:12:14 UTC+08:00",
       "completeness": {
         "status": "known",
         "ratio": 1.0,
@@ -48,16 +48,18 @@
         "reason": null
       },
       "degradation": {
-        "status": "normal",
-        "reasons": []
+        "status": "degraded",
+        "reasons": [
+          "20 observations use a disclosed fallback"
+        ]
       },
       "source_categories": [
         "market_data",
         "derived_research"
       ],
-      "semantic_sha256": "90d1638cc981dcbbdaecdfc82979963715b2f02dbbd66ae841a7ef7636740281",
-      "sha256": "5e57f88173f96fe274c985927d708819083139627d45ea5dc7a5c61309301a00",
-      "bytes": 56976,
+      "semantic_sha256": "e44e39c76641008bc98ae9962c64501db2a14a331782f5431746819a5d9660e0",
+      "sha256": "c0a937d7de1e20657645cd61615e700b0bceee93e8c6b4343d389d0752549444",
+      "bytes": 52833,
       "public_url": "/data/a-compass-dashboard.json"
     },
     {
@@ -66,7 +68,7 @@
       "market": "CN",
       "schema_version": "legacy-unversioned",
       "observation_date": "2026-07-24",
-      "generated_at": "2026-07-24 21:01:22 UTC+08:00",
+      "generated_at": "2026-07-27 09:12:14 UTC+08:00",
       "completeness": {
         "status": "known",
         "ratio": 1.0,
@@ -75,16 +77,18 @@
         "reason": null
       },
       "degradation": {
-        "status": "normal",
-        "reasons": []
+        "status": "degraded",
+        "reasons": [
+          "20 observations use a disclosed fallback"
+        ]
       },
       "source_categories": [
         "market_data",
         "derived_research"
       ],
-      "semantic_sha256": "e5485695a9d6faae35d97fa8e76faece2a6333c9a1281195bf02d2b9e0c74285",
-      "sha256": "adf0b3af3c6f7602943f26d34e29996321bc6473f50de72bb773702836adc0a2",
-      "bytes": 473138,
+      "semantic_sha256": "00d0037a18419e0385137892cef7c34d8f486bef203b8047943ef669199fcc9e",
+      "sha256": "f6f94fb851285b035b8e8b4bb95072110a6faf2636370f450b4bde60a7dd46ef",
+      "bytes": 459856,
       "public_url": "/data/etf-garden-pool.json"
     },
     {
@@ -93,7 +97,7 @@
       "market": "CN",
       "schema_version": "a-share-mid-macro-v2",
       "observation_date": "2026-07-24",
-      "generated_at": "2026-07-24 22:06:38 CST",
+      "generated_at": "2026-07-27 22:06:38 CST",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -112,9 +116,9 @@
         "official_statistics",
         "derived_research"
       ],
-      "semantic_sha256": "269a3cf31569cf0a97be8b439e322d91426f34bd04f2c5c387b6a83c6d8289e4",
-      "sha256": "18948577af10130fdaa9e878dbb4ea6d7b467d88eddb6acfee8448980dbb009c",
-      "bytes": 23267,
+      "semantic_sha256": "06f3a716116a61cb2757e258ea1926185af624a1d1c6b3f4cf12bf13b246fda8",
+      "sha256": "0a7b2fb9769cf14d65d38d33d0572d526932ee9f35726c6f808f937242ad8d83",
+      "bytes": 23272,
       "public_url": "/data/a-share-mid-macro.json"
     },
     {
@@ -123,7 +127,7 @@
       "market": "CN",
       "schema_version": "research_audit_v1",
       "observation_date": "2026-07-24",
-      "generated_at": "2026-07-24T21:50:44.248647+08:00",
+      "generated_at": "2026-07-27T09:13:34.345541+08:00",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -141,9 +145,9 @@
         "historical_market_data",
         "derived_research"
       ],
-      "semantic_sha256": "564a7a33d92f314c4e7f030acfc202fe85bd34f9731d879188013aa98a3b5694",
-      "sha256": "fceec4826b79e842e35497782dfec566d512a95d5a49834ffbf1b5976b59e474",
-      "bytes": 8377,
+      "semantic_sha256": "bd9da5113c69b631a7b72e5ac2dc63354f97ad5b235bb4d371591b6d7c3cc4a2",
+      "sha256": "4b96f5c03ad0102163cd4991a4e8606a8752494c0da33f058cbf542a91213f88",
+      "bytes": 8300,
       "public_url": "/data/model-lab/a-share-research-audit.json"
     },
     {
