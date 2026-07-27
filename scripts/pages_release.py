@@ -16,6 +16,7 @@ PAGES_ENV = Path("/root/.hermes/credentials/cloudflare-pages.env")
 GLOBAL_ENV = Path("/root/.hermes/credentials/cloudflare-global.env")
 PROJECT = "etf-rotation-blog"
 ZONE_NAME = "peekabo.cc"
+EXTERNAL_DIRTY = {"public/data/korea-tech-factor-shadow.json"}
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -29,7 +30,40 @@ def load_env_file(path: Path) -> dict[str, str]:
     return result
 
 
+def foreign_dirty_paths(lines: list[str]) -> list[str]:
+    paths: list[str] = []
+    for line in lines:
+        path = line[3:].strip() if len(line) >= 4 else ""
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if path and path not in EXTERNAL_DIRTY:
+            paths.append(path)
+    return paths
+
+
+def ensure_release_scope() -> None:
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=ROOT, text=True, capture_output=True, check=True,
+    )
+    foreign = foreign_dirty_paths(result.stdout.splitlines())
+    if foreign:
+        raise RuntimeError(f"Pages release requires a clean worktree; foreign dirty paths: {foreign}")
+
+
+def restore_tracked_public_files() -> None:
+    for path in EXTERNAL_DIRTY:
+        result = subprocess.run(
+            ["git", "show", f"HEAD:{path}"], cwd=ROOT, capture_output=True, check=True,
+        )
+        target = ROOT / "dist" / Path(path).relative_to("public")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(result.stdout)
+
+
 def deploy_pages() -> str:
+    ensure_release_scope()
+    restore_tracked_public_files()
     env = {**os.environ, **load_env_file(PAGES_ENV)}
     if not env.get("CLOUDFLARE_API_TOKEN"):
         raise RuntimeError("CLOUDFLARE_API_TOKEN is missing")

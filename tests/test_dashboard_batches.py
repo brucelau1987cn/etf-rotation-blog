@@ -107,7 +107,7 @@ FIXTURES = {
     },
     "us-etf-pool.json": {
         "model_date": "2026-07-13", "quote_trade_date": "2026-07-13", "session_state": "closed",
-        "summary": {"universe": len(UNIVERSE), "valid": len(US_ROWS)}, "rows": US_ROWS, "trigger_base_rows": {},
+        "summary": {"universe": len(UNIVERSE), "valid": len(US_ROWS), "momentum_pass": 1}, "rows": US_ROWS, "trigger_base_rows": {},
     },
     "us-macro-dashboard.json": {
         "version": 2, "generated_at": "2026-07-13T18:31:54-04:00", "risk": {"label": "中性"},
@@ -212,6 +212,26 @@ def test_us_pool_must_be_complete_74_rows(tmp_path):
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("exactly 74 rows" in error for error in result.errors)
+
+
+def test_us_pool_must_match_unique_configured_universe(tmp_path):
+    def mutate(payloads):
+        rows = payloads["us-etf-pool.json"]["rows"]
+        rows[-1] = copy.deepcopy(rows[0])
+        flowers = flower_signals(rows, {})
+        payloads["us-etf-garden.json"]["flower_signals"] = flowers
+        payloads["us-etf-garden.json"]["flower_counts"] = {key: len(value) for key, value in flowers.items()}
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert any("configured 74-symbol universe" in error for error in result.errors)
+
+
+def test_us_pool_summary_momentum_count_is_recomputed(tmp_path):
+    def mutate(payloads):
+        payloads["us-etf-pool.json"]["summary"]["momentum_pass"] = -999
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert any("summary momentum_pass" in error for error in result.errors)
 
 
 def test_us_actions_must_equal_deterministic_current_pool_rebuild(tmp_path):

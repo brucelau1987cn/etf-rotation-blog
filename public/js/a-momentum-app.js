@@ -25,49 +25,15 @@ function applyLiveRows(rows) {
     const live = liveMap.get(row.code);
     if (!live || !Number.isFinite(Number(live.price))) return row;
     const price = Number(live.price);
-    const base3 = Number(row.ret3);
-    const base10 = Number(row.ret10);
-    const base20 = Number(row.ret20);
-    const oldPrice = Number(row.price);
-    const adjustReturn = (base) => Number.isFinite(base) && Number.isFinite(oldPrice) && oldPrice > 0
-      ? (((1 + base / 100) * price / oldPrice) - 1) * 100
-      : base;
-    const ret3 = adjustReturn(base3);
-    const ret10 = adjustReturn(base10);
-    const ret20 = adjustReturn(base20);
-    const ma20 = Number(row.ma20);
-    const ma20Prev = Number(row.ma20_prev);
-    const canRecomputeMomentum = Number.isFinite(ma20) && Number.isFinite(ma20Prev) && Number.isFinite(ret3);
-    const priceAboveMa = canRecomputeMomentum ? price > ma20 : row.checks?.price_above_ma;
-    const maRising = canRecomputeMomentum ? ma20 > ma20Prev : row.checks?.ma_rising;
-    const shortOk = canRecomputeMomentum ? ret3 > -5 : row.checks?.short_ok;
-    const momentum = canRecomputeMomentum
-      ? Boolean(priceAboveMa && maRising && shortOk)
-      : row.checks?.momentum;
-    const status = canRecomputeMomentum
-      ? (momentum ? 'core' : (row.status === 'cash' ? 'cash' : 'watch'))
-      : row.status;
+    const recompute = window.AMomentumRecompute?.recomputeMomentumRow;
+    const recalculated = typeof recompute === 'function' ? recompute(row, price) : { ...row, price };
     return {
-      ...row,
-      price,
+      ...recalculated,
       prev_close: live.prev_close ?? row.prev_close,
       change_pct: live.change_pct ?? row.change_pct,
       high: live.high ?? row.high,
       low: live.low ?? row.low,
       quote_source: live.source || row.quote_source,
-      ret3: Number.isFinite(ret3) ? Number(ret3.toFixed(2)) : row.ret3,
-      ret10: Number.isFinite(ret10) ? Number(ret10.toFixed(2)) : row.ret10,
-      ret20: Number.isFinite(ret20) ? Number(ret20.toFixed(2)) : row.ret20,
-      status,
-      checks: {
-        ...(row.checks || {}),
-        ...(canRecomputeMomentum ? {
-          price_above_ma: priceAboveMa,
-          ma_rising: maRising,
-          short_ok: shortOk,
-          momentum,
-        } : {}),
-      },
       live: true,
     };
   });

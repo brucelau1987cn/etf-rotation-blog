@@ -16,6 +16,9 @@ spec.loader.exec_module(paper)
 
 
 class PaperTradingTests(unittest.TestCase):
+    def test_public_lock_resolves_to_the_same_file_as_publishers(self):
+        self.assertEqual(paper.PUBLIC_LOCK, Path("/root/.hermes/state/etf-paper-publish"))
+
     def test_costs_and_lots(self):
         self.assertEqual(paper.costs("A", "buy", 1, 100), 5.05)
         self.assertEqual(paper.costs("US", "buy", 100, 1), 1.05)

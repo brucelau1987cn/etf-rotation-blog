@@ -6,6 +6,8 @@ from scripts import pages_release
 def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     calls = []
     monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
     monkeypatch.setattr(
         pages_release.subprocess,
         "run",
@@ -19,3 +21,8 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     assert calls[0] == ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
     assert calls[1] == ["purge"]
     assert calls[2] == ["probe", "https://etf.peekabo.cc/paper/"]
+
+
+def test_release_scope_allows_only_external_korea_snapshot():
+    assert pages_release.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
+    assert pages_release.foreign_dirty_paths(["?? public/js/uncommitted.js"]) == ["public/js/uncommitted.js"]

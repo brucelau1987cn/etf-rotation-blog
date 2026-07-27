@@ -274,6 +274,13 @@ def validate_us_candidate_selection(
         return
     if summary.get("universe") != expected_pool_size or summary.get("valid") != expected_pool_size:
         errors.append(f"US current pool summary must report {expected_pool_size} universe and valid rows")
+    expected_symbols = {item[0] for item in US_UNIVERSE}
+    actual_symbols = [str(row.get("symbol") or "") for row in rows if isinstance(row, dict)]
+    if len(set(actual_symbols)) != expected_pool_size or set(actual_symbols) != expected_symbols:
+        errors.append("US current pool must equal the unique configured 74-symbol universe")
+    momentum_count = sum(1 for row in rows if isinstance(row, dict) and row.get("momentum_pass") is True)
+    if summary.get("momentum_pass") != momentum_count:
+        errors.append(f"US current pool summary momentum_pass must equal {momentum_count}")
     pool_symbols = {
         str(item.get("symbol") or "") for item in rows or [] if isinstance(item, dict)
     } if isinstance(rows, list) else set()

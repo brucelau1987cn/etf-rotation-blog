@@ -16,7 +16,7 @@ def test_pick_keeps_only_public_dashboard_fields():
 
 
 def test_public_dashboard_exports_fields_required_for_live_momentum_recompute():
-    required = {"ret3", "ret10", "ma20", "ma20_prev", "checks", "prev_close"}
+    required = {"ret3", "ret10", "ma20", "ma20_prev", "slope20", "checks", "prev_close"}
     assert required <= set(module.A_FIELDS)
 
 

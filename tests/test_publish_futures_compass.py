@@ -1,4 +1,6 @@
 import importlib.util
+import subprocess
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -29,6 +31,7 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
         return result()
 
     monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "restore_tracked_dist", lambda: None)
     probes = []
     monkeypatch.setattr(publisher, "release_pages", lambda urls: probes.extend(urls))
     publisher.publish("day-close")
@@ -41,3 +44,29 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
         "https://etf.peekabo.cc/futures-compass/",
         "https://etf.peekabo.cc/data/futures-compass.json",
     ]
+
+
+def test_futures_preflight_allows_only_known_external_dirty_file():
+    assert publisher.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
+    assert publisher.foreign_dirty_paths([" M functions/api.js"]) == ["functions/api.js"]
+
+
+def test_futures_publisher_rolls_back_snapshot_when_validation_fails(monkeypatch):
+    calls = []
+    monkeypatch.setattr(publisher, "publish_lock", nullcontext)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if command == [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"]:
+            raise subprocess.CalledProcessError(1, command)
+        return result()
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    try:
+        publisher.publish("night")
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError("expected validation failure")
+    assert ["git", "checkout", "--", publisher.SNAPSHOT] in calls
