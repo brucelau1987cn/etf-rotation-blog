@@ -3,6 +3,8 @@
  * 接收 TradingView Webhook 多空信号并存入 Cloudflare KV (ROLLING_KV)
  */
 
+const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
+
 export async function onRequestPost({ request, env }) {
   try {
     const expectedToken = String(env.TRADINGVIEW_WEBHOOK_TOKEN || '').trim();
@@ -39,16 +41,24 @@ export async function onRequestPost({ request, env }) {
     }
 
     const {
-      symbol = '600021',
+      symbol: rawSymbol = '600021',
       cycle_code,
       signal, // 'BUY' 或 'SELL'
       trigger_time_utc = new Date().toISOString(),
       event_id,
     } = payload;
+    const symbol = normalizeSymbol(rawSymbol);
 
     if (!cycle_code || !['BUY', 'SELL'].includes(signal)) {
       return new Response(JSON.stringify({ error: 'missing cycle_code or invalid signal type' }), {
         status: 422,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    if (!env.ROLLING_KV) {
+      return new Response(JSON.stringify({ error: 'ROLLING_KV missing on server' }), {
+        status: 503,
         headers: { 'content-type': 'application/json' },
       });
     }

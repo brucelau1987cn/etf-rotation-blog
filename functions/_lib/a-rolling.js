@@ -48,23 +48,37 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
       type: item.type, // 'BUY' (多) 或 'SELL' (空)
       code: String(item.code || item.cycle_code),
       triggered_at: item.triggered_at || item.buy_triggered_at || generatedAt,
+      received_at: item.received_at || item.triggered_at || item.buy_triggered_at || generatedAt,
+      event_id: item.event_id || null,
       label: item.label || `${item.code}`
     }))
-    .sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
+    .sort((a, b) => new Date(a.received_at).getTime() - new Date(b.received_at).getTime());
 
   const buyCount = timeline.filter(t => t.type === 'BUY').length;
   const sellCount = timeline.filter(t => t.type === 'SELL').length;
   const lastItem = timeline.length > 0 ? timeline[timeline.length - 1] : null;
 
+  const dataAsOf = upstream.data_as_of || generatedAt;
+  const generatedMs = new Date(generatedAt).getTime();
+  const dataMs = new Date(dataAsOf).getTime();
+  const ageSeconds = Number.isFinite(generatedMs) && Number.isFinite(dataMs)
+    ? Math.max(0, Math.floor((generatedMs - dataMs) / 1000))
+    : Number.POSITIVE_INFINITY;
+  const isFresh = ageSeconds <= staleAfterSeconds;
+
   const payload = {
     schema_version: 'a-rolling-energy-v4',
     mode: 'live',
     generated_at: generatedAt,
-    data_as_of: upstream.data_as_of || generatedAt,
-    freshness: 'fresh',
+    data_as_of: dataAsOf,
+    freshness: isFresh ? 'fresh' : 'stale',
+    data_age_seconds: Number.isFinite(ageSeconds) ? ageSeconds : null,
     stale_after_seconds: staleAfterSeconds,
     notice: '每个时间段独立一格，多空上下交替对齐，按实际接收信号时间排序。',
-    delivery: { state: 'live', reason: null },
+    delivery: {
+      state: isFresh ? 'live' : 'lkg',
+      reason: isFresh ? null : `数据年龄超过 ${staleAfterSeconds} 秒`,
+    },
     instrument: upstream.instrument || { instrument_name: '上海电力', exchange: 'SSE', symbol: '600021' },
     transmission: {
       state: timeline.length > 0 ? 'transmitting' : 'observing',
@@ -87,8 +101,16 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
   return validatePublicPayload(payload);
 }
 
-export function asLkg(payload, reason) {
+export function asLkg(payload, reason, checkedAt = new Date().toISOString()) {
   const degraded = JSON.parse(JSON.stringify(payload));
+  const checkedMs = new Date(checkedAt).getTime();
+  const dataMs = new Date(degraded.data_as_of).getTime();
+  degraded.mode = 'lkg';
+  degraded.freshness = 'stale';
+  degraded.checked_at = checkedAt;
+  degraded.data_age_seconds = Number.isFinite(checkedMs) && Number.isFinite(dataMs)
+    ? Math.max(0, Math.floor((checkedMs - dataMs) / 1000))
+    : null;
   degraded.delivery = { state: 'lkg', reason: String(reason || '').slice(0, 200) };
   return degraded;
 }

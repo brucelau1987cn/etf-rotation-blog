@@ -391,10 +391,15 @@
         liveStatus.style.borderColor = '#cbd5e1';
         liveStatus.style.background = '#f8fafc';
       } else {
-        liveStatus.textContent = `● ${INSTRUMENTS.length} 标的已同步`;
-        liveStatus.style.color = '#389e0d';
-        liveStatus.style.borderColor = '#b7eb8f';
-        liveStatus.style.background = '#f6ffed';
+        const delivery = window.ARollingDelivery?.summarize(payloads, INSTRUMENTS.length) || {
+          state: 'lkg',
+          text: `⚠ 0/${INSTRUMENTS.length} 实时 · 静态快照`,
+        };
+        liveStatus.textContent = delivery.text;
+        const isLive = delivery.state === 'live';
+        liveStatus.style.color = isLive ? '#389e0d' : '#ad6800';
+        liveStatus.style.borderColor = isLive ? '#b7eb8f' : '#ffd591';
+        liveStatus.style.background = isLive ? '#f6ffed' : '#fff7e6';
       }
     }
     if (!payloads.length) {

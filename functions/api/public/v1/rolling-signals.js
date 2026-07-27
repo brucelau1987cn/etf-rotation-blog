@@ -37,8 +37,21 @@ const normalizeSymbol = value => String(value || '').trim().toUpperCase().replac
 
 const snapshotPathForSymbol = symbol => {
   const key = normalizeSymbol(symbol) || '600021';
-  return INSTRUMENT_SNAPSHOTS[key] || INSTRUMENT_SNAPSHOTS['600021'];
+  return INSTRUMENT_SNAPSHOTS[key] || null;
 };
+
+const emptyLkg = symbol => ({
+  schema_version: 'a-rolling-energy-v4',
+  mode: 'lkg',
+  generated_at: new Date(0).toISOString(),
+  data_as_of: null,
+  freshness: 'stale',
+  stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
+  delivery: { state: 'lkg', reason: '该标的暂无静态快照' },
+  instrument: { instrument_name: symbol, exchange: 'UNKNOWN', symbol },
+  transmission: { state: 'observing', basis: 'chronological_sequence', lit_count: 0, buy_count: 0, sell_count: 0 },
+  timeline: [],
+});
 
 const readJsonResponse = async response => {
   if (!response.ok) throw new Error(`source returned HTTP ${response.status}`);
@@ -63,11 +76,43 @@ const fetchWithTimeout = async (url, timeoutMs) => {
 
 const loadLkg = async (request, env, symbol) => {
   const path = snapshotPathForSymbol(symbol);
+  if (!path) return validatePublicPayload(emptyLkg(symbol));
   const url = new URL(path, request.url);
   const response = env.ASSETS?.fetch
     ? await env.ASSETS.fetch(new Request(url, { headers: { accept: 'application/json' } }))
     : await fetchWithTimeout(url, DEFAULT_TIMEOUT_MS);
   return validatePublicPayload(await readJsonResponse(response));
+};
+
+const loadKvTimeline = async (kv, symbol) => {
+  if (!kv?.list || !kv?.get) return [];
+  const prefix = `signal:${symbol}:`;
+  let cursor;
+  const names = [];
+  do {
+    const page = await kv.list({ prefix, ...(cursor ? { cursor } : {}) });
+    names.push(...(page.keys || []).map(item => item.name).filter(Boolean));
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor && names.length < 1000);
+
+  const raw = await Promise.all(names.slice(0, 1000).map(name => kv.get(name)));
+  return raw.flatMap(value => {
+    if (!value) return [];
+    try {
+      const item = JSON.parse(value);
+      if (normalizeSymbol(item.symbol) !== symbol || !['BUY', 'SELL'].includes(item.signal) || !item.cycle_code) return [];
+      return [{
+        type: item.signal,
+        code: String(item.cycle_code),
+        label: String(item.cycle_code),
+        triggered_at: item.trigger_time_utc || item.received_at,
+        received_at: item.received_at || item.trigger_time_utc,
+        event_id: item.event_id || null,
+      }];
+    } catch {
+      return [];
+    }
+  }).sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
 };
 
 const publicReason = error => {
@@ -86,11 +131,31 @@ export async function handleRollingSignals(request, env = {}) {
     return json({ error: 'rolling signal snapshot unavailable', symbol }, 503);
   }
 
-  // Non-default instruments currently serve static LKG snapshots.
-  if (symbol !== '600021') return json(lkg);
+  if (env.ROLLING_KV) {
+    try {
+      const timeline = await loadKvTimeline(env.ROLLING_KV, symbol);
+      if (timeline.length) {
+        const latestReceivedAt = timeline
+          .map(item => item.received_at || item.triggered_at)
+          .filter(Boolean)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+        return json(projectUpstream({
+          instrument: lkg.instrument,
+          timeline,
+          data_as_of: latestReceivedAt,
+        }));
+      }
+    } catch {
+      return json(asLkg(lkg, 'KV信号读取失败，返回静态快照'));
+    }
+  }
+
+  if (symbol !== '600021') {
+    return json(asLkg(lkg, env.ROLLING_KV ? 'KV暂无该标的信号，返回静态快照' : 'ROLLING_KV未绑定，返回静态快照'));
+  }
 
   const upstreamUrl = String(env.A_ROLLING_UPSTREAM_URL || '').trim();
-  if (!upstreamUrl) return json(asLkg(lkg, '尚未配置只读上游信号源'));
+  if (!upstreamUrl) return json(asLkg(lkg, env.ROLLING_KV ? 'KV暂无信号且未配置只读上游' : 'ROLLING_KV未绑定且未配置只读上游'));
 
   try {
     const parsed = new URL(upstreamUrl);

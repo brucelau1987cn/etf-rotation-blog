@@ -40,3 +40,33 @@ test('tradingview webhook accepts valid token and stores signal to KV', async ()
   assert.equal(kvStore.has('signal:600021:PRE:BUY'), true);
   assert.equal(kvStore.has('latest:600021'), true);
 });
+
+test('tradingview webhook fails closed when ROLLING_KV is missing', async () => {
+  const token = 'test_secret_token_123';
+  const req = new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ webhook_token: token, symbol: '01378', cycle_code: '2h', signal: 'BUY' }),
+  });
+
+  const res = await onRequestPost({ request: req, env: { TRADINGVIEW_WEBHOOK_TOKEN: token } });
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, 'ROLLING_KV missing on server');
+});
+
+test('tradingview webhook normalizes market suffixes before writing KV keys', async () => {
+  const token = 'test_secret_token_123';
+  const kvStore = new Map();
+  const req = new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ webhook_token: token, symbol: '600021.SH', cycle_code: '2h', signal: 'BUY' }),
+  });
+  const env = {
+    TRADINGVIEW_WEBHOOK_TOKEN: token,
+    ROLLING_KV: { get: async key => kvStore.get(key) || null, put: async (key, value) => kvStore.set(key, value) },
+  };
+  const res = await onRequestPost({ request: req, env });
+  assert.equal(res.status, 200);
+  assert.equal(kvStore.has('signal:600021:2h:BUY'), true);
+  assert.equal(JSON.parse(kvStore.get('latest:600021')).symbol, '600021');
+});

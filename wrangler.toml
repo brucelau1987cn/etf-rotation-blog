@@ -7,6 +7,10 @@ binding = "DB"
 database_name = "etf-compass-auth"
 database_id = "d313cb6f-9437-4a15-a9d5-d5d3158a0beb"
 
+[[kv_namespaces]]
+binding = "ROLLING_KV"
+id = "186d0f7ceb484c47b8c6055fe0c7a724"
+
 [vars]
 SESSION_TTL_DAYS = "14"
 MAX_UPLOAD_BYTES = "1048576"
