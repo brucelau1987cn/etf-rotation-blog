@@ -196,7 +196,8 @@ check_page "/rolling/" \
   "/js/etf-live-poll.js" \
   "/js/a-rolling-app.js" \
   "rolling-board-list" \
-  "stat-latest-action"
+  "buy-signal-track" \
+  "sell-signal-track"
 
 check_page "/rolling/futures/" \
   "/js/normalize-quote-payload.js" \
