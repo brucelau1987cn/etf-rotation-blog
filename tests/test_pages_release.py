@@ -1,0 +1,21 @@
+from types import SimpleNamespace
+
+from scripts import pages_release
+
+
+def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
+    calls = []
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(
+        pages_release.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command) or SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0),
+    )
+    monkeypatch.setattr(pages_release, "purge_custom_domain", lambda: calls.append(["purge"]))
+    monkeypatch.setattr(pages_release, "probe_urls", lambda urls: calls.append(["probe", *urls]))
+
+    pages_release.release_pages(["https://etf.peekabo.cc/paper/"])
+
+    assert calls[0] == ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
+    assert calls[1] == ["purge"]
+    assert calls[2] == ["probe", "https://etf.peekabo.cc/paper/"]

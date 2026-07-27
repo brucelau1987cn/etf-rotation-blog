@@ -9,7 +9,7 @@
     "dev": "astro dev",
     "sync:quote": "node scripts/sync_edge_quote.mjs",
     "sync:adapter": "node scripts/sync_quote_adapter.mjs",
-    "build": "python3 scripts/bootstrap_build_python.py && .build-venv/bin/python scripts/validate_dashboard_batches.py && .build-venv/bin/python scripts/generate_public_dashboard_payloads.py && .build-venv/bin/python scripts/generate_data_catalog.py && .build-venv/bin/python scripts/validate_public_data_contracts.py && PUBLIC_JS_ASSET_VERSION=${PUBLIC_JS_ASSET_VERSION:-$(git rev-parse --short HEAD 2>/dev/null || date +%s)} astro build && node scripts/inject_public_js_version.mjs dist",
+    "build": "python3 scripts/bootstrap_build_python.py && .build-venv/bin/python scripts/validate_futures_compass.py && .build-venv/bin/python scripts/validate_dashboard_batches.py && .build-venv/bin/python scripts/generate_public_dashboard_payloads.py && .build-venv/bin/python scripts/generate_data_catalog.py && .build-venv/bin/python scripts/validate_public_data_contracts.py && PUBLIC_JS_ASSET_VERSION=${PUBLIC_JS_ASSET_VERSION:-$(git rev-parse --short HEAD 2>/dev/null || date +%s)} astro build && node scripts/inject_public_js_version.mjs dist",
     "audit": "python3 scripts/audit_static_site.py",
     "test": "python3 scripts/bootstrap_build_python.py && .build-venv/bin/python -m pytest -q && node --test tests/*.test.mjs && node scripts/sync_quote_adapter.mjs",
     "check": "npm run test && npm run build && npm run audit",

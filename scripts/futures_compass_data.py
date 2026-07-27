@@ -32,6 +32,33 @@ WATCHLIST = [
 ]
 
 
+def validate_public_snapshot(
+    payload: dict[str, Any], *, now: datetime | None = None, max_age_seconds: int = 72 * 3600,
+) -> list[str]:
+    errors: list[str] = []
+    current = (now or datetime.now(CN)).astimezone(CN)
+    try:
+        generated = datetime.fromisoformat(str(payload.get("generated_at") or "").replace("Z", "+00:00"))
+        if generated.tzinfo is None:
+            generated = generated.replace(tzinfo=CN)
+        age = (current - generated.astimezone(CN)).total_seconds()
+        if age < -300:
+            errors.append("futures snapshot generated_at is in the future")
+        elif age > max_age_seconds:
+            errors.append(f"futures snapshot is older than {max_age_seconds} seconds")
+    except ValueError:
+        errors.append("futures snapshot generated_at is invalid")
+
+    items = payload.get("items")
+    expected = [item["code"] for item in WATCHLIST]
+    actual = [str(item.get("code") or "") for item in items] if isinstance(items, list) else []
+    if actual != expected or payload.get("count") != len(expected):
+        errors.append(f"futures snapshot watchlist mismatch: expected={expected}, actual={actual}")
+    if payload.get("stale") is True:
+        errors.append("futures snapshot is explicitly stale")
+    return errors
+
+
 def now_iso() -> str:
     return datetime.now(CN).isoformat(timespec="seconds")
 
@@ -128,7 +155,7 @@ def latest_review(db: sqlite3.Connection) -> dict[str, Any] | None:
 
 
 def fetch_realtime() -> dict[str, Any]:
-    import akshare as ak
+    import akshare as ak  # pyright: ignore[reportMissingImports]
 
     started = time.time()
     observed_at = now_iso()
@@ -224,7 +251,7 @@ def fetch_realtime() -> dict[str, Any]:
 
 
 def fetch_daily_bars() -> dict[str, Any]:
-    import akshare as ak
+    import akshare as ak  # pyright: ignore[reportMissingImports]
 
     started = time.time(); rows = 0; errors = []
     with connect() as db:
@@ -277,7 +304,7 @@ def run_iwencai_review(slot: str) -> dict[str, Any]:
 
 
 def fetch_warehouse_receipts() -> dict[str, Any]:
-    import akshare as ak
+    import akshare as ak  # pyright: ignore[reportMissingImports]
 
     started = time.time(); rows = 0; errors = []
     try:
