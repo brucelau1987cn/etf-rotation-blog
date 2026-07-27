@@ -20,6 +20,11 @@ def test_public_dashboard_exports_fields_required_for_live_momentum_recompute():
     assert required <= set(module.A_FIELDS)
 
 
+def test_public_dashboard_maps_server_slope20_score_to_browser_slope20():
+    payload = module.build_payload({"all_rows": [{"code": "510300", "slope20_score": 1.25}]})
+    assert payload["all_rows"][0]["slope20"] == 1.25
+
+
 def test_write_atomic_outputs_compact_utf8_json(tmp_path):
     output = tmp_path / "dashboard.json"
     module.write_atomic(output, {"name": "罗盘", "rows": [{"code": "510300"}]})

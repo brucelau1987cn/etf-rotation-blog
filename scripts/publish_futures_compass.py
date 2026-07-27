@@ -81,13 +81,14 @@ def publish(slot: str) -> dict[str, str]:
         try:
             run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
             run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
+            if run(["git", "diff", "--quiet", "--", SNAPSHOT], check=False).returncode == 0:
+                return {"status": "unchanged", "slot": slot}
+            run(["npm", "run", "build"])
+            run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", SNAPSHOT])
         except Exception:
+            run(["git", "reset", "--quiet", "--", SNAPSHOT], check=False)
             run(["git", "checkout", "--", SNAPSHOT], check=False)
             raise
-        if run(["git", "diff", "--quiet", "--", SNAPSHOT], check=False).returncode == 0:
-            return {"status": "unchanged", "slot": slot}
-        run(["npm", "run", "build"])
-        run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", SNAPSHOT])
         run(["git", "fetch", "origin", "main"])
         if not is_ancestor("origin/main", "HEAD"):
             raise RuntimeError("origin/main changed during futures publication")

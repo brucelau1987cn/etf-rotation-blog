@@ -70,3 +70,26 @@ def test_futures_publisher_rolls_back_snapshot_when_validation_fails(monkeypatch
     else:
         raise AssertionError("expected validation failure")
     assert ["git", "checkout", "--", publisher.SNAPSHOT] in calls
+
+
+def test_futures_publisher_rolls_back_snapshot_when_build_fails(monkeypatch):
+    calls = []
+    monkeypatch.setattr(publisher, "publish_lock", nullcontext)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if command[:4] == ["git", "diff", "--quiet", "--"]:
+            return result(returncode=1)
+        if command == ["npm", "run", "build"]:
+            raise subprocess.CalledProcessError(1, command)
+        return result()
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    try:
+        publisher.publish("night")
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError("expected build failure")
+    assert ["git", "checkout", "--", publisher.SNAPSHOT] in calls

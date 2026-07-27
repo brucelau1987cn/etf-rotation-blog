@@ -7,7 +7,13 @@
     return (((1 + value / 100) * price / oldPrice) - 1) * 100;
   }
 
+  function hasFiniteNumber(value) {
+    return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+  }
+
   function recomputeMomentumRow(row, livePrice) {
+    const inputsValid = [livePrice, row.price, row.ma20, row.ma20_prev, row.slope20, row.ret3, row.ret5]
+      .every(hasFiniteNumber);
     const price = Number(livePrice);
     const oldPrice = Number(row.price);
     const ma20Snapshot = Number(row.ma20);
@@ -20,7 +26,7 @@
     const ma20 = Number.isFinite(ma20Snapshot) && Number.isFinite(oldPrice)
       ? ma20Snapshot + (price - oldPrice) / 20
       : ma20Snapshot;
-    const canRecompute = [price, oldPrice, ma20, ma20Prev, slope20, ret3, ret5]
+    const canRecompute = inputsValid && [price, oldPrice, ma20, ma20Prev, slope20, ret3, ret5]
       .every(Number.isFinite) && oldPrice > 0;
     if (!canRecompute) return { ...row, price };
 

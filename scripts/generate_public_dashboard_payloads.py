@@ -31,6 +31,12 @@ def pick(row: dict, fields: tuple[str, ...]) -> dict:
     return {field: row.get(field) for field in fields}
 
 
+def public_a_row(row: dict[str, Any]) -> dict[str, Any]:
+    result = pick(row, A_FIELDS)
+    result["slope20"] = row.get("slope20") if row.get("slope20") is not None else row.get("slope20_score")
+    return result
+
+
 def canonical_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
 
@@ -49,7 +55,7 @@ def build_payload(source: dict[str, Any]) -> dict[str, Any]:
         "market_regime": source.get("market_regime") or {},
         "realtime_scope": source.get("realtime_scope") or [],
         "snapshot_scope": source.get("snapshot_scope") or [],
-        "all_rows": [pick(row, A_FIELDS) for row in source.get("all_rows", [])],
+        "all_rows": [public_a_row(row) for row in source.get("all_rows", [])],
     }
     return {
         "schema_version": SCHEMA_VERSION,
