@@ -140,8 +140,17 @@ const compactMarketState = (raw: string) => {
   }
   // Night/intraday long prose: keep stage + final action only.
   if (text.length > 48) {
-    const stageMatch = text.match(/^(08:30|11:30|14:30|22:00)/);
-    const stage = stageMatch ? `${stageMatch[1]}${text.includes('夜间') ? '夜间' : ''}` : '';
+    const stageMatch = text.match(/^(08:30|11:30|14:30|22:00)([^\s：:]*)/);
+    let stage = '';
+    if (stageMatch) {
+      const hhmm = stageMatch[1];
+      const tail = stageMatch[2] || '';
+      if (hhmm === '22:00' || text.includes('夜间')) stage = '22:00夜间';
+      else if (hhmm === '14:30' || /尾盘/.test(text) || /尾盘/.test(tail)) stage = '14:30尾盘';
+      else if (hhmm === '11:30' || /上午|收盘修正/.test(text) || /上午|收盘/.test(tail)) stage = '11:30上午';
+      else if (hhmm === '08:30' || /盘前/.test(text) || /盘前/.test(tail)) stage = '08:30盘前';
+      else stage = hhmm;
+    }
     const afterConclusion = text.match(/结论[：:]\s*([^。]+)/)?.[1]?.trim();
     const parts = text.split(/[。；;]/).map((item) => item.trim()).filter(Boolean);
     const rankedHit = parts.find((part) => /不追高|不开新|停开进攻|正式伏击0/.test(part))
@@ -158,7 +167,7 @@ const compactMarketState = (raw: string) => {
       .trim();
     const short = [stage, conclusion].filter(Boolean).join('｜');
     return {
-      headline: short.length <= 28 ? short : `${short.slice(0, 27)}…`,
+      headline: short.length <= 32 ? short : `${short.slice(0, 31)}…`,
       detail: '',
     };
   }
@@ -350,6 +359,7 @@ const pageDescription = 'A股ETF今日交易仪表盘：移动端优先展示结
           <div class="status-row" aria-label="数据元信息">
             <span class="pill pill-red">🇨🇳 A股 · 今日动作</span>
             <span class="pill pill-amber">适用：{data.date}</span>
+            {data.stage && <span class="pill pill-amber" data-stage-label>{data.stage}</span>}
             <span class="pill live-pill" id="live-quote-status" role="status" aria-live="polite">最新快照连接中</span>
           </div>
           <div class="hero-main">

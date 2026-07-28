@@ -30,3 +30,6 @@ def test_a_compass_compacts_long_night_market_state():
     assert "Night/intraday long prose" in source
     assert "text.length > 48" in source
     assert "通信|电网|稀土" in source
+    assert "14:30尾盘" in source
+    assert "data-stage-label" in source
+    assert "{data.stage}" in source
