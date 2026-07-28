@@ -97,6 +97,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "summary-signal-count" in app
     assert "summary-signal-symbol" in app
     assert "summary-signal-identity" in app
+    assert "summary-signal-tape" in app
     assert "当日累计" in app
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
@@ -112,6 +113,10 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert ".a-rolling-main .summary-signal-count" in styles
     assert ".a-rolling-main .summary-signal-symbol" in styles
     assert ".a-rolling-main .summary-signal-identity" in styles
+    assert ".a-rolling-main .summary-signal-tape" in styles
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in styles
+    assert "@media (max-width: 980px)" in styles
+    assert "@media (max-width: 760px)" in styles
     assert ".a-rolling-main .summary-signal-label-text" in styles
     assert ".a-rolling-main .today-count-chip" in styles
     assert ".a-rolling-main .market-index-row" in styles

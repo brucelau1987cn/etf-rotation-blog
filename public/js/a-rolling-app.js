@@ -374,10 +374,17 @@
 
       const time = document.createElement('time');
       time.className = 'summary-signal-time';
+      // Keep time-only on the tape; full stamp stays in title for hover/long-press.
       time.textContent = formatTime(signal.at, false, false);
+      time.dateTime = signal.at || '';
       time.title = formatTime(signal.at, true, false);
 
-      row.append(identity, point, time);
+      // Right-side tape pair: period + clock, always separate cells.
+      const tape = document.createElement('div');
+      tape.className = 'summary-signal-tape';
+      tape.append(point, time);
+
+      row.append(identity, tape);
       track.appendChild(row);
     });
     startSummaryTicker(track);
