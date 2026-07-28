@@ -301,19 +301,21 @@
   };
 
   const summaryTickerTimers = new Map();
+  const SUMMARY_ROW_HEIGHT = 30;
+  const SUMMARY_VISIBLE_ROWS = 7;
 
   const startSummaryTicker = (track) => {
     const oldTimer = summaryTickerTimers.get(track.id);
     if (oldTimer) clearInterval(oldTimer);
     track.style.transform = 'translateY(0)';
     const items = Array.from(track.children);
-    if (items.length <= 3 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (items.length <= SUMMARY_VISIBLE_ROWS || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let offset = 0;
     const timer = setInterval(() => {
       if (document.hidden || track.closest('.signal-card')?.matches(':hover')) return;
       offset = (offset + 1) % items.length;
-      track.style.transform = `translateY(${-offset * 30}px)`;
-    }, 3000);
+      track.style.transform = `translateY(${-offset * SUMMARY_ROW_HEIGHT}px)`;
+    }, 2800);
     summaryTickerTimers.set(track.id, timer);
   };
 
@@ -334,7 +336,17 @@
       row.className = 'summary-signal-item';
       const name = document.createElement('span');
       name.className = 'summary-signal-name';
-      name.textContent = signal.name;
+      const label = document.createElement('span');
+      label.className = 'summary-signal-label-text';
+      label.textContent = signal.name;
+      name.appendChild(label);
+      if (Number(signal.count) > 1) {
+        const count = document.createElement('em');
+        count.className = 'summary-signal-count';
+        count.textContent = String(signal.count);
+        count.title = `当日累计 ${signal.count} 次`;
+        name.appendChild(count);
+      }
       const point = document.createElement('strong');
       point.className = 'summary-signal-point';
       point.textContent = signal.code;
@@ -420,26 +432,46 @@
       };
     });
 
-    // Main list only shows today's signal points (formal + observation).
-    const todaySignalsFor = (type) => rows
-      .flatMap((row) => {
+    // Main list: one row per stock (latest signal), with cumulative count after name.
+    const todaySignalsFor = (type) => {
+      const bySymbol = new Map();
+      rows.forEach((row) => {
         const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
         const split = normalizeTimeline(payload || {});
         const formal = type === 'BUY' ? split.allBuys : split.allSells;
         const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
-        const items = observation ? [...formal, observation] : formal;
-        return items
+        const items = (observation ? [...formal, observation] : formal)
           .filter(item => isTodayShanghai(item?.triggered_at))
-          .map(item => ({ name: row.name, code: item.code, at: item.triggered_at }));
-      })
-      .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
+          .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime());
+        if (!items.length) return;
+        const latest = items[0];
+        bySymbol.set(row.symbol, {
+          name: row.name,
+          symbol: row.symbol,
+          code: latest.code,
+          at: latest.triggered_at,
+          count: items.length,
+        });
+      });
+      return [...bySymbol.values()]
+        .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
+    };
 
     const todayBuys = todaySignalsFor('BUY');
     const todaySells = todaySignalsFor('SELL');
+    // Header count still includes every formal + observation hit today.
+    const todayHitCount = (type) => rows.reduce((sum, row) => {
+      const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
+      const split = normalizeTimeline(payload || {});
+      const formal = type === 'BUY' ? split.allBuys : split.allSells;
+      const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
+      const items = observation ? [...formal, observation] : formal;
+      return sum + items.filter(item => isTodayShanghai(item?.triggered_at)).length;
+    }, 0);
     renderSummarySignals('BUY', todayBuys);
     renderSummarySignals('SELL', todaySells);
-    renderTodayCount('BUY', todayBuys.length);
-    renderTodayCount('SELL', todaySells.length);
+    renderTodayCount('BUY', todayHitCount('BUY'));
+    renderTodayCount('SELL', todayHitCount('SELL'));
   };
 
   const updateQuoteUI = (symbol, payload) => {

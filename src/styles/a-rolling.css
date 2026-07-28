@@ -137,7 +137,7 @@
   border-radius: 14px;
   background: #fff;
   padding: 1rem;
-  min-height: 236px;
+  min-height: 292px;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -196,10 +196,12 @@
 
 .a-rolling-main .summary-signal-viewport {
   position: relative;
-  height: 90px;
+  flex: 1 1 auto;
+  min-height: 210px;
+  height: 210px;
   overflow: hidden;
   margin-top: 0.35rem;
-  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 10px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 12px), transparent 100%);
 }
 
 .a-rolling-main .summary-signal-track {
@@ -210,7 +212,7 @@
 .a-rolling-main .summary-signal-item {
   height: 30px;
   display: grid;
-  grid-template-columns: minmax(5.2rem, 1fr) 3.4rem auto;
+  grid-template-columns: minmax(5.8rem, 1fr) 3.4rem auto;
   align-items: center;
   gap: 0.5rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
@@ -218,12 +220,47 @@
 
 .a-rolling-main .summary-signal-name {
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: #334155;
   font-size: 0.8rem;
   font-weight: 750;
+}
+
+.a-rolling-main .summary-signal-label-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.a-rolling-main .summary-signal-count {
+  flex: 0 0 auto;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.a-rolling-main .buy-card .summary-signal-count {
+  background: #ffccc7;
+  color: #a8071a;
+}
+
+.a-rolling-main .sell-card .summary-signal-count {
+  background: #b7eb8f;
+  color: #237804;
 }
 
 .a-rolling-main .summary-signal-point {
@@ -245,7 +282,7 @@
 }
 
 .a-rolling-main .summary-signal-empty {
-  height: 90px;
+  height: 210px;
   display: flex;
   align-items: center;
   color: #94a3b8;
