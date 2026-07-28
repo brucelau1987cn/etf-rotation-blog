@@ -9,7 +9,11 @@
 const legacyPayload = (payload) => payload?.ok === true && Array.isArray(payload.items);
 
 export function bareSymbol(quote, key = '') {
-  const secCode = String(quote?.sec_code || '');
+  const secCode = String(quote?.sec_code || key || '');
+  // Keep futures/spot metal keys intact (hf_XAU / nf_AU0).
+  if (/^[hn]f_/i.test(secCode)) {
+    return secCode;
+  }
   if (secCode.startsWith('us') && secCode.length > 2) {
     return secCode.slice(2).toUpperCase();
   }
@@ -21,6 +25,7 @@ export function bareSymbol(quote, key = '') {
   }
 
   let symbol = String(quote?.symbol || key || '');
+  if (/^[hn]f_/i.test(symbol)) return symbol;
   symbol = symbol.split('.')[0];
   symbol = symbol.replace(/^(us|hk|sh|sz|bj)/i, '');
   // US tickers stay upper-case; pure digits keep digits.

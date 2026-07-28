@@ -45,6 +45,9 @@
       { name: '上证指数', symbol: '000001', querySymbol: '000001.SH' },
       { name: '深证成指', symbol: '399001', querySymbol: '399001.SZ' },
       { name: '创业板指', symbol: '399006', querySymbol: '399006.SZ' },
+      // Spot metals under the A-share index card (伦敦金/银).
+      { name: '现货黄金', symbol: 'hf_XAU', querySymbol: 'hf_XAU' },
+      { name: '现货白银', symbol: 'hf_XAG', querySymbol: 'hf_XAG' },
     ],
     futures: [
       { name: '黄金连续', symbol: 'AU0', querySymbol: 'nf_AU0' },
@@ -321,7 +324,7 @@
     if (!signals.length) {
       const empty = document.createElement('div');
       empty.className = 'summary-signal-empty';
-      empty.textContent = type === 'BUY' ? '等待多方信号' : '等待空方信号';
+      empty.textContent = type === 'BUY' ? '当日暂无多方信号' : '当日暂无空方信号';
       track.appendChild(empty);
       startSummaryTicker(track);
       return;
@@ -369,34 +372,6 @@
     el.textContent = `${shanghaiTodayLabel()} · ${count}个信号（含观察）`;
   };
 
-  const renderTodaySignals = (type, signals) => {
-    const track = document.getElementById(type === 'BUY' ? 'buy-today-track' : 'sell-today-track');
-    if (!track) return;
-    track.replaceChildren();
-    if (!signals.length) {
-      const empty = document.createElement('span');
-      empty.className = 'today-signal-empty';
-      empty.textContent = '暂无';
-      track.appendChild(empty);
-      return;
-    }
-    signals.forEach((signal) => {
-      const row = document.createElement('div');
-      row.className = 'today-signal-row';
-      const name = document.createElement('span');
-      name.className = 'today-signal-name';
-      name.textContent = signal.name;
-      const point = document.createElement('strong');
-      point.className = 'today-signal-point';
-      point.textContent = signal.code;
-      const time = document.createElement('time');
-      time.className = 'today-signal-time';
-      time.textContent = formatTime(signal.at, false, false);
-      row.append(name, point, time);
-      track.appendChild(row);
-    });
-  };
-
   const updateHeroSummary = (payloads) => {
     const liveStatus = document.getElementById('live-status-pill');
     if (liveStatus) {
@@ -420,8 +395,6 @@
     if (!payloads.length) {
       renderSummarySignals('BUY', []);
       renderSummarySignals('SELL', []);
-      renderTodaySignals('BUY', []);
-      renderTodaySignals('SELL', []);
       renderTodayCount('BUY', 0);
       renderTodayCount('SELL', 0);
       return;
@@ -444,51 +417,29 @@
         sellCount: split.sellTotal,
         buyWatch: !!split.buyObservation,
         sellWatch: !!split.sellObservation,
-        latest: [...split.buys, ...split.sells]
-          .filter(item => item?.triggered_at)
-          .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null,
       };
     });
 
-    const signalsFor = (type) => rows
-      .map((row) => {
-        const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
-        const split = normalizeTimeline(payload || {});
-        const latest = (type === 'BUY' ? split.buys : split.sells)
-          .filter(item => item?.triggered_at)
-          .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
-        return latest ? { name: row.name, code: latest.code, at: latest.triggered_at } : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
-
-    renderSummarySignals('BUY', signalsFor('BUY'));
-    renderSummarySignals('SELL', signalsFor('SELL'));
-
+    // Main list only shows today's signal points (formal + observation).
     const todaySignalsFor = (type) => rows
       .flatMap((row) => {
         const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
         const split = normalizeTimeline(payload || {});
-        return (type === 'BUY' ? split.allBuys : split.allSells)
+        const formal = type === 'BUY' ? split.allBuys : split.allSells;
+        const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
+        const items = observation ? [...formal, observation] : formal;
+        return items
           .filter(item => isTodayShanghai(item?.triggered_at))
           .map(item => ({ name: row.name, code: item.code, at: item.triggered_at }));
       })
       .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
 
-    // Count includes observation windows (1.75h / 10m), matching the header chip copy.
-    const todayCountFor = (type) => rows.reduce((sum, row) => {
-      const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
-      const split = normalizeTimeline(payload || {});
-      const formal = type === 'BUY' ? split.allBuys : split.allSells;
-      const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
-      const items = observation ? [...formal, observation] : formal;
-      return sum + items.filter(item => isTodayShanghai(item?.triggered_at)).length;
-    }, 0);
-
-    renderTodaySignals('BUY', todaySignalsFor('BUY'));
-    renderTodaySignals('SELL', todaySignalsFor('SELL'));
-    renderTodayCount('BUY', todayCountFor('BUY'));
-    renderTodayCount('SELL', todayCountFor('SELL'));
+    const todayBuys = todaySignalsFor('BUY');
+    const todaySells = todaySignalsFor('SELL');
+    renderSummarySignals('BUY', todayBuys);
+    renderSummarySignals('SELL', todaySells);
+    renderTodayCount('BUY', todayBuys.length);
+    renderTodayCount('SELL', todaySells.length);
   };
 
   const updateQuoteUI = (symbol, payload) => {
@@ -543,11 +494,20 @@
     }
     const direction = changePct > 0 ? 'up' : changePct < 0 ? 'down' : 'flat';
     const sign = changePct > 0 ? '+' : '';
-    if (priceEl) priceEl.textContent = price.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isSpotMetal = meta.symbol === 'hf_XAU' || meta.symbol === 'hf_XAG'
+      || /^hf_/i.test(String(meta.querySymbol || meta.symbol || ''));
+    const digits = isSpotMetal ? (meta.symbol === 'hf_XAG' ? 2 : 2) : 2;
+    if (priceEl) priceEl.textContent = price.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
     if (changeEl) {
-      const amountText = Number.isFinite(changeAmount) ? `${changeAmount > 0 ? '+' : ''}${changeAmount.toFixed(2)}` : '—';
-      const pctText = Number.isFinite(changePct) ? `${sign}${changePct.toFixed(2)}%` : '—';
-      changeEl.textContent = `${amountText} · ${pctText}`;
+      if (isSpotMetal) {
+        // Spot metals: show real price + pct only (cleaner under index card).
+        const pctText = Number.isFinite(changePct) ? `${sign}${changePct.toFixed(2)}%` : '—';
+        changeEl.textContent = pctText;
+      } else {
+        const amountText = Number.isFinite(changeAmount) ? `${changeAmount > 0 ? '+' : ''}${changeAmount.toFixed(2)}` : '—';
+        const pctText = Number.isFinite(changePct) ? `${sign}${changePct.toFixed(2)}%` : '—';
+        changeEl.textContent = `${amountText} · ${pctText}`;
+      }
       changeEl.className = `market-index-change ${direction}`;
     }
   };
@@ -559,7 +519,15 @@
       const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const payload = normalizeQuotePayload(await res.json());
-      indexSymbols.forEach(meta => updateMarketIndexUI(meta, findQuoteItem(payload, meta.symbol)));
+      indexSymbols.forEach(meta => {
+        // Spot metals are keyed as hf_XAU / hf_XAG in quote payloads.
+        const item = findQuoteItem(payload, meta.symbol)
+          || findQuoteItem(payload, meta.querySymbol)
+          || payload?.quotes?.[meta.symbol]
+          || payload?.quotes?.[meta.querySymbol]
+          || null;
+        updateMarketIndexUI(meta, item);
+      });
     } catch {
       indexSymbols.forEach(meta => updateMarketIndexUI(meta, null));
     }

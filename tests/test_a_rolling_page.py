@@ -58,8 +58,8 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert 'id="stat-sell-total"' not in stats
     assert 'id="buy-signal-track"' in stats
     assert 'id="sell-signal-track"' in stats
-    assert 'class="summary-signal-point"' in stats
-    assert 'class="summary-signal-time"' in stats
+    assert 'summary-signal-point' in app
+    assert 'summary-signal-time' in app
     assert 'id="index-refresh-countdown"' in stats
     assert 'id="buy-today-count"' in stats
     assert 'id="sell-today-count"' in stats
@@ -81,38 +81,42 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "renderSummarySignals" in app
     assert "startSummaryTicker" in app
     assert "renderTodayCount" in app
-    assert "todayCountFor" in app
+    assert "todaySignalsFor" in app
+    assert "isTodayShanghai" in app
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
     assert "QUOTE_INTERVAL_MS" in app
+    assert "hf_XAU" in app
+    assert "hf_XAG" in app
+    assert "现货黄金" in stats
+    assert "现货白银" in stats
     assert "min-height: 236px" in styles
     assert ".a-rolling-main .summary-signal-viewport" in styles
     assert ".a-rolling-main .summary-signal-label" not in styles
     assert ".a-rolling-main .today-count-chip" in styles
     assert ".a-rolling-main .market-index-row" in styles
+    assert ".a-rolling-main .market-spot-list" in styles
+    assert "当日更新" not in stats
+    assert 'id="buy-today-track"' not in stats
+    assert 'id="sell-today-track"' not in stats
 
 
-def test_summary_shows_today_updates_and_240m_stop_validation_card():
+def test_summary_shows_today_only_signals_and_240m_stop_validation_card():
     stats = STATS.read_text(encoding="utf-8")
     matrix = MATRIX.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
     styles = STYLES.read_text(encoding="utf-8")
 
-    for marker in (
-        'id="buy-today-track"',
-        'id="sell-today-track"',
-        '当日更新',
-        '暂无',
-    ):
-        assert marker in stats
     assert "isTodayShanghai" in app
-    assert "renderTodaySignals" in app
+    assert "todaySignalsFor" in app
+    assert "renderTodaySignals" not in app
+    assert "当日更新" not in stats
     assert "stop-validation-card" in app
     assert "停止验证" in app
     assert "stop-validation-card" in matrix
     assert "停止验证" in matrix
     assert "item.code === '240m'" in matrix
-    assert ".a-rolling-main .today-signal-row" in styles
+    assert ".a-rolling-main .today-signal-row" not in styles
     assert ".a-rolling-main .stop-validation-card" in styles
 
 

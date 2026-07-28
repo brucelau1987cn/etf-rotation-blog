@@ -53,29 +53,13 @@ const indexSets = {
   ],
 };
 const marketIndices = indexSets[indexMarket] || indexSets.a;
+const spotMetals = indexMarket === 'a'
+  ? [
+      { symbol: 'hf_XAU', name: '现货黄金' },
+      { symbol: 'hf_XAG', name: '现货白银' },
+    ]
+  : [];
 
-const formatSignalTime = (value?: string | null) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-};
-const latestSignals = (side: 'BUY' | 'SELL') => instruments
-  .map((item) => {
-    const signal = side === 'BUY' ? item.latestBuy : item.latestSell;
-    return signal?.triggered_at ? { name: item.name, ...signal } : null;
-  })
-  .filter(Boolean)
-  .sort((a, b) => new Date(b!.triggered_at || 0).getTime() - new Date(a!.triggered_at || 0).getTime());
-const initialBuys = latestSignals('BUY');
-const initialSells = latestSignals('SELL');
 const shanghaiDateParts = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Shanghai',
   year: 'numeric',
@@ -95,18 +79,8 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
     </div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="buy-signal-track">
-        {initialBuys.length ? initialBuys.map((item) => (
-          <div class="summary-signal-item">
-            <span class="summary-signal-name">{item!.name}</span>
-            <strong class="summary-signal-point">{item!.code}</strong>
-            <time class="summary-signal-time">{formatSignalTime(item!.triggered_at)}</time>
-          </div>
-        )) : <div class="summary-signal-empty">等待多方信号</div>}
+        <div class="summary-signal-empty">当日暂无多方信号</div>
       </div>
-    </div>
-    <div class="today-signal-block">
-      <span class="today-signal-label">当日更新</span>
-      <div class="today-signal-track" id="buy-today-track"><span class="today-signal-empty">暂无</span></div>
     </div>
   </div>
 
@@ -117,18 +91,8 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
     </div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="sell-signal-track">
-        {initialSells.length ? initialSells.map((item) => (
-          <div class="summary-signal-item">
-            <span class="summary-signal-name">{item!.name}</span>
-            <strong class="summary-signal-point">{item!.code}</strong>
-            <time class="summary-signal-time">{formatSignalTime(item!.triggered_at)}</time>
-          </div>
-        )) : <div class="summary-signal-empty">等待空方信号</div>}
+        <div class="summary-signal-empty">当日暂无空方信号</div>
       </div>
-    </div>
-    <div class="today-signal-block">
-      <span class="today-signal-label">当日更新</span>
-      <div class="today-signal-track" id="sell-today-track"><span class="today-signal-empty">暂无</span></div>
     </div>
   </div>
 
@@ -145,6 +109,17 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
           <span class="market-index-change" data-role="index-change">行情加载中</span>
         </div>
       ))}
+      {spotMetals.length > 0 && (
+        <div class="market-spot-list" aria-label="现货贵金属">
+          {spotMetals.map((item) => (
+            <div class="market-index-row market-spot-row" data-index-symbol={item.symbol}>
+              <span class="market-index-name">{item.name}</span>
+              <strong class="market-index-price" data-role="index-price">—</strong>
+              <span class="market-index-change" data-role="index-change">行情加载中</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   </div>
 </div>
