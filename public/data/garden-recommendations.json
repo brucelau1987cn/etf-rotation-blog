@@ -1,34 +1,34 @@
 {
   "date": "2026-07-28",
-  "updated_at": "2026-07-28 08:30 CST",
+  "updated_at": "2026-07-28 11:30 CST",
   "applies_to": "2026-07-28",
-  "data_as_of": "2026-07-27完整交易日qfq收盘基线（91/91）；隔夜资讯截至2026-07-28 08:30 CST；盘前无当日成交与资金数据，空rows不按零资金解释。",
+  "data_as_of": "2026-07-27完整交易日qfq收盘基线（91/91）；2026-07-28上午收盘行情截至11:30，部分资金字段未由行情查询返回，空rows不按零资金解释。",
   "level_data_as_of": "2026-07-27",
-  "stage": "08:30盘前版",
+  "stage": "11:30上午收盘修正版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-07-28+08:30+Bruce ETF Trend Radar v3",
-  "market_state": "08:30盘前：上一交易日全A放量普涨，但隔夜费城半导体指数跌2.23%、英伟达近-5%、存储股再度大跌，A股科技高开追涨风险上升；中概金龙+2.51%与跨月流动性安排提供对冲。91池仍为极弱、动量通过6只。结论：权益0%-10%，只做回踩确认，不追高。",
+  "idempotency_key": "CN+2026-07-28+11:30+Bruce ETF Trend Radar v3",
+  "market_state": "11:30上午收盘：盘前海外芯片利空未阻止A股科技与周期反弹，通信+3.07%、半导体设备+2.67%、科创50+1.18%；但上证涨跌家数1103/1167、创业板670/695，广度未同步，反弹仍需下午资金确认。结论：不追高，持有观察；下午只有关键位上方横盘且资金转正才升级。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "盘前主线是“国内高景气与隔夜芯片风险的再平衡”：通信、电网、半导体设备仅作准备信号，需开盘后价格与资金双确认；恒生方向受中概走强映射但不追；黄金、有色关注避险与矿端扰动，油气受国际油价重挫压制；防御底仓继续。",
-  "summary": "7/28盘前以7/27 qfq收盘为基线：隔夜道指+0.51%、标普+0.02%、纳指-0.18%、费半-2.23%，英伟达近-5%、闪迪超-11%、SK海力士超-7%，中概金龙+2.51%；央行已安排7/29-31及8/3合计2.1万亿元隔夜逆回购护航跨月。结论：不追科技高开，权益0%-10%；回踩企稳且资金转正才小仓试错，失效即退。",
+  "mainline": "上午实际触发由盘前的风险防守转为科技、通信、电网、有色、黄金同步反弹，但市场广度接近均衡，尚未形成全面进攻。下午重点看515880通信0.640、561980半导体设备0.750、159326电网1.600及588000科创50的承接与资金；跌回关键位下方则撤销。",
+  "summary": "相对08:30新增：515880通信午收0.618、+3.07%，561980半导体设备0.734、+2.67%，159326电网1.590、+3.19%，512480半导体+0.79%；上涨集中但上证1103涨/1167跌、创业板670涨/695跌，广度未确认。成交额为分时口径；主力资金字段本批未返回，不补零。结论：上午未执行追高，下午只做回踩确认；中观强逆风（权益上限已压缩）。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
     "qfq_count": 91,
     "raw_fallback_count": 0,
     "latest_trade_date": "2026-07-27",
-    "generated_at": "2026-07-28 08:30 CST",
-    "quote_as_of": "2026-07-27收盘",
-    "quote_date": "2026-07-27",
-    "return_basis_disclosure": "盘前历史基线采用2026-07-27 qfq OHLC/ATR，覆盖91/91；2026-07-28尚无盘中报价和资金，缺失字段不按零处理。",
-    "breadth": "上一交易日全A 5195涨/286跌、成交约2.078万亿元；盘前91池市场状态极弱、动量通过6只。"
+    "generated_at": "2026-07-28 11:30 CST",
+    "quote_as_of": "2026-07-28 11:30 CST",
+    "quote_date": "2026-07-28",
+    "return_basis_disclosure": "历史比较采用2026-07-27 qfq OHLC/ATR；盘中价格、涨跌幅、成交额来自11:30行情查询；主力资金字段本批未返回，空rows不按零资金处理。",
+    "breadth": "11:30上证1103涨/1167跌、深证1492/1334、创业板670/695；三指数分时成交额合计约1.667万亿元。"
   },
   "source_audit": {
-    "mx_fund_flow_as_of": "盘前沿用2026-07-27收盘公开行情；当日资金尚未产生，空rows不按零资金解释。",
-    "iwencai_news": "news-search多Key轮询覆盖隔夜美股与芯片、半导体存储、黄金有色原油军工、央行逆回购与两融：费半-2.23%、英伟达近-5%、存储股大跌、中概金龙+2.51%、油价重挫、黄金高位及跨月流动性安排。",
-    "final_pool": "正式池91/91；qfq 91/91；latest_trade_date=2026-07-27；盘前基线日期=2026-07-27。",
-    "fallback": "D1公共交易日历为交易日权威；项目公开JSON与本地资料优先，资讯由多Key包装器补充；缺失字段不补零。"
+    "mx_fund_flow_as_of": "11:30行情查询返回ETF价格、涨跌幅和成交额；主力资金字段未返回，未以零替代。",
+    "iwencai_news": "本阶段未新增新闻查询；变化来自11:30行情查询与盘前08:30基线。",
+    "final_pool": "正式池91/91；qfq日期2026-07-27；盘中行情日期2026-07-28。",
+    "fallback": "D1公共交易日历为交易日权威；多Key行情包装器返回部分ETF空资金字段，按缺失披露。"
   },
   "harvest": [],
   "plant": [
@@ -38,10 +38,10 @@
       "name": "中药ETF汇添富",
       "priority": "高",
       "trigger": "现价0.994，等待回踩0.960附近止跌确认；跌破0.927取消候场。",
-      "action": "现价0.994，等待回踩0.960附近止跌确认；跌破0.927取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "action": "现价0.994，等待回踩0.960附近止跌确认；跌破0.927取消候场；中观约束：停开新伏击。",
       "signal_state": "当日正式池重选候场",
-      "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分72.2；动量排名1；距伏击位3.5%；风险低",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
       "price": 0.994,
       "support": 0.96,
       "target": 1.044,
@@ -70,7 +70,7 @@
         "风险低"
       ],
       "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
     },
     {
       "status": "候场",
@@ -78,10 +78,10 @@
       "name": "恒生ETF华夏",
       "priority": "中",
       "trigger": "现价1.492，等待回踩1.447附近止跌确认；跌破1.433取消候场。",
-      "action": "现价1.492，等待回踩1.447附近止跌确认；跌破1.433取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "action": "现价1.492，等待回踩1.447附近止跌确认；跌破1.433取消候场；中观约束：停开新伏击。",
       "signal_state": "当日正式池重选候场",
-      "eligibility": "ok",
-      "eligibility_reason": "趋势C；信号得分61.5；动量排名5；距伏击位3.1%；风险低；动量通过",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
       "price": 1.492,
       "support": 1.447,
       "target": 1.537,
@@ -111,47 +111,7 @@
         "动量通过"
       ],
       "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
-    },
-    {
-      "status": "候场",
-      "code": "512890",
-      "name": "红利低波ETF华泰柏瑞",
-      "priority": "中",
-      "trigger": "现价1.167，等待回踩1.137附近止跌确认；跌破1.127取消候场。",
-      "action": "现价1.167，等待回踩1.137附近止跌确认；跌破1.127取消候场；中观约束：禁止追高，只按伏击位分批。",
-      "signal_state": "当日正式池重选候场",
-      "eligibility": "ok",
-      "eligibility_reason": "趋势C；信号得分56.8；动量排名7；距伏击位2.6%；风险低",
-      "price": 1.167,
-      "support": 1.137,
-      "target": 1.197,
-      "stop": 1.127,
-      "action_level": 1.137,
-      "trigger_level": 1.137,
-      "action_level_label": "伏击位",
-      "distance_pct": -2.64,
-      "trend_level": "C",
-      "risk_level": "低",
-      "price_date": "2026-07-27",
-      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
-      "model_version": "A ETF Garden Levels v1",
-      "data_source": "tencent",
-      "level_status": "ready",
-      "selected_from_pool_date": "2026-07-28",
-      "selection_score": 61.04,
-      "selection_rank": 3,
-      "candidate_since": "2026-07-27",
-      "last_qualified_date": "2026-07-28",
-      "qualified_reason": [
-        "趋势C",
-        "信号得分56.8",
-        "动量排名7",
-        "距伏击位2.6%",
-        "风险低"
-      ],
-      "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
     }
   ],
   "watch": [
@@ -366,7 +326,34 @@
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "not_published"
+    "status": "complete",
+    "quote_as_of": "2026-07-28 11:30 CST",
+    "quote_date": "2026-07-28",
+    "prepared": {
+      "plant": 3,
+      "harvest": 0
+    },
+    "executable": {
+      "plant": 0,
+      "harvest": 0,
+      "exit": 0,
+      "hold": 3,
+      "upgrade_candidate": 4,
+      "clear": 0
+    },
+    "breadth": "上证1103涨/1167跌、深证1492/1334、创业板670/695，广度接近均衡；正式伏击0，4只科技/电网进入下午升级候选。",
+    "updated_at": "2026-07-28 11:30 CST",
+    "data_source": "多Key轮询行情查询截至2026-07-28 11:30 CST；基线为2026-07-27 qfq 91/91；主力资金字段未返回，空rows不补零。",
+    "triggered_actions": [
+      "515880通信：+3.07%，午收0.618，成交额32.33亿（强势反弹但未追高）",
+      "561980半导体设备：+2.67%，午收0.734，成交额3.64亿（隔夜利空后修复，待站回0.750）",
+      "159326电网：+3.19%，午收1.590，成交额5.87亿（接近盘前失效线，下午需收复1.600）",
+      "588000科创50：+1.18%，午收1.831，成交额59.69亿（量大但广度未确认）",
+      "517520黄金股：+2.11%，午收1.803，成交额2.96亿（避险方向反弹，不追冲高）",
+      "159985豆粕：-0.41%，午收2.169，成交额3.93亿（相对偏弱，暂不升级）"
+    ],
+    "position_change": "权益0%-10%→仍为0%-10%；上午反弹尚未满足广度与资金双确认，防御/现金维持90%-100%。",
+    "morning_session_summary": "08:30海外芯片风险剧本出现价格层面的修复，但科技、周期上涨与指数广度背离；主力资金字段未返回，下午只观察回踩承接。"
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
@@ -378,33 +365,33 @@
   },
   "mid_macro": {
     "generated_at": "2026-07-28 22:06:38 CST",
-    "headwind_level": 1,
-    "label": "偏逆风",
-    "equity_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
+    "headwind_level": 3,
+    "label": "强逆风",
+    "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
     "allow_chase": false,
-    "allow_new_offense": true,
+    "allow_new_offense": false,
     "base_position": "权益0%-10%；防御/现金90%-100%",
     "factors": [
       {
         "key": "rates_fixed_income",
         "label": "固收相对权益强弱",
-        "state": "中性",
-        "score": 0.5,
-        "headline": "权益5日仍强于固收-2.13pp"
+        "state": "逆风",
+        "score": 2.0,
+        "headline": "固收5日相对沪深300超额+2.93pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
-        "state": "中性",
-        "score": 0.75,
-        "headline": "海外映射ETF 5日+0.78%"
+        "state": "逆风",
+        "score": 2.75,
+        "headline": "海外映射ETF 5日均值-3.12%"
       },
       {
         "key": "margin_financing",
         "label": "市场资金与杠杆",
         "state": "逆风",
-        "score": 2.0,
-        "headline": "两融余额5日-3.30%"
+        "score": 1.5,
+        "headline": "两融余额5日回落-0.78%"
       }
     ]
   },
@@ -416,12 +403,11 @@
     "rule_version": "a-candidate-v1",
     "evaluation_date": "2026-07-28",
     "evaluated_count": 91,
-    "eligible_count": 7,
-    "selected_count": 3,
+    "eligible_count": 8,
+    "selected_count": 2,
     "selected_codes": [
       "560080",
-      "159920",
-      "512890"
+      "159920"
     ],
     "previous_codes": [
       "560080",
@@ -431,34 +417,24 @@
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
-    "excluded_harvest_codes": [
-      "159326",
-      "159992",
-      "512400",
-      "515220",
-      "517520"
-    ],
+    "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
       "560080",
       "159920",
       "512890"
     ],
-    "macro_gate_removed_codes": [],
-    "macro_headwind_level": 1
+    "macro_gate_removed_codes": [
+      "512890"
+    ],
+    "macro_headwind_level": 3
   },
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
     "selected_from_pool_date": "2026-07-28",
-    "evaluated_count": 5,
+    "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
-    "removed_codes": [
-      "517520",
-      "515220",
-      "159992",
-      "512400",
-      "159326"
-    ]
+    "removed_codes": []
   }
 }
