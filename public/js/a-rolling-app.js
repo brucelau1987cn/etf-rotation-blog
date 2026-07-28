@@ -301,8 +301,8 @@
   };
 
   const summaryTickerTimers = new Map();
-  const SUMMARY_ROW_HEIGHT = 30;
-  const SUMMARY_VISIBLE_ROWS = 7;
+  const SUMMARY_ROW_HEIGHT = 44;
+  const SUMMARY_VISIBLE_ROWS = 5;
 
   const startSummaryTicker = (track) => {
     const oldTimer = summaryTickerTimers.get(track.id);
@@ -334,25 +334,34 @@
     signals.forEach((signal) => {
       const row = document.createElement('div');
       row.className = 'summary-signal-item';
-      const name = document.createElement('span');
-      name.className = 'summary-signal-name';
+
+      const identity = document.createElement('div');
+      identity.className = 'summary-signal-identity';
+
+      const title = document.createElement('div');
+      title.className = 'summary-signal-title';
       const label = document.createElement('span');
       label.className = 'summary-signal-label-text';
       label.textContent = signal.name;
-      name.appendChild(label);
-      if (signal.symbol) {
-        const symbol = document.createElement('span');
-        symbol.className = 'summary-signal-symbol';
-        symbol.textContent = signal.symbol;
-        name.appendChild(symbol);
-      }
+      title.appendChild(label);
       if (Number(signal.count) > 1) {
         const count = document.createElement('em');
         count.className = 'summary-signal-count';
         count.textContent = String(signal.count);
         count.title = `当日累计 ${signal.count} 次`;
-        name.appendChild(count);
+        title.appendChild(count);
       }
+
+      const meta = document.createElement('div');
+      meta.className = 'summary-signal-meta';
+      if (signal.symbol) {
+        const symbol = document.createElement('span');
+        symbol.className = 'summary-signal-symbol';
+        symbol.textContent = signal.symbol;
+        meta.appendChild(symbol);
+      }
+      identity.append(title, meta);
+
       const point = document.createElement('strong');
       point.className = 'summary-signal-point';
       if (type === 'SELL' && signal.code === '240m') {
@@ -362,10 +371,13 @@
       } else {
         point.textContent = signal.code;
       }
+
       const time = document.createElement('time');
       time.className = 'summary-signal-time';
-      time.textContent = formatTime(signal.at, true, false);
-      row.append(name, point, time);
+      time.textContent = formatTime(signal.at, false, false);
+      time.title = formatTime(signal.at, true, false);
+
+      row.append(identity, point, time);
       track.appendChild(row);
     });
     startSummaryTicker(track);

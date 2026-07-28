@@ -86,6 +86,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "SUMMARY_VISIBLE_ROWS" in app
     assert "summary-signal-count" in app
     assert "summary-signal-symbol" in app
+    assert "summary-signal-identity" in app
     assert "当日累计" in app
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
@@ -95,10 +96,12 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "现货黄金" in stats
     assert "现货白银" in stats
     assert "min-height: 292px" in styles
-    assert "height: 210px" in styles
+    assert "height: 220px" in styles
+    assert "SUMMARY_ROW_HEIGHT = 44" in app
     assert ".a-rolling-main .summary-signal-viewport" in styles
     assert ".a-rolling-main .summary-signal-count" in styles
     assert ".a-rolling-main .summary-signal-symbol" in styles
+    assert ".a-rolling-main .summary-signal-identity" in styles
     assert ".a-rolling-main .summary-signal-label-text" in styles
     assert ".a-rolling-main .today-count-chip" in styles
     assert ".a-rolling-main .market-index-row" in styles
