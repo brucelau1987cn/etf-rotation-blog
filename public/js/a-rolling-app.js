@@ -355,7 +355,13 @@
       }
       const point = document.createElement('strong');
       point.className = 'summary-signal-point';
-      point.textContent = signal.code;
+      if (type === 'SELL' && signal.code === '240m') {
+        point.classList.add('is-stop-validation');
+        point.textContent = '停止验证 240m';
+        point.title = '空方力量达到240分钟，停止验证';
+      } else {
+        point.textContent = signal.code;
+      }
       const time = document.createElement('time');
       time.className = 'summary-signal-time';
       time.textContent = formatTime(signal.at, true, false);
@@ -590,7 +596,12 @@
         pill.style.background = '#f1f5f9';
         pill.style.borderColor = '#cbd5e1';
       }
-      if (indexPill) indexPill.textContent = '后台暂停';
+      if (indexPill) {
+        indexPill.textContent = '实时：页面后台暂停';
+        indexPill.style.color = '#64748b';
+        indexPill.style.background = '#f1f5f9';
+        indexPill.style.borderColor = '#cbd5e1';
+      }
       return;
     }
     const remainMs = Math.max(0, nextQuoteAt - Date.now());
@@ -602,7 +613,12 @@
         pill.style.background = '#e6f4ff';
         pill.style.borderColor = '#91caff';
       }
-      if (indexPill) indexPill.textContent = '刷新中…';
+      if (indexPill) {
+        indexPill.textContent = '实时：刷新中…';
+        indexPill.style.color = '#0958d9';
+        indexPill.style.background = '#e6f4ff';
+        indexPill.style.borderColor = '#91caff';
+      }
       return;
     }
     if (pill) {
@@ -611,7 +627,12 @@
       pill.style.background = '#f1f5f9';
       pill.style.borderColor = '#cbd5e1';
     }
-    if (indexPill) indexPill.textContent = `${remainSec}s 后刷新`;
+    if (indexPill) {
+      indexPill.textContent = `实时：${remainSec}s 后刷新`;
+      indexPill.style.color = '#334155';
+      indexPill.style.background = '#f1f5f9';
+      indexPill.style.borderColor = '#cbd5e1';
+    }
   };
 
   const armQuoteCountdown = () => {
@@ -719,7 +740,25 @@
       tick: async () => { await fetchAllQuotes(); },
       onStatus: (text) => {
         const pill = document.getElementById('pill-refresh-countdown');
+        const indexPill = document.getElementById('index-refresh-countdown');
         if (pill) pill.textContent = text;
+        // Mirror the top market-status pill into the index card chip.
+        if (indexPill) {
+          indexPill.textContent = text;
+          if (/收盘|休市|恢复|暂停/.test(String(text || ''))) {
+            indexPill.style.color = '#64748b';
+            indexPill.style.background = '#f1f5f9';
+            indexPill.style.borderColor = '#cbd5e1';
+          } else if (/刷新中/.test(String(text || ''))) {
+            indexPill.style.color = '#0958d9';
+            indexPill.style.background = '#e6f4ff';
+            indexPill.style.borderColor = '#91caff';
+          } else {
+            indexPill.style.color = '#334155';
+            indexPill.style.background = '#f1f5f9';
+            indexPill.style.borderColor = '#cbd5e1';
+          }
+        }
       },
     });
     window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});

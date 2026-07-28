@@ -99,7 +99,7 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
   <div class="signal-card market-index-card" aria-label={indexMarket === 'futures' ? '期货主力连续实时行情' : '主要指数实时行情'}>
     <div class="signal-card-head">
       <span class="signal-kicker">{indexMarket === 'futures' ? '主力连续' : '三大指数'}</span>
-      <span class="signal-chip index-live-chip" id="index-refresh-countdown">15s 后刷新</span>
+      <span class="signal-chip index-live-chip" id="index-refresh-countdown">实时：准备刷新…</span>
     </div>
     <div class="market-index-list">
       {marketIndices.map((item) => (

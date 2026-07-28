@@ -172,7 +172,10 @@
   background: #eff6ff;
   border-color: #bfdbfe;
   min-width: 5.6rem;
+  max-width: min(100%, 12.5rem);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .a-rolling-main .today-count-chip {
@@ -212,7 +215,7 @@
 .a-rolling-main .summary-signal-item {
   height: 30px;
   display: grid;
-  grid-template-columns: minmax(5.8rem, 1fr) 3.4rem auto;
+  grid-template-columns: minmax(5.8rem, 1fr) minmax(3.4rem, auto) auto;
   align-items: center;
   gap: 0.5rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
@@ -277,10 +280,21 @@
   font-weight: 850;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .a-rolling-main .buy-card .summary-signal-point { color: #cf1322; }
 .a-rolling-main .sell-card .summary-signal-point { color: #389e0d; }
+
+.a-rolling-main .summary-signal-point.is-stop-validation {
+  color: #b45309;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 999px;
+  padding: 0.08rem 0.42rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
 
 .a-rolling-main .summary-signal-time {
   color: #64748b;

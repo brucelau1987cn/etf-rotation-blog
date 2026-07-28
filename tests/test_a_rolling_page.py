@@ -120,11 +120,15 @@ def test_summary_shows_today_only_signals_and_240m_stop_validation_card():
     assert "当日更新" not in stats
     assert "stop-validation-card" in app
     assert "停止验证" in app
+    assert "停止验证 240m" in app
+    assert "is-stop-validation" in app
     assert "stop-validation-card" in matrix
     assert "停止验证" in matrix
     assert "item.code === '240m'" in matrix
     assert ".a-rolling-main .today-signal-row" not in styles
     assert ".a-rolling-main .stop-validation-card" in styles
+    assert ".a-rolling-main .summary-signal-point.is-stop-validation" in styles
+    assert "indexPill.textContent = text" in app
 
 
 def test_hk_and_us_rolling_use_market_specific_index_cards():
