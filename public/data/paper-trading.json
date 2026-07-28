@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-27T07:10:06.640715+00:00",
+  "updated_at": "2026-07-28T07:10:18.369092+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -25,27 +25,35 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-28",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
       "pending_signals": [
         {
-          "symbol": "512800",
-          "name": "银行ETF华宝",
-          "support": 0.782,
-          "target": 0.827,
-          "stop": 0.773,
-          "signal_date": "2026-07-27",
+          "symbol": "560080",
+          "name": "中药ETF汇添富",
+          "support": 0.96,
+          "target": 1.044,
+          "stop": 0.927,
+          "signal_date": "2026-07-28",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "515180",
-          "name": "红利ETF易方达",
-          "support": 1.347,
-          "target": 1.427,
-          "stop": 1.334,
-          "signal_date": "2026-07-27",
+          "symbol": "159920",
+          "name": "恒生ETF华夏",
+          "support": 1.447,
+          "target": 1.537,
+          "stop": 1.433,
+          "signal_date": "2026-07-28",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -87,19 +95,97 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 20000.0,
-      "positions": {},
-      "equity": 20000.0,
+      "cash": 18065.113526572266,
+      "positions": {
+        "IYT": {
+          "symbol": "IYT",
+          "name": "iShares Transportation Average",
+          "quantity": 22,
+          "entry_price": 87.86000061035156,
+          "entry_cost": 1.96646,
+          "entry_at": "2026-07-27T13:45:51.252967+00:00",
+          "target": 90.03,
+          "stop": 85.34,
+          "level_basis": null,
+          "signal_date": "2026-07-24",
+          "last_price": 87.18000030517578
+        }
+      },
+      "equity": 19983.073533,
       "realized_pnl": 0.0,
-      "unrealized_pnl": 0.0,
-      "daily_return": 0.0,
-      "cumulative_return": 0.0,
+      "unrealized_pnl": -16.926467,
+      "daily_return": -0.00084632,
+      "cumulative_return": -0.00084632,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 1.0,
+      "cash_ratio": 0.90402077,
       "history": [],
-      "events": [],
-      "pending_signals": [],
+      "events": [
+        {
+          "id": "US:IYT:buy:1785159931:plant",
+          "timestamp": "2026-07-27T13:45:51.252967+00:00",
+          "market": "US",
+          "symbol": "IYT",
+          "name": "iShares Transportation Average",
+          "side": "buy",
+          "quantity": 22,
+          "price": 87.860001,
+          "cost": 1.96646,
+          "reason": "plant"
+        }
+      ],
+      "pending_signals": [
+        {
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "support": 13.6,
+          "target": 14.48,
+          "stop": 13.46,
+          "signal_date": "2026-07-24",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "IBIT",
+          "name": "iShares Bitcoin Trust ETF",
+          "support": 35.8,
+          "target": 37.32,
+          "stop": 35.06,
+          "signal_date": "2026-07-24",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "KRE",
+          "name": "SPDR S&P Regional Banking",
+          "support": 75.42,
+          "target": 77.54,
+          "stop": 73.32,
+          "signal_date": "2026-07-24",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "RSP",
+          "name": "Invesco S&P 500 Equal Weight",
+          "support": 213.33,
+          "target": 216.36,
+          "stop": 209.85,
+          "signal_date": "2026-07-24",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "EWZ",
+          "name": "iShares MSCI Brazil",
+          "support": 35.23,
+          "target": 36.45,
+          "stop": 34.78,
+          "signal_date": "2026-07-24",
+          "kind": "ready_plant",
+          "status": "候场"
+        }
+      ],
       "benchmark": {
         "symbol": "SPY",
         "cumulative_return": null,
