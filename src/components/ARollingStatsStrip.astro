@@ -82,7 +82,6 @@ const initialSells = latestSignals('SELL');
     <div class="signal-card-head">
       <span class="signal-kicker">🔴 多方信号</span>
     </div>
-    <div class="summary-signal-label">最新多方信号</div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="buy-signal-track">
         {initialBuys.length ? initialBuys.map((item) => (
@@ -104,7 +103,6 @@ const initialSells = latestSignals('SELL');
     <div class="signal-card-head">
       <span class="signal-kicker">🟢 空方信号</span>
     </div>
-    <div class="summary-signal-label">最新空方信号</div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="sell-signal-track">
         {initialSells.length ? initialSells.map((item) => (

@@ -61,6 +61,9 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert 'class="summary-signal-point"' in stats
     assert 'class="summary-signal-time"' in stats
     assert 'id="index-refresh-countdown"' in stats
+    assert '最新多方信号' not in stats
+    assert '最新空方信号' not in stats
+    assert 'summary-signal-label' not in stats
     assert '最新 4 条' not in stats
     assert '每股最新 1 条' not in stats
     assert stats.count('signal-chip') == 1
@@ -78,6 +81,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "QUOTE_INTERVAL_MS" in app
     assert "min-height: 236px" in styles
     assert ".a-rolling-main .summary-signal-viewport" in styles
+    assert ".a-rolling-main .summary-signal-label" not in styles
     assert ".a-rolling-main .market-index-row" in styles
 
 
