@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-28T02:19:31.059723Z",
-  "data_as_of": "2026-07-27 09:40:00+08:00",
+  "generated_at": "2026-07-28T05:03:19.256150Z",
+  "data_as_of": "2026-07-28 10:45:06+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "澜起科技 用户授权重置信号投影；起始日期 2026-07-27。",
+  "notice": "澜起科技 正式信号投影恢复；起始日期 2026-07-27。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -18,12 +18,12 @@
   "transmission": {
     "state": "transmitting",
     "basis": "chronological_sequence",
-    "current_cycle_code": "10m",
+    "current_cycle_code": "30m",
     "started_at": "2026-07-27 09:40:00+08:00",
-    "latest_triggered_at": "2026-07-27 09:40:00+08:00",
-    "lit_count": 1,
+    "latest_triggered_at": "2026-07-28 10:45:06+08:00",
+    "lit_count": 2,
     "buy_count": 0,
-    "sell_count": 1,
+    "sell_count": 2,
     "start_date": "2026-07-27"
   },
   "timeline": [
@@ -32,6 +32,13 @@
       "code": "10m",
       "triggered_at": "2026-07-27 09:40:00+08:00",
       "label": "10分钟"
+    },
+    {
+      "type": "SELL",
+      "code": "30m",
+      "triggered_at": "2026-07-28 10:45:06+08:00",
+      "label": "30分钟",
+      "event_id": "evt_1785206706423_vvqn0z"
     }
   ],
   "cycles": [],
@@ -42,6 +49,12 @@
         "sell_state": "SELL",
         "triggered_at": "2026-07-27 09:40:00+08:00",
         "label": "10分钟"
+      },
+      {
+        "code": "30m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-28 10:45:06+08:00",
+        "label": "30分钟"
       }
     ]
   },

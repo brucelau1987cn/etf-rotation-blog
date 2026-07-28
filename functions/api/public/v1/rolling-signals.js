@@ -4,18 +4,6 @@ const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_STALE_AFTER_SECONDS = 900;
 
-// Known multi/empty-side nodes used by the rolling board. Prefer deterministic
-// get() over KV list() so free-plan list quotas cannot blank the live timeline.
-const KNOWN_BUY_CODES = [
-  '1.75h', '105m',
-  '2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h',
-  '6h', '6.5h', '7h', '7.5h', '8h',
-];
-const KNOWN_SELL_CODES = [
-  '10m',
-  '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m',
-];
-
 const INSTRUMENT_SNAPSHOTS = {
   '600021': '/data/a-rolling-signals.json',
   '002173': '/data/a-rolling-signals-002173.json',
@@ -118,58 +106,84 @@ const parseSignalRecord = (value, symbol) => {
 
 const storageKey = (symbol, cycleCode, signal) => `signal:${symbol}:${cycleCode}:${signal}`;
 const indexKey = symbol => `index:${symbol}`;
+const timelineKey = symbol => `timeline:${symbol}`;
 
-const candidateKeysFromIndex = (symbol, rawIndex) => {
-  if (!rawIndex) return [];
+const eventsFromTimelineBundle = (raw, symbol) => {
+  if (!raw) return [];
   try {
-    const parsed = typeof rawIndex === 'string' ? JSON.parse(rawIndex) : rawIndex;
-    const entries = Array.isArray(parsed)
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const events = Array.isArray(parsed)
       ? parsed
-      : Array.isArray(parsed?.keys)
-        ? parsed.keys
-        : Array.isArray(parsed?.entries)
-          ? parsed.entries
+      : Array.isArray(parsed?.events)
+        ? parsed.events
+        : Array.isArray(parsed?.timeline)
+          ? parsed.timeline
           : [];
-    return entries.flatMap(entry => {
-      if (typeof entry === 'string' && entry.startsWith(`signal:${symbol}:`)) return [entry];
-      if (!entry || typeof entry !== 'object') return [];
-      if (typeof entry.key === 'string' && entry.key.startsWith(`signal:${symbol}:`)) return [entry.key];
-      const cycle = entry.cycle_code || entry.code;
-      const signal = entry.signal || entry.type;
-      if (!cycle || !['BUY', 'SELL'].includes(signal)) return [];
-      return [storageKey(symbol, cycle, signal)];
-    });
+    return events
+      .map(item => {
+        if (!item || typeof item !== 'object') return null;
+        if (item.type && item.code) {
+          if (normalizeSymbol(item.symbol || symbol) !== symbol) return null;
+          if (!['BUY', 'SELL'].includes(item.type)) return null;
+          return {
+            type: item.type,
+            code: String(item.code),
+            label: String(item.label || item.code),
+            triggered_at: item.triggered_at || item.received_at,
+            received_at: item.received_at || item.triggered_at,
+            event_id: item.event_id || null,
+          };
+        }
+        return parseSignalRecord(item, symbol);
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
   } catch {
     return [];
   }
 };
 
-const knownCandidateKeys = symbol => [
-  ...KNOWN_BUY_CODES.map(code => storageKey(symbol, code, 'BUY')),
-  ...KNOWN_SELL_CODES.map(code => storageKey(symbol, code, 'SELL')),
-];
-
 /**
- * Rebuild timeline with get() only.
- * Priority:
- *  1) index:{symbol} keys (maintained by webhook)
- *  2) known board cycle nodes
- * Never call kv.list — free plan list quota is only 1,000/day.
+ * Rebuild timeline with ONE primary get.
+ * Prefer timeline:{symbol} bundle maintained by webhook.
+ * Fallback: index:{symbol} entries that already embed full records (0 extra gets).
+ * Never call kv.list. Avoid scanning every known board node (was ~26 gets/symbol).
  */
 const loadKvTimeline = async (kv, symbol) => {
   if (!kv?.get) return [];
 
-  const indexRaw = await kv.get(indexKey(symbol));
-  const candidates = [...new Set([
-    ...candidateKeysFromIndex(symbol, indexRaw),
-    ...knownCandidateKeys(symbol),
-  ])];
+  const bundle = await kv.get(timelineKey(symbol));
+  const fromBundle = eventsFromTimelineBundle(bundle, symbol);
+  if (fromBundle.length) return fromBundle;
 
-  const raw = await Promise.all(candidates.map(name => kv.get(name)));
-  return raw
-    .map(value => parseSignalRecord(value, symbol))
-    .filter(Boolean)
-    .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
+  // Compact fallback: index may store full records after webhook fix.
+  const indexRaw = await kv.get(indexKey(symbol));
+  if (!indexRaw) return [];
+  try {
+    const parsed = typeof indexRaw === 'string' ? JSON.parse(indexRaw) : indexRaw;
+    const entries = Array.isArray(parsed?.entries) ? parsed.entries : (Array.isArray(parsed) ? parsed : []);
+    const events = entries
+      .map(entry => {
+        if (!entry || typeof entry !== 'object') return null;
+        if (entry.type && entry.code) {
+          return {
+            type: entry.type,
+            code: String(entry.code),
+            label: String(entry.label || entry.code),
+            triggered_at: entry.triggered_at || entry.received_at,
+            received_at: entry.received_at || entry.triggered_at,
+            event_id: entry.event_id || null,
+          };
+        }
+        if (entry.signal && entry.cycle_code) return parseSignalRecord(entry, symbol);
+        return null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
+    return events;
+  } catch {
+    return [];
+  }
 };
 
 const publicReason = error => {

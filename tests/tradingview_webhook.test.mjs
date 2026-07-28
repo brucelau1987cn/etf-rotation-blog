@@ -40,10 +40,14 @@ test('tradingview webhook accepts valid token and stores signal to KV', async ()
   assert.equal(kvStore.has('signal:600021:PRE:BUY'), true);
   assert.equal(kvStore.has('latest:600021'), true);
   assert.equal(kvStore.has('index:600021'), true);
+  assert.equal(kvStore.has('timeline:600021'), true);
   const index = JSON.parse(kvStore.get('index:600021'));
   assert.equal(index.symbol, '600021');
   assert.equal(index.entries.length, 1);
   assert.equal(index.entries[0].key, 'signal:600021:PRE:BUY');
+  const timeline = JSON.parse(kvStore.get('timeline:600021'));
+  assert.equal(timeline.events.length, 1);
+  assert.equal(timeline.events[0].code, 'PRE');
 });
 
 test('tradingview webhook fails closed when ROLLING_KV is missing', async () => {
@@ -113,4 +117,6 @@ test('tradingview webhook upserts index entries without duplicates', async () =>
     'signal:301511:10m:SELL',
     'signal:301511:15m:SELL',
   ]);
+  const timeline = JSON.parse(kvStore.get('timeline:301511'));
+  assert.deepEqual(timeline.events.map(item => item.code), ['15m']);
 });

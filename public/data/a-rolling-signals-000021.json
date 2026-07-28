@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-28T02:19:31.059723Z",
-  "data_as_of": "2026-07-21 09:30:00+08:00",
+  "generated_at": "2026-07-28T05:03:19.256150Z",
+  "data_as_of": "2026-07-28 10:55:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "深科技 用户授权重置信号投影；起始日期 2026-07-21。",
+  "notice": "深科技 正式信号投影恢复；起始日期 2026-07-21。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -16,20 +16,48 @@
     "symbol": "000021"
   },
   "transmission": {
-    "state": "observing",
+    "state": "transmitting",
     "basis": "chronological_sequence",
-    "current_cycle_code": null,
-    "started_at": null,
-    "latest_triggered_at": null,
-    "lit_count": 0,
+    "current_cycle_code": "10m",
+    "started_at": "2026-07-28 10:45:01+08:00",
+    "latest_triggered_at": "2026-07-28 10:55:00+08:00",
+    "lit_count": 2,
     "buy_count": 0,
-    "sell_count": 0,
+    "sell_count": 2,
     "start_date": "2026-07-21"
   },
-  "timeline": [],
+  "timeline": [
+    {
+      "type": "SELL",
+      "code": "15m",
+      "triggered_at": "2026-07-28 10:45:01+08:00",
+      "label": "15分钟",
+      "event_id": "evt_1785206701569_3hiasp"
+    },
+    {
+      "type": "SELL",
+      "code": "10m",
+      "triggered_at": "2026-07-28 10:55:00+08:00",
+      "label": "10分钟",
+      "event_id": "evt_1785207300652_tejmyh"
+    }
+  ],
   "cycles": [],
   "sell_chain": {
-    "nodes": []
+    "nodes": [
+      {
+        "code": "15m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-28 10:45:01+08:00",
+        "label": "15分钟"
+      },
+      {
+        "code": "10m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-28 10:55:00+08:00",
+        "label": "10分钟"
+      }
+    ]
   },
   "sell_alerts": []
 }

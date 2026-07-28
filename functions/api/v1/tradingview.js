@@ -70,6 +70,7 @@ export async function onRequestPost({ request, env }) {
       const storageKey = `signal:${symbol}:${cycle_code}:${signal}`;
       const latestKey = `latest:${symbol}`;
       const indexKey = `index:${symbol}`;
+      const timelineKey = `timeline:${symbol}`;
       
       const record = {
         symbol,
@@ -79,39 +80,84 @@ export async function onRequestPost({ request, env }) {
         event_id: eventId,
         received_at: receivedAt,
       };
+      const timelineEvent = {
+        symbol,
+        type: signal,
+        code: String(cycle_code),
+        label: String(cycle_code),
+        triggered_at: trigger_time_utc || receivedAt,
+        received_at: receivedAt,
+        event_id: eventId,
+      };
 
-      // Maintain a per-symbol index so public reads can rebuild timelines with get()
-      // only (no kv.list; free plan list quota is only 1,000/day).
+      // Maintain compact per-symbol bundles so public reads need only 1 get
+      // (timeline:{symbol}). Free plan is 100k reads/day; scanning all board
+      // nodes per instrument was burning the quota every poll.
       let indexEntries = [];
+      let timelineEvents = [];
       try {
-        const existingIndex = await env.ROLLING_KV.get(indexKey);
+        const [existingIndex, existingTimeline] = await Promise.all([
+          env.ROLLING_KV.get(indexKey),
+          env.ROLLING_KV.get(timelineKey),
+        ]);
         if (existingIndex) {
           const parsed = JSON.parse(existingIndex);
           if (Array.isArray(parsed?.entries)) indexEntries = parsed.entries;
           else if (Array.isArray(parsed)) indexEntries = parsed;
         }
+        if (existingTimeline) {
+          const parsed = JSON.parse(existingTimeline);
+          if (Array.isArray(parsed?.events)) timelineEvents = parsed.events;
+          else if (Array.isArray(parsed)) timelineEvents = parsed;
+        }
       } catch {
         indexEntries = [];
+        timelineEvents = [];
       }
-      const nextEntry = { key: storageKey, cycle_code, signal, received_at: receivedAt };
+
+      const nextIndexEntry = {
+        key: storageKey,
+        cycle_code,
+        signal,
+        received_at: receivedAt,
+        type: signal,
+        code: String(cycle_code),
+        label: String(cycle_code),
+        triggered_at: trigger_time_utc || receivedAt,
+        event_id: eventId,
+      };
       indexEntries = [
         ...indexEntries.filter(entry => {
           const key = typeof entry === 'string' ? entry : entry?.key;
           return key && key !== storageKey;
         }),
-        nextEntry,
+        nextIndexEntry,
       ].slice(-64);
+
+      timelineEvents = [
+        ...timelineEvents.filter(event => !(event && event.type === signal && String(event.code) === String(cycle_code))),
+        timelineEvent,
+      ]
+        .sort((a, b) => new Date(a.received_at || a.triggered_at || 0).getTime() - new Date(b.received_at || b.triggered_at || 0).getTime())
+        .slice(-64);
+
       const indexPayload = JSON.stringify({
         symbol,
         updated_at: receivedAt,
         entries: indexEntries,
       });
+      const timelinePayload = JSON.stringify({
+        symbol,
+        updated_at: receivedAt,
+        events: timelineEvents,
+      });
 
-      // 存储当前信号、最新快照、索引
+      // 存储当前信号、最新快照、索引、整轨时间线
       await Promise.all([
         env.ROLLING_KV.put(storageKey, JSON.stringify(record)),
         env.ROLLING_KV.put(latestKey, JSON.stringify(record)),
         env.ROLLING_KV.put(indexKey, indexPayload),
+        env.ROLLING_KV.put(timelineKey, timelinePayload),
       ]);
 
       // 1分钟内重复信号防抖与 Telegram 实时提醒 (防暴击)
