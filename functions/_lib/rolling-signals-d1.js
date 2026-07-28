@@ -1,0 +1,126 @@
+/**
+ * D1 helpers for rolling signals.
+ * First write of (trade_date, symbol, cycle_code, signal) wins for the day.
+ */
+
+export const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
+
+export const shanghaiTradeDate = (input = new Date()) => {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+  }
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date);
+};
+
+export const ensureRollingSignalsTable = async db => {
+  if (!db?.prepare) return;
+  // Support both D1 styles: prepare().run() and prepare().bind().run()
+  const exec = async sql => {
+    const stmt = db.prepare(sql);
+    if (typeof stmt.run === 'function') return stmt.run();
+    if (typeof stmt.bind === 'function') return stmt.bind().run();
+    return null;
+  };
+  await exec(`
+    CREATE TABLE IF NOT EXISTS rolling_signals (
+      trade_date TEXT NOT NULL,
+      symbol TEXT NOT NULL,
+      cycle_code TEXT NOT NULL,
+      signal TEXT NOT NULL CHECK (signal IN ('BUY', 'SELL')),
+      trigger_time_utc TEXT NOT NULL,
+      received_at TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      label TEXT,
+      instrument_name TEXT,
+      exchange TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (trade_date, symbol, cycle_code, signal)
+    )
+  `);
+  await exec(`
+    CREATE INDEX IF NOT EXISTS idx_rolling_signals_symbol_date
+      ON rolling_signals (symbol, trade_date, received_at)
+  `);
+};
+
+/**
+ * Insert once. Returns { inserted: boolean, row }
+ */
+export const insertRollingSignalOnce = async (db, row) => {
+  await ensureRollingSignalsTable(db);
+  const tradeDate = row.trade_date || shanghaiTradeDate(row.trigger_time_utc || row.received_at || new Date());
+  const symbol = normalizeSymbol(row.symbol);
+  const cycleCode = String(row.cycle_code || row.code || '').trim();
+  const signal = String(row.signal || row.type || '').toUpperCase();
+  const triggerTime = row.trigger_time_utc || row.triggered_at || row.received_at;
+  const receivedAt = row.received_at || new Date().toISOString();
+  const eventId = row.event_id || `evt_${Date.now()}`;
+  const label = row.label || cycleCode;
+
+  const result = await db.prepare(`
+    INSERT OR IGNORE INTO rolling_signals
+      (trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    tradeDate,
+    symbol,
+    cycleCode,
+    signal,
+    triggerTime,
+    receivedAt,
+    eventId,
+    label,
+    row.instrument_name || null,
+    row.exchange || null,
+  ).run();
+
+  const existing = await db.prepare(`
+    SELECT trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange
+    FROM rolling_signals
+    WHERE trade_date = ? AND symbol = ? AND cycle_code = ? AND signal = ?
+  `).bind(tradeDate, symbol, cycleCode, signal).first();
+
+  const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
+  return {
+    inserted: changes > 0,
+    trade_date: tradeDate,
+    row: existing || {
+      trade_date: tradeDate,
+      symbol,
+      cycle_code: cycleCode,
+      signal,
+      trigger_time_utc: triggerTime,
+      received_at: receivedAt,
+      event_id: eventId,
+      label,
+      instrument_name: row.instrument_name || null,
+      exchange: row.exchange || null,
+    },
+  };
+};
+
+export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = shanghaiTradeDate()) => {
+  if (!db?.prepare) return [];
+  await ensureRollingSignalsTable(db);
+  const key = normalizeSymbol(symbol);
+  const { results } = await db.prepare(`
+    SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label
+    FROM rolling_signals
+    WHERE symbol = ? AND trade_date = ?
+    ORDER BY received_at ASC, trigger_time_utc ASC
+  `).bind(key, tradeDate).all();
+
+  return (results || []).map(item => ({
+    type: item.signal,
+    code: String(item.cycle_code),
+    label: String(item.label || item.cycle_code),
+    triggered_at: item.trigger_time_utc || item.received_at,
+    received_at: item.received_at || item.trigger_time_utc,
+    event_id: item.event_id || null,
+  }));
+};

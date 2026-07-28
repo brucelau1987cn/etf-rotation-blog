@@ -1,4 +1,9 @@
 import { asLkg, projectUpstream, validatePublicPayload } from '../../../_lib/a-rolling.js';
+import {
+  loadRollingTimelineFromD1,
+  normalizeSymbol as normalizeRollingSymbol,
+  shanghaiTradeDate,
+} from '../../../_lib/rolling-signals-d1.js';
 
 const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -23,7 +28,8 @@ const INSTRUMENT_SNAPSHOTS = {
 
 const headers = state => ({
   'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'public, max-age=0, s-maxage=30, stale-while-revalidate=120',
+  // Signals are day-locked; allow short shared cache so the board does not thrash origin.
+  'cache-control': 'public, max-age=15, s-maxage=60, stale-while-revalidate=300',
   'x-content-type-options': 'nosniff',
   'x-rolling-delivery': state,
 });
@@ -33,7 +39,7 @@ const json = (payload, status = 200) => new Response(JSON.stringify(payload), {
   headers: headers(payload?.delivery?.state || 'error'),
 });
 
-const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
+const normalizeSymbol = value => normalizeRollingSymbol(value);
 
 const snapshotPathForSymbol = symbol => {
   const key = normalizeSymbol(symbol) || '600021';
@@ -84,106 +90,26 @@ const loadLkg = async (request, env, symbol) => {
   return validatePublicPayload(await readJsonResponse(response));
 };
 
-const parseSignalRecord = (value, symbol) => {
-  if (!value) return null;
-  try {
-    const item = typeof value === 'string' ? JSON.parse(value) : value;
-    if (normalizeSymbol(item.symbol) !== symbol || !['BUY', 'SELL'].includes(item.signal) || !item.cycle_code) {
-      return null;
+const mergeTimelines = (...lists) => {
+  const map = new Map();
+  for (const list of lists) {
+    for (const item of list || []) {
+      if (!item || !item.type || !item.code) continue;
+      const key = `${item.type}:${item.code}`;
+      const prev = map.get(key);
+      if (!prev) {
+        map.set(key, item);
+        continue;
+      }
+      // Keep earliest formal receipt for the day/node.
+      const prevTs = new Date(prev.received_at || prev.triggered_at || 0).getTime();
+      const nextTs = new Date(item.received_at || item.triggered_at || 0).getTime();
+      if (Number.isFinite(nextTs) && (!Number.isFinite(prevTs) || nextTs < prevTs)) map.set(key, item);
     }
-    return {
-      type: item.signal,
-      code: String(item.cycle_code),
-      label: String(item.cycle_code),
-      triggered_at: item.trigger_time_utc || item.received_at,
-      received_at: item.received_at || item.trigger_time_utc,
-      event_id: item.event_id || null,
-    };
-  } catch {
-    return null;
   }
-};
-
-const storageKey = (symbol, cycleCode, signal) => `signal:${symbol}:${cycleCode}:${signal}`;
-const indexKey = symbol => `index:${symbol}`;
-const timelineKey = symbol => `timeline:${symbol}`;
-
-const eventsFromTimelineBundle = (raw, symbol) => {
-  if (!raw) return [];
-  try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    const events = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray(parsed?.events)
-        ? parsed.events
-        : Array.isArray(parsed?.timeline)
-          ? parsed.timeline
-          : [];
-    return events
-      .map(item => {
-        if (!item || typeof item !== 'object') return null;
-        if (item.type && item.code) {
-          if (normalizeSymbol(item.symbol || symbol) !== symbol) return null;
-          if (!['BUY', 'SELL'].includes(item.type)) return null;
-          return {
-            type: item.type,
-            code: String(item.code),
-            label: String(item.label || item.code),
-            triggered_at: item.triggered_at || item.received_at,
-            received_at: item.received_at || item.triggered_at,
-            event_id: item.event_id || null,
-          };
-        }
-        return parseSignalRecord(item, symbol);
-      })
-      .filter(Boolean)
-      .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
-  } catch {
-    return [];
-  }
-};
-
-/**
- * Rebuild timeline with ONE primary get.
- * Prefer timeline:{symbol} bundle maintained by webhook.
- * Fallback: index:{symbol} entries that already embed full records (0 extra gets).
- * Never call kv.list. Avoid scanning every known board node (was ~26 gets/symbol).
- */
-const loadKvTimeline = async (kv, symbol) => {
-  if (!kv?.get) return [];
-
-  const bundle = await kv.get(timelineKey(symbol));
-  const fromBundle = eventsFromTimelineBundle(bundle, symbol);
-  if (fromBundle.length) return fromBundle;
-
-  // Compact fallback: index may store full records after webhook fix.
-  const indexRaw = await kv.get(indexKey(symbol));
-  if (!indexRaw) return [];
-  try {
-    const parsed = typeof indexRaw === 'string' ? JSON.parse(indexRaw) : indexRaw;
-    const entries = Array.isArray(parsed?.entries) ? parsed.entries : (Array.isArray(parsed) ? parsed : []);
-    const events = entries
-      .map(entry => {
-        if (!entry || typeof entry !== 'object') return null;
-        if (entry.type && entry.code) {
-          return {
-            type: entry.type,
-            code: String(entry.code),
-            label: String(entry.label || entry.code),
-            triggered_at: entry.triggered_at || entry.received_at,
-            received_at: entry.received_at || entry.triggered_at,
-            event_id: entry.event_id || null,
-          };
-        }
-        if (entry.signal && entry.cycle_code) return parseSignalRecord(entry, symbol);
-        return null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
-    return events;
-  } catch {
-    return [];
-  }
+  return [...map.values()].sort(
+    (a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime(),
+  );
 };
 
 const publicReason = error => {
@@ -194,6 +120,7 @@ const publicReason = error => {
 export async function handleRollingSignals(request, env = {}) {
   const requestUrl = new URL(request.url);
   const symbol = normalizeSymbol(requestUrl.searchParams.get('symbol') || requestUrl.searchParams.get('code') || '600021');
+  const tradeDate = shanghaiTradeDate();
 
   let lkg;
   try {
@@ -202,31 +129,51 @@ export async function handleRollingSignals(request, env = {}) {
     return json({ error: 'rolling signal snapshot unavailable', symbol }, 503);
   }
 
-  if (env.ROLLING_KV) {
+  // Primary path: D1 day board. No KV quota involved.
+  if (env.DB) {
     try {
-      const timeline = await loadKvTimeline(env.ROLLING_KV, symbol);
+      const d1Timeline = await loadRollingTimelineFromD1(env.DB, symbol, tradeDate);
+      // Merge with static LKG so authorized historical projections remain visible.
+      const staticTimeline = Array.isArray(lkg.timeline) ? lkg.timeline : [];
+      const timeline = mergeTimelines(staticTimeline, d1Timeline);
       if (timeline.length) {
         const latestReceivedAt = timeline
           .map(item => item.received_at || item.triggered_at)
           .filter(Boolean)
           .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
-        return json(projectUpstream({
+        const payload = projectUpstream({
           instrument: lkg.instrument,
           timeline,
           data_as_of: latestReceivedAt,
-        }));
+        });
+        // Day-locked board: once written, keep presentation stable for the day.
+        payload.mode = d1Timeline.length ? 'live' : payload.mode;
+        payload.freshness = d1Timeline.length ? 'fresh' : payload.freshness;
+        payload.delivery = {
+          state: d1Timeline.length ? 'live' : (payload.delivery?.state || 'lkg'),
+          reason: d1Timeline.length ? null : (payload.delivery?.reason || 'D1当日暂无新信号，展示静态投影'),
+        };
+        payload.trade_date = tradeDate;
+        payload.storage = 'd1';
+        if (lkg.transmission?.start_date) {
+          payload.transmission = {
+            ...payload.transmission,
+            start_date: lkg.transmission.start_date,
+          };
+        }
+        return json(payload);
       }
     } catch {
-      return json(asLkg(lkg, 'KV信号读取失败，返回静态快照'));
+      return json(asLkg(lkg, 'D1信号读取失败，返回静态快照'));
     }
   }
 
   if (symbol !== '600021') {
-    return json(asLkg(lkg, env.ROLLING_KV ? 'KV暂无该标的信号，返回静态快照' : 'ROLLING_KV未绑定，返回静态快照'));
+    return json(asLkg(lkg, env.DB ? 'D1暂无该标的信号，返回静态快照' : 'DB未绑定，返回静态快照'));
   }
 
   const upstreamUrl = String(env.A_ROLLING_UPSTREAM_URL || '').trim();
-  if (!upstreamUrl) return json(asLkg(lkg, env.ROLLING_KV ? 'KV暂无信号且未配置只读上游' : 'ROLLING_KV未绑定且未配置只读上游'));
+  if (!upstreamUrl) return json(asLkg(lkg, env.DB ? 'D1暂无信号且未配置只读上游' : 'DB未绑定且未配置只读上游'));
 
   try {
     const parsed = new URL(upstreamUrl);

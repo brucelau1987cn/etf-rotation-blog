@@ -566,9 +566,13 @@
   };
 
   const QUOTE_INTERVAL_MS = 15000;
-  const SIGNAL_INTERVAL_MS = 30000;
+  // Day-locked signal board: poll gently. Same node never updates again today.
+  const SIGNAL_INTERVAL_MS = 120000;
   let nextQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
   let countdownTimer = null;
+  let signalFingerprint = '';
+  let signalStablePolls = 0;
+  let signalPollingStopped = false;
 
   const paintCountdown = () => {
     const pill = document.getElementById('pill-refresh-countdown');
@@ -637,7 +641,7 @@
 
   let signalInFlight = false;
   const fetchAllSignals = async () => {
-    if (signalInFlight || document.hidden) return;
+    if (signalInFlight || document.hidden || signalPollingStopped) return;
     signalInFlight = true;
     try {
       const payloads = await Promise.all(INSTRUMENTS.map(async (meta) => {
@@ -649,7 +653,29 @@
           return null;
         }
       }));
-      updateHeroSummary(payloads.filter(Boolean));
+      const valid = payloads.filter(Boolean);
+      updateHeroSummary(valid);
+
+      // Stop further signal polling once the day board stops changing.
+      const fingerprint = valid.map(item => {
+        const symbol = item?.instrument?.symbol || '';
+        const events = (item?.timeline || []).map(e => `${e.type}:${e.code}:${e.triggered_at || e.received_at || ''}`).join(',');
+        return `${symbol}=${events}`;
+      }).join('|');
+      if (fingerprint && fingerprint === signalFingerprint) {
+        signalStablePolls += 1;
+      } else {
+        signalFingerprint = fingerprint;
+        signalStablePolls = 0;
+      }
+      if (signalStablePolls >= 2) {
+        signalPollingStopped = true;
+        const pill = document.getElementById('pill-refresh-countdown');
+        // Keep quote countdown running; signal board is day-locked.
+        if (pill && /信号/.test(pill.textContent || '')) {
+          pill.textContent = '信号：当日已锁定';
+        }
+      }
     } finally {
       signalInFlight = false;
     }
