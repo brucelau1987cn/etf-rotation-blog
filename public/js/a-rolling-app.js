@@ -782,4 +782,103 @@
     setInterval(fetchAllSignals, SIGNAL_INTERVAL_MS);
     setInterval(fetchAllQuotes, QUOTE_INTERVAL_MS);
   }
+
+  // Energy board: page by 3 instruments + code/name/initial search.
+  const initBoardPager = () => {
+    const list = document.getElementById('rolling-board-list');
+    const pager = document.getElementById('board-pager');
+    const nums = document.getElementById('board-page-nums');
+    const meta = document.getElementById('board-page-meta');
+    const prevBtn = document.getElementById('board-page-prev');
+    const nextBtn = document.getElementById('board-page-next');
+    const searchInput = document.getElementById('board-search-input');
+    const empty = document.getElementById('board-search-empty');
+    if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
+
+    const pageSize = Math.max(1, Number(pager.dataset.pageSize || 3));
+    const boards = Array.from(list.querySelectorAll('.instrument-board'));
+    if (!boards.length) return;
+
+    let page = 1;
+    let query = '';
+
+    const normalizeQuery = (value) => String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '');
+
+    const filteredBoards = () => {
+      if (!query) return boards;
+      return boards.filter((board) => {
+        const symbol = String(board.dataset.symbol || '').toLowerCase();
+        const name = String(board.dataset.name || '').toLowerCase();
+        const initials = String(board.dataset.initials || '').toLowerCase();
+        return symbol.includes(query)
+          || name.includes(query)
+          || initials.includes(query)
+          || initials.startsWith(query);
+      });
+    };
+
+    const render = () => {
+      const matched = filteredBoards();
+      const totalPages = Math.max(1, Math.ceil(matched.length / pageSize));
+      if (page > totalPages) page = totalPages;
+      if (page < 1) page = 1;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const visible = new Set(matched.slice(start, end));
+
+      boards.forEach((board) => {
+        board.hidden = !visible.has(board);
+      });
+      if (empty) empty.hidden = matched.length > 0;
+
+      const showPager = matched.length > pageSize;
+      pager.hidden = !showPager;
+      meta.textContent = matched.length
+        ? `第 ${page}/${totalPages} 页 · ${matched.length} 只`
+        : '无匹配';
+
+      nums.replaceChildren();
+      if (showPager) {
+        for (let i = 1; i <= totalPages; i += 1) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `board-page-num${i === page ? ' is-active' : ''}`;
+          btn.textContent = String(i);
+          btn.setAttribute('aria-label', `第 ${i} 页`);
+          if (i === page) btn.setAttribute('aria-current', 'page');
+          btn.addEventListener('click', () => {
+            page = i;
+            render();
+          });
+          nums.appendChild(btn);
+        }
+      }
+
+      prevBtn.disabled = page <= 1 || matched.length === 0;
+      nextBtn.disabled = page >= totalPages || matched.length === 0;
+    };
+
+    prevBtn.addEventListener('click', () => {
+      page -= 1;
+      render();
+    });
+    nextBtn.addEventListener('click', () => {
+      page += 1;
+      render();
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        query = normalizeQuery(searchInput.value);
+        page = 1;
+        render();
+      });
+    }
+
+    render();
+  };
+
+  initBoardPager();
 })();

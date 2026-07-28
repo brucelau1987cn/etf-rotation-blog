@@ -564,16 +564,106 @@
   font-weight: 600;
 }
 
+.a-rolling-main .matrix-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 0.9rem;
+  margin: 0.75rem 0 0.85rem;
+}
+
+.a-rolling-main .board-search-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: min(100%, 22rem);
+  flex: 1 1 16rem;
+}
+
+.a-rolling-main .board-search-label {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.a-rolling-main .board-search-input {
+  width: 100%;
+  min-width: 0;
+  height: 2.1rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  outline: none;
+}
+
+.a-rolling-main .board-search-input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.a-rolling-main .board-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.a-rolling-main .board-page-btn,
+.a-rolling-main .board-page-num {
+  min-width: 2rem;
+  height: 1.95rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 750;
+  padding: 0 0.7rem;
+  cursor: pointer;
+}
+
+.a-rolling-main .board-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.a-rolling-main .board-page-num.is-active {
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.a-rolling-main .board-page-nums {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.a-rolling-main .board-page-meta {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.15rem;
+  white-space: nowrap;
+}
+
 .a-rolling-main .board-list {
   display: grid;
   gap: 0.85rem;
-  /* Show about 4 instruments; more instruments scroll vertically. */
-  max-height: min(78vh, 46rem);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.1rem;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.a-rolling-main .board-search-empty[hidden],
+.a-rolling-main .instrument-board[hidden] {
+  display: none !important;
 }
 
 .a-rolling-main .empty-board-card {

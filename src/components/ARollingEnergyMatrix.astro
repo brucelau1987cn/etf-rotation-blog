@@ -100,13 +100,42 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
     sellTotal: allSells.length,
   };
 };
+
+/** First-letter map for current board names + common A-share name chars. */
+const CHAR_INITIAL: Record<string, string> = {
+  上: 's', 海: 'h', 电: 'd', 力: 'l',
+  创: 'c', 新: 'x', 医: 'y', 疗: 'l',
+  三: 's', 安: 'a', 光: 'g',
+  深: 's', 科: 'k', 技: 'j',
+  德: 'd', 福: 'f',
+  民: 'm', 爆: 'b',
+  信: 'x', 息: 'x',
+  东: 'd', 方: 'f', 明: 'm', 珠: 'z',
+  长: 'c', 鑫: 'x',
+  国: 'g', 术: 's',
+  澜: 'l', 起: 'q',
+  华: 'h', 天: 't',
+  中: 'z', 宏: 'h', 桥: 'q',
+  特: 't', 斯: 's', 拉: 'l',
+  黄: 'h', 金: 'j', 连: 'l', 续: 'x',
+  原: 'y', 油: 'y', 豆: 'd', 粕: 'p',
+};
+
+const nameInitials = (name: string) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  return Array.from(raw).map((ch) => {
+    if (/[A-Za-z0-9]/.test(ch)) return ch.toLowerCase();
+    return CHAR_INITIAL[ch] || '';
+  }).join('');
+};
 ---
 <section class="matrix-section card" aria-labelledby="matrix-title">
   <div class="matrix-top">
     <div class="section-head-title">
       <h2 id="matrix-title">多标的双向能量传导</h2>
       <p class="matrix-sub">
-        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定；超过 4 个标的时看板上下滑动。
+        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 3 只；可用代码、名称或首字母检索。
       </p>
     </div>
     <div class="matrix-controls">
@@ -118,17 +147,48 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
     </div>
   </div>
 
+  <div class="matrix-toolbar" aria-label="标的检索与分页">
+    <label class="board-search-wrap" for="board-search-input">
+      <span class="board-search-label">检索</span>
+      <input
+        id="board-search-input"
+        class="board-search-input"
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="代码 / 名称 / 首字母，如 600、创新、cx"
+      />
+    </label>
+    <div class="board-pager" id="board-pager" data-page-size="3" hidden>
+      <button type="button" class="board-page-btn" id="board-page-prev" aria-label="上一页">上一页</button>
+      <div class="board-page-nums" id="board-page-nums" role="navigation" aria-label="页码"></div>
+      <button type="button" class="board-page-btn" id="board-page-next" aria-label="下一页">下一页</button>
+      <span class="board-page-meta" id="board-page-meta">第 1 页</span>
+    </div>
+  </div>
+
   <div class="board-list" id="rolling-board-list">
     {instruments.length === 0 ? (
       <div class="empty-board-card" role="status">
         <strong>暂无滚动标的</strong>
         <span>新标的须点名后接入。点名后会在此展示多方/空方正式窗口与观察点。</span>
       </div>
-    ) : instruments.map((inst) => {
+    ) : instruments.map((inst, index) => {
       const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       const startDateText = formatStartDate(inst.startDate);
+      const initials = nameInitials(inst.instrumentName);
       return (
-        <article class="instrument-board" data-symbol={inst.symbol} data-exchange={inst.exchange} data-start-date={inst.startDate || ''} aria-label={`${inst.instrumentName} ${inst.symbol}`}>
+        <article
+          class="instrument-board"
+          data-symbol={inst.symbol}
+          data-name={inst.instrumentName}
+          data-initials={initials}
+          data-board-index={index}
+          data-exchange={inst.exchange}
+          data-start-date={inst.startDate || ''}
+          aria-label={`${inst.instrumentName} ${inst.symbol}`}
+        >
           <div class="board-row">
             <div class="stock-panel">
               <div class="stock-name-title" data-role="inst-name">{inst.instrumentName}</div>
@@ -224,5 +284,9 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
         </article>
       );
     })}
+    <div class="empty-board-card board-search-empty" id="board-search-empty" role="status" hidden>
+      <strong>没有匹配标的</strong>
+      <span>换个代码、名称或首字母试试。</span>
+    </div>
   </div>
 </section>
