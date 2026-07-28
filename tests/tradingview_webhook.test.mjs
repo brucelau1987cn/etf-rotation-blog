@@ -131,7 +131,16 @@ test('tradingview webhook normalizes market suffixes before writing D1 rows', as
 test('same day same node is locked after first write', async () => {
   const token = 'test_secret_token_123';
   const db = makeDb();
-  const env = { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: db };
+  const ntfyCalls = [];
+  const fetchMock = async (url, options) => {
+    ntfyCalls.push({ url: String(url), options });
+    return new Response('{"id":"ntfy-test-id"}', { status: 200 });
+  };
+  const env = {
+    TRADINGVIEW_WEBHOOK_TOKEN: token,
+    DB: db,
+    NTFY_PUSH_URL: 'https://push.example.test/secret-topic',
+  };
   const first = await onRequestPost({
     request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
       method: 'POST', headers: { 'content-type': 'application/json' },
@@ -141,6 +150,7 @@ test('same day same node is locked after first write', async () => {
       }),
     }),
     env,
+    fetch: fetchMock,
   });
   const second = await onRequestPost({
     request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
@@ -151,6 +161,7 @@ test('same day same node is locked after first write', async () => {
       }),
     }),
     env,
+    fetch: fetchMock,
   });
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
@@ -160,4 +171,143 @@ test('same day same node is locked after first write', async () => {
   assert.equal(body2.inserted, false);
   assert.equal(body2.event_id, 'first');
   assert.equal(db._rows.size, 1);
+  assert.equal(ntfyCalls.length, 1);
+});
+
+test('first D1 insert forwards the signal to ntfy with the mobile template', async () => {
+  const token = 'test_secret_token_123';
+  const calls = [];
+  const fetchMock = async (url, options) => {
+    calls.push(new Request(url, options));
+    return new Response(JSON.stringify({ id: 'ntfy-test-id' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  const response = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        webhook_token: token,
+        symbol: '002173',
+        instrument_name: '创新医疗',
+        cycle_code: '6.5h',
+        signal: 'BUY',
+        event_id: 'buy-first',
+        trigger_time_utc: '2026-07-28T07:31:00.915Z',
+      }),
+    }),
+    env: {
+      TRADINGVIEW_WEBHOOK_TOKEN: token,
+      DB: makeDb(),
+      NTFY_PUSH_URL: 'https://push.example.test/secret-topic',
+    },
+    fetch: fetchMock,
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://push.example.test/');
+  assert.equal(calls[0].method, 'POST');
+  assert.equal(calls[0].headers.get('content-type'), 'application/json');
+  assert.deepEqual(await calls[0].json(), {
+    topic: 'secret-topic',
+    title: '多方信号｜创新医疗 002173',
+    message: '时间：2026-07-28 15:31:00\n节点：6.5小时\n方向：多方信号',
+    priority: 4,
+    tags: ['chart_with_upwards_trend'],
+    click: 'https://etf.peekabo.cc/rolling/',
+  });
+});
+
+test('ntfy title resolves the instrument name from Pages assets when the webhook omits it', async () => {
+  const token = 'test_secret_token_123';
+  const calls = [];
+  const fetchMock = async (url, options) => {
+    calls.push(new Request(url, options));
+    return new Response('{"id":"ntfy-test-id"}', { status: 200 });
+  };
+  const assets = {
+    async fetch(request) {
+      assert.equal(new URL(request.url).pathname, '/data/a-rolling-instruments.json');
+      return Response.json({
+        instruments: [{ instrument_name: '德福科技', symbol: '301511' }],
+      });
+    },
+  };
+
+  const response = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        webhook_token: token,
+        symbol: '301511',
+        cycle_code: '15m',
+        signal: 'SELL',
+        event_id: 'sell-first',
+        trigger_time_utc: '2026-07-28T02:15:07.359Z',
+      }),
+    }),
+    env: {
+      TRADINGVIEW_WEBHOOK_TOKEN: token,
+      DB: makeDb(),
+      NTFY_PUSH_URL: 'https://push.example.test/secret-topic',
+      ASSETS: assets,
+    },
+    fetch: fetchMock,
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  const notification = await calls[0].json();
+  assert.equal(notification.title, '空方信号｜德福科技 301511');
+  assert.equal(notification.message, '时间：2026-07-28 10:15:07\n节点：15分钟\n方向：空方信号');
+});
+
+test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', async () => {
+  const token = 'test_secret_token_123';
+  const pending = [];
+  let fetchCalls = 0;
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  try {
+    const response = await onRequestPost({
+      request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          webhook_token: token,
+          symbol: '600021',
+          instrument_name: '上海电力',
+          cycle_code: '2h',
+          signal: 'BUY',
+          event_id: 'wait-until-first',
+          trigger_time_utc: '2026-07-28T01:30:00.000Z',
+        }),
+      }),
+      env: {
+        TRADINGVIEW_WEBHOOK_TOKEN: token,
+        DB: makeDb(),
+        NTFY_PUSH_URL: 'https://push.example.test/secret-topic',
+      },
+      fetch: async (url, options) => {
+        fetchCalls += 1;
+        new Request(url, options);
+        return new Response('upstream unavailable', { status: 503 });
+      },
+      waitUntil(promise) {
+        pending.push(promise);
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).inserted, true);
+    assert.equal(pending.length, 1);
+    assert.equal(await pending[0], false);
+    assert.equal(fetchCalls, 1);
+  } finally {
+    console.warn = originalWarn;
+  }
 });

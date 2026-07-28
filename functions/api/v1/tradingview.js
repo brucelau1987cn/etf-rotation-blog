@@ -10,7 +10,86 @@ import {
   shanghaiTradeDate,
 } from '../../_lib/rolling-signals-d1.js';
 
-export async function onRequestPost({ request, env }) {
+const formatSignalTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || '');
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+};
+
+const formatCycle = (cycleCode) => {
+  const code = String(cycleCode || '').trim();
+  if (/^\d+(?:\.\d+)?h$/i.test(code)) return `${code.slice(0, -1)}小时`;
+  if (/^\d+(?:\.\d+)?m$/i.test(code)) return `${code.slice(0, -1)}分钟`;
+  return code;
+};
+
+const resolveInstrumentName = async ({ env, requestUrl, symbol, instrumentName }) => {
+  const supplied = String(instrumentName || '').trim();
+  if (supplied) return supplied;
+  if (!env.ASSETS || typeof env.ASSETS.fetch !== 'function') return '';
+  try {
+    const assetUrl = new URL('/data/a-rolling-instruments.json', requestUrl);
+    const response = await env.ASSETS.fetch(new Request(assetUrl));
+    if (!response.ok) return '';
+    const payload = await response.json();
+    const match = (payload.instruments || []).find((item) => normalizeSymbol(item.symbol) === symbol);
+    return String(match?.instrument_name || '').trim();
+  } catch (error) {
+    console.warn('ntfy instrument lookup failed:', error);
+    return '';
+  }
+};
+
+export const sendNtfySignal = async ({
+  env,
+  fetchImpl,
+  requestUrl,
+  symbol,
+  instrumentName,
+  cycleCode,
+  signal,
+  triggerTime,
+}) => {
+  const pushUrl = String(env.NTFY_PUSH_URL || '').trim();
+  if (!pushUrl) return false;
+
+  const direction = signal === 'BUY' ? '多方信号' : '空方信号';
+  const resolvedName = await resolveInstrumentName({ env, requestUrl, symbol, instrumentName });
+  const titleTarget = [resolvedName, symbol].filter(Boolean).join(' ');
+  const publishUrl = new URL(pushUrl);
+  const pathParts = publishUrl.pathname.split('/').filter(Boolean);
+  const topic = decodeURIComponent(pathParts.pop() || '');
+  if (!topic) throw new Error('NTFY_PUSH_URL must include a topic path');
+  publishUrl.pathname = pathParts.length ? `/${pathParts.join('/')}/` : '/';
+  publishUrl.search = '';
+  publishUrl.hash = '';
+
+  const response = await fetchImpl(publishUrl.toString(), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      topic,
+      title: `${direction}｜${titleTarget}`,
+      message: `时间：${formatSignalTime(triggerTime)}\n节点：${formatCycle(cycleCode)}\n方向：${direction}`,
+      priority: 4,
+      tags: [signal === 'BUY' ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'],
+      click: 'https://etf.peekabo.cc/rolling/',
+    }),
+  });
+  if (!response.ok) throw new Error(`ntfy returned HTTP ${response.status}`);
+  return true;
+};
+
+export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl = fetch }) {
   try {
     const expectedToken = String(env.TRADINGVIEW_WEBHOOK_TOKEN || '').trim();
     if (!expectedToken) {
@@ -89,6 +168,22 @@ export async function onRequestPost({ request, env }) {
 
     // Optional Telegram notify only on first insert of the day/node.
     if (saved.inserted) {
+      const ntfyPromise = sendNtfySignal({
+        env,
+        fetchImpl,
+        requestUrl: request.url,
+        symbol,
+        instrumentName: saved.row?.instrument_name || instrument_name,
+        cycleCode: cycle_code,
+        signal,
+        triggerTime: trigger_time_utc || receivedAt,
+      }).catch((error) => {
+        console.warn('ntfy alert failed:', error);
+        return false;
+      });
+      if (typeof waitUntil === 'function') waitUntil(ntfyPromise);
+      else await ntfyPromise;
+
       const tgToken = env.TELEGRAM_BOT_TOKEN;
       const chatId = env.TELEGRAM_CHAT_ID;
       if (tgToken && chatId) {
