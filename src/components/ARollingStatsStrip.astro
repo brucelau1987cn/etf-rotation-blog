@@ -76,11 +76,22 @@ const latestSignals = (side: 'BUY' | 'SELL') => instruments
   .sort((a, b) => new Date(b!.triggered_at || 0).getTime() - new Date(a!.triggered_at || 0).getTime());
 const initialBuys = latestSignals('BUY');
 const initialSells = latestSignals('SELL');
+const shanghaiDateParts = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).formatToParts(new Date());
+const shanghaiMonth = shanghaiDateParts.find((part) => part.type === 'month')?.value || '01';
+const shanghaiDay = shanghaiDateParts.find((part) => part.type === 'day')?.value || '01';
+const todayLabel = `${shanghaiMonth}/${shanghaiDay}`;
+const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（含观察）`;
 ---
 <div class="signal-summary" aria-label="买卖信号总览">
   <div class="signal-card buy-card">
     <div class="signal-card-head">
       <span class="signal-kicker">🔴 多方信号</span>
+      <span class="signal-chip today-count-chip" id="buy-today-count">{todayCountText(0)}</span>
     </div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="buy-signal-track">
@@ -102,6 +113,7 @@ const initialSells = latestSignals('SELL');
   <div class="signal-card sell-card">
     <div class="signal-card-head">
       <span class="signal-kicker">🟢 空方信号</span>
+      <span class="signal-chip today-count-chip" id="sell-today-count">{todayCountText(0)}</span>
     </div>
     <div class="summary-signal-viewport">
       <div class="summary-signal-track" id="sell-signal-track">

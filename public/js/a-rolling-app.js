@@ -354,6 +354,21 @@
     return key(date) === key(new Date());
   };
 
+  const shanghaiTodayLabel = () => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    const month = parts.find((part) => part.type === 'month')?.value || '01';
+    const day = parts.find((part) => part.type === 'day')?.value || '01';
+    return `${month}/${day}`;
+  };
+
+  const renderTodayCount = (type, count) => {
+    const el = document.getElementById(type === 'BUY' ? 'buy-today-count' : 'sell-today-count');
+    if (!el) return;
+    el.textContent = `${shanghaiTodayLabel()} · ${count}个信号（含观察）`;
+  };
+
   const renderTodaySignals = (type, signals) => {
     const track = document.getElementById(type === 'BUY' ? 'buy-today-track' : 'sell-today-track');
     if (!track) return;
@@ -407,6 +422,8 @@
       renderSummarySignals('SELL', []);
       renderTodaySignals('BUY', []);
       renderTodaySignals('SELL', []);
+      renderTodayCount('BUY', 0);
+      renderTodayCount('SELL', 0);
       return;
     }
 
@@ -458,8 +475,20 @@
       })
       .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
 
+    // Count includes observation windows (1.75h / 10m), matching the header chip copy.
+    const todayCountFor = (type) => rows.reduce((sum, row) => {
+      const payload = payloads.find(p => p?.instrument?.symbol === row.symbol) || null;
+      const split = normalizeTimeline(payload || {});
+      const formal = type === 'BUY' ? split.allBuys : split.allSells;
+      const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
+      const items = observation ? [...formal, observation] : formal;
+      return sum + items.filter(item => isTodayShanghai(item?.triggered_at)).length;
+    }, 0);
+
     renderTodaySignals('BUY', todaySignalsFor('BUY'));
     renderTodaySignals('SELL', todaySignalsFor('SELL'));
+    renderTodayCount('BUY', todayCountFor('BUY'));
+    renderTodayCount('SELL', todayCountFor('SELL'));
   };
 
   const updateQuoteUI = (symbol, payload) => {

@@ -175,6 +175,25 @@
   text-align: center;
 }
 
+.a-rolling-main .today-count-chip {
+  max-width: min(100%, 11.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.a-rolling-main .buy-card .today-count-chip {
+  color: #a8071a;
+  background: #fff1f0;
+  border-color: #ffccc7;
+}
+
+.a-rolling-main .sell-card .today-count-chip {
+  color: #237804;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
 .a-rolling-main .summary-signal-viewport {
   position: relative;
   height: 90px;
