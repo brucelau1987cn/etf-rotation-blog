@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-27T13:04:03Z",
+  "generated_at": "2026-07-28T02:19:31.059723Z",
   "data_as_of": "2026-07-24 09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "中国宏桥 初始化信号投影；起始日期 2026-07-14。",
+  "notice": "中国宏桥 用户授权重置信号投影；起始日期 2026-07-14。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -29,6 +29,12 @@
   "timeline": [
     {
       "type": "BUY",
+      "code": "1.75h",
+      "triggered_at": "2026-07-15 14:45:00+08:00",
+      "label": "1小时45分钟"
+    },
+    {
+      "type": "BUY",
       "code": "2h",
       "triggered_at": "2026-07-14 15:30:00+08:00",
       "label": "2小时00分钟"
@@ -37,19 +43,13 @@
       "type": "BUY",
       "code": "2.5h",
       "triggered_at": "2026-07-15 14:30:00+08:00",
-      "label": "2小时30分钟"
-    },
-    {
-      "type": "BUY",
-      "code": "1.75h",
-      "triggered_at": "2026-07-15 14:45:00+08:00",
-      "label": "1小时45分钟"
+      "label": "5小时30分钟"
     },
     {
       "type": "BUY",
       "code": "3h",
       "triggered_at": "2026-07-23 09:30:00+08:00",
-      "label": "3小时00分钟"
+      "label": "6小时00分钟"
     },
     {
       "type": "SELL",
@@ -60,6 +60,12 @@
   ],
   "cycles": [
     {
+      "cycle_code": "1.75h",
+      "buy_state": "BUY",
+      "buy_triggered_at": "2026-07-15 14:45:00+08:00",
+      "label": "1小时45分钟"
+    },
+    {
       "cycle_code": "2h",
       "buy_state": "BUY",
       "buy_triggered_at": "2026-07-14 15:30:00+08:00",
@@ -69,19 +75,13 @@
       "cycle_code": "2.5h",
       "buy_state": "BUY",
       "buy_triggered_at": "2026-07-15 14:30:00+08:00",
-      "label": "2小时30分钟"
-    },
-    {
-      "cycle_code": "1.75h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-15 14:45:00+08:00",
-      "label": "1小时45分钟"
+      "label": "5小时30分钟"
     },
     {
       "cycle_code": "3h",
       "buy_state": "BUY",
       "buy_triggered_at": "2026-07-23 09:30:00+08:00",
-      "label": "3小时00分钟"
+      "label": "6小时00分钟"
     }
   ],
   "sell_chain": {

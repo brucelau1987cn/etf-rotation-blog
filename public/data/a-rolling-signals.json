@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-27T13:04:03Z",
-  "data_as_of": "2026-07-24 10:00:00+08:00",
+  "generated_at": "2026-07-28T02:19:31.059723Z",
+  "data_as_of": "2026-07-28 09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "上海电力 初始化信号投影；起始日期 2026-07-20。",
+  "notice": "上海电力 用户授权重置信号投影；起始日期 2026-07-28。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -16,107 +16,20 @@
     "symbol": "600021"
   },
   "transmission": {
-    "state": "transmitting",
+    "state": "observing",
     "basis": "chronological_sequence",
-    "current_cycle_code": "15m",
-    "started_at": "2026-07-17 09:30:00+08:00",
-    "latest_triggered_at": "2026-07-24 10:00:00+08:00",
-    "lit_count": 7,
-    "buy_count": 5,
-    "sell_count": 2,
-    "start_date": "2026-07-20"
+    "current_cycle_code": null,
+    "started_at": null,
+    "latest_triggered_at": null,
+    "lit_count": 0,
+    "buy_count": 0,
+    "sell_count": 0,
+    "start_date": "2026-07-28"
   },
-  "timeline": [
-    {
-      "type": "BUY",
-      "code": "1.75h",
-      "triggered_at": "2026-07-17 09:30:00+08:00",
-      "label": "1小时45分钟"
-    },
-    {
-      "type": "BUY",
-      "code": "4h",
-      "triggered_at": "2026-07-20 13:30:00+08:00",
-      "label": "4小时00分钟"
-    },
-    {
-      "type": "BUY",
-      "code": "4.5h",
-      "triggered_at": "2026-07-20 14:00:00+08:00",
-      "label": "4小时30分钟"
-    },
-    {
-      "type": "BUY",
-      "code": "5h",
-      "triggered_at": "2026-07-20 14:30:00+08:00",
-      "label": "5小时00分钟"
-    },
-    {
-      "type": "BUY",
-      "code": "5.5h",
-      "triggered_at": "2026-07-20 15:00:00+08:00",
-      "label": "5小时30分钟"
-    },
-    {
-      "type": "SELL",
-      "code": "10m",
-      "triggered_at": "2026-07-22 09:30:00+08:00",
-      "label": "10分钟"
-    },
-    {
-      "type": "SELL",
-      "code": "15m",
-      "triggered_at": "2026-07-24 10:00:00+08:00",
-      "label": "15分钟"
-    }
-  ],
-  "cycles": [
-    {
-      "cycle_code": "1.75h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-17 09:30:00+08:00",
-      "label": "1小时45分钟"
-    },
-    {
-      "cycle_code": "4h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20 13:30:00+08:00",
-      "label": "4小时00分钟"
-    },
-    {
-      "cycle_code": "4.5h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20 14:00:00+08:00",
-      "label": "4小时30分钟"
-    },
-    {
-      "cycle_code": "5h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20 14:30:00+08:00",
-      "label": "5小时00分钟"
-    },
-    {
-      "cycle_code": "5.5h",
-      "buy_state": "BUY",
-      "buy_triggered_at": "2026-07-20 15:00:00+08:00",
-      "label": "5小时30分钟"
-    }
-  ],
+  "timeline": [],
+  "cycles": [],
   "sell_chain": {
-    "nodes": [
-      {
-        "code": "10m",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-22 09:30:00+08:00",
-        "label": "10分钟"
-      },
-      {
-        "code": "15m",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-24 10:00:00+08:00",
-        "label": "15分钟"
-      }
-    ]
+    "nodes": []
   },
   "sell_alerts": []
 }

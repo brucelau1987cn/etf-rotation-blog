@@ -81,14 +81,16 @@ test('non-default rolling symbol exposes static assets as LKG', async () => {
 });
 
 test('non-default rolling symbol rebuilds live timeline from KV records', async () => {
+  const receivedAt1 = new Date(Date.now() - 2000).toISOString();
+  const receivedAt2 = new Date(Date.now() - 1000).toISOString();
   const records = new Map([
     ['signal:01378:2h:BUY', JSON.stringify({
       symbol: '01378', cycle_code: '2h', signal: 'BUY',
-      trigger_time_utc: '2026-07-28T00:00:00Z', received_at: '2026-07-28T00:00:01Z', event_id: 'evt-1',
+      trigger_time_utc: receivedAt1, received_at: receivedAt1, event_id: 'evt-1',
     })],
     ['signal:01378:10m:SELL', JSON.stringify({
       symbol: '01378', cycle_code: '10m', signal: 'SELL',
-      trigger_time_utc: '2026-07-28T00:05:00Z', received_at: '2026-07-28T00:05:01Z', event_id: 'evt-2',
+      trigger_time_utc: receivedAt2, received_at: receivedAt2, event_id: 'evt-2',
     })],
   ]);
   const kv = {
@@ -100,7 +102,7 @@ test('non-default rolling symbol rebuilds live timeline from KV records', async 
   const body = await response.json();
   assert.equal(response.headers.get('x-rolling-delivery'), 'live');
   assert.deepEqual(body.timeline.map(item => [item.type, item.code]), [['BUY', '2h'], ['SELL', '10m']]);
-  assert.equal(body.data_as_of, '2026-07-28T00:05:01Z');
+  assert.equal(body.data_as_of, receivedAt2);
 });
 
 test('unknown KV-backed symbol never inherits Shanghai Electric metadata', async () => {

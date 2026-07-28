@@ -1,11 +1,11 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-27T13:04:03Z",
-  "data_as_of": "2026-07-27 11:30:00+08:00",
+  "generated_at": "2026-07-28T02:19:31.059723Z",
+  "data_as_of": "2026-07-28 09:30:00+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
-  "notice": "海光信息 初始化信号投影；起始日期 2026-07-23。",
+  "notice": "海光信息 用户授权重置信号投影；起始日期 2026-07-28。",
   "delivery": {
     "state": "live",
     "reason": null
@@ -16,46 +16,20 @@
     "symbol": "688041"
   },
   "transmission": {
-    "state": "transmitting",
+    "state": "observing",
     "basis": "chronological_sequence",
-    "current_cycle_code": "15m",
-    "started_at": "2026-07-23 11:00:00+08:00",
-    "latest_triggered_at": "2026-07-27 11:30:00+08:00",
-    "lit_count": 2,
+    "current_cycle_code": null,
+    "started_at": null,
+    "latest_triggered_at": null,
+    "lit_count": 0,
     "buy_count": 0,
-    "sell_count": 2,
-    "start_date": "2026-07-23"
+    "sell_count": 0,
+    "start_date": "2026-07-28"
   },
-  "timeline": [
-    {
-      "type": "SELL",
-      "code": "10m",
-      "triggered_at": "2026-07-23 11:00:00+08:00",
-      "label": "10分钟"
-    },
-    {
-      "type": "SELL",
-      "code": "15m",
-      "triggered_at": "2026-07-27 11:30:00+08:00",
-      "label": "15分钟"
-    }
-  ],
+  "timeline": [],
   "cycles": [],
   "sell_chain": {
-    "nodes": [
-      {
-        "code": "10m",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-23 11:00:00+08:00",
-        "label": "10分钟"
-      },
-      {
-        "code": "15m",
-        "sell_state": "SELL",
-        "triggered_at": "2026-07-27 11:30:00+08:00",
-        "label": "15分钟"
-      }
-    ]
+    "nodes": []
   },
   "sell_alerts": []
 }
