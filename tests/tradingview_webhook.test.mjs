@@ -39,6 +39,11 @@ test('tradingview webhook accepts valid token and stores signal to KV', async ()
   assert.equal(body.success, true);
   assert.equal(kvStore.has('signal:600021:PRE:BUY'), true);
   assert.equal(kvStore.has('latest:600021'), true);
+  assert.equal(kvStore.has('index:600021'), true);
+  const index = JSON.parse(kvStore.get('index:600021'));
+  assert.equal(index.symbol, '600021');
+  assert.equal(index.entries.length, 1);
+  assert.equal(index.entries[0].key, 'signal:600021:PRE:BUY');
 });
 
 test('tradingview webhook fails closed when ROLLING_KV is missing', async () => {
@@ -69,4 +74,43 @@ test('tradingview webhook normalizes market suffixes before writing KV keys', as
   assert.equal(res.status, 200);
   assert.equal(kvStore.has('signal:600021:2h:BUY'), true);
   assert.equal(JSON.parse(kvStore.get('latest:600021')).symbol, '600021');
+  assert.equal(JSON.parse(kvStore.get('index:600021')).entries[0].cycle_code, '2h');
+});
+
+test('tradingview webhook upserts index entries without duplicates', async () => {
+  const token = 'test_secret_token_123';
+  const kvStore = new Map([
+    ['index:301511', JSON.stringify({
+      symbol: '301511',
+      entries: [{ key: 'signal:301511:10m:SELL', cycle_code: '10m', signal: 'SELL' }],
+    })],
+  ]);
+  const env = {
+    TRADINGVIEW_WEBHOOK_TOKEN: token,
+    ROLLING_KV: {
+      get: async key => kvStore.get(key) || null,
+      put: async (key, value) => kvStore.set(key, value),
+    },
+  };
+  const first = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ webhook_token: token, symbol: '301511', cycle_code: '15m', signal: 'SELL' }),
+    }),
+    env,
+  });
+  const second = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ webhook_token: token, symbol: '301511', cycle_code: '15m', signal: 'SELL' }),
+    }),
+    env,
+  });
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  const index = JSON.parse(kvStore.get('index:301511'));
+  assert.deepEqual(index.entries.map(item => item.key), [
+    'signal:301511:10m:SELL',
+    'signal:301511:15m:SELL',
+  ]);
 });

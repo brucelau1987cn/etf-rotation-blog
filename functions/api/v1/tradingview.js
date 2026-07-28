@@ -69,6 +69,7 @@ export async function onRequestPost({ request, env }) {
     if (env.ROLLING_KV) {
       const storageKey = `signal:${symbol}:${cycle_code}:${signal}`;
       const latestKey = `latest:${symbol}`;
+      const indexKey = `index:${symbol}`;
       
       const record = {
         symbol,
@@ -79,10 +80,38 @@ export async function onRequestPost({ request, env }) {
         received_at: receivedAt,
       };
 
-      // 存储当前信号与最新快照
+      // Maintain a per-symbol index so public reads can rebuild timelines with get()
+      // only (no kv.list; free plan list quota is only 1,000/day).
+      let indexEntries = [];
+      try {
+        const existingIndex = await env.ROLLING_KV.get(indexKey);
+        if (existingIndex) {
+          const parsed = JSON.parse(existingIndex);
+          if (Array.isArray(parsed?.entries)) indexEntries = parsed.entries;
+          else if (Array.isArray(parsed)) indexEntries = parsed;
+        }
+      } catch {
+        indexEntries = [];
+      }
+      const nextEntry = { key: storageKey, cycle_code, signal, received_at: receivedAt };
+      indexEntries = [
+        ...indexEntries.filter(entry => {
+          const key = typeof entry === 'string' ? entry : entry?.key;
+          return key && key !== storageKey;
+        }),
+        nextEntry,
+      ].slice(-64);
+      const indexPayload = JSON.stringify({
+        symbol,
+        updated_at: receivedAt,
+        entries: indexEntries,
+      });
+
+      // 存储当前信号、最新快照、索引
       await Promise.all([
         env.ROLLING_KV.put(storageKey, JSON.stringify(record)),
         env.ROLLING_KV.put(latestKey, JSON.stringify(record)),
+        env.ROLLING_KV.put(indexKey, indexPayload),
       ]);
 
       // 1分钟内重复信号防抖与 Telegram 实时提醒 (防暴击)

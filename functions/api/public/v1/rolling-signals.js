@@ -4,6 +4,18 @@ const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_STALE_AFTER_SECONDS = 900;
 
+// Known multi/empty-side nodes used by the rolling board. Prefer deterministic
+// get() over KV list() so free-plan list quotas cannot blank the live timeline.
+const KNOWN_BUY_CODES = [
+  '1.75h', '105m',
+  '2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h',
+  '6h', '6.5h', '7h', '7.5h', '8h',
+];
+const KNOWN_SELL_CODES = [
+  '10m',
+  '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m',
+];
+
 const INSTRUMENT_SNAPSHOTS = {
   '600021': '/data/a-rolling-signals.json',
   '002173': '/data/a-rolling-signals-002173.json',
@@ -84,35 +96,80 @@ const loadLkg = async (request, env, symbol) => {
   return validatePublicPayload(await readJsonResponse(response));
 };
 
-const loadKvTimeline = async (kv, symbol) => {
-  if (!kv?.list || !kv?.get) return [];
-  const prefix = `signal:${symbol}:`;
-  let cursor;
-  const names = [];
-  do {
-    const page = await kv.list({ prefix, ...(cursor ? { cursor } : {}) });
-    names.push(...(page.keys || []).map(item => item.name).filter(Boolean));
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor && names.length < 1000);
-
-  const raw = await Promise.all(names.slice(0, 1000).map(name => kv.get(name)));
-  return raw.flatMap(value => {
-    if (!value) return [];
-    try {
-      const item = JSON.parse(value);
-      if (normalizeSymbol(item.symbol) !== symbol || !['BUY', 'SELL'].includes(item.signal) || !item.cycle_code) return [];
-      return [{
-        type: item.signal,
-        code: String(item.cycle_code),
-        label: String(item.cycle_code),
-        triggered_at: item.trigger_time_utc || item.received_at,
-        received_at: item.received_at || item.trigger_time_utc,
-        event_id: item.event_id || null,
-      }];
-    } catch {
-      return [];
+const parseSignalRecord = (value, symbol) => {
+  if (!value) return null;
+  try {
+    const item = typeof value === 'string' ? JSON.parse(value) : value;
+    if (normalizeSymbol(item.symbol) !== symbol || !['BUY', 'SELL'].includes(item.signal) || !item.cycle_code) {
+      return null;
     }
-  }).sort((a, b) => new Date(a.triggered_at).getTime() - new Date(b.triggered_at).getTime());
+    return {
+      type: item.signal,
+      code: String(item.cycle_code),
+      label: String(item.cycle_code),
+      triggered_at: item.trigger_time_utc || item.received_at,
+      received_at: item.received_at || item.trigger_time_utc,
+      event_id: item.event_id || null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const storageKey = (symbol, cycleCode, signal) => `signal:${symbol}:${cycleCode}:${signal}`;
+const indexKey = symbol => `index:${symbol}`;
+
+const candidateKeysFromIndex = (symbol, rawIndex) => {
+  if (!rawIndex) return [];
+  try {
+    const parsed = typeof rawIndex === 'string' ? JSON.parse(rawIndex) : rawIndex;
+    const entries = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.keys)
+        ? parsed.keys
+        : Array.isArray(parsed?.entries)
+          ? parsed.entries
+          : [];
+    return entries.flatMap(entry => {
+      if (typeof entry === 'string' && entry.startsWith(`signal:${symbol}:`)) return [entry];
+      if (!entry || typeof entry !== 'object') return [];
+      if (typeof entry.key === 'string' && entry.key.startsWith(`signal:${symbol}:`)) return [entry.key];
+      const cycle = entry.cycle_code || entry.code;
+      const signal = entry.signal || entry.type;
+      if (!cycle || !['BUY', 'SELL'].includes(signal)) return [];
+      return [storageKey(symbol, cycle, signal)];
+    });
+  } catch {
+    return [];
+  }
+};
+
+const knownCandidateKeys = symbol => [
+  ...KNOWN_BUY_CODES.map(code => storageKey(symbol, code, 'BUY')),
+  ...KNOWN_SELL_CODES.map(code => storageKey(symbol, code, 'SELL')),
+];
+
+/**
+ * Rebuild timeline with get() only.
+ * Priority:
+ *  1) index:{symbol} keys (maintained by webhook)
+ *  2) known board cycle nodes
+ * Never call kv.list — free plan list quota is only 1,000/day.
+ */
+const loadKvTimeline = async (kv, symbol) => {
+  if (!kv?.get) return [];
+
+  const indexRaw = await kv.get(indexKey(symbol));
+  const candidates = [...new Set([
+    ...candidateKeysFromIndex(symbol, indexRaw),
+    ...knownCandidateKeys(symbol),
+  ])];
+
+  const raw = await Promise.all(candidates.map(name => kv.get(name)));
+  return raw
+    .map(value => parseSignalRecord(value, symbol))
+    .filter(Boolean)
+    .sort((a, b) => new Date(a.received_at || a.triggered_at).getTime() - new Date(b.received_at || b.triggered_at).getTime());
 };
 
 const publicReason = error => {

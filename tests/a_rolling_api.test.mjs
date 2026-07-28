@@ -80,7 +80,7 @@ test('non-default rolling symbol exposes static assets as LKG', async () => {
   assert.match(body.delivery.reason, /KV|静态|上游/);
 });
 
-test('non-default rolling symbol rebuilds live timeline from KV records', async () => {
+test('non-default rolling symbol rebuilds live timeline from KV records without list', async () => {
   const receivedAt1 = new Date(Date.now() - 2000).toISOString();
   const receivedAt2 = new Date(Date.now() - 1000).toISOString();
   const records = new Map([
@@ -93,8 +93,12 @@ test('non-default rolling symbol rebuilds live timeline from KV records', async 
       trigger_time_utc: receivedAt2, received_at: receivedAt2, event_id: 'evt-2',
     })],
   ]);
+  let listCalls = 0;
   const kv = {
-    list: async ({ prefix }) => ({ keys: [...records.keys()].filter(key => key.startsWith(prefix)).map(name => ({ name })), list_complete: true }),
+    list: async () => {
+      listCalls += 1;
+      throw new Error('list must not be used');
+    },
     get: async key => records.get(key) || null,
   };
   const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=01378');
@@ -103,6 +107,7 @@ test('non-default rolling symbol rebuilds live timeline from KV records', async 
   assert.equal(response.headers.get('x-rolling-delivery'), 'live');
   assert.deepEqual(body.timeline.map(item => [item.type, item.code]), [['BUY', '2h'], ['SELL', '10m']]);
   assert.equal(body.data_as_of, receivedAt2);
+  assert.equal(listCalls, 0);
 });
 
 test('unknown KV-backed symbol never inherits Shanghai Electric metadata', async () => {
@@ -111,14 +116,26 @@ test('unknown KV-backed symbol never inherits Shanghai Electric metadata', async
     trigger_time_utc: '2026-07-28T00:00:00Z', received_at: '2026-07-28T00:00:01Z', event_id: 'evt-new',
   });
   const kv = {
-    list: async () => ({ keys: [{ name: 'signal:NEW1:1h:BUY' }], list_complete: true }),
-    get: async () => record,
+    list: async () => {
+      throw new Error('list must not be used');
+    },
+    get: async key => {
+      if (key === 'index:NEW1') {
+        return JSON.stringify({
+          symbol: 'NEW1',
+          entries: [{ key: 'signal:NEW1:1h:BUY', cycle_code: '1h', signal: 'BUY' }],
+        });
+      }
+      if (key === 'signal:NEW1:1h:BUY') return record;
+      return null;
+    },
   };
   const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=NEW1');
   const response = await handleRollingSignals(request, assetEnv(lkgPayload('600021'), kv));
   const body = await response.json();
   assert.equal(body.instrument.symbol, 'NEW1');
   assert.equal(body.instrument.instrument_name, 'NEW1');
+  assert.deepEqual(body.timeline.map(item => [item.type, item.code]), [['BUY', '1h']]);
 });
 
 test('KV timeline preserves event metadata and sorts by precise receipt time', async () => {
@@ -133,11 +150,34 @@ test('KV timeline preserves event metadata and sorts by precise receipt time', a
     })],
   ]);
   const kv = {
-    list: async () => ({ keys: [...records.keys()].map(name => ({ name })), list_complete: true }),
-    get: async key => records.get(key),
+    list: async () => {
+      throw new Error('list must not be used');
+    },
+    get: async key => records.get(key) || null,
   };
   const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=TSLA');
   const body = await (await handleRollingSignals(request, assetEnv(lkgPayload('TSLA'), kv))).json();
   assert.deepEqual(body.timeline.map(item => item.event_id), ['first-received', 'second-received']);
   assert.equal(body.timeline[0].received_at, '2026-07-28T00:00:01Z');
+});
+
+test('known board nodes recover 15m sell without index or list', async () => {
+  const receivedAt = new Date(Date.now() - 500).toISOString();
+  const records = new Map([
+    ['signal:301511:15m:SELL', JSON.stringify({
+      symbol: '301511', cycle_code: '15m', signal: 'SELL',
+      trigger_time_utc: receivedAt, received_at: receivedAt, event_id: 'evt-15m',
+    })],
+  ]);
+  const kv = {
+    list: async () => {
+      throw new Error('list must not be used');
+    },
+    get: async key => records.get(key) || null,
+  };
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=301511');
+  const body = await (await handleRollingSignals(request, assetEnv(lkgPayload('301511'), kv))).json();
+  assert.equal(body.delivery.state, 'live');
+  assert.deepEqual(body.timeline.map(item => [item.type, item.code]), [['SELL', '15m']]);
+  assert.equal(body.data_as_of, receivedAt);
 });
