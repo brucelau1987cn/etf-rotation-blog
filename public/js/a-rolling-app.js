@@ -340,6 +340,12 @@
       label.className = 'summary-signal-label-text';
       label.textContent = signal.name;
       name.appendChild(label);
+      if (signal.symbol) {
+        const symbol = document.createElement('span');
+        symbol.className = 'summary-signal-symbol';
+        symbol.textContent = signal.symbol;
+        name.appendChild(symbol);
+      }
       if (Number(signal.count) > 1) {
         const count = document.createElement('em');
         count.className = 'summary-signal-count';
