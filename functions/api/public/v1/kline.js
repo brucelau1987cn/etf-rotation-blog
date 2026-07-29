@@ -1096,12 +1096,12 @@ export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExch
   let sinaBars = [];
   let tencentBars = [];
   try {
-    sinaBars = await fetchSinaMinuteBars(parsed, Math.max(limit, 240));
+    sinaBars = await fetchSinaMinuteBars(parsed, Math.max(limit, at ? 800 : 240));
   } catch (err) {
     errors.push(`sina: ${err.message}`);
   }
   try {
-    tencentBars = await fetchTencentMinuteBars(parsed, Math.max(limit, 320));
+    tencentBars = await fetchTencentMinuteBars(parsed, Math.max(limit, at ? 800 : 320));
   } catch (err) {
     errors.push(`tencent: ${err.message}`);
   }
@@ -1112,10 +1112,16 @@ export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExch
     throw new Error(errors.length ? errors.join('; ') : 'no 1m bars available');
   }
 
+  // Pick fixed-time bar from the full merged series first, then clip response bars.
+  const bar = at ? pickMinuteBar(bars, at) : bars[bars.length - 1];
   const clipped = bars.slice(Math.max(0, bars.length - limit));
+  // Ensure the selected bar stays in the returned series when include_bars is used.
+  if (bar && !clipped.some((item) => item.minute === bar.minute)) {
+    clipped.unshift(bar);
+    clipped.sort((a, b) => a.minute.localeCompare(b.minute));
+  }
   const sourceSet = new Set(clipped.map((b) => (b.source || '').split('-')[0]).filter(Boolean));
   const source = sourceSet.size > 1 ? 'mixed' : (sourceSet.values().next().value || 'unknown');
-  const bar = at ? pickMinuteBar(clipped, at) : clipped[clipped.length - 1];
 
   return {
     status: 'ok',
