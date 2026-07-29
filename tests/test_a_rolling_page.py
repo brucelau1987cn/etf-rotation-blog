@@ -104,8 +104,19 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "QUOTE_INTERVAL_MS" in app
     assert "hf_XAU" in app
     assert "hf_XAG" in app
+    assert "hf_CL" in app
+    assert "DINIW" in app
     assert "现货黄金" in stats
     assert "现货白银" in stats
+    assert "国际原油" in stats
+    assert "美元指数" in stats
+    assert "🟡 关注指数" in stats
+    assert "三大指数" not in stats
+    assert "market-24h-tag" in stats
+    assert 'data-quote-mode="24h"' in stats
+    assert "fetchContinuousQuotes" in app
+    assert "continuousOnly" in app
+    assert "sessionOnly" in app
     assert "min-height: 292px" in styles
     assert "height: 220px" in styles
     assert "SUMMARY_ROW_HEIGHT = 44" in app
@@ -121,6 +132,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert ".a-rolling-main .today-count-chip" in styles
     assert ".a-rolling-main .market-index-row" in styles
     assert ".a-rolling-main .market-spot-list" in styles
+    assert ".a-rolling-main .market-24h-tag" in styles
     assert "当日更新" not in stats
     assert 'id="buy-today-track"' not in stats
     assert 'id="sell-today-track"' not in stats

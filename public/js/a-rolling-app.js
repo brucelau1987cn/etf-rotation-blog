@@ -42,27 +42,29 @@
   const FUTURES_INSTRUMENTS = [];
   const INDEX_SETS = {
     a: [
-      { name: '上证指数', symbol: '000001', querySymbol: '000001.SH' },
-      { name: '深证成指', symbol: '399001', querySymbol: '399001.SZ' },
-      { name: '创业板指', symbol: '399006', querySymbol: '399006.SZ' },
-      // Spot metals under the A-share index card (伦敦金/银).
-      { name: '现货黄金', symbol: 'hf_XAU', querySymbol: 'hf_XAU' },
-      { name: '现货白银', symbol: 'hf_XAG', querySymbol: 'hf_XAG' },
+      { name: '上证指数', symbol: '000001', querySymbol: '000001.SH', continuous: false },
+      { name: '深证成指', symbol: '399001', querySymbol: '399001.SZ', continuous: false },
+      { name: '创业板指', symbol: '399006', querySymbol: '399006.SZ', continuous: false },
+      // 24H continuous quotes under the A-share index card (独立刷新，不绑 A 股交易时段).
+      { name: '现货黄金', symbol: 'hf_XAU', querySymbol: 'hf_XAU', continuous: true },
+      { name: '现货白银', symbol: 'hf_XAG', querySymbol: 'hf_XAG', continuous: true },
+      { name: '国际原油', symbol: 'hf_CL', querySymbol: 'hf_CL', continuous: true },
+      { name: '美元指数', symbol: 'DINIW', querySymbol: 'DINIW', continuous: true },
     ],
     futures: [
-      { name: '黄金连续', symbol: 'AU0', querySymbol: 'nf_AU0' },
-      { name: '原油连续', symbol: 'SC0', querySymbol: 'nf_SC0' },
-      { name: '豆粕连续', symbol: 'M0', querySymbol: 'nf_M0' },
+      { name: '黄金连续', symbol: 'AU0', querySymbol: 'nf_AU0', continuous: false },
+      { name: '原油连续', symbol: 'SC0', querySymbol: 'nf_SC0', continuous: false },
+      { name: '豆粕连续', symbol: 'M0', querySymbol: 'nf_M0', continuous: false },
     ],
     hk: [
-      { name: '恒生指数', symbol: 'HSI', querySymbol: 'HSI.HK' },
-      { name: '恒生综合指数', symbol: 'HSCI', querySymbol: 'HSCI.HK' },
-      { name: '恒生科技指数', symbol: 'HSTECH', querySymbol: 'HSTECH.HK' },
+      { name: '恒生指数', symbol: 'HSI', querySymbol: 'HSI.HK', continuous: false },
+      { name: '恒生综合指数', symbol: 'HSCI', querySymbol: 'HSCI.HK', continuous: false },
+      { name: '恒生科技指数', symbol: 'HSTECH', querySymbol: 'HSTECH.HK', continuous: false },
     ],
     us: [
-      { name: '标普500指数', symbol: 'INX', querySymbol: 'INX.US' },
-      { name: '纳斯达克综合指数', symbol: 'IXIC', querySymbol: 'IXIC.US' },
-      { name: '道琼斯工业平均指数', symbol: 'DJI', querySymbol: 'DJI.US' },
+      { name: '标普500指数', symbol: 'INX', querySymbol: 'INX.US', continuous: false },
+      { name: '纳斯达克综合指数', symbol: 'IXIC', querySymbol: 'IXIC.US', continuous: false },
+      { name: '道琼斯工业平均指数', symbol: 'DJI', querySymbol: 'DJI.US', continuous: false },
     ],
   };
   const currentScript = document.currentScript;
@@ -557,13 +559,14 @@
     }
     const direction = changePct > 0 ? 'up' : changePct < 0 ? 'down' : 'flat';
     const sign = changePct > 0 ? '+' : '';
-    const isSpotMetal = meta.symbol === 'hf_XAU' || meta.symbol === 'hf_XAG'
+    const isContinuousQuote = !!meta.continuous
+      || meta.symbol === 'hf_XAU' || meta.symbol === 'hf_XAG' || meta.symbol === 'hf_CL' || meta.symbol === 'DINIW'
       || /^hf_/i.test(String(meta.querySymbol || meta.symbol || ''));
-    const digits = isSpotMetal ? (meta.symbol === 'hf_XAG' ? 2 : 2) : 2;
+    const digits = meta.symbol === 'DINIW' ? 4 : 2;
     if (priceEl) priceEl.textContent = price.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
     if (changeEl) {
-      if (isSpotMetal) {
-        // Spot metals: show real price + pct only (cleaner under index card).
+      if (isContinuousQuote) {
+        // 24H continuous quotes: pct only (cleaner under index card).
         const pctText = Number.isFinite(changePct) ? `${sign}${changePct.toFixed(2)}%` : '—';
         changeEl.textContent = pctText;
       } else {
@@ -575,25 +578,36 @@
     }
   };
 
-  const fetchMarketIndices = async () => {
-    const indexSymbols = INDEX_SETS[market] || INDEX_SETS.a;
+  const resolveIndexQuoteItem = (payload, meta) => (
+    findQuoteItem(payload, meta.symbol)
+      || findQuoteItem(payload, meta.querySymbol)
+      || payload?.quotes?.[meta.symbol]
+      || payload?.quotes?.[meta.querySymbol]
+      || null
+  );
+
+  const fetchIndexQuoteBatch = async (indexSymbols) => {
+    if (!indexSymbols.length) return;
     try {
       const symbols = indexSymbols.map(item => item.querySymbol).join(',');
       const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const payload = normalizeQuotePayload(await res.json());
-      indexSymbols.forEach(meta => {
-        // Spot metals are keyed as hf_XAU / hf_XAG in quote payloads.
-        const item = findQuoteItem(payload, meta.symbol)
-          || findQuoteItem(payload, meta.querySymbol)
-          || payload?.quotes?.[meta.symbol]
-          || payload?.quotes?.[meta.querySymbol]
-          || null;
-        updateMarketIndexUI(meta, item);
-      });
+      indexSymbols.forEach(meta => updateMarketIndexUI(meta, resolveIndexQuoteItem(payload, meta)));
     } catch {
       indexSymbols.forEach(meta => updateMarketIndexUI(meta, null));
     }
+  };
+
+  // Session-gated equity indices (A/HK/US) + free-running 24H continuous quotes.
+  const fetchMarketIndices = async ({ continuousOnly = false, sessionOnly = false } = {}) => {
+    const indexSymbols = INDEX_SETS[market] || INDEX_SETS.a;
+    const batch = indexSymbols.filter((item) => {
+      if (continuousOnly) return !!item.continuous;
+      if (sessionOnly) return !item.continuous;
+      return true;
+    });
+    await fetchIndexQuoteBatch(batch);
   };
 
   const QUOTE_INTERVAL_MS = 15000;
@@ -740,7 +754,8 @@
             updateQuoteUI(meta.symbol, null);
           }
         }),
-        fetchMarketIndices(),
+        // Session-gated batch only; 24H continuous quotes have their own free-running poll.
+        fetchMarketIndices({ sessionOnly: true }),
       ]);
     } finally {
       quoteInFlight = false;
@@ -748,8 +763,22 @@
     }
   };
 
+  let continuousInFlight = false;
+  const fetchContinuousQuotes = async () => {
+    if (continuousInFlight || document.hidden) return;
+    continuousInFlight = true;
+    try {
+      await fetchMarketIndices({ continuousOnly: true });
+    } finally {
+      continuousInFlight = false;
+    }
+  };
+
   setTimeout(() => { fetchAllSignals(); }, 400);
-  const initialQuoteLoad = setTimeout(() => { fetchAllQuotes(); }, 120);
+  const initialQuoteLoad = setTimeout(() => {
+    fetchAllQuotes();
+    fetchContinuousQuotes();
+  }, 120);
 
   if (calendarMarket && window.EtfLivePoll?.startMarketPoll) {
     window.EtfLivePoll.startMarketPoll({
@@ -781,13 +810,22 @@
       },
     });
     window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
+    // 24H continuous quotes (gold/silver/oil/DXY): free-running, independent of CN session gate.
+    if (window.EtfLivePoll?.startLivePoll) {
+      window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: false, tick: async () => { await fetchContinuousQuotes(); }});
+    } else {
+      setInterval(fetchContinuousQuotes, QUOTE_INTERVAL_MS);
+    }
   } else if (window.EtfLivePoll?.startLivePoll) {
     // Futures (and any ungated market): free-running poll without stock session calendar.
-    window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: true, tick: async () => { await fetchAllQuotes(); }});
+    window.EtfLivePoll.startLivePoll({ intervalMs: QUOTE_INTERVAL_MS, immediate: true, tick: async () => {
+      await Promise.all([fetchAllQuotes(), fetchContinuousQuotes()]);
+    }});
     window.EtfLivePoll.startLivePoll({ intervalMs: SIGNAL_INTERVAL_MS, immediate: false, tick: async () => { await fetchAllSignals(); }});
   } else {
     setInterval(fetchAllSignals, SIGNAL_INTERVAL_MS);
     setInterval(fetchAllQuotes, QUOTE_INTERVAL_MS);
+    setInterval(fetchContinuousQuotes, QUOTE_INTERVAL_MS);
   }
 
   // Energy board: page by 3 instruments + code/name/initial search.

@@ -53,10 +53,13 @@ const indexSets = {
   ],
 };
 const marketIndices = indexSets[indexMarket] || indexSets.a;
-const spotMetals = indexMarket === 'a'
+// 24H continuous quotes under A-share indices: refresh independently of CN session.
+const continuousQuotes = indexMarket === 'a'
   ? [
-      { symbol: 'hf_XAU', name: '现货黄金' },
-      { symbol: 'hf_XAG', name: '现货白银' },
+      { symbol: 'hf_XAU', name: '现货黄金', continuous: true },
+      { symbol: 'hf_XAG', name: '现货白银', continuous: true },
+      { symbol: 'hf_CL', name: '国际原油', continuous: true },
+      { symbol: 'DINIW', name: '美元指数', continuous: true },
     ]
   : [];
 
@@ -96,9 +99,9 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
     </div>
   </div>
 
-  <div class="signal-card market-index-card" aria-label={indexMarket === 'futures' ? '期货主力连续实时行情' : '主要指数实时行情'}>
+  <div class="signal-card market-index-card" aria-label={indexMarket === 'futures' ? '期货主力连续实时行情' : '关注指数与24H行情'}>
     <div class="signal-card-head">
-      <span class="signal-kicker">{indexMarket === 'futures' ? '主力连续' : '三大指数'}</span>
+      <span class="signal-kicker">{indexMarket === 'futures' ? '主力连续' : '🟡 关注指数'}</span>
       <span class="signal-chip index-live-chip" id="index-refresh-countdown">实时：准备刷新…</span>
     </div>
     <div class="market-index-list">
@@ -109,11 +112,14 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
           <span class="market-index-change" data-role="index-change">行情加载中</span>
         </div>
       ))}
-      {spotMetals.length > 0 && (
-        <div class="market-spot-list" aria-label="现货贵金属">
-          {spotMetals.map((item) => (
-            <div class="market-index-row market-spot-row" data-index-symbol={item.symbol}>
-              <span class="market-index-name">{item.name}</span>
+      {continuousQuotes.length > 0 && (
+        <div class="market-spot-list" aria-label="24H连续行情">
+          {continuousQuotes.map((item) => (
+            <div class="market-index-row market-spot-row market-24h-row" data-index-symbol={item.symbol} data-quote-mode="24h">
+              <span class="market-index-name">
+                {item.name}
+                <em class="market-24h-tag" title="24小时独立刷新">24H</em>
+              </span>
               <strong class="market-index-price" data-role="index-price">—</strong>
               <span class="market-index-change" data-role="index-change">行情加载中</span>
             </div>

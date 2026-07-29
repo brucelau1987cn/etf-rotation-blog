@@ -278,6 +278,12 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
   if (s.startsWith('hf_') || s.startsWith('nf_')) return { tencent: s, sina: s, xueqiu: s, displayCode: s, type: 'futures' };
   if (s.startsWith('sh') || s.startsWith('sz') || s.startsWith('bj')) return { tencent: s, sina: s, xueqiu: s.toUpperCase(), displayCode: s.slice(2), type: 'a' };
 
+  // Dollar Index (Sina DINIW). Tencent has no usable code; keep a pass-through for batching.
+  const upper = s.toUpperCase();
+  if (upper === 'DINIW' || upper === 'DXY' || upper === 'USDINDEX') {
+    return { tencent: 'DINIW', sina: 'DINIW', xueqiu: 'DINIW', displayCode: 'DINIW', type: 'fx' };
+  }
+
   if (/^\d{5}$/.test(s)) return { tencent: `hk${s}`, sina: `hk${s}`, xueqiu: s, displayCode: s, type: 'hk' };
   if (/^[A-Za-z]{1,5}$/.test(s)) return { tencent: `us${s}`, sina: `gb_${s.toLowerCase()}`, xueqiu: s.toUpperCase(), displayCode: s.toUpperCase(), type: 'us' };
 
@@ -517,6 +523,44 @@ async function fetchSina(parsedList) {
       continue;
     }
 
+    // Dollar Index (Sina DINIW):
+    // time,price,price,open,?,prevClose,high,low,price,name,date
+    if (secKey.toUpperCase() === 'DINIW') {
+      const timeStr = parts[0] || '';
+      const price = parseFloat(parts[1]) || parseFloat(parts[8]) || 0;
+      const openPrice = parseFloat(parts[3]) || 0;
+      const prevClose = parseFloat(parts[5]) || 0;
+      const highPrice = parseFloat(parts[6]) || 0;
+      const lowPrice = parseFloat(parts[7]) || 0;
+      const name = parts[9] || '美元指数';
+      const dateStr = parts[10] || '';
+      if (!(price > 0)) continue;
+      const changeAmount = prevClose ? price - prevClose : 0;
+      const changePercent = prevClose
+        ? parseFloat((((price - prevClose) / prevClose) * 100).toFixed(2))
+        : 0;
+      const quoteTime = dateStr && /^\d{2}:\d{2}:\d{2}$/.test(timeStr)
+        ? `${dateStr}T${timeStr}+08:00`
+        : new Date().toISOString();
+      quotes.DINIW = {
+        symbol: 'DINIW',
+        sec_code: 'DINIW',
+        name,
+        market: 'FX',
+        price: parseFloat(price.toFixed(4)),
+        prev_close: prevClose ? parseFloat(prevClose.toFixed(4)) : 0,
+        open: openPrice ? parseFloat(openPrice.toFixed(4)) : 0,
+        high: highPrice ? parseFloat(highPrice.toFixed(4)) : 0,
+        low: lowPrice ? parseFloat(lowPrice.toFixed(4)) : 0,
+        change_amount: parseFloat(changeAmount.toFixed(4)),
+        change_percent: changePercent,
+        quote_time: quoteTime,
+        source: 'sina',
+        status: 'ok',
+      };
+      continue;
+    }
+
     const name = parts[0];
     let price = 0, openPrice = 0, prevClose = 0, highPrice = 0, lowPrice = 0, changePercent = 0, code = secKey;
 
@@ -625,10 +669,26 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
 
   const parsedList = rawItems.map(item => parseSymbol(item, defaultExchange)).filter(Boolean);
   const hasValidPrice = (quotes) => Object.values(quotes || {}).some((q) => Number(q?.price) > 0);
+  const needsDollarIndex = parsedList.some((item) => String(item.displayCode || '').toUpperCase() === 'DINIW');
+  const hasDollarIndex = (quotes) => Number(quotes?.DINIW?.price) > 0;
+  const mergeDollarIndexFromSina = async (quotes) => {
+    if (!needsDollarIndex || hasDollarIndex(quotes)) return quotes;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const sinaQuotes = await fetchSina(parsedList.filter((item) => String(item.displayCode || '').toUpperCase() === 'DINIW'));
+        if (hasDollarIndex(sinaQuotes)) {
+          return { ...quotes, DINIW: sinaQuotes.DINIW };
+        }
+      } catch (err) {
+        console.warn('Sina dollar-index fill failed:', err.message);
+      }
+    }
+    return quotes;
+  };
 
   // 1. 尝试腾讯；恒生综合指数由恒生指数公司官方看板补齐。
   try {
-    const quotes = await fetchTencent(parsedList);
+    let quotes = await fetchTencent(parsedList);
     if (rawItems.some(item => item.toUpperCase() === 'HSCI.HK' || item.toUpperCase() === 'HKHSCI')) {
       try {
         Object.assign(quotes, await fetchHangSengComposite());
@@ -636,6 +696,7 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
         console.warn('Hang Seng Composite official source failed:', err.message);
       }
     }
+    quotes = await mergeDollarIndexFromSina(quotes);
     if (hasValidPrice(quotes)) {
       const sources = new Set(Object.values(quotes).map(quote => quote.source).filter(Boolean));
       const source = sources.size > 1 ? 'mixed' : (sources.values().next().value || 'tencent');
