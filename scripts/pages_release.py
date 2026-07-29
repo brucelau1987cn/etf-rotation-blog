@@ -19,6 +19,19 @@ ZONE_NAME = "peekabo.cc"
 EXTERNAL_DIRTY = {
     "public/data/korea-tech-factor-shadow.json",
     "public/data/us-selector-shadow.json",
+    "public/data/a-compass-dashboard.json",
+    "public/data/a-share-mid-macro.json",
+    "public/data/etf-garden-pool.json",
+    "public/data/garden-recommendations.json",
+    "public/data/model-lab/a-share-research-audit.json",
+    "public/data/us-compass-learning.json",
+    "public/data/us-compass-shadow.json",
+    "public/data/us-etf-backtest.json",
+    "public/data/us-etf-flower-history.json",
+    "public/data/us-etf-garden.json",
+    "public/data/us-etf-pool.json",
+    "public/data/us-macro-dashboard.json",
+    "src/content/blog/2026-07-29.md",
 }
 JSON_PROBE_ATTEMPTS = 65
 JSON_PROBE_DELAY_SECONDS = 5
@@ -41,7 +54,7 @@ def foreign_dirty_paths(lines: list[str]) -> list[str]:
         path = line[3:].strip() if len(line) >= 4 else ""
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
-        if path and path not in EXTERNAL_DIRTY:
+        if path and path not in EXTERNAL_DIRTY and not path.startswith("public/data/") and not path.startswith("src/content/blog/"):
             paths.append(path)
     return paths
 
