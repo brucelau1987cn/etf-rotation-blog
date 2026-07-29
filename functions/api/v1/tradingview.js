@@ -7,6 +7,7 @@
 import {
   insertRollingSignalOnce,
   normalizeSymbol,
+  normalizeTriggerPrice,
   shanghaiTradeDate,
 } from '../../_lib/rolling-signals-d1.js';
 
@@ -49,6 +50,57 @@ const resolveInstrumentName = async ({ env, requestUrl, symbol, instrumentName }
   }
 };
 
+/** Prefer webhook-provided price; otherwise resolve 1m close at trigger time via edge kline. */
+export const resolveTriggerPrice = async ({
+  payload = {},
+  symbol,
+  triggerTime,
+  requestUrl,
+  fetchImpl = fetch,
+}) => {
+  const direct = normalizeTriggerPrice(
+    payload.price
+      ?? payload.trigger_price
+      ?? payload.close
+      ?? payload.trigger_close,
+  );
+  if (direct != null) {
+    return {
+      price: direct,
+      source: String(payload.price_source || payload.trigger_price_source || 'webhook').trim() || 'webhook',
+    };
+  }
+
+  // US/HK/futures can still store webhook price later; 1m edge kline is A-share/ETF first.
+  if (!/^\d{6}$/.test(String(symbol || ''))) {
+    return { price: null, source: null };
+  }
+
+  try {
+    const klineUrl = new URL('/api/public/v1/kline', requestUrl);
+    klineUrl.searchParams.set('symbol', symbol);
+    if (triggerTime) klineUrl.searchParams.set('at', String(triggerTime));
+    klineUrl.searchParams.set('nocache', '1');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4500);
+    const response = await fetchImpl(klineUrl.toString(), {
+      headers: { Accept: 'application/json', 'User-Agent': 'HermesRollingWebhook/1.0' },
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+    if (!response.ok) return { price: null, source: null };
+    const data = await response.json();
+    const close = normalizeTriggerPrice(data?.bar?.close);
+    if (close == null) return { price: null, source: null };
+    return {
+      price: close,
+      source: String(data?.bar?.source || data?.source || 'kline-1m'),
+    };
+  } catch (error) {
+    console.warn('trigger price kline lookup failed:', error);
+    return { price: null, source: null };
+  }
+};
+
 export const sendNtfySignal = async ({
   env,
   fetchImpl,
@@ -58,6 +110,7 @@ export const sendNtfySignal = async ({
   cycleCode,
   signal,
   triggerTime,
+  triggerPrice = null,
 }) => {
   const pushUrl = String(env.NTFY_PUSH_URL || '').trim();
   if (!pushUrl) return false;
@@ -73,13 +126,17 @@ export const sendNtfySignal = async ({
   publishUrl.search = '';
   publishUrl.hash = '';
 
+  const priceLine = Number.isFinite(Number(triggerPrice)) && Number(triggerPrice) > 0
+    ? `\n价格：¥${Number(triggerPrice).toFixed(2)}`
+    : '';
+
   const response = await fetchImpl(publishUrl.toString(), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       topic,
       title: `${direction}｜${titleTarget}`,
-      message: `时间：${formatSignalTime(triggerTime)}\n节点：${formatCycle(cycleCode)}\n方向：${direction}`,
+      message: `时间：${formatSignalTime(triggerTime)}\n节点：${formatCycle(cycleCode)}\n方向：${direction}${priceLine}`,
       priority: 4,
       tags: [signal === 'BUY' ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'],
       click: 'https://etf.peekabo.cc/rolling/',
@@ -152,6 +209,13 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
     const eventId = event_id || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();
     const tradeDate = shanghaiTradeDate(trigger_time_utc || receivedAt);
+    const priced = await resolveTriggerPrice({
+      payload,
+      symbol,
+      triggerTime: trigger_time_utc || receivedAt,
+      requestUrl: request.url,
+      fetchImpl,
+    });
 
     const saved = await insertRollingSignalOnce(env.DB, {
       trade_date: tradeDate,
@@ -164,6 +228,8 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
       label: String(cycle_code),
       instrument_name,
       exchange,
+      trigger_price: priced.price,
+      trigger_price_source: priced.source,
     });
 
     // Optional Telegram notify only on first insert of the day/node.
@@ -177,6 +243,7 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
         cycleCode: cycle_code,
         signal,
         triggerTime: trigger_time_utc || receivedAt,
+        triggerPrice: saved.row?.trigger_price ?? priced.price,
       }).catch((error) => {
         console.warn('ntfy alert failed:', error);
         return false;
@@ -189,7 +256,11 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
       if (tgToken && chatId) {
         const signalEmoji = signal === 'BUY' ? '🔴【多头买入信号】' : '🟢【空方卖出预警】';
         const timeStr = new Date(receivedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-        const text = `${signalEmoji}\n\n• 标的：${symbol}\n• 节点：${cycle_code}\n• 动作：${signal}\n• 交易日：${tradeDate}\n• 时间：${timeStr}\n• 事件ID：${eventId.slice(0, 12)}\n\n🔗 终端：https://etf.peekabo.cc/rolling/`;
+        const price = saved.row?.trigger_price ?? priced.price;
+        const priceLine = Number.isFinite(Number(price)) && Number(price) > 0
+          ? `\n• 价格：¥${Number(price).toFixed(2)}`
+          : '';
+        const text = `${signalEmoji}\n\n• 标的：${symbol}\n• 节点：${cycle_code}\n• 动作：${signal}\n• 交易日：${tradeDate}\n• 时间：${timeStr}${priceLine}\n• 事件ID：${eventId.slice(0, 12)}\n\n🔗 终端：https://etf.peekabo.cc/rolling/`;
         try {
           await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
             method: 'POST',
@@ -213,6 +284,8 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
         trade_date: tradeDate,
         inserted: saved.inserted,
         storage: 'd1',
+        trigger_price: saved.row?.trigger_price ?? priced.price ?? null,
+        trigger_price_source: saved.row?.trigger_price_source ?? priced.source ?? null,
       }),
       {
         status: 200,

@@ -313,6 +313,7 @@
   };
 
   const fetchTriggerPrice = (symbol, at) => {
+    // Frontend fallback only. Prefer D1-persisted timeline.price to avoid kline spam/risk control.
     if (!symbol || !at) return Promise.resolve(null);
     const key = `${symbol}|${at}`;
     if (triggerPriceCache.has(key)) return triggerPriceCache.get(key);
@@ -446,8 +447,14 @@
       const price = document.createElement('span');
       price.className = 'summary-signal-price';
       price.dataset.role = 'trigger-price';
-      price.textContent = Number.isFinite(Number(signal.price)) ? formatTriggerPrice(signal.price) : '…';
-      price.title = '信号点股价（触发分钟收盘价）';
+      if (Number.isFinite(Number(signal.price))) {
+        price.textContent = formatTriggerPrice(signal.price);
+        price.title = `信号点 ${formatTime(signal.at, true, false)} · ${formatTriggerPrice(signal.price)}`;
+      } else {
+        // Missing D1 price: show dash instead of spamming kline on every render.
+        price.textContent = '—';
+        price.title = '信号点股价未入库';
+      }
 
       const time = document.createElement('time');
       time.className = 'summary-signal-time';
@@ -463,20 +470,6 @@
 
       row.append(identity, tape);
       track.appendChild(row);
-
-      // Fill fixed-time price asynchronously from edge 1m kline.
-      if (!Number.isFinite(Number(signal.price)) && signal.symbol && signal.at) {
-        fetchTriggerPrice(signal.symbol, signal.at).then((value) => {
-          if (!price.isConnected) return;
-          price.textContent = formatTriggerPrice(value);
-          if (Number.isFinite(Number(value))) {
-            signal.price = value;
-            price.title = `信号点 ${formatTime(signal.at, true, false)} · ${formatTriggerPrice(value)}`;
-          } else {
-            price.title = '信号点股价暂不可用';
-          }
-        });
-      }
     });
     startSummaryTicker(track);
   };
@@ -573,6 +566,9 @@
           code: latest.code,
           at: latest.triggered_at,
           count: items.length,
+          // Prefer D1-persisted signal-point price; avoid frontend kline fan-out.
+          price: Number.isFinite(Number(latest.price)) ? Number(latest.price) : null,
+          price_source: latest.price_source || null,
         });
       });
       return [...bySymbol.values()]

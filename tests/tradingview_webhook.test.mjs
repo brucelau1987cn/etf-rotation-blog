@@ -15,7 +15,7 @@ const makeDb = () => {
       return { kind: 'ok', value: { meta: { changes: 0 } } };
     }
     if (/INSERT OR IGNORE/i.test(text)) {
-      const [tradeDate, symbol, cycle, signal, trigger, received, eventId, label, name, exchange] = args;
+      const [tradeDate, symbol, cycle, signal, trigger, received, eventId, label, name, exchange, triggerPrice, triggerPriceSource] = args;
       const key = keyOf(tradeDate, symbol, cycle, signal);
       if (rows.has(key)) return { kind: 'ok', value: { meta: { changes: 0 } } };
       rows.set(key, {
@@ -29,6 +29,8 @@ const makeDb = () => {
         label,
         instrument_name: name,
         exchange,
+        trigger_price: triggerPrice ?? null,
+        trigger_price_source: triggerPriceSource ?? null,
       });
       return { kind: 'ok', value: { meta: { changes: 1 } } };
     }
@@ -147,6 +149,7 @@ test('same day same node is locked after first write', async () => {
       body: JSON.stringify({
         webhook_token: token, symbol: '301511', cycle_code: '15m', signal: 'SELL',
         event_id: 'first', trigger_time_utc: '2026-07-28T02:15:07.359Z',
+        price: 76.23,
       }),
     }),
     env,
@@ -158,6 +161,7 @@ test('same day same node is locked after first write', async () => {
       body: JSON.stringify({
         webhook_token: token, symbol: '301511', cycle_code: '15m', signal: 'SELL',
         event_id: 'second', trigger_time_utc: '2026-07-28T03:15:07.359Z',
+        price: 80.00,
       }),
     }),
     env,
@@ -196,6 +200,7 @@ test('first D1 insert forwards the signal to ntfy with the mobile template', asy
         signal: 'BUY',
         event_id: 'buy-first',
         trigger_time_utc: '2026-07-28T07:31:00.915Z',
+        price: 12.34,
       }),
     }),
     env: {
@@ -214,7 +219,7 @@ test('first D1 insert forwards the signal to ntfy with the mobile template', asy
   assert.deepEqual(await calls[0].json(), {
     topic: 'secret-topic',
     title: '多方信号｜创新医疗 002173',
-    message: '时间：2026-07-28 15:31:00\n节点：6.5小时\n方向：多方信号',
+    message: '时间：2026-07-28 15:31:00\n节点：6.5小时\n方向：多方信号\n价格：¥12.34',
     priority: 4,
     tags: ['chart_with_upwards_trend'],
     click: 'https://etf.peekabo.cc/rolling/',
@@ -248,6 +253,7 @@ test('ntfy title resolves the instrument name from Pages assets when the webhook
         signal: 'SELL',
         event_id: 'sell-first',
         trigger_time_utc: '2026-07-28T02:15:07.359Z',
+        price: 76.23,
       }),
     }),
     env: {
@@ -263,7 +269,7 @@ test('ntfy title resolves the instrument name from Pages assets when the webhook
   assert.equal(calls.length, 1);
   const notification = await calls[0].json();
   assert.equal(notification.title, '空方信号｜德福科技 301511');
-  assert.equal(notification.message, '时间：2026-07-28 10:15:07\n节点：15分钟\n方向：空方信号');
+  assert.equal(notification.message, '时间：2026-07-28 10:15:07\n节点：15分钟\n方向：空方信号\n价格：¥76.23');
 });
 
 test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', async () => {
@@ -285,6 +291,7 @@ test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', 
           signal: 'BUY',
           event_id: 'wait-until-first',
           trigger_time_utc: '2026-07-28T01:30:00.000Z',
+          price: 14.60,
         }),
       }),
       env: {
@@ -310,4 +317,72 @@ test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', 
   } finally {
     console.warn = originalWarn;
   }
+});
+
+
+test('tradingview webhook stores webhook-provided trigger price into D1', async () => {
+  const token = 'test_secret_token_123';
+  const db = makeDb();
+  const req = new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      webhook_token: token,
+      symbol: '301511',
+      cycle_code: '15m',
+      signal: 'SELL',
+      trigger_time_utc: '2026-07-28T02:15:07.359Z',
+      price: 76.23,
+      price_source: 'tv-close',
+    }),
+  });
+  const res = await onRequestPost({ request: req, env: { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: db } });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.inserted, true);
+  assert.equal(body.trigger_price, 76.23);
+  assert.equal(body.trigger_price_source, 'tv-close');
+  const row = [...db._rows.values()][0];
+  assert.equal(row.trigger_price, 76.23);
+  assert.equal(row.trigger_price_source, 'tv-close');
+});
+
+test('tradingview webhook falls back to edge 1m kline when price is omitted', async () => {
+  const token = 'test_secret_token_123';
+  const db = makeDb();
+  const fetchImpl = async (url) => {
+    const value = String(url);
+    if (value.includes('/api/public/v1/kline')) {
+      return Response.json({
+        status: 'ok',
+        source: 'sina',
+        bar: { minute: '2026-07-28 10:15', close: 76.23, source: 'sina-m1' },
+      });
+    }
+    return new Response('{}', { status: 404 });
+  };
+  const req = new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      webhook_token: token,
+      symbol: '301511',
+      cycle_code: '15m',
+      signal: 'SELL',
+      trigger_time_utc: '2026-07-28T02:15:07.359Z',
+    }),
+  });
+  const res = await onRequestPost({
+    request: req,
+    env: { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: db },
+    fetch: fetchImpl,
+  });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.inserted, true);
+  assert.equal(body.trigger_price, 76.23);
+  assert.equal(body.trigger_price_source, 'sina-m1');
+  const row = [...db._rows.values()][0];
+  assert.equal(row.trigger_price, 76.23);
+  assert.equal(row.trigger_price_source, 'sina-m1');
 });

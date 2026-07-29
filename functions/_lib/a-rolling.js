@@ -50,7 +50,11 @@ export function projectUpstream(upstream, generatedAt = new Date().toISOString()
       triggered_at: item.triggered_at || item.buy_triggered_at || generatedAt,
       received_at: item.received_at || item.triggered_at || item.buy_triggered_at || generatedAt,
       event_id: item.event_id || null,
-      label: item.label || `${item.code}`
+      label: item.label || `${item.code}`,
+      price: Number.isFinite(Number(item.price ?? item.trigger_price))
+        ? Number(item.price ?? item.trigger_price)
+        : null,
+      price_source: item.price_source || item.trigger_price_source || null,
     }))
     .sort((a, b) => new Date(a.received_at).getTime() - new Date(b.received_at).getTime());
 

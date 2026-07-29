@@ -17,6 +17,12 @@ export const shanghaiTradeDate = (input = new Date()) => {
   }).format(date);
 };
 
+export const normalizeTriggerPrice = (value) => {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) return null;
+  return Math.round(price * 10000) / 10000;
+};
+
 export const ensureRollingSignalsTable = async db => {
   if (!db?.prepare) return;
   // Support both D1 styles: prepare().run() and prepare().bind().run()
@@ -38,6 +44,8 @@ export const ensureRollingSignalsTable = async db => {
       label TEXT,
       instrument_name TEXT,
       exchange TEXT,
+      trigger_price REAL,
+      trigger_price_source TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (trade_date, symbol, cycle_code, signal)
     )
@@ -46,6 +54,17 @@ export const ensureRollingSignalsTable = async db => {
     CREATE INDEX IF NOT EXISTS idx_rolling_signals_symbol_date
       ON rolling_signals (symbol, trade_date, received_at)
   `);
+  // Backward-compatible upgrades for existing D1 tables.
+  for (const sql of [
+    'ALTER TABLE rolling_signals ADD COLUMN trigger_price REAL',
+    'ALTER TABLE rolling_signals ADD COLUMN trigger_price_source TEXT',
+  ]) {
+    try {
+      await exec(sql);
+    } catch {
+      // Column already exists — ignore.
+    }
+  }
 };
 
 /**
@@ -61,11 +80,15 @@ export const insertRollingSignalOnce = async (db, row) => {
   const receivedAt = row.received_at || new Date().toISOString();
   const eventId = row.event_id || `evt_${Date.now()}`;
   const label = row.label || cycleCode;
+  const triggerPrice = normalizeTriggerPrice(row.trigger_price ?? row.price);
+  const triggerPriceSource = triggerPrice == null
+    ? null
+    : (String(row.trigger_price_source || row.price_source || 'webhook').trim() || 'webhook');
 
   const result = await db.prepare(`
     INSERT OR IGNORE INTO rolling_signals
-      (trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange, trigger_price, trigger_price_source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     tradeDate,
     symbol,
@@ -77,10 +100,12 @@ export const insertRollingSignalOnce = async (db, row) => {
     label,
     row.instrument_name || null,
     row.exchange || null,
+    triggerPrice,
+    triggerPriceSource,
   ).run();
 
   const existing = await db.prepare(`
-    SELECT trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange
+    SELECT trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange, trigger_price, trigger_price_source
     FROM rolling_signals
     WHERE trade_date = ? AND symbol = ? AND cycle_code = ? AND signal = ?
   `).bind(tradeDate, symbol, cycleCode, signal).first();
@@ -100,6 +125,8 @@ export const insertRollingSignalOnce = async (db, row) => {
       label,
       instrument_name: row.instrument_name || null,
       exchange: row.exchange || null,
+      trigger_price: triggerPrice,
+      trigger_price_source: triggerPriceSource,
     },
   };
 };
@@ -109,7 +136,7 @@ export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = shanghai
   await ensureRollingSignalsTable(db);
   const key = normalizeSymbol(symbol);
   const { results } = await db.prepare(`
-    SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label
+    SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
     FROM rolling_signals
     WHERE symbol = ? AND trade_date = ?
     ORDER BY received_at ASC, trigger_time_utc ASC
@@ -122,5 +149,7 @@ export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = shanghai
     triggered_at: item.trigger_time_utc || item.received_at,
     received_at: item.received_at || item.trigger_time_utc,
     event_id: item.event_id || null,
+    price: normalizeTriggerPrice(item.trigger_price),
+    price_source: item.trigger_price_source || null,
   }));
 };
