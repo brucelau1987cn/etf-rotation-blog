@@ -305,32 +305,101 @@
   const summaryTickerTimers = new Map();
   const SUMMARY_ROW_HEIGHT = 44;
   const SUMMARY_VISIBLE_ROWS = 5;
+  const triggerPriceCache = new Map(); // `${symbol}|${at}` -> Promise<number|null>
 
+  const formatTriggerPrice = (price) => {
+    if (!Number.isFinite(Number(price))) return '—';
+    return `¥${Number(price).toFixed(2)}`;
+  };
+
+  const fetchTriggerPrice = (symbol, at) => {
+    if (!symbol || !at) return Promise.resolve(null);
+    const key = `${symbol}|${at}`;
+    if (triggerPriceCache.has(key)) return triggerPriceCache.get(key);
+    const task = (async () => {
+      try {
+        const res = await fetch(
+          `/api/public/v1/kline?symbol=${encodeURIComponent(symbol)}&at=${encodeURIComponent(at)}&t=${Date.now()}`,
+          { cache: 'no-store' },
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const close = Number(data?.bar?.close);
+        return Number.isFinite(close) && close > 0 ? close : null;
+      } catch {
+        return null;
+      }
+    })();
+    triggerPriceCache.set(key, task);
+    return task;
+  };
+
+  const clearSummaryTicker = (track) => {
+    const old = summaryTickerTimers.get(track.id);
+    if (!old) return;
+    if (old.timer) clearInterval(old.timer);
+    if (old.resetTimer) clearTimeout(old.resetTimer);
+    summaryTickerTimers.delete(track.id);
+  };
+
+  // Seamless loop: always keep the viewport filled with real rows (no blank tail).
   const startSummaryTicker = (track) => {
-    const oldTimer = summaryTickerTimers.get(track.id);
-    if (oldTimer) clearInterval(oldTimer);
+    clearSummaryTicker(track);
+    track.style.transition = '';
     track.style.transform = 'translateY(0)';
-    const items = Array.from(track.children);
-    if (items.length <= SUMMARY_VISIBLE_ROWS || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    track.querySelectorAll('[data-ticker-clone="1"]').forEach((node) => node.remove());
+
+    const items = Array.from(track.children).filter((el) => el.classList.contains('summary-signal-item'));
+    if (items.length <= SUMMARY_VISIBLE_ROWS || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    // Duplicate the full list once so the next page is already filled while scrolling.
+    items.forEach((item) => {
+      const clone = item.cloneNode(true);
+      clone.dataset.tickerClone = '1';
+      clone.setAttribute('aria-hidden', 'true');
+      track.appendChild(clone);
+    });
+
     let offset = 0;
+    let animating = false;
+    const originalCount = items.length;
     const timer = setInterval(() => {
-      if (document.hidden || track.closest('.signal-card')?.matches(':hover')) return;
-      offset = (offset + 1) % items.length;
+      if (animating || document.hidden || track.closest('.signal-card')?.matches(':hover')) return;
+      animating = true;
+      offset += 1;
+      track.style.transition = 'transform 360ms cubic-bezier(.22,.61,.36,1)';
       track.style.transform = `translateY(${-offset * SUMMARY_ROW_HEIGHT}px)`;
+
+      const resetTimer = setTimeout(() => {
+        if (offset >= originalCount) {
+          track.style.transition = 'none';
+          track.style.transform = 'translateY(0)';
+          // Force reflow so the next animated step starts cleanly from 0.
+          void track.offsetHeight;
+          track.style.transition = '';
+          offset = 0;
+        }
+        animating = false;
+      }, 400);
+      const state = summaryTickerTimers.get(track.id) || {};
+      if (state.resetTimer) clearTimeout(state.resetTimer);
+      summaryTickerTimers.set(track.id, { timer, resetTimer });
     }, 2800);
-    summaryTickerTimers.set(track.id, timer);
+    summaryTickerTimers.set(track.id, { timer, resetTimer: null });
   };
 
   const renderSummarySignals = (type, signals) => {
     const track = document.getElementById(type === 'BUY' ? 'buy-signal-track' : 'sell-signal-track');
     if (!track) return;
+    clearSummaryTicker(track);
     track.replaceChildren();
     if (!signals.length) {
       const empty = document.createElement('div');
       empty.className = 'summary-signal-empty';
       empty.textContent = type === 'BUY' ? '当日暂无多方信号' : '当日暂无空方信号';
       track.appendChild(empty);
-      startSummaryTicker(track);
       return;
     }
     signals.forEach((signal) => {
@@ -374,6 +443,12 @@
         point.textContent = signal.code;
       }
 
+      const price = document.createElement('span');
+      price.className = 'summary-signal-price';
+      price.dataset.role = 'trigger-price';
+      price.textContent = Number.isFinite(Number(signal.price)) ? formatTriggerPrice(signal.price) : '…';
+      price.title = '信号点股价（触发分钟收盘价）';
+
       const time = document.createElement('time');
       time.className = 'summary-signal-time';
       // Keep time-only on the tape; full stamp stays in title for hover/long-press.
@@ -381,13 +456,27 @@
       time.dateTime = signal.at || '';
       time.title = formatTime(signal.at, true, false);
 
-      // Right-side tape pair: period + clock, always separate cells.
+      // Right-side tape: period + trigger price + clock.
       const tape = document.createElement('div');
       tape.className = 'summary-signal-tape';
-      tape.append(point, time);
+      tape.append(point, price, time);
 
       row.append(identity, tape);
       track.appendChild(row);
+
+      // Fill fixed-time price asynchronously from edge 1m kline.
+      if (!Number.isFinite(Number(signal.price)) && signal.symbol && signal.at) {
+        fetchTriggerPrice(signal.symbol, signal.at).then((value) => {
+          if (!price.isConnected) return;
+          price.textContent = formatTriggerPrice(value);
+          if (Number.isFinite(Number(value))) {
+            signal.price = value;
+            price.title = `信号点 ${formatTime(signal.at, true, false)} · ${formatTriggerPrice(value)}`;
+          } else {
+            price.title = '信号点股价暂不可用';
+          }
+        });
+      }
     });
     startSummaryTicker(track);
   };

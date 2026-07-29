@@ -102,6 +102,11 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
     assert "QUOTE_INTERVAL_MS" in app
+    assert "fetchTriggerPrice" in app
+    assert "summary-signal-price" in app
+    assert "/api/public/v1/kline" in app
+    assert "data-ticker-clone" in app
+    assert "formatTriggerPrice" in app
     assert "hf_XAU" in app
     assert "hf_XAG" in app
     assert "hf_CL" in app
@@ -125,6 +130,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert ".a-rolling-main .summary-signal-symbol" in styles
     assert ".a-rolling-main .summary-signal-identity" in styles
     assert ".a-rolling-main .summary-signal-tape" in styles
+    assert ".a-rolling-main .summary-signal-price" in styles
     assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in styles
     assert "@media (max-width: 980px)" in styles
     assert "@media (max-width: 760px)" in styles
