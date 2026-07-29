@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-28T07:10:18.369092+00:00",
+  "updated_at": "2026-07-29T07:13:30.753481+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -33,27 +33,35 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-29",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
       "pending_signals": [
         {
-          "symbol": "560080",
-          "name": "中药ETF汇添富",
-          "support": 0.96,
-          "target": 1.044,
-          "stop": 0.927,
-          "signal_date": "2026-07-28",
+          "symbol": "512800",
+          "name": "银行ETF华宝",
+          "support": 0.796,
+          "target": 0.84,
+          "stop": 0.78,
+          "signal_date": "2026-07-29",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "159920",
           "name": "恒生ETF华夏",
-          "support": 1.447,
-          "target": 1.537,
-          "stop": 1.433,
-          "signal_date": "2026-07-28",
+          "support": 1.454,
+          "target": 1.538,
+          "stop": 1.441,
+          "signal_date": "2026-07-29",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -70,11 +78,11 @@
           "support": 0.796,
           "target": 0.84,
           "stop": 0.78,
-          "signal_date": "2026-07-28",
+          "signal_date": "2026-07-29",
           "kind": "ready_plant",
           "status": "候场",
-          "source_date": "2026-07-28",
-          "source_updated_at": "2026-07-28 22:00 CST"
+          "source_date": "2026-07-29",
+          "source_updated_at": "2026-07-29 14:34 CST"
         },
         {
           "symbol": "159920",
@@ -82,11 +90,11 @@
           "support": 1.454,
           "target": 1.538,
           "stop": 1.441,
-          "signal_date": "2026-07-28",
+          "signal_date": "2026-07-29",
           "kind": "ready_plant",
           "status": "候场",
-          "source_date": "2026-07-28",
-          "source_updated_at": "2026-07-28 22:00 CST"
+          "source_date": "2026-07-29",
+          "source_updated_at": "2026-07-29 14:34 CST"
         }
       ]
     },
@@ -95,7 +103,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 18065.113526572266,
+      "cash": 16148.728817261475,
       "positions": {
         "IYT": {
           "symbol": "IYT",
@@ -108,17 +116,30 @@
           "stop": 85.34,
           "level_basis": null,
           "signal_date": "2026-07-24",
-          "last_price": 87.18000030517578
+          "last_price": 87.07499694824219
+        },
+        "EFA": {
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "quantity": 19,
+          "entry_price": 103.32499694824219,
+          "entry_cost": 1.981587,
+          "entry_at": "2026-07-28T13:35:24.517548+00:00",
+          "target": 105.33,
+          "stop": 102.02,
+          "level_basis": null,
+          "signal_date": "2026-07-27",
+          "last_price": 103.93499755859375
         }
       },
-      "equity": 19983.073533,
-      "realized_pnl": 0.0,
-      "unrealized_pnl": -16.926467,
-      "daily_return": -0.00084632,
-      "cumulative_return": -0.00084632,
+      "equity": 20039.143704,
+      "realized_pnl": 48.77181970581055,
+      "unrealized_pnl": -9.628116,
+      "daily_return": 0.00195719,
+      "cumulative_return": 0.00195719,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.90402077,
+      "cash_ratio": 0.80585923,
       "history": [],
       "events": [
         {
@@ -132,56 +153,62 @@
           "price": 87.860001,
           "cost": 1.96646,
           "reason": "plant"
+        },
+        {
+          "id": "US:IHF:buy:1785245400:plant",
+          "timestamp": "2026-07-28T13:35:24.517548+00:00",
+          "market": "US",
+          "symbol": "IHF",
+          "name": "iShares U.S. Healthcare Providers",
+          "side": "buy",
+          "quantity": 35,
+          "price": 56.622002,
+          "cost": 1.990885,
+          "reason": "plant"
+        },
+        {
+          "id": "US:EFA:buy:1785245725:plant",
+          "timestamp": "2026-07-28T13:35:24.517548+00:00",
+          "market": "US",
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "side": "buy",
+          "quantity": 19,
+          "price": 103.324997,
+          "cost": 1.981587,
+          "reason": "plant"
+        },
+        {
+          "id": "US:IHF:sell:1785264918:target",
+          "timestamp": "2026-07-28T18:55:31.883479+00:00",
+          "market": "US",
+          "symbol": "IHF",
+          "name": "iShares U.S. Healthcare Providers",
+          "side": "sell",
+          "quantity": 35,
+          "price": 58.130001,
+          "cost": 2.017275,
+          "reason": "target"
         }
       ],
       "pending_signals": [
         {
-          "symbol": "ETHA",
-          "name": "iShares Ethereum Trust ETF",
-          "support": 13.6,
-          "target": 14.48,
-          "stop": 13.46,
-          "signal_date": "2026-07-24",
-          "kind": "plant",
-          "status": "伏击"
+          "symbol": "DBC",
+          "name": "Invesco DB Commodity Index",
+          "support": 28.54,
+          "target": 29.48,
+          "stop": 28.06,
+          "signal_date": "2026-07-27",
+          "kind": "ready_plant",
+          "status": "候场"
         },
         {
-          "symbol": "IBIT",
-          "name": "iShares Bitcoin Trust ETF",
-          "support": 35.8,
-          "target": 37.32,
-          "stop": 35.06,
-          "signal_date": "2026-07-24",
-          "kind": "plant",
-          "status": "伏击"
-        },
-        {
-          "symbol": "KRE",
-          "name": "SPDR S&P Regional Banking",
-          "support": 75.42,
-          "target": 77.54,
-          "stop": 73.32,
-          "signal_date": "2026-07-24",
-          "kind": "plant",
-          "status": "伏击"
-        },
-        {
-          "symbol": "RSP",
-          "name": "Invesco S&P 500 Equal Weight",
-          "support": 213.33,
-          "target": 216.36,
-          "stop": 209.85,
-          "signal_date": "2026-07-24",
-          "kind": "plant",
-          "status": "伏击"
-        },
-        {
-          "symbol": "EWZ",
-          "name": "iShares MSCI Brazil",
-          "support": 35.23,
-          "target": 36.45,
-          "stop": 34.78,
-          "signal_date": "2026-07-24",
+          "symbol": "XLE",
+          "name": "Energy Select Sector",
+          "support": 56.93,
+          "target": 59.79,
+          "stop": 55.91,
+          "signal_date": "2026-07-27",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -193,52 +220,76 @@
       },
       "public_pending_signals": [
         {
-          "symbol": "IHF",
-          "name": "iShares U.S. Healthcare Providers",
-          "support": 56.69,
-          "target": 58.13,
-          "stop": 54.84,
-          "signal_date": "2026-07-27",
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "support": 14.02,
+          "target": 14.96,
+          "stop": 13.73,
+          "signal_date": "2026-07-28",
           "kind": "plant",
           "status": "伏击",
-          "source_date": "2026-07-27",
-          "source_updated_at": "2026-07-27T18:30:22.694908-04:00"
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
         },
         {
-          "symbol": "EFA",
-          "name": "iShares MSCI EAFE",
-          "support": 103.76,
-          "target": 105.33,
-          "stop": 102.02,
-          "signal_date": "2026-07-27",
+          "symbol": "SKYY",
+          "name": "First Trust Cloud Computing",
+          "support": 136.64,
+          "target": 143.55,
+          "stop": 130.37,
+          "signal_date": "2026-07-28",
           "kind": "plant",
           "status": "伏击",
-          "source_date": "2026-07-27",
-          "source_updated_at": "2026-07-27T18:30:22.694908-04:00"
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
         },
         {
-          "symbol": "DBC",
-          "name": "Invesco DB Commodity Index",
-          "support": 28.54,
-          "target": 29.48,
-          "stop": 28.06,
-          "signal_date": "2026-07-27",
-          "kind": "ready_plant",
-          "status": "候场",
-          "source_date": "2026-07-27",
-          "source_updated_at": "2026-07-27T18:30:22.694908-04:00"
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "support": 45.48,
+          "target": 46.54,
+          "stop": 44.16,
+          "signal_date": "2026-07-28",
+          "kind": "plant",
+          "status": "伏击",
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
+        },
+        {
+          "symbol": "COPX",
+          "name": "Global X Copper Miners",
+          "support": 76.4,
+          "target": 79.39,
+          "stop": 72.69,
+          "signal_date": "2026-07-28",
+          "kind": "plant",
+          "status": "伏击",
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
+        },
+        {
+          "symbol": "IBIT",
+          "name": "iShares Bitcoin Trust ETF",
+          "support": 36.04,
+          "target": 37.12,
+          "stop": 34.83,
+          "signal_date": "2026-07-28",
+          "kind": "plant",
+          "status": "伏击",
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
         },
         {
           "symbol": "XLE",
           "name": "Energy Select Sector",
-          "support": 56.93,
-          "target": 59.79,
-          "stop": 55.91,
-          "signal_date": "2026-07-27",
+          "support": 56.39,
+          "target": 59.02,
+          "stop": 55.64,
+          "signal_date": "2026-07-28",
           "kind": "ready_plant",
           "status": "候场",
-          "source_date": "2026-07-27",
-          "source_updated_at": "2026-07-27T18:30:22.694908-04:00"
+          "source_date": "2026-07-28",
+          "source_updated_at": "2026-07-28T18:30:49.923909-04:00"
         }
       ]
     }
