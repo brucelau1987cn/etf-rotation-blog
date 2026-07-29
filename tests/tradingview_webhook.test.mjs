@@ -3,7 +3,7 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 const moduleUrl = pathToFileURL(new URL('functions/api/v1/tradingview.js', new URL('../', import.meta.url)).pathname).href;
-const { onRequestPost } = await import(moduleUrl);
+const { onRequestPost, sendWxPusherSignal } = await import(moduleUrl);
 
 const makeDb = () => {
   const rows = new Map();
@@ -311,8 +311,9 @@ test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', 
 
     assert.equal(response.status, 200);
     assert.equal((await response.json()).inserted, true);
-    assert.equal(pending.length, 1);
+    assert.equal(pending.length, 2);
     assert.equal(await pending[0], false);
+    assert.equal(await pending[1], false);
     assert.equal(fetchCalls, 1);
   } finally {
     console.warn = originalWarn;
@@ -424,4 +425,36 @@ test('ntfy always includes 信号点股价 line even when price missing', async 
   assert.equal(calls.length, 1);
   const notification = await calls[0].json();
   assert.match(notification.message, /信号点股价：暂无/);
+});
+
+test('sendWxPusherSignal formats markdown body and posts to WxPusher API', async () => {
+  const calls = [];
+  const fetchMock = async (url, options) => {
+    calls.push({ url: String(url), options });
+    return Response.json({ code: 1000, msg: 'success', data: [{ code: 1000 }] });
+  };
+  const env = {
+    WXPUSHER_APP_TOKEN: 'AT_test_123',
+    WXPUSHER_UID: 'UID_user_456',
+  };
+  const ok = await sendWxPusherSignal({
+    env,
+    fetchImpl: fetchMock,
+    requestUrl: 'https://etf.peekabo.cc/api/v1/tradingview',
+    symbol: '002173',
+    instrumentName: '创新医疗',
+    cycleCode: '6.5h',
+    signal: 'BUY',
+    triggerTime: '2026-07-28T07:31:00.915Z',
+    triggerPrice: 12.34,
+  });
+  assert.equal(ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://wxpusher.zjiecode.com/api/send/message');
+  const payload = JSON.parse(calls[0].options.body);
+  assert.equal(payload.appToken, 'AT_test_123');
+  assert.deepEqual(payload.uids, ['UID_user_456']);
+  assert.equal(payload.contentType, 3);
+  assert.match(payload.summary, /🔴 多方信号｜创新医疗 002173 · ¥12\.34/);
+  assert.match(payload.content, /信号点股价.*¥12\.34/);
 });

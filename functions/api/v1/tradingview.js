@@ -172,6 +172,71 @@ export const sendNtfySignal = async ({
   return true;
 };
 
+export const sendWxPusherSignal = async ({
+  env,
+  fetchImpl = fetch,
+  requestUrl,
+  symbol,
+  instrumentName,
+  cycleCode,
+  signal,
+  triggerTime,
+  triggerPrice = null,
+}) => {
+  const appToken = String(env.WXPUSHER_APP_TOKEN || '').trim();
+  const uid = String(env.WXPUSHER_UID || env.WXPUSHER_UIDS || '').trim();
+  const topicId = String(env.WXPUSHER_TOPIC_ID || '').trim();
+  if (!appToken || (!uid && !topicId)) return false;
+
+  const direction = signal === 'BUY' ? '多方信号' : '空方信号';
+  const resolvedName = await resolveInstrumentName({ env, requestUrl, symbol, instrumentName });
+  const titleTarget = [resolvedName, symbol].filter(Boolean).join(' ');
+  const signalEmoji = signal === 'BUY' ? '🔴' : '🟢';
+
+  const priceStr = Number.isFinite(Number(triggerPrice)) && Number(triggerPrice) > 0
+    ? `¥${Number(triggerPrice).toFixed(2)}`
+    : '暂无';
+
+  const title = `${signalEmoji} ${direction}｜${titleTarget}`;
+  const summary = `${title} · ${priceStr}`;
+
+  const message = [
+    `### ${title}`,
+    '',
+    `- **标的**：${titleTarget}`,
+    `- **节点**：${formatCycle(cycleCode)}`,
+    `- **方向**：${direction}`,
+    `- **时间**：${formatSignalTime(triggerTime)}`,
+    `- **信号点股价**：${priceStr}`,
+    '',
+    `[点击进入终端](https://etf.peekabo.cc/rolling/)`,
+  ].join('\n');
+
+  const body = {
+    appToken,
+    content: message,
+    summary,
+    contentType: 3, // Markdown
+    url: 'https://etf.peekabo.cc/rolling/',
+  };
+  if (uid) {
+    body.uids = uid.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  if (topicId) {
+    body.topicIds = topicId.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n));
+  }
+
+  const response = await fetchImpl('https://wxpusher.zjiecode.com/api/send/message', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`WxPusher returned HTTP ${response.status}`);
+  const result = await response.json();
+  if (result.code !== 1000) throw new Error(`WxPusher error ${result.code}: ${result.msg}`);
+  return true;
+};
+
 export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl = fetch }) {
   try {
     const expectedToken = String(env.TRADINGVIEW_WEBHOOK_TOKEN || '').trim();
@@ -258,7 +323,7 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
       trigger_price_source: priced.source,
     });
 
-    // Optional Telegram notify only on first insert of the day/node.
+    // Optional Telegram / ntfy / WxPusher notify only on first insert of the day/node.
     if (saved.inserted) {
       const ntfyPromise = sendNtfySignal({
         env,
@@ -276,6 +341,23 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
       });
       if (typeof waitUntil === 'function') waitUntil(ntfyPromise);
       else await ntfyPromise;
+
+      const wxPusherPromise = sendWxPusherSignal({
+        env,
+        fetchImpl,
+        requestUrl: request.url,
+        symbol,
+        instrumentName: saved.row?.instrument_name || instrument_name,
+        cycleCode: cycle_code,
+        signal,
+        triggerTime: trigger_time_utc || receivedAt,
+        triggerPrice: saved.row?.trigger_price ?? priced.price,
+      }).catch((error) => {
+        console.warn('WxPusher alert failed:', error);
+        return false;
+      });
+      if (typeof waitUntil === 'function') waitUntil(wxPusherPromise);
+      else await wxPusherPromise;
 
       const tgToken = env.TELEGRAM_BOT_TOKEN;
       const chatId = env.TELEGRAM_CHAT_ID;
