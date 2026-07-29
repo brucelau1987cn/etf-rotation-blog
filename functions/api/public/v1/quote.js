@@ -483,9 +483,49 @@ async function fetchSina(parsedList) {
     const parts = match[2].split(',');
     if (parts.length < 8) continue;
 
+    // Foreign futures/spot on Sina (hf_XAU / hf_XAG / hf_CL ...):
+    // price,?,open,?,high,low,time,prevClose,?,?,?,?,date,name
+    // Same field order as Tencent hf_*, NOT domestic nf_* layout.
+    if (secKey.startsWith('hf_')) {
+      const price = parseFloat(parts[0]) || 0;
+      const openPrice = parseFloat(parts[2]) || 0;
+      const highPrice = parseFloat(parts[4]) || 0;
+      const lowPrice = parseFloat(parts[5]) || 0;
+      const prevClose = parseFloat(parts[7]) || 0;
+      const name = parts[13] || secKey;
+      const dateStr = parts[12] || '';
+      const timeStr = parts[6] || '';
+      if (!(price > 0)) continue;
+      const changeAmount = prevClose ? price - prevClose : 0;
+      const changePercent = prevClose
+        ? parseFloat((((price - prevClose) / prevClose) * 100).toFixed(2))
+        : 0;
+      const quoteTime = dateStr && timeStr
+        ? `${dateStr}T${timeStr}+08:00`
+        : new Date().toISOString();
+
+      quotes[secKey] = {
+        symbol: secKey,
+        sec_code: secKey,
+        name,
+        market: 'FUTURES',
+        price,
+        prev_close: prevClose,
+        open: openPrice,
+        high: highPrice,
+        low: lowPrice,
+        change_amount: parseFloat(changeAmount.toFixed(3)),
+        change_percent: changePercent,
+        quote_time: quoteTime,
+        source: 'sina',
+        status: 'ok',
+      };
+      continue;
+    }
+
     // Domestic continuous futures: nf_AU0 / nf_SC0 ...
     // Sina layout: name,time,open,high,low,...,buy,sell,last,...,prevSettle,...,date
-    if (secKey.startsWith('nf_') || secKey.startsWith('hf_')) {
+    if (secKey.startsWith('nf_')) {
       const name = parts[0] || secKey;
       const openPrice = parseFloat(parts[2]) || 0;
       const highPrice = parseFloat(parts[3]) || 0;
@@ -660,8 +700,22 @@ async function fetchXueqiu(parsedList) {
   return quotes;
 }
 
+/** Rolling 24H continuous quotes: prefer Sina for more stable change%. */
+const SINA_PREFERRED_CODES = new Set(['HF_XAU', 'HF_XAG', 'HF_CL', 'DINIW']);
+
+function isSinaPreferredParsed(item) {
+  const candidates = [
+    item?.displayCode,
+    item?.tencent,
+    item?.sina,
+    item?.xueqiu,
+  ].map((value) => String(value || '').toUpperCase());
+  return candidates.some((code) => SINA_PREFERRED_CODES.has(code));
+}
+
 /**
  * 核心调度：【腾讯 -> 新浪 -> 雪球】三级自动降级
+ * 24H 连续标的（伦敦金/银、纽约原油、美元指数）优先新浪。
  */
 export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
   const rawItems = (symbolsStr || '600021').split(',').map(s => s.trim()).filter(Boolean).slice(0, 50);
@@ -669,26 +723,62 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
 
   const parsedList = rawItems.map(item => parseSymbol(item, defaultExchange)).filter(Boolean);
   const hasValidPrice = (quotes) => Object.values(quotes || {}).some((q) => Number(q?.price) > 0);
-  const needsDollarIndex = parsedList.some((item) => String(item.displayCode || '').toUpperCase() === 'DINIW');
-  const hasDollarIndex = (quotes) => Number(quotes?.DINIW?.price) > 0;
-  const mergeDollarIndexFromSina = async (quotes) => {
-    if (!needsDollarIndex || hasDollarIndex(quotes)) return quotes;
+  const preferredList = parsedList.filter(isSinaPreferredParsed);
+  const nonPreferredList = parsedList.filter((item) => !isSinaPreferredParsed(item));
+  const summarizeSource = (quotes) => {
+    const sources = new Set(Object.values(quotes || {}).map(quote => quote.source).filter(Boolean));
+    if (sources.size === 0) return 'unknown';
+    if (sources.size > 1) return 'mixed';
+    return sources.values().next().value;
+  };
+  const mergeSinaPreferred = async (quotes = {}) => {
+    if (preferredList.length === 0) return quotes;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const sinaQuotes = await fetchSina(parsedList.filter((item) => String(item.displayCode || '').toUpperCase() === 'DINIW'));
-        if (hasDollarIndex(sinaQuotes)) {
-          return { ...quotes, DINIW: sinaQuotes.DINIW };
+        const sinaQuotes = await fetchSina(preferredList);
+        const merged = { ...quotes };
+        let filled = 0;
+        for (const [key, row] of Object.entries(sinaQuotes || {})) {
+          if (Number(row?.price) > 0) {
+            merged[key] = row;
+            filled += 1;
+          }
         }
+        if (filled > 0) return merged;
       } catch (err) {
-        console.warn('Sina dollar-index fill failed:', err.message);
+        console.warn('Sina preferred continuous fill failed:', err.message);
       }
     }
     return quotes;
   };
 
-  // 1. 尝试腾讯；恒生综合指数由恒生指数公司官方看板补齐。
+  // Pure 24H continuous batch: Sina first (gold/silver/oil/DXY).
+  if (preferredList.length > 0 && nonPreferredList.length === 0) {
+    try {
+      const quotes = await fetchSina(parsedList);
+      if (hasValidPrice(quotes)) {
+        return { status: 'ok', source: 'sina', count: Object.keys(quotes).length, quotes };
+      }
+    } catch (err) {
+      console.warn('Sina preferred-only batch failed, falling back:', err.message);
+    }
+    // Fall through to Tencent for these continuous codes if Sina is empty.
+    try {
+      const quotes = await fetchTencent(parsedList);
+      if (hasValidPrice(quotes)) {
+        return { status: 'ok', source: 'tencent', count: Object.keys(quotes).length, quotes };
+      }
+    } catch (err) {
+      console.warn('Tencent continuous fallback failed:', err.message);
+    }
+  }
+
+  // 1. 尝试腾讯（权益/非优先标的）；24H 连续标的再用新浪覆盖。
   try {
-    let quotes = await fetchTencent(parsedList);
+    let quotes = {};
+    if (nonPreferredList.length > 0) {
+      quotes = await fetchTencent(nonPreferredList);
+    }
     if (rawItems.some(item => item.toUpperCase() === 'HSCI.HK' || item.toUpperCase() === 'HKHSCI')) {
       try {
         Object.assign(quotes, await fetchHangSengComposite());
@@ -696,17 +786,20 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
         console.warn('Hang Seng Composite official source failed:', err.message);
       }
     }
-    quotes = await mergeDollarIndexFromSina(quotes);
+    quotes = await mergeSinaPreferred(quotes);
     if (hasValidPrice(quotes)) {
-      const sources = new Set(Object.values(quotes).map(quote => quote.source).filter(Boolean));
-      const source = sources.size > 1 ? 'mixed' : (sources.values().next().value || 'tencent');
-      return { status: 'ok', source, count: Object.keys(quotes).length, quotes };
+      return {
+        status: 'ok',
+        source: summarizeSource(quotes),
+        count: Object.keys(quotes).length,
+        quotes,
+      };
     }
   } catch (err) {
     console.warn('Primary source (Tencent) failed, falling back to Sina:', err.message);
   }
 
-  // 2. 尝试新浪
+  // 2. 尝试新浪（全量）
   try {
     const quotes = await fetchSina(parsedList);
     if (hasValidPrice(quotes)) {
