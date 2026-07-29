@@ -219,7 +219,7 @@ test('first D1 insert forwards the signal to ntfy with the mobile template', asy
   assert.deepEqual(await calls[0].json(), {
     topic: 'secret-topic',
     title: '多方信号｜创新医疗 002173',
-    message: '时间：2026-07-28 15:31:00\n节点：6.5小时\n方向：多方信号\n价格：¥12.34',
+    message: '时间：2026-07-28 15:31:00\n节点：6.5小时\n方向：多方信号\n信号点股价：¥12.34',
     priority: 4,
     tags: ['chart_with_upwards_trend'],
     click: 'https://etf.peekabo.cc/rolling/',
@@ -269,7 +269,7 @@ test('ntfy title resolves the instrument name from Pages assets when the webhook
   assert.equal(calls.length, 1);
   const notification = await calls[0].json();
   assert.equal(notification.title, '空方信号｜德福科技 301511');
-  assert.equal(notification.message, '时间：2026-07-28 10:15:07\n节点：15分钟\n方向：空方信号\n价格：¥76.23');
+  assert.equal(notification.message, '时间：2026-07-28 10:15:07\n节点：15分钟\n方向：空方信号\n信号点股价：¥76.23');
 });
 
 test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', async () => {
@@ -385,4 +385,43 @@ test('tradingview webhook falls back to edge 1m kline when price is omitted', as
   const row = [...db._rows.values()][0];
   assert.equal(row.trigger_price, 76.23);
   assert.equal(row.trigger_price_source, 'sina-m1');
+});
+
+
+test('ntfy always includes 信号点股价 line even when price missing', async () => {
+  const token = 'test_secret_token_123';
+  const calls = [];
+  const fetchMock = async (url, options) => {
+    const value = String(url);
+    if (value.includes('/api/public/v1/kline')) {
+      return Response.json({ status: 'ok', bar: null });
+    }
+    calls.push(new Request(url, options));
+    return new Response(JSON.stringify({ id: 'ntfy-test-id' }), { status: 200 });
+  };
+  const response = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        webhook_token: token,
+        symbol: 'TSLA',
+        instrument_name: '特斯拉',
+        cycle_code: '2h',
+        signal: 'BUY',
+        event_id: 'no-price',
+        trigger_time_utc: '2026-07-28T01:30:00.000Z',
+      }),
+    }),
+    env: {
+      TRADINGVIEW_WEBHOOK_TOKEN: token,
+      DB: makeDb(),
+      NTFY_PUSH_URL: 'https://push.example.test/secret-topic',
+    },
+    fetch: fetchMock,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  const notification = await calls[0].json();
+  assert.match(notification.message, /信号点股价：暂无/);
 });

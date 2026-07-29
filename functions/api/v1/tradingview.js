@@ -50,6 +50,11 @@ const resolveInstrumentName = async ({ env, requestUrl, symbol, instrumentName }
   }
 };
 
+const KLINE_LOOKUP_BASES = [
+  'https://etf.peekabo.cc',
+  'https://edge-quote-api.brucelau1987.workers.dev',
+];
+
 /** Prefer webhook-provided price; otherwise resolve 1m close at trigger time via edge kline. */
 export const resolveTriggerPrice = async ({
   payload = {},
@@ -76,29 +81,49 @@ export const resolveTriggerPrice = async ({
     return { price: null, source: null };
   }
 
+  const bases = [];
   try {
-    const klineUrl = new URL('/api/public/v1/kline', requestUrl);
-    klineUrl.searchParams.set('symbol', symbol);
-    if (triggerTime) klineUrl.searchParams.set('at', String(triggerTime));
-    klineUrl.searchParams.set('nocache', '1');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4500);
-    const response = await fetchImpl(klineUrl.toString(), {
-      headers: { Accept: 'application/json', 'User-Agent': 'HermesRollingWebhook/1.0' },
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timer));
-    if (!response.ok) return { price: null, source: null };
-    const data = await response.json();
-    const close = normalizeTriggerPrice(data?.bar?.close);
-    if (close == null) return { price: null, source: null };
-    return {
-      price: close,
-      source: String(data?.bar?.source || data?.source || 'kline-1m'),
-    };
-  } catch (error) {
-    console.warn('trigger price kline lookup failed:', error);
-    return { price: null, source: null };
+    if (requestUrl) bases.push(new URL(requestUrl).origin);
+  } catch {
+    // ignore invalid request URL
   }
+  for (const base of KLINE_LOOKUP_BASES) {
+    if (!bases.includes(base)) bases.push(base);
+  }
+
+  for (const base of bases) {
+    try {
+      const klineUrl = new URL('/api/public/v1/kline', base);
+      klineUrl.searchParams.set('symbol', symbol);
+      if (triggerTime) klineUrl.searchParams.set('at', String(triggerTime));
+      klineUrl.searchParams.set('nocache', '1');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4500);
+      const response = await fetchImpl(klineUrl.toString(), {
+        headers: { Accept: 'application/json', 'User-Agent': 'HermesRollingWebhook/1.0' },
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer));
+      if (!response.ok) continue;
+      const data = await response.json();
+      const close = normalizeTriggerPrice(data?.bar?.close);
+      if (close == null) continue;
+      return {
+        price: close,
+        source: String(data?.bar?.source || data?.source || 'kline-1m'),
+      };
+    } catch (error) {
+      console.warn('trigger price kline lookup failed:', base, error?.message || error);
+    }
+  }
+  return { price: null, source: null };
+};
+
+export const formatPushPriceLine = (triggerPrice, { bullet = false } = {}) => {
+  const prefix = bullet ? '• 信号点股价：' : '信号点股价：';
+  if (Number.isFinite(Number(triggerPrice)) && Number(triggerPrice) > 0) {
+    return `${prefix}¥${Number(triggerPrice).toFixed(2)}`;
+  }
+  return `${prefix}暂无`;
 };
 
 export const sendNtfySignal = async ({
@@ -126,17 +151,18 @@ export const sendNtfySignal = async ({
   publishUrl.search = '';
   publishUrl.hash = '';
 
-  const priceLine = Number.isFinite(Number(triggerPrice)) && Number(triggerPrice) > 0
-    ? `\n价格：¥${Number(triggerPrice).toFixed(2)}`
-    : '';
-
   const response = await fetchImpl(publishUrl.toString(), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       topic,
       title: `${direction}｜${titleTarget}`,
-      message: `时间：${formatSignalTime(triggerTime)}\n节点：${formatCycle(cycleCode)}\n方向：${direction}${priceLine}`,
+      message: [
+        `时间：${formatSignalTime(triggerTime)}`,
+        `节点：${formatCycle(cycleCode)}`,
+        `方向：${direction}`,
+        formatPushPriceLine(triggerPrice),
+      ].join('\n'),
       priority: 4,
       tags: [signal === 'BUY' ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'],
       click: 'https://etf.peekabo.cc/rolling/',
@@ -257,12 +283,21 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
         const signalEmoji = signal === 'BUY' ? '🔴【多头买入信号】' : '🟢【空方卖出预警】';
         const timeStr = new Date(receivedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
         const price = saved.row?.trigger_price ?? priced.price;
-        const priceLine = Number.isFinite(Number(price)) && Number(price) > 0
-          ? `\n• 价格：¥${Number(price).toFixed(2)}`
-          : '';
-        const text = `${signalEmoji}\n\n• 标的：${symbol}\n• 节点：${cycle_code}\n• 动作：${signal}\n• 交易日：${tradeDate}\n• 时间：${timeStr}${priceLine}\n• 事件ID：${eventId.slice(0, 12)}\n\n🔗 终端：https://etf.peekabo.cc/rolling/`;
+        const text = [
+          signalEmoji,
+          '',
+          `• 标的：${symbol}`,
+          `• 节点：${cycle_code}`,
+          `• 动作：${signal}`,
+          `• 交易日：${tradeDate}`,
+          `• 时间：${timeStr}`,
+          formatPushPriceLine(price, { bullet: true }),
+          `• 事件ID：${eventId.slice(0, 12)}`,
+          '',
+          '🔗 终端：https://etf.peekabo.cc/rolling/',
+        ].join('\n');
         try {
-          await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          await fetchImpl(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
