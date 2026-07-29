@@ -114,6 +114,10 @@ const todayCountText = (count: number) => `${todayLabel} · ${count}个信号（
       ))}
       {continuousQuotes.length > 0 && (
         <div class="market-spot-list" aria-label="24H连续行情">
+          <div class="market-24h-head">
+            <span>24H 连续行情</span>
+            <span class="market-24h-countdown" id="continuous-refresh-countdown">15s 后刷新</span>
+          </div>
           {continuousQuotes.map((item) => (
             <div class="market-index-row market-spot-row market-24h-row" data-index-symbol={item.symbol} data-quote-mode="24h">
               <span class="market-index-name">

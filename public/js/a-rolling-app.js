@@ -855,15 +855,46 @@
   };
 
   let continuousInFlight = false;
+  let nextContinuousQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
+  const paintContinuousCountdown = () => {
+    const pill = document.getElementById('continuous-refresh-countdown');
+    if (!pill) return;
+    pill.classList.remove('is-refreshing', 'is-paused');
+    if (document.hidden) {
+      pill.textContent = '页面后台暂停';
+      pill.classList.add('is-paused');
+      return;
+    }
+    if (continuousInFlight) {
+      pill.textContent = '刷新中…';
+      pill.classList.add('is-refreshing');
+      return;
+    }
+    const remainSec = Math.max(0, Math.ceil((nextContinuousQuoteAt - Date.now()) / 1000));
+    pill.textContent = `${remainSec || 1}s 后刷新`;
+  };
+
   const fetchContinuousQuotes = async () => {
     if (continuousInFlight || document.hidden) return;
     continuousInFlight = true;
+    paintContinuousCountdown();
     try {
       await fetchMarketIndices({ continuousOnly: true });
     } finally {
       continuousInFlight = false;
+      nextContinuousQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
+      paintContinuousCountdown();
     }
   };
+  const continuousCountdownTimer = window.setInterval(paintContinuousCountdown, 1000);
+  paintContinuousCountdown();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      nextContinuousQuoteAt = 0;
+      void fetchContinuousQuotes();
+    }
+    paintContinuousCountdown();
+  });
 
   setTimeout(() => { fetchAllSignals(); }, 400);
   const initialQuoteLoad = setTimeout(() => {

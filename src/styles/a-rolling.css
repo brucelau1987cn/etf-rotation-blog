@@ -389,6 +389,34 @@
   border-top: 1px solid #eef2f6;
 }
 
+.a-rolling-main .market-24h-head {
+  min-height: 1.45rem;
+  padding: 0.05rem 0.05rem 0.18rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #92400e;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.a-rolling-main .market-24h-countdown {
+  color: #b45309;
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.a-rolling-main .market-24h-countdown.is-refreshing {
+  color: #0958d9;
+}
+
+.a-rolling-main .market-24h-countdown.is-paused {
+  color: #64748b;
+}
+
 .a-rolling-main .market-spot-row .market-index-name {
   color: #b45309;
   font-weight: 850;

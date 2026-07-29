@@ -121,6 +121,9 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "三大指数" not in stats
     assert "market-24h-tag" in stats
     assert 'data-quote-mode="24h"' in stats
+    assert "continuous-refresh-countdown" in stats
+    assert "continuous-refresh-countdown" in app
+    assert "paintContinuousCountdown" in app
     assert "fetchContinuousQuotes" in app
     assert "continuousOnly" in app
     assert "sessionOnly" in app
