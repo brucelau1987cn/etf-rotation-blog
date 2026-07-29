@@ -128,15 +128,27 @@
         type: 'BUY',
         code: c.cycle_code,
         triggered_at: c.buy_triggered_at,
-        label: c.label
+        label: c.label,
+        price: Number.isFinite(Number(c.price ?? c.trigger_price)) ? Number(c.price ?? c.trigger_price) : null,
+        price_source: c.price_source || c.trigger_price_source || null,
       }));
       const sellItems = (data?.sell_chain?.nodes || []).map(n => ({
         type: 'SELL',
         code: n.code,
         triggered_at: n.triggered_at,
-        label: n.label
+        label: n.label,
+        price: Number.isFinite(Number(n.price ?? n.trigger_price)) ? Number(n.price ?? n.trigger_price) : null,
+        price_source: n.price_source || n.trigger_price_source || null,
       }));
       timeline = [...buyItems, ...sellItems];
+    } else {
+      timeline = timeline.map((item) => ({
+        ...item,
+        price: Number.isFinite(Number(item?.price ?? item?.trigger_price))
+          ? Number(item.price ?? item.trigger_price)
+          : null,
+        price_source: item?.price_source || item?.trigger_price_source || null,
+      }));
     }
 
     const buyObservation = timeline.find(item => item && item.type === 'BUY' && isBuyObservation(item.code)) || null;
@@ -157,6 +169,12 @@
       buyTotal: allBuys.length,
       sellTotal: allSells.length,
     };
+  };
+
+  const formatBadgePrice = (value) => {
+    const price = Number(value);
+    if (!Number.isFinite(price) || price <= 0) return '—';
+    return `¥${price.toFixed(2)}`;
   };
 
   const setWatchDot = (el, lit, titleLit, titleOff) => {
@@ -186,13 +204,24 @@
         : `cell-badge sell-${(item.sell_state || 'sell').toLowerCase()}`;
       if (kind === 'BUY') badge.dataset.buyCode = item.code;
       else badge.dataset.sellCode = item.code;
+
+      // 3-line formal badge: cycle → signal-point price → time
       const codeEl = document.createElement('div');
       codeEl.className = 'badge-code';
       codeEl.textContent = item.code;
+
+      const priceEl = document.createElement('div');
+      priceEl.className = 'badge-price';
+      priceEl.textContent = formatBadgePrice(item.price);
+      priceEl.title = Number.isFinite(Number(item.price)) && Number(item.price) > 0
+        ? `信号点股价 ${formatBadgePrice(item.price)}`
+        : '信号点股价未入库';
+
       const timeEl = document.createElement('div');
       timeEl.className = 'badge-time';
       timeEl.textContent = formatTime(item.triggered_at, true, false);
-      badge.append(codeEl, timeEl);
+
+      badge.append(codeEl, priceEl, timeEl);
       container.appendChild(badge);
       if (kind === 'SELL' && item.code === '240m') {
         const stopCard = document.createElement('div');

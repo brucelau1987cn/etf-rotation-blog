@@ -968,13 +968,15 @@
 
 .a-rolling-main .cell-badge {
   min-width: 105px !important;
-  padding: 0.5rem 0.65rem !important;
+  min-height: 72px !important;
+  padding: 0.42rem 0.55rem !important;
   border-radius: 10px !important;
   text-align: center !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
   align-items: center !important;
+  gap: 0.12rem !important;
   border: 1.5px solid transparent !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
@@ -992,18 +994,29 @@
 .a-rolling-main .badge-code {
   font-weight: 800 !important;
   font-size: 1rem !important;
-  line-height: 1.15 !important;
+  line-height: 1.1 !important;
   letter-spacing: -0.01em !important;
   font-family: inherit !important;
 }
 
+.a-rolling-main .badge-price {
+  font-size: 0.74rem !important;
+  line-height: 1.15 !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+  opacity: 0.95 !important;
+}
+
 .a-rolling-main .badge-time {
-  font-size: 0.7rem !important;
-  margin-top: 0.35rem !important;
-  line-height: 1.2 !important;
+  font-size: 0.66rem !important;
+  margin-top: 0.08rem !important;
+  line-height: 1.15 !important;
   font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
   font-weight: 600 !important;
   white-space: nowrap !important;
+  opacity: 0.88 !important;
 }
 
 .a-rolling-main .cell-badge.buy-buy,

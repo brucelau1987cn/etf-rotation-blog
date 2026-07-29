@@ -18,6 +18,8 @@ type TimelineItem = {
   triggered_at?: string | null;
   sell_state?: string;
   label?: string;
+  price?: number | null;
+  price_source?: string | null;
 };
 
 type BoardInstrument = {
@@ -67,6 +69,12 @@ const formatStartDate = (value?: string | null) => {
     }).replace(/年|月/g, '/').replace(/日/g, '');
   }
   return raw;
+};
+
+const formatBadgePrice = (value?: number | null) => {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) return '—';
+  return `¥${price.toFixed(2)}`;
 };
 
 /** Keep the most advanced formal windows (higher cycle rank = newer display). */
@@ -225,6 +233,7 @@ const nameInitials = (name: string) => {
                         <>
                           <div class="cell-badge sell-sell" data-sell-code={item.code}>
                             <div class="badge-code">{item.code}</div>
+                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price)}</div>
                             <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                           </div>
                           {item.code === '240m' ? (
@@ -265,6 +274,7 @@ const nameInitials = (name: string) => {
                         {buys.map((item) => (
                           <div class="cell-badge buy-buy" data-buy-code={item.code}>
                             <div class="badge-code">{item.code}</div>
+                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price)}</div>
                             <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                           </div>
                         ))}

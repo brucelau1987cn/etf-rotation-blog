@@ -163,9 +163,14 @@ def test_summary_shows_today_only_signals_and_240m_stop_validation_card():
     assert "stop-validation-card" in matrix
     assert "停止验证" in matrix
     assert "item.code === '240m'" in matrix
+    assert "badge-price" in matrix
+    assert "formatBadgePrice" in matrix
+    assert "badge-price" in app
+    assert "formatBadgePrice" in app
     assert ".a-rolling-main .today-signal-row" not in styles
     assert ".a-rolling-main .stop-validation-card" in styles
     assert ".a-rolling-main .summary-signal-point.is-stop-validation" in styles
+    assert ".a-rolling-main .badge-price" in styles
     assert "indexPill.textContent = text" in app
 
 
