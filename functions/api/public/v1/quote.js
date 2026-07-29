@@ -700,7 +700,7 @@ async function fetchXueqiu(parsedList) {
   return quotes;
 }
 
-/** Rolling 24H continuous quotes: prefer Sina for more stable change%. */
+/** Rolling 24H continuous quotes: prefer Sina for more stable change%. SINA_PREFERRED continuous 2026-07-29 */
 const SINA_PREFERRED_CODES = new Set(['HF_XAU', 'HF_XAG', 'HF_CL', 'DINIW']);
 
 function isSinaPreferredParsed(item) {
