@@ -334,34 +334,11 @@
   const summaryTickerTimers = new Map();
   const SUMMARY_ROW_HEIGHT = 44;
   const SUMMARY_VISIBLE_ROWS = 5;
-  const triggerPriceCache = new Map(); // `${symbol}|${at}` -> Promise<number|null>
 
+  // Frontend only reads D1-persisted timeline.price. No browser kline fan-out.
   const formatTriggerPrice = (price) => {
     if (!Number.isFinite(Number(price))) return '—';
     return `¥${Number(price).toFixed(2)}`;
-  };
-
-  const fetchTriggerPrice = (symbol, at) => {
-    // Frontend fallback only. Prefer D1-persisted timeline.price to avoid kline spam/risk control.
-    if (!symbol || !at) return Promise.resolve(null);
-    const key = `${symbol}|${at}`;
-    if (triggerPriceCache.has(key)) return triggerPriceCache.get(key);
-    const task = (async () => {
-      try {
-        const res = await fetch(
-          `/api/public/v1/kline?symbol=${encodeURIComponent(symbol)}&at=${encodeURIComponent(at)}&t=${Date.now()}`,
-          { cache: 'no-store' },
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        const close = Number(data?.bar?.close);
-        return Number.isFinite(close) && close > 0 ? close : null;
-      } catch {
-        return null;
-      }
-    })();
-    triggerPriceCache.set(key, task);
-    return task;
   };
 
   const clearSummaryTicker = (track) => {

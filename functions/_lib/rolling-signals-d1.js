@@ -131,16 +131,23 @@ export const insertRollingSignalOnce = async (db, row) => {
   };
 };
 
-export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = shanghaiTradeDate()) => {
+export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) => {
   if (!db?.prepare) return [];
   await ensureRollingSignalsTable(db);
   const key = normalizeSymbol(symbol);
-  const { results } = await db.prepare(`
-    SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
-    FROM rolling_signals
-    WHERE symbol = ? AND trade_date = ?
-    ORDER BY received_at ASC, trigger_time_utc ASC
-  `).bind(key, tradeDate).all();
+  const { results } = tradeDate
+    ? await db.prepare(`
+        SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
+        FROM rolling_signals
+        WHERE symbol = ? AND trade_date = ?
+        ORDER BY received_at ASC, trigger_time_utc ASC
+      `).bind(key, tradeDate).all()
+    : await db.prepare(`
+        SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
+        FROM rolling_signals
+        WHERE symbol = ?
+        ORDER BY received_at ASC, trigger_time_utc ASC
+      `).bind(key).all();
 
   return (results || []).map(item => ({
     type: item.signal,

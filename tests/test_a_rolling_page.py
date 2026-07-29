@@ -102,13 +102,13 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
     assert "QUOTE_INTERVAL_MS" in app
-    assert "fetchTriggerPrice" in app
-    assert "summary-signal-price" in app
-    assert "/api/public/v1/kline" in app
-    assert "data-ticker-clone" in app
     assert "formatTriggerPrice" in app
+    assert "summary-signal-price" in app
     assert "信号点股价未入库" in app
     assert "price_source" in app
+    assert "fetchTriggerPrice" not in app
+    assert "/api/public/v1/kline" not in app
+    assert "data-ticker-clone" in app
     assert "hf_XAU" in app
     assert "hf_XAG" in app
     assert "hf_CL" in app

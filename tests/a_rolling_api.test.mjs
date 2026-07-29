@@ -34,7 +34,7 @@ const makeDb = (rows) => ({
         if (/FROM rolling_signals/i.test(text)) {
           const [symbol, tradeDate] = bound._args;
           return {
-            results: rows.filter(r => r.symbol === symbol && r.trade_date === tradeDate),
+            results: rows.filter(r => r.symbol === symbol && (!tradeDate || r.trade_date === tradeDate)),
           };
         }
         return { results: [] };

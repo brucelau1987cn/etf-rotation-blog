@@ -101,10 +101,31 @@ const mergeTimelines = (...lists) => {
         map.set(key, item);
         continue;
       }
-      // Keep earliest formal receipt for the day/node.
+      // Keep earliest formal receipt for the day/node, but preserve D1 price if available.
       const prevTs = new Date(prev.received_at || prev.triggered_at || 0).getTime();
       const nextTs = new Date(item.received_at || item.triggered_at || 0).getTime();
-      if (Number.isFinite(nextTs) && (!Number.isFinite(prevTs) || nextTs < prevTs)) map.set(key, item);
+      if (Math.abs(prevTs - nextTs) < 5000 || prev.event_id === item.event_id) {
+        map.set(key, {
+          ...prev,
+          ...item,
+          price: item.price ?? prev.price ?? null,
+          price_source: item.price_source ?? prev.price_source ?? null,
+        });
+      } else if (Number.isFinite(nextTs) && (!Number.isFinite(prevTs) || nextTs < prevTs)) {
+        map.set(key, {
+          ...prev,
+          ...item,
+          price: item.price ?? prev.price ?? null,
+          price_source: item.price_source ?? prev.price_source ?? null,
+        });
+      } else {
+        map.set(key, {
+          ...item,
+          ...prev,
+          price: prev.price ?? item.price ?? null,
+          price_source: prev.price_source ?? item.price_source ?? null,
+        });
+      }
     }
   }
   return [...map.values()].sort(
@@ -132,7 +153,8 @@ export async function handleRollingSignals(request, env = {}) {
   // Primary path: D1 day board. No KV quota involved.
   if (env.DB) {
     try {
-      const d1Timeline = await loadRollingTimelineFromD1(env.DB, symbol, tradeDate);
+      // Query all stored D1 signals for this symbol (not only today) so historical signal prices are preserved.
+      const d1Timeline = await loadRollingTimelineFromD1(env.DB, symbol, null);
       // Merge with static LKG so authorized historical projections remain visible.
       const staticTimeline = Array.isArray(lkg.timeline) ? lkg.timeline : [];
       const timeline = mergeTimelines(staticTimeline, d1Timeline);
@@ -146,12 +168,13 @@ export async function handleRollingSignals(request, env = {}) {
           timeline,
           data_as_of: latestReceivedAt,
         });
+        const todayD1 = d1Timeline.filter(item => shanghaiTradeDate(item.triggered_at || item.received_at) === tradeDate);
         // Day-locked board: once written, keep presentation stable for the day.
-        payload.mode = d1Timeline.length ? 'live' : payload.mode;
-        payload.freshness = d1Timeline.length ? 'fresh' : payload.freshness;
+        payload.mode = todayD1.length ? 'live' : payload.mode;
+        payload.freshness = todayD1.length ? 'fresh' : payload.freshness;
         payload.delivery = {
-          state: d1Timeline.length ? 'live' : (payload.delivery?.state || 'lkg'),
-          reason: d1Timeline.length ? null : (payload.delivery?.reason || 'D1当日暂无新信号，展示静态投影'),
+          state: todayD1.length ? 'live' : (payload.delivery?.state || 'lkg'),
+          reason: todayD1.length ? null : (payload.delivery?.reason || 'D1当日暂无新信号，展示静态投影'),
         };
         payload.trade_date = tradeDate;
         payload.storage = 'd1';
