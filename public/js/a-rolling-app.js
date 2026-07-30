@@ -29,11 +29,11 @@
     { name: '东方明珠', exchange: 'SSE', symbol: '600637' },
     { name: '长鑫科技', exchange: 'SSE', symbol: '688825' },
     { name: '国民技术', exchange: 'SZSE', symbol: '300077' },
-    { name: '澜起科技', exchange: 'SSE', symbol: '688008' },
     { name: '华天科技', exchange: 'SZSE', symbol: '002185' },
   ];
   const HK_INSTRUMENTS = [
     { name: '中国宏桥', exchange: 'HKEX', symbol: '01378' },
+    { name: '澜起科技', exchange: 'HKEX', symbol: '06809' },
   ];
   const US_INSTRUMENTS = [
     { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },

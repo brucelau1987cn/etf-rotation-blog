@@ -29,8 +29,11 @@ type Payload = {
   timeline?: TimelineItem[];
 };
 
-const payload = JSON.parse(
+const payload01378 = JSON.parse(
   readFileSync(join(process.cwd(), 'public/data/a-rolling-signals-01378.json'), 'utf-8'),
+) as Payload;
+const payload06809 = JSON.parse(
+  readFileSync(join(process.cwd(), 'public/data/a-rolling-signals-06809.json'), 'utf-8'),
 ) as Payload;
 
 const formatTime = (value: string | null | undefined, includeDate = true, includeSeconds = false) => {
@@ -45,39 +48,59 @@ const formatTime = (value: string | null | undefined, includeDate = true, includ
   return date.toLocaleString('zh-CN', options);
 };
 
-const timeline: TimelineItem[] = Array.isArray(payload.timeline) && payload.timeline.length
-  ? payload.timeline
-  : [
-      ...(payload.cycles || []).map((c) => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at, label: c.label })),
-      ...(payload.sell_chain?.nodes || []).map((n) => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at, sell_state: n.sell_state })),
-    ];
-const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
-const isSellObservation = (code: string) => code === '10m';
-const buys = timeline.filter((item) => item.type === 'BUY' && !isBuyObservation(item.code));
-const sells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
-const latest = timeline
-  .filter((item) => item.triggered_at)
-  .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
-const summary = {
-  name: payload.instrument.instrument_name,
-  symbol: payload.instrument.symbol,
-  exchange: payload.instrument.exchange,
-  timeline,
-  startDate: (payload as any)?.transmission?.start_date || null,
-  buyCount: buys.length,
-  sellCount: sells.length,
-  buyWatch: timeline.some((item) => item.type === 'BUY' && isBuyObservation(item.code)),
-  sellWatch: timeline.some((item) => item.type === 'SELL' && isSellObservation(item.code)),
-  latest,
+const summarize = (payloadItem: Payload) => {
+  const t: TimelineItem[] = Array.isArray(payloadItem.timeline) && payloadItem.timeline.length
+    ? payloadItem.timeline
+    : [
+        ...(payloadItem.cycles || []).map((c) => ({ type: 'BUY', code: c.cycle_code, triggered_at: c.buy_triggered_at, label: c.label })),
+        ...(payloadItem.sell_chain?.nodes || []).map((n) => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at, sell_state: n.sell_state })),
+      ];
+  const isBuyObs = (code: string) => code === '1.75h' || code === '105m';
+  const isSellObs = (code: string) => code === '10m';
+  const b = t.filter((item) => item.type === 'BUY' && !isBuyObs(item.code));
+  const s = t.filter((item) => item.type === 'SELL' && !isSellObs(item.code));
+  const l = t
+    .filter((item) => item.triggered_at)
+    .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
+  return {
+    name: payloadItem.instrument.instrument_name,
+    symbol: payloadItem.instrument.symbol,
+    exchange: payloadItem.instrument.exchange,
+    timeline: t,
+    startDate: (payloadItem as any)?.transmission?.start_date || null,
+    buyCount: b.length,
+    sellCount: s.length,
+    buyWatch: t.some((item) => item.type === 'BUY' && isBuyObs(item.code)),
+    sellWatch: t.some((item) => item.type === 'SELL' && isSellObs(item.code)),
+    latest: l,
+    data_as_of: payloadItem.data_as_of,
+    sell_alerts: payloadItem.sell_alerts || [],
+  };
 };
-const latestAction = latest
-  ? `最新 ${summary.name} ${latest.type === 'BUY' ? '买入' : '卖出'} ${latest.code} · ${formatTime(latest.triggered_at)}`
-  : '等待信号';
-const latestAsOf = [latest?.triggered_at, payload.data_as_of]
+
+const summary01378 = summarize(payload01378);
+const summary06809 = summarize(payload06809);
+const summaries = [summary01378, summary06809];
+
+const buyTotal = summaries.reduce((acc, cur) => acc + cur.buyCount, 0);
+const sellTotal = summaries.reduce((acc, cur) => acc + cur.sellCount, 0);
+
+const latestEvent = summaries
+  .map((s) => s.latest)
   .filter(Boolean)
-  .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
-const pageTitle = `港股滚动｜中国宏桥多空能量看板 | ${SITE_TITLE}`;
-const pageDescription = '港股滚动看板：中国宏桥的多方正式窗口、空方预警和观察信号。';
+  .sort((a, b) => new Date(b!.triggered_at || 0).getTime() - new Date(a!.triggered_at || 0).getTime())[0] || null;
+
+const latestAction = latestEvent
+  ? `最新 ${latestEvent.type === 'BUY' ? '买入' : '卖出'} ${latestEvent.code} · ${formatTime(latestEvent.triggered_at)}`
+  : '等待信号';
+
+const latestAsOf = summaries
+  .map((s) => s.data_as_of)
+  .filter(Boolean)
+  .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+const pageTitle = `港股滚动｜中国宏桥 & 澜起科技多空能量看板 | ${SITE_TITLE}`;
+const pageDescription = '港股滚动看板：中国宏桥、澜起科技的多方正式窗口、空方预警和观察信号。';
 ---
 
 <!doctype html>
@@ -97,16 +120,16 @@ const pageDescription = '港股滚动看板：中国宏桥的多方正式窗口�
               <span class="pill live-pill" id="live-status-pill">实时连接中</span>
             </div>
             <h1 id="page-title">港股滚动</h1>
-            <p>中国宏桥独立展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。</p>
+            <p>中国宏桥、澜起科技展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。</p>
           </div>
         </div>
-        <ARollingStatsStrip buyTotal={summary.buyCount} sellTotal={summary.sellCount} instruments={[summary]} latestAction={latestAction} indexMarket="hk" />
+        <ARollingStatsStrip buyTotal={buyTotal} sellTotal={sellTotal} instruments={summaries} latestAction={latestAction} indexMarket="hk" />
       </section>
       <ARollingEnergyMatrix
-        instruments={[{ instrumentName: summary.name, symbol: summary.symbol, exchange: summary.exchange, timeline: summary.timeline, startDate: summary.startDate }]}
+        instruments={summaries.map((s) => ({ instrumentName: s.name, symbol: s.symbol, exchange: s.exchange, timeline: s.timeline, startDate: s.startDate }))}
         formatTime={formatTime}
       />
-      <ARollingAiAlerts alerts={payload.sell_alerts || []} />
+      <ARollingAiAlerts alerts={summaries.flatMap((s) => s.sell_alerts)} />
     </main>
     <Footer />
     <QuoteLiveScripts />
