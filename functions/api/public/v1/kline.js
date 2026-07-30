@@ -1087,9 +1087,9 @@ async function fetchSinaMinuteBars(parsed, limit = 480) {
 export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExchange = 'SSE' } = {}) {
   const parsed = parseSymbol(symbol, defaultExchange);
   if (!parsed) throw new Error('invalid symbol');
-  if (parsed.type !== 'a') {
-    // First ship A-share/ETF 1m only; HK/US/futures can be added later.
-    throw new Error('1m kline currently supports A-share/ETF symbols only');
+  if (parsed.type !== 'a' && parsed.type !== 'hk') {
+    // First ship A-share/ETF and HK 1m only; US/futures can be added later.
+    throw new Error('1m kline currently supports A-share/ETF and HK symbols only');
   }
 
   const errors = [];
