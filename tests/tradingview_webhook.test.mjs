@@ -34,6 +34,16 @@ const makeDb = () => {
       });
       return { kind: 'ok', value: { meta: { changes: 1 } } };
     }
+    if (/UPDATE rolling_signals[\s\S]*trigger_price IS NULL/i.test(text)) {
+      const [triggerPrice, triggerPriceSource, tradeDate, symbol, cycle, signal, eventId] = args;
+      const row = rows.get(keyOf(tradeDate, symbol, cycle, signal));
+      if (!row || row.event_id !== eventId || row.trigger_price != null) {
+        return { kind: 'ok', value: { meta: { changes: 0 } } };
+      }
+      row.trigger_price = triggerPrice;
+      row.trigger_price_source = triggerPriceSource;
+      return { kind: 'ok', value: { meta: { changes: 1 } } };
+    }
     if (/SELECT .* FROM rolling_signals[\s\S]*WHERE trade_date = \? AND symbol = \? AND cycle_code = \? AND signal = \?/i.test(text)
       || (/SELECT/i.test(text) && /FROM rolling_signals/i.test(text) && args.length === 4)) {
       const [tradeDate, symbol, cycle, signal] = args;
@@ -311,9 +321,8 @@ test('ntfy failure is delegated with waitUntil and does not fail D1 ingestion', 
 
     assert.equal(response.status, 200);
     assert.equal((await response.json()).inserted, true);
-    assert.equal(pending.length, 2);
-    assert.equal(await pending[0], false);
-    assert.equal(await pending[1], false);
+    assert.equal(pending.length, 1);
+    assert.equal(await pending[0], true);
     assert.equal(fetchCalls, 1);
   } finally {
     console.warn = originalWarn;
@@ -348,12 +357,16 @@ test('tradingview webhook stores webhook-provided trigger price into D1', async 
   assert.equal(row.trigger_price_source, 'tv-close');
 });
 
-test('tradingview webhook falls back to edge 1m kline when price is omitted', async () => {
+test('tradingview webhook defers edge 1m kline and fills D1 under waitUntil', async () => {
   const token = 'test_secret_token_123';
   const db = makeDb();
+  const pending = [];
+  let releaseKline;
+  const klineGate = new Promise(resolve => { releaseKline = resolve; });
   const fetchImpl = async (url) => {
     const value = String(url);
     if (value.includes('/api/public/v1/kline')) {
+      await klineGate;
       return Response.json({
         status: 'ok',
         source: 'sina',
@@ -377,15 +390,49 @@ test('tradingview webhook falls back to edge 1m kline when price is omitted', as
     request: req,
     env: { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: db },
     fetch: fetchImpl,
+    waitUntil(promise) { pending.push(promise); },
   });
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.inserted, true);
-  assert.equal(body.trigger_price, 76.23);
-  assert.equal(body.trigger_price_source, 'sina-m1');
+  assert.equal(body.trigger_price, null);
+  assert.equal(body.price_resolution, 'background');
+  assert.equal(pending.length, 1);
+  assert.equal([...db._rows.values()][0].trigger_price, null);
+  releaseKline();
+  assert.equal(await pending[0], true);
   const row = [...db._rows.values()][0];
   assert.equal(row.trigger_price, 76.23);
   assert.equal(row.trigger_price_source, 'sina-m1');
+});
+
+test('tradingview webhook response does not wait for a slow kline lookup', async () => {
+  const token = 'test_secret_token_123';
+  const pending = [];
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/api/public/v1/kline')) return new Promise(() => {});
+    return new Response('{}', { status: 404 });
+  };
+  const started = Date.now();
+  const response = await onRequestPost({
+    request: new Request('https://etf.peekabo.cc/api/v1/tradingview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        webhook_token: token,
+        symbol: '600021',
+        cycle_code: '2h',
+        signal: 'BUY',
+        trigger_time_utc: '2026-07-30T02:00:00.000Z',
+      }),
+    }),
+    env: { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: makeDb() },
+    fetch: fetchImpl,
+    waitUntil(promise) { pending.push(promise); },
+  });
+  assert.equal(response.status, 200);
+  assert.ok(Date.now() - started < 500);
+  assert.equal(pending.length, 1);
 });
 
 

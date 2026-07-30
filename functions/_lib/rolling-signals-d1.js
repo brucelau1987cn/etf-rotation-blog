@@ -131,6 +131,43 @@ export const insertRollingSignalOnce = async (db, row) => {
   };
 };
 
+/** Fill a missing trigger price for the exact first-write row. Never overwrite a locked price. */
+export const updateRollingSignalPriceIfMissing = async (db, {
+  trade_date,
+  symbol,
+  cycle_code,
+  signal,
+  event_id,
+  trigger_price,
+  trigger_price_source,
+}) => {
+  const price = normalizeTriggerPrice(trigger_price);
+  if (!db?.prepare || price == null) return { updated: false, row: null };
+  const key = normalizeSymbol(symbol);
+  const source = String(trigger_price_source || 'kline-1m').trim() || 'kline-1m';
+  const result = await db.prepare(`
+    UPDATE rolling_signals
+    SET trigger_price = ?, trigger_price_source = ?
+    WHERE trade_date = ? AND symbol = ? AND cycle_code = ? AND signal = ?
+      AND event_id = ? AND trigger_price IS NULL
+  `).bind(
+    price,
+    source,
+    trade_date,
+    key,
+    String(cycle_code || '').trim(),
+    String(signal || '').toUpperCase(),
+    event_id,
+  ).run();
+  const row = await db.prepare(`
+    SELECT trade_date, symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, instrument_name, exchange, trigger_price, trigger_price_source
+    FROM rolling_signals
+    WHERE trade_date = ? AND symbol = ? AND cycle_code = ? AND signal = ?
+  `).bind(trade_date, key, String(cycle_code || '').trim(), String(signal || '').toUpperCase()).first();
+  const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
+  return { updated: changes > 0, row };
+};
+
 export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) => {
   if (!db?.prepare) return [];
   await ensureRollingSignalsTable(db);

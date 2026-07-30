@@ -9,6 +9,7 @@ import {
   normalizeSymbol,
   normalizeTriggerPrice,
   shanghaiTradeDate,
+  updateRollingSignalPriceIfMissing,
 } from '../../_lib/rolling-signals-d1.js';
 
 const formatSignalTime = (value) => {
@@ -51,8 +52,9 @@ const resolveInstrumentName = async ({ env, requestUrl, symbol, instrumentName }
 };
 
 const KLINE_LOOKUP_BASES = [
-  'https://etf.peekabo.cc',
+  // Dedicated Worker avoids recursive Pages Function calls and is faster in production.
   'https://edge-quote-api.brucelau1987.workers.dev',
+  'https://etf.peekabo.cc',
 ];
 
 /** Prefer webhook-provided price; otherwise resolve 1m close at trigger time via edge kline. */
@@ -81,14 +83,12 @@ export const resolveTriggerPrice = async ({
     return { price: null, source: null };
   }
 
-  const bases = [];
+  const bases = [...KLINE_LOOKUP_BASES];
   try {
-    if (requestUrl) bases.push(new URL(requestUrl).origin);
+    const requestOrigin = requestUrl ? new URL(requestUrl).origin : '';
+    if (requestOrigin && !bases.includes(requestOrigin)) bases.push(requestOrigin);
   } catch {
     // ignore invalid request URL
-  }
-  for (const base of KLINE_LOOKUP_BASES) {
-    if (!bases.includes(base)) bases.push(base);
   }
 
   for (const base of bases) {
@@ -299,95 +299,100 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
 
     const eventId = event_id || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();
-    const tradeDate = shanghaiTradeDate(trigger_time_utc || receivedAt);
-    const priced = await resolveTriggerPrice({
-      payload,
-      symbol,
-      triggerTime: trigger_time_utc || receivedAt,
-      requestUrl: request.url,
-      fetchImpl,
-    });
+    const triggerTime = trigger_time_utc || receivedAt;
+    const tradeDate = shanghaiTradeDate(triggerTime);
+    // Webhook-provided prices are instant. External 1m lookup is deferred so TradingView
+    // receives HTTP 200 well inside its ~3-second timeout window.
+    const directPrice = normalizeTriggerPrice(
+      payload.price ?? payload.trigger_price ?? payload.close ?? payload.trigger_close,
+    );
+    const directSource = directPrice == null
+      ? null
+      : (String(payload.price_source || payload.trigger_price_source || 'webhook').trim() || 'webhook');
 
     const saved = await insertRollingSignalOnce(env.DB, {
       trade_date: tradeDate,
       symbol,
       cycle_code,
       signal,
-      trigger_time_utc,
+      trigger_time_utc: triggerTime,
       received_at: receivedAt,
       event_id: eventId,
       label: String(cycle_code),
       instrument_name,
       exchange,
-      trigger_price: priced.price,
-      trigger_price_source: priced.source,
+      trigger_price: directPrice,
+      trigger_price_source: directSource,
     });
 
-    // Optional Telegram / ntfy / WxPusher notify only on first insert of the day/node.
+    // First write returns immediately. Missing price resolution and all notifications run
+    // under waitUntil, then the exact inserted row is filled only while price is still null.
     if (saved.inserted) {
-      const ntfyPromise = sendNtfySignal({
-        env,
-        fetchImpl,
-        requestUrl: request.url,
-        symbol,
-        instrumentName: saved.row?.instrument_name || instrument_name,
-        cycleCode: cycle_code,
-        signal,
-        triggerTime: trigger_time_utc || receivedAt,
-        triggerPrice: saved.row?.trigger_price ?? priced.price,
-      }).catch((error) => {
-        console.warn('ntfy alert failed:', error);
-        return false;
-      });
-      if (typeof waitUntil === 'function') waitUntil(ntfyPromise);
-      else await ntfyPromise;
-
-      const wxPusherPromise = sendWxPusherSignal({
-        env,
-        fetchImpl,
-        requestUrl: request.url,
-        symbol,
-        instrumentName: saved.row?.instrument_name || instrument_name,
-        cycleCode: cycle_code,
-        signal,
-        triggerTime: trigger_time_utc || receivedAt,
-        triggerPrice: saved.row?.trigger_price ?? priced.price,
-      }).catch((error) => {
-        console.warn('WxPusher alert failed:', error);
-        return false;
-      });
-      if (typeof waitUntil === 'function') waitUntil(wxPusherPromise);
-      else await wxPusherPromise;
-
-      const tgToken = env.TELEGRAM_BOT_TOKEN;
-      const chatId = env.TELEGRAM_CHAT_ID;
-      if (tgToken && chatId) {
-        const signalEmoji = signal === 'BUY' ? '🔴【多头买入信号】' : '🟢【空方卖出预警】';
-        const timeStr = new Date(receivedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-        const price = saved.row?.trigger_price ?? priced.price;
-        const text = [
-          signalEmoji,
-          '',
-          `• 标的：${symbol}`,
-          `• 节点：${cycle_code}`,
-          `• 动作：${signal}`,
-          `• 交易日：${tradeDate}`,
-          `• 时间：${timeStr}`,
-          formatPushPriceLine(price, { bullet: true }),
-          `• 事件ID：${eventId.slice(0, 12)}`,
-          '',
-          '🔗 终端：https://etf.peekabo.cc/rolling/',
-        ].join('\n');
-        try {
-          await fetchImpl(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      const finishSignal = (async () => {
+        let finalRow = saved.row;
+        let finalPrice = saved.row?.trigger_price ?? directPrice;
+        if (finalPrice == null) {
+          const resolved = await resolveTriggerPrice({
+            payload,
+            symbol,
+            triggerTime,
+            requestUrl: request.url,
+            fetchImpl,
           });
-        } catch (e) {
-          console.warn('Telegram alert failed:', e);
+          if (resolved.price != null) {
+            const updated = await updateRollingSignalPriceIfMissing(env.DB, {
+              trade_date: tradeDate,
+              symbol,
+              cycle_code,
+              signal,
+              event_id: saved.row?.event_id || eventId,
+              trigger_price: resolved.price,
+              trigger_price_source: resolved.source,
+            });
+            finalRow = updated.row || finalRow;
+            finalPrice = finalRow?.trigger_price ?? resolved.price;
+          }
         }
-      }
+
+        const instrumentName = finalRow?.instrument_name || instrument_name;
+        await Promise.allSettled([
+          sendNtfySignal({
+            env, fetchImpl, requestUrl: request.url, symbol, instrumentName,
+            cycleCode: cycle_code, signal, triggerTime, triggerPrice: finalPrice,
+          }),
+          sendWxPusherSignal({
+            env, fetchImpl, requestUrl: request.url, symbol, instrumentName,
+            cycleCode: cycle_code, signal, triggerTime, triggerPrice: finalPrice,
+          }),
+          (async () => {
+            const tgToken = env.TELEGRAM_BOT_TOKEN;
+            const chatId = env.TELEGRAM_CHAT_ID;
+            if (!tgToken || !chatId) return false;
+            const signalEmoji = signal === 'BUY' ? '🔴【多头买入信号】' : '🟢【空方卖出预警】';
+            const timeStr = new Date(receivedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+            const text = [
+              signalEmoji, '', `• 标的：${symbol}`, `• 节点：${cycle_code}`, `• 动作：${signal}`,
+              `• 交易日：${tradeDate}`, `• 时间：${timeStr}`,
+              formatPushPriceLine(finalPrice, { bullet: true }),
+              `• 事件ID：${eventId.slice(0, 12)}`, '',
+              '🔗 终端：https://etf.peekabo.cc/rolling/',
+            ].join('\n');
+            const response = await fetchImpl(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+            });
+            if (!response.ok) throw new Error(`Telegram returned HTTP ${response.status}`);
+            return true;
+          })(),
+        ]);
+        return true;
+      })().catch((error) => {
+        console.warn('webhook background completion failed:', error);
+        return false;
+      });
+      if (typeof waitUntil === 'function') waitUntil(finishSignal);
+      else await finishSignal;
     }
 
     return new Response(
@@ -401,8 +406,9 @@ export async function onRequestPost({ request, env, waitUntil, fetch: fetchImpl 
         trade_date: tradeDate,
         inserted: saved.inserted,
         storage: 'd1',
-        trigger_price: saved.row?.trigger_price ?? priced.price ?? null,
-        trigger_price_source: saved.row?.trigger_price_source ?? priced.source ?? null,
+        trigger_price: saved.row?.trigger_price ?? directPrice ?? null,
+        trigger_price_source: saved.row?.trigger_price_source ?? directSource ?? null,
+        price_resolution: (saved.row?.trigger_price ?? directPrice) == null ? 'background' : 'complete',
       }),
       {
         status: 200,
