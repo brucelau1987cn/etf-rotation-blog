@@ -71,10 +71,12 @@ const formatStartDate = (value?: string | null) => {
   return raw;
 };
 
-const formatBadgePrice = (value?: number | null) => {
+const formatBadgePrice = (value?: number | null, exchange?: string) => {
   const price = Number(value);
   if (!Number.isFinite(price) || price <= 0) return '—';
-  return `¥${price.toFixed(2)}`;
+  return exchange === 'FUTURES'
+    ? price.toLocaleString('zh-CN', { maximumFractionDigits: 4 })
+    : `¥${price.toFixed(2)}`;
 };
 
 /** Keep the most advanced formal windows (higher cycle rank = newer display). */
@@ -233,7 +235,7 @@ const nameInitials = (name: string) => {
                         <>
                           <div class="cell-badge sell-sell" data-sell-code={item.code}>
                             <div class="badge-code">{item.code}</div>
-                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price)}</div>
+                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price, inst.exchange)}</div>
                             <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                           </div>
                           {item.code === '240m' ? (
@@ -274,7 +276,7 @@ const nameInitials = (name: string) => {
                         {buys.map((item) => (
                           <div class="cell-badge buy-buy" data-buy-code={item.code}>
                             <div class="badge-code">{item.code}</div>
-                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price)}</div>
+                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price, inst.exchange)}</div>
                             <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                           </div>
                         ))}

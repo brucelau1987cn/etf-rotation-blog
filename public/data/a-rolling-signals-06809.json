@@ -1,7 +1,7 @@
 {
   "schema_version": "a-rolling-energy-v4",
   "mode": "live",
-  "generated_at": "2026-07-30T15:15:08.000Z",
+  "generated_at": "2026-07-30T07:15:08.097Z",
   "data_as_of": "2026-07-30 15:15:08+08:00",
   "freshness": "fresh",
   "stale_after_seconds": 900,
@@ -19,17 +19,37 @@
     "state": "transmitting",
     "basis": "chronological_sequence",
     "current_cycle_code": "15m",
-    "started_at": "2026-07-30 15:15:08+08:00",
-    "latest_triggered_at": "2026-07-30 15:15:08+08:00",
+    "started_at": "2026-07-30T07:15:08.097Z",
+    "latest_triggered_at": "2026-07-30T07:15:08.097Z",
     "lit_count": 1,
     "buy_count": 0,
     "sell_count": 1,
     "start_date": "2026-07-30"
   },
-  "timeline": [],
+  "timeline": [
+    {
+      "type": "SELL",
+      "code": "15m",
+      "triggered_at": "2026-07-30T07:15:08.097Z",
+      "received_at": "2026-07-30T07:15:08.097Z",
+      "event_id": "evt_1785395708097_8k9xr2",
+      "label": "15m",
+      "price": 251,
+      "price_source": "tencent-minute"
+    }
+  ],
   "cycles": [],
   "sell_chain": {
-    "nodes": []
+    "nodes": [
+      {
+        "code": "15m",
+        "sell_state": "SELL",
+        "triggered_at": "2026-07-30T07:15:08.097Z",
+        "label": "15m",
+        "price": 251,
+        "price_source": "tencent-minute"
+      }
+    ]
   },
   "sell_alerts": []
 }

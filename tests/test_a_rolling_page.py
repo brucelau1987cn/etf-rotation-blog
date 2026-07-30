@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -205,8 +206,12 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert 'active="futures"' in futures
     assert 'data-market="futures"' in futures
     assert 'indexMarket="futures"' in futures
-    assert "等待点名" in futures
+    assert "国际银" in futures
+    assert "HF_XAG" in futures
+    assert "国际银已接入" in futures
     assert "FUTURES_INSTRUMENTS" in app
+    assert "querySymbol: 'hf_XAG'" in app
+    assert "market === 'futures'" in app
     assert "nf_AU0" in app
     assert "nf_SC0" in app
     assert "nf_M0" in app
@@ -216,5 +221,10 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert "empty-board-card" in matrix
     assert "暂无滚动标的" in matrix
     assert ".a-rolling-main .empty-board-card" in styles
+    snapshot = json.loads((ROOT / "public/data/futures-rolling-signals-hf_XAG.json").read_text(encoding="utf-8"))
+    api = (ROOT / "functions/api/public/v1/rolling-signals.js").read_text(encoding="utf-8")
+    assert snapshot["instrument"] == {"instrument_name": "国际银", "exchange": "FUTURES", "symbol": "HF_XAG"}
+    assert snapshot["timeline"] == []
+    assert "'HF_XAG': '/data/futures-rolling-signals-hf_XAG.json'" in api
     # Free-running poll for futures (no stock session gate).
     assert "market === 'futures' ? null" in app

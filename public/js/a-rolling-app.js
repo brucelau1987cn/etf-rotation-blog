@@ -39,7 +39,9 @@
     { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },
   ];
   // Futures instruments are added only when explicitly named by the user.
-  const FUTURES_INSTRUMENTS = [];
+  const FUTURES_INSTRUMENTS = [
+    { name: '国际银', exchange: 'FUTURES', symbol: 'HF_XAG', querySymbol: 'hf_XAG' },
+  ];
   const INDEX_SETS = {
     a: [
       { name: '上证指数', symbol: '000001', querySymbol: '000001.SH', continuous: false },
@@ -174,7 +176,9 @@
   const formatBadgePrice = (value) => {
     const price = Number(value);
     if (!Number.isFinite(price) || price <= 0) return '—';
-    return `¥${price.toFixed(2)}`;
+    return market === 'futures'
+      ? price.toLocaleString('zh-CN', { maximumFractionDigits: 4 })
+      : `¥${price.toFixed(2)}`;
   };
 
   const setWatchDot = (el, lit, titleLit, titleOff) => {
@@ -338,7 +342,9 @@
   // Frontend only reads D1-persisted timeline.price. No browser kline fan-out.
   const formatTriggerPrice = (price) => {
     if (!Number.isFinite(Number(price))) return '—';
-    return `¥${Number(price).toFixed(2)}`;
+    return market === 'futures'
+      ? Number(price).toLocaleString('zh-CN', { maximumFractionDigits: 4 })
+      : `¥${Number(price).toFixed(2)}`;
   };
 
   const clearSummaryTicker = (track) => {

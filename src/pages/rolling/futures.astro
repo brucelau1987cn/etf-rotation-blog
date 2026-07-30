@@ -24,7 +24,22 @@ const boardSummaries: Array<{
   latestBuy: null;
   latestSell: null;
   latest: null;
-}> = [];
+}> = [
+  {
+    name: '国际银',
+    symbol: 'HF_XAG',
+    exchange: 'FUTURES',
+    timeline: [],
+    startDate: '2026-07-30',
+    buyCount: 0,
+    sellCount: 0,
+    buyWatch: false,
+    sellWatch: false,
+    latestBuy: null,
+    latestSell: null,
+    latest: null,
+  },
+];
 const boardInstruments = boardSummaries.map((item) => ({
   instrumentName: item.name,
   symbol: item.symbol,
@@ -33,8 +48,8 @@ const boardInstruments = boardSummaries.map((item) => ({
   startDate: item.startDate,
 }));
 const pageTitle = `期货滚动｜多空能量看板 | ${SITE_TITLE}`;
-const pageDescription = '期货滚动看板：商品期货标的的多方正式窗口、空方预警和观察信号。新标的需点名接入。';
-const latestAction = '等待点名期货标的';
+const pageDescription = '期货滚动看板：国际银等商品期货标的的多方正式窗口、空方预警和观察信号。新标的需点名接入。';
+const latestAction = '国际银等待正式信号';
 ---
 
 <!doctype html>
@@ -51,10 +66,10 @@ const latestAction = '等待点名期货标的';
               <span class="pill pill-amber">📦 期货 · 滚动</span>
               <span class="pill" id="pill-refresh-countdown">实时：准备刷新…</span>
               <span class="pill pill-amber" id="pill-as-of">信号时间：—</span>
-              <span class="pill live-pill" id="live-status-pill">等待点名标的</span>
+              <span class="pill live-pill" id="live-status-pill">国际银已接入</span>
             </div>
             <h1 id="page-title">期货滚动</h1>
-            <p>商品期货滚动能量传导看板。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。新标的须点名后接入，当前暂无已接入品种。</p>
+            <p>商品期货滚动能量传导看板。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。当前已接入国际银（hf_XAG），等待正式信号。</p>
           </div>
         </div>
         <ARollingStatsStrip

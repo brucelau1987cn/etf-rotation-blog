@@ -26,6 +26,7 @@ const INSTRUMENT_SNAPSHOTS = {
   '06809': '/data/a-rolling-signals-06809.json',
   '01378': '/data/a-rolling-signals-01378.json',
   'TSLA': '/data/a-rolling-signals-TSLA.json',
+  'HF_XAG': '/data/futures-rolling-signals-hf_XAG.json',
 };
 
 const headers = state => ({
