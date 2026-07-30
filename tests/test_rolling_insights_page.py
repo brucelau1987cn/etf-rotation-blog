@@ -43,5 +43,28 @@ def test_insights_styles_are_responsive_and_card_light():
     assert ".command-board" in styles
     assert ".price-map" in styles
     assert ".trade-sidebar" in styles
+    assert ".insight-navigator" in styles
     assert "@media(max-width:680px)" in styles
     assert "linear-gradient" not in styles
+
+
+def test_insight_navigator_separates_stock_and_trade_date_navigation():
+    page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
+    navigator = (ROOT / "src/components/InsightNavigator.astro").read_text(encoding="utf-8")
+    catalog = (ROOT / "src/data/rolling-insights.ts").read_text(encoding="utf-8")
+
+    assert "InsightNavigator" in page
+    assert 'currentSymbol="002173"' in page
+    for marker in (
+        "代码 / 名称 / 首字母",
+        "交易日",
+        "上一只",
+        "下一只",
+        "上一交易日分析",
+        "下一交易日分析",
+        "data-insight-search",
+        "data-insight-date",
+    ):
+        assert marker in navigator
+    assert "2026-07-30" in catalog
+    assert "/rolling/insights/" in catalog

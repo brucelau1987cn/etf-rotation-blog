@@ -2,8 +2,10 @@
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
+import InsightNavigator from '../../components/InsightNavigator.astro';
 import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
+import { rollingInsightArticles } from '../../data/rolling-insights';
 import '../../styles/rolling-insights.css';
 
 const title = `滚动操盘解读｜创新医疗收盘复盘与次日计划 | ${SITE_TITLE}`;
@@ -32,6 +34,11 @@ const levels = [
     <Header />
     <main id="main-content" class="rolling-insights-main">
       <RollingSubnav active="insights" />
+      <InsightNavigator
+        articles={rollingInsightArticles}
+        currentSymbol="002173"
+        currentDate="2026-07-30"
+      />
 
       <header class="trade-hero">
         <div class="trade-title-row">

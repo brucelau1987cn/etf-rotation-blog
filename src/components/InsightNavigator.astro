@@ -1,0 +1,117 @@
+---
+import type { RollingInsightArticle } from '../data/rolling-insights';
+
+const {
+  articles = [],
+  currentSymbol,
+  currentDate,
+} = Astro.props as {
+  articles: RollingInsightArticle[];
+  currentSymbol: string;
+  currentDate: string;
+};
+
+const latestBySymbol = new Map<string, RollingInsightArticle>();
+for (const article of [...articles].sort((a, b) => b.tradeDate.localeCompare(a.tradeDate))) {
+  if (!latestBySymbol.has(article.symbol)) latestBySymbol.set(article.symbol, article);
+}
+const stocks = [...latestBySymbol.values()];
+const stockIndex = Math.max(0, stocks.findIndex((item) => item.symbol === currentSymbol));
+const previousStock = stocks[stockIndex - 1];
+const nextStock = stocks[stockIndex + 1];
+const stockArticles = articles
+  .filter((item) => item.symbol === currentSymbol)
+  .sort((a, b) => b.tradeDate.localeCompare(a.tradeDate));
+const dateIndex = Math.max(0, stockArticles.findIndex((item) => item.tradeDate === currentDate));
+const newerArticle = stockArticles[dateIndex - 1];
+const olderArticle = stockArticles[dateIndex + 1];
+---
+<section class="insight-navigator" aria-label="股票分析文章切换">
+  <form class="insight-search" data-insight-search>
+    <label for="insight-stock-search">检索</label>
+    <input
+      id="insight-stock-search"
+      name="stock"
+      type="search"
+      list="insight-stock-options"
+      autocomplete="off"
+      placeholder="代码 / 名称 / 首字母，如 600、创新、cx"
+      aria-label="检索股票分析"
+    />
+    <datalist id="insight-stock-options">
+      {stocks.map((item) => (
+        <option value={`${item.symbol} ${item.name}`} data-href={item.href}>{item.name} · {item.tradeDate}</option>
+      ))}
+    </datalist>
+  </form>
+
+  <div class="insight-date-control">
+    <span class="control-label">交易日</span>
+    <a
+      class:list={['date-arrow', !olderArticle && 'is-disabled']}
+      href={olderArticle?.href}
+      aria-label="上一交易日分析"
+      aria-disabled={!olderArticle ? 'true' : undefined}
+      tabindex={!olderArticle ? '-1' : undefined}
+    >‹</a>
+    <select aria-label="选择交易日" data-insight-date>
+      {stockArticles.map((item, index) => (
+        <option value={item.href} selected={item.tradeDate === currentDate}>
+          {item.tradeDate}{index === 0 ? ' · 最新' : ''}
+        </option>
+      ))}
+    </select>
+    <a
+      class:list={['date-arrow', !newerArticle && 'is-disabled']}
+      href={newerArticle?.href}
+      aria-label="下一交易日分析"
+      aria-disabled={!newerArticle ? 'true' : undefined}
+      tabindex={!newerArticle ? '-1' : undefined}
+    >›</a>
+  </div>
+
+  <nav class="insight-stock-pager" aria-label="股票文章分页">
+    <a
+      class:list={['stock-page-button', !previousStock && 'is-disabled']}
+      href={previousStock?.href}
+      aria-disabled={!previousStock ? 'true' : undefined}
+      tabindex={!previousStock ? '-1' : undefined}
+    >上一只</a>
+    <a
+      class:list={['stock-page-button', !nextStock && 'is-disabled']}
+      href={nextStock?.href}
+      aria-disabled={!nextStock ? 'true' : undefined}
+      tabindex={!nextStock ? '-1' : undefined}
+    >下一只</a>
+    <span class="stock-page-count">第 {stockIndex + 1} / {stocks.length} 只</span>
+  </nav>
+</section>
+
+<script is:inline define:vars={{ articles }}>
+  (() => {
+    const normalize = (value) => String(value || '').toLowerCase().replace(/\s+/g, '');
+    const form = document.querySelector('[data-insight-search]');
+    const input = form?.querySelector('input');
+    const dateSelect = document.querySelector('[data-insight-date]');
+
+    const openStock = () => {
+      const query = normalize(input?.value);
+      if (!query) return;
+      const match = articles.find((item) => {
+        const haystack = normalize(`${item.symbol}${item.name}${item.initials}`);
+        return haystack.includes(query);
+      });
+      if (match) window.location.assign(match.href);
+    };
+
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      openStock();
+    });
+    input?.addEventListener('change', openStock);
+    dateSelect?.addEventListener('change', (event) => {
+      const href = event.target?.value;
+      if (href) window.location.assign(href);
+    });
+  })();
+</script>
