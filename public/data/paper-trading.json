@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-29T07:16:18.600613+00:00",
+  "updated_at": "2026-07-30T07:10:22.663976+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -41,27 +41,35 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-30",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
       "pending_signals": [
         {
-          "symbol": "512800",
-          "name": "银行ETF华宝",
-          "support": 0.796,
-          "target": 0.84,
-          "stop": 0.78,
-          "signal_date": "2026-07-29",
+          "symbol": "159920",
+          "name": "恒生ETF华夏",
+          "support": 1.485,
+          "target": 1.569,
+          "stop": 1.452,
+          "signal_date": "2026-07-30",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "159920",
-          "name": "恒生ETF华夏",
-          "support": 1.454,
-          "target": 1.538,
-          "stop": 1.441,
-          "signal_date": "2026-07-29",
+          "symbol": "512890",
+          "name": "红利低波ETF华泰柏瑞",
+          "support": 1.158,
+          "target": 1.216,
+          "stop": 1.14,
+          "signal_date": "2026-07-30",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -103,21 +111,8 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 16148.728817261475,
+      "cash": 12100.884164846924,
       "positions": {
-        "IYT": {
-          "symbol": "IYT",
-          "name": "iShares Transportation Average",
-          "quantity": 22,
-          "entry_price": 87.86000061035156,
-          "entry_cost": 1.96646,
-          "entry_at": "2026-07-27T13:45:51.252967+00:00",
-          "target": 90.03,
-          "stop": 85.34,
-          "level_basis": null,
-          "signal_date": "2026-07-24",
-          "last_price": 87.07499694824219
-        },
         "EFA": {
           "symbol": "EFA",
           "name": "iShares MSCI EAFE",
@@ -129,17 +124,56 @@
           "stop": 102.02,
           "level_basis": null,
           "signal_date": "2026-07-27",
-          "last_price": 103.93499755859375
+          "last_price": 103.41000366210938
+        },
+        "COPX": {
+          "symbol": "COPX",
+          "name": "Global X Copper Miners",
+          "quantity": 26,
+          "entry_price": 76.12000274658203,
+          "entry_cost": 1.98956,
+          "entry_at": "2026-07-29T13:30:56.157756+00:00",
+          "target": 79.39,
+          "stop": 72.69,
+          "level_basis": null,
+          "signal_date": "2026-07-28",
+          "last_price": 76.13999938964844
+        },
+        "XLU": {
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "quantity": 43,
+          "entry_price": 45.455101013183594,
+          "entry_cost": 1.977285,
+          "entry_at": "2026-07-29T14:20:57.333425+00:00",
+          "target": 46.54,
+          "stop": 44.16,
+          "level_basis": null,
+          "signal_date": "2026-07-28",
+          "last_price": 44.897499084472656
+        },
+        "IBIT": {
+          "symbol": "IBIT",
+          "name": "iShares Bitcoin Trust ETF",
+          "quantity": 55,
+          "entry_price": 36.029998779296875,
+          "entry_cost": 1.990825,
+          "entry_at": "2026-07-29T16:45:00.786851+00:00",
+          "target": 37.12,
+          "stop": 34.83,
+          "level_basis": null,
+          "signal_date": "2026-07-28",
+          "last_price": 35.994998931884766
         }
       },
-      "equity": 20039.143704,
-      "realized_pnl": 48.77181970581055,
-      "unrealized_pnl": -9.628116,
-      "daily_return": 0.00195719,
-      "cumulative_return": 0.00195719,
+      "equity": 19955.63162,
+      "realized_pnl": -12.662288297119133,
+      "unrealized_pnl": -31.706091,
+      "daily_return": -0.00221842,
+      "cumulative_return": -0.00221842,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.80585923,
+      "cash_ratio": 0.60638943,
       "history": [],
       "events": [
         {
@@ -189,26 +223,84 @@
           "price": 58.130001,
           "cost": 2.017275,
           "reason": "target"
+        },
+        {
+          "id": "US:COPX:buy:1785331852:plant",
+          "timestamp": "2026-07-29T13:30:56.157756+00:00",
+          "market": "US",
+          "symbol": "COPX",
+          "name": "Global X Copper Miners",
+          "side": "buy",
+          "quantity": 26,
+          "price": 76.120003,
+          "cost": 1.98956,
+          "reason": "plant"
+        },
+        {
+          "id": "US:XLU:buy:1785334868:plant",
+          "timestamp": "2026-07-29T14:20:57.333425+00:00",
+          "market": "US",
+          "symbol": "XLU",
+          "name": "Utilities Select Sector",
+          "side": "buy",
+          "quantity": 43,
+          "price": 45.455101,
+          "cost": 1.977285,
+          "reason": "plant"
+        },
+        {
+          "id": "US:IYT:sell:1785341741:stop",
+          "timestamp": "2026-07-29T16:16:00.141952+00:00",
+          "market": "US",
+          "symbol": "IYT",
+          "name": "iShares Transportation Average",
+          "side": "sell",
+          "quantity": 22,
+          "price": 85.245003,
+          "cost": 1.937695,
+          "reason": "stop"
+        },
+        {
+          "id": "US:IBIT:buy:1785343500:plant",
+          "timestamp": "2026-07-29T16:45:00.786851+00:00",
+          "market": "US",
+          "symbol": "IBIT",
+          "name": "iShares Bitcoin Trust ETF",
+          "side": "buy",
+          "quantity": 55,
+          "price": 36.029999,
+          "cost": 1.990825,
+          "reason": "plant"
         }
       ],
       "pending_signals": [
         {
-          "symbol": "DBC",
-          "name": "Invesco DB Commodity Index",
-          "support": 28.54,
-          "target": 29.48,
-          "stop": 28.06,
-          "signal_date": "2026-07-27",
-          "kind": "ready_plant",
-          "status": "候场"
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "support": 14.02,
+          "target": 14.96,
+          "stop": 13.73,
+          "signal_date": "2026-07-28",
+          "kind": "plant",
+          "status": "伏击"
+        },
+        {
+          "symbol": "SKYY",
+          "name": "First Trust Cloud Computing",
+          "support": 136.64,
+          "target": 143.55,
+          "stop": 130.37,
+          "signal_date": "2026-07-28",
+          "kind": "plant",
+          "status": "伏击"
         },
         {
           "symbol": "XLE",
           "name": "Energy Select Sector",
-          "support": 56.93,
-          "target": 59.79,
-          "stop": 55.91,
-          "signal_date": "2026-07-27",
+          "support": 56.39,
+          "target": 59.02,
+          "stop": 55.64,
+          "signal_date": "2026-07-28",
           "kind": "ready_plant",
           "status": "候场"
         }
