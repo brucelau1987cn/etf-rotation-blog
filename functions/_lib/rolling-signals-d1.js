@@ -154,9 +154,6 @@ export const updateRollingSignalPriceIfMissing = async (db, {
   if (/^\d{5}$/.test(key) && key.startsWith('0')) {
     aliases.push(key.slice(1));
   }
-  if (key === '06809') {
-    aliases.push('688008');
-  }
   const placeholders = aliases.map(() => '?').join(', ');
   const source = String(trigger_price_source || 'kline-1m').trim() || 'kline-1m';
   const result = await db.prepare(`
@@ -189,9 +186,6 @@ export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) =>
   const aliases = [key];
   if (/^\d{5}$/.test(key) && key.startsWith('0')) {
     aliases.push(key.slice(1));
-  }
-  if (key === '06809') {
-    aliases.push('688008');
   }
   const placeholders = aliases.map(() => '?').join(', ');
   const params = tradeDate ? [...aliases, tradeDate] : aliases;
