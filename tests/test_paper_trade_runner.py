@@ -75,6 +75,24 @@ class PaperTradingTests(unittest.TestCase):
         self.assertEqual(paper.process_bar(account, signals, quotes, "t"), [])
         self.assertEqual(account["positions"]["SPY"]["target"], 110)
         self.assertEqual(account["positions"]["SPY"]["level_basis"], "frozen-v1")
+        self.assertEqual(account["events"][0]["signal_date"], "2026-01-02")
+        self.assertEqual(account["events"][0]["signal_kind"], "plant")
+        self.assertEqual(account["events"][0]["signal_level"], 100)
+
+    def test_sell_event_retains_originating_signal_and_entry_contract(self):
+        account = paper.new_account("US")
+        signal = {"symbol": "SPY", "name": "SPY", "support": 100, "target": 110, "stop": 90, "_source_date": "2026-01-02", "kind": "plant"}
+        buy = {"SPY": {"price": 100, "low": 99, "high": 101, "timestamp": "buy-bar"}}
+        paper.process_bar(account, ([signal], []), buy, "2026-01-05T15:00:00+00:00")
+        sell = {"SPY": {"price": 110, "low": 109, "high": 111, "timestamp": "sell-bar"}}
+        trades = paper.process_bar(account, ([], []), sell, "2026-01-05T18:00:00+00:00")
+        event = trades[0]
+        self.assertEqual(event["side"], "sell")
+        self.assertEqual(event["signal_date"], "2026-01-02")
+        self.assertEqual(event["signal_kind"], "plant")
+        self.assertEqual(event["signal_level"], 100)
+        self.assertEqual(event["entry_price"], 100)
+        self.assertEqual(event["entry_at"], "2026-01-05T15:00:00+00:00")
 
     def test_close_math_and_same_market_day_replaces(self):
         account = paper.new_account("US")
@@ -256,6 +274,14 @@ class PaperTradingTests(unittest.TestCase):
     def test_paper_page_prefers_public_projection_with_legacy_fallback(self):
         page = (P.parents[1] / "src/pages/paper.astro").read_text(encoding="utf-8")
         self.assertIn("a.public_pending_signals ?? a.pending_signals ?? []", page)
+
+    def test_us_history_and_paper_pages_cross_link_signal_and_trade_details(self):
+        paper_page = (P.parents[1] / "src/pages/paper.astro").read_text(encoding="utf-8")
+        history_page = (P.parents[1] / "src/pages/us-compass/history.astro").read_text(encoding="utf-8")
+        for marker in ("成交时间", "成交价", "数量", "成交额", "卖出盈亏", "signalHref", "tradeAnchor"):
+            self.assertIn(marker, paper_page)
+        for marker in ("模拟盘实际成交", "成交明细", "tradesForSignal", "usSignalAnchor"):
+            self.assertIn(marker, history_page)
 
     def test_market_windows_and_quote_freshness(self):
         self.assertTrue(paper.intraday_window("A", "2026-07-13T02:00:00+00:00"))  # 10:00 CST

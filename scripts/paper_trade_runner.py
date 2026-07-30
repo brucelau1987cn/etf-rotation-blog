@@ -82,17 +82,26 @@ def event_id(market, symbol, action, bar, reason):
     stamp=bar.get("timestamp") or bar.get("date") or "unknown"
     return f"{market}:{symbol}:{action}:{stamp}:{reason}"
 
-def execute(account, symbol, name, side, price, qty, ts, reason, eid, target=None, stop=None, level_basis=None, signal_date=None):
+def execute(account, symbol, name, side, price, qty, ts, reason, eid, target=None, stop=None, level_basis=None, signal_date=None, signal_kind=None, signal_level=None):
     if eid in account["processed_event_ids"]: return None
-    fee=costs(account["market"],side,price,qty); gross=price*qty
+    fee=costs(account["market"],side,price,qty); gross=price*qty; closed_position=None
     if side=="buy":
         if gross+fee>account["cash"]+1e-8: return None
         account["cash"]-=gross+fee
-        account["positions"][symbol]={"symbol":symbol,"name":name,"quantity":qty,"entry_price":price,"entry_cost":fee,"entry_at":ts,"target":target,"stop":stop,"level_basis":level_basis,"signal_date":signal_date,"last_price":price}
+        account["positions"][symbol]={"symbol":symbol,"name":name,"quantity":qty,"entry_price":price,"entry_cost":fee,"entry_at":ts,"target":target,"stop":stop,"level_basis":level_basis,"signal_date":signal_date,"signal_kind":signal_kind or "plant","signal_level":signal_level,"last_price":price}
     else:
-        pos=account["positions"].pop(symbol); account["cash"]+=gross-fee
-        account["realized_pnl"]+=(price-pos["entry_price"])*qty-pos["entry_cost"]-fee
+        closed_position=account["positions"].pop(symbol); account["cash"]+=gross-fee
+        account["realized_pnl"]+=(price-closed_position["entry_price"])*qty-closed_position["entry_cost"]-fee
     event={"id":eid,"timestamp":ts,"market":account["market"],"symbol":symbol,"name":name,"side":side,"quantity":qty,"price":round(price,6),"cost":fee,"reason":reason}
+    source=closed_position or {}
+    linked_date=signal_date or source.get("signal_date")
+    if linked_date: event["signal_date"]=linked_date
+    linked_kind=signal_kind or source.get("signal_kind")
+    if linked_kind: event["signal_kind"]=linked_kind
+    linked_level=signal_level if signal_level is not None else source.get("signal_level")
+    if linked_level is not None: event["signal_level"]=linked_level
+    if closed_position:
+        event.update({"entry_at":closed_position.get("entry_at"),"entry_price":closed_position.get("entry_price"),"entry_cost":closed_position.get("entry_cost"),"target":closed_position.get("target"),"stop":closed_position.get("stop")})
     account["events"].append(event); account["processed_event_ids"].append(eid)
     account["processed_event_ids"]=account["processed_event_ids"][-5000:]
     return event
@@ -182,7 +191,7 @@ def process_bar(account, signals, quotes, ts):
         elif symbol in sellmap: reason,px=sellmap[symbol].get("kind","signal"),float(bar["price"])
         if reason:
             eid=event_id(account["market"],symbol,"sell",bar,reason)
-            ev=execute(account,symbol,pos["name"],"sell",px,pos["quantity"],ts,reason,eid)
+            ev=execute(account,symbol,pos["name"],"sell",px,pos["quantity"],ts,reason,eid,signal_date=pos.get("signal_date"),signal_kind=pos.get("signal_kind"),signal_level=pos.get("signal_level"))
             if ev: trades.append(ev); exited.add(symbol)
     for sig in buys:
         if sig.get("pending_only") or sig.get("kind") == "ready_plant":
@@ -194,7 +203,7 @@ def process_bar(account, signals, quotes, ts):
         price=min(float(trigger),float(bar["price"])); qty=size_order(account["market"],account.get("equity",account["cash"]),account["cash"],price,len(account["positions"]))
         if not qty: continue
         eid=event_id(account["market"],symbol,"buy",bar,"plant")
-        ev=execute(account,symbol,sig.get("name",symbol),"buy",price,qty,ts,"plant",eid,sig.get("target"),sig.get("stop"),sig.get("level_basis") or sig.get("trigger_price_basis"),sig.get("price_date") or sig.get("trade_date"))
+        ev=execute(account,symbol,sig.get("name",symbol),"buy",price,qty,ts,"plant",eid,sig.get("target"),sig.get("stop"),sig.get("level_basis") or sig.get("trigger_price_basis"),sig.get("_source_date") or sig.get("price_date") or sig.get("trade_date"),sig.get("kind","plant"),trigger)
         if ev:
             trades.append(ev); consumed.add(signal_id); account["consumed_signal_ids"]=list(consumed)[-5000:]; account.setdefault("armed_signals",{}).pop(symbol,None)
     return trades

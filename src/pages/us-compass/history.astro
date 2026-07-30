@@ -5,10 +5,15 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import UsSubnav from '../../components/UsSubnav.astro';
+import { buildUsTradeLinks, usSignalAnchor } from '../../lib/us-paper-trade-links.mjs';
 
 const backtest = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-backtest.json'), 'utf8'));
 const flowerHistory = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-flower-history.json'), 'utf8'));
+const paperTrading = JSON.parse(readFileSync(join(process.cwd(), 'public/data/paper-trading.json'), 'utf8'));
 const records = flowerHistory.records || [];
+const usTrades = buildUsTradeLinks(paperTrading.accounts?.US?.events || [], records);
+const tradesForDate = (date: string) => usTrades.filter((trade: any) => trade.executionDate === date);
+const tradesForSignal = (date: string, symbol: string, kind: string) => usTrades.filter((trade: any) => trade.signalAnchor === usSignalAnchor(date, symbol, kind));
 const total = (key: string) => records.reduce((sum: number, record: any) => sum + (record.counts?.[key] || 0), 0);
 const labels: Record<string, string> = {
   ready_plant: '候场',
@@ -126,13 +131,23 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     .expand-label::after { content: '展开明细 ▸'; }
     .timeline-day[open] .expand-label::after { content: '收起明细 ▾'; }
     .signal-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: .5rem; padding: 0 0 1rem 150px; }
-    .signal-item { min-width: 0; padding: .7rem; border: 1px solid var(--history-line); border-radius: 13px; background: #fbfcfe; }
+    .signal-item { min-width: 0; padding: .7rem; border: 1px solid var(--history-line); border-radius: 13px; background: #fbfcfe; scroll-margin-top: 8rem; }
     .signal-top { display: flex; justify-content: space-between; gap: .45rem; align-items: flex-start; }
     .signal-top strong { font-size: .88rem; }
     .signal-tag { flex: 0 0 auto; padding: .2rem .42rem; }
     .signal-item p { margin: .45rem 0 0; color: var(--history-muted); font-size: .72rem; line-height: 1.45; }
     .signal-level { display: flex; justify-content: space-between; gap: .5rem; margin-top: .5rem; padding-top: .45rem; border-top: 1px dashed var(--history-line); font-size: .7rem; }
     .signal-level span { color: var(--history-muted); }
+    .signal-trades { display: grid; gap: .35rem; margin-top: .55rem; }
+    .signal-trade { display: grid; grid-template-columns: auto 1fr auto; gap: .45rem; align-items: center; padding: .42rem .5rem; border-radius: 9px; background: #eef4fb; color: #29445f; font-size: .68rem; text-decoration: none; }
+    .signal-trade b { color: var(--history-ink); }
+    .paper-day-trades { margin: 0 0 1rem 150px; padding: .75rem; border: 1px solid #cbdced; border-radius: 13px; background: #f7fbff; }
+    .paper-day-trades h4 { margin: 0 0 .45rem; font-size: .8rem; }
+    .paper-trade-row { display: grid; grid-template-columns: 78px 56px minmax(100px,1fr) auto auto; gap: .5rem; align-items: center; padding: .45rem 0; border-top: 1px solid #dce8f2; font-size: .72rem; }
+    .paper-trade-row:first-of-type { border-top: 0; }
+    .paper-trade-row time, .paper-trade-row span { color: var(--history-muted); }
+    .paper-trade-row a { color: #245c94; font-weight: 800; text-decoration: none; }
+    .day-trade-count { color: #245c94; }
 
     .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
     .method-card { padding: 1rem; }
@@ -175,6 +190,11 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
       .day-total { grid-column: 1; display: flex; gap: .4rem; align-items: center; }
       .day-total b, .day-total small { display: inline; }
       .signal-list { grid-template-columns: 1fr; padding: 0 0 .9rem; }
+      .paper-day-trades { margin-left: 0; }
+      .paper-trade-row { grid-template-columns: 70px 48px 1fr; }
+      .paper-trade-row span, .paper-trade-row a { grid-column: 3; }
+      .signal-trade { grid-template-columns: auto 1fr; }
+      .signal-trade span { grid-column: 2; }
       .expand-label::after { content: '展开 ▸'; }
       .timeline-day[open] .expand-label::after { content: '收起 ▾'; }
     }
@@ -251,6 +271,7 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     <section class="timeline-shell card">
       {records.length ? records.map((record: any) => {
         const signals = signalEntries(record);
+        const dayTrades = tradesForDate(record.date);
         const formalCount = (record.counts?.plant || 0) + (record.counts?.harvest || 0) + (record.counts?.exit || 0);
         return (
           <details class="timeline-day">
@@ -258,18 +279,35 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
               <div class="day-date"><strong>{record.date}</strong><small>{record.market_regime?.state || '状态待定'} · 权益参考 {record.market_regime?.equity_allocation || '—'}</small></div>
               <div class="day-counts">
                 {Object.entries(record.counts || {}).map(([key, value]: any) => <span class={`count-chip ${tone[key]}`}><span>{labels[key]}</span><b>{value}</b></span>)}
+                {dayTrades.length > 0 && <span class="count-chip day-trade-count"><span>模拟成交</span><b>{dayTrades.length}</b></span>}
               </div>
               <div class="day-total"><b>正式 {formalCount} 次</b><small class="expand-label"></small></div>
             </summary>
             <div class="signal-list">
-              {signals.map((item: any) => (
-                <article class="signal-item">
-                  <div class="signal-top"><strong>{item.symbol} · {item.theme || item.name}</strong><span class={`signal-tag ${tone[item.key]}`}>{labels[item.key]}</span></div>
-                  <p>{item.trigger_basis || item.trade_state || '按冻结快照记录'}</p>
-                  <div class="signal-level"><span>触发位</span><b>{formatLevel(item.trigger_level)}</b></div>
-                </article>
-              ))}
+              {signals.map((item: any) => {
+                const linkedTrades = tradesForSignal(record.date, item.symbol, item.key);
+                return (
+                  <article class="signal-item" id={usSignalAnchor(record.date, item.symbol, item.key)}>
+                    <div class="signal-top"><strong>{item.symbol} · {item.theme || item.name}</strong><span class={`signal-tag ${tone[item.key]}`}>{labels[item.key]}</span></div>
+                    <p>{item.trigger_basis || item.trade_state || '按冻结快照记录'}</p>
+                    <div class="signal-level"><span>触发位</span><b>{formatLevel(item.trigger_level)}</b></div>
+                    {linkedTrades.length > 0 && <div class="signal-trades">
+                      {linkedTrades.map((trade: any) => <a class="signal-trade" href={`/paper/#${trade.tradeAnchor}`}><b>{trade.executionDate === record.date ? trade.actionLabel : `次日${trade.actionLabel}`} {trade.event.quantity}份</b><span>{trade.executionDate} {trade.executionTime}</span><strong>${Number(trade.event.price).toFixed(2)}</strong></a>)}
+                    </div>}
+                  </article>
+                );
+              })}
             </div>
+            {dayTrades.length > 0 && <section class="paper-day-trades" aria-label={`${record.date} 模拟成交`}>
+              <h4>{record.date} 模拟盘实际成交 · {dayTrades.length}笔</h4>
+              {dayTrades.map((trade: any) => <div class="paper-trade-row">
+                <time>{trade.executionTime}</time>
+                <b>{trade.actionLabel}</b>
+                <strong>{trade.event.symbol} · {trade.event.name}</strong>
+                <span>{trade.event.quantity}份 × ${Number(trade.event.price).toFixed(2)} · 金额 ${trade.gross.toFixed(2)}</span>
+                <a href={`/paper/#${trade.tradeAnchor}`}>成交明细 →</a>
+              </div>)}
+            </section>}
           </details>
         );
       }) : <p>尚未生成首个交易日记录。</p>}
