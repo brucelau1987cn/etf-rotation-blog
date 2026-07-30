@@ -126,18 +126,18 @@ test('tradingview webhook fails closed when DB is missing', async () => {
   assert.equal((await res.json()).error, 'DB missing on server');
 });
 
-test('tradingview webhook normalizes market suffixes before writing D1 rows', async () => {
+test('tradingview webhook normalizes market suffixes and 4-digit HK symbols before writing D1 rows', async () => {
   const token = 'test_secret_token_123';
   const db = makeDb();
   const req = new Request('https://etf.peekabo.cc/api/v1/tradingview', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ webhook_token: token, symbol: '600021.SH', cycle_code: '2h', signal: 'BUY' }),
+    body: JSON.stringify({ webhook_token: token, symbol: '6809.HK', cycle_code: '15m', signal: 'SELL' }),
   });
   const res = await onRequestPost({ request: req, env: { TRADINGVIEW_WEBHOOK_TOKEN: token, DB: db } });
   assert.equal(res.status, 200);
   const row = [...db._rows.values()][0];
-  assert.equal(row.symbol, '600021');
-  assert.equal(row.cycle_code, '2h');
+  assert.equal(row.symbol, '06809');
+  assert.equal(row.cycle_code, '15m');
 });
 
 test('same day same node is locked after first write', async () => {

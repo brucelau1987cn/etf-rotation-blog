@@ -3,7 +3,13 @@
  * First write of (trade_date, symbol, cycle_code, signal) wins for the day.
  */
 
-export const normalizeSymbol = value => String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
+export const normalizeSymbol = value => {
+  let str = String(value || '').trim().toUpperCase().replace(/\.(SH|SZ|SS|HK|US)$/i, '');
+  if (/^\d{4}$/.test(str)) {
+    return '0' + str;
+  }
+  return str;
+};
 
 export const shanghaiTradeDate = (input = new Date()) => {
   const date = input instanceof Date ? input : new Date(input);
@@ -172,19 +178,29 @@ export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) =>
   if (!db?.prepare) return [];
   await ensureRollingSignalsTable(db);
   const key = normalizeSymbol(symbol);
+  const aliases = [key];
+  if (/^\d{5}$/.test(key) && key.startsWith('0')) {
+    aliases.push(key.slice(1));
+  }
+  if (key === '06809') {
+    aliases.push('688008');
+  }
+  const placeholders = aliases.map(() => '?').join(', ');
+  const params = tradeDate ? [...aliases, tradeDate] : aliases;
+
   const { results } = tradeDate
     ? await db.prepare(`
         SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
         FROM rolling_signals
-        WHERE symbol = ? AND trade_date = ?
+        WHERE symbol IN (${placeholders}) AND trade_date = ?
         ORDER BY received_at ASC, trigger_time_utc ASC
-      `).bind(key, tradeDate).all()
+      `).bind(...params).all()
     : await db.prepare(`
         SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
         FROM rolling_signals
-        WHERE symbol = ?
+        WHERE symbol IN (${placeholders})
         ORDER BY received_at ASC, trigger_time_utc ASC
-      `).bind(key).all();
+      `).bind(...params).all();
 
   return (results || []).map(item => ({
     type: item.signal,
