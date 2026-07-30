@@ -3,7 +3,9 @@ import {
   loadRollingTimelineFromD1,
   normalizeSymbol as normalizeRollingSymbol,
   shanghaiTradeDate,
+  updateRollingSignalPriceIfMissing,
 } from '../../../_lib/rolling-signals-d1.js';
+import { fetchKline1m, pickMinuteBar } from './kline.js';
 
 const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -138,7 +140,7 @@ const publicReason = error => {
   return '上游暂不可用或数据未通过校验';
 };
 
-export async function handleRollingSignals(request, env = {}) {
+export async function handleRollingSignals(request, env = {}, waitUntil = null) {
   const requestUrl = new URL(request.url);
   const symbol = normalizeSymbol(requestUrl.searchParams.get('symbol') || requestUrl.searchParams.get('code') || '600021');
   const tradeDate = shanghaiTradeDate();
@@ -155,6 +157,36 @@ export async function handleRollingSignals(request, env = {}) {
     try {
       // Query all stored D1 signals for this symbol (not only today) so historical signal prices are preserved.
       const d1Timeline = await loadRollingTimelineFromD1(env.DB, symbol, null);
+
+      // Self-healing: if any D1 row is missing price, attempt background 1m lookup and fill.
+      if (typeof waitUntil === 'function') {
+        const missingPriceItems = d1Timeline.filter(item => item.price == null && item.event_id);
+        if (missingPriceItems.length) {
+          waitUntil((async () => {
+            for (const item of missingPriceItems) {
+              try {
+                const atTime = item.triggered_at || item.received_at;
+                const klineRes = await fetchKline1m(symbol, { at: atTime });
+                const bar = klineRes?.bar || pickMinuteBar(klineRes?.bars, atTime);
+                if (bar?.close != null) {
+                  await updateRollingSignalPriceIfMissing(env.DB, {
+                    trade_date: shanghaiTradeDate(atTime),
+                    symbol,
+                    cycle_code: item.code,
+                    signal: item.type,
+                    event_id: item.event_id,
+                    trigger_price: bar.close,
+                    trigger_price_source: bar.source || 'kline-1m',
+                  });
+                }
+              } catch (e) {
+                console.warn('background price backfill failed for', symbol, item.event_id, e);
+              }
+            }
+          })());
+        }
+      }
+
       // Merge with static LKG so authorized historical projections remain visible.
       const staticTimeline = Array.isArray(lkg.timeline) ? lkg.timeline : [];
       const timeline = mergeTimelines(staticTimeline, d1Timeline);
@@ -215,6 +247,6 @@ export async function handleRollingSignals(request, env = {}) {
   }
 }
 
-export async function onRequestGet({ request, env }) {
-  return handleRollingSignals(request, env);
+export async function onRequestGet({ request, env, waitUntil }) {
+  return handleRollingSignals(request, env, waitUntil);
 }
