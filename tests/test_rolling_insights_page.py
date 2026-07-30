@@ -15,15 +15,22 @@ def test_rolling_subnav_has_insights_after_four_markets():
 def test_innovation_medical_report_has_indicator_and_trade_plan_contract():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     for marker in (
-        "创新医疗 002173",
-        "VOL＋MA20＋MACD＋RSI共振",
-        "筹码峰与主力动向",
+        "创新医疗",
+        "002173",
+        "今日操作结论",
+        "空仓继续等待，持仓执行减仓",
+        "什么时候买",
+        "什么时候卖",
+        "120m / 150m 同价确认",
+        "收复 ¥19.95 后观察",
+        "站稳¥20.44才确认买入",
+        "¥19.56 下方维持减仓",
         "¥18.20—18.60",
-        "¥19.95—20.30",
-        "¥22.70—22.80",
-        "¥19.46 / ¥18.18",
-        "多方过热过滤",
-        "空方衰竭过滤",
+        "价格作战地图",
+        "今日证据链",
+        "三种走势，三套动作",
+        "过热多方降级",
+        "低位空方降级",
         "同价节点合并",
         "RollingSubnav active=\"insights\"",
     ):
@@ -33,5 +40,8 @@ def test_innovation_medical_report_has_indicator_and_trade_plan_contract():
 def test_insights_styles_are_responsive_and_card_light():
     styles = (ROOT / "src/styles/rolling-insights.css").read_text(encoding="utf-8")
     assert "grid-template-columns:repeat(4,minmax(0,1fr))" in styles
+    assert ".command-board" in styles
+    assert ".price-map" in styles
+    assert ".trade-sidebar" in styles
     assert "@media(max-width:680px)" in styles
     assert "linear-gradient" not in styles

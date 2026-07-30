@@ -6,16 +6,22 @@ import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 import '../../styles/rolling-insights.css';
 
-const title = `滚动信号详细解读｜创新医疗案例 | ${SITE_TITLE}`;
-const description = '以创新医疗为例，结合滚动信号点价格、成交量、MA20、MACD、RSI和筹码峰，复盘买卖节点并形成可执行的过滤框架。';
+const title = `滚动操盘解读｜创新医疗今日买卖计划 | ${SITE_TITLE}`;
+const description = '创新医疗滚动信号操盘台：今日信号、当前动作、买入触发、卖出纪律、关键价位及技术指标共振。';
 
-const signals = [
-  { date: '07/28', side: '多方', node: '6h—8h 信号簇', price: '¥22.76', result: '次日相对信号价 -10.02%', tone: 'risk' },
-  { date: '07/29', side: '空方', node: '10m', price: '¥21.12', result: '当日收盘 ¥20.48；次日 -7.39%', tone: 'sell' },
-  { date: '07/29', side: '空方', node: '15m', price: '¥21.11', result: '与10m同一风险区', tone: 'sell' },
-  { date: '07/29', side: '空方', node: '30m', price: '¥21.39', result: '反抽确认后继续下行', tone: 'sell' },
-  { date: '07/29', side: '空方', node: '60m', price: '¥20.55', result: '趋势空方确认', tone: 'sell' },
-  { date: '07/30', side: '空方', node: '120m / 150m', price: '¥19.56', result: '跌破平均成本后进入弱势区', tone: 'sell' },
+const todaySignals = [
+  { time: '11:31', node: '120m', price: '¥19.56', state: '空方确认' },
+  { time: '12:01', node: '150m', price: '¥19.56', state: '同价累计确认' },
+];
+
+const levels = [
+  { price: '¥22.76', name: '历史过热兑现区', action: '反弹至此优先兑现', tone: 'sell' },
+  { price: '¥21.12—21.40', name: '前空方密集压力', action: '反弹受阻继续减仓', tone: 'sell' },
+  { price: '¥20.44', name: 'MA5确认线', action: '放量站稳才确认修复', tone: 'confirm' },
+  { price: '¥19.95', name: '筹码平均成本', action: '收复后进入观察仓', tone: 'watch' },
+  { price: '¥19.56', name: '今日空方信号价', action: '价格位于下方，空方有效', tone: 'signal' },
+  { price: '¥19.36', name: '今日最低价', action: '再次跌破代表弱势延续', tone: 'risk' },
+  { price: '¥18.20—18.60', name: 'MA20支撑区', action: '缩量止跌可小仓试错', tone: 'buy' },
 ];
 ---
 <!doctype html>
@@ -26,122 +32,154 @@ const signals = [
     <main id="main-content" class="rolling-insights-main">
       <RollingSubnav active="insights" />
 
-      <header class="insight-hero">
-        <div class="eyebrow">滚动罗盘 · 信号复盘</div>
-        <h1>创新医疗 002173：滚动信号详细解读</h1>
-        <p>数据窗口为 2026年7月28日至7月30日。分析采用信号点分钟收盘价，并结合 iWenCai 日线技术指标与筹码数据。这里的买卖点用于策略复盘和信号过滤研究。</p>
-        <div class="hero-facts">
-          <span>多方信号簇：¥22.76</span>
-          <span>首个空方信号：¥21.12</span>
-          <span>最新空方确认：¥19.56</span>
+      <header class="trade-hero">
+        <div class="trade-title-row">
+          <div>
+            <div class="eyebrow">滚动罗盘 · 专业操盘解读 · 07/30</div>
+            <h1>创新医疗 <span>002173</span></h1>
+            <p>最新价约 ¥19.44 · 今日 -5.08% · 数据截止 2026-07-30 盘中</p>
+          </div>
+          <div class="market-bias is-bearish">
+            <small>今日策略状态</small>
+            <strong>空方占优</strong>
+            <span>120m / 150m 同价确认</span>
+          </div>
         </div>
       </header>
 
-      <section class="verdict-strip" aria-label="核心结论">
-        <div><small>观察买点</small><strong>¥18.20—18.60</strong><span>MA20与成本密集区附近止跌</span></div>
-        <div><small>确认买点</small><strong>重新站上 ¥19.95—20.30</strong><span>收复平均成本与MA5，并有量价确认</span></div>
-        <div><small>第一减仓点</small><strong>¥22.70—22.80</strong><span>RSI过热、获利盘100%的历史风险区</span></div>
-        <div><small>纪律卖点</small><strong>跌破 ¥19.46 / ¥18.18</strong><span>分别对应成本与MA20防守线</span></div>
+      <section class="command-board" aria-label="今日操盘指令">
+        <div class="command-primary">
+          <div class="command-label">今日操作结论</div>
+          <h2>空仓继续等待，持仓执行减仓</h2>
+          <p>当前价低于空方信号价¥19.56、平均成本¥19.95和MA5 ¥20.44。短线修复尚未得到确认，现阶段不追买。</p>
+        </div>
+        <div class="command-action is-buy">
+          <small>什么时候买</small>
+          <strong>收复 ¥19.95 后观察</strong>
+          <span>放量站稳¥20.44后确认买入</span>
+        </div>
+        <div class="command-action is-sell">
+          <small>什么时候卖</small>
+          <strong>¥19.56 下方维持减仓</strong>
+          <span>跌破¥19.36继续降仓；反弹压力位分批兑现</span>
+        </div>
       </section>
 
-      <div class="report-layout">
-        <article class="report-body">
-          <section id="summary">
-            <h2>一、结论先行</h2>
-            <p>7月28日的多方节点在价格 <strong>¥22.76</strong> 连续点亮6h、6.5h、7h、7.5h和8h。这五个节点表达的是同一段趋势持续确认，价格已经进入明显过热区。当天 RSI6 为 <strong>81.75</strong>，信号价高于MA20约 <strong>26.1%</strong>，高于平均成本约 <strong>25.2%</strong>，获利盘达到 <strong>100%</strong>，量比只有 <strong>0.64</strong>。这个组合更适合作为持仓兑现提示，追买性价比较低。</p>
-            <p>7月29日首个10m空方信号出现在 <strong>¥21.12</strong>，相比多方信号价已经下降约7.2%。当天成交量达到前一日约3.18倍，换手率升至28.05%，RSI6从81.75降至58.85，MACD红柱开始缩短。价格仍在MA20和平均成本上方，说明这是高位筹码松动阶段。首个空方节点具备较高的风险提示价值。</p>
+      <section class="today-panel">
+        <div class="section-heading">
+          <div><small>今日实时信号</small><h2>两个空方节点指向同一价格</h2></div>
+          <span class="status-tag">信号有效</span>
+        </div>
+        <div class="today-signal-list">
+          {todaySignals.map((item, index) => (
+            <div class="today-signal">
+              <time>{item.time}</time>
+              <div><strong>{item.node} 空方</strong><span>{item.state}</span></div>
+              <b>{item.price}</b>
+              <em>{index === 0 ? '首次动作' : '累计确认'}</em>
+            </div>
+          ))}
+        </div>
+        <div class="signal-interpretation">
+          <strong>操盘解读：</strong>两个节点均在¥19.56出现，属于同一空方信号簇。首次信号用于执行，后续节点用于加强置信度，不重复卖出同一仓位。当前价约¥19.44，空方信号尚未失效。
+        </div>
+      </section>
+
+      <section class="execution-grid" id="plan">
+        <div class="execution-card buy-card">
+          <div class="card-number">01</div>
+          <small>激进观察买点</small>
+          <h3>¥18.20—18.60</h3>
+          <p>接近MA20支撑区。只在缩量止跌、RSI6拐头、滚动空方节点停止增加时试仓。</p>
+          <ul><li>建议仓位：10%—20%</li><li>止损：有效跌破¥18.18</li><li>性质：左侧试错</li></ul>
+        </div>
+        <div class="execution-card confirm-card">
+          <div class="card-number">02</div>
+          <small>稳健确认买点</small>
+          <h3>先收复¥19.95，再站稳¥20.44</h3>
+          <p>¥19.95是筹码平均成本，¥20.44是MA5。量比维持1.2以上且MACD止跌时，修复才成立。</p>
+          <ul><li>首次收复¥19.95：观察仓</li><li>站稳¥20.44：增加仓位</li><li>性质：右侧确认</li></ul>
+        </div>
+        <div class="execution-card sell-card">
+          <div class="card-number">03</div>
+          <small>持仓卖出纪律</small>
+          <h3>¥19.56下方减仓</h3>
+          <p>当前价格位于今日空方信号下方。反抽无法收复¥19.56时，维持弱势判断。</p>
+          <ul><li>跌破¥19.36：继续减仓</li><li>跌破¥18.18：退出修复仓</li><li>性质：趋势风控</li></ul>
+        </div>
+      </section>
+
+      <section class="price-map" id="levels">
+        <div class="section-heading"><div><small>价格作战地图</small><h2>从上到下看压力、信号与支撑</h2></div></div>
+        <div class="level-table">
+          {levels.map((item) => (
+            <div class:list={['level-row', item.tone]}>
+              <strong>{item.price}</strong><span>{item.name}</span><b>{item.action}</b>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div class="detail-layout">
+        <article class="detail-column">
+          <section id="evidence">
+            <div class="section-heading"><div><small>今日证据链</small><h2>为什么现在不买</h2></div></div>
+            <div class="evidence-grid">
+              <div><small>最新价</small><strong>¥19.44</strong><span>低于空方信号¥19.56</span></div>
+              <div><small>MA5</small><strong>¥20.44</strong><span>短线趋势压制</span></div>
+              <div><small>MA20</small><strong>¥18.25</strong><span>中期支撑仍在下方</span></div>
+              <div><small>平均成本</small><strong>¥19.95</strong><span>高位筹码处于浮亏</span></div>
+              <div><small>RSI6</small><strong>50.89</strong><span>已经降温，尚未超卖</span></div>
+              <div><small>量比</small><strong>2.12</strong><span>放量下跌，抛压明显</span></div>
+              <div><small>换手率</small><strong>18.71%</strong><span>筹码继续交换</span></div>
+              <div><small>获利盘</small><strong>40.9%</strong><span>上方套牢压力形成</span></div>
+            </div>
+            <p class="desk-note">价格低于成本与MA5，同时放量下跌。RSI位于中性区，缺少超卖反转条件。专业操盘的优先事项是等待价格确认，而非在下跌过程中提前猜底。</p>
           </section>
 
-          <section id="timeline">
-            <h2>二、信号点价格复盘</h2>
-            <div class="signal-table" role="table" aria-label="创新医疗信号点复盘">
-              <div class="table-row table-head" role="row"><span>日期</span><span>方向</span><span>节点</span><span>信号价</span><span>后续表现</span></div>
-              {signals.map((item) => (
-                <div class:list={['table-row', item.tone]} role="row">
-                  <span>{item.date}</span><span>{item.side}</span><span>{item.node}</span><strong>{item.price}</strong><span>{item.result}</span>
-                </div>
-              ))}
-            </div>
-            <p class="note">6h—8h多方节点在相同价格连续出现，应合并为一个“多方确认簇”；120m和150m同价空方节点也应合并，避免重复推送和重复计算胜率。</p>
-          </section>
-
-          <section id="indicators">
-            <h2>三、VOL＋MA20＋MACD＋RSI共振</h2>
-            <div class="metric-grid">
-              <div><small>7/28 RSI6</small><strong>81.75</strong><span>短期过热</span></div>
-              <div><small>信号价 / MA20</small><strong>+26.1%</strong><span>均线乖离过大</span></div>
-              <div><small>信号价 / 平均成本</small><strong>+25.2%</strong><span>筹码获利充分</span></div>
-              <div><small>7/28 量比</small><strong>0.64</strong><span>价格冲高缺少放量确认</span></div>
-              <div><small>7/29 量比</small><strong>2.20</strong><span>高位放量换手</span></div>
-              <div><small>7/29 换手率</small><strong>28.05%</strong><span>筹码快速交换</span></div>
-            </div>
-            <h3>VOL成交量</h3>
-            <p>7月28日股价冲至¥22.76时，成交量低于五日均量，量比仅0.64。趋势信号继续点亮，新增资金确认力度有限。7月29日成交量放大至约1.18亿股，量比升至2.20，价格收于¥20.48，形成典型的放量下跌和高换手。对持仓者而言，7月29日的量价组合是明确的减仓确认。</p>
-            <h3>MA20均线</h3>
-            <p>7月28日MA20为¥18.06，信号价高出26.1%；7月29日MA20为¥18.19；7月30日MA20为¥18.26。MA20缓慢上移，说明中期结构仍保留一定支撑。短期价格从极端乖离快速回归均线，追高风险已经兑现。后续更合理的低吸区域应围绕MA20和筹码成本观察。</p>
-            <h3>MACD</h3>
-            <p>7月28日DIF 0.491、DEA -0.115，红柱约0.606；7月29日红柱缩至约0.555。趋势仍位于正值区，动能已经边际减弱。7月30日红柱继续缩至约0.434。MACD尚未完成趋势反转确认，当前更接近上涨动能持续衰减阶段。重新买入需要观察红柱停止缩短、DIF重新向上发散。</p>
-            <h3>RSI</h3>
-            <p>RSI6从7月28日的81.75降至7月29日的58.85，再降至7月30日的51.82。RSI已经解除过热，仍未进入超卖区。当前缺少“恐慌超卖后的反转”条件，直接抄底胜率有限。更稳健的信号是RSI6落至35—45后拐头向上，或在50附近止跌并重新突破60。</p>
-          </section>
-
-          <section id="chips">
-            <h2>四、筹码峰与主力动向</h2>
-            <div class="chip-table">
-              <div><span>7月28日</span><strong>平均成本 ¥18.18</strong><em>获利盘100% · 90%集中度15.5%</em></div>
-              <div><span>7月29日</span><strong>平均成本 ¥19.46</strong><em>获利盘64.0% · 90%集中度15.6%</em></div>
-              <div><span>7月30日</span><strong>平均成本 ¥19.95</strong><em>获利盘42.4% · 90%集中度14.9%</em></div>
-            </div>
-            <p>平均成本从¥18.18快速上移至¥19.95，说明高位成交把大量筹码交换到更高价格。7月30日收盘¥19.56已经低于平均成本¥19.95，新增筹码整体进入轻度浮亏。获利盘从100%降至42.4%，上方套牢压力开始形成。短线反弹首先要面对¥19.95—20.30的成本和MA5压力。</p>
-          </section>
-
-          <section id="plan">
-            <h2>五、具体买卖计划</h2>
-            <div class="plan-block buy-plan">
-              <h3>买点一：MA20附近的观察买点</h3>
-              <strong class="plan-price">¥18.20—18.60</strong>
-              <p>该区间贴近MA20，亦接近7月28日前的成本密集区。价格进入该区间后，需要同时满足：RSI6停止下降并拐头、分钟级空方节点不再扩展、成交量缩至下跌日的60%以下。满足条件后适合小仓试错。</p>
-            </div>
-            <div class="plan-block buy-plan">
-              <h3>买点二：重新收复成本区的确认买点</h3>
-              <strong class="plan-price">¥19.95—20.30</strong>
-              <p>价格收复平均成本¥19.95和MA5约¥20.30，同时量比达到1.2以上、MACD红柱停止缩短或再次放大，可视为短线修复确认。确认买点价格更高，趋势确定性也更强。</p>
-            </div>
-            <div class="plan-block sell-plan">
-              <h3>减仓点：历史过热区</h3>
-              <strong class="plan-price">¥22.70—22.80</strong>
-              <p>这里对应7月28日多方信号簇。若后续反弹重新进入该区间，RSI6再次超过75、量比低于1.2或获利盘重新接近90%，应优先减仓。只有放量突破并连续站稳，才考虑保留趋势仓。</p>
-            </div>
-            <div class="plan-block sell-plan">
-              <h3>纪律卖点：成本与趋势防守线</h3>
-              <strong class="plan-price">¥19.46 / ¥18.18</strong>
-              <p>持有修复仓时，跌回¥19.46下方代表成本区收复失败；跌破¥18.18附近代表MA20和旧筹码支撑失效。前者适合减仓，后者适合退出短线修复交易。</p>
+          <section id="scenarios">
+            <div class="section-heading"><div><small>盘中应对</small><h2>三种走势，三套动作</h2></div></div>
+            <div class="scenario-list">
+              <div><b>A</b><strong>反弹收复¥19.95</strong><span>停止主动减仓，转入观察；继续站上¥20.44并放量，建立确认仓。</span></div>
+              <div><b>B</b><strong>围绕¥19.36—19.95震荡</strong><span>保持轻仓或空仓，等待方向选择；不在区间中部频繁交易。</span></div>
+              <div><b>C</b><strong>跌破¥19.36</strong><span>空方延续，持仓继续降仓；下一观察区下移至¥18.20—18.60。</span></div>
             </div>
           </section>
 
-          <section id="filter">
-            <h2>六、滚动信号过滤建议</h2>
-            <ol>
-              <li><strong>多方过热过滤：</strong>RSI6≥80、信号价高于MA20≥15%、高于平均成本≥15%、获利盘≥90%时，多方节点标记为“过热确认”，停止新增追买提示。</li>
-              <li><strong>空方衰竭过滤：</strong>信号价低于MA20≥15%、MACD绿柱收缩、RSI6回升、量比≤1.1时，空方节点降级为“衰竭观察”。</li>
-              <li><strong>同价节点合并：</strong>同一标的、同日、同方向、价格差不超过1%的节点合并为一个信号簇，保留首次推送和累计确认次数。</li>
-            </ol>
+          <section id="history">
+            <div class="section-heading"><div><small>历史教训</small><h2>¥22.76多方信号为什么不适合追买</h2></div></div>
+            <div class="history-line"><span>07/28 多方信号簇</span><strong>¥22.76</strong><em>次日相对信号价 -10.02%</em></div>
+            <p>当时RSI6达到81.75，价格高于MA20约26.1%、高于平均成本约25.2%，获利盘100%，量比仅0.64。趋势信号虽然持续点亮，资金确认不足且筹码过热。今后遇到相同组合，应将多方信号标记为“持仓兑现”，暂停新增追买。</p>
           </section>
 
-          <section id="final">
-            <h2>七、最终结论</h2>
-            <p><strong>¥22.76属于兑现区，追买条件不足。</strong>7月28日多方信号出现时，RSI、均线乖离、获利盘和筹码成本均处于过热状态，后续下跌验证了过热过滤的必要性。</p>
-            <p><strong>当前优先观察¥18.20—18.60。</strong>该区域接近MA20和旧筹码成本，适合等待缩量止跌。稳健方案等待价格重新站上¥19.95—20.30，并获得成交量、MACD和RSI共同确认后参与。</p>
-            <p><strong>反弹至¥22.70—22.80优先减仓。</strong>修复仓跌回¥19.46下方执行减仓，跌破¥18.18附近退出短线修复交易。</p>
+          <section id="rules">
+            <div class="section-heading"><div><small>系统优化</small><h2>滚动信号过滤规则</h2></div></div>
+            <div class="rule-list">
+              <div><strong>过热多方降级</strong><span>RSI6≥80、距MA20≥15%、距平均成本≥15%、获利盘≥90%</span></div>
+              <div><strong>低位空方降级</strong><span>低于MA20≥15%、MACD绿柱收缩、RSI回升、量比≤1.1</span></div>
+              <div><strong>同价节点合并</strong><span>同日同方向、价格差≤1%，首次用于执行，后续只累计确认</span></div>
+            </div>
           </section>
         </article>
 
-        <aside class="report-nav" aria-label="报告目录">
-          <strong>报告目录</strong>
-          <a href="#summary">结论先行</a><a href="#timeline">信号点复盘</a><a href="#indicators">指标共振</a><a href="#chips">筹码峰</a><a href="#plan">买卖计划</a><a href="#filter">过滤建议</a><a href="#final">最终结论</a>
-          <p>数据源：滚动信号D1、信号点1分钟K线、iWenCai技术指标及筹码字段。</p>
+        <aside class="trade-sidebar" aria-label="今日执行清单">
+          <div class="sidebar-status"><small>当前动作</small><strong>等待 / 减仓</strong><span>空方信号有效</span></div>
+          <h3>盘中检查清单</h3>
+          <label><input type="checkbox" disabled /> 收复¥19.95</label>
+          <label><input type="checkbox" disabled /> 站稳MA5 ¥20.44</label>
+          <label><input type="checkbox" disabled /> MACD动能转强</label>
+          <label><input type="checkbox" disabled /> RSI6重新向上</label>
+          <label><input type="checkbox" checked disabled /> 价格低于空方信号</label>
+          <label><input type="checkbox" checked disabled /> 今日放量下跌</label>
+          <div class="sidebar-bottom"><small>执行原则</small><p>信号先于预测，确认先于加仓，止损先于补仓。</p></div>
         </aside>
       </div>
+
+      <section class="final-order" id="conclusion">
+        <small>今日操盘结论</small>
+        <h2>¥19.95以下不主动买；站稳¥20.44才确认买入；¥19.56以下持仓减仓；跌破¥18.18退出修复交易。</h2>
+        <p>该计划用于滚动信号研究与交易纪律展示，价格与指标会随行情变化。</p>
+      </section>
     </main>
     <Footer />
   </body>
