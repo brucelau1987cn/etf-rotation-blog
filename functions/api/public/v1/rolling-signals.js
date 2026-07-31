@@ -26,7 +26,13 @@ const INSTRUMENT_SNAPSHOTS = {
   '06809': '/data/a-rolling-signals-06809.json',
   '01378': '/data/a-rolling-signals-01378.json',
   'TSLA': '/data/a-rolling-signals-TSLA.json',
+  'SI=F': '/data/futures-rolling-signals-hf_XAG.json',
   'HF_XAG': '/data/futures-rolling-signals-hf_XAG.json',
+};
+
+const INSTRUMENT_META = {
+  'SI=F': { instrument_name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F' },
+  'HF_XAG': { instrument_name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F' },
 };
 
 const headers = state => ({
@@ -47,6 +53,14 @@ const normalizeSymbol = value => normalizeRollingSymbol(value);
 const snapshotPathForSymbol = symbol => {
   const key = normalizeSymbol(symbol) || '600021';
   return INSTRUMENT_SNAPSHOTS[key] || null;
+};
+
+const instrumentMetaForSymbol = symbol => INSTRUMENT_META[normalizeSymbol(symbol)] || null;
+
+const applyInstrumentMeta = (payload, symbol) => {
+  const meta = instrumentMetaForSymbol(symbol);
+  if (!meta || !payload) return payload;
+  return { ...payload, instrument: { ...(payload.instrument || {}), ...meta } };
 };
 
 const emptyLkg = symbol => ({
@@ -90,7 +104,7 @@ const loadLkg = async (request, env, symbol) => {
   const response = env.ASSETS?.fetch
     ? await env.ASSETS.fetch(new Request(url, { headers: { accept: 'application/json' } }))
     : await fetchWithTimeout(url, DEFAULT_TIMEOUT_MS);
-  return validatePublicPayload(await readJsonResponse(response));
+  return applyInstrumentMeta(validatePublicPayload(await readJsonResponse(response)), symbol);
 };
 
 const mergeTimelines = (...lists) => {
@@ -196,11 +210,11 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
           .map(item => item.received_at || item.triggered_at)
           .filter(Boolean)
           .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
-        const payload = projectUpstream({
+        const payload = applyInstrumentMeta(projectUpstream({
           instrument: lkg.instrument,
           timeline,
           data_as_of: latestReceivedAt,
-        });
+        }), symbol);
         const todayD1 = d1Timeline.filter(item => shanghaiTradeDate(item.triggered_at || item.received_at) === tradeDate);
         // Day-locked board: once written, keep presentation stable for the day.
         payload.mode = todayD1.length ? 'live' : payload.mode;

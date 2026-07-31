@@ -225,6 +225,11 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     api = (ROOT / "functions/api/public/v1/rolling-signals.js").read_text(encoding="utf-8")
     assert snapshot["instrument"] == {"instrument_name": "白银现货", "exchange": "FUTURES", "symbol": "SI=F"}
     assert snapshot["timeline"] == []
+    assert "'SI=F': '/data/futures-rolling-signals-hf_XAG.json'" in api
     assert "'HF_XAG': '/data/futures-rolling-signals-hf_XAG.json'" in api
+    assert "'SI=F': { instrument_name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F' }" in api
+    assert "applyDisplayMeta" in app
+    assert "instrument_name: meta.name" in app
+    assert "const data = applyDisplayMeta(await fetchOneSignals(meta.symbol), meta.symbol)" in app
     # Free-running poll for futures (no stock session gate).
     assert "market === 'futures' ? null" in app

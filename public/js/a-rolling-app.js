@@ -42,6 +42,33 @@
   const FUTURES_INSTRUMENTS = [
     { name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F', querySymbol: 'hf_XAG' },
   ];
+  const DISPLAY_META = new Map(
+    FUTURES_INSTRUMENTS.flatMap((item) => [
+      [item.symbol, item],
+      [String(item.querySymbol || '').toUpperCase(), item],
+    ]),
+  );
+
+  const applyDisplayMeta = (data, requestedSymbol) => {
+    if (market !== 'futures' || !data) return data;
+    const candidates = [
+      requestedSymbol,
+      data.instrument?.symbol,
+      data.instrument?.instrument_name,
+      'SI=F',
+    ].map(value => String(value || '').toUpperCase());
+    const meta = candidates.map(value => DISPLAY_META.get(value)).find(Boolean);
+    if (!meta) return data;
+    return {
+      ...data,
+      instrument: {
+        ...(data.instrument || {}),
+        instrument_name: meta.name,
+        exchange: meta.exchange,
+        symbol: meta.symbol,
+      },
+    };
+  };
   const INDEX_SETS = {
     a: [
       { name: '上证指数', symbol: '000001', querySymbol: '000001.SH', continuous: false },
@@ -290,6 +317,7 @@
   };
 
   const updateBoard = (symbol, data) => {
+    data = applyDisplayMeta(data, symbol);
     const board = document.querySelector(`.instrument-board[data-symbol="${symbol}"]`);
     if (!board || !data) return;
     const nameEl = board.querySelector('[data-role="inst-name"]');
@@ -803,7 +831,7 @@
     try {
       const payloads = await Promise.all(INSTRUMENTS.map(async (meta) => {
         try {
-          const data = await fetchOneSignals(meta.symbol);
+          const data = applyDisplayMeta(await fetchOneSignals(meta.symbol), meta.symbol);
           updateBoard(meta.symbol, data);
           return data;
         } catch {
