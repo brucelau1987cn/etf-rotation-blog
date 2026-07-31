@@ -360,18 +360,32 @@ def run_iwencai_review(slot: str) -> dict[str, Any]:
 
 def fetch_warehouse_receipts() -> dict[str, Any]:
     import akshare as ak  # pyright: ignore[reportMissingImports]
+    import pandas as pd  # pyright: ignore[reportMissingImports]
 
     started = time.time(); rows = 0; errors = []
-    try:
-        result = ak.futures_gfex_warehouse_receipt()
-    except Exception as exc:
-        result = {}; errors.append(str(exc))
     today = datetime.now(CN).date().isoformat()
+
+    # GFEX (广期所): LC, PS, SI
+    try:
+        gfex = ak.futures_gfex_warehouse_receipt()
+    except Exception as exc:
+        gfex = {}; errors.append(f"gfex: {exc}")
+
+    # SHFE (上期所): AG, AU, CU, AL
+    shfe: dict[str, Any] = {}
+    try:
+        shfe = ak.futures_shfe_warehouse_receipt()
+    except Exception as exc:
+        errors.append(f"shfe: {exc}")
+
+    SHFE_NAME_MAP = {"白银": "AG", "铜": "CU", "铝": "AL", "黄金": "AU"}
+
     with connect() as db:
+        # GFEX instruments
         for code in ("LC", "PS", "SI"):
             try:
-                frame = result.get(code)
-                if frame is None or frame.empty:
+                frame = gfex.get(code)
+                if frame is None or (hasattr(frame, "empty") and frame.empty):
                     continue
                 receipt = sum(number(v) or 0 for v in frame.get("今日仓单量", []))
                 change = sum(number(v) or 0 for v in frame.get("增减", []))
@@ -383,7 +397,28 @@ def fetch_warehouse_receipts() -> dict[str, Any]:
                 rows += 1
             except Exception as exc:
                 errors.append(f"{code}: {exc}")
-        audit(db, "gfex-akshare", "warehouse_receipts", "ok" if rows else "error", rows,
+
+        # SHFE instruments
+        for name, code in SHFE_NAME_MAP.items():
+            try:
+                frame = shfe.get(name)
+                if frame is None or (hasattr(frame, "empty") and frame.empty):
+                    continue
+                non_summary = frame[frame.get("ROWORDER", 0) != 100000] if "ROWORDER" in (frame.columns if hasattr(frame, "columns") else []) else frame
+                receipt = pd.to_numeric(non_summary["WRTWGHTS"], errors="coerce").sum()
+                change = pd.to_numeric(non_summary["WRTCHANGE"], errors="coerce").sum()
+                if not (receipt > 0):
+                    continue
+                db.execute(
+                    "INSERT INTO warehouse_receipts(code,trade_date,receipt,change_value,source,fetched_at) VALUES(?,?,?,?,?,?) "
+                    "ON CONFLICT(code,trade_date,source) DO UPDATE SET receipt=excluded.receipt,change_value=excluded.change_value,fetched_at=excluded.fetched_at",
+                    (code, today, float(receipt), float(change), "shfe-akshare", now_iso()),
+                )
+                rows += 1
+            except Exception as exc:
+                errors.append(f"{name}: {exc}")
+
+        audit(db, "akshare", "warehouse_receipts", "ok" if rows else "error", rows,
               round((time.time() - started) * 1000), "; ".join(errors)[:500] or None)
         db.commit()
     return {"status": "ok" if rows else "error", "rows": rows, "errors": errors}

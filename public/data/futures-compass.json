@@ -1,17 +1,13 @@
 {
   "ok": true,
   "source": "新浪期货",
-  "generated_at": "2026-07-31T11:55:01+08:00",
-  "fetched_at": 1785470102.2472796,
-  "latency_ms": 908,
-  "count": 6,
+  "generated_at": "2026-07-31T12:04:11+08:00",
+  "fetched_at": 1785470652.8504596,
+  "latency_ms": 1067,
+  "count": 9,
   "expected_count": 9,
   "stale": false,
-  "errors": [
-    "CU: '铜'",
-    "AL: '铝'",
-    "LH: '猪肉'"
-  ],
+  "errors": [],
   "iwencai_review": {
     "reviewed_at": "2026-07-31T08:39:24+08:00",
     "review_slot": "preopen",
@@ -51,15 +47,18 @@
     },
     "capital_counts": {
       "增仓下跌": 1,
-      "减仓上涨": 2,
-      "增仓上涨": 2,
-      "减仓下跌": 1
+      "减仓上涨": 3,
+      "增仓上涨": 3,
+      "减仓下跌": 2
     },
     "ranking": [
       "AG",
       "PS",
+      "CU",
       "AU",
+      "AL",
       "SI",
+      "LH",
       "SC",
       "LC"
     ]
@@ -117,7 +116,7 @@
         "receipt": 13700.0,
         "change": 200.0,
         "source": "gfex-akshare",
-        "fetched_at": "2026-07-31T11:55:01+08:00"
+        "fetched_at": "2026-07-31T12:04:11+08:00"
       },
       "signal_label": "空头确认"
     },
@@ -227,7 +226,7 @@
         "receipt": 43598.0,
         "change": 636.0,
         "source": "gfex-akshare",
-        "fetched_at": "2026-07-31T11:55:01+08:00"
+        "fetched_at": "2026-07-31T12:04:11+08:00"
       },
       "signal_label": "空头回补"
     },
@@ -278,10 +277,12 @@
         "status": "未回补"
       },
       "warehouse_receipt": {
-        "status": "unknown",
-        "trade_date": null,
-        "receipt": null,
-        "change": null
+        "status": "known",
+        "trade_date": "2026-07-31",
+        "receipt": 1890.0,
+        "change": 0.0,
+        "source": "shfe-akshare",
+        "fetched_at": "2026-07-31T12:04:11+08:00"
       },
       "signal_label": "偏多观察"
     },
@@ -332,12 +333,126 @@
         "status": "已回补"
       },
       "warehouse_receipt": {
-        "status": "unknown",
-        "trade_date": null,
-        "receipt": null,
-        "change": null
+        "status": "known",
+        "trade_date": "2026-07-31",
+        "receipt": 6244579.0,
+        "change": -30370.0,
+        "source": "shfe-akshare",
+        "fetched_at": "2026-07-31T12:04:11+08:00"
       },
       "signal_label": "偏多观察"
+    },
+    {
+      "code": "CU",
+      "continuous": "CU0",
+      "name": "沪铜",
+      "exchange": "上期所",
+      "unit": "元/吨",
+      "tick": 10,
+      "contract_code": "CU2609",
+      "contract_name": "铜2609",
+      "price": 105520.0,
+      "change_pct": 0.716,
+      "open": 105370.0,
+      "high": 105880.0,
+      "low": 105250.0,
+      "prev_close": 104690.0,
+      "amplitude_pct": 0.602,
+      "volume": 66786.0,
+      "open_interest": 199404.0,
+      "open_interest_change": 3324.0,
+      "open_interest_change_pct": 1.695,
+      "capital_state": "增仓上涨",
+      "quote_time": "11:30:00",
+      "trade_date": "2026-07-31",
+      "is_main": true,
+      "source": "新浪期货",
+      "ma5": 104838.0,
+      "ma10": 104852.0,
+      "ma20": 104152.0,
+      "atr14": 1142.857142857143,
+      "range_20d_high": 106760.0,
+      "range_20d_low": 101640.0,
+      "range_20d_position_pct": 75.78125,
+      "volume_ratio_20d": 0.8595709738741186,
+      "support": 103810.0,
+      "resistance": 106760.0,
+      "invalidation": 103230.0,
+      "trend_state": "MA20上方震荡",
+      "structure": "区间震荡",
+      "bos_level": 106220.0,
+      "choch_level": 104310.0,
+      "fvg": {
+        "direction": "向下FVG",
+        "lower": 105350.0,
+        "upper": 105810.0,
+        "status": "未回补"
+      },
+      "warehouse_receipt": {
+        "status": "known",
+        "trade_date": "2026-07-31",
+        "receipt": 144627.0,
+        "change": -2496.0,
+        "source": "shfe-akshare",
+        "fetched_at": "2026-07-31T12:04:11+08:00"
+      },
+      "signal_label": "偏多观察"
+    },
+    {
+      "code": "AL",
+      "continuous": "AL0",
+      "name": "沪铝",
+      "exchange": "上期所",
+      "unit": "元/吨",
+      "tick": 5,
+      "contract_code": "AL2609",
+      "contract_name": "铝2609",
+      "price": 23640.0,
+      "change_pct": 0.233,
+      "open": 23650.0,
+      "high": 23760.0,
+      "low": 23620.0,
+      "prev_close": 23625.0,
+      "amplitude_pct": 0.593,
+      "volume": 111419.0,
+      "open_interest": 248385.0,
+      "open_interest_change": -2216.0,
+      "open_interest_change_pct": -0.884,
+      "capital_state": "减仓上涨",
+      "quote_time": "11:30:00",
+      "trade_date": "2026-07-31",
+      "is_main": true,
+      "source": "新浪期货",
+      "ma5": 23344.0,
+      "ma10": 23261.5,
+      "ma20": 23159.75,
+      "atr14": 263.57142857142856,
+      "range_20d_high": 23715.0,
+      "range_20d_low": 22440.0,
+      "range_20d_position_pct": 94.11764705882352,
+      "volume_ratio_20d": 0.6800295524380303,
+      "support": 23245.0,
+      "resistance": 23715.0,
+      "invalidation": 23115.0,
+      "trend_state": "多头排列",
+      "structure": "向上BOS",
+      "bos_level": 23545.0,
+      "choch_level": 23085.0,
+      "fvg": {
+        "direction": "向上FVG",
+        "lower": 23320.0,
+        "upper": 23415.0,
+        "status": "未回补"
+      },
+      "warehouse_receipt": {
+        "status": "known",
+        "trade_date": "2026-07-31",
+        "receipt": 361312.0,
+        "change": 2412.0,
+        "source": "shfe-akshare",
+        "fetched_at": "2026-07-31T12:04:11+08:00"
+      },
+      "signal_label": "空头回补"
     },
     {
       "code": "SC",
@@ -383,6 +498,60 @@
         "direction": "向下FVG",
         "lower": 549.8,
         "upper": 580.5,
+        "status": "未回补"
+      },
+      "warehouse_receipt": {
+        "status": "unknown",
+        "trade_date": null,
+        "receipt": null,
+        "change": null
+      },
+      "signal_label": "多头离场"
+    },
+    {
+      "code": "LH",
+      "continuous": "LH0",
+      "name": "生猪",
+      "exchange": "大商所",
+      "unit": "元/吨",
+      "tick": 1,
+      "contract_code": "LH2609",
+      "contract_name": "生猪2609",
+      "price": 10800.0,
+      "change_pct": -0.277,
+      "open": 10830.0,
+      "high": 10855.0,
+      "low": 10770.0,
+      "prev_close": 10775.0,
+      "amplitude_pct": 0.789,
+      "volume": 67447.0,
+      "open_interest": 160138.0,
+      "open_interest_change": -8576.0,
+      "open_interest_change_pct": -5.083,
+      "capital_state": "减仓下跌",
+      "quote_time": "11:30:00",
+      "trade_date": "2026-07-31",
+      "is_main": true,
+      "source": "新浪期货",
+      "ma5": 10983.0,
+      "ma10": 11218.5,
+      "ma20": 11698.75,
+      "atr14": 228.57142857142858,
+      "range_20d_high": 12700.0,
+      "range_20d_low": 10720.0,
+      "range_20d_position_pct": 4.040404040404041,
+      "volume_ratio_20d": 0.43326394592214323,
+      "support": 10720.0,
+      "resistance": 11143.0,
+      "invalidation": 10606.0,
+      "trend_state": "空头排列",
+      "structure": "向下BOS",
+      "bos_level": 10835.0,
+      "choch_level": 11405.0,
+      "fvg": {
+        "direction": "向下FVG",
+        "lower": 10990.0,
+        "upper": 11045.0,
         "status": "未回补"
       },
       "warehouse_receipt": {

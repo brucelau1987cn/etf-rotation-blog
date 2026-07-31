@@ -36,7 +36,7 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {"status": "ok", "slot": slot})
     monkeypatch.setattr(maintenance, "fetch_daily_bars", lambda: {"rows": 6})
     monkeypatch.setattr(maintenance, "fetch_warehouse_receipts", lambda: {"rows": 3})
-    monkeypatch.setattr(maintenance, "fetch_realtime", lambda: {"generated_at": "2026-07-28T08:30:00+08:00", "count": 6})
+    monkeypatch.setattr(maintenance, "fetch_realtime", lambda: {"generated_at": "2026-07-28T08:30:00+08:00", "count": 9})
     monkeypatch.setattr(maintenance, "atomic_json", lambda path, payload: writes.append((path, payload)))
 
     for slot in ("preopen", "day-close", "night"):
