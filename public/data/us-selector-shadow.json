@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-07-13T12:33:24.039903-04:00",
+  "generated_at": "2026-07-30T19:10:43.907045-04:00",
   "timezone": "America/New_York",
   "status": "ok",
   "model_version": "US selector shadow v1.2",
@@ -29,10 +29,19 @@
     "candidate_count": 9,
     "formal_overlap": 1,
     "new_candidates": 8,
-    "raw_us_symbols": 43,
-    "leveraged_filtered": 34
+    "raw_us_symbols": 49,
+    "leveraged_filtered": 40
   },
   "candidates": [
+    {
+      "symbol": "BWET",
+      "name": "油轮期货指数ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 8
+    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -50,15 +59,6 @@
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
       "rank_no": 2
-    },
-    {
-      "symbol": "JPIE",
-      "name": "摩根大通收益ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 4
     },
     {
       "symbol": "QTUM",
@@ -67,11 +67,20 @@
       "likely_etf": true,
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 4
+    },
+    {
+      "symbol": "JPIE",
+      "name": "摩根大通收益ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
       "rank_no": 5
     },
     {
-      "symbol": "BUG",
-      "name": "Indxx网络安全指数ETF",
+      "symbol": "AIPO",
+      "name": "人工智能电力设施指数",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -79,8 +88,8 @@
       "rank_no": 6
     },
     {
-      "symbol": "AIPO",
-      "name": "人工智能电力设施指数",
+      "symbol": "BUG",
+      "name": "Indxx网络安全指数ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -97,25 +106,25 @@
       "rank_no": 8
     },
     {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 9
-    },
-    {
       "symbol": "MSOS",
       "name": "纯美国大麻ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 10
+      "rank_no": 9
     }
   ],
   "new_candidates": [
+    {
+      "symbol": "BWET",
+      "name": "油轮期货指数ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 8
+    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -141,11 +150,11 @@
       "likely_etf": true,
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 4
+      "rank_no": 5
     },
     {
-      "symbol": "BUG",
-      "name": "Indxx网络安全指数ETF",
+      "symbol": "AIPO",
+      "name": "人工智能电力设施指数",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -153,8 +162,8 @@
       "rank_no": 6
     },
     {
-      "symbol": "AIPO",
-      "name": "人工智能电力设施指数",
+      "symbol": "BUG",
+      "name": "Indxx网络安全指数ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -171,22 +180,13 @@
       "rank_no": 8
     },
     {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 9
-    },
-    {
       "symbol": "MSOS",
       "name": "纯美国大麻ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 10
+      "rank_no": 9
     }
   ],
   "formal_overlap": [
@@ -197,13 +197,13 @@
       "likely_etf": true,
       "leveraged_product": false,
       "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 5
+      "rank_no": 4
     }
   ],
   "leveraged_noise": [
     {
-      "symbol": "DJTU",
-      "name": "2倍做多DJT每日目标",
+      "symbol": "PATX",
+      "name": "2倍做多PATH每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -211,8 +211,8 @@
       "rank_no": 1
     },
     {
-      "symbol": "BMNU",
-      "name": "2倍做多BMNR每日目标",
+      "symbol": "NOWL",
+      "name": "2倍做多NOW每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -220,8 +220,8 @@
       "rank_no": 2
     },
     {
-      "symbol": "BEZ",
-      "name": "2倍做空BE每日ETF",
+      "symbol": "NOWX",
+      "name": "NOW每日2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -229,8 +229,8 @@
       "rank_no": 3
     },
     {
-      "symbol": "IONZ",
-      "name": "每日2倍做空IONQ ETF",
+      "symbol": "FIGG",
+      "name": "2倍做多FIG每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -238,8 +238,8 @@
       "rank_no": 4
     },
     {
-      "symbol": "RKLZ",
-      "name": "每日目标2倍做空RKLB",
+      "symbol": "MSFL",
+      "name": "每日2倍做多MSFT ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -247,8 +247,8 @@
       "rank_no": 5
     },
     {
-      "symbol": "QBTZ",
-      "name": "每日2倍做空QBTS",
+      "symbol": "MSFC",
+      "name": "MSFT 2倍做多每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -256,8 +256,8 @@
       "rank_no": 6
     },
     {
-      "symbol": "ASTN",
-      "name": "每日目标2倍做空ASTS",
+      "symbol": "MSFX",
+      "name": "微软每日2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -265,8 +265,8 @@
       "rank_no": 7
     },
     {
-      "symbol": "KBAB",
-      "name": "2倍做多BABA每日ETF",
+      "symbol": "MSFU",
+      "name": "每日微软2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -274,8 +274,8 @@
       "rank_no": 8
     },
     {
-      "symbol": "BABX",
-      "name": "阿里巴巴2倍做多",
+      "symbol": "HOOZ",
+      "name": "每日目标2倍做空HOOD",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -283,8 +283,8 @@
       "rank_no": 9
     },
     {
-      "symbol": "BABU",
-      "name": "每日2倍做多BABA ETF",
+      "symbol": "ADBG",
+      "name": "2倍做多ADBE每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -292,8 +292,8 @@
       "rank_no": 10
     },
     {
-      "symbol": "SPCG",
-      "name": "2倍做空SpaceX每日ETF",
+      "symbol": "ADBU",
+      "name": "每日ADBE 2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -301,8 +301,8 @@
       "rank_no": 11
     },
     {
-      "symbol": "SSPC",
-      "name": "2倍做空SPCX每日ETF",
+      "symbol": "DJTU",
+      "name": "2倍做多DJT每日目标",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -310,8 +310,8 @@
       "rank_no": 12
     },
     {
-      "symbol": "SNK",
-      "name": "2倍做空SpaceX每日ETF",
+      "symbol": "UNX",
+      "name": "2倍做多U每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -319,8 +319,8 @@
       "rank_no": 13
     },
     {
-      "symbol": "SPCQ",
-      "name": "2倍做空SPCX ETF",
+      "symbol": "CRMG",
+      "name": "2倍做多CRM每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -328,8 +328,8 @@
       "rank_no": 14
     },
     {
-      "symbol": "APLZ",
-      "name": "2倍做空APLD每日ETF",
+      "symbol": "AALG",
+      "name": "2倍做多AAL每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -337,8 +337,8 @@
       "rank_no": 15
     },
     {
-      "symbol": "RGTZ",
-      "name": "每日2倍做空RGTI",
+      "symbol": "LITZ",
+      "name": "2倍做空LITE每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -346,8 +346,8 @@
       "rank_no": 16
     },
     {
-      "symbol": "SMZ",
-      "name": "2倍做空SMR每日ETF",
+      "symbol": "SNOU",
+      "name": "2倍做多SNOW每日目标",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -355,8 +355,8 @@
       "rank_no": 17
     },
     {
-      "symbol": "NRGU",
-      "name": "大石油指数3倍做多ETN",
+      "symbol": "AAOZ",
+      "name": "AAOI每日2倍做空ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -364,8 +364,8 @@
       "rank_no": 18
     },
     {
-      "symbol": "OKLS",
-      "name": "每日目标2倍做空OKLO",
+      "symbol": "TDCL",
+      "name": "TDC每日2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -373,8 +373,8 @@
       "rank_no": 19
     },
     {
-      "symbol": "HPEL",
-      "name": "每日2倍做多HPE ETF",
+      "symbol": "SPOG",
+      "name": "2倍做多SPOT每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,

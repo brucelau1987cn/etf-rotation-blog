@@ -29,10 +29,10 @@ WATCHLIST = [
     {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
     {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所", "unit": "元/克", "tick": 0.02},
     {"code": "AG", "continuous": "AG0", "name": "白银", "exchange": "上期所", "unit": "元/千克", "tick": 1},
-    {"code": "CU", "continuous": "CU0", "name": "铜", "exchange": "上期所", "unit": "元/吨", "tick": 10},
-    {"code": "AL", "continuous": "AL0", "name": "铝", "exchange": "上期所", "unit": "元/吨", "tick": 5},
+    {"code": "CU", "continuous": "CU0", "name": "沪铜", "exchange": "上期所", "unit": "元/吨", "tick": 10},
+    {"code": "AL", "continuous": "AL0", "name": "沪铝", "exchange": "上期所", "unit": "元/吨", "tick": 5},
     {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1},
-    {"code": "LH", "continuous": "LH0", "name": "猪肉", "exchange": "大商所", "unit": "元/吨", "tick": 1},
+    {"code": "LH", "continuous": "LH0", "name": "生猪", "exchange": "大商所", "unit": "元/吨", "tick": 1},
 ]
 
 
@@ -333,7 +333,7 @@ def fetch_daily_bars() -> dict[str, Any]:
 
 
 def run_iwencai_review(slot: str) -> dict[str, Any]:
-    query = "碳酸锂 多晶硅 工业硅 黄金 白银 铜 铝 原油 猪肉主力合约最新价涨跌幅成交量持仓量"
+    query = "碳酸锂 多晶硅 工业硅 黄金 白银 沪铜 沪铝 原油 生猪主力合约最新价涨跌幅成交量持仓量"
     command = [str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query, "--limit", "20", "--timeout", "45"]
     started = time.time(); reviewed_at = now_iso()
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)
