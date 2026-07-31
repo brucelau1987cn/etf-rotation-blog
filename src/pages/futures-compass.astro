@@ -71,7 +71,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
       .future-top{display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start}.future-top strong{display:block;font-size:.98rem}.future-top small{display:block;color:rgb(var(--gray));font-size:.66rem}.state-tag{padding:.18rem .42rem;border-radius:6px;font-size:.64rem;font-weight:850;white-space:nowrap}.state-tag.bull{background:#fff0ee;color:#bb3023}.state-tag.bear{background:#e8f7ef;color:#08733b}.state-tag.caution{background:#fff6df;color:#8d5c00}.state-tag.neutral{background:#f0f1f2;color:#596169}
       .quote{display:flex;align-items:flex-end;justify-content:space-between;gap:.6rem;margin:.72rem 0}.price{font-size:1.48rem;font-weight:900;line-height:1}.price-unit{display:block;margin-top:.2rem;color:rgb(var(--gray));font-size:.62rem;font-weight:700}.change{font-size:.86rem;font-weight:900}.up .change{color:var(--market-up)}.down .change{color:var(--market-down)}
       .quote-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.34rem}.quote-cell{padding:.46rem;background:var(--warm-2);border-radius:7px;min-width:0}.quote-cell span{display:block;color:rgb(var(--gray));font-size:.57rem}.quote-cell strong{display:block;margin-top:.1rem;font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.34rem;margin-top:.42rem}.evidence{padding:.44rem;border:1px solid var(--border);border-radius:7px;min-width:0}.evidence span{display:block;color:rgb(var(--gray));font-size:.57rem}.evidence strong{display:block;margin-top:.1rem;font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-foot{display:flex;justify-content:space-between;gap:.45rem;margin-top:.45rem;color:rgb(var(--gray));font-size:.64rem}.card-foot b{color:rgb(var(--gray-dark))}
+      .evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.34rem;margin-top:.42rem}.evidence{padding:.44rem;border:1px solid var(--border);border-radius:7px;min-width:0}.evidence span{display:block;color:rgb(var(--gray));font-size:.57rem}.evidence strong{display:block;margin-top:.1rem;font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.warehouse-strip{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.42rem;padding:.42rem .55rem;border-radius:7px;background:var(--warm-2);font-size:.68rem}.warehouse-strip span{color:rgb(var(--gray))}.warehouse-strip strong{font-weight:800}.warehouse-strip .wh-change{font-weight:700}.warehouse-strip .wh-change.up{color:var(--market-up)}.warehouse-strip .wh-change.down{color:var(--market-down)}.card-foot{display:flex;justify-content:space-between;gap:.45rem;margin-top:.45rem;color:rgb(var(--gray));font-size:.64rem}.card-foot b{color:rgb(var(--gray-dark))}
       .matrix{display:grid;grid-template-columns:1.05fr .95fr;gap:.75rem}.matrix-panel,.supply-panel{padding:.9rem;border:1px solid var(--border);border-radius:10px;background:#fff}.matrix-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}.matrix-cell{padding:.65rem;border-radius:8px;background:var(--warm-2)}.matrix-cell span{display:block;color:rgb(var(--gray));font-size:.62rem}.matrix-cell strong{display:block;margin-top:.14rem;font-size:.82rem}.matrix-cell.bull{border-left:4px solid var(--market-up)}.matrix-cell.bear{border-left:4px solid var(--market-down)}.matrix-cell.caution{border-left:4px solid var(--amber)}
       .supply-list{display:grid;gap:.4rem}.supply-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.58rem;border-bottom:1px solid var(--border);font-size:.75rem}.supply-row:last-child{border-bottom:0}.supply-row span{color:rgb(var(--gray))}.review-box{margin-top:.6rem;padding:.65rem;border-radius:8px;background:#172129;color:#dbe2e6;font-size:.72rem;line-height:1.55}.review-box strong{color:#fff}
       .legend{margin-top:.85rem;padding:.75rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;color:rgb(var(--gray));line-height:1.55}.legend b{color:rgb(var(--gray-dark))}
@@ -108,6 +108,19 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
                 <div class="evidence"><span>趋势</span><strong class="trend-state">{item.trend_state || '未知'}</strong></div><div class="evidence"><span>结构</span><strong class="structure">{item.structure || '未知'}</strong></div><div class="evidence"><span>20日位置</span><strong class="range-position">{pct(item.range_20d_position_pct)}</strong></div>
                 <div class="evidence"><span>支撑 · {item.unit || ''}</span><strong class="support">{quote(item.support,item.tick)}</strong></div><div class="evidence"><span>压力 · {item.unit || ''}</span><strong class="resistance">{quote(item.resistance,item.tick)}</strong></div><div class="evidence"><span>量比20日</span><strong class="volume-ratio">{multiple(item.volume_ratio_20d)}</strong></div>
               </div>
+              {item.warehouse_receipt?.status === 'known' ? (
+                <div class="warehouse-strip">
+                  <span>仓单</span>
+                  <strong>{number(item.warehouse_receipt?.receipt, 0)}</strong>
+                  <span class={`wh-change ${tone(item.warehouse_receipt?.change)}`}>{number(item.warehouse_receipt?.change, 0)}</span>
+                  <span class="quote-time">{item.warehouse_receipt?.trade_date || ''}</span>
+                </div>
+              ) : (
+                <div class="warehouse-strip">
+                  <span>仓单</span>
+                  <span style="color:rgb(var(--gray))">暂无数据</span>
+                </div>
+              )}
               <div class="card-foot"><span><b class="capital-state">{item.capital_state || '量仓未知'}</b> · <span class="fvg-state">{item.fvg?.direction || 'FVG未知'}</span></span><span class="quote-time">{item.quote_time || '—'}</span></div>
             </article>
           ))}
@@ -118,9 +131,11 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
         <div class="section-head"><div><span class="eyebrow">Evidence matrix</span><h2>强弱矩阵与供需复查</h2></div><p>量仓四象限、交易所仓单和定时复查分别保留来源时间。</p></div>
         <div class="matrix">
           <article class="matrix-panel"><div class="matrix-grid"><div class="matrix-cell bull"><span>增仓上涨</span><strong>{summary.capital_counts?.['增仓上涨'] || 0} 个 · 趋势资金确认</strong></div><div class="matrix-cell bear"><span>增仓下跌</span><strong>{summary.capital_counts?.['增仓下跌'] || 0} 个 · 空头资金确认</strong></div><div class="matrix-cell caution"><span>减仓上涨</span><strong>{summary.capital_counts?.['减仓上涨'] || 0} 个 · 空头回补</strong></div><div class="matrix-cell caution"><span>减仓下跌</span><strong>{summary.capital_counts?.['减仓下跌'] || 0} 个 · 多头离场</strong></div></div><div class="legend"><b>排序：</b>{summary.ranking?.join(' → ') || '等待足够数据'}。排序综合当日涨跌、持仓变化率和20日量比，仅作横向证据比较。</div></article>
-          <article class="supply-panel"><div class="supply-list">{knownReceipts.length ? knownReceipts.map((item) => <div class="supply-row"><strong>{item.code} · {item.name}</strong><span>仓单 {number(item.warehouse_receipt?.receipt,0)}</span><span class={tone(item.warehouse_receipt?.change)}>日变 {number(item.warehouse_receipt?.change,0)}</span></div>) : <div class="supply-row"><strong>仓单数据</strong><span>等待交易所有效快照</span></div>}</div><div class="review-box"><strong>定时复查：</strong>{reviewSlot[snapshot.iwencai_review?.review_slot || ''] || '待首次复查'} · {snapshot.iwencai_review?.status === 'ok' ? `覆盖 ${snapshot.iwencai_review?.row_count || 0} 行` : '状态未知'}<br />时间 {(snapshot.iwencai_review?.reviewed_at || '—').replace('T',' ').replace('+08:00','')}</div></article>
+          <article class="supply-panel">
+            <div class="review-box"><strong>定时复查：</strong>{reviewSlot[snapshot.iwencai_review?.review_slot || ''] || '待首次复查'} · {snapshot.iwencai_review?.status === 'ok' ? `覆盖 ${snapshot.iwencai_review?.row_count || 0} 行` : '状态未知'}<br />时间 {(snapshot.iwencai_review?.reviewed_at || '—').replace('T',' ').replace('+08:00','')}</div>
+          </article>
         </div>
-        <div class="legend"><b>口径：</b>红涨绿跌；价格摘要显示涨跌幅，持仓摘要显示较昨持仓变化率；“支撑/压力”由20日区间和ATR14计算并按合约最小变动单位取整；BOS/CHoCH使用最近已收盘K线；仓单当前覆盖广期所品种。实时失败时页面保留最近有效快照并明确标记。</div>
+        <div class="legend"><b>口径：</b>红涨绿跌；价格摘要显示涨跌幅，持仓摘要显示较昨持仓变化率；"支撑/压力"由20日区间和ATR14计算并按合约最小变动单位取整；BOS/CHoCH使用最近已收盘K线；仓单数据已合并至每个品种卡片内（来源：广期所/上期所 akShare）。实时失败时页面保留最近有效快照并明确标记。</div>
       </section>
     </main>
     <Footer />
