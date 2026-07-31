@@ -93,7 +93,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "startSummaryTicker" in app
     assert "renderTodayCount" in app
     assert "todaySignalsFor" in app
-    assert "isTodayShanghai" in app
+    assert "isTodayMarket" in app
     assert "SUMMARY_VISIBLE_ROWS" in app
     assert "summary-signal-count" in app
     assert "summary-signal-symbol" in app
@@ -150,13 +150,24 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert 'id="sell-today-track"' not in stats
 
 
+def test_summary_uses_market_local_date_for_today_filtering():
+    app = APP.read_text(encoding="utf-8")
+
+    assert "const marketTimeZone" in app
+    assert "market === 'us' ? 'America/New_York'" in app
+    assert "isTodayMarket" in app
+    assert "marketTodayLabel" in app
+    assert "isTodayShanghai" not in app
+    assert "shanghaiTodayLabel" not in app
+
+
 def test_summary_shows_today_only_signals_and_240m_stop_validation_card():
     stats = STATS.read_text(encoding="utf-8")
     matrix = MATRIX.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
     styles = STYLES.read_text(encoding="utf-8")
 
-    assert "isTodayShanghai" in app
+    assert "isTodayMarket" in app
     assert "todaySignalsFor" in app
     assert "renderTodaySignals" not in app
     assert "当日更新" not in stats

@@ -98,6 +98,7 @@
   };
   const currentScript = document.currentScript;
   const market = ['a', 'futures', 'hk', 'us'].includes(currentScript?.dataset?.market) ? currentScript.dataset.market : 'a';
+  const marketTimeZone = market === 'us' ? 'America/New_York' : 'Asia/Shanghai';
   // Futures has day/night sessions per product; use free-running poll (no CN_A/HK/US gate).
   const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : market === 'futures' ? null : 'CN_A';
   const INSTRUMENTS = market === 'us'
@@ -113,7 +114,7 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     const options = {
-      timeZone: 'Asia/Shanghai',
+      timeZone: marketTimeZone,
       hour12: false,
       hour: '2-digit',
       minute: '2-digit'
@@ -514,19 +515,19 @@
     startSummaryTicker(track);
   };
 
-  const isTodayShanghai = (value) => {
+  const isTodayMarket = (value) => {
     if (!value) return false;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return false;
     const key = (target) => new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+      timeZone: marketTimeZone, year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(target);
     return key(date) === key(new Date());
   };
 
-  const shanghaiTodayLabel = () => {
+  const marketTodayLabel = () => {
     const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+      timeZone: marketTimeZone, year: 'numeric', month: '2-digit', day: '2-digit',
     }).formatToParts(new Date());
     const month = parts.find((part) => part.type === 'month')?.value || '01';
     const day = parts.find((part) => part.type === 'day')?.value || '01';
@@ -536,7 +537,7 @@
   const renderTodayCount = (type, count) => {
     const el = document.getElementById(type === 'BUY' ? 'buy-today-count' : 'sell-today-count');
     if (!el) return;
-    el.textContent = `${shanghaiTodayLabel()} · ${count}个信号（含观察）`;
+    el.textContent = `${marketTodayLabel()} · ${count}个信号（含观察）`;
   };
 
   const updateHeroSummary = (payloads) => {
@@ -596,7 +597,7 @@
         const formal = type === 'BUY' ? split.allBuys : split.allSells;
         const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
         const items = (observation ? [...formal, observation] : formal)
-          .filter(item => isTodayShanghai(item?.triggered_at))
+          .filter(item => isTodayMarket(item?.triggered_at))
           .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime());
         if (!items.length) return;
         const latest = items[0];
@@ -624,7 +625,7 @@
       const formal = type === 'BUY' ? split.allBuys : split.allSells;
       const observation = type === 'BUY' ? split.buyObservation : split.sellObservation;
       const items = observation ? [...formal, observation] : formal;
-      return sum + items.filter(item => isTodayShanghai(item?.triggered_at)).length;
+      return sum + items.filter(item => isTodayMarket(item?.triggered_at)).length;
     }, 0);
     renderSummarySignals('BUY', todayBuys);
     renderSummarySignals('SELL', todaySells);
