@@ -1080,6 +1080,67 @@ async function fetchSinaMinuteBars(parsed, limit = 480) {
   }
 }
 
+/** Yahoo Finance futures symbol mapping for 1m kline. */
+const YAHOO_FUTURES_SYMBOL = {
+  'hf_XAG': 'SI=F',
+  'hf_XAU': 'GC=F',
+  'hf_CL': 'CL=F',
+  'nf_AU0': 'GC=F',
+  'nf_SC0': 'CL=F',
+  'nf_M0': 'ZS=F',
+};
+
+async function fetchYahooMinuteBars(parsed, limit = 240) {
+  const yahooSymbol = YAHOO_FUTURES_SYMBOL[parsed.sina] || YAHOO_FUTURES_SYMBOL[parsed.tencent];
+  if (!yahooSymbol) return [];
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1d&interval=1m`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 ETF-Compass/1.0' },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Yahoo kline HTTP ${res.status}`);
+    const payload = await res.json();
+    return parseYahooMinuteBars(payload, limit);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function parseYahooMinuteBars(payload, limit) {
+  const result = payload?.chart?.result?.[0];
+  if (!result) return [];
+  const timestamps = result.timestamp || [];
+  const quote = result.indicators?.quote?.[0];
+  if (!quote || !timestamps.length) return [];
+
+  const bars = [];
+  const len = Math.min(timestamps.length, limit);
+  for (let i = Math.max(0, timestamps.length - len); i < timestamps.length; i++) {
+    const ts = timestamps[i];
+    const close = quote.close?.[i];
+    if (close == null) continue;
+    // Yahoo timestamps are UTC; convert to Shanghai time for minute key.
+    const shDt = new Date(new Date(ts * 1000).getTime() + 8 * 3600000);
+    const minuteKey = shDt.toISOString().slice(0, 16).replace('T', ' ');
+    const isoTime = shDt.toISOString().slice(0, 19) + '+08:00';
+    bars.push({
+      minute: minuteKey,
+      time: isoTime,
+      open: quote.open?.[i] ?? close,
+      high: quote.high?.[i] ?? close,
+      low: quote.low?.[i] ?? close,
+      close,
+      volume: 0,
+      source: 'yahoo-1m',
+    });
+  }
+  return bars;
+}
+
 /**
  * Fetch 1-minute bars for one symbol via Cloudflare edge upstreams.
  * Sources: Sina 1m K first, Tencent minute/m1 as fill.
@@ -1087,6 +1148,30 @@ async function fetchSinaMinuteBars(parsed, limit = 480) {
 export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExchange = 'SSE' } = {}) {
   const parsed = parseSymbol(symbol, defaultExchange);
   if (!parsed) throw new Error('invalid symbol');
+
+  if (parsed.type === 'futures') {
+    const bars = await fetchYahooMinuteBars(parsed, Math.max(limit, at ? 800 : 240));
+    if (!bars.length) throw new Error('no 1m bars available for futures symbol');
+    const bar = at ? pickMinuteBar(bars, at) : bars[bars.length - 1];
+    const clipped = bars.slice(Math.max(0, bars.length - limit));
+    if (bar && !clipped.some((item) => item.minute === bar.minute)) {
+      clipped.unshift(bar);
+      clipped.sort((a, b) => a.minute.localeCompare(b.minute));
+    }
+    return {
+      status: 'ok',
+      interval: '1m',
+      symbol: parsed.displayCode,
+      sec_code: parsed.tencent,
+      source: 'yahoo-1m',
+      count: clipped.length,
+      at: at || null,
+      at_minute: at ? normalizeShanghaiMinuteKey(at) : null,
+      bar: bar || null,
+      bars: clipped,
+    };
+  }
+
   if (parsed.type !== 'a' && parsed.type !== 'hk') {
     // First ship A-share/ETF and HK 1m only; US/futures can be added later.
     throw new Error('1m kline currently supports A-share/ETF and HK symbols only');
