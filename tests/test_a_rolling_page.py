@@ -212,8 +212,8 @@ def test_us_market_clock_labels_timezone_and_uses_following_open_session():
     session = (ROOT / "functions" / "api" / "public" / "v1" / "market-session.js").read_text(encoding="utf-8")
 
     assert "America/New_York" in poll
-    assert "美东时间" in poll
-    assert "market === 'US' ? '美东时间 ' : ''" in poll
+    assert "EDT" in poll
+    assert "market === 'US' ? 'EDT ' : ''" in poll
     assert "trade_date > ?" in session
 
 

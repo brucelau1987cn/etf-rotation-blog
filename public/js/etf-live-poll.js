@@ -95,7 +95,7 @@
 
   function statusText(phase, countdown, calendar, market) {
     const timezone = MARKET_CONFIG[market]?.timezone || 'UTC';
-    const timezoneLabel = market === 'US' ? '美东时间 ' : '';
+    const timezoneLabel = market === 'US' ? 'EDT ' : '';
     if (phase.active) return `${phase.label} · ${Math.max(1, countdown)}s 后刷新`;
     if (phase.resume) return `${phase.label} · ${timezoneLabel}${phase.resume}恢复`;
     if (phase.next) {
