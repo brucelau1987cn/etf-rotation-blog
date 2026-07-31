@@ -181,6 +181,7 @@ def main() -> None:
         write_state("committed", trade_date=old, commit=commit)
         # Deploy the recovered close edition as well; commit success alone does not
         # advance etf.peekabo.cc because production uses direct Wrangler Pages deploys.
+        run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         run("npm", "run", "build")
         release_pages([
             "https://etf.peekabo.cc/us-compass/",
@@ -226,6 +227,7 @@ def main() -> None:
         )
 
     write_state("validated", trade_date=new)
+    run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
     run("npm", "run", "build")
     run("git", "add", *FILES)
     # Commit only when the close edition actually changed.
