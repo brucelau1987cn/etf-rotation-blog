@@ -93,6 +93,8 @@ def test_futures_page_contains_event_briefing_sections():
     assert len(briefing["fed_watch"]["latest"]) >= 2
     assert 'class="command-grid"' not in page
     assert '<section class="terminal"' in page and '<div class="briefing-grid"' in page
+    assert "距交割 {deliveryDays} 天" in page
+    assert "briefing-panel+.briefing-panel{border-left:1px" in page
 
 
 def test_warehouse_fetch_passes_explicit_trade_date_to_exchange_clients(monkeypatch, tmp_path):
