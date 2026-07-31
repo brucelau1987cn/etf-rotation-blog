@@ -98,6 +98,7 @@
   };
   const currentScript = document.currentScript;
   const market = ['a', 'futures', 'hk', 'us'].includes(currentScript?.dataset?.market) ? currentScript.dataset.market : 'a';
+  // Each rolling market owns its calendar boundary; US signals follow New York time.
   const marketTimeZone = market === 'us' ? 'America/New_York' : 'Asia/Shanghai';
   // Futures has day/night sessions per product; use free-running poll (no CN_A/HK/US gate).
   const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : market === 'futures' ? null : 'CN_A';
