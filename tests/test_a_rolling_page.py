@@ -206,6 +206,17 @@ def test_hk_and_us_rolling_use_market_specific_index_cards():
         assert symbol in app
 
 
+def test_us_market_clock_labels_timezone_and_uses_following_open_session():
+    app = APP.read_text(encoding="utf-8")
+    poll = (ROOT / "public" / "js" / "etf-live-poll.js").read_text(encoding="utf-8")
+    session = (ROOT / "functions" / "api" / "public" / "v1" / "market-session.js").read_text(encoding="utf-8")
+
+    assert "America/New_York" in poll
+    assert "美东时间" in poll
+    assert "market === 'US' ? '美东时间 ' : ''" in poll
+    assert "trade_date > ?" in session
+
+
 def test_futures_rolling_page_sits_between_a_and_hk():
     futures = FUTURES_PAGE.read_text(encoding="utf-8")
     stats = STATS.read_text(encoding="utf-8")

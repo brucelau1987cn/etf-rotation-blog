@@ -23,6 +23,6 @@ export async function onRequestGet({ request, env }) {
     close_at, session_type, note, source, updated_at
     FROM market_calendar WHERE market = ? AND trade_date = ?`).bind(market, today).first();
   const next = await env.DB.prepare(`SELECT trade_date, open_at FROM market_calendar
-    WHERE market = ? AND trade_date >= ? AND is_open = 1 ORDER BY trade_date LIMIT 1`).bind(market, today).first();
+    WHERE market = ? AND trade_date > ? AND is_open = 1 ORDER BY trade_date LIMIT 1`).bind(market, today).first();
   return json({ market, timezone: tz, today, session: row || null, next_open_session: next || null });
 }

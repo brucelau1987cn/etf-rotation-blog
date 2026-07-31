@@ -95,13 +95,14 @@
 
   function statusText(phase, countdown, calendar, market) {
     const timezone = MARKET_CONFIG[market]?.timezone || 'UTC';
+    const timezoneLabel = market === 'US' ? '美东时间 ' : '';
     if (phase.active) return `${phase.label} · ${Math.max(1, countdown)}s 后刷新`;
-    if (phase.resume) return `${phase.label} · ${phase.resume}恢复`;
+    if (phase.resume) return `${phase.label} · ${timezoneLabel}${phase.resume}恢复`;
     if (phase.next) {
       let next = formatNext(phase.next, timezone);
       if (market === 'CN_A') next = `${next.slice(0, 5)} 09:15`;
       if (market === 'HK') next = `${next.slice(0, 5)} 09:00`;
-      return `${phase.label} · ${next}恢复`;
+      return `${phase.label} · ${timezoneLabel}${next}恢复`;
     }
     if (!calendar) return '交易日历连接中';
     return phase.label;
