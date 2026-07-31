@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-30T07:10:22.663976+00:00",
+  "updated_at": "2026-07-31T07:10:56.781376+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -49,27 +49,45 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-07-31",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
       "pending_signals": [
         {
-          "symbol": "159920",
-          "name": "恒生ETF华夏",
-          "support": 1.485,
-          "target": 1.569,
-          "stop": 1.452,
-          "signal_date": "2026-07-30",
+          "symbol": "512890",
+          "name": "红利低波ETF华泰柏瑞",
+          "support": 1.177,
+          "target": 1.237,
+          "stop": 1.146,
+          "signal_date": "2026-07-31",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "512890",
-          "name": "红利低波ETF华泰柏瑞",
-          "support": 1.158,
-          "target": 1.216,
-          "stop": 1.14,
-          "signal_date": "2026-07-30",
+          "symbol": "159928",
+          "name": "消费ETF汇添富",
+          "support": 0.673,
+          "target": 0.725,
+          "stop": 0.653,
+          "signal_date": "2026-07-31",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "159920",
+          "name": "恒生ETF华夏",
+          "support": 1.49,
+          "target": 1.574,
+          "stop": 1.46,
+          "signal_date": "2026-07-31",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -123,34 +141,8 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 12100.884164846924,
+      "cash": 14228.231338103762,
       "positions": {
-        "EFA": {
-          "symbol": "EFA",
-          "name": "iShares MSCI EAFE",
-          "quantity": 19,
-          "entry_price": 103.32499694824219,
-          "entry_cost": 1.981587,
-          "entry_at": "2026-07-28T13:35:24.517548+00:00",
-          "target": 105.33,
-          "stop": 102.02,
-          "level_basis": null,
-          "signal_date": "2026-07-27",
-          "last_price": 103.41000366210938
-        },
-        "COPX": {
-          "symbol": "COPX",
-          "name": "Global X Copper Miners",
-          "quantity": 26,
-          "entry_price": 76.12000274658203,
-          "entry_cost": 1.98956,
-          "entry_at": "2026-07-29T13:30:56.157756+00:00",
-          "target": 79.39,
-          "stop": 72.69,
-          "level_basis": null,
-          "signal_date": "2026-07-28",
-          "last_price": 76.13999938964844
-        },
         "XLU": {
           "symbol": "XLU",
           "name": "Utilities Select Sector",
@@ -162,7 +154,7 @@
           "stop": 44.16,
           "level_basis": null,
           "signal_date": "2026-07-28",
-          "last_price": 44.897499084472656
+          "last_price": 44.654998779296875
         },
         "IBIT": {
           "symbol": "IBIT",
@@ -175,17 +167,32 @@
           "stop": 34.83,
           "level_basis": null,
           "signal_date": "2026-07-28",
-          "last_price": 35.994998931884766
+          "last_price": 36.685001373291016
+        },
+        "IGV": {
+          "symbol": "IGV",
+          "name": "iShares Expanded Tech-Software",
+          "quantity": 21,
+          "entry_price": 92.19000244140625,
+          "entry_cost": 1.967995,
+          "entry_at": "2026-07-30T13:40:29.468815+00:00",
+          "target": 96.1,
+          "stop": 87.4,
+          "level_basis": null,
+          "signal_date": "2026-07-29",
+          "signal_kind": "plant",
+          "signal_level": 92.27,
+          "last_price": 93.2750015258789
         }
       },
-      "equity": 19955.63162,
-      "realized_pnl": -12.662288297119133,
-      "unrealized_pnl": -31.706091,
-      "daily_return": -0.00221842,
-      "cumulative_return": -0.00221842,
+      "equity": 20124.846393,
+      "realized_pnl": 106.37677080151369,
+      "unrealized_pnl": 18.469622,
+      "daily_return": 0.00624232,
+      "cumulative_return": 0.00624232,
       "max_drawdown": 0.0,
       "peak_equity": 20000.0,
-      "cash_ratio": 0.60638943,
+      "cash_ratio": 0.70699826,
       "history": [],
       "events": [
         {
@@ -283,36 +290,127 @@
           "price": 36.029999,
           "cost": 1.990825,
           "reason": "plant"
+        },
+        {
+          "id": "US:IGV:buy:1785418832:plant",
+          "timestamp": "2026-07-30T13:40:29.468815+00:00",
+          "market": "US",
+          "symbol": "IGV",
+          "name": "iShares Expanded Tech-Software",
+          "side": "buy",
+          "quantity": 21,
+          "price": 92.190002,
+          "cost": 1.967995,
+          "reason": "plant",
+          "signal_date": "2026-07-29",
+          "signal_kind": "plant",
+          "signal_level": 92.27
+        },
+        {
+          "id": "US:EFA:sell:1785419729:target",
+          "timestamp": "2026-07-30T13:55:29.847736+00:00",
+          "market": "US",
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "side": "sell",
+          "quantity": 19,
+          "price": 105.529999,
+          "cost": 2.002535,
+          "reason": "target",
+          "signal_date": "2026-07-27",
+          "entry_at": "2026-07-28T13:35:24.517548+00:00",
+          "entry_price": 103.32499694824219,
+          "entry_cost": 1.981587,
+          "target": 105.33,
+          "stop": 102.02
+        },
+        {
+          "id": "US:COPX:sell:1785438327:target",
+          "timestamp": "2026-07-30T19:05:38.100121+00:00",
+          "market": "US",
+          "symbol": "COPX",
+          "name": "Global X Copper Miners",
+          "side": "sell",
+          "quantity": 26,
+          "price": 79.394997,
+          "cost": 2.032135,
+          "reason": "target",
+          "signal_date": "2026-07-28",
+          "entry_at": "2026-07-29T13:30:56.157756+00:00",
+          "entry_price": 76.12000274658203,
+          "entry_cost": 1.98956,
+          "target": 79.39,
+          "stop": 72.69
         }
       ],
       "pending_signals": [
         {
-          "symbol": "ETHA",
-          "name": "iShares Ethereum Trust ETF",
-          "support": 14.02,
-          "target": 14.96,
-          "stop": 13.73,
-          "signal_date": "2026-07-28",
+          "symbol": "XLF",
+          "name": "Financial Select Sector",
+          "support": 56.11,
+          "target": 57.64,
+          "stop": 55.39,
+          "signal_date": "2026-07-29",
           "kind": "plant",
           "status": "伏击"
+        },
+        {
+          "symbol": "EWZ",
+          "name": "iShares MSCI Brazil",
+          "support": 35.42,
+          "target": 36.12,
+          "stop": 34.6,
+          "signal_date": "2026-07-29",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "IHF",
+          "name": "iShares U.S. Healthcare Providers",
+          "support": 56.96,
+          "target": 58.59,
+          "stop": 55.01,
+          "signal_date": "2026-07-29",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "KRE",
+          "name": "SPDR S&P Regional Banking",
+          "support": 75.61,
+          "target": 77.91,
+          "stop": 73.87,
+          "signal_date": "2026-07-29",
+          "kind": "ready_plant",
+          "status": "候场"
         },
         {
           "symbol": "SKYY",
           "name": "First Trust Cloud Computing",
-          "support": 136.64,
-          "target": 143.55,
-          "stop": 130.37,
-          "signal_date": "2026-07-28",
-          "kind": "plant",
-          "status": "伏击"
+          "support": 136.84,
+          "target": 144.07,
+          "stop": 131.21,
+          "signal_date": "2026-07-29",
+          "kind": "ready_plant",
+          "status": "候场"
         },
         {
-          "symbol": "XLE",
-          "name": "Energy Select Sector",
-          "support": 56.39,
-          "target": 59.02,
-          "stop": 55.64,
-          "signal_date": "2026-07-28",
+          "symbol": "XLB",
+          "name": "Materials Select Sector",
+          "support": 50.95,
+          "target": 52.99,
+          "stop": 50.07,
+          "signal_date": "2026-07-29",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "KIE",
+          "name": "SPDR S&P Insurance",
+          "support": 64.19,
+          "target": 67.27,
+          "stop": 63.68,
+          "signal_date": "2026-07-29",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -329,18 +427,6 @@
           "support": 32.87,
           "target": 33.95,
           "stop": 32.69,
-          "signal_date": "2026-07-30",
-          "kind": "plant",
-          "status": "伏击",
-          "source_date": "2026-07-30",
-          "source_updated_at": "2026-07-30T18:30:56.511008-04:00"
-        },
-        {
-          "symbol": "IGV",
-          "name": "iShares Expanded Tech-Software",
-          "support": 92.27,
-          "target": 96.9,
-          "stop": 88.52,
           "signal_date": "2026-07-30",
           "kind": "plant",
           "status": "伏击",
