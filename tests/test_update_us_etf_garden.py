@@ -62,10 +62,12 @@ def test_owned_commit_subject_accepts_normal_and_recovery_commits():
     assert not module.is_owned_commit_subject("feat: unrelated change")
 
 
-def test_recovery_scope_excludes_catalog():
+def test_recovery_scope_excludes_catalog_and_includes_synced_paper_projection():
     assert "public/data/catalog.json" in module.FILES
     assert "public/data/catalog.json" not in module.US_OWNED_FILES
     assert "public/data/us-etf-garden.json" in module.US_OWNED_FILES
+    assert "public/data/paper-trading.json" in module.FILES
+    assert "public/data/paper-trading.json" in module.US_OWNED_FILES
 
 
 def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):

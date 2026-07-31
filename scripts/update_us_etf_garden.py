@@ -35,6 +35,7 @@ FILES = [
     "public/data/us-macro-dashboard.json",
     "public/data/us-compass-learning.json",
     "public/data/us-compass-shadow.json",
+    "public/data/paper-trading.json",
     "public/data/catalog.json",
 ]
 US_OWNED_FILES = [path for path in FILES if path != "public/data/catalog.json"]
@@ -170,6 +171,7 @@ def main() -> None:
     write_state("evaluated", old_model_date=old, latest_trade_date=latest, session_state=state, action=action)
     if action == "recover":
         write_state("validating_recovery", trade_date=old)
+        run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         run("python3", "scripts/validate_dashboard_batches.py")
         run("python3", "scripts/validate_public_data_contracts.py")
         # Commit only US-owned snapshots here. The waiting A-share nightly publisher
@@ -181,7 +183,6 @@ def main() -> None:
         write_state("committed", trade_date=old, commit=commit)
         # Deploy the recovered close edition as well; commit success alone does not
         # advance etf.peekabo.cc because production uses direct Wrangler Pages deploys.
-        run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         run("npm", "run", "build")
         release_pages([
             "https://etf.peekabo.cc/us-compass/",
