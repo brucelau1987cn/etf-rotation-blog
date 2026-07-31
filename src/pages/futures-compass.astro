@@ -108,12 +108,19 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
                 <div class="evidence"><span>趋势</span><strong class="trend-state">{item.trend_state || '未知'}</strong></div><div class="evidence"><span>结构</span><strong class="structure">{item.structure || '未知'}</strong></div><div class="evidence"><span>20日位置</span><strong class="range-position">{pct(item.range_20d_position_pct)}</strong></div>
                 <div class="evidence"><span>支撑 · {item.unit || ''}</span><strong class="support">{quote(item.support,item.tick)}</strong></div><div class="evidence"><span>压力 · {item.unit || ''}</span><strong class="resistance">{quote(item.resistance,item.tick)}</strong></div><div class="evidence"><span>量比20日</span><strong class="volume-ratio">{multiple(item.volume_ratio_20d)}</strong></div>
               </div>
-              {item.warehouse_receipt?.status === 'known' ? (
+              {item.warehouse_receipt?.status === 'known' && item.warehouse_receipt?.today ? (
                 <div class="warehouse-strip">
                   <span>仓单</span>
-                  <strong>{number(item.warehouse_receipt?.receipt, 0)}</strong>
-                  <span class={`wh-change ${tone(item.warehouse_receipt?.change)}`}>{number(item.warehouse_receipt?.change, 0)}</span>
-                  <span class="quote-time">{item.warehouse_receipt?.trade_date || ''}</span>
+                  <span class="wh-date">{item.warehouse_receipt.today.trade_date || ''}</span>
+                  <strong>{number(item.warehouse_receipt.today.receipt, 0)}</strong>
+                  <span class={`wh-change ${tone(item.warehouse_receipt.today.change)}`}>{number(item.warehouse_receipt.today.change, 0)}</span>
+                  {item.warehouse_receipt.prev ? (
+                    <>
+                      <span class="wh-date">{item.warehouse_receipt.prev.trade_date || ''}</span>
+                      <strong>{number(item.warehouse_receipt.prev.receipt, 0)}</strong>
+                      <span class={`wh-change ${tone(item.warehouse_receipt.prev.change)}`}>{number(item.warehouse_receipt.prev.change, 0)}</span>
+                    </>
+                  ) : null}
                 </div>
               ) : (
                 <div class="warehouse-strip">

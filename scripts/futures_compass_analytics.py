@@ -127,19 +127,28 @@ def rows_for_code(db: sqlite3.Connection, code: str, limit: int = 60) -> list[di
     return [dict(row) for row in reversed(records)]
 
 
-def latest_receipt(db: sqlite3.Connection, code: str) -> dict[str, Any]:
-    row = db.execute(
+def recent_receipts(db: sqlite3.Connection, code: str) -> dict[str, Any]:
+    rows = db.execute(
         "SELECT trade_date,receipt,change_value,source,fetched_at FROM warehouse_receipts "
-        "WHERE code=? ORDER BY trade_date DESC LIMIT 1",
+        "WHERE code=? ORDER BY trade_date DESC LIMIT 2",
         (code,),
-    ).fetchone()
-    if not row:
-        return {"status": "unknown", "trade_date": None, "receipt": None, "change": None}
-    return {
-        "status": "known", "trade_date": row["trade_date"],
-        "receipt": finite(row["receipt"]), "change": finite(row["change_value"]),
-        "source": row["source"], "fetched_at": row["fetched_at"],
+    ).fetchall()
+    if not rows:
+        return {"status": "unknown", "today": None, "prev": None}
+    today = {
+        "trade_date": rows[0]["trade_date"],
+        "receipt": finite(rows[0]["receipt"]),
+        "change": finite(rows[0]["change_value"]),
+        "source": rows[0]["source"],
     }
+    prev = None
+    if len(rows) > 1:
+        prev = {
+            "trade_date": rows[1]["trade_date"],
+            "receipt": finite(rows[1]["receipt"]),
+            "change": finite(rows[1]["change_value"]),
+        }
+    return {"status": "known", "today": today, "prev": prev}
 
 
 def enrich_item(db: sqlite3.Connection, item: dict[str, Any]) -> dict[str, Any]:
@@ -176,7 +185,7 @@ def enrich_item(db: sqlite3.Connection, item: dict[str, Any]) -> dict[str, Any]:
         "support": tick_round(support, tick), "resistance": tick_round(resistance, tick),
         "invalidation": tick_round(support - atr * 0.5, tick) if support is not None and atr is not None else None,
         "trend_state": trend, **structure, "fvg": fvg_state(rows),
-        "warehouse_receipt": latest_receipt(db, str(item["code"])),
+        "warehouse_receipt": recent_receipts(db, str(item["code"])),
     })
     result["signal_label"] = action_label(str(item.get("capital_state") or ""), str(result["structure"]), trend)
     return result

@@ -108,7 +108,8 @@ def validate_public_snapshot(
         if not isinstance(warehouse, dict) or warehouse.get("status") not in {"known", "unknown"}:
             errors.append(f"futures snapshot {code} warehouse receipt structure is incomplete")
         elif warehouse.get("status") == "known" and (
-            not warehouse.get("trade_date") or number(warehouse.get("receipt")) is None or not warehouse.get("source")
+            not isinstance(warehouse.get("today"), dict) or not warehouse["today"].get("trade_date")
+            or number(warehouse["today"].get("receipt")) is None or not warehouse["today"].get("source")
         ):
             errors.append(f"futures snapshot {code} known warehouse receipt lacks data")
     return errors

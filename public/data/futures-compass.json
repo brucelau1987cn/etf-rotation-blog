@@ -1,9 +1,9 @@
 {
   "ok": true,
   "source": "新浪期货",
-  "generated_at": "2026-07-31T12:04:11+08:00",
-  "fetched_at": 1785470652.8504596,
-  "latency_ms": 1067,
+  "generated_at": "2026-07-31T12:20:08+08:00",
+  "fetched_at": 1785471609.794886,
+  "latency_ms": 1073,
   "count": 9,
   "expected_count": 9,
   "stale": false,
@@ -112,11 +112,17 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 13700.0,
-        "change": 200.0,
-        "source": "gfex-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 13700.0,
+          "change": 200.0,
+          "source": "gfex-akshare"
+        },
+        "prev": {
+          "trade_date": "2026-07-30",
+          "receipt": 13700.0,
+          "change": 200.0
+        }
       },
       "signal_label": "空头确认"
     },
@@ -168,9 +174,8 @@
       },
       "warehouse_receipt": {
         "status": "unknown",
-        "trade_date": null,
-        "receipt": null,
-        "change": null
+        "today": null,
+        "prev": null
       },
       "signal_label": "空头回补"
     },
@@ -222,11 +227,17 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 43598.0,
-        "change": 636.0,
-        "source": "gfex-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 43598.0,
+          "change": 636.0,
+          "source": "gfex-akshare"
+        },
+        "prev": {
+          "trade_date": "2026-07-30",
+          "receipt": 43598.0,
+          "change": 636.0
+        }
       },
       "signal_label": "空头回补"
     },
@@ -278,11 +289,13 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 1890.0,
-        "change": 0.0,
-        "source": "shfe-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 1890.0,
+          "change": 0.0,
+          "source": "shfe-akshare"
+        },
+        "prev": null
       },
       "signal_label": "偏多观察"
     },
@@ -334,11 +347,13 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 6244579.0,
-        "change": -30370.0,
-        "source": "shfe-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 6244579.0,
+          "change": -30370.0,
+          "source": "shfe-akshare"
+        },
+        "prev": null
       },
       "signal_label": "偏多观察"
     },
@@ -390,11 +405,13 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 144627.0,
-        "change": -2496.0,
-        "source": "shfe-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 144627.0,
+          "change": -2496.0,
+          "source": "shfe-akshare"
+        },
+        "prev": null
       },
       "signal_label": "偏多观察"
     },
@@ -446,11 +463,13 @@
       },
       "warehouse_receipt": {
         "status": "known",
-        "trade_date": "2026-07-31",
-        "receipt": 361312.0,
-        "change": 2412.0,
-        "source": "shfe-akshare",
-        "fetched_at": "2026-07-31T12:04:11+08:00"
+        "today": {
+          "trade_date": "2026-07-31",
+          "receipt": 361312.0,
+          "change": 2412.0,
+          "source": "shfe-akshare"
+        },
+        "prev": null
       },
       "signal_label": "空头回补"
     },
@@ -502,9 +521,8 @@
       },
       "warehouse_receipt": {
         "status": "unknown",
-        "trade_date": null,
-        "receipt": null,
-        "change": null
+        "today": null,
+        "prev": null
       },
       "signal_label": "多头离场"
     },
@@ -556,9 +574,8 @@
       },
       "warehouse_receipt": {
         "status": "unknown",
-        "trade_date": null,
-        "receipt": null,
-        "change": null
+        "today": null,
+        "prev": null
       },
       "signal_label": "多头离场"
     }
