@@ -206,9 +206,9 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert 'active="futures"' in futures
     assert 'data-market="futures"' in futures
     assert 'indexMarket="futures"' in futures
-    assert "国际银" in futures
-    assert "HF_XAG" in futures
-    assert "国际银已接入" in futures
+    assert "白银现货" in futures
+    assert "SI=F" in futures
+    assert "白银现货已接入" in futures
     assert "FUTURES_INSTRUMENTS" in app
     assert "querySymbol: 'hf_XAG'" in app
     assert "market === 'futures'" in app
@@ -223,7 +223,7 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert ".a-rolling-main .empty-board-card" in styles
     snapshot = json.loads((ROOT / "public/data/futures-rolling-signals-hf_XAG.json").read_text(encoding="utf-8"))
     api = (ROOT / "functions/api/public/v1/rolling-signals.js").read_text(encoding="utf-8")
-    assert snapshot["instrument"] == {"instrument_name": "国际银", "exchange": "FUTURES", "symbol": "HF_XAG"}
+    assert snapshot["instrument"] == {"instrument_name": "白银现货", "exchange": "FUTURES", "symbol": "SI=F"}
     assert snapshot["timeline"] == []
     assert "'HF_XAG': '/data/futures-rolling-signals-hf_XAG.json'" in api
     # Free-running poll for futures (no stock session gate).
