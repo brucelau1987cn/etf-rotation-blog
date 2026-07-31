@@ -41,7 +41,7 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
 
     for slot in ("preopen", "day-close", "night"):
         result = maintenance.run_slot(slot)
-        assert result["snapshot"]["count"] == 6
+        assert result["snapshot"]["count"] == 9
 
     assert len(writes) == 3
     assert all(path == maintenance.PUBLIC_SNAPSHOT for path, _ in writes)
@@ -53,12 +53,12 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
         "ok": True,
         "source": "fixture",
         "generated_at": "2026-07-28T08:20:00+08:00",
-        "count": 6,
-        "expected_count": 6,
+        "count": 9,
+        "expected_count": 9,
         "stale": False,
         "errors": [],
-        "summary": {"ranking": ["LC", "PS", "SI", "AU", "SC", "M"]},
-        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "SC", "M")],
+        "summary": {"ranking": ["LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH"]},
+        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH")],
     }
     assert data.validate_public_snapshot(fresh, now=now) == []
 
@@ -69,9 +69,9 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
     assert any("watchlist" in error for error in data.validate_public_snapshot(incomplete, now=now))
 
     shell = {
-        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 6,
-        "expected_count": 6, "stale": False, "errors": [], "summary": fresh["summary"],
-        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "SC", "M")],
+        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 9,
+        "expected_count": 9, "stale": False, "errors": [], "summary": fresh["summary"],
+        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH")],
     }
     assert any("missing core fields" in error for error in data.validate_public_snapshot(shell, now=now))
 

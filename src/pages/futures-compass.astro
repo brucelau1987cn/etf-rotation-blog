@@ -33,8 +33,11 @@ const fallbackItems: FutureItem[] = [
   { code: 'PS', continuous: 'PS0', name: '多晶硅', exchange: '广期所' },
   { code: 'SI', continuous: 'SI0', name: '工业硅', exchange: '广期所' },
   { code: 'AU', continuous: 'AU0', name: '黄金', exchange: '上期所' },
+  { code: 'AG', continuous: 'AG0', name: '白银', exchange: '上期所' },
+  { code: 'CU', continuous: 'CU0', name: '铜', exchange: '上期所' },
+  { code: 'AL', continuous: 'AL0', name: '铝', exchange: '上期所' },
   { code: 'SC', continuous: 'SC0', name: '原油', exchange: '能源中心' },
-  { code: 'M', continuous: 'M0', name: '豆粕', exchange: '大商所' },
+  { code: 'LH', continuous: 'LH0', name: '猪肉', exchange: '大商所' },
 ];
 let snapshot: FuturesPayload = { items: fallbackItems };
 try { snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8')); } catch {}
@@ -82,9 +85,9 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
       <section class="terminal" aria-label="期货罗盘决策总览">
         <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>先看价格与持仓是否同向，再确认结构、关键位、成交活跃度和仓单。所有状态由行情与日线规则确定，缺失字段保持未知。</p></div><div class="data-stamp"><strong id="data-time">数据 {snapshotTime}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
         <div class="command-grid">
-          <div class="command bull"><span>6品种观察池涨幅第一</span><strong id="strongest-item">{leaderText(summary.strongest)}</strong></div>
-          <div class="command bear"><span>6品种观察池跌幅第一</span><strong id="weakest-item">{leaderText(summary.weakest)}</strong></div>
-          <div class="command bull"><span>6品种持仓增幅率第一</span><strong id="oi-in-item">{leaderText(summary.largest_oi_increase, 'open_interest_change_pct')}</strong></div>
+          <div class="command bull"><span>9品种观察池涨幅第一</span><strong id="strongest-item">{leaderText(summary.strongest)}</strong></div>
+          <div class="command bear"><span>9品种观察池跌幅第一</span><strong id="weakest-item">{leaderText(summary.weakest)}</strong></div>
+          <div class="command bull"><span>9品种持仓增幅率第一</span><strong id="oi-in-item">{leaderText(summary.largest_oi_increase, 'open_interest_change_pct')}</strong></div>
           <div class="command"><span>增仓同向确认</span><strong id="capital-counts">多头 {longCount} · 空头 {shortCount}</strong></div>
         </div>
       </section>

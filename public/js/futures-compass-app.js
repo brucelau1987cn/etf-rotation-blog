@@ -10,8 +10,11 @@ const EDGE_SYMBOLS = {
   PS: 'nf_PS0',
   SI: 'nf_SI0',
   AU: 'nf_AU0',
+  AG: 'nf_AG0',
+  CU: 'nf_CU0',
+  AL: 'nf_AL0',
   SC: 'nf_SC0',
-  M: 'nf_M0',
+  LH: 'nf_LH0',
 };
 const number = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
 const priceDigits = (tick) => Number(tick) >= 1 ? 0 : Number(tick) >= .1 ? 1 : 2;

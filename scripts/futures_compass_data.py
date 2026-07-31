@@ -28,8 +28,11 @@ WATCHLIST = [
     {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
     {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
     {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所", "unit": "元/克", "tick": 0.02},
+    {"code": "AG", "continuous": "AG0", "name": "白银", "exchange": "上期所", "unit": "元/千克", "tick": 1},
+    {"code": "CU", "continuous": "CU0", "name": "铜", "exchange": "上期所", "unit": "元/吨", "tick": 10},
+    {"code": "AL", "continuous": "AL0", "name": "铝", "exchange": "上期所", "unit": "元/吨", "tick": 5},
     {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1},
-    {"code": "M", "continuous": "M0", "name": "豆粕", "exchange": "大商所", "unit": "元/吨", "tick": 1},
+    {"code": "LH", "continuous": "LH0", "name": "猪肉", "exchange": "大商所", "unit": "元/吨", "tick": 1},
 ]
 
 
@@ -69,7 +72,7 @@ def validate_public_snapshot(
     summary = payload.get("summary")
     ranking = summary.get("ranking") if isinstance(summary, dict) else None
     if not isinstance(ranking, list) or len(ranking) != len(expected) or set(ranking) != set(expected):
-        errors.append("futures snapshot summary ranking must cover all six instruments")
+        errors.append("futures snapshot summary ranking must cover all nine instruments")
 
     required_strings = (
         "continuous", "name", "exchange", "contract_code", "contract_name", "quote_time",
@@ -290,8 +293,8 @@ def fetch_realtime() -> dict[str, Any]:
         db.commit()
         items = [enrich_item(db, item) for item in items]
         review = latest_review(db)
-    if len(items) < 4:
-        raise RuntimeError(f"realtime coverage too low: {len(items)}/6; {'; '.join(errors)}")
+    if len(items) < 6:
+        raise RuntimeError(f"realtime coverage too low: {len(items)}/9; {'; '.join(errors)}")
     payload = {
         "ok": True, "source": "新浪期货", "generated_at": observed_at,
         "fetched_at": time.time(), "latency_ms": latency, "count": len(items),
@@ -330,7 +333,7 @@ def fetch_daily_bars() -> dict[str, Any]:
 
 
 def run_iwencai_review(slot: str) -> dict[str, Any]:
-    query = "碳酸锂 多晶硅 工业硅 黄金 原油 豆粕主力合约最新价涨跌幅成交量持仓量"
+    query = "碳酸锂 多晶硅 工业硅 黄金 白银 铜 铝 原油 猪肉主力合约最新价涨跌幅成交量持仓量"
     command = [str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query, "--limit", "20", "--timeout", "45"]
     started = time.time(); reviewed_at = now_iso()
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)
