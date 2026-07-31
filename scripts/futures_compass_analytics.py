@@ -148,6 +148,16 @@ def recent_receipts(db: sqlite3.Connection, code: str) -> dict[str, Any]:
             "receipt": finite(rows[1]["receipt"]),
             "change": finite(rows[1]["change_value"]),
         }
+    elif today["receipt"] is not None and today["change"] is not None:
+        # Exchange daily receipt reports define change as today's receipt minus
+        # the previous trading day's receipt. Reconstruct the prior value when
+        # the local DB has only today's row (newly added instruments).
+        prev = {
+            "trade_date": None,
+            "receipt": today["receipt"] - today["change"],
+            "change": None,
+            "derived": True,
+        }
     return {"status": "known", "today": today, "prev": prev}
 
 

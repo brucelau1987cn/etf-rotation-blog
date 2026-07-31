@@ -79,3 +79,31 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
 def test_build_runs_futures_snapshot_freshness_gate():
     package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
     assert "scripts/validate_futures_compass.py" in package["scripts"]["build"]
+
+
+def test_warehouse_fetch_passes_explicit_trade_date_to_exchange_clients(monkeypatch, tmp_path):
+    import pandas as pd
+
+    calls = []
+    gfex = {
+        "LC": pd.DataFrame({"昨日仓单量": [10], "今日仓单量": [12], "增减": [2]}),
+        "PS": pd.DataFrame({"昨日仓单量": [20], "今日仓单量": [21], "增减": [1]}),
+        "SI": pd.DataFrame({"昨日仓单量": [30], "今日仓单量": [29], "增减": [-1]}),
+    }
+
+    class FakeAk:
+        @staticmethod
+        def futures_gfex_warehouse_receipt(date):
+            calls.append(("gfex", date))
+            return gfex
+
+        @staticmethod
+        def futures_shfe_warehouse_receipt(date):
+            calls.append(("shfe", date))
+            return {}
+
+    monkeypatch.setitem(__import__("sys").modules, "akshare", FakeAk)
+    monkeypatch.setattr(data, "DB_PATH", tmp_path / "futures.db")
+    result = data.fetch_warehouse_receipts("20260730")
+    assert calls == [("gfex", "20260730"), ("shfe", "20260730")]
+    assert result["rows"] == 3

@@ -6,7 +6,8 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
 
-type Receipt = { status?: string; trade_date?: string; receipt?: number; change?: number; source?: string };
+type ReceiptPoint = { trade_date?: string | null; receipt?: number; change?: number | null; source?: string; derived?: boolean };
+type Receipt = { status?: string; today?: ReceiptPoint | null; prev?: ReceiptPoint | null };
 type Fvg = { direction?: string; lower?: number; upper?: number; status?: string };
 type FutureItem = {
   code: string; continuous: string; name: string; exchange: string;
@@ -43,7 +44,7 @@ let snapshot: FuturesPayload = { items: fallbackItems };
 try { snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8')); } catch {}
 const items = snapshot.items?.length ? snapshot.items : fallbackItems;
 const summary = snapshot.summary || {};
-const number = (value?: number, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
+const number = (value?: number | null, digits = 2) => value !== null && value !== undefined && Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
 const priceDigits = (tick?: number) => Number(tick) >= 1 ? 0 : Number(tick) >= 0.1 ? 1 : 2;
 const quote = (value?: number, tick?: number) => number(value, priceDigits(tick));
 const pct = (value?: number) => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '—';
@@ -54,7 +55,6 @@ const snapshotTime = (snapshot.generated_at || '').replace('T', ' ').replace('+0
 const leaderText = (item?: Leader, field: 'change_pct' | 'open_interest_change_pct' = 'change_pct') => item ? `${item.code} ${item.name} · ${pct(item[field])}` : '等待有效数据';
 const longCount = items.filter((item) => item.capital_state === '增仓上涨').length;
 const shortCount = items.filter((item) => item.capital_state === '增仓下跌').length;
-const knownReceipts = items.filter((item) => item.warehouse_receipt?.status === 'known');
 const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '日盘收盘', night: '夜盘' };
 ---
 <!doctype html>
@@ -113,12 +113,11 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
                   <span>仓单</span>
                   <span class="wh-date">{item.warehouse_receipt.today.trade_date || ''}</span>
                   <strong>{number(item.warehouse_receipt.today.receipt, 0)}</strong>
-                  <span class={`wh-change ${tone(item.warehouse_receipt.today.change)}`}>{number(item.warehouse_receipt.today.change, 0)}</span>
+                  <span class={`wh-change ${tone(item.warehouse_receipt.today.change)}`}>日变 {number(item.warehouse_receipt.today.change, 0)}</span>
                   {item.warehouse_receipt.prev ? (
                     <>
-                      <span class="wh-date">{item.warehouse_receipt.prev.trade_date || ''}</span>
+                      <span class="wh-date">{item.warehouse_receipt.prev.trade_date || '上个交易日'}</span>
                       <strong>{number(item.warehouse_receipt.prev.receipt, 0)}</strong>
-                      <span class={`wh-change ${tone(item.warehouse_receipt.prev.change)}`}>{number(item.warehouse_receipt.prev.change, 0)}</span>
                     </>
                   ) : null}
                 </div>

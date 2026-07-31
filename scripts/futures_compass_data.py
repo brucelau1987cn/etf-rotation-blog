@@ -9,7 +9,7 @@ import sqlite3
 import subprocess
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -359,27 +359,48 @@ def run_iwencai_review(slot: str) -> dict[str, Any]:
     return {"status": status, "reviewed_at": reviewed_at, "slot": slot, "code_count": payload.get("code_count"), "rows": len(rows), "error": error}
 
 
-def fetch_warehouse_receipts() -> dict[str, Any]:
+def fetch_warehouse_receipts(query_date: str | None = None) -> dict[str, Any]:
     import akshare as ak  # pyright: ignore[reportMissingImports]
     import pandas as pd  # pyright: ignore[reportMissingImports]
 
     started = time.time(); rows = 0; errors = []
-    today = datetime.now(CN).date().isoformat()
+    requested = query_date or datetime.now(CN).strftime("%Y%m%d")
+    requested_day = datetime.strptime(requested, "%Y%m%d").date()
+    # Both exchange wrappers default to historical dates inside AkShare.
+    # Request the current trade date explicitly; otherwise each daily run
+    # relabels the same old report as today and creates identical day rows.
+    query_date = requested
 
-    # GFEX (广期所): LC, PS, SI
-    try:
-        gfex = ak.futures_gfex_warehouse_receipt()
-    except Exception as exc:
-        gfex = {}; errors.append(f"gfex: {exc}")
+    # GFEX publishes after market close. Walk backwards to the latest report
+    # that actually contains rows, and preserve both official 今日/昨日 totals.
+    gfex: dict[str, Any] = {}
+    gfex_day = requested_day
+    for offset in range(8):
+        candidate = requested_day - timedelta(days=offset)
+        if candidate.weekday() >= 5:
+            continue
+        try:
+            candidate_data = ak.futures_gfex_warehouse_receipt(date=candidate.strftime("%Y%m%d"))
+            if candidate_data:
+                gfex = candidate_data
+                gfex_day = candidate
+                break
+        except Exception as exc:
+            errors.append(f"gfex {candidate}: {exc}")
 
     # SHFE (上期所): AG, AU, CU, AL
     shfe: dict[str, Any] = {}
     try:
-        shfe = ak.futures_shfe_warehouse_receipt()
+        shfe = ak.futures_shfe_warehouse_receipt(date=query_date)
     except Exception as exc:
-        errors.append(f"shfe: {exc}")
+        # SHFE's dated endpoint can lag or return an HTML shell. The no-arg
+        # endpoint currently returns the latest official report.
+        try:
+            shfe = ak.futures_shfe_warehouse_receipt()
+        except Exception as fallback_exc:
+            errors.append(f"shfe: {exc}; fallback: {fallback_exc}")
 
-    SHFE_NAME_MAP = {"白银": "AG", "铜": "CU", "铝": "AL", "黄金": "AU"}
+    SHFE_NAME_MAP = {"白银": "AG", "铜": "CU", "铝": "AL", "黄金": "AU", "中质含硫原油": "SC"}
 
     with connect() as db:
         # GFEX instruments
@@ -389,11 +410,27 @@ def fetch_warehouse_receipts() -> dict[str, Any]:
                 if frame is None or (hasattr(frame, "empty") and frame.empty):
                     continue
                 receipt = sum(number(v) or 0 for v in frame.get("今日仓单量", []))
-                change = sum(number(v) or 0 for v in frame.get("增减", []))
+                previous = sum(number(v) or 0 for v in frame.get("昨日仓单量", []))
+                # Summing row-level 增减 is unreliable because some exchange
+                # payloads contain subtotal rows. The difference of the two
+                # official total columns is the stable daily change.
+                change = receipt - previous
+                current_date = gfex_day.isoformat()
+                previous_day = gfex_day - timedelta(days=1)
+                while previous_day.weekday() >= 5:
+                    previous_day -= timedelta(days=1)
+                # Remove rows previously mislabeled with a later date by the
+                # old no-argument AkShare call.
+                db.execute("DELETE FROM warehouse_receipts WHERE code=? AND source='gfex-akshare' AND trade_date>?", (code, current_date))
                 db.execute(
                     "INSERT INTO warehouse_receipts(code,trade_date,receipt,change_value,source,fetched_at) VALUES(?,?,?,?,?,?) "
                     "ON CONFLICT(code,trade_date,source) DO UPDATE SET receipt=excluded.receipt,change_value=excluded.change_value,fetched_at=excluded.fetched_at",
-                    (code, today, receipt, change, "gfex-akshare", now_iso()),
+                    (code, current_date, receipt, change, "gfex-akshare", now_iso()),
+                )
+                db.execute(
+                    "INSERT INTO warehouse_receipts(code,trade_date,receipt,change_value,source,fetched_at) VALUES(?,?,?,?,?,?) "
+                    "ON CONFLICT(code,trade_date,source) DO UPDATE SET receipt=excluded.receipt,fetched_at=excluded.fetched_at",
+                    (code, previous_day.isoformat(), previous, None, "gfex-akshare", now_iso()),
                 )
                 rows += 1
             except Exception as exc:
@@ -405,15 +442,38 @@ def fetch_warehouse_receipts() -> dict[str, Any]:
                 frame = shfe.get(name)
                 if frame is None or (hasattr(frame, "empty") and frame.empty):
                     continue
-                non_summary = frame[frame.get("ROWORDER", 0) != 100000] if "ROWORDER" in (frame.columns if hasattr(frame, "columns") else []) else frame
-                receipt = pd.to_numeric(non_summary["WRTWGHTS"], errors="coerce").sum()
-                change = pd.to_numeric(non_summary["WRTCHANGE"], errors="coerce").sum()
+                # SHFE includes warehouse rows, regional subtotals and a final
+                # total. Prefer ROWORDER=200000 to avoid double-counting.
+                if "ROWORDER" in frame.columns:
+                    order = pd.to_numeric(frame["ROWORDER"], errors="coerce")
+                    final_total = frame[order == 200000]
+                else:
+                    final_total = frame.iloc[0:0]
+                if not final_total.empty:
+                    receipt = pd.to_numeric(final_total["WRTWGHTS"], errors="coerce").sum()
+                    change = pd.to_numeric(final_total["WRTCHANGE"], errors="coerce").sum()
+                else:
+                    detail = frame
+                    if "ROWSTATUS" in frame.columns:
+                        status = pd.to_numeric(frame["ROWSTATUS"], errors="coerce")
+                        detail = frame[status == 0]
+                    receipt = pd.to_numeric(detail["WRTWGHTS"], errors="coerce").sum()
+                    change = pd.to_numeric(detail["WRTCHANGE"], errors="coerce").sum()
                 if not (receipt > 0):
                     continue
+                current_date = requested_day.isoformat()
+                previous_day = requested_day - timedelta(days=1)
+                while previous_day.weekday() >= 5:
+                    previous_day -= timedelta(days=1)
                 db.execute(
                     "INSERT INTO warehouse_receipts(code,trade_date,receipt,change_value,source,fetched_at) VALUES(?,?,?,?,?,?) "
                     "ON CONFLICT(code,trade_date,source) DO UPDATE SET receipt=excluded.receipt,change_value=excluded.change_value,fetched_at=excluded.fetched_at",
-                    (code, today, float(receipt), float(change), "shfe-akshare", now_iso()),
+                    (code, current_date, float(receipt), float(change), "shfe-akshare", now_iso()),
+                )
+                db.execute(
+                    "INSERT INTO warehouse_receipts(code,trade_date,receipt,change_value,source,fetched_at) VALUES(?,?,?,?,?,?) "
+                    "ON CONFLICT(code,trade_date,source) DO UPDATE SET receipt=excluded.receipt,fetched_at=excluded.fetched_at",
+                    (code, previous_day.isoformat(), float(receipt - change), None, "shfe-akshare", now_iso()),
                 )
                 rows += 1
             except Exception as exc:

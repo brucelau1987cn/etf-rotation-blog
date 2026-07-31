@@ -10,6 +10,7 @@ from scripts.futures_compass_analytics import (
     structure_state,
     tick_round,
     trend_label,
+    recent_receipts,
 )
 
 
@@ -69,3 +70,14 @@ def test_enrichment_preserves_unknown_receipt_and_builds_summary(tmp_path: Path)
     assert summary["strongest"]["code"] == "LC"
     assert summary["weakest"]["code"] == "SI"
     assert summary["capital_counts"] == {"增仓上涨": 1, "减仓下跌": 1}
+
+
+def test_recent_receipts_derives_previous_value_from_daily_change(tmp_path: Path):
+    db = sqlite3.connect(tmp_path / "futures.db")
+    db.row_factory = sqlite3.Row
+    db.execute("CREATE TABLE warehouse_receipts(code TEXT,trade_date TEXT,receipt REAL,change_value REAL,source TEXT,fetched_at TEXT)")
+    db.execute("INSERT INTO warehouse_receipts VALUES(?,?,?,?,?,?)", ("AG", "2026-07-31", 2_085_534, -9_457, "shfe-akshare", "2026-07-31T15:30:00+08:00"))
+    result = recent_receipts(db, "AG")
+    assert result["today"]["receipt"] == 2_085_534
+    assert result["prev"]["receipt"] == 2_094_991
+    assert result["prev"]["derived"] is True
