@@ -81,6 +81,18 @@ def test_build_runs_futures_snapshot_freshness_gate():
     assert "scripts/validate_futures_compass.py" in package["scripts"]["build"]
 
 
+def test_futures_page_contains_event_briefing_sections():
+    page = (ROOT / "src/pages/futures-compass.astro").read_text(encoding="utf-8")
+    briefing = json.loads((ROOT / "public/data/futures-compass-briefing.json").read_text(encoding="utf-8"))
+    assert "股指期货交割提示" in page
+    assert "标的行业政策利好" in page
+    assert "美联储关键信息" in page
+    assert "查看金十财经日历" in page
+    assert briefing["index_delivery"]["symbols"] == ["IF", "IH", "IC", "IM"]
+    assert len(briefing["industry_policy"]) >= 3
+    assert len(briefing["fed_watch"]["latest"]) >= 2
+
+
 def test_warehouse_fetch_passes_explicit_trade_date_to_exchange_clients(monkeypatch, tmp_path):
     import pandas as pd
 

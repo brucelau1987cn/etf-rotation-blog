@@ -28,6 +28,12 @@ type FuturesPayload = {
   iwencai_review?: { reviewed_at?: string; review_slot?: string; status?: string; row_count?: number };
   summary?: Summary; items: FutureItem[];
 };
+type Briefing = {
+  generated_at?: string;
+  index_delivery?: { month?: string; date?: string; weekday?: string; days_note?: string; symbols?: string[] };
+  industry_policy?: Array<{ title?: string; scope?: string; impact?: string; as_of?: string; source?: string; url?: string }>;
+  fed_watch?: { latest?: Array<{ time?: string; event?: string; result?: string; impact?: string }>; next_focus?: string; source?: string; calendar_url?: string };
+};
 
 const fallbackItems: FutureItem[] = [
   { code: 'LC', continuous: 'LC0', name: '碳酸锂', exchange: '广期所' },
@@ -42,6 +48,8 @@ const fallbackItems: FutureItem[] = [
 ];
 let snapshot: FuturesPayload = { items: fallbackItems };
 try { snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8')); } catch {}
+let briefing: Briefing = {};
+try { briefing = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass-briefing.json'), 'utf8')); } catch {}
 const items = snapshot.items?.length ? snapshot.items : fallbackItems;
 const summary = snapshot.summary || {};
 const number = (value?: number | null, digits = 2) => value !== null && value !== undefined && Number.isFinite(Number(value)) ? Number(value).toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
@@ -65,6 +73,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
       main{width: var(--shell-width);padding:1rem 0 3rem}.terminal{margin-top:.7rem;padding:1.15rem;border:1px solid #24313b;border-radius:14px;background:#172129;color:#f5f7f8;box-shadow:0 14px 34px rgba(16,27,35,.15)}
       .terminal-top{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}.terminal h1{margin:.3rem 0 .4rem;color:#fff;font-size:clamp(1.75rem,4vw,2.55rem);letter-spacing:0}.terminal p{margin:0;color:#c8d1d6;line-height:1.55;max-width:760px}.data-stamp{display:grid;gap:.26rem;text-align:right;color:#b8c3c9;font-size:.7rem}.data-stamp strong{color:#fff;font-size:.78rem}
       .command-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-top:1rem}.command{padding:.72rem;border:1px solid #334651;border-radius:9px;background:#202d35;min-width:0}.command span{display:block;color:#aebbc2;font-size:.65rem}.command strong{display:block;margin-top:.2rem;color:#fff;font-size:.82rem;line-height:1.35;overflow-wrap:anywhere}.command.bull strong{color:#ff9a8f}.command.bear strong{color:#83dcae}
+      .briefing-grid{display:grid;grid-template-columns:.82fr 1.18fr 1.18fr;gap:.7rem;margin-top:.8rem}.briefing-panel{padding:.82rem;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:0}.briefing-panel h2{margin:0;font-size:.92rem}.briefing-panel>p{margin:.28rem 0 0;color:rgb(var(--gray));font-size:.68rem;line-height:1.5}.delivery-date{display:flex;align-items:baseline;gap:.4rem;margin-top:.62rem}.delivery-date strong{font-size:1.3rem}.delivery-date span{color:var(--amber);font-size:.72rem;font-weight:850}.brief-list{display:grid;gap:.5rem;margin-top:.58rem}.brief-item{padding-top:.5rem;border-top:1px solid var(--border)}.brief-item:first-child{padding-top:0;border-top:0}.brief-item a,.brief-item strong{display:block;color:rgb(var(--gray-dark));font-size:.76rem;font-weight:850;text-decoration:none}.brief-item small{display:block;margin-top:.12rem;color:rgb(var(--gray));font-size:.64rem}.brief-item p{margin:.22rem 0 0;color:rgb(var(--gray-dark));font-size:.7rem;line-height:1.52}.fed-result{font-weight:750}.source-line{margin-top:.55rem!important;padding-top:.45rem;border-top:1px solid var(--border)}
       .section-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin:1.35rem 0 .65rem}.section-head h2{margin:0;font-size:1.3rem}.section-head p{margin:0;color:rgb(var(--gray));font-size:.78rem}.eyebrow{display:block;color:var(--amber);font-size:.65rem;font-weight:900;text-transform:uppercase}
       .refresh-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.65rem 0}.refresh-status{color:rgb(var(--gray));font-size:.75rem}.refresh-status strong{color:rgb(var(--gray-dark))}.refresh-button{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .65rem;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-size:.74rem;font-weight:800;cursor:pointer}.refresh-button.loading .refresh-icon{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
       .watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}.future-card{padding:.88rem;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:var(--box-shadow);min-width:0}.future-card.up{border-top:4px solid var(--market-up)}.future-card.down{border-top:4px solid var(--market-down)}.future-card.flat{border-top:4px solid #999}
@@ -75,8 +84,8 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
       .matrix{display:grid;grid-template-columns:1.05fr .95fr;gap:.75rem}.matrix-panel,.supply-panel{padding:.9rem;border:1px solid var(--border);border-radius:10px;background:#fff}.matrix-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}.matrix-cell{padding:.65rem;border-radius:8px;background:var(--warm-2)}.matrix-cell span{display:block;color:rgb(var(--gray));font-size:.62rem}.matrix-cell strong{display:block;margin-top:.14rem;font-size:.82rem}.matrix-cell.bull{border-left:4px solid var(--market-up)}.matrix-cell.bear{border-left:4px solid var(--market-down)}.matrix-cell.caution{border-left:4px solid var(--amber)}
       .supply-list{display:grid;gap:.4rem}.supply-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;padding:.58rem;border-bottom:1px solid var(--border);font-size:.75rem}.supply-row:last-child{border-bottom:0}.supply-row span{color:rgb(var(--gray))}.review-box{margin-top:.6rem;padding:.65rem;border-radius:8px;background:#172129;color:#dbe2e6;font-size:.72rem;line-height:1.55}.review-box strong{color:#fff}
       .legend{margin-top:.85rem;padding:.75rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;color:rgb(var(--gray));line-height:1.55}.legend b{color:rgb(var(--gray-dark))}
-      @media(max-width:940px){.command-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix{grid-template-columns:1fr}}
-      @media(max-width:620px){main{width: var(--shell-width);padding-top:.6rem}.terminal{padding:.85rem}.terminal-top{display:block}.terminal p{font-size:.78rem}.data-stamp{text-align:left;margin-top:.55rem}.command-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.38rem}.command{padding:.55rem}.watch-grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.refresh-row{align-items:center}.refresh-button{min-width:44px;min-height:44px}.refresh-status{max-width:72%}.quote-grid,.evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.supply-row{grid-template-columns:1fr auto}.supply-row span:last-child{grid-column:1/-1}}
+      @media(max-width:940px){.command-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.briefing-grid{grid-template-columns:1fr 1fr}.briefing-panel.delivery{grid-column:1/-1}.watch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix{grid-template-columns:1fr}}
+      @media(max-width:620px){main{width: var(--shell-width);padding-top:.6rem}.terminal{padding:.85rem}.terminal-top{display:block}.terminal p{font-size:.78rem}.data-stamp{text-align:left;margin-top:.55rem}.command-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.38rem}.command{padding:.55rem}.briefing-grid{grid-template-columns:1fr}.briefing-panel.delivery{grid-column:auto}.watch-grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:.2rem}.refresh-row{align-items:center}.refresh-button{min-width:44px;min-height:44px}.refresh-status{max-width:72%}.quote-grid,.evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.supply-row{grid-template-columns:1fr auto}.supply-row span:last-child{grid-column:1/-1}}
     </style>
   </head>
   <body>
@@ -90,6 +99,27 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
           <div class="command bull"><span>9品种持仓增幅率第一</span><strong id="oi-in-item">{leaderText(summary.largest_oi_increase, 'open_interest_change_pct')}</strong></div>
           <div class="command"><span>增仓同向确认</span><strong id="capital-counts">多头 {longCount} · 空头 {shortCount}</strong></div>
         </div>
+      </section>
+
+      <section class="briefing-grid" aria-label="期货事件提示">
+        <article class="briefing-panel delivery">
+          <span class="eyebrow">Index delivery</span><h2>股指期货交割提示</h2>
+          <div class="delivery-date"><strong>{briefing.index_delivery?.date || '待更新'}</strong><span>{briefing.index_delivery?.weekday || ''}</span></div>
+          <p>{briefing.index_delivery?.symbols?.join(' / ') || 'IF / IH / IC / IM'} · {briefing.index_delivery?.days_note || '到期月第三个周五，节假日顺延。'}</p>
+        </article>
+        <article class="briefing-panel">
+          <span class="eyebrow">Industry policy</span><h2>标的行业政策利好</h2>
+          <div class="brief-list">
+            {(briefing.industry_policy || []).slice(0, 3).map((item) => <div class="brief-item"><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><small>{item.scope} · {item.as_of}</small><p>{item.impact}</p></div>)}
+          </div>
+        </article>
+        <article class="briefing-panel">
+          <span class="eyebrow">Fed watch · Jin10</span><h2>美联储关键信息</h2>
+          <div class="brief-list">
+            {(briefing.fed_watch?.latest || []).slice(0, 2).map((item) => <div class="brief-item"><strong>{item.event}</strong><small>{item.time}</small><p class="fed-result">{item.result}</p><p>{item.impact}</p></div>)}
+          </div>
+          <p class="source-line">{briefing.fed_watch?.next_focus} <a href={briefing.fed_watch?.calendar_url || 'https://rili.jin10.com/'} target="_blank" rel="noopener noreferrer">查看金十财经日历</a></p>
+        </article>
       </section>
 
       <section aria-label="期货观察池">
