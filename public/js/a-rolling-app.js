@@ -49,7 +49,7 @@
       { name: '创业板指', symbol: '399006', querySymbol: '399006.SZ', continuous: false },
       // 24H continuous quotes under the A-share index card (独立刷新，不绑 A 股交易时段).
       { name: '现货黄金', symbol: 'hf_XAU', querySymbol: 'hf_XAU', continuous: true },
-      { name: '现货白银', symbol: 'hf_XAG', querySymbol: 'hf_XAG', continuous: true },
+      { name: '现货白银', symbol: 'HF_XAG', querySymbol: 'hf_XAG', continuous: true },
       { name: '国际原油', symbol: 'hf_CL', querySymbol: 'hf_CL', continuous: true },
       { name: '美元指数', symbol: 'DINIW', querySymbol: 'DINIW', continuous: true },
     ],
@@ -657,7 +657,7 @@
     const direction = changePct > 0 ? 'up' : changePct < 0 ? 'down' : 'flat';
     const sign = changePct > 0 ? '+' : '';
     const isContinuousQuote = !!meta.continuous
-      || meta.symbol === 'hf_XAU' || meta.symbol === 'hf_XAG' || meta.symbol === 'hf_CL' || meta.symbol === 'DINIW'
+      || meta.symbol === 'hf_XAU' || meta.symbol === 'HF_XAG' || meta.symbol === 'hf_CL' || meta.symbol === 'DINIW'
       || /^hf_/i.test(String(meta.querySymbol || meta.symbol || ''));
     const digits = meta.symbol === 'DINIW' ? 4 : 2;
     if (priceEl) priceEl.textContent = price.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
