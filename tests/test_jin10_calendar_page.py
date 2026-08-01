@@ -16,9 +16,17 @@ def test_jin10_calendar_page_and_navigation_contract():
     assert 'data-calendar-filter="important-data"' in page
     assert 'data-calendar-filter="important-event"' in page
     assert "/api/public/v1/jin10-calendar" in app
+    assert "/api/public/v1/jin10-mcp-calendar" in app
+    assert "mergeAffectTxt" in app
+    assert "'bearish'" in app
+    assert "'bullish'" in app
+    assert "'neutral'" in app
+    assert "impact-" in app
     assert "activeFilter = 'important'" in app
     assert 'href="/calendar/"' in footer
     assert 'href="/calendar/"' in futures
+    assert ".impact-tag.impact-bullish" in page
+    assert ".impact-tag.impact-neutral" in page
 
 
 def test_jin10_skill_is_committed_without_credentials():
