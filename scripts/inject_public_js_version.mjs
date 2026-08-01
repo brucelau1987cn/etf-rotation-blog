@@ -21,7 +21,7 @@ for (const name of files) {
   hash.update(name);
   hash.update(readFileSync(full));
 }
-const version = hash.digest('hex').slice(0, 10);
+const version = hash.digest('hex').slice(0, 10) + '-' + Date.now().toString(36);
 const q = `?v=${version}`;
 
 function walk(dir) {
