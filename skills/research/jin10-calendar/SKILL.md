@@ -99,6 +99,19 @@ GET https://rili-open-api.jin10.com/getDataByIndIdAndDateRange?category=cj&id=51
 
 ## D1归档与金银影响信号
 
+MCP 日历代理（直连 JSON-RPC + SSE，无需 MCP SDK）：
+
+```text
+GET /api/public/v1/jin10-mcp-calendar
+```
+
+- 返回当前自然周全部日历（实测 269 条）
+- 每条含 `affect_txt`（利空/利多/影响较小），覆盖全部指标
+- 计数 `counts.bullish/bearish/neutral`
+- 需要 Pages secret `JIN10_MCP_TOKEN`（MCP Bearer Token）
+- 必须带 `Accept: application/json, text/event-stream` 头
+- 每次请求先 `initialize` 拿 session-id，再 `tools/call list_calendar`
+
 受保护同步请求：
 
 ```text
