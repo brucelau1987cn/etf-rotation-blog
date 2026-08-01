@@ -148,7 +148,6 @@ check_asset "/js/normalize-quote-payload.js" "EtfQuote"
 check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
-check_asset "/js/token-app.js" "minimax"
 check_asset "/js/login-app.js" "change-password"
 check_asset "/js/lab-app.js" "a-share-research-audit"
 check_asset "/js/blog-post-app.js" "article-toc"
@@ -277,12 +276,6 @@ check_page "/us-momentum/" \
   "/js/us-momentum-app.js" \
   "us-momentum-main" \
   "hero-pool-size"
-
-check_page "/token/" \
-  "/js/token-app.js" \
-  "data-token-dashboard" \
-  "data-api-base" \
-  "btn-refresh"
 
 check_page "/login/" \
   "/js/login-app.js" \

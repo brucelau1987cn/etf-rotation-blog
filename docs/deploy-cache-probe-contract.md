@@ -338,7 +338,7 @@ curl -sI -X GET 'https://edge-quote-api.brucelau1987.workers.dev?symbols=600021&
 
 `public/_headers` 全局 CSP：
 
-- `connect-src 'self' https://minimax.peekabo.cc`
+- `connect-src 'self'`
 - **不再**允许 `etf-live.peekabo.cc`
 - 行情走同源 `/api/public/v1/quote`
 
