@@ -1,8 +1,8 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "e120e2b18599d72341c48efa728fad475caa1ff26edeb2fce2ab1a81d7421c56",
+  "batch_id": "e26267e3eba4d45cd1f53ed7a38f9fadeba7f65589bc45851a532099c5b876a8",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-07-31T22:32:09Z",
+  "generated_at": "2026-08-01T02:02:26Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
@@ -288,6 +288,37 @@
       "sha256": "816d34b980cf824de578493c462b6de5c1aad7a92d55be4faaa1e938059f12de",
       "bytes": 12377,
       "public_url": "/data/us-macro-dashboard.json"
+    },
+    {
+      "dataset_id": "us-compass-research",
+      "role": "history",
+      "market": "US",
+      "schema_version": "us-compass-research-v1",
+      "observation_date": "2026-07-31",
+      "generated_at": "2026-08-01T02:02:26.603900+00:00",
+      "completeness": {
+        "status": "unknown",
+        "ratio": null,
+        "observed": null,
+        "expected": null,
+        "reason": "dataset does not publish a comparable observed/expected count"
+      },
+      "degradation": {
+        "status": "unknown",
+        "reasons": [
+          "dataset does not publish a comparable observed/expected count"
+        ]
+      },
+      "source_categories": [
+        "historical_market_data",
+        "model_output",
+        "derived_research",
+        "public_events"
+      ],
+      "semantic_sha256": "8e9de791de68e37018155919a31ae92ceb1aefb6976ca2878d8de14263673eeb",
+      "sha256": "d405ed5f5326f34894717c539aa2ba84d3341043cb49373a311982afd1e77452",
+      "bytes": 4633,
+      "public_url": "/data/us-compass-research.json"
     },
     {
       "dataset_id": "paper-trading",

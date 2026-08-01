@@ -1,0 +1,167 @@
+{
+  "schema_version": "us-compass-research-v1",
+  "updated_at": "2026-08-01T02:02:26.603900+00:00",
+  "latest_week": "2026-W31",
+  "reports": [
+    {
+      "week_key": "2026-W31",
+      "trade_date": "2026-07-31",
+      "generated_at": "2026-08-01T02:02:26.603900+00:00",
+      "verdict": "样本积累中",
+      "snapshot_count": 15,
+      "metrics": {
+        "t1": {
+          "observations": 14,
+          "rank_ic_pct": -0.28,
+          "positive_rate_pct": 64.29,
+          "deviation_pct": 32.75,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": -0.58
+        },
+        "t5": {
+          "observations": 10,
+          "rank_ic_pct": 15.88,
+          "positive_rate_pct": 70.0,
+          "deviation_pct": 29.82,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": -3.51
+        },
+        "t20": {
+          "observations": 0,
+          "rank_ic_pct": null,
+          "positive_rate_pct": null,
+          "deviation_pct": null,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": null
+        }
+      },
+      "portfolios": {
+        "benchmark": {
+          "total_return_pct": -1.13,
+          "max_drawdown_pct": -2.41,
+          "equity": 19773.11
+        },
+        "timing": {
+          "total_return_pct": -1.34,
+          "max_drawdown_pct": -2.22,
+          "equity": 19731.35
+        },
+        "rotation": {
+          "total_return_pct": -1.86,
+          "max_drawdown_pct": -2.48,
+          "equity": 19628.45
+        },
+        "fusion": {
+          "total_return_pct": -2.83,
+          "max_drawdown_pct": -2.89,
+          "equity": 19433.92
+        }
+      },
+      "attribution": {
+        "timing_pp": -0.21,
+        "rotation_pp": -0.72,
+        "interaction_pp": -0.76,
+        "fusion_vs_benchmark_pp": -1.7
+      },
+      "risk_budget": {
+        "current_exposure_pct": 50.0,
+        "regime": "震荡",
+        "allocation": "30%-50%",
+        "allowed_budgets_pct": [
+          0,
+          50,
+          100
+        ]
+      },
+      "top10": [
+        {
+          "symbol": "KWEB",
+          "theme": "中国资产",
+          "trend_score": 95.2,
+          "risk_score": 20.8,
+          "state": "可持有"
+        },
+        {
+          "symbol": "USO",
+          "theme": "原油",
+          "trend_score": 87.5,
+          "risk_score": 56.0,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "XOP",
+          "theme": "油气勘探",
+          "trend_score": 87.3,
+          "risk_score": 28.9,
+          "state": "可持有"
+        },
+        {
+          "symbol": "SKYY",
+          "theme": "云计算",
+          "trend_score": 84.3,
+          "risk_score": 20.9,
+          "state": "可持有"
+        },
+        {
+          "symbol": "XLE",
+          "theme": "能源",
+          "trend_score": 80.3,
+          "risk_score": 17.1,
+          "state": "可持有"
+        },
+        {
+          "symbol": "IGV",
+          "theme": "软件",
+          "trend_score": 79.2,
+          "risk_score": 19.9,
+          "state": "可持有"
+        },
+        {
+          "symbol": "CIBR",
+          "theme": "网络安全",
+          "trend_score": 76.6,
+          "risk_score": 20.2,
+          "state": "可持有"
+        },
+        {
+          "symbol": "FDN",
+          "theme": "互联网",
+          "trend_score": 76.5,
+          "risk_score": 19.2,
+          "state": "可持有"
+        },
+        {
+          "symbol": "XRT",
+          "theme": "零售",
+          "trend_score": 75.4,
+          "risk_score": 17.7,
+          "state": "可持有"
+        },
+        {
+          "symbol": "SCHD",
+          "theme": "红利价值",
+          "trend_score": 73.8,
+          "risk_score": 15.8,
+          "state": "可持有"
+        }
+      ],
+      "iwencai": {
+        "status": "ok",
+        "source": "同花顺问财",
+        "summary": "问财查询“美股 中国资产 原油 油气勘探 云计算 能源 近20日涨幅、成交额、行业，按涨幅排序”，返回257条候选；前列样本：PBF Energy、Par Pacific、长安能源、Obsidian Energy、北欧皇家石油信托。"
+      },
+      "execution_basis": {
+        "signal": "T日收盘生成",
+        "execution": "T+1开盘执行",
+        "rebalance": "次日开盘再平衡",
+        "one_way_cost_pct": 0.1
+      },
+      "production_change_allowed": false,
+      "observations": [
+        "T+5成熟样本达到20个前维持观察。",
+        "T+20无成熟样本时持续标记样本积累中。",
+        "周报仅记录研究证据，不自动修改权重或仓位阈值。"
+      ]
+    }
+  ]
+}

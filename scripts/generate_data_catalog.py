@@ -39,6 +39,7 @@ DATASETS = (
     DatasetSpec("us-etf-garden", "us-etf-garden.json", "production", "US", "legacy-unversioned", ("market_data", "derived_research"), ("date",), ("updated_at",)),
     DatasetSpec("us-etf-pool", "us-etf-pool.json", "runtime", "US", "legacy-unversioned", ("market_data", "derived_research"), ("quote_trade_date", "model_date"), ("generated_at",)),
     DatasetSpec("us-macro-dashboard", "us-macro-dashboard.json", "production", "US", "us-macro-dashboard-v2", ("market_data", "official_statistics", "public_events"), ("__latest_as_of__",), ("generated_at",)),
+    DatasetSpec("us-compass-research", "us-compass-research.json", "history", "US", "us-compass-research-v1", ("historical_market_data", "model_output", "derived_research", "public_events"), ("__research_report__",), ("updated_at",)),
     DatasetSpec("paper-trading", "paper-trading.json", "history", "MULTI", "paper-trading-v1", ("simulated_execution", "derived_research"), ("__paper_history__",), ("updated_at",)),
     DatasetSpec("a-share-nightly-deployment", "a-share-nightly-deployment.json", "history", "CN", "a-share-nightly-deployment-v1", ("publication_receipt",), ("trade_date",), ()),
 )
@@ -136,6 +137,12 @@ def observation_date_for(payload: dict[str, Any], fields: tuple[str, ...]) -> st
         return latest_as_of(payload)
     if fields == ("__paper_history__",):
         return latest_paper_history_date(payload)
+    if fields == ("__research_report__",):
+        reports = payload.get("reports")
+        if isinstance(reports, list):
+            dates = [date_prefix(item.get("trade_date")) for item in reports if isinstance(item, dict)]
+            return max((item for item in dates if item), default=None)
+        return None
     return date_prefix(first_value(payload, fields))
 
 

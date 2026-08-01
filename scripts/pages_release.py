@@ -26,6 +26,7 @@ EXTERNAL_DIRTY = {
     "public/data/model-lab/a-share-research-audit.json",
     "public/data/us-compass-learning.json",
     "public/data/us-compass-shadow.json",
+    "public/data/us-compass-research.json",
     "public/data/us-etf-backtest.json",
     "public/data/us-etf-flower-history.json",
     "public/data/us-etf-garden.json",
