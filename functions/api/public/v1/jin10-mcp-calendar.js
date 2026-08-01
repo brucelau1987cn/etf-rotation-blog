@@ -4,7 +4,9 @@
  * Uses direct JSON-RPC over HTTP/SSE (no MCP SDK needed).
  * Flow: initialize → tools/call list_calendar → parse SSE → normalize.
  *
- * Requires env.JIN10_MCP_TOKEN (Bearer token for the MCP server).
+ * Requires env.JIN10_MCP_TOKEN (single or comma-separated Bearer tokens).
+ * Multiple tokens are rotated round-robin by minute to multiply daily quota
+ * (1500 calls/day/tool/user per token).
  */
 
 const MCP_URL = 'https://mcp.jin10.com/mcp';
@@ -69,9 +71,14 @@ const mcpPost = async (url, token, body, sessionId = null, fetchImpl = fetch) =>
  * with affect_txt (利空/利多/影响较小) for every item.
  */
 export async function handleMcpCalendar(request, env = {}) {
-  const token = String(env.JIN10_MCP_TOKEN || '').trim();
-  const fetchImpl = env.fetchImpl || fetch;
+  const rawTokens = String(env.JIN10_MCP_TOKEN || '').trim();
+  if (!rawTokens) return json({ error: 'unauthorized', source: 'jin10-mcp' }, 401);
+  const tokens = rawTokens.split(',').map((t) => t.trim()).filter(Boolean);
+  if (tokens.length === 0) return json({ error: 'unauthorized', source: 'jin10-mcp' }, 401);
+  // Round-robin by minute to distribute across tokens
+  const token = tokens[Math.floor(Date.now() / 60000) % tokens.length];
   if (!token) return json({ error: 'unauthorized', source: 'jin10-mcp' }, 401);
+  const fetchImpl = env.fetchImpl || fetch;
 
   try {
     // 1. initialize

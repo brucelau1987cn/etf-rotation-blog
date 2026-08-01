@@ -117,3 +117,21 @@ test('handleMcpCalendar returns 502 when MCP reports a business error', async ()
   assert.equal(response.status, 502);
   assert.match(payload.error, /调用次数已达上限/);
 });
+
+test('handleMcpCalendar rotates multiple comma-separated tokens by minute', async () => {
+  const fake = makeFetch([
+    { body: mcpSessionResponse, sessionId: 'sess-multi-1' },
+    { body: mcpCalendarResponse, sessionId: 'sess-multi-1' },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar');
+  // Two tokens: token-a and token-b. Current minute parity decides which is used.
+  const minuteBucket = Math.floor(Date.now() / 60000) % 2;
+  const response = await handleMcpCalendar(request, {
+    JIN10_MCP_TOKEN: 'sk-token-a, sk-token-b',
+    fetchImpl: fake.fn,
+  });
+  assert.equal(response.status, 200);
+  const expectedToken = minuteBucket === 0 ? 'sk-token-a' : 'sk-token-b';
+  assert.equal(fake.calls[0].options.headers['authorization'], `Bearer ${expectedToken}`);
+  assert.equal(fake.calls[1].options.headers['authorization'], `Bearer ${expectedToken}`);
+});
