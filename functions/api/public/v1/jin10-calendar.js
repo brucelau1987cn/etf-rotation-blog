@@ -1,3 +1,5 @@
+import { persistJin10Items } from '../../../_lib/jin10-calendar-d1.js';
+
 const UPSTREAM = 'https://rili-open-api.jin10.com/data/week_info';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_SPAN_DAYS = 30;
@@ -27,6 +29,10 @@ const normalizeItem = (entry) => {
   const title = data.title_full || data.title || data.indicator_name || data.name || data.event_content || data.summary || data.holiday_name || '未命名事项';
   const rawStar = Number(data.star);
   const star = Number.isFinite(rawStar) ? Math.max(0, Math.min(5, Math.trunc(rawStar))) : null;
+  const hasGoldSilverImpact = type === 'data' && Number(data.indicator_id) === 951 && Number(data.show_affect) === 1;
+  const impactDirection = hasGoldSilverImpact
+    ? (Number(data.affect) === 1 ? 'bearish' : Number(data.affect) === 2 ? 'bullish' : null)
+    : null;
   return {
     type,
     id: data.id ?? data.data_id ?? null,
@@ -41,12 +47,16 @@ const normalizeItem = (entry) => {
     revised: data.revised ?? null,
     unit: data.unit ?? null,
     affect: data.affect ?? null,
+    show_affect: data.show_affect ?? null,
+    impact_label: impactDirection === 'bearish' ? '利空 金银' : impactDirection === 'bullish' ? '利多 金银' : null,
+    impact_direction: impactDirection,
+    affected_assets: impactDirection ? ['gold', 'silver'] : [],
     time_status: data.time_status ?? null,
     source: data.source ?? null,
   };
 };
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env = {} }) {
   const url = new URL(request.url);
   const date = String(url.searchParams.get('date') || '').trim();
   const start = String(url.searchParams.get('start_date') || date || new Date().toISOString().slice(0, 10)).trim();
@@ -87,7 +97,7 @@ export async function onRequestGet({ request }) {
   const items = upstream.data.map(normalizeItem).sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
   const counts = { data: 0, event: 0, holiday: 0, other: 0 };
   for (const item of items) counts[item.type] += 1;
-  return json({
+  const payload = {
     status: 'ok',
     source: '金十财经日历',
     start_date: start,
@@ -96,5 +106,14 @@ export async function onRequestGet({ request }) {
     count: items.length,
     counts,
     items,
-  });
+  };
+
+  if (url.searchParams.get('sync') === '1') {
+    const expected = String(env.JIN10_SYNC_TOKEN || '').trim();
+    const authorization = String(request.headers.get('authorization') || '');
+    if (!expected || authorization !== `Bearer ${expected}`) return json({ error: 'unauthorized' }, 401, 'no-store');
+    if (!env.DB) return json({ error: 'DB binding missing' }, 503, 'no-store');
+    payload.sync = await persistJin10Items(env.DB, items);
+  }
+  return json(payload);
 }

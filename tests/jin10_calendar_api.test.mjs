@@ -36,6 +36,7 @@ test('jin10 calendar proxy validates dates and normalizes daily data', async () 
     assert.equal(payload.items[0].indicator_id, 534);
     assert.equal(payload.items[0].title, '中国制造业PMI');
     assert.equal(payload.items[0].star, 3);
+    assert.equal(payload.items[0].show_affect, null);
     assert.equal(payload.items[1].title, '日本央行公布利率决议。');
     assert.match(upstreamUrl, /start_date=2026-07-31/);
     assert.match(upstreamUrl, /end_date=2026-07-31/);
@@ -80,6 +81,50 @@ test('jin10 calendar proxy clamps malformed stars and preserves unknown types', 
     assert.deepEqual(payload.items.map((item) => item.star), [0, 5, 2]);
     assert.equal(payload.items[2].type, 'other');
     assert.equal(payload.counts.other, 1);
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
+
+test('jin10 oil rig data exposes bearish gold and silver impact label', async () => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    status: 200,
+    message: 'OK',
+    data: [{ type: 'data', data: {
+      data_id: 1182694, indicator_id: 951, pub_time: '2026-08-01 01:00', country: '美国',
+      star: 3, indicator_name: '当周石油钻井总数', previous: '450', actual: '451', unit: '口',
+      affect: 1, show_affect: 1,
+    } }],
+  }), { status: 200 });
+  try {
+    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-08-01') });
+    const payload = await response.json();
+    assert.equal(payload.items[0].impact_label, '利空 金银');
+    assert.equal(payload.items[0].impact_direction, 'bearish');
+    assert.deepEqual(payload.items[0].affected_assets, ['gold', 'silver']);
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
+
+test('jin10 calendar sync requires token and persists through D1', async () => {
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31&sync=1', {
+    headers: { authorization: 'Bearer test-sync-token' },
+  });
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ status: 200, message: 'OK', data: [] }), { status: 200 });
+  try {
+    const unauthorized = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31&sync=1'), env: { JIN10_SYNC_TOKEN: 'test-sync-token' } });
+    assert.equal(unauthorized.status, 401);
+
+    const dbCalls = [];
+    const db = { prepare(sql) { const stmt = { args: [], bind(...args) { stmt.args = args; return stmt; }, async run() { dbCalls.push({ sql, args: stmt.args }); return { meta: { changes: 1 } }; }, async first() { return null; } }; return stmt; } };
+    const response = await handler({ request, env: { JIN10_SYNC_TOKEN: 'test-sync-token', DB: db } });
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.sync.items_upserted, 0);
+    assert.ok(dbCalls.some((call) => /CREATE TABLE IF NOT EXISTS jin10_calendar_items/i.test(call.sql)));
   } finally {
     globalThis.fetch = previous;
   }

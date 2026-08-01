@@ -24,6 +24,8 @@ metadata:
 - 浏览器逻辑：`public/js/jin10-calendar-app.js`
 - 线上路由：`/calendar/`
 - 同源接口：`/api/public/v1/jin10-calendar`
+- D1迁移：`migrations/0005_jin10_calendar.sql`
+- D1同步映射：`functions/_lib/jin10-calendar-d1.js`
 
 ## When to Use
 
@@ -94,6 +96,32 @@ GET https://rili-open-api.jin10.com/getDataByIndIdAndDateRange?category=cj&id=51
 4. **全部**：显示当日所有返回项目
 
 时间统一按北京时间展示。页面默认打开“重要总览”，同时覆盖重要数据和重要事件。
+
+## D1归档与金银影响信号
+
+受保护同步请求：
+
+```text
+GET /api/public/v1/jin10-calendar?date=YYYY-MM-DD&sync=1
+Authorization: Bearer <JIN10_SYNC_TOKEN>
+```
+
+同步写入：
+
+- `jin10_calendar_items`：原始日历归一化记录
+- `jin10_asset_signals`：资产影响映射
+- `rolling_signals`：仅将已确认的白银方向写入期货滚动日锁表
+
+当前已核验映射：
+
+- `indicator_id=951` 美国当周石油钻井总数
+- `show_affect=1`
+- `affect=1`：App显示“利空 金银”
+- 白银现货映射：显示代码 `SI=F`，行情别名 `HF_XAG`
+- 滚动方向：`SELL`，节点标签“宏观利空”
+- 只有 `actual` 已公布时生成影响信号，未来待公布记录仅归档
+
+`affect` 对其他指标的含义需逐项用App显示或抓包验证，禁止全局套用。
 
 ## Cloudflare Deployment
 
