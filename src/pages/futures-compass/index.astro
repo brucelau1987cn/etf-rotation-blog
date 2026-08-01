@@ -1,10 +1,11 @@
 ---
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import QuoteLiveScripts from '../../components/QuoteLiveScripts.astro';
+import FuturesSubnav from '../../components/FuturesSubnav.astro';
 
 type ReceiptPoint = { trade_date?: string | null; receipt?: number; change?: number | null; source?: string; derived?: boolean };
 type Receipt = { status?: string; today?: ReceiptPoint | null; prev?: ReceiptPoint | null };
@@ -89,6 +90,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
   </head>
   <body>
     <Header />
+    <FuturesSubnav active="home" />
     <main>
       <section class="terminal" aria-label="期货罗盘决策总览">
         <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>先验价格与持仓方向，再核验结构、关键位、成交活跃度及仓单；缺失数据标记为未知。</p></div><div class="data-stamp"><strong id="data-time">{snapshotTime.slice(0,16)}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
@@ -110,7 +112,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
           <div class="brief-list">
             {(briefing.fed_watch?.latest || []).slice(0, 2).map((item) => <div class="brief-item"><strong>{item.event}</strong><small>{item.time}</small><p class="fed-result">{item.result}</p><p>{item.impact}</p></div>)}
           </div>
-          <p class="source-line">{briefing.fed_watch?.next_focus} <a href="/calendar/">查看本站财经日历</a> · <a href={briefing.fed_watch?.calendar_url || 'https://rili.jin10.com/'} target="_blank" rel="noopener noreferrer">查看金十财经日历</a></p>
+          <p class="source-line">{briefing.fed_watch?.next_focus} <a href="/futures-compass/jin10/">查看本站金十数据</a> · <a href={briefing.fed_watch?.calendar_url || 'https://rili.jin10.com/'} target="_blank" rel="noopener noreferrer">查看金十财经日历</a></p>
           </article>
         </div>
       </section>
