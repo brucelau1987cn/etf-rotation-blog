@@ -9,7 +9,7 @@
 
 **在线访问：[https://etf.peekabo.cc/](https://etf.peekabo.cc/)**
 
-快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动罗盘](https://etf.peekabo.cc/rolling/) · [期货滚动](https://etf.peekabo.cc/rolling/futures/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/)
+快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动罗盘](https://etf.peekabo.cc/rolling/) · [期货滚动](https://etf.peekabo.cc/rolling/futures/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/) · [财经日历](https://etf.peekabo.cc/calendar/)
 
 > 本项目提供研究与教育信息，不构成投资建议。影子模型仅用于研究和审计，不改变正式动作、权重、关键位或模拟执行规则。
 
@@ -23,6 +23,7 @@
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型结果
 - `/research-framework/`：风口瓶颈、公司对抗研究、证据校验、论文追踪与异动归因
+- `/calendar/`：金十财经日历（宏观数据与重要事件，按北京时间，含影响方向标签）
 
 ## 核心能力
 
@@ -38,8 +39,8 @@
 ```text
 Astro 静态页面
   ├─ Cloudflare Pages
-  ├─ Pages Functions：行情、市场日历、Webhook、登录与上传 API
-  ├─ Cloudflare D1：用户会话与多市场交易日历
+  ├─ Pages Functions：行情、市场日历、金十日历/MCP 代理、Webhook、登录与上传 API
+  ├─ Cloudflare D1：用户会话、多市场交易日历与金十日历归档
   ├─ Edge Quote API：腾讯 → 新浪 → 雪球降级链路
   └─ JSON 数据契约：Schema、目录、快照与审计记录
 ```
@@ -67,6 +68,22 @@ Astro 静态页面
 - Edge 双层短缓存 + 静态资源长缓存 + 生产探针：详见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)
 
 `git push` 只更新 GitHub；**生产站点以 Cloudflare Pages 直接部署为准**。
+
+## 金十财经日历
+
+日历页 `/calendar/` 由两条数据链路合并渲染：
+
+- **直连 API**：`GET /api/public/v1/jin10-calendar?date=YYYY-MM-DD`（支持 `start_date`/`end_date` 区间，最多31天）
+  - 上游 `rili-open-api.jin10.com/data/week_info`
+  - 每条含 `impact` 方向（`affect=1 → 利空`、`affect=2 → 利多`，需 `show_affect=1` 且 `actual` 已公布）
+  - `?sync=1` + `Authorization: Bearer <JIN10_SYNC_TOKEN>` 归档到 D1 `jin10_calendar_items`
+- **MCP 代理**：`GET /api/public/v1/jin10-mcp-calendar`
+  - 直接调用金十 MCP 服务器（JSON-RPC over HTTP/SSE，无需 MCP SDK），返回当前自然周全部日历
+  - 每条含 `affect_txt`（利空/利多/影响较小），覆盖全部指标
+  - 多 token 轮询：`JIN10_MCP_TOKEN` 逗号分隔多个 token，按分钟取模轮询放大每日配额（1500次/天/工具/token）
+  - 前端按 `impact || affect_txt` 合并渲染标签（利空绿/利多红/影响较小灰）
+
+详细说明见 `skills/research/jin10-calendar/SKILL.md`；独立可复用版见 [`brucelau1987cn/jin10-mcp-proxy`](https://github.com/brucelau1987cn/jin10-mcp-proxy)。
 
 ## 开发
 
@@ -157,7 +174,7 @@ bash scripts/release_dual_live.sh --verify-only
 public/data/       公开 JSON 快照与目录
 public/js/         浏览器共享脚本与页面 app（行情适配器 / 轮询 / 各页客户端）
 public/schemas/    版本化 JSON Schema
-functions/         Cloudflare Pages Functions（quote / webhook / auth）
+functions/         Cloudflare Pages Functions（quote / webhook / auth / jin10 日历与 MCP 代理）
 scripts/           数据生成、验证、同步、版本注入与静态审计
 docs/investment-research-layer.md  投资研究层实施与写入边界
 src/pages/         Astro 路由
