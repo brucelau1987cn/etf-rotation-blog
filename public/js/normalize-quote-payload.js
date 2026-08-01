@@ -67,6 +67,7 @@
         high: quote?.high,
         open: quote?.open,
         prev_close: quote?.prev_close,
+        change_amount: quote?.change_amount,
         change_pct: quote?.change_percent,
         change_percent: quote?.change_percent,
         quote_time: quote?.quote_time,

@@ -28,6 +28,30 @@ test('extracts single quote directly for stock-quote UI', () => {
   assert.equal(quote.change_percent, -7.37);
 });
 
+test('preserves change_amount for index/quote UI', () => {
+  const payload = {
+    status: 'ok',
+    count: 1,
+    quotes: {
+      '000001': {
+        symbol: '000001',
+        sec_code: 'sh000001',
+        price: 3832.26,
+        change_amount: 27.57,
+        change_percent: 0.72,
+        status: 'ok',
+      },
+    },
+  };
+
+  const normalized = normalizeQuotePayload(payload);
+  const quote = findQuoteItem(normalized, '000001');
+
+  assert.ok(quote);
+  assert.equal(quote.change_amount, 27.57);
+  assert.equal(quote.change_percent, 0.72);
+});
+
 test('matches Tencent US suffix symbols to bare rolling tickers', () => {
   const payload = {
     status: 'ok',
