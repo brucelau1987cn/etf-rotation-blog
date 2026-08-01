@@ -9,6 +9,12 @@ type FundItem = {
   as_of?: string;
   source?: string;
   source_url?: string;
+  news?: Array<{
+    title: string;
+    url: string;
+    published_at?: string;
+    source?: string;
+  }>;
 };
 
 type Props = {
@@ -44,6 +50,17 @@ const { kicker, title, note, items } = Astro.props;
               : item.source
           }
         </small>
+        {item.news?.length ? (
+          <div class="fund-news">
+            <b>最新解读</b>
+            {item.news.map((news) => (
+              <a href={news.url} target="_blank" rel="noopener noreferrer">
+                <span>{news.title}</span>
+                <small>{news.source || '同花顺问财'}{news.published_at ? ` · ${news.published_at.replace('T', ' ').slice(0, 16)} ET` : ''} ↗</small>
+              </a>
+            ))}
+          </div>
+        ) : null}
       </article>
     ))}
   </div>

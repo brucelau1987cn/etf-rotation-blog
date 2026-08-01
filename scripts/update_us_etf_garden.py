@@ -241,12 +241,15 @@ def main() -> None:
     release_pages([
         "https://etf.peekabo.cc/us-compass/",
         "https://etf.peekabo.cc/us-momentum/",
+        "https://etf.peekabo.cc/us-macro/",
         "https://etf.peekabo.cc/us-compass/history/",
         "https://etf.peekabo.cc/data/us-etf-garden.json",
         "https://etf.peekabo.cc/data/us-etf-pool.json",
+        "https://etf.peekabo.cc/data/us-macro-dashboard.json",
     ], {
         "https://etf.peekabo.cc/data/us-etf-garden.json": GARDEN,
         "https://etf.peekabo.cc/data/us-etf-pool.json": POOL,
+        "https://etf.peekabo.cc/data/us-macro-dashboard.json": REPO / "public/data/us-macro-dashboard.json",
     })
     learning = json.loads((REPO / "public/data/us-compass-learning.json").read_text(encoding="utf-8"))
     snapshots = len(learning.get("snapshots", []))

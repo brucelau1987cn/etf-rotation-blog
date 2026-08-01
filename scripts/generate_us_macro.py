@@ -13,6 +13,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import tempfile
 import time
 import urllib.error
@@ -33,6 +34,11 @@ FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 BEA_CORE_PCE_URL = "https://www.bea.gov/data/personal-consumption-expenditures-price-index-excluding-food-and-energy"
 CENSUS_MARTS_URL = "https://www.census.gov/econ_getzippedfile/?programCode=MARTS"
 BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+IWENCAI_NEWS_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
+IWENCAI_NEWS_QUERIES = {
+    "core_pce": "美国最新核心PCE 数据 解读 美联储",
+    "real_retail": "美国最新零售销售 实际零售销售 消费 数据 解读",
+}
 
 FRED_META = {
     "DGS2": ("日频", "%"), "DGS10": ("日频", "%"), "DGS30": ("日频", "%"),
@@ -109,6 +115,72 @@ def request_json(url: str) -> Any:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=20) as response:
         return json.load(response)
+
+
+def parse_iwencai_news(payload: dict[str, Any], key: str, limit: int = 2) -> list[dict[str, Any]]:
+    del key  # Reserved for future per-indicator filters.
+    items: list[dict[str, Any]] = []
+    rows = payload.get("data")
+    if not isinstance(rows, list):
+        return items
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        title = " ".join(str(row.get("title") or "").split())
+        url = str(row.get("url") or "").strip()
+        if not title or not url or url in seen:
+            continue
+        published_at = None
+        raw_time = row.get("publish_time")
+        if isinstance(raw_time, (int, float)):
+            published_at = datetime.fromtimestamp(raw_time, timezone.utc).astimezone(NY).isoformat(timespec="seconds")
+        items.append({
+            "title": title[:180],
+            "summary": " ".join(str(row.get("summary") or "").split())[:280],
+            "url": url,
+            "published_at": published_at,
+            "source": "同花顺问财",
+        })
+        seen.add(url)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def iwencai_news(query: str, size: int = 5) -> list[dict[str, Any]]:
+    if not IWENCAI_NEWS_WRAPPER.exists():
+        raise RuntimeError("iWenCai news wrapper unavailable")
+    proc = subprocess.run(
+        [str(IWENCAI_NEWS_WRAPPER), "news-search", query, "--size", str(size), "--timeout", "30"],
+        cwd=ROOT, text=True, capture_output=True, timeout=45,
+    )
+    if proc.returncode:
+        raise RuntimeError((proc.stderr or proc.stdout or "iWenCai news failed").strip()[:300])
+    payload = json.loads(proc.stdout)
+    if payload.get("status_code") != 0:
+        raise RuntimeError(f"iWenCai news status={payload.get('status_code')}")
+    return parse_iwencai_news(payload, "macro", limit=2)
+
+
+def attach_macro_news(
+    fundamentals: list[dict[str, Any]], failures: dict[str, str], previous_snapshot: dict[str, Any] | None = None,
+) -> None:
+    previous = {
+        str(item.get("key") or ""): item.get("news")
+        for item in (previous_snapshot or {}).get("fundamentals", [])
+        if isinstance(item, dict) and isinstance(item.get("news"), list)
+    }
+    for item in fundamentals:
+        key = str(item.get("key") or "")
+        query = IWENCAI_NEWS_QUERIES.get(key)
+        if not query:
+            continue
+        try:
+            item["news"] = iwencai_news(query, size=5)
+        except Exception as exc:
+            failures[f"news_{key}"] = str(exc)
+            item["news"] = previous.get(key, [])
 
 
 def yahoo(symbol: str) -> dict[str, Any]:
@@ -694,6 +766,7 @@ def main() -> None:
         fundamental("real_retail", "实际零售销售", "3月 {change_3m_pct:+.2f}%", "消费动能的三个月变化"),
         fundamental("gdpnow", "GDPNow", "{value:.2f}%", "当前季度实际GDP年化即时估计"),
     ]
+    attach_macro_news(fundamentals, failures, previous_snapshot)
 
     impacts = []
     if y10 is not None:

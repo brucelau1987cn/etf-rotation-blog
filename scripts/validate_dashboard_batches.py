@@ -789,12 +789,16 @@ def validate(data_dir: Path = DATA) -> CheckResult:
     macro_primary = max(market_dates) if market_dates else None
     if macro_primary is None:
         errors.append("US macro market dates are missing")
-    us_expected = [x for x in (us_date, us_model, us_quote, macro_generated, macro_primary) if x]
+    us_expected = [x for x in (us_date, us_model, us_quote, macro_primary) if x]
     if len(set(us_expected)) > 1:
         errors.append(
             "US batch mismatch: "
             f"garden={us_date}, model={us_model}, quote={us_quote}, "
             f"macro_generated={macro_generated}, macro_primary={macro_primary}"
+        )
+    if macro_generated and macro_primary and macro_generated < macro_primary:
+        errors.append(
+            f"US macro generated_at predates market observation: generated={macro_generated}, primary={macro_primary}"
         )
     if us.get("session_state") != us_pool.get("session_state"):
         errors.append(

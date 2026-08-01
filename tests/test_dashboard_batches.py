@@ -189,6 +189,14 @@ def test_us_macro_mixed_batch_is_blocked(tmp_path):
     assert any("US batch mismatch" in error for error in result.errors)
 
 
+def test_us_macro_generation_may_run_after_trade_date_when_market_observation_matches(tmp_path):
+    def mutate(payloads):
+        payloads["us-macro-dashboard.json"]["generated_at"] = "2026-07-21T02:00:00-04:00"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "ok"
+
+
 def test_us_actions_must_belong_to_current_pool_and_trade_date(tmp_path):
     def mutate(payloads):
         item = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
