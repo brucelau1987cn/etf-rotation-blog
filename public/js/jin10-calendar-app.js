@@ -71,7 +71,8 @@
   const renderItem = (item) => {
     const typeLabel = item.type === 'data' ? '数据' : item.type === 'event' ? '事件' : item.type === 'holiday' ? '假期' : '其他';
     const values = item.type === 'data' ? `<div class="calendar-values"><span>前值 <b>${displayValue(item.previous, item.unit)}</b></span><span>预期 <b>${displayValue(item.consensus, item.unit)}</b></span><span>公布 <b>${displayValue(item.actual, item.unit)}</b></span></div>` : '';
-    const impact = item.impact_label ? `<div class="impact-tag">${escapeHtml(item.impact_label)}</div>` : item.affect_txt ? `<div class="impact-tag impact-${item.affect_txt === '利空' ? 'bearish' : item.affect_txt === '利多' ? 'bullish' : 'neutral'}">${escapeHtml(item.affect_txt)}</div>` : '';
+    const impactText = item.impact || item.affect_txt || null;
+    const impact = impactText ? `<div class="impact-tag impact-${impactText === '利空' ? 'bearish' : impactText === '利多' ? 'bullish' : 'neutral'}">${escapeHtml(impactText)}</div>` : '';
     const safeStar = Math.max(0, Math.min(5, Math.trunc(Number(item.star) || 0)));
     const stars = safeStar ? '★'.repeat(safeStar) : '—';
     return `<article class="calendar-item" data-type="${escapeHtml(item.type)}">

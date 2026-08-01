@@ -29,14 +29,11 @@ const normalizeItem = (entry) => {
   const title = data.title_full || data.title || data.indicator_name || data.name || data.event_content || data.summary || data.holiday_name || '未命名事项';
   const rawStar = Number(data.star);
   const star = Number.isFinite(rawStar) ? Math.max(0, Math.min(5, Math.trunc(rawStar))) : null;
-  const hasGoldSilverImpact = type === 'data'
-    && Number(data.indicator_id) === 951
-    && Number(data.show_affect) === 1
-    && Number(data.affect) === 1
-    && data.actual !== null
-    && data.actual !== undefined
-    && data.actual !== '';
-  const impactDirection = hasGoldSilverImpact ? 'bearish' : null;
+  const rawAffect = Number(data.affect);
+  const impact = type === 'data' && Number(data.show_affect) === 1
+    && data.actual !== null && data.actual !== undefined && data.actual !== ''
+    ? (rawAffect === 1 ? '利空' : rawAffect === 2 ? '利多' : null)
+    : null;
   return {
     type,
     id: data.id ?? data.data_id ?? null,
@@ -52,9 +49,7 @@ const normalizeItem = (entry) => {
     unit: data.unit ?? null,
     affect: data.affect ?? null,
     show_affect: data.show_affect ?? null,
-    impact_label: impactDirection === 'bearish' ? '利空 金银' : impactDirection === 'bullish' ? '利多 金银' : null,
-    impact_direction: impactDirection,
-    affected_assets: impactDirection ? ['gold', 'silver'] : [],
+    impact,
     time_status: data.time_status ?? null,
     source: data.source ?? null,
   };

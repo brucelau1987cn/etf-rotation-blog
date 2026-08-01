@@ -86,7 +86,7 @@ test('jin10 calendar proxy clamps malformed stars and preserves unknown types', 
   }
 });
 
-test('jin10 oil rig data exposes bearish gold and silver impact label', async () => {
+test('jin10 calendar proxy returns general impact direction', async () => {
   const previous = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
     status: 200,
@@ -100,32 +100,32 @@ test('jin10 oil rig data exposes bearish gold and silver impact label', async ()
   try {
     const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-08-01') });
     const payload = await response.json();
-    assert.equal(payload.items[0].impact_label, '利空 金银');
-    assert.equal(payload.items[0].impact_direction, 'bearish');
-    assert.deepEqual(payload.items[0].affected_assets, ['gold', 'silver']);
+    assert.equal(payload.items[0].impact, '利空');
+    assert.equal(payload.items[0].affect, 1);
+    assert.equal(payload.items[0].show_affect, 1);
   } finally {
     globalThis.fetch = previous;
   }
 });
 
-test('unverified or unreleased oil rig impacts stay hidden', async () => {
+test('unreleased or unverified items expose no impact', async () => {
   const previous = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
     status: 200,
     message: 'OK',
     data: [
       { type: 'data', data: { data_id: 2, indicator_id: 951, pub_time: '2026-08-08 01:00', indicator_name: '当周石油钻井总数', affect: 1, show_affect: 1, actual: null } },
-      { type: 'data', data: { data_id: 3, indicator_id: 951, pub_time: '2026-08-15 01:00', indicator_name: '当周石油钻井总数', affect: 2, show_affect: 1, actual: '449' } },
+      { type: 'data', data: { data_id: 3, indicator_id: 951, pub_time: '2026-07-31 01:00', indicator_name: '当周石油钻井总数', affect: 2, show_affect: 1, actual: '449' } },
     ],
   }), { status: 200 });
   try {
-    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-08-08&end_date=2026-08-15') });
+    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-07-31&end_date=2026-08-08') });
     const payload = await response.json();
-    for (const item of payload.items) {
-      assert.equal(item.impact_label, null);
-      assert.equal(item.impact_direction, null);
-      assert.deepEqual(item.affected_assets, []);
-    }
+    // items sorted by time ascending: 07-31 first, 08-08 second
+    // affect=2 → 利多
+    assert.equal(payload.items[0].impact, '利多');
+    // null actual → no impact
+    assert.equal(payload.items[1].impact, null);
   } finally {
     globalThis.fetch = previous;
   }

@@ -97,7 +97,7 @@ GET https://rili-open-api.jin10.com/getDataByIndIdAndDateRange?category=cj&id=51
 
 时间统一按北京时间展示。页面默认打开“重要总览”，同时覆盖重要数据和重要事件。
 
-## D1归档与金银影响信号
+## D1归档与影响方向
 
 MCP 日历代理（直连 JSON-RPC + SSE，无需 MCP SDK）：
 
@@ -121,20 +121,14 @@ Authorization: Bearer <JIN10_SYNC_TOKEN>
 
 同步写入：
 
-- `jin10_calendar_items`：原始日历归一化记录
-- `jin10_asset_signals`：资产影响映射
-- `rolling_signals`：仅将已确认的白银方向写入期货滚动日锁表
+- `jin10_calendar_items`：原始日历归一化记录（含 `affect`/`show_affect` 数值方向）
 
-当前已核验映射：
+影响方向（纯方向，无品种映射）：
 
-- `indicator_id=951` 美国当周石油钻井总数
-- `show_affect=1`
-- `affect=1`：App显示“利空 金银”
-- 白银现货映射：显示代码 `SI=F`，行情别名 `HF_XAG`
-- 滚动方向：`SELL`，节点标签“宏观利空”
-- 只有 `actual` 已公布时生成影响信号，未来待公布记录仅归档
-
-`affect` 对其他指标的含义需逐项用App显示或抓包验证，禁止全局套用。
+- 直连 API：`type=data + show_affect=1 + actual已公布` 时，`affect=1` → `impact=利空`，`affect=2` → `impact=利多`
+- MCP：`affect_txt` 直接给出 利空/利多/影响较小
+- 只有 `actual` 已公布时生成影响方向，未来待公布记录仅归档
+- 前端按 `impact || affect_txt` 渲染标签：利空绿 / 利多红 / 影响较小灰
 
 ## Cloudflare Deployment
 

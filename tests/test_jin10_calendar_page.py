@@ -18,6 +18,7 @@ def test_jin10_calendar_page_and_navigation_contract():
     assert "/api/public/v1/jin10-calendar" in app
     assert "/api/public/v1/jin10-mcp-calendar" in app
     assert "mergeAffectTxt" in app
+    assert "impactText" in app
     assert "'bearish'" in app
     assert "'bullish'" in app
     assert "'neutral'" in app
