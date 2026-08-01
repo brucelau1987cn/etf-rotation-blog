@@ -35,8 +35,9 @@ test('oil rig affect=1 derives bearish gold and silver signals', () => {
   assert.match(signals[1].label, /美国当周石油钻井总数/);
 });
 
-test('unreleased oil rig item does not create an asset signal', () => {
+test('unreleased and unverified oil rig items do not create asset signals', () => {
   assert.deepEqual(deriveAssetSignals({ ...rigItem, actual: null }), []);
+  assert.deepEqual(deriveAssetSignals({ ...rigItem, affect: 2 }), []);
 });
 
 test('persistJin10Items upserts calendar records and silver rolling signal', async () => {

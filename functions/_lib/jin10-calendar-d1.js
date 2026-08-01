@@ -38,11 +38,10 @@ export const ensureJin10Tables = async (db) => {
  */
 export const deriveAssetSignals = (item) => {
   if (item?.type !== 'data' || item.actual === null || item.actual === undefined || item.actual === '') return [];
-  if (Number(item.indicator_id) !== 951 || Number(item.show_affect) !== 1) return [];
-  const direction = Number(item.affect) === 1 ? 'bearish' : Number(item.affect) === 2 ? 'bullish' : 'neutral';
-  if (direction === 'neutral') return [];
-  const rollingSignal = direction === 'bearish' ? 'SELL' : 'BUY';
-  const rollingCode = direction === 'bearish' ? '宏观利空' : '宏观利多';
+  if (Number(item.indicator_id) !== 951 || Number(item.show_affect) !== 1 || Number(item.affect) !== 1) return [];
+  const direction = 'bearish';
+  const rollingSignal = 'SELL';
+  const rollingCode = '宏观利空';
   const label = `${item.country || ''}${item.title || '石油钻井数据'}：前值${nullableText(item.previous) ?? '—'}，公布${nullableText(item.actual) ?? '—'}，${rollingCode}金银`;
   return [
     { asset_class: 'futures', symbol: 'GC=F', display_name: '黄金期货' },

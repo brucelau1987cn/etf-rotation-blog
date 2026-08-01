@@ -29,10 +29,14 @@ const normalizeItem = (entry) => {
   const title = data.title_full || data.title || data.indicator_name || data.name || data.event_content || data.summary || data.holiday_name || '未命名事项';
   const rawStar = Number(data.star);
   const star = Number.isFinite(rawStar) ? Math.max(0, Math.min(5, Math.trunc(rawStar))) : null;
-  const hasGoldSilverImpact = type === 'data' && Number(data.indicator_id) === 951 && Number(data.show_affect) === 1;
-  const impactDirection = hasGoldSilverImpact
-    ? (Number(data.affect) === 1 ? 'bearish' : Number(data.affect) === 2 ? 'bullish' : null)
-    : null;
+  const hasGoldSilverImpact = type === 'data'
+    && Number(data.indicator_id) === 951
+    && Number(data.show_affect) === 1
+    && Number(data.affect) === 1
+    && data.actual !== null
+    && data.actual !== undefined
+    && data.actual !== '';
+  const impactDirection = hasGoldSilverImpact ? 'bearish' : null;
   return {
     type,
     id: data.id ?? data.data_id ?? null,
@@ -114,6 +118,7 @@ export async function onRequestGet({ request, env = {} }) {
     if (!expected || authorization !== `Bearer ${expected}`) return json({ error: 'unauthorized' }, 401, 'no-store');
     if (!env.DB) return json({ error: 'DB binding missing' }, 503, 'no-store');
     payload.sync = await persistJin10Items(env.DB, items);
+    return json(payload, 200, 'no-store');
   }
   return json(payload);
 }

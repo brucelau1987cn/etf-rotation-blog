@@ -108,6 +108,29 @@ test('jin10 oil rig data exposes bearish gold and silver impact label', async ()
   }
 });
 
+test('unverified or unreleased oil rig impacts stay hidden', async () => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    status: 200,
+    message: 'OK',
+    data: [
+      { type: 'data', data: { data_id: 2, indicator_id: 951, pub_time: '2026-08-08 01:00', indicator_name: '当周石油钻井总数', affect: 1, show_affect: 1, actual: null } },
+      { type: 'data', data: { data_id: 3, indicator_id: 951, pub_time: '2026-08-15 01:00', indicator_name: '当周石油钻井总数', affect: 2, show_affect: 1, actual: '449' } },
+    ],
+  }), { status: 200 });
+  try {
+    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-08-08&end_date=2026-08-15') });
+    const payload = await response.json();
+    for (const item of payload.items) {
+      assert.equal(item.impact_label, null);
+      assert.equal(item.impact_direction, null);
+      assert.deepEqual(item.affected_assets, []);
+    }
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
+
 test('jin10 calendar sync requires token and persists through D1', async () => {
   const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31&sync=1', {
     headers: { authorization: 'Bearer test-sync-token' },
