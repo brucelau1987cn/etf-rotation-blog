@@ -110,7 +110,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
           <div class="brief-list">
             {(briefing.fed_watch?.latest || []).slice(0, 2).map((item) => <div class="brief-item"><strong>{item.event}</strong><small>{item.time}</small><p class="fed-result">{item.result}</p><p>{item.impact}</p></div>)}
           </div>
-          <p class="source-line">{briefing.fed_watch?.next_focus} <a href={briefing.fed_watch?.calendar_url || 'https://rili.jin10.com/'} target="_blank" rel="noopener noreferrer">查看金十财经日历</a></p>
+          <p class="source-line">{briefing.fed_watch?.next_focus} <a href="/calendar/">查看本站财经日历</a> · <a href={briefing.fed_watch?.calendar_url || 'https://rili.jin10.com/'} target="_blank" rel="noopener noreferrer">查看金十财经日历</a></p>
           </article>
         </div>
       </section>

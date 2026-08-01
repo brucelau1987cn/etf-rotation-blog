@@ -151,6 +151,7 @@ check_asset "/js/site-a11y.js" "main-content"
 check_asset "/js/login-app.js" "change-password"
 check_asset "/js/lab-app.js" "a-share-research-audit"
 check_asset "/js/blog-post-app.js" "article-toc"
+check_asset "/js/jin10-calendar-app.js" "/api/public/v1/jin10-calendar"
 
 # Cache policy: versioned public JS should be long-lived/immutable.
 # Prefer a versioned URL (how pages actually load assets) and retry briefly
@@ -190,6 +191,12 @@ else
 fi
 
 # Page HTML only needs to reference the shared scripts + page-specific hooks.
+check_page "/calendar/" \
+  "财经日历" \
+  "重要数据" \
+  "重要事件" \
+  "/js/jin10-calendar-app.js"
+
 check_page "/rolling/" \
   "/js/normalize-quote-payload.js" \
   "/js/etf-live-poll.js" \

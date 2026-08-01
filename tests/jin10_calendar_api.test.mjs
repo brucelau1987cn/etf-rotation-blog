@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { pathToFileURL } from 'node:url';
+
+const moduleUrl = pathToFileURL(new URL('../functions/api/public/v1/jin10-calendar.js', import.meta.url).pathname).href;
+const mod = await import(moduleUrl);
+const handler = mod.onRequestGet;
+
+test('jin10 calendar proxy validates dates and normalizes daily data', async () => {
+  const previous = globalThis.fetch;
+  let upstreamUrl = '';
+  let upstreamHeaders;
+  globalThis.fetch = async (url, options = {}) => {
+    upstreamUrl = String(url);
+    upstreamHeaders = new Headers(options.headers);
+    return new Response(JSON.stringify({
+      status: 200,
+      message: 'OK',
+      data: [
+        { type: 'data', data: { data_id: 1182651, indicator_id: 534, pub_time: '2026-07-31 09:30', country: '中国', star: 3, indicator_name: '中国制造业PMI', previous: '50.3', consensus: '50.1', actual: '49.2', unit: '' } },
+        { type: 'event', data: { id: 1148410, event_time: '2026-07-31 10:00', country: '日本', star: 3, event_content: '日本央行公布利率决议。' } },
+      ],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31');
+    const response = await handler({ request });
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.status, 'ok');
+    assert.equal(payload.date, '2026-07-31');
+    assert.equal(payload.count, 2);
+    assert.deepEqual(payload.counts, { data: 1, event: 1, holiday: 0 });
+    assert.equal(payload.items[0].id, 1182651);
+    assert.equal(payload.items[0].indicator_id, 534);
+    assert.equal(payload.items[0].title, '中国制造业PMI');
+    assert.equal(payload.items[1].title, '日本央行公布利率决议。');
+    assert.match(upstreamUrl, /start_date=2026-07-31/);
+    assert.match(upstreamUrl, /end_date=2026-07-31/);
+    assert.equal(upstreamHeaders.get('x-app-id'), 'fiXF2nOnDycGutVA');
+    assert.equal(upstreamHeaders.get('x-version'), '2.0');
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
+
+test('jin10 calendar proxy rejects invalid and oversized ranges', async () => {
+  const badDate = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026/07/31') });
+  assert.equal(badDate.status, 400);
+
+  const tooWide = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-01-01&end_date=2026-03-01') });
+  assert.equal(tooWide.status, 400);
+});
+
+test('jin10 calendar proxy returns a controlled upstream failure', async () => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response('', { status: 502 });
+  try {
+    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31') });
+    const payload = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(payload.error, 'jin10 upstream unavailable');
+  } finally {
+    globalThis.fetch = previous;
+  }
+});

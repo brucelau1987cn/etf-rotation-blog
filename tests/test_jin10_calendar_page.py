@@ -1,0 +1,31 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_jin10_calendar_page_and_navigation_contract():
+    page = (ROOT / "src/pages/calendar.astro").read_text(encoding="utf-8")
+    app = (ROOT / "public/js/jin10-calendar-app.js").read_text(encoding="utf-8")
+    footer = (ROOT / "src/components/Footer.astro").read_text(encoding="utf-8")
+    futures = (ROOT / "src/pages/futures-compass.astro").read_text(encoding="utf-8")
+
+    assert "财经日历" in page
+    assert 'id="calendar-date"' in page
+    assert 'id="calendar-list"' in page
+    assert 'data-calendar-filter="important"' in page
+    assert 'data-calendar-filter="important-data"' in page
+    assert 'data-calendar-filter="important-event"' in page
+    assert "/api/public/v1/jin10-calendar" in app
+    assert "activeFilter = 'important'" in app
+    assert 'href="/calendar/"' in footer
+    assert 'href="/calendar/"' in futures
+
+
+def test_jin10_skill_is_committed_without_credentials():
+    skill = (ROOT / "skills/research/jin10-calendar/SKILL.md").read_text(encoding="utf-8")
+    assert "week_info" in skill
+    assert "getDataById" in skill
+    assert "getDataListByIndId" in skill
+    assert "getDataByIndIdAndDateRange" in skill
+    assert "x-token=" not in skill
+    assert "Cookie:" not in skill
