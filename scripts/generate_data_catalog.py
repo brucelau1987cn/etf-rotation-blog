@@ -141,8 +141,10 @@ def observation_date_for(payload: dict[str, Any], fields: tuple[str, ...]) -> st
         reports = payload.get("reports")
         if isinstance(reports, list):
             dates = [date_prefix(item.get("trade_date")) for item in reports if isinstance(item, dict)]
-            return max((item for item in dates if item), default=None)
-        return None
+            latest = max((item for item in dates if item), default=None)
+            if latest:
+                return latest
+        return date_prefix(payload.get("trade_date") or payload.get("date"))
     return date_prefix(first_value(payload, fields))
 
 
