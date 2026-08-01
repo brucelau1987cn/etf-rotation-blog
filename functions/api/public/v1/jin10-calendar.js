@@ -1,6 +1,6 @@
 const UPSTREAM = 'https://rili-open-api.jin10.com/data/week_info';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_RANGE_DAYS = 31;
+const MAX_RANGE_SPAN_DAYS = 30;
 
 const json = (body, status = 200, cache = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600') => new Response(JSON.stringify(body), {
   status,
@@ -20,17 +20,20 @@ const isRealDate = (value) => {
 const daysBetween = (start, end) => Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000);
 
 const normalizeItem = (entry) => {
-  const type = String(entry?.type || 'unknown');
+  const rawType = String(entry?.type || 'other');
+  const type = ['data', 'event', 'holiday'].includes(rawType) ? rawType : 'other';
   const data = entry?.data && typeof entry.data === 'object' ? entry.data : {};
   const time = data.pub_time || data.event_time || data.holiday_date || null;
   const title = data.title_full || data.title || data.indicator_name || data.name || data.event_content || data.summary || data.holiday_name || '未命名事项';
+  const rawStar = Number(data.star);
+  const star = Number.isFinite(rawStar) ? Math.max(0, Math.min(5, Math.trunc(rawStar))) : null;
   return {
     type,
     id: data.id ?? data.data_id ?? null,
     indicator_id: data.indicator_id ?? null,
     time,
     country: data.country || data.region || null,
-    star: Number.isFinite(Number(data.star)) ? Number(data.star) : null,
+    star,
     title,
     previous: data.previous ?? null,
     consensus: data.consensus ?? null,
@@ -51,7 +54,7 @@ export async function onRequestGet({ request }) {
 
   if (!isRealDate(start) || !isRealDate(end)) return json({ error: 'invalid date; expected YYYY-MM-DD' }, 400, 'no-store');
   const span = daysBetween(start, end);
-  if (span < 0 || span > MAX_RANGE_DAYS) return json({ error: `date range must be 0-${MAX_RANGE_DAYS} days` }, 400, 'no-store');
+  if (span < 0 || span > MAX_RANGE_SPAN_DAYS) return json({ error: 'date range supports at most 31 inclusive days' }, 400, 'no-store');
 
   const upstreamUrl = new URL(UPSTREAM);
   upstreamUrl.searchParams.set('start_date', start);
@@ -82,10 +85,8 @@ export async function onRequestGet({ request }) {
   if (Number(upstream?.status) !== 200 || !Array.isArray(upstream?.data)) return json({ error: 'invalid jin10 payload' }, 502, 'no-store');
 
   const items = upstream.data.map(normalizeItem).sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
-  const counts = { data: 0, event: 0, holiday: 0 };
-  for (const item of items) {
-    if (Object.prototype.hasOwnProperty.call(counts, item.type)) counts[item.type] += 1;
-  }
+  const counts = { data: 0, event: 0, holiday: 0, other: 0 };
+  for (const item of items) counts[item.type] += 1;
   return json({
     status: 'ok',
     source: '金十财经日历',

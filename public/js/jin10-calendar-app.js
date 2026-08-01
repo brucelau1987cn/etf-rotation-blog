@@ -29,9 +29,10 @@
   };
 
   const renderItem = (item) => {
-    const typeLabel = item.type === 'data' ? '数据' : item.type === 'event' ? '事件' : '假期';
+    const typeLabel = item.type === 'data' ? '数据' : item.type === 'event' ? '事件' : item.type === 'holiday' ? '假期' : '其他';
     const values = item.type === 'data' ? `<div class="calendar-values"><span>前值 <b>${displayValue(item.previous, item.unit)}</b></span><span>预期 <b>${displayValue(item.consensus, item.unit)}</b></span><span>公布 <b>${displayValue(item.actual, item.unit)}</b></span></div>` : '';
-    const stars = item.star ? '★'.repeat(Math.min(5, item.star)) : '—';
+    const safeStar = Math.max(0, Math.min(5, Math.trunc(Number(item.star) || 0)));
+    const stars = safeStar ? '★'.repeat(safeStar) : '—';
     return `<article class="calendar-item" data-type="${escapeHtml(item.type)}">
       <div class="calendar-time">${escapeHtml(itemTime(item.time))}<small>${escapeHtml(itemDate(item.time))}</small></div>
       <div><div class="calendar-title"><span class="type-tag">${typeLabel}</span>${escapeHtml(item.title)}</div><div class="calendar-meta">${escapeHtml(item.country || '全球')}${item.time_status ? ` · ${escapeHtml(item.time_status)}` : ''}</div>${values}</div>

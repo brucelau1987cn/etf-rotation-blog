@@ -27,7 +27,7 @@ import Footer from '../components/Footer.astro';
         <div class="calendar-actions"><button id="calendar-prev" type="button">前一天</button><button id="calendar-today" type="button">今天</button><button id="calendar-refresh" class="primary" type="button">刷新</button></div>
       </div>
       <div class="calendar-tabs" aria-label="日历分类"><button class="active" data-calendar-filter="important" type="button">重要总览</button><button data-calendar-filter="important-data" type="button">重要数据</button><button data-calendar-filter="important-event" type="button">重要事件</button><button data-calendar-filter="all" type="button">全部</button></div>
-      <div class="summary" aria-label="日历统计"><div><span>全部</span><strong id="calendar-count">—</strong></div><div><span>宏观数据</span><strong id="calendar-data-count">—</strong></div><div><span>重要事件</span><strong id="calendar-event-count">—</strong></div><div><span>三星以上</span><strong id="calendar-important-count">—</strong></div></div>
+      <div class="summary" aria-label="日历统计"><div><span>全部</span><strong id="calendar-count">—</strong></div><div><span>宏观数据</span><strong id="calendar-data-count">—</strong></div><div><span>事件总数</span><strong id="calendar-event-count">—</strong></div><div><span>三星以上</span><strong id="calendar-important-count">—</strong></div></div>
       <div class="calendar-status" id="calendar-status" role="status" aria-live="polite">正在加载财经日历…</div>
       <div class="calendar-list" id="calendar-list"></div>
       <p class="source-note">来源：金十财经日历，经本站 Cloudflare Pages Function 只读代理与短时缓存。数据版权归原始提供方所有；<a href="https://rili.jin10.com/" target="_blank" rel="noopener noreferrer">查看金十原始日历</a>。</p>

@@ -31,10 +31,11 @@ test('jin10 calendar proxy validates dates and normalizes daily data', async () 
     assert.equal(payload.status, 'ok');
     assert.equal(payload.date, '2026-07-31');
     assert.equal(payload.count, 2);
-    assert.deepEqual(payload.counts, { data: 1, event: 1, holiday: 0 });
+    assert.deepEqual(payload.counts, { data: 1, event: 1, holiday: 0, other: 0 });
     assert.equal(payload.items[0].id, 1182651);
     assert.equal(payload.items[0].indicator_id, 534);
     assert.equal(payload.items[0].title, '中国制造业PMI');
+    assert.equal(payload.items[0].star, 3);
     assert.equal(payload.items[1].title, '日本央行公布利率决议。');
     assert.match(upstreamUrl, /start_date=2026-07-31/);
     assert.match(upstreamUrl, /end_date=2026-07-31/);
@@ -49,8 +50,39 @@ test('jin10 calendar proxy rejects invalid and oversized ranges', async () => {
   const badDate = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026/07/31') });
   assert.equal(badDate.status, 400);
 
-  const tooWide = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-01-01&end_date=2026-03-01') });
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ status: 200, message: 'OK', data: [] }), { status: 200 });
+  try {
+    const allowed31Days = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-01-01&end_date=2026-01-31') });
+    assert.equal(allowed31Days.status, 200);
+  } finally {
+    globalThis.fetch = previous;
+  }
+
+  const tooWide = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-01-01&end_date=2026-02-01') });
   assert.equal(tooWide.status, 400);
+});
+
+test('jin10 calendar proxy clamps malformed stars and preserves unknown types', async () => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    status: 200,
+    message: 'OK',
+    data: [
+      { type: 'data', data: { data_id: 1, pub_time: '2026-07-31 01:00', indicator_name: '异常负星', star: -2 } },
+      { type: 'event', data: { id: 2, event_time: '2026-07-31 02:00', event_content: '异常超星', star: 9 } },
+      { type: 'notice', data: { id: 3, event_time: '2026-07-31 03:00', summary: '其他类型', star: 2 } },
+    ],
+  }), { status: 200 });
+  try {
+    const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31') });
+    const payload = await response.json();
+    assert.deepEqual(payload.items.map((item) => item.star), [0, 5, 2]);
+    assert.equal(payload.items[2].type, 'other');
+    assert.equal(payload.counts.other, 1);
+  } finally {
+    globalThis.fetch = previous;
+  }
 });
 
 test('jin10 calendar proxy returns a controlled upstream failure', async () => {
