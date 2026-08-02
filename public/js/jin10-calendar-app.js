@@ -147,3 +147,60 @@
   }));
   load();
 })();
+
+// ── ETF holdings module (黄金/白银 ETF 持仓报告) ──
+(() => {
+  const ETF_API = '/api/public/v1/jin10-etf-reports';
+  const container = document.getElementById('etf-holdings');
+  if (!container) return;
+  const tabs = container.querySelectorAll('[data-etf-attr]');
+  const list = document.getElementById('etf-holdings-list');
+  const status = document.getElementById('etf-holdings-status');
+  let currentAttr = 1;
+
+  const maxVal = (rows) => Math.max(1, ...rows.map((r) => Math.abs(r.inc_trust || 0) + Math.abs(r.dec_trust || 0)));
+
+  const render = (rows) => {
+    if (!rows || !rows.length) {
+      list.innerHTML = '<div class="empty">暂无持仓数据</div>';
+      return;
+    }
+    const max = maxVal(rows);
+    const bars = rows.map((r) => {
+      const inc = Math.abs(r.inc_trust || 0);
+      const dec = Math.abs(r.dec_trust || 0);
+      const incPct = (inc / max) * 100;
+      const decPct = (dec / max) * 100;
+      const net = (r.inc_trust || 0) - (r.dec_trust || 0);
+      const netLabel = net > 0 ? `+${net.toFixed(2)}` : net.toFixed(2);
+      return `<div class="etf-row">
+        <div class="etf-week">${r.reported_on}</div>
+        <div class="etf-bars">
+          ${inc > 0 ? `<div class="etf-bar etf-inc" style="width:${incPct.toFixed(1)}%"><span>${inc.toFixed(2)}</span></div>` : ''}
+          ${dec > 0 ? `<div class="etf-bar etf-dec" style="width:${decPct.toFixed(1)}%"><span>${dec.toFixed(2)}</span></div>` : ''}
+        </div>
+        <div class="etf-net ${net >= 0 ? 'up' : 'down'}">${netLabel}t</div>
+      </div>`;
+    }).join('');
+    list.innerHTML = `<div class="etf-header"><span>日期</span><span>增持↑ / 减持↓</span><span>净变化</span></div>${bars}`;
+  };
+
+  const load = async (attr) => {
+    currentAttr = attr || currentAttr;
+    status.textContent = '加载中…';
+    tabs.forEach((b) => b.classList.toggle('active', Number(b.dataset.etfAttr) === currentAttr));
+    try {
+      const resp = await fetch(`${ETF_API}?attr_id=${currentAttr}&weeks=12`);
+      const d = await resp.json();
+      if (d.status !== 'ok') throw new Error(d.error || 'fetch failed');
+      status.textContent = `近12周 · 净变化 ${d.net_trust >= 0 ? '+' : ''}${d.net_trust}t`;
+      render(d.rows);
+    } catch (e) {
+      status.textContent = '加载失败';
+      list.innerHTML = '<div class="empty">数据暂时不可用</div>';
+    }
+  };
+
+  tabs.forEach((b) => b.addEventListener('click', () => load(Number(b.dataset.etfAttr))));
+  load(1);
+})();

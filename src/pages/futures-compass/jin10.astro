@@ -53,6 +53,36 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .impact-tag.impact-neutral{background:var(--warm-2);color:rgb(var(--gray-dark))}
     .stars{font-size:.72rem;letter-spacing:.08em;color:#f59e0b;grid-column:3;justify-self:end;white-space:nowrap}
     .source-note{margin:1.5rem 0 0;color:rgb(var(--gray));font-size:.72rem;line-height:1.55;padding:1rem 0;border-top:1px solid var(--border)}
+    /* ETF holdings module */
+    .etf-section{margin-top:2rem;padding:0 0 2rem}
+    .etf-section .section-head{margin-bottom:.9rem}
+    .etf-section .section-head small{display:block;color:var(--accent-dark);font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.12rem}
+    .etf-section .section-head h2{font-size:clamp(1.2rem,2.5vw,1.5rem);margin:.25rem 0 .35rem}
+    .etf-section .section-head p{color:rgb(var(--gray));margin:0;font-size:.82rem;line-height:1.5}
+    .etf-tabs{display:flex;gap:.4rem;margin:0 0 .85rem;flex-wrap:wrap}
+    .etf-tabs button{padding:.4rem .68rem;border:1px solid var(--border);border-radius:8px;background:var(--warm-2);color:rgb(var(--gray-dark));font:inherit;font-size:.74rem;font-weight:850;cursor:pointer;transition:all .12s}
+    .etf-tabs button:hover{background:#fff;border-color:rgb(var(--gray))}
+    .etf-tabs button.active{border-color:rgb(var(--black));background:rgb(var(--black));color:#fff}
+    .etf-status{margin:0 0 .7rem;color:rgb(var(--gray));font-size:.74rem}
+    .etf-list{display:grid;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
+    .etf-header{display:grid;grid-template-columns:90px 1fr 72px;gap:.5rem;padding:.55rem .7rem;background:var(--warm-2);font-size:.68rem;font-weight:850;color:rgb(var(--gray-dark));border-bottom:1px solid var(--border)}
+    .etf-header span:last-child{text-align:right}
+    .etf-row{display:grid;grid-template-columns:90px 1fr 72px;gap:.5rem;padding:.5rem .7rem;border-bottom:1px solid var(--border);font-size:.72rem;align-items:center}
+    .etf-row:last-child{border-bottom:0}
+    .etf-week{font-weight:850;color:rgb(var(--black));white-space:nowrap}
+    .etf-bars{display:flex;gap:3px;align-items:center;min-height:24px;overflow:hidden}
+    .etf-bar{display:flex;align-items:center;min-width:4px;height:20px;border-radius:4px;padding:0 4px;box-sizing:border-box;transition:width .2s;flex-shrink:0}
+    .etf-bar span{font-size:.6rem;font-weight:850;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .etf-bar.etf-inc{background:var(--green);margin-right:2px}
+    .etf-bar.etf-dec{background:var(--accent)}
+    .etf-net{text-align:right;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .etf-net.up{color:var(--green)}
+    .etf-net.down{color:var(--accent-dark)}
+    .empty{text-align:center;padding:1.5rem;color:rgb(var(--gray));font-size:.78rem}
+    @media(max-width:680px){
+      .etf-header,.etf-row{grid-template-columns:76px 1fr 64px}
+      .etf-bar span{font-size:.55rem}
+    }
     @media(max-width:680px){
       .page-head{display:block}
       .page-head p{font-size:.82rem}
@@ -86,6 +116,14 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
       <div class="calendar-list" id="calendar-list"></div>
       <p class="source-note">来源：金十财经日历，经本站 Cloudflare Pages Function 只读代理与短时缓存。数据版权归原始提供方所有；<a href="https://rili.jin10.com/" target="_blank" rel="noopener noreferrer">查看金十原始日历</a>。</p>
     </section>
+    <div id="etf-holdings">
+      <section class="etf-section" aria-label="ETF持仓报告">
+        <div class="section-head"><small>ETF holdings</small><h2>ETF持仓</h2><p>黄金与白银ETF每周持仓变动（吨数）。</p></div>
+        <div class="etf-tabs" aria-label="ETF选择"><button class="active" data-etf-attr="1" type="button">黄金ETF</button><button data-etf-attr="2" type="button">白银ETF</button></div>
+        <div class="etf-status" id="etf-holdings-status">加载中…</div>
+        <div class="etf-list" id="etf-holdings-list"></div>
+      </section>
+    </div>
   </main>
   <Footer />
   <script is:inline src="/js/jin10-calendar-app.js"></script>
