@@ -23,7 +23,7 @@ const { dimensions, toneIcon } = Astro.props;
       <span class="section-kicker">FOUR-DIMENSION GATE</span>
       <h2>四维风险矩阵</h2>
     </div>
-    <p>每张卡使用自己的观察日期，避免把低频数据伪装成实时。</p>
+    <p>每张卡使用自己的更新日期，避免把低频数据伪装成实时。</p>
   </div>
   <div class="dimension-grid">
     {dimensions.map((item) => (
@@ -36,7 +36,7 @@ const { dimensions, toneIcon } = Astro.props;
         <p>{item.detail}</p>
         <div class="dim-impact">{item.impact}</div>
         <div class="symbols">{item.symbols.map((symbol) => <b>{symbol}</b>)}</div>
-        <small class="asof">观察日 {item.as_of || 'N/A'}</small>
+        <small class="asof">更新日 {item.as_of || 'N/A'}</small>
       </article>
     ))}
   </div>

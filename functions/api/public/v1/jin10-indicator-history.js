@@ -84,10 +84,42 @@ export async function onRequestGet({ request, env }) {
     const data = upstream?.data || {};
     const rows = parseRows(data.unit, data.key, data.val).slice(-months);
 
-    // Next scheduled release: calculated from nonfarm payroll calendar rule.
-    // Nonfarm payroll is the first Friday of each month.
+    // Next scheduled release: look up the actual next release from the Jin10
+    // calendar API for this indicator (searches the next 45 days).
     let next_release = null;
     try {
+      const CALENDAR_API = 'https://etf.peekabo.cc/api/public/v1/jin10-calendar';
+      for (let offset = 1; offset <= 45; offset++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() + offset);
+        const dateStr = iso(d);
+        const calResp = await fetch(`${CALENDAR_API}?date=${dateStr}`, { headers: { 'User-Agent': 'ETF-Compass-Macro/1.0' } });
+        if (!calResp.ok) continue;
+        const calPayload = await calResp.json();
+        const calItems = calPayload?.items || calPayload?.data?.items || [];
+        for (const item of calItems) {
+          const title = String(item?.title || '').replace(/\s+/g, '');
+          // Prefer exact indicator_id match; fall back to title substring.
+          const idMatch = Number(item?.indicator_id) === id;
+          const titleMatch = title.includes(meta.titleMatch);
+          if (!idMatch && !titleMatch) continue;
+          const time = item?.time || item?.date || item?.show_time || '';
+          if (!time) continue;
+          next_release = {
+            time: String(time).replace('T', ' ').slice(0, 16),
+            title: item?.title || meta.label,
+            star: Number(item?.star) || 0,
+            previous: item?.previous ?? null,
+            consensus: item?.consensus ?? null,
+            actual: item?.actual ?? null,
+          };
+          break;
+        }
+        if (next_release) break;
+      }
+    } catch (_) { /* optional */ }
+    // Fallback: first Friday rule (nonfarm payroll month pattern).
+    if (!next_release) {
       for (let m = 0; m < 3; m++) {
         const d = new Date(now.getFullYear(), now.getMonth() + m, 1);
         while (d.getDay() !== 5) d.setDate(d.getDate() + 1);
@@ -96,7 +128,7 @@ export async function onRequestGet({ request, env }) {
         next_release = { time: `${dateStr} 20:30`, title: meta.label, star: 5, previous: rows[0]?.actual ?? null, consensus: null, actual: null };
         break;
       }
-    } catch (_) { /* optional */ }
+    }
 
     return json({
       status: 'ok',
