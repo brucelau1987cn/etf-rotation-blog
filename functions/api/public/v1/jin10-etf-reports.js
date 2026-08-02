@@ -1,7 +1,10 @@
+import { persistJin10EtfHoldings, readJin10EtfHoldings } from '../../../_lib/jin10-etf-reports-d1.js';
+
 /**
  * Jin10 ETF holdings report proxy (黄金ETF attr_id=1 / 白银ETF attr_id=2).
  *
- * Hides the upstream x-token from the browser.
+ * Hides the upstream x-token from the browser. Persists daily snapshots
+ * to D1 (jin10_etf_holdings) on every upstream fetch.
  *
  * Two upstream endpoints:
  *  - /api/etf-reports        → daily snapshots {trust, change, value, reported_on}
@@ -20,9 +23,6 @@ const json = (payload, status = 200) => new Response(JSON.stringify(payload), {
 
 const ATTRS = { 1: 'gold', 2: 'silver' };
 
-// Gold ETF holds ~1000t, silver ~15000t; use midpoint to separate.
-const trustBoundary = (attrId) => (attrId === 1 ? 5000 : 5000);
-
 const upstreamHeaders = (env) => ({
   'x-token': env.JIN10_X_TOKEN || '5c5b9d34-0899-441c-9cb6-60f58a0ec731',
   'x-version': '1.0',
@@ -32,7 +32,26 @@ const upstreamHeaders = (env) => ({
   'accept-language': 'zh-CN,zh-Hans;q=0.9',
 });
 
-export async function onRequestGet({ request, env }) {
+const buildResponse = (attrId, unit, limit, rows) => {
+  const netChange = rows.reduce((sum, r) => sum + (r.change || 0), 0);
+  const isWeek = unit === 'week';
+  return json({
+    status: 'ok',
+    source: 'jin10-etf-reports',
+    asset: ATTRS[attrId],
+    attr_id: attrId,
+    unit,
+    limit,
+    ...(isWeek
+      ? { net_trust: Number(netChange.toFixed(3)), inc_value_total: 0, dec_value_total: 0 }
+      : { net_change: Number(netChange.toFixed(3)) }
+    ),
+    latest: rows[0] || null,
+    rows,
+  });
+};
+
+export async function onRequestGet({ request, env, waitUntil }) {
   const url = new URL(request.url);
   const attrId = Number(url.searchParams.get('attr_id')) || 2;
   if (!ATTRS[attrId]) return json({ error: 'attr_id must be 1 (gold) or 2 (silver)', source: 'jin10-etf-reports' }, 400);
@@ -48,13 +67,32 @@ export async function onRequestGet({ request, env }) {
 
   try {
     if (unit === 'day') {
-      // Daily snapshots: both assets mixed in one stream; filter by trust magnitude.
+      // 1. Try D1 first
+      let rows;
+      const db = env?.DB;
+      if (db?.prepare) {
+        try {
+          rows = await readJin10EtfHoldings(db, attrId, limit);
+        } catch (_) { /* fall through to upstream */ }
+      }
+
+      // 2. If D1 has enough rows and newest is recent (≤2 days old), serve from D1.
+      const newestDate = rows?.[0]?.reported_on;
+      const newestAgeDays = newestDate ? (Date.now() - Date.parse(newestDate)) / 86400000 : Infinity;
+      if (rows && rows.length >= limit && newestAgeDays <= 2) {
+        return buildResponse(attrId, unit, limit, rows);
+      }
+
+      // 3. Fallback / refresh: fetch upstream
       const qs = new URLSearchParams({ date_start: iso(dateStart), date: iso(dateEnd) });
       const resp = await fetch(`${UPSTREAM}?${qs}`, { headers: upstreamHeaders(env) });
-      if (!resp.ok) return json({ error: `upstream HTTP ${resp.status}`, source: 'jin10-etf-reports' }, 502);
+      if (!resp.ok) {
+        if (rows && rows.length > 0) return buildResponse(attrId, unit, limit, rows);
+        return json({ error: `upstream HTTP ${resp.status}`, source: 'jin10-etf-reports' }, 502);
+      }
       const upstream = await resp.json();
       const boundary = 5000;
-      const rows = (upstream?.data || [])
+      rows = (upstream?.data || [])
         .filter((r) => (attrId === 1 ? r.trust < boundary : r.trust >= boundary))
         .slice(0, limit)
         .map((r) => ({
@@ -64,41 +102,30 @@ export async function onRequestGet({ request, env }) {
           value: r.value,
           updated_at: r.updated_at,
         }));
-      const netChange = rows.reduce((sum, r) => sum + (r.change || 0), 0);
-      return json({
-        status: 'ok',
-        source: 'jin10-etf-reports',
-        asset: ATTRS[attrId],
-        attr_id: attrId,
-        unit: 'day',
-        limit,
-        net_change: Number(netChange.toFixed(3)),
-        latest: rows[0] || null,
-        rows,
-      });
+
+      // 4. Persist to D1 (async, non-blocking)
+      if (db?.prepare && waitUntil) {
+        try {
+          waitUntil(persistJin10EtfHoldings(db, attrId, rows));
+        } catch (_) { /* non-blocking */ }
+      }
+
+      return buildResponse(attrId, unit, limit, rows);
     }
 
-    // Weekly aggregates from /view
+    // Weekly aggregates from /view (no D1 persistence)
     const qs = new URLSearchParams({ attr_id: String(attrId), date_start: iso(dateStart), date: iso(dateEnd), unit: 'week' });
     const resp = await fetch(`${UPSTREAM_VIEW}?${qs}`, { headers: upstreamHeaders(env) });
     if (!resp.ok) return json({ error: `upstream HTTP ${resp.status}`, source: 'jin10-etf-reports' }, 502);
     const upstream = await resp.json();
     const rows = (upstream?.data || []).slice(0, limit);
     const netTrust = rows.reduce((sum, r) => sum + (r.inc_trust || 0) - (r.dec_trust || 0), 0);
-    const incValueTotal = rows.reduce((sum, r) => sum + (r.inc_value || 0), 0);
-    const decValueTotal = rows.reduce((sum, r) => sum + (r.dec_value || 0), 0);
     return json({
-      status: 'ok',
-      source: 'jin10-etf-reports',
-      asset: ATTRS[attrId],
-      attr_id: attrId,
-      unit: 'week',
-      limit,
-      net_trust: Number(netTrust.toFixed(3)),
-      inc_value_total: incValueTotal,
-      dec_value_total: decValueTotal,
-      latest: rows[0] || null,
-      rows,
+      status: 'ok', source: 'jin10-etf-reports', asset: ATTRS[attrId], attr_id: attrId,
+      unit: 'week', limit, net_trust: Number(netTrust.toFixed(3)),
+      inc_value_total: rows.reduce((s, r) => s + (r.inc_value || 0), 0),
+      dec_value_total: rows.reduce((s, r) => s + (r.dec_value || 0), 0),
+      latest: rows[0] || null, rows,
     });
   } catch (error) {
     return json({ error: 'upstream fetch failed', detail: error.message, source: 'jin10-etf-reports' }, 502);
