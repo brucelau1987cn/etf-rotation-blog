@@ -9,19 +9,6 @@ type FundItem = {
   as_of?: string;
   source?: string;
   source_url?: string;
-  jin10?: {
-    value?: number;
-    unit?: string;
-    label?: string;
-    date?: string;
-    next_release?: {
-      time?: string;
-      title?: string;
-      star?: number;
-      previous?: string | number | null;
-      consensus?: string | number | null;
-    } | null;
-  } | null;
   news?: Array<{
     title: string;
     url: string;
@@ -63,18 +50,6 @@ const { kicker, title, note, items } = Astro.props;
               : item.source
           }
         </small>
-        {item.jin10?.next_release?.time ? (
-          <div class="jin10-dual">
-            <span class="jin10-src">金十</span>
-            <span class="jin10-val">{item.jin10.value}{item.jin10.unit}</span>
-            <span class="jin10-next">下次 {item.jin10.next_release.time.replace('T', ' ').slice(0, 16)}{item.jin10.next_release.star ? ` · ${'★'.repeat(item.jin10.next_release.star)}` : ''}{item.jin10.next_release.consensus != null ? ` · 预期 ${item.jin10.next_release.consensus}` : ''}</span>
-          </div>
-        ) : null}
-        {item.jin10_official ? (
-          <small class="official-note">
-            官方 {item.jin10_official.source}: {item.jin10_official.value}{item.jin10_official.unit} · 观察日 {item.jin10_official.date || item.as_of}
-          </small>
-        ) : null}
         {item.news?.length ? (
           <div class="fund-news">
             <b>最新解读</b>

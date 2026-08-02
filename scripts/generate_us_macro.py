@@ -34,15 +34,6 @@ FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 BEA_CORE_PCE_URL = "https://www.bea.gov/data/personal-consumption-expenditures-price-index-excluding-food-and-energy"
 CENSUS_MARTS_URL = "https://www.census.gov/econ_getzippedfile/?programCode=MARTS"
 BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-JIN10_INDICATOR_API = "https://etf.peekabo.cc/api/public/v1/jin10-indicator-history"
-JIN10_INDICATOR_MAP = {
-    "unemployment": (76, "失业率", "%"),
-    "payrolls": (75, "非农就业", "万人"),
-    "core_cpi": (232, "未季调核心CPI年率", "%"),
-    "core_pce": (211, "核心PCE物价指数年率", "%"),
-    "real_retail": (194, "零售销售月率", "%"),
-}  # key → (jin10_id, label, unit)
-
 IWENCAI_NEWS_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 IWENCAI_NEWS_QUERIES = {
     "core_pce": "美国最新核心PCE 数据 解读 美联储",
@@ -247,22 +238,6 @@ def fred(series: str) -> dict[str, Any]:
         three_month = rows[-4][1]
         result["change_3m_pct"] = round((value / three_month - 1) * 100, 2) if three_month else None
     return result
-
-
-def jin10_indicator(ind_id: int) -> tuple[dict, list[dict]]:
-    """Fetch indicator history from Jin10 proxy API.
-    Returns (payload, rows) where rows are newest-first.
-    """
-    url = f"{JIN10_INDICATOR_API}?id={ind_id}&months=3"
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
-    if payload.get("status") != "ok":
-        raise RuntimeError(payload.get("error", f"jin10 id={ind_id}: {payload.get('status', 'unknown')}"))
-    rows = payload.get("rows", [])
-    if not rows:
-        raise RuntimeError(f"jin10 id={ind_id}: no rows")
-    return payload, rows
 
 
 def fomc_events(today: date) -> list[dict[str, Any]]:
@@ -601,7 +576,7 @@ def main() -> None:
         except Exception as exc:
             failures[source_key] = str(exc)
         time.sleep(POLL_DELAY_SECONDS)
-    for source_key, loader in {
+    for key, loader in {
         "sofr": nyfed_sofr,
         "rrp": lambda: nyfed_rrp(now.date()),
         "tga": fiscal_tga,
@@ -613,30 +588,7 @@ def main() -> None:
         except Exception as exc:
             failures[f"{key}_primary"] = str(exc)
         time.sleep(POLL_DELAY_SECONDS)
-    # Jin10 indicator data (secondary source, attached to matching official keys)
-    for jin10_key, (jin10_id, jin10_label, jin10_unit) in JIN10_INDICATOR_MAP.items():
-        try:
-            payload, rows = jin10_indicator(jin10_id)
-            latest = rows[-1]
-            prev = rows[-2] if len(rows) >= 2 else latest
-            pub_ts = int(latest.get("published_at", 0))
-            obs_date = datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d") if pub_ts else ""
-            jin10_item = {
-                "value": latest["actual"], "previous": prev["actual"],
-                "unit": jin10_unit, "label": jin10_label, "date": obs_date,
-                "next_release": payload.get("next_release"),
-            }
-            existing = official.get(jin10_key)
-            if existing and isinstance(existing, dict):
-                existing["jin10_official"] = {"value": existing.get("value"), "source": existing.get("source"), "date": existing.get("date"), "unit": existing.get("unit"), "frequency": existing.get("frequency")}
-                existing["value"] = jin10_item["value"]
-                existing["date"] = jin10_item["date"]
-                existing["source"] = "金十数据"
-                existing["jin10"] = jin10_item
-            else:
-                official[jin10_key] = {**jin10_item, "source": "金十数据", "frequency": "月频", "stale": False, "jin10": jin10_item}
-        except Exception as exc:
-            failures[f"jin10_{jin10_key}"] = str(exc)
+
     fred_available = True
     fred_series = {
         "yield_2y": "DGS2", "yield_10y": "DGS10", "yield_30y": "DGS30", "curve_10y2y": "T10Y2Y", "sofr": "SOFR",
@@ -780,12 +732,7 @@ def main() -> None:
         if not item:
             return {"key": key, "title": title, "value": "数据待更新", "detail": detail, "as_of": None, "frequency": "—", "source": "FRED", "tone": "missing"}
         try:
-            if item.get("jin10") and not item.get("stale"):
-                # Jin10 is primary display; ignore the official formatter.
-                j = item["jin10"]
-                display_value = f"{j.get('value', item.get('value', '—'))}{j.get('unit', '')}"
-            else:
-                display_value = formatter.format(**item)
+            display_value = formatter.format(**item)
         except (KeyError, TypeError, ValueError):
             display_value = f"{item.get('value', '—')} {item.get('unit', '')}".strip()
         return {
@@ -794,8 +741,6 @@ def main() -> None:
             "source": item.get("source", "FRED"), "source_url": item.get("source_url"),
             "tone": "warning" if item.get("stale") else "neutral",
             "stale": bool(item.get("stale")),
-            "jin10": item.get("jin10"),
-            "jin10_official": item.get("jin10_official"),
         }
 
     def liquidity_card(key: str, title: str, scale: float, suffix: str, detail: str) -> dict[str, Any]:
