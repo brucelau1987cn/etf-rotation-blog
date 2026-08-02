@@ -7,7 +7,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <BaseHead title="金银持仓｜黄金白银ETF持仓报告 | ETF罗盘" description="黄金与白银ETF每周持仓变动（吨数）：增持/减持吨数、市值与近12周净变化。" />
+  <BaseHead title="金银持仓｜黄金白银ETF持仓报告 | ETF罗盘" description="黄金与白银ETF每日持仓变动（吨）：总持仓走势、增减持明细与净变化。" />
   <style is:global>
     main{width:var(--shell-width);padding:1rem 0 3rem}
     .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:1.15rem}
@@ -31,6 +31,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .latest-cell strong.up{color:var(--green)}
     .latest-cell strong.down{color:var(--accent-dark)}
     .holdings-status{margin:.4rem 0 .6rem;color:rgb(var(--gray));font-size:.74rem}
+    .trust-chart{width:100%;height:100px;max-height:100px;margin:.5rem 0;border-radius:8px;background:var(--warm-2)}
     .holdings-list{display:grid;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden}
     .holdings-header{display:grid;grid-template-columns:82px 1fr 68px;gap:.5rem;padding:.5rem .65rem;background:var(--warm-2);font-size:.66rem;font-weight:850;color:rgb(var(--gray-dark));border-bottom:1px solid var(--border)}
     .holdings-header span:last-child{text-align:right}
@@ -64,26 +65,28 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
       <div>
         <small>Gold & silver ETF holdings</small>
         <h1>金银持仓</h1>
-        <p>黄金与白银ETF每周持仓变动（吨数）。绿色=增持，红色=减持；净变化为当周增减持差值。</p>
+        <p>黄金与白银ETF每日持仓变动（吨）。绿色=增持，红色=减持；净变化为当日变化差值。</p>
       </div>
     </div>
     <div class="holdings-grid" id="holdings-grid">
       <section class="holdings-panel gold" aria-label="黄金ETF持仓">
         <div class="panel-top">
-          <div class="panel-title"><h2>黄金ETF</h2><p>近12周持仓变动</p></div>
+          <div class="panel-title"><h2>黄金ETF</h2><p>近2周持仓变动</p></div>
           <span class="asset-tag" id="gold-tag">加载中…</span>
         </div>
         <div class="latest-grid" id="gold-latest"></div>
         <div class="holdings-status" id="gold-status">加载中…</div>
+        <div id="gold-chart"></div>
         <div class="holdings-list" id="gold-list"></div>
       </section>
       <section class="holdings-panel silver" aria-label="白银ETF持仓">
         <div class="panel-top">
-          <div class="panel-title"><h2>白银ETF</h2><p>近12周持仓变动</p></div>
+          <div class="panel-title"><h2>白银ETF</h2><p>近2周持仓变动</p></div>
           <span class="asset-tag" id="silver-tag">加载中…</span>
         </div>
         <div class="latest-grid" id="silver-latest"></div>
         <div class="holdings-status" id="silver-status">加载中…</div>
+        <div id="silver-chart"></div>
         <div class="holdings-list" id="silver-list"></div>
       </section>
     </div>
