@@ -20,21 +20,22 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     data = json.loads(DATA.read_text(encoding="utf-8"))
 
     assert 'RollingSubnav active="low-chip"' in page
-    assert "70%筹码集中度低于3%" in page
+    assert "收盘获利比例低于3%" in page
+    assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
     assert data["data_as_of"] == "2026-07-31"
     assert data["threshold"] == 3
-    assert data["metric"] == "70%筹码集中度"
-    assert len(data["periods"]["week"]) == 7
-    assert len(data["periods"]["month"]) == 2
-    assert len(data["periods"]["quarter"]) == 1
-    assert data["intersection"] == ["601985.SH"]
+    assert data["metric"] == "收盘获利比例"
+    assert len(data["periods"]["week"]) == 177
+    assert len(data["periods"]["month"]) == 582
+    assert len(data["periods"]["quarter"]) == 269
+    assert len(data["intersection"]) == 29
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
     quarterly_codes = {item["symbol"] for item in data["periods"]["quarter"]}
-    assert quarterly_codes <= monthly_codes <= weekly_codes | {"301551.SZ"}
-    assert "601985.SH" in weekly_codes & monthly_codes & quarterly_codes
+    assert set(data["intersection"]) == weekly_codes & monthly_codes & quarterly_codes
+    assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
 
 
 def test_low_chip_page_uses_compact_tables_and_source_disclosure():
@@ -45,9 +46,10 @@ def test_low_chip_page_uses_compact_tables_and_source_disclosure():
         "筛选日期：2026-07-31",
         "三个周期同时满足",
         "low-chip-table",
+        "收盘获利比例",
     ):
         assert marker in page
-    for stock_name in ("中国核电", "盐田港", "无线传媒"):
+    for stock_name in ("好莱客", "永新光学", "必贝特"):
         assert stock_name in data
     assert "gradient" not in page.lower()
     assert "innerHTML" not in page

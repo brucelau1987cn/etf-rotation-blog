@@ -6,8 +6,8 @@ import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 import lowChipData from '../../../public/data/a-low-chip-stocks.json';
 
-const title = `低筹码股｜周月季筹码集中度筛选 | ${SITE_TITLE}`;
-const description = 'A股70%筹码集中度低于3%的周线、月线、季线筛选结果。';
+const title = `低筹码股｜周月季收盘获利筛选 | ${SITE_TITLE}`;
+const description = 'A股收盘获利比例低于3%的周线、月线、季线筛选结果。';
 const periodSections = [
   { key: 'week', label: '周线', rows: lowChipData.periods.week },
   { key: 'month', label: '月线', rows: lowChipData.periods.month },
@@ -16,6 +16,12 @@ const periodSections = [
 const allRows = periodSections.flatMap((period) => period.rows);
 const intersectionRows = allRows.filter((row, index, rows) =>
   lowChipData.intersection.includes(row.symbol) && rows.findIndex((item) => item.symbol === row.symbol) === index
+);
+const valuesBySymbol = Object.fromEntries(
+  lowChipData.intersection.map((symbol) => [
+    symbol,
+    Object.fromEntries(periodSections.map((period) => [period.key, period.rows.find((row) => row.symbol === symbol)?.value])),
+  ])
 );
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
 ---
@@ -31,7 +37,7 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
         <div>
           <p class="eyebrow">A股滚动 · 低筹码筛选</p>
           <h1>低筹码股</h1>
-          <p>筛选条件：A股、非ST、非退市，70%筹码集中度低于3%。数值越低，核心筹码分布越集中。</p>
+          <p>筛选条件：A股、非ST、非退市，收盘获利比例低于3%。该比例表示按对应周期筹码成本模型估算，收盘时处于盈利状态的筹码占比。</p>
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd>{lowChipData.data_as_of}</dd></div>
@@ -49,7 +55,7 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
         {intersectionRows.map((row) => (
           <article>
             <strong>{row.name} <span>{row.symbol}</span></strong>
-            <div>周线 2.9% · 月线 2.9% · 季线 2.4%</div>
+            <div>周线 {fmt(valuesBySymbol[row.symbol].week, 1)}% · 月线 {fmt(valuesBySymbol[row.symbol].month, 1)}% · 季线 {fmt(valuesBySymbol[row.symbol].quarter, 1)}%</div>
           </article>
         ))}
       </section>
@@ -58,12 +64,12 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
         {periodSections.map((period) => (
           <section class="period-section" aria-labelledby={`${period.key}-title`}>
             <header>
-              <div><p class="eyebrow">70%筹码集中度</p><h2 id={`${period.key}-title`}>{period.label}低于3%</h2></div>
+              <div><p class="eyebrow">收盘获利比例</p><h2 id={`${period.key}-title`}>{period.label}低于3%</h2></div>
               <strong>{period.rows.length}只</strong>
             </header>
             <div class="table-wrap">
               <table class="low-chip-table">
-                <thead><tr><th>股票</th><th>代码</th><th>集中度</th><th>最新价</th><th>涨跌幅</th></tr></thead>
+                <thead><tr><th>股票</th><th>代码</th><th>收盘获利</th><th>最新价</th><th>涨跌幅</th></tr></thead>
                 <tbody>
                   {period.rows.map((row) => (
                     <tr class:list={[lowChipData.intersection.includes(row.symbol) && 'is-intersection']}>
@@ -83,8 +89,8 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
 
       <footer class="data-note">
         <strong>数据来源：iWenCai</strong>
-        <span>筛选日期：2026-07-31 · 指标：70%筹码集中度 · 阈值：低于3%</span>
-        <p>筹码集中度属于模型估算指标，页面用于筛选观察，需结合成交量、趋势位置和基本面验证。</p>
+        <span>筛选日期：2026-07-31 · 指标：收盘获利比例 · 阈值：低于3%</span>
+        <p>收盘获利比例属于筹码成本模型估算值。低于3%表示对应周期内绝大多数筹码处于浮亏状态，页面用于超跌与套牢盘观察。</p>
       </footer>
     </main>
     <Footer />
