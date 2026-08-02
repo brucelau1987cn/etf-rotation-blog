@@ -24,11 +24,18 @@ const upstreamHeaders = (env) => ({
 });
 
 // id → { label, titleMatch } where titleMatch is a substring used to find the
-// next release in the calendar API.
+// next release via calendar API.
 const INDICATORS = {
   75: { label: '美国非农就业人数', unit: '万人', titleMatch: '非农' },
   76: { label: '美国失业率', unit: '%', titleMatch: '失业率' },
   78: { label: '美国ADP就业人数', unit: '万人', titleMatch: 'ADP' },
+  194: { label: '美国零售销售月率', unit: '%', titleMatch: '零售销售' },
+  211: { label: '美国核心PCE物价指数年率', unit: '%', titleMatch: '核心PCE' },
+  214: { label: '美国核心PCE物价指数月率', unit: '%', titleMatch: '核心PCE' },
+  232: { label: '美国未季调核心CPI年率', unit: '%', titleMatch: '核心CPI' },
+  233: { label: '美国季调后核心CPI月率', unit: '%', titleMatch: '核心CPI' },
+  234: { label: '美国未季调CPI年率', unit: '%', titleMatch: 'CPI' },
+  230: { label: '美国季调后CPI月率', unit: '%', titleMatch: 'CPI' },
 };
 
 const parseRows = (unit, key, vals) => {
