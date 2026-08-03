@@ -15,6 +15,8 @@ except ModuleNotFoundError:
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = "public/data/futures-compass.json"
+BRIEFING = "public/data/futures-compass-briefing.json"
+PUBLISH_FILES = (SNAPSHOT, BRIEFING)
 FUTURES_PYTHON = "/root/.cache/etf-futures/venv/bin/python"
 LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
@@ -65,8 +67,8 @@ def preflight() -> None:
         raise RuntimeError("futures publisher requires main branch")
     if run(["git", "diff", "--cached", "--quiet"], check=False).returncode:
         raise RuntimeError("futures publisher requires a clean git index")
-    if run(["git", "diff", "--quiet", "--", SNAPSHOT], check=False).returncode:
-        raise RuntimeError("futures snapshot already has uncommitted changes")
+    if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode:
+        raise RuntimeError("futures snapshot or briefing already has uncommitted changes")
     dirty = run(["git", "status", "--porcelain", "--untracked-files=all"]).stdout.splitlines()
     foreign = foreign_dirty_paths(dirty)
     if foreign:
@@ -84,13 +86,13 @@ def publish(slot: str) -> dict[str, str]:
         try:
             run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
             run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
-            if run(["git", "diff", "--quiet", "--", SNAPSHOT], check=False).returncode == 0:
+            if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode == 0:
                 return {"status": "unchanged", "slot": slot}
             run(["npm", "run", "build"])
-            run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", SNAPSHOT])
+            run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", *PUBLISH_FILES])
         except Exception:
-            run(["git", "reset", "--quiet", "--", SNAPSHOT], check=False)
-            run(["git", "checkout", "--", SNAPSHOT], check=False)
+            run(["git", "reset", "--quiet", "--", *PUBLISH_FILES], check=False)
+            run(["git", "checkout", "--", *PUBLISH_FILES], check=False)
             raise
         run(["git", "fetch", "origin", "main"])
         if not is_ancestor("origin/main", "HEAD"):
@@ -100,7 +102,11 @@ def publish(slot: str) -> dict[str, str]:
         release_pages([
             "https://etf.peekabo.cc/futures-compass/",
             "https://etf.peekabo.cc/data/futures-compass.json",
-        ], {"https://etf.peekabo.cc/data/futures-compass.json": Path(SNAPSHOT)})
+            "https://etf.peekabo.cc/data/futures-compass-briefing.json",
+        ], {
+            "https://etf.peekabo.cc/data/futures-compass.json": Path(SNAPSHOT),
+            "https://etf.peekabo.cc/data/futures-compass-briefing.json": Path(BRIEFING),
+        })
         return {"status": "published", "slot": slot}
 
 

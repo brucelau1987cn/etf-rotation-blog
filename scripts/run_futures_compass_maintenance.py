@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
+from pathlib import Path
 from futures_compass_data import (
     PUBLIC_SNAPSHOT,
     atomic_json,
@@ -13,9 +16,21 @@ from futures_compass_data import (
     run_iwencai_review,
 )
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def refresh_briefing() -> dict:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/generate_futures_compass_briefing.py")],
+        cwd=ROOT, text=True, capture_output=True, timeout=150, check=False,
+    )
+    if result.returncode != 0:
+        return {"status": "error", "detail": (result.stderr or result.stdout)[-500:]}
+    return {"status": "ok", "detail": result.stdout.strip()[-500:]}
+
 
 def run_slot(slot: str) -> dict:
-    result = {"review": run_iwencai_review(slot)}
+    result = {"review": run_iwencai_review(slot), "briefing": refresh_briefing()}
     if slot == "day-close":
         result["daily"] = fetch_daily_bars()
         result["warehouse"] = fetch_warehouse_receipts()

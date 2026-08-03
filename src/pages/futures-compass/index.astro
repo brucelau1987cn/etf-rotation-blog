@@ -62,8 +62,8 @@ const tone = (value?: number) => Number(value) > 0 ? 'up' : Number(value) < 0 ? 
 const stateTone = (value?: string) => value?.includes('增仓上涨') ? 'bull' : value?.includes('增仓下跌') ? 'bear' : value?.includes('减仓') ? 'caution' : 'neutral';
 const snapshotTime = (snapshot.generated_at || '').replace('T', ' ').replace('+08:00', '') || '等待刷新';
 const deliveryDate = briefing.index_delivery?.date ? new Date(`${briefing.index_delivery.date}T00:00:00+08:00`) : null;
-const snapshotDate = snapshot.generated_at ? new Date(snapshot.generated_at) : new Date();
-const deliveryDays = deliveryDate ? Math.max(0, Math.ceil((deliveryDate.getTime() - snapshotDate.getTime()) / 86400000)) : null;
+const now = new Date();
+const deliveryDays = deliveryDate ? Math.max(0, Math.ceil((deliveryDate.getTime() - now.getTime()) / 86400000)) : null;
 const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '日盘收盘', night: '夜盘' };
 ---
 <!doctype html>
@@ -97,8 +97,8 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
         <div class="briefing-grid" aria-label="期货事件提示">
           <article class="briefing-panel delivery">
           <span class="eyebrow">Index delivery</span><h2>股指期货交割提示</h2>
-          <div class="delivery-date"><strong>{briefing.index_delivery?.date || '待更新'}</strong><span>{briefing.index_delivery?.weekday || ''}</span></div>
-          {deliveryDays !== null ? <span class="delivery-countdown">距交割 {deliveryDays} 天</span> : null}
+          <div class="delivery-date"><strong id="delivery-date" data-delivery-date={briefing.index_delivery?.date || ''}>{briefing.index_delivery?.date || '待更新'}</strong><span>{briefing.index_delivery?.weekday || ''}</span></div>
+          {deliveryDays !== null ? <span class="delivery-countdown" id="delivery-countdown">距交割 {deliveryDays} 天</span> : null}
           <p>{briefing.index_delivery?.symbols?.join(' / ') || 'IF / IH / IC / IM'} · {briefing.index_delivery?.days_note || '到期月第三个周五，节假日顺延。'}</p>
         </article>
         <article class="briefing-panel">
@@ -172,5 +172,6 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
     <Footer />
     <QuoteLiveScripts />
     <script is:inline src="/js/futures-compass-app.js"></script>
+    <script type="module" src="/js/futures-delivery-countdown.js"></script>
   </body>
 </html>

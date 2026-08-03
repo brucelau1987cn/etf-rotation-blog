@@ -14,6 +14,10 @@ assert SPEC and SPEC.loader
 maintenance = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(maintenance)
 data = sys.modules["futures_compass_data"]
+PUBLISH_SPEC = importlib.util.spec_from_file_location("futures_publisher", SCRIPTS / "publish_futures_compass.py")
+assert PUBLISH_SPEC and PUBLISH_SPEC.loader
+publisher = importlib.util.module_from_spec(PUBLISH_SPEC)
+PUBLISH_SPEC.loader.exec_module(publisher)
 
 
 def valid_item(code):
@@ -81,8 +85,15 @@ def test_build_runs_futures_snapshot_freshness_gate():
     assert "scripts/validate_futures_compass.py" in package["scripts"]["build"]
 
 
+def test_publisher_tracks_briefing_and_deploys_both_json_files():
+    source = (SCRIPTS / "publish_futures_compass.py").read_text(encoding="utf-8")
+    assert 'BRIEFING = "public/data/futures-compass-briefing.json"' in source
+    assert '"https://etf.peekabo.cc/data/futures-compass-briefing.json"' in source
+    assert 'Path(BRIEFING)' in source
+
+
 def test_futures_page_contains_event_briefing_sections():
-    page = (ROOT / "src/pages/futures-compass.astro").read_text(encoding="utf-8")
+    page = (ROOT / "src/pages/futures-compass/index.astro").read_text(encoding="utf-8")
     briefing = json.loads((ROOT / "public/data/futures-compass-briefing.json").read_text(encoding="utf-8"))
     assert "股指期货交割提示" in page
     assert "标的行业政策利好" in page
@@ -97,6 +108,21 @@ def test_futures_page_contains_event_briefing_sections():
     assert "briefing-panel+.briefing-panel{border-left:1px" in page
     assert "background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%)" in page
     assert "background:#17243a" in page
+
+
+def test_each_maintenance_slot_refreshes_event_briefing(monkeypatch):
+    calls = []
+    monkeypatch.setattr(maintenance, "refresh_briefing", lambda: calls.append("briefing") or {"status": "ok"})
+    monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {"status": "ok", "slot": slot})
+    monkeypatch.setattr(maintenance, "fetch_daily_bars", lambda: {"rows": 6})
+    monkeypatch.setattr(maintenance, "fetch_warehouse_receipts", lambda: {"rows": 3})
+    monkeypatch.setattr(maintenance, "fetch_realtime", lambda: {"generated_at": "2026-07-28T08:30:00+08:00", "count": 9})
+    monkeypatch.setattr(maintenance, "atomic_json", lambda path, payload: None)
+
+    for slot in ("preopen", "day-close", "night"):
+        maintenance.run_slot(slot)
+
+    assert calls == ["briefing", "briefing", "briefing"]
 
 
 def test_warehouse_fetch_passes_explicit_trade_date_to_exchange_clients(monkeypatch, tmp_path):
