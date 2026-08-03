@@ -16,6 +16,10 @@ QUALITY_TERMS = (
     "全国社保基金", "社保基金", "基本养老保险基金", "国家集成电路产业投资基金",
     "国新投资", "深圳市创新投资集团", "科威特政府投资局", "澳门金融管理局",
 )
+INSTITUTIONAL_TERMS = (
+    "基金", "保险", "私募", "QFII", "合格境外", "香港中央结算",
+    "产业投资", "产业资本", "投资有限公司",
+)
 
 
 def load(path: Path):
@@ -93,12 +97,16 @@ def main() -> None:
         levels = [item for item in industry.split("--") if item]
         sector = levels[-1] if levels else "待补充"
         quality = quality_names.get(code, [])
+        shareholders = shareholders_from_row(row)
+        institutional = [name for name in shareholders if any(term in name for term in INSTITUTIONAL_TERMS)]
         unlock = unlocks.get(code)
         enrichments[code] = {
             "industry": industry or "待补充",
             "sector": sector,
             "quality_shareholder": bool(quality),
             "quality_shareholder_names": quality,
+            "institutional_shareholder": bool(institutional),
+            "institutional_shareholder_names": institutional,
             "unlock_risk": bool(unlock),
             "unlock": unlock,
         }
@@ -114,6 +122,7 @@ def main() -> None:
         "exclude_unlock_risk": True,
         "excluded_unlock_risk": [code for code in filtered if code in unlocks],
         "quality_shareholder_definition": "十大流通股东中的社保、基本养老、国家大基金、国新投资、深创投、科威特政府投资局、澳门金融管理局",
+        "institutional_shareholder_definition": "十大流通股东中的公募基金、保险资金、阳光私募、QFII/外资机构、香港中央结算及产业资本；与长期资本型优质股东分级展示",
     }
     payload["enrichments"] = enrichments
     payload["screened_count"] = len(payload["intersection"])

@@ -53,6 +53,8 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert all("financials" in data["enrichments"][code] for code in data["intersection"])
     assert data["shareholder_metrics"]["fields"] == ["股东人数", "人均流通股", "较上期变化", "90%筹码集中度", "十大流通股东持股占比"]
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
+    assert data["enrichments"]["002992.SZ"]["institutional_shareholder"] is True
+    assert "香港中央结算有限公司" in data["enrichments"]["002992.SZ"]["institutional_shareholder_names"]
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
@@ -78,6 +80,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "chip-industry",
         "chip-quality",
         "优质股东 ✓",
+        "机构股东 ●",
+        "institutionalShareholder",
         ") : null}",
         'data-filter="roe"',
         'data-filter="net-margin"',

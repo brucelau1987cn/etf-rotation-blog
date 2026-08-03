@@ -61,6 +61,8 @@ const rows = intersectionRows.map((row) => ({
   sector: lowChipData.enrichments?.[row.symbol]?.sector || '待补充',
   qualityShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.quality_shareholder),
   qualityShareholderNames: lowChipData.enrichments?.[row.symbol]?.quality_shareholder_names || [],
+  institutionalShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.institutional_shareholder),
+  institutionalShareholderNames: lowChipData.enrichments?.[row.symbol]?.institutional_shareholder_names || [],
   financials: lowChipData.enrichments?.[row.symbol]?.financials || {},
   shareholderMetrics: lowChipData.enrichments?.[row.symbol]?.shareholder_metrics || {},
 }));
@@ -137,6 +139,8 @@ const rows = intersectionRows.map((row) => ({
                   <span class="chip-industry" title={row.industry}>{row.sector}</span>
                   {row.qualityShareholder ? (
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
+                  ) : row.institutionalShareholder ? (
+                    <span class="chip-institutional" title={`机构股东：${row.institutionalShareholderNames.join('、')}`}>机构股东 ●</span>
                   ) : null}
                 </div>
                 <div class="chip-row-metrics">
@@ -168,7 +172,7 @@ const rows = intersectionRows.map((row) => ({
       <footer class="data-note">
         <strong>数据来源：iWenCai</strong>
         <span>筛选日期：2026-07-31 · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
-        <p>已剔除北交所与未来3个月存在限售股解禁的标的。优质股东口径：十大流通股东中的社保、基本养老、国家大基金、国新投资、深创投及主权资金；该标记属于股东结构观察项。</p>
+        <p>已剔除北交所与未来3个月存在限售股解禁的标的。股东分级：优质股东为社保、养老、国家大基金、国新及主权资金等长期资本；机构股东覆盖公募、保险、阳光私募、QFII/外资、香港中央结算及产业资本。标记属于股东结构观察项。</p>
       </footer>
     </main>
     <Footer />
@@ -323,8 +327,9 @@ const rows = intersectionRows.map((row) => ({
   .chip-identity{display:flex;align-items:baseline;gap:.4rem}
   .chip-row-name{font-size:.95rem;color:#14243b}
   .chip-row-code{color:#64748b;font-size:.78rem}
-  .chip-industry,.chip-quality{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:nowrap}
+  .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:nowrap}
   .chip-quality{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
+  .chip-institutional{border-color:#cbd5e1;background:#f8fafc;color:#475569}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
   .chip-row-metrics{display:flex;gap:1rem;flex:1}
   .chip-metric{color:#526176;font-size:.82rem}
