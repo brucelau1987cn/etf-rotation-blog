@@ -24,6 +24,8 @@ const valuesBySymbol = Object.fromEntries(
   ])
 );
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
+const fmtInt = (value: number) => Math.round(Number(value)).toLocaleString('zh-CN');
+const fmtMetric = (value: number | null | undefined, digits = 1, suffix = '') => value == null ? '—' : `${Number(value).toFixed(digits)}${suffix}`;
 
 const CHAR_INITIAL: Record<string, string> = {
   上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
@@ -60,6 +62,7 @@ const rows = intersectionRows.map((row) => ({
   qualityShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.quality_shareholder),
   qualityShareholderNames: lowChipData.enrichments?.[row.symbol]?.quality_shareholder_names || [],
   financials: lowChipData.enrichments?.[row.symbol]?.financials || {},
+  shareholderMetrics: lowChipData.enrichments?.[row.symbol]?.shareholder_metrics || {},
 }));
 ---
 <!doctype html>
@@ -128,21 +131,30 @@ const rows = intersectionRows.map((row) => ({
               data-board-index={index}
               hidden={index >= PAGE_SIZE}
             >
-              <div class="chip-row-main">
-                <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-row-code">{row.symbol}</span></div>
-                <span class="chip-industry" title={row.industry}>{row.sector}</span>
-                {row.qualityShareholder ? (
-                  <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
-                ) : null}
+              <div class="chip-row-top">
+                <div class="chip-row-main">
+                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-row-code">{row.symbol}</span></div>
+                  <span class="chip-industry" title={row.industry}>{row.sector}</span>
+                  {row.qualityShareholder ? (
+                    <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
+                  ) : null}
+                </div>
+                <div class="chip-row-metrics">
+                  <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
+                  <span class="chip-metric">月线 <em class="chip-val">{row.month}%</em></span>
+                  <span class="chip-metric">季线 <em class="chip-val">{row.quarter}%</em></span>
+                </div>
+                <div class="chip-row-footer">
+                  <span class="chip-price">¥{fmt(row.price)}</span>
+                  <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
+                </div>
               </div>
-              <div class="chip-row-metrics">
-                <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
-                <span class="chip-metric">月线 <em class="chip-val">{row.month}%</em></span>
-                <span class="chip-metric">季线 <em class="chip-val">{row.quarter}%</em></span>
-              </div>
-              <div class="chip-row-footer">
-                <span class="chip-price">¥{fmt(row.price)}</span>
-                <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
+              <div class="chip-row-shareholders" aria-label={`${row.name}股东与筹码指标`}>
+                <span><small>股东人数</small><strong>{fmtInt(row.shareholderMetrics.shareholder_count)}</strong></span>
+                <span><small>人均流通股</small><strong>{fmtInt(row.shareholderMetrics.average_holding)}</strong></span>
+                <span><small>较上期变化</small><strong class:list={[row.shareholderMetrics.shareholder_change_pct <= 0 ? 'is-concentrating' : 'is-dispersing']}>{fmtMetric(row.shareholderMetrics.shareholder_change_pct, 2, '%')}</strong></span>
+                <span><small>90%筹码集中度</small><strong>{fmtMetric(row.shareholderMetrics.concentration90, 1, '%')}</strong></span>
+                <span><small>十大流通股东</small><strong>{fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%')}</strong></span>
               </div>
             </div>
           ))}
@@ -303,9 +315,10 @@ const rows = intersectionRows.map((row) => ({
   .chip-filter-meta{margin-left:auto;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
 
   .chip-list{display:flex;flex-direction:column}
-  .chip-row{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
+  .chip-row{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
   .chip-row:hover{background:#f8fafc}
   .chip-row:last-child{border-bottom:0}
+  .chip-row-top{display:flex;align-items:center;gap:1rem;width:100%}
   .chip-row-main{display:flex;align-items:center;gap:.4rem;min-width:270px;flex-wrap:wrap}
   .chip-identity{display:flex;align-items:baseline;gap:.4rem}
   .chip-row-name{font-size:.95rem;color:#14243b}
@@ -321,6 +334,12 @@ const rows = intersectionRows.map((row) => ({
   .chip-change{font-size:.82rem;font-weight:800;min-width:64px;text-align:right}
   .chip-up{color:#b91c1c}
   .chip-down{color:#047857}
+  .chip-row-shareholders{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.45rem;width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
+  .chip-row-shareholders span{display:flex;align-items:baseline;justify-content:space-between;gap:.35rem;min-width:0;padding:0 .35rem}
+  .chip-row-shareholders small{color:#64748b;font-size:.66rem;white-space:nowrap}
+  .chip-row-shareholders strong{color:#334155;font-size:.75rem;white-space:nowrap}
+  .chip-row-shareholders .is-concentrating{color:#b91c1c}
+  .chip-row-shareholders .is-dispersing{color:#047857}
   .chip-row.chip-row-empty{justify-content:center;padding:1.5rem;border-bottom:0;color:#64748b}
   .chip-row.chip-row-empty strong{display:block;margin-bottom:.2rem;color:#14243b}
 
@@ -328,5 +347,5 @@ const rows = intersectionRows.map((row) => ({
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{gap:.45rem;padding:.6rem 1rem}.chip-row-top{flex-wrap:wrap;gap:.4rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}.chip-row-shareholders{grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row-shareholders span{padding:.1rem .2rem}.chip-row-footer{margin-left:0}}
 </style>

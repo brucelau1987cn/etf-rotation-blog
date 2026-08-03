@@ -51,6 +51,8 @@ def test_low_chip_page_publishes_week_month_quarter_results():
         },
     }
     assert all("financials" in data["enrichments"][code] for code in data["intersection"])
+    assert data["shareholder_metrics"]["fields"] == ["股东人数", "人均流通股", "较上期变化", "90%筹码集中度", "十大流通股东持股占比"]
+    assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
@@ -85,6 +87,13 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "activeFilters.has('roe')",
         "activeFilters.has('debt-ratio')",
         "chip-filter-meta",
+        "chip-row-top",
+        "chip-row-shareholders",
+        "股东人数",
+        "人均流通股",
+        "较上期变化",
+        "90%筹码集中度",
+        "十大流通股东",
         "剔除北交所及未来3个月存在限售股解禁",
         "收盘获利比例",
     ):
