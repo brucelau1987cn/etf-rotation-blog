@@ -43,6 +43,7 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
     assert probes == [
         "https://etf.peekabo.cc/futures-compass/",
         "https://etf.peekabo.cc/data/futures-compass.json",
+        "https://etf.peekabo.cc/data/futures-compass-briefing.json",
     ]
 
 
