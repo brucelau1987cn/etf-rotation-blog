@@ -154,6 +154,9 @@ const rows = intersectionRows.map((row) => ({
                 </div>
               </div>
               <div class="chip-row-shareholders" aria-label={`${row.name}股东与筹码指标`}>
+                <button type="button" class="chip-shr-toggle" aria-expanded="false">
+                  <span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i>
+                </button>
                 <div class="chip-shr-head" aria-hidden="true">
                   <span>股东人数</span><span>人均流通股</span><span>较上期变化</span><span>90%筹码集中度</span><span>十大流通股东</span>
                 </div>
@@ -195,6 +198,7 @@ const rows = intersectionRows.map((row) => ({
       var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
       var filterReset = document.getElementById('chip-filter-reset');
       var filterMeta = document.getElementById('chip-filter-meta');
+      var shrToggles = Array.from(list.querySelectorAll('.chip-shr-toggle'));
       if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
 
       var PAGE_SIZE = Math.max(1, Number(pager.dataset.pageSize || 6));
@@ -283,6 +287,14 @@ const rows = intersectionRows.map((row) => ({
         page = 1;
         render();
       });
+      shrToggles.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var row = btn.closest('.chip-row');
+          if (!row) return;
+          var open = row.classList.toggle('is-shr-open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      });
       render();
     })();
     </script>
@@ -348,6 +360,7 @@ const rows = intersectionRows.map((row) => ({
   .chip-down{color:#047857}
   .chip-up{background:#fdecec}.chip-down{background:#e7f5f0}
   .chip-row-shareholders{width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
+  .chip-shr-toggle{display:none}
   .chip-shr-head,.chip-shr-body{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.15fr 1fr;gap:.45rem;width:100%}
   .chip-shr-head span{color:#8b98a9;font-size:.62rem;font-weight:750;letter-spacing:.03em;padding:0 .45rem;white-space:nowrap}
   .chip-shr-body span{display:flex;align-items:center;min-width:0;padding:.3rem .45rem 0;border-top:0}
@@ -362,5 +375,5 @@ const rows = intersectionRows.map((row) => ({
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{gap:.45rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap}.chip-shr-head{display:none}.chip-shr-body{grid-template-columns:repeat(2,minmax(0,1fr))}.chip-shr-body span{padding:.25rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 </style>
