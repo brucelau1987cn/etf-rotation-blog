@@ -23,17 +23,17 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert "收盘获利比例低于3%" in page
     assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
-    assert data["data_as_of"] == "2026-07-31"
+    assert data["data_as_of"] == "2026-08-03"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 177
-    assert len(data["periods"]["month"]) == 582
-    assert len(data["periods"]["quarter"]) == 269
-    assert len(data["intersection_before_filters"]) == 29
-    assert len(data["intersection"]) == 21
+    assert len(data["periods"]["week"]) == 233
+    assert len(data["periods"]["month"]) == 286
+    assert len(data["periods"]["quarter"]) == 79
+    assert len(data["intersection_before_filters"]) == 6
+    assert len(data["intersection"]) == 5
     assert all(not code.endswith(".BJ") for code in data["intersection"])
-    assert data["filters"]["excluded_bj"] == ["920065.BJ", "920079.BJ", "920083.BJ", "920189.BJ", "920193.BJ", "920808.BJ"]
-    assert data["filters"]["excluded_unlock_risk"] == ["688759.SH", "688765.SH"]
+    assert data["filters"]["excluded_bj"] == ["920258.BJ"]
+    assert data["filters"]["excluded_unlock_risk"] == []
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"] == {
         "report_period": "20251231",
@@ -55,6 +55,9 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
     assert data["enrichments"]["002992.SZ"]["institutional_shareholder"] is True
     assert "香港中央结算有限公司" in data["enrichments"]["002992.SZ"]["institutional_shareholder_names"]
+    assert data["enrichments"]["002993.SZ"]["quality_shareholder"] is True
+    assert any("社保基金" in n for n in data["enrichments"]["002993.SZ"]["quality_shareholder_names"])
+    assert data["enrichments"]["603407.SH"]["institutional_shareholder"] is False
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
@@ -69,7 +72,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     data = DATA.read_text(encoding="utf-8")
     for marker in (
         "数据来源：iWenCai",
-        "筛选日期：2026-07-31",
+        "筛选日期：2026-08-03",
         "三个周期同时满足",
         'class="chip-row"',
         'class="chip-toolbar-right"',
@@ -108,9 +111,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
     assert 'hidden={index >= PAGE_SIZE}' in page
-    for stock_name in ("好莱客", "永新光学", "华大九天"):
+    for stock_name in ("宝明科技", "长裕集团", "清溢光电"):
         assert stock_name in data
-    assert "920065.BJ" not in json.loads(data)["intersection"]
-    assert "688759.SH" not in json.loads(data)["intersection"]
+    assert "920258.BJ" not in json.loads(data)["intersection"]
     assert "gradient" not in page.lower()
     assert "innerHTML" not in page
