@@ -92,11 +92,28 @@ def test_paper_publication_owns_catalog_hash_with_snapshot():
 
 
 def test_paper_publisher_directly_deploys_and_probes(monkeypatch):
-    probes = []
-    monkeypatch.setattr(publisher, "release_pages", lambda urls, json_matches=None: probes.extend(urls))
+    calls = []
+
+    def fake_subprocess_run(cmd, cwd=None, env=None, text=None, capture_output=None):
+        calls.append(cmd)
+        return SimpleNamespace(
+            stdout="✨ Deployment complete! https://abc123.etf-rotation-blog.pages.dev\n",
+            stderr="", returncode=0,
+        )
+
+    monkeypatch.setattr(publisher.subprocess, "run", fake_subprocess_run)
     publisher.deploy_and_probe()
-    assert probes == [
-        "https://etf.peekabo.cc/paper/",
-        "https://etf.peekabo.cc/data/paper-trading.json",
-        "https://etf.peekabo.cc/data/catalog.json",
-    ]
+    assert calls and calls[0][:4] == ["npx", "wrangler", "pages", "deploy"]
+
+
+def test_paper_publisher_raises_without_deploy_evidence(monkeypatch):
+    def fake_subprocess_run(cmd, cwd=None, env=None, text=None, capture_output=None):
+        return SimpleNamespace(stdout="uploaded nothing", stderr="", returncode=0)
+
+    monkeypatch.setattr(publisher.subprocess, "run", fake_subprocess_run)
+    try:
+        publisher.deploy_and_probe()
+    except RuntimeError as exc:
+        assert "completion evidence" in str(exc)
+    else:
+        raise AssertionError("expected deploy-evidence rejection")
