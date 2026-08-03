@@ -56,7 +56,6 @@ const rows = intersectionRows.map((row) => ({
   quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
   nameInitials: nameInitials(row.name),
 }));
-const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -85,6 +84,12 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
             <h2 id="chip-title">周线、月线、季线均低于3%</h2>
           </div>
           <div class="chip-toolbar-right">
+            <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
+              <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
+              <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
+              <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
+              <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
+            </div>
             <label class="chip-search-wrap">
               <span class="chip-search-label">检索</span>
               <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" />
@@ -121,13 +126,6 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
             <strong>没有匹配标的</strong>
             <span>换个代码、名称或首字母试试</span>
           </div>
-        </div>
-
-        <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
-          <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
-          <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
-          <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
-          <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
         </div>
       </section>
 
@@ -228,22 +226,23 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   dt{color:#64748b;font-size:.72rem;font-weight:800}dd{margin:.2rem 0 0;font-size:1rem;font-weight:900}
 
   .chip-section{margin-top:1rem;overflow:hidden}
-  .chip-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
+  .chip-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
   .chip-toolbar h2{margin:0;font-size:1.15rem}
+  .chip-toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap}
   .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
-  .chip-search-input{width:160px;padding:.45rem .7rem;border:1px solid #dbe3ec;border-radius:8px;font-size:.85rem;outline:0;transition:border-color .15s}
-  .chip-search-input:focus{border-color:#d97706;box-shadow:0 0 0 2px rgba(217,119,6,.15)}
+  .chip-search-input{width:180px;height:2.1rem;padding:0 .9rem;border:1px solid #dbe3ec;border-radius:999px;font-size:.82rem;font-weight:650;outline:0;transition:border-color .15s}
+  .chip-search-input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
 
-  .chip-pager{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem 1.2rem;border-top:1px solid #e2e8f0;background:#fafbfc}
-  .chip-page-btn{padding:.35rem .8rem;border:1px solid #dbe3ec;border-radius:8px;background:#fff;color:#14243b;font-size:.82rem;cursor:pointer;transition:all .12s}
-  .chip-page-btn:hover:not(:disabled){background:#f0f2f5;border-color:#b0bec5}
+  .chip-pager{display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+  .chip-page-btn,.chip-page-num{min-width:2rem;height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#334155;font-size:.74rem;font-weight:750;cursor:pointer;transition:all .12s}
+  .chip-page-btn:hover:not(:disabled),.chip-page-num:hover:not(.is-active){background:#f0f2f5;border-color:#b0bec5}
   .chip-page-btn:disabled{opacity:.4;cursor:default}
-  .chip-page-nums{display:flex;gap:.25rem}
-  .chip-page-num{min-width:28px;height:28px;padding:0 .35rem;border:1px solid #dbe3ec;border-radius:6px;background:#fff;color:#14243b;font-size:.8rem;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
-  .chip-page-num.is-active{border-color:#d97706;background:#d97706;color:#fff;font-weight:800}
-  .chip-page-num:hover:not(.is-active){background:#f0f2f5}
-  .chip-page-meta{margin-left:.5rem;color:#64748b;font-size:.78rem}
+  .chip-page-nums{display:inline-flex;align-items:center;gap:.25rem}
+  .chip-page-num{display:inline-flex;align-items:center;justify-content:center;padding:0 .35rem}
+  .chip-page-num.is-active{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}
+  .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
+  .chip-pager[hidden],.chip-row[hidden]{display:none!important}
 
   .chip-list{display:flex;flex-direction:column}
   .chip-row{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
@@ -266,5 +265,6 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:0}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
+  @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:0}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
 </style>

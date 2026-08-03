@@ -38,17 +38,28 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
 
 
-def test_low_chip_page_uses_compact_tables_and_source_disclosure():
+def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     page = PAGE.read_text(encoding="utf-8")
     data = DATA.read_text(encoding="utf-8")
     for marker in (
         "数据来源：iWenCai",
         "筛选日期：2026-07-31",
         "三个周期同时满足",
-        "low-chip-table",
+        'class="chip-row"',
+        'class="chip-toolbar-right"',
+        'id="chip-pager"',
+        'id="chip-search-input"',
+        ".chip-page-num.is-active",
+        ".chip-pager[hidden],.chip-row[hidden]",
         "收盘获利比例",
     ):
         assert marker in page
+    toolbar_start = page.index('class="chip-toolbar-right"')
+    toolbar_end = page.index("</div>\n        </div>", toolbar_start)
+    assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
+    assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
+    assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
+    assert 'hidden={index >= PAGE_SIZE}' in page
     for stock_name in ("好莱客", "永新光学", "必贝特"):
         assert stock_name in data
     assert "gradient" not in page.lower()
