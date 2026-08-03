@@ -39,7 +39,7 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
     assert [publisher.FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", "day-close"] in calls
     assert [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"] in calls
     assert ["npm", "run", "build"] in calls
-    assert ["git", "commit", "--only", "-m", "data: refresh futures compass day-close", "--", publisher.SNAPSHOT] in calls
+    assert ["git", "commit", "--only", "-m", "data: refresh futures compass day-close", "--", *publisher.PUBLISH_FILES] in calls
     assert probes == [
         "https://etf.peekabo.cc/futures-compass/",
         "https://etf.peekabo.cc/data/futures-compass.json",
@@ -70,7 +70,7 @@ def test_futures_publisher_rolls_back_snapshot_when_validation_fails(monkeypatch
         pass
     else:
         raise AssertionError("expected validation failure")
-    assert ["git", "checkout", "--", publisher.SNAPSHOT] in calls
+    assert ["git", "checkout", "--", *publisher.PUBLISH_FILES] in calls
 
 
 def test_futures_publisher_rolls_back_snapshot_when_build_fails(monkeypatch):
@@ -93,4 +93,4 @@ def test_futures_publisher_rolls_back_snapshot_when_build_fails(monkeypatch):
         pass
     else:
         raise AssertionError("expected build failure")
-    assert ["git", "checkout", "--", publisher.SNAPSHOT] in calls
+    assert ["git", "checkout", "--", *publisher.PUBLISH_FILES] in calls
