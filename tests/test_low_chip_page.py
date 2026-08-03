@@ -35,6 +35,22 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert data["filters"]["excluded_bj"] == ["920065.BJ", "920079.BJ", "920083.BJ", "920189.BJ", "920193.BJ", "920808.BJ"]
     assert data["filters"]["excluded_unlock_risk"] == ["688759.SH", "688765.SH"]
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
+    assert data["financial_filters"] == {
+        "report_period": "20251231",
+        "roe_min": 30,
+        "net_margin_min": 25,
+        "cash_profit_ratio_min": 20,
+        "gross_margin_min": 15,
+        "debt_ratio_max": 10,
+        "labels": {
+            "roe": "ROE ≥ 30%",
+            "net_margin": "净利率 ≥ 25%",
+            "cash_profit_ratio": "现金流/净利润 ≥ 20%",
+            "gross_margin": "毛利率 ≥ 15%",
+            "debt_ratio": "负债率 ≤ 10%",
+        },
+    }
+    assert all("financials" in data["enrichments"][code] for code in data["intersection"])
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
@@ -61,6 +77,14 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "chip-quality",
         "优质股东 ✓",
         ") : null}",
+        'data-filter="roe"',
+        'data-filter="net-margin"',
+        'data-filter="cash-profit"',
+        'data-filter="gross-margin"',
+        'data-filter="debt-ratio"',
+        "activeFilters.has('roe')",
+        "activeFilters.has('debt-ratio')",
+        "chip-filter-meta",
         "剔除北交所及未来3个月存在限售股解禁",
         "收盘获利比例",
     ):

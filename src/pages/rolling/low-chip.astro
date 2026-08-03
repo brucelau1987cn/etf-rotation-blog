@@ -59,6 +59,7 @@ const rows = intersectionRows.map((row) => ({
   sector: lowChipData.enrichments?.[row.symbol]?.sector || '待补充',
   qualityShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.quality_shareholder),
   qualityShareholderNames: lowChipData.enrichments?.[row.symbol]?.quality_shareholder_names || [],
+  financials: lowChipData.enrichments?.[row.symbol]?.financials || {},
 }));
 ---
 <!doctype html>
@@ -101,6 +102,16 @@ const rows = intersectionRows.map((row) => ({
           </div>
         </div>
 
+        <div class="chip-financial-filters" id="chip-financial-filters" aria-label="财务条件筛选">
+          <button type="button" class="chip-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
+          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
+          <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+          <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
+          <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 10%</button>
+          <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
+          <span class="chip-filter-meta" id="chip-filter-meta">未启用财务筛选</span>
+        </div>
+
         <div class="chip-list" id="chip-list">
           {rows.map((row, index) => (
             <div
@@ -109,6 +120,11 @@ const rows = intersectionRows.map((row) => ({
               data-name={row.name}
               data-initials={row.nameInitials}
               data-industry={row.industry}
+              data-roe={row.financials.roe ?? ''}
+              data-net-margin={row.financials.net_margin ?? ''}
+              data-cash-profit={row.financials.cash_profit_ratio ?? ''}
+              data-gross-margin={row.financials.gross_margin ?? ''}
+              data-debt-ratio={row.financials.debt_ratio ?? ''}
               data-board-index={index}
               hidden={index >= PAGE_SIZE}
             >
@@ -155,6 +171,9 @@ const rows = intersectionRows.map((row) => ({
       var nextBtn = document.getElementById('chip-page-next');
       var searchInput = document.getElementById('chip-search-input');
       var empty = document.getElementById('chip-search-empty');
+      var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
+      var filterReset = document.getElementById('chip-filter-reset');
+      var filterMeta = document.getElementById('chip-filter-meta');
       if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
 
       var PAGE_SIZE = Math.max(1, Number(pager.dataset.pageSize || 6));
@@ -163,17 +182,24 @@ const rows = intersectionRows.map((row) => ({
 
       var page = 1;
       var query = '';
+      var activeFilters = new Set();
 
       function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
 
       function filtered() {
-        if (!query) return rows;
         return rows.filter(function(c) {
           var sym = String(c.dataset.symbol || '').toLowerCase();
           var name = String(c.dataset.name || '').toLowerCase();
           var initials = String(c.dataset.initials || '').toLowerCase();
           var industry = String(c.dataset.industry || '').toLowerCase();
-          return sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
+          var searchMatched = !query || sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
+          if (!searchMatched) return false;
+          if (activeFilters.has('roe') && Number(c.dataset.roe) < 30) return false;
+          if (activeFilters.has('net-margin') && Number(c.dataset.netMargin) < 25) return false;
+          if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || Number(c.dataset.cashProfit) < 20)) return false;
+          if (activeFilters.has('gross-margin') && Number(c.dataset.grossMargin) < 15) return false;
+          if (activeFilters.has('debt-ratio') && Number(c.dataset.debtRatio) > 10) return false;
+          return true;
         });
       }
 
@@ -193,6 +219,7 @@ const rows = intersectionRows.map((row) => ({
         var showPager = matched.length > PAGE_SIZE;
         pager.hidden = !showPager;
         meta.textContent = matched.length ? '\u7B2C ' + page + '/' + totalPages + ' \u9875 \u00B7 ' + matched.length + ' \u53EA' : '\u65E0\u5339\u914D';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? '\u5DF2\u542F\u7528 ' + activeFilters.size + ' \u9879 \u00B7 ' + matched.length + ' \u53EA' : '\u672A\u542F\u7528\u8D22\u52A1\u7B5B\u9009';
 
         nums.replaceChildren();
         if (showPager) {
@@ -218,6 +245,23 @@ const rows = intersectionRows.map((row) => ({
       if (searchInput) {
         searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; render(); });
       }
+      filterButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var key = btn.dataset.filter;
+          if (!key) return;
+          if (activeFilters.has(key)) activeFilters.delete(key); else activeFilters.add(key);
+          btn.classList.toggle('is-active', activeFilters.has(key));
+          btn.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
+          page = 1;
+          render();
+        });
+      });
+      if (filterReset) filterReset.addEventListener('click', function() {
+        activeFilters.clear();
+        filterButtons.forEach(function(btn) { btn.classList.remove('is-active'); btn.setAttribute('aria-pressed', 'false'); });
+        page = 1;
+        render();
+      });
       render();
     })();
     </script>
@@ -252,6 +296,11 @@ const rows = intersectionRows.map((row) => ({
   .chip-page-num.is-active{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}
   .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
   .chip-pager[hidden],.chip-row[hidden]{display:none!important}
+  .chip-financial-filters{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.65rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+  .chip-filter-btn,.chip-filter-reset{height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#475569;font-size:.72rem;font-weight:750;cursor:pointer}
+  .chip-filter-btn.is-active{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+  .chip-filter-reset{color:#64748b}
+  .chip-filter-meta{margin-left:auto;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
 
   .chip-list{display:flex;flex-direction:column}
   .chip-row{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
@@ -279,5 +328,5 @@ const rows = intersectionRows.map((row) => ({
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
 </style>
