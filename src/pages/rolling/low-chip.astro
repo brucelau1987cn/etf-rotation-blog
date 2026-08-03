@@ -143,10 +143,10 @@ const rows = intersectionRows.map((row) => ({
                     <span class="chip-institutional" title={`机构股东：${row.institutionalShareholderNames.join('、')}`}>机构股东 ●</span>
                   ) : null}
                 </div>
-                <div class="chip-row-metrics">
-                  <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
-                  <span class="chip-metric">月线 <em class="chip-val">{row.month}%</em></span>
-                  <span class="chip-metric">季线 <em class="chip-val">{row.quarter}%</em></span>
+                <div class="chip-row-metrics" aria-label="三周期收盘获利比例">
+                  <span class="chip-metric"><em class="chip-val">{row.week}%</em><small>周线</small></span>
+                  <span class="chip-metric"><em class="chip-val">{row.month}%</em><small>月线</small></span>
+                  <span class="chip-metric"><em class="chip-val">{row.quarter}%</em><small>季线</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
@@ -154,11 +154,16 @@ const rows = intersectionRows.map((row) => ({
                 </div>
               </div>
               <div class="chip-row-shareholders" aria-label={`${row.name}股东与筹码指标`}>
-                <span><small>股东人数</small><strong>{fmtInt(row.shareholderMetrics.shareholder_count)}</strong></span>
-                <span><small>人均流通股</small><strong>{fmtInt(row.shareholderMetrics.average_holding)}</strong></span>
-                <span><small>较上期变化</small><strong class:list={[row.shareholderMetrics.shareholder_change_pct <= 0 ? 'is-concentrating' : 'is-dispersing']}>{fmtMetric(row.shareholderMetrics.shareholder_change_pct, 2, '%')}</strong></span>
-                <span><small>90%筹码集中度</small><strong>{fmtMetric(row.shareholderMetrics.concentration90, 1, '%')}</strong></span>
-                <span><small>十大流通股东</small><strong>{fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%')}</strong></span>
+                <div class="chip-shr-head" aria-hidden="true">
+                  <span>股东人数</span><span>人均流通股</span><span>较上期变化</span><span>90%筹码集中度</span><span>十大流通股东</span>
+                </div>
+                <div class="chip-shr-body">
+                  <span><strong>{fmtInt(row.shareholderMetrics.shareholder_count)}</strong></span>
+                  <span><strong>{fmtInt(row.shareholderMetrics.average_holding)}</strong></span>
+                  <span><strong class:list={[row.shareholderMetrics.shareholder_change_pct <= 0 ? 'is-concentrating' : 'is-dispersing']}>{fmtMetric(row.shareholderMetrics.shareholder_change_pct, 2, '%')}</strong></span>
+                  <span><strong>{fmtMetric(row.shareholderMetrics.concentration90, 1, '%')}</strong></span>
+                  <span><strong>{fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%')}</strong></span>
+                </div>
               </div>
             </div>
           ))}
@@ -322,8 +327,8 @@ const rows = intersectionRows.map((row) => ({
   .chip-row{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
   .chip-row:hover{background:#f8fafc}
   .chip-row:last-child{border-bottom:0}
-  .chip-row-top{display:flex;align-items:center;gap:1rem;width:100%}
-  .chip-row-main{display:flex;align-items:center;gap:.4rem;min-width:270px;flex-wrap:wrap}
+  .chip-row-top{display:grid;grid-template-columns:minmax(210px,1.25fr) minmax(150px,auto) auto;align-items:center;gap:.9rem;width:100%}
+  .chip-row-main{display:flex;align-items:center;gap:.45rem;min-width:0;flex-wrap:wrap}
   .chip-identity{display:flex;align-items:baseline;gap:.4rem}
   .chip-row-name{font-size:.95rem;color:#14243b}
   .chip-row-code{color:#64748b;font-size:.78rem}
@@ -331,26 +336,31 @@ const rows = intersectionRows.map((row) => ({
   .chip-quality{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
   .chip-institutional{border-color:#cbd5e1;background:#f8fafc;color:#475569}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
-  .chip-row-metrics{display:flex;gap:1rem;flex:1}
-  .chip-metric{color:#526176;font-size:.82rem}
-  .chip-val{font-style:normal;font-weight:800;color:#9a3412;margin-left:.2rem}
+  .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
+  .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:64px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
+  .chip-metric:first-child{border-left:0}
+  .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
+  .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
   .chip-row-footer{display:flex;align-items:center;gap:.75rem;margin-left:auto}
-  .chip-price{color:#526176;font-size:.85rem;font-weight:700}
-  .chip-change{font-size:.82rem;font-weight:800;min-width:64px;text-align:right}
+  .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
+  .chip-change{font-size:.8rem;font-weight:800;min-width:56px;padding:.22rem .5rem;border-radius:999px;text-align:center;background:#f1f5f9}
   .chip-up{color:#b91c1c}
   .chip-down{color:#047857}
-  .chip-row-shareholders{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.45rem;width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
-  .chip-row-shareholders span{display:flex;align-items:baseline;justify-content:space-between;gap:.35rem;min-width:0;padding:0 .35rem}
-  .chip-row-shareholders small{color:#64748b;font-size:.66rem;white-space:nowrap}
-  .chip-row-shareholders strong{color:#334155;font-size:.75rem;white-space:nowrap}
-  .chip-row-shareholders .is-concentrating{color:#b91c1c}
-  .chip-row-shareholders .is-dispersing{color:#047857}
+  .chip-up{background:#fdecec}.chip-down{background:#e7f5f0}
+  .chip-row-shareholders{width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
+  .chip-shr-head,.chip-shr-body{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.15fr 1fr;gap:.45rem;width:100%}
+  .chip-shr-head span{color:#8b98a9;font-size:.62rem;font-weight:750;letter-spacing:.03em;padding:0 .45rem;white-space:nowrap}
+  .chip-shr-body span{display:flex;align-items:center;min-width:0;padding:.3rem .45rem 0;border-top:0}
+  .chip-shr-body strong{color:#14243b;font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chip-shr-body .is-concentrating{color:#b91c1c}
+  .chip-shr-body .is-dispersing{color:#047857}
   .chip-row.chip-row-empty{justify-content:center;padding:1.5rem;border-bottom:0;color:#64748b}
   .chip-row.chip-row-empty strong{display:block;margin-bottom:.2rem;color:#14243b}
 
   .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
+  @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{gap:.45rem;padding:.6rem 1rem}.chip-row-top{flex-wrap:wrap;gap:.4rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}.chip-row-shareholders{grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row-shareholders span{padding:.1rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{padding:.6rem 1rem}.chip-filter-meta{width:100%;margin-left:0}.chip-row{gap:.45rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap}.chip-shr-head{display:none}.chip-shr-body{grid-template-columns:repeat(2,minmax(0,1fr))}.chip-shr-body span{padding:.25rem .2rem}.chip-row-footer{margin-left:0}}
 </style>

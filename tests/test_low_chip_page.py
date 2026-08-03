@@ -96,6 +96,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "chip-filter-meta",
         "chip-row-top",
         "chip-row-shareholders",
+        "chip-shr-head",
+        "chip-shr-body",
         "股东人数",
         "人均流通股",
         "较上期变化",
