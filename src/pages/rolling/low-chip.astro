@@ -24,6 +24,40 @@ const valuesBySymbol = Object.fromEntries(
   ])
 );
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
+
+/** Pinyin-initial map for A-share common chars. */
+const CHAR_INITIAL: Record<string, string> = {
+  上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
+  三:'s',安:'a',光:'g',深:'s',科:'k',技:'j',德:'d',福:'f',
+  民:'m',爆:'b',信:'x',息:'x',东:'d',方:'f',明:'m',珠:'z',
+  长:'c',鑫:'x',国:'g',术:'s',澜:'l',起:'q',华:'h',天:'t',
+  中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',恒:'h',恒:'h',
+  武:'w',汉:'h',天:'t',源:'y',千:'q',岸:'a',宝:'b',明:'m',
+  易:'y',龙:'l',曙:'s',光:'g',数:'s',永:'y',光:'g',学:'x',
+  技:'j',源:'y',集:'j',团:'t',金:'j',戈:'g',汇:'h',通:'t',
+  康:'k',美:'m',特:'t',海:'h',新:'x',天:'t',灿:'c',勤:'q',
+  欧:'o',林:'l',生:'s',物:'w',必:'b',贝:'b',恒:'h',运:'y',
+  中:'z',关:'g',村:'c',禾:'h',元:'y',上:'s',海:'h',谊:'y',
+  众:'z',三:'s',维:'w',股:'g',份:'f',吉:'j',和:'h',昌:'c',
+  璞:'p',源:'y',材:'c',料:'l',乔:'q',路:'l',铭:'m',奥:'a',
+  好:'h',莱:'l',客:'k',合:'h',兴:'x',华:'h',大:'d',九:'j',
+  长:'c',进:'j',光:'g',子:'z',坤:'k',材:'c',
+};
+const nameInitials = (name: string) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  return Array.from(raw).map((ch) => /[A-Za-z0-9]/.test(ch) ? ch.toLowerCase() : CHAR_INITIAL[ch] || '').join('');
+};
+
+const PAGE_SIZE = 6;
+const rows = intersectionRows.map((row) => ({
+  ...row,
+  week: fmt(valuesBySymbol[row.symbol].week, 1),
+  month: fmt(valuesBySymbol[row.symbol].month, 1),
+  quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
+  nameInitials: nameInitials(row.name),
+}));
+const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -41,32 +75,69 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd>{lowChipData.data_as_of}</dd></div>
-          <div><dt>三周期均低于3%</dt><dd>{intersectionRows.length}只</dd></div>
+          <div><dt>三周期均低于3%</dt><dd>{rows.length}只</dd></div>
         </dl>
       </header>
 
-      <section class="intersection-panel" aria-labelledby="intersection-title">
-        <div class="panel-head">
-          <p class="eyebrow">三个周期同时满足</p>
-          <h2 id="intersection-title">周线、月线、季线均低于3%</h2>
+      <section class="chip-section" aria-labelledby="chip-title">
+        <div class="chip-toolbar">
+          <div class="chip-toolbar-left">
+            <p class="eyebrow">三个周期同时满足</p>
+            <h2 id="chip-title">周线、月线、季线均低于3%</h2>
+          </div>
+          <div class="chip-toolbar-right">
+            <label class="chip-search-wrap">
+              <span class="chip-search-label">检索</span>
+              <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" />
+            </label>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table class="low-chip-table">
-            <thead><tr><th>股票</th><th>代码</th><th>周线</th><th>月线</th><th>季线</th><th>最新价</th><th>涨跌幅</th></tr></thead>
-            <tbody>
-              {intersectionRows.map((row) => (
-                <tr>
-                  <td><strong>{row.name}</strong></td>
-                  <td>{row.symbol}</td>
-                  <td>{fmt(valuesBySymbol[row.symbol].week, 1)}%</td>
-                  <td>{fmt(valuesBySymbol[row.symbol].month, 1)}%</td>
-                  <td>{fmt(valuesBySymbol[row.symbol].quarter, 1)}%</td>
-                  <td>¥{fmt(row.price)}</td>
-                  <td class:list={[row.change_percent >= 0 ? 'up' : 'down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
+          <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
+          <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
+          <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
+          <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
+        </div>
+
+        <div class="chip-grid" id="chip-grid">
+          {rows.map((row, index) => (
+            <article
+              class="chip-card"
+              data-symbol={row.symbol}
+              data-name={row.name}
+              data-initials={row.nameInitials}
+              data-board-index={index}
+              hidden={index >= PAGE_SIZE}
+            >
+              <div class="chip-card-header">
+                <strong class="chip-card-name">{row.name}</strong>
+                <span class="chip-card-code">{row.symbol}</span>
+              </div>
+              <div class="chip-card-metrics">
+                <div class="chip-metric">
+                  <span class="chip-metric-label">周线</span>
+                  <span class="chip-metric-value">{row.week}%</span>
+                </div>
+                <div class="chip-metric">
+                  <span class="chip-metric-label">月线</span>
+                  <span class="chip-metric-value">{row.month}%</span>
+                </div>
+                <div class="chip-metric">
+                  <span class="chip-metric-label">季线</span>
+                  <span class="chip-metric-value">{row.quarter}%</span>
+                </div>
+              </div>
+              <div class="chip-card-footer">
+                <span class="chip-price">¥{fmt(row.price)}</span>
+                <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
+              </div>
+            </article>
+          ))}
+          <div class="chip-card chip-empty" id="chip-search-empty" hidden>
+            <strong>没有匹配标的</strong>
+            <span>换个代码、名称或首字母试试。</span>
+          </div>
         </div>
       </section>
 
@@ -77,28 +148,131 @@ const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
       </footer>
     </main>
     <Footer />
+
+    <script is:inline>
+    (function() {
+      const PAGE_SIZE = {PAGE_SIZE};
+      const grid = document.getElementById('chip-grid');
+      const pager = document.getElementById('chip-pager');
+      const nums = document.getElementById('chip-page-nums');
+      const meta = document.getElementById('chip-page-meta');
+      const prevBtn = document.getElementById('chip-page-prev');
+      const nextBtn = document.getElementById('chip-page-next');
+      const searchInput = document.getElementById('chip-search-input');
+      const empty = document.getElementById('chip-search-empty');
+      if (!grid || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
+
+      const cards = Array.from(grid.querySelectorAll('.chip-card:not(.chip-empty)'));
+      if (!cards.length) return;
+
+      let page = 1;
+      let query = '';
+
+      const normalize = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+
+      const filtered = () => {
+        if (!query) return cards;
+        return cards.filter((c) => {
+          const sym = String(c.dataset.symbol || '').toLowerCase();
+          const name = String(c.dataset.name || '').toLowerCase();
+          const initials = String(c.dataset.initials || '').toLowerCase();
+          return sym.includes(query) || name.includes(query) || initials.includes(query) || initials.startsWith(query);
+        });
+      };
+
+      const render = () => {
+        const matched = filtered();
+        const totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
+        if (page > totalPages) page = totalPages;
+        if (page < 1) page = 1;
+        const start = (page - 1) * PAGE_SIZE;
+        const end = start + PAGE_SIZE;
+        const visible = new Set(matched.slice(start, end));
+
+        cards.forEach((c) => { c.hidden = !visible.has(c); });
+        if (empty) empty.hidden = matched.length > 0;
+
+        const showPager = matched.length > PAGE_SIZE;
+        pager.hidden = !showPager;
+        meta.textContent = matched.length ? `第 ${page}/${totalPages} 页 · ${matched.length} 只` : '无匹配';
+
+        nums.replaceChildren();
+        if (showPager) {
+          for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
+            btn.textContent = String(i);
+            btn.setAttribute('aria-label', '第 ' + i + ' 页');
+            if (i === page) btn.setAttribute('aria-current', 'page');
+            btn.addEventListener('click', () => { page = i; render(); });
+            nums.appendChild(btn);
+          }
+        }
+        prevBtn.disabled = page <= 1 || matched.length === 0;
+        nextBtn.disabled = page >= totalPages || matched.length === 0;
+      };
+
+      prevBtn.addEventListener('click', () => { if (page > 1) { page--; render(); } });
+      nextBtn.addEventListener('click', () => { page++; render(); });
+      if (searchInput) {
+        searchInput.addEventListener('input', () => { query = normalize(searchInput.value); page = 1; render(); });
+      }
+      render();
+    })();
+    </script>
   </body>
 </html>
 
-<style>
+<style is:global>
   .low-chip-main{padding-bottom:3rem;color:#14243b}
-  .low-chip-hero,.intersection-panel,.period-section,.data-note{border:1px solid #dbe3ec;border-radius:14px;background:#fff}
+  .low-chip-hero,.chip-section,.data-note{border:1px solid #dbe3ec;border-radius:14px;background:#fff}
   .low-chip-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.25rem;padding:1.35rem}
   .eyebrow{margin:0 0 .35rem;color:#64748b;font-size:.75rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
   h1,h2,p{margin-top:0}.low-chip-hero h1{margin-bottom:.45rem;font-size:2rem}.low-chip-hero p:last-child{max-width:720px;margin-bottom:0;color:#526176;line-height:1.7}
   .low-chip-hero dl{display:grid;grid-template-columns:repeat(2,minmax(82px,1fr));gap:.5rem;margin:0}
   .low-chip-hero dl div{padding:.65rem .8rem;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}
   dt{color:#64748b;font-size:.72rem;font-weight:800}dd{margin:.2rem 0 0;font-size:1rem;font-weight:900}
-  .intersection-panel{display:block;margin-top:1rem;border:1px solid #dbe3ec;border-radius:14px;background:#fff;overflow:hidden}
-  .panel-head{padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
-  .panel-head h2{margin:0;font-size:1.15rem}
-  .table-wrap{overflow-x:auto}
-  .low-chip-table{width:100%;border-collapse:collapse;font-size:.9rem}
-  .low-chip-table th,.low-chip-table td{padding:.75rem 1rem;border-bottom:1px solid #edf1f5;text-align:right;white-space:nowrap}
-  .low-chip-table th:first-child,.low-chip-table td:first-child{text-align:left}
-  .low-chip-table th{color:#64748b;background:#f8fafc;font-size:.75rem}
-  .low-chip-table tbody tr:last-child td{border-bottom:0}
-  .up{color:#b91c1c;font-weight:800}.down{color:#047857;font-weight:800}
-  .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}.data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.low-chip-table th,.low-chip-table td{padding:.7rem .75rem}}
+
+  .chip-section{margin-top:1rem;overflow:hidden}
+  .chip-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
+  .chip-toolbar h2{margin:0;font-size:1.15rem}
+  .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
+  .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
+  .chip-search-input{width:160px;padding:.45rem .7rem;border:1px solid #dbe3ec;border-radius:8px;font-size:.85rem;outline:0;transition:border-color .15s}
+  .chip-search-input:focus{border-color:#d97706;box-shadow:0 0 0 2px rgba(217,119,6,.15)}
+
+  .chip-pager{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+  .chip-page-btn{padding:.35rem .8rem;border:1px solid #dbe3ec;border-radius:8px;background:#fff;color:#14243b;font-size:.82rem;cursor:pointer;transition:all .12s}
+  .chip-page-btn:hover:not(:disabled){background:#f0f2f5;border-color:#b0bec5}
+  .chip-page-btn:disabled{opacity:.4;cursor:default}
+  .chip-page-nums{display:flex;gap:.25rem}
+  .chip-page-num{min-width:28px;height:28px;padding:0 .35rem;border:1px solid #dbe3ec;border-radius:6px;background:#fff;color:#14243b;font-size:.8rem;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
+  .chip-page-num.is-active{border-color:#d97706;background:#d97706;color:#fff;font-weight:800}
+  .chip-page-num:hover:not(.is-active){background:#f0f2f5}
+  .chip-page-meta{margin-left:.5rem;color:#64748b;font-size:.78rem}
+
+  .chip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;padding:1rem}
+  .chip-card{border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:1rem;transition:border-color .15s}
+  .chip-card:hover{border-color:#cbd5e1}
+  .chip-card-header{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem}
+  .chip-card-name{font-size:1.1rem;color:#14243b}
+  .chip-card-code{color:#64748b;font-size:.78rem;font-weight:500}
+  .chip-card-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin-bottom:.6rem}
+  .chip-metric{text-align:center;padding:.35rem .3rem;border:1px solid #f0f2f5;border-radius:8px;background:#fafbfc}
+  .chip-metric-label{display:block;color:#64748b;font-size:.68rem;font-weight:800;text-transform:uppercase;margin-bottom:.15rem}
+  .chip-metric-value{display:block;font-size:1.05rem;font-weight:900;color:#9a3412}
+  .chip-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:.3rem;border-top:1px solid #f0f2f5}
+  .chip-price{color:#526176;font-size:.9rem;font-weight:700}
+  .chip-change{font-size:.85rem;font-weight:800}
+  .chip-up{color:#b91c1c}
+  .chip-down{color:#047857}
+  .chip-card.chip-empty{grid-column:1/-1;text-align:center;padding:2rem;border:1px dashed #dbe3ec;background:#fafbfc}
+  .chip-card.chip-empty strong{display:block;font-size:1rem;margin-bottom:.35rem}
+
+  .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
+  .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
+
+  @media(max-width:900px){.chip-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.low-chip-hero{grid-template-columns:1fr}.chip-grid{grid-template-columns:1fr}.chip-toolbar{flex-direction:column}.chip-search-input{width:100%}}
 </style>
