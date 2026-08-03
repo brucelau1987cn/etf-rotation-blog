@@ -60,6 +60,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "chip-industry",
         "chip-quality",
         "优质股东 ✓",
+        ") : null}",
         "剔除北交所及未来3个月存在限售股解禁",
         "收盘获利比例",
     ):

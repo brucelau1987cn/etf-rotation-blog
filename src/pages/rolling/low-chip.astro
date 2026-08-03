@@ -117,9 +117,7 @@ const rows = intersectionRows.map((row) => ({
                 <span class="chip-industry" title={row.industry}>{row.sector}</span>
                 {row.qualityShareholder ? (
                   <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
-                ) : (
-                  <span class="chip-quality is-none" title="按社保、养老、国家大基金、国新、深创投及主权资金口径未识别">优质股东 —</span>
-                )}
+                ) : null}
               </div>
               <div class="chip-row-metrics">
                 <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
