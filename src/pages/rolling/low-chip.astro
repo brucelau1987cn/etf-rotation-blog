@@ -25,13 +25,12 @@ const valuesBySymbol = Object.fromEntries(
 );
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
 
-/** Pinyin-initial map for A-share common chars. */
 const CHAR_INITIAL: Record<string, string> = {
   上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
   三:'s',安:'a',光:'g',深:'s',科:'k',技:'j',德:'d',福:'f',
   民:'m',爆:'b',信:'x',息:'x',东:'d',方:'f',明:'m',珠:'z',
   长:'c',鑫:'x',国:'g',术:'s',澜:'l',起:'q',华:'h',天:'t',
-  中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',恒:'h',恒:'h',
+  中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',
   武:'w',汉:'h',天:'t',源:'y',千:'q',岸:'a',宝:'b',明:'m',
   易:'y',龙:'l',曙:'s',光:'g',数:'s',永:'y',光:'g',学:'x',
   技:'j',源:'y',集:'j',团:'t',金:'j',戈:'g',汇:'h',通:'t',
@@ -93,51 +92,42 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
           </div>
         </div>
 
-        <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
-          <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
-          <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
-          <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
-          <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
-        </div>
-
-        <div class="chip-grid" id="chip-grid">
+        <div class="chip-list" id="chip-list">
           {rows.map((row, index) => (
-            <article
-              class="chip-card"
+            <div
+              class="chip-row"
               data-symbol={row.symbol}
               data-name={row.name}
               data-initials={row.nameInitials}
               data-board-index={index}
               hidden={index >= PAGE_SIZE}
             >
-              <div class="chip-card-header">
-                <strong class="chip-card-name">{row.name}</strong>
-                <span class="chip-card-code">{row.symbol}</span>
+              <div class="chip-row-main">
+                <strong class="chip-row-name">{row.name}</strong>
+                <span class="chip-row-code">{row.symbol}</span>
               </div>
-              <div class="chip-card-metrics">
-                <div class="chip-metric">
-                  <span class="chip-metric-label">周线</span>
-                  <span class="chip-metric-value">{row.week}%</span>
-                </div>
-                <div class="chip-metric">
-                  <span class="chip-metric-label">月线</span>
-                  <span class="chip-metric-value">{row.month}%</span>
-                </div>
-                <div class="chip-metric">
-                  <span class="chip-metric-label">季线</span>
-                  <span class="chip-metric-value">{row.quarter}%</span>
-                </div>
+              <div class="chip-row-metrics">
+                <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
+                <span class="chip-metric">月线 <em class="chip-val">{row.month}%</em></span>
+                <span class="chip-metric">季线 <em class="chip-val">{row.quarter}%</em></span>
               </div>
-              <div class="chip-card-footer">
+              <div class="chip-row-footer">
                 <span class="chip-price">¥{fmt(row.price)}</span>
                 <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
               </div>
-            </article>
+            </div>
           ))}
-          <div class="chip-card chip-empty" id="chip-search-empty" hidden>
+          <div class="chip-row chip-row-empty" id="chip-search-empty" hidden>
             <strong>没有匹配标的</strong>
-            <span>换个代码、名称或首字母试试。</span>
+            <span>换个代码、名称或首字母试试</span>
           </div>
+        </div>
+
+        <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
+          <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
+          <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
+          <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
+          <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
         </div>
       </section>
 
@@ -151,72 +141,75 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
 
     <script is:inline>
     (function() {
-      const PAGE_SIZE = {PAGE_SIZE};
-      const grid = document.getElementById('chip-grid');
-      const pager = document.getElementById('chip-pager');
-      const nums = document.getElementById('chip-page-nums');
-      const meta = document.getElementById('chip-page-meta');
-      const prevBtn = document.getElementById('chip-page-prev');
-      const nextBtn = document.getElementById('chip-page-next');
-      const searchInput = document.getElementById('chip-search-input');
-      const empty = document.getElementById('chip-search-empty');
-      if (!grid || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
+      var list = document.getElementById('chip-list');
+      var pager = document.getElementById('chip-pager');
+      var nums = document.getElementById('chip-page-nums');
+      var meta = document.getElementById('chip-page-meta');
+      var prevBtn = document.getElementById('chip-page-prev');
+      var nextBtn = document.getElementById('chip-page-next');
+      var searchInput = document.getElementById('chip-search-input');
+      var empty = document.getElementById('chip-search-empty');
+      if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
 
-      const cards = Array.from(grid.querySelectorAll('.chip-card:not(.chip-empty)'));
-      if (!cards.length) return;
+      var PAGE_SIZE = Math.max(1, Number(pager.dataset.pageSize || 6));
+      var rows = Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
+      if (!rows.length) return;
 
-      let page = 1;
-      let query = '';
+      var page = 1;
+      var query = '';
 
-      const normalize = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+      function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
 
-      const filtered = () => {
-        if (!query) return cards;
-        return cards.filter((c) => {
-          const sym = String(c.dataset.symbol || '').toLowerCase();
-          const name = String(c.dataset.name || '').toLowerCase();
-          const initials = String(c.dataset.initials || '').toLowerCase();
-          return sym.includes(query) || name.includes(query) || initials.includes(query) || initials.startsWith(query);
+      function filtered() {
+        if (!query) return rows;
+        return rows.filter(function(c) {
+          var sym = String(c.dataset.symbol || '').toLowerCase();
+          var name = String(c.dataset.name || '').toLowerCase();
+          var initials = String(c.dataset.initials || '').toLowerCase();
+          return sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0;
         });
-      };
+      }
 
-      const render = () => {
-        const matched = filtered();
-        const totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
+      function render() {
+        var matched = filtered();
+        var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
         if (page > totalPages) page = totalPages;
         if (page < 1) page = 1;
-        const start = (page - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        const visible = new Set(matched.slice(start, end));
+        var start = (page - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+        var visible = matched.slice(start, end);
 
-        cards.forEach((c) => { c.hidden = !visible.has(c); });
+        rows.forEach(function(c) { c.hidden = true; });
+        visible.forEach(function(c) { c.hidden = false; });
         if (empty) empty.hidden = matched.length > 0;
 
-        const showPager = matched.length > PAGE_SIZE;
+        var showPager = matched.length > PAGE_SIZE;
         pager.hidden = !showPager;
-        meta.textContent = matched.length ? `第 ${page}/${totalPages} 页 · ${matched.length} 只` : '无匹配';
+        meta.textContent = matched.length ? '\u7B2C ' + page + '/' + totalPages + ' \u9875 \u00B7 ' + matched.length + ' \u53EA' : '\u65E0\u5339\u914D';
 
         nums.replaceChildren();
         if (showPager) {
-          for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
-            btn.textContent = String(i);
-            btn.setAttribute('aria-label', '第 ' + i + ' 页');
-            if (i === page) btn.setAttribute('aria-current', 'page');
-            btn.addEventListener('click', () => { page = i; render(); });
-            nums.appendChild(btn);
+          for (var i = 1; i <= totalPages; i++) {
+            (function(p) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
+              btn.textContent = String(i);
+              btn.setAttribute('aria-label', '\u7B2C ' + i + ' \u9875');
+              if (i === page) btn.setAttribute('aria-current', 'page');
+              btn.addEventListener('click', function() { page = p; render(); });
+              nums.appendChild(btn);
+            })(i);
           }
         }
         prevBtn.disabled = page <= 1 || matched.length === 0;
         nextBtn.disabled = page >= totalPages || matched.length === 0;
-      };
+      }
 
-      prevBtn.addEventListener('click', () => { if (page > 1) { page--; render(); } });
-      nextBtn.addEventListener('click', () => { page++; render(); });
+      prevBtn.addEventListener('click', function() { if (page > 1) { page--; render(); } });
+      nextBtn.addEventListener('click', function() { page++; render(); });
       if (searchInput) {
-        searchInput.addEventListener('input', () => { query = normalize(searchInput.value); page = 1; render(); });
+        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; render(); });
       }
       render();
     })();
@@ -242,7 +235,7 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   .chip-search-input{width:160px;padding:.45rem .7rem;border:1px solid #dbe3ec;border-radius:8px;font-size:.85rem;outline:0;transition:border-color .15s}
   .chip-search-input:focus{border-color:#d97706;box-shadow:0 0 0 2px rgba(217,119,6,.15)}
 
-  .chip-pager{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+  .chip-pager{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem 1.2rem;border-top:1px solid #e2e8f0;background:#fafbfc}
   .chip-page-btn{padding:.35rem .8rem;border:1px solid #dbe3ec;border-radius:8px;background:#fff;color:#14243b;font-size:.82rem;cursor:pointer;transition:all .12s}
   .chip-page-btn:hover:not(:disabled){background:#f0f2f5;border-color:#b0bec5}
   .chip-page-btn:disabled{opacity:.4;cursor:default}
@@ -252,27 +245,26 @@ const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   .chip-page-num:hover:not(.is-active){background:#f0f2f5}
   .chip-page-meta{margin-left:.5rem;color:#64748b;font-size:.78rem}
 
-  .chip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;padding:1rem}
-  .chip-card{border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:1rem;transition:border-color .15s}
-  .chip-card:hover{border-color:#cbd5e1}
-  .chip-card-header{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem}
-  .chip-card-name{font-size:1.1rem;color:#14243b}
-  .chip-card-code{color:#64748b;font-size:.78rem;font-weight:500}
-  .chip-card-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin-bottom:.6rem}
-  .chip-metric{text-align:center;padding:.35rem .3rem;border:1px solid #f0f2f5;border-radius:8px;background:#fafbfc}
-  .chip-metric-label{display:block;color:#64748b;font-size:.68rem;font-weight:800;text-transform:uppercase;margin-bottom:.15rem}
-  .chip-metric-value{display:block;font-size:1.05rem;font-weight:900;color:#9a3412}
-  .chip-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:.3rem;border-top:1px solid #f0f2f5}
-  .chip-price{color:#526176;font-size:.9rem;font-weight:700}
-  .chip-change{font-size:.85rem;font-weight:800}
+  .chip-list{display:flex;flex-direction:column}
+  .chip-row{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
+  .chip-row:hover{background:#f8fafc}
+  .chip-row:last-child{border-bottom:0}
+  .chip-row-main{display:flex;align-items:baseline;gap:.4rem;min-width:120px}
+  .chip-row-name{font-size:.95rem;color:#14243b}
+  .chip-row-code{color:#64748b;font-size:.78rem}
+  .chip-row-metrics{display:flex;gap:1rem;flex:1}
+  .chip-metric{color:#526176;font-size:.82rem}
+  .chip-val{font-style:normal;font-weight:800;color:#9a3412;margin-left:.2rem}
+  .chip-row-footer{display:flex;align-items:center;gap:.75rem;margin-left:auto}
+  .chip-price{color:#526176;font-size:.85rem;font-weight:700}
+  .chip-change{font-size:.82rem;font-weight:800;min-width:64px;text-align:right}
   .chip-up{color:#b91c1c}
   .chip-down{color:#047857}
-  .chip-card.chip-empty{grid-column:1/-1;text-align:center;padding:2rem;border:1px dashed #dbe3ec;background:#fafbfc}
-  .chip-card.chip-empty strong{display:block;font-size:1rem;margin-bottom:.35rem}
+  .chip-row.chip-row-empty{justify-content:center;padding:1.5rem;border-bottom:0;color:#64748b}
+  .chip-row.chip-row-empty strong{display:block;margin-bottom:.2rem;color:#14243b}
 
   .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
-  @media(max-width:900px){.chip-grid{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:600px){.low-chip-hero{grid-template-columns:1fr}.chip-grid{grid-template-columns:1fr}.chip-toolbar{flex-direction:column}.chip-search-input{width:100%}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:0}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
 </style>
