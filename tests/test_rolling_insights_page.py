@@ -46,6 +46,39 @@ def test_insights_styles_are_responsive_and_card_light():
     assert "linear-gradient" not in styles
 
 
+def test_innovation_medical_trade_review_2026_08_04():
+    page = (ROOT / "src/pages/rolling/insights/2026-08-04.astro").read_text(encoding="utf-8")
+    catalog = (ROOT / "src/data/rolling-insights.ts").read_text(encoding="utf-8")
+
+    assert "2026-08-04" in catalog
+    assert "2026-07-30" in catalog
+    assert "/rolling/insights/2026-07-30/" in catalog
+
+    for marker in (
+        "1小时周期",
+        "10分钟周期",
+        "胜率 25%",
+        "胜率 33%",
+        "盈亏比 0.86",
+        "盈亏比 0.98",
+        "¥19.46",
+        "¥18.27",
+        "¥19.95—20.30",
+        "¥15.28",
+        "什么时候买",
+        "什么时候卖",
+        "今日操作结论",
+        "价格作战地图",
+        "分档执行计划",
+        "买卖点配对统计",
+        "7/29 卖出后信号停止",
+        "日收盘近似",
+        "trade-table",
+        "stat-duo",
+    ):
+        assert marker in page
+
+
 def test_insight_navigator_separates_stock_and_trade_date_navigation():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     navigator = (ROOT / "src/components/InsightNavigator.astro").read_text(encoding="utf-8")

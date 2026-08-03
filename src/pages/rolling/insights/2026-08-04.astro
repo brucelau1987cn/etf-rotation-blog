@@ -1,0 +1,305 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import InsightNavigator from '../../../components/InsightNavigator.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingInsightArticles } from '../../../data/rolling-insights';
+import '../../../styles/rolling-insights.css';
+
+const title = `滚动操盘解读｜创新医疗买卖点复盘 | ${SITE_TITLE}`;
+const description = '创新医疗 1小时/10分钟买卖点全复盘操盘台：胜率统计、价格作战地图、买入条件、卖出纪律与分档执行计划。';
+
+const hourStats = [
+  { label: '配对交易', value: '8 笔', note: '3/11—7/29' },
+  { label: '胜率', value: '25%', note: '2 胜 6 负' },
+  { label: '平均收益', value: '-3.18%', note: '盈 +5.13% / 亏 -5.95%' },
+  { label: '盈亏比', value: '0.86', note: '平均亏损大于盈利' },
+  { label: '平均持仓', value: '5.5 天', note: '最长 9 天' },
+];
+
+const minStats = [
+  { label: '配对交易', value: '21 笔', note: '3/13—7/29' },
+  { label: '胜率', value: '33%', note: '7 胜 14 负' },
+  { label: '平均收益', value: '-1.17%', note: '盈 +3.36% / 亏 -3.43%' },
+  { label: '盈亏比', value: '0.98', note: '接近持平' },
+  { label: '平均持仓', value: '2.9 天', note: '最长 12 天' },
+];
+
+const hourTrades = [
+  { buy: '03/11 10:30', sell: '03/20 09:30', ret: '-11.67%', win: false },
+  { buy: '04/14 14:30', sell: '04/23 10:30', ret: '-1.69%', win: false },
+  { buy: '05/06 10:30', sell: '05/12 10:30', ret: '-0.84%', win: false },
+  { buy: '05/13 13:30', sell: '05/15 13:30', ret: '-3.41%', win: false },
+  { buy: '05/19 09:30', sell: '05/20 09:30', ret: '-5.28%', win: false },
+  { buy: '06/23 09:30', sell: '06/25 09:30', ret: '+0.80%', win: true },
+  { buy: '07/02 12:30', sell: '07/08 13:30', ret: '-8.03%', win: false },
+  { buy: '07/20 12:30', sell: '07/29 10:30', ret: '+9.46%', win: true },
+];
+
+const minTrades = [
+  { buy: '03/13 14:00', sell: '03/17 13:10', ret: '-6.24%', win: false },
+  { buy: '03/24 09:50', sell: '03/26 11:00', ret: '-0.72%', win: false },
+  { buy: '03/27 10:00', sell: '03/31 14:20', ret: '-3.53%', win: false },
+  { buy: '04/01 10:30', sell: '04/03 09:30', ret: '-5.97%', win: false },
+  { buy: '04/08 09:30', sell: '04/09 09:30', ret: '-0.35%', win: false },
+  { buy: '04/10 09:50', sell: '04/15 14:30', ret: '-3.29%', win: false },
+  { buy: '04/21 14:00', sell: '04/22 09:40', ret: '-0.20%', win: false },
+  { buy: '04/29 13:50', sell: '05/11 09:30', ret: '+4.61%', win: true },
+  { buy: '05/13 10:20', sell: '05/14 09:40', ret: '-3.71%', win: false },
+  { buy: '05/19 09:30', sell: '05/20 09:30', ret: '-5.28%', win: false },
+  { buy: '05/21 09:30', sell: '05/21 14:00', ret: '-2.35%', win: false },
+  { buy: '06/02 11:00', sell: '06/04 10:00', ret: '+0.51%', win: true },
+  { buy: '06/08 09:30', sell: '06/08 13:00', ret: '-2.98%', win: false },
+  { buy: '06/12 10:00', sell: '06/16 09:30', ret: '-1.89%', win: false },
+  { buy: '06/22 14:20', sell: '06/25 09:40', ret: '+3.60%', win: true },
+  { buy: '06/29 10:50', sell: '06/30 10:30', ret: '-1.54%', win: false },
+  { buy: '07/01 10:30', sell: '07/07 10:20', ret: '-2.79%', win: false },
+  { buy: '07/10 09:40', sell: '07/13 10:40', ret: '+2.26%', win: true },
+  { buy: '07/16 10:20', sell: '07/17 10:40', ret: '-2.13%', win: false },
+  { buy: '07/20 13:10', sell: '07/21 09:50', ret: '-7.27%', win: false },
+  { buy: '07/23 10:10', sell: '07/29 09:30', ret: '+9.17%', win: true },
+];
+
+const levels = [
+  { price: '¥24.00', name: '07/29 冲高炸板高点', action: '当日开 24 收 20.48，减仓纪律执行点', tone: 'sell' },
+  { price: '¥20.48', name: '07/29 卖出区收盘', action: '10m 09:30 / 1h 10:30 卖出点', tone: 'sell' },
+  { price: '¥20.17', name: 'MA5', action: '放量站稳确认短线修复', tone: 'confirm' },
+  { price: '¥19.95—20.30', name: '确认买入区', action: '收复平均成本后放量站稳才确认', tone: 'confirm' },
+  { price: '¥19.46', name: '筹码平均成本', action: '收复后进入观察仓', tone: 'watch' },
+  { price: '¥19.35', name: 'MA10', action: '收盘已跌破，反弹先看此位', tone: 'signal' },
+  { price: '¥19.02', name: '08/03 收盘价', action: '现价位于成本与 MA10 下方', tone: 'signal' },
+  { price: '¥18.27', name: 'MA20 核心支撑', action: '缩量止跌可小仓试错', tone: 'buy' },
+  { price: '¥17.40', name: '07/08 低点次级支撑', action: '跌破后弱势继续扩散', tone: 'risk' },
+  { price: '¥15.28', name: '07/15 低点趋势防线', action: '失守则长期趋势离场', tone: 'risk' },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="rolling-insights-main">
+      <RollingSubnav active="insights" />
+      <InsightNavigator
+        articles={rollingInsightArticles}
+        currentSymbol="002173"
+        currentDate="2026-08-04"
+      />
+
+      <header class="trade-hero">
+        <div class="trade-title-row">
+          <div>
+            <div class="eyebrow">滚动罗盘 · 买卖点全复盘 · 08/04</div>
+            <h1>创新医疗 <span>002173</span></h1>
+            <p>收盘 ¥19.02 · 今日 -2.66% · 数据截止 2026-08-03 收市 · 来源：iWenCai + 腾讯日线</p>
+          </div>
+          <div class="market-bias is-bearish">
+            <small>周期复盘状态</small>
+            <strong>趋势下行 · 卖出纪律有效</strong>
+            <span>1h 胜率 25% / 10m 胜率 33%</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="command-board" aria-label="今日操盘指令">
+        <div class="command-primary">
+          <div class="command-label">今日操作结论</div>
+          <h2>7/29 卖出后信号停止，当前等待收复确认，不追多</h2>
+          <p>8/3 收 ¥19.02 位于平均成本 ¥19.46 与 MA10 ¥19.35 下方、MA20 ¥18.27 上方；RSI6 47.95 中性、量比 0.60 缩量。3/11 以来 29 笔配对交易整体亏损，追多信号在下跌趋势中胜率低，当前应等确认而非抢反弹。</p>
+        </div>
+        <div class="command-action is-buy">
+          <small>什么时候买</small>
+          <strong>收复 ¥19.46 后观察</strong>
+          <span>放量站稳 ¥19.95—20.30 后确认；或回踩 MA20 ¥18.27 缩量止跌小仓试错</span>
+        </div>
+        <div class="command-action is-sell">
+          <small>什么时候卖</small>
+          <strong>反弹 ¥19.35—19.46 分批减仓</strong>
+          <span>跌破 ¥18.27 退出修复仓；失守 ¥15.28 长期趋势离场</span>
+        </div>
+      </section>
+
+      <section class="today-panel">
+        <div class="section-heading">
+          <div><small>买卖点配对统计</small><h2>1小时与10分钟周期全复盘</h2></div>
+          <span class="status-tag">日收盘近似</span>
+        </div>
+        <div class="stat-duo">
+          <div class="stat-card">
+            <div class="stat-head"><strong>1小时周期</strong><em>8 笔配对 · 3/11—7/29</em></div>
+            <div class="stat-grid">
+              {hourStats.map((item) => (
+                <div class="stat-cell"><small>{item.label}</small><strong>{item.value}</strong><span>{item.note}</span></div>
+              ))}
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-head"><strong>10分钟周期</strong><em>21 笔配对 · 3/13—7/29</em></div>
+            <div class="stat-grid">
+              {minStats.map((item) => (
+                <div class="stat-cell"><small>{item.label}</small><strong>{item.value}</strong><span>{item.note}</span></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div class="signal-interpretation">
+          <strong>操盘解读：</strong>两个周期盈亏比均低于 1（1h 0.86 / 10m 0.98），平均亏损大于平均盈利，整体处于「小赚大亏」的逆势追多模式。唯一大幅盈利的两笔（1h +9.46%、10m +9.17%）都结束于 7/29 炸板日卖出——卖出纪律比买入信号更可靠。收益按买入/卖出日收盘价近似，未含滑点与手续费。
+        </div>
+      </section>
+
+      <section class="today-panel">
+        <div class="section-heading">
+          <div><small>完整买卖点信号表</small><h2>29 笔配对交易明细</h2></div>
+          <span class="status-tag">1h 8 笔 + 10m 21 笔</span>
+        </div>
+        <div class="trade-table-duo">
+          <table class="trade-table">
+            <thead><tr><th>#</th><th>1h 买入</th><th>卖出</th><th>近似收益</th></tr></thead>
+            <tbody>
+              {hourTrades.map((t, i) => (
+                <tr><td>{String(i + 1).padStart(2, '0')}</td><td>{t.buy}</td><td>{t.sell}</td><td class:list={[t.win ? 'is-win' : 'is-loss']}>{t.ret}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <table class="trade-table">
+            <thead><tr><th>#</th><th>10m 买入</th><th>卖出</th><th>近似收益</th></tr></thead>
+            <tbody>
+              {minTrades.map((t, i) => (
+                <tr><td>{String(i + 1).padStart(2, '0')}</td><td>{t.buy}</td><td>{t.sell}</td><td class:list={[t.win ? 'is-win' : 'is-loss']}>{t.ret}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="execution-grid" id="plan">
+        <div class="execution-card buy-card">
+          <div class="card-number">01</div>
+          <small>激进观察买点</small>
+          <h3>¥18.27 附近</h3>
+          <p>MA20 支撑区。缩量止跌、RSI6 拐头、新卖出节点停止增加三项同时出现时试仓。</p>
+          <ul><li>建议仓位：10%</li><li>止损：有效跌破 ¥17.40</li><li>性质：左侧试错</li></ul>
+        </div>
+        <div class="execution-card confirm-card">
+          <div class="card-number">02</div>
+          <small>稳健确认买点</small>
+          <h3>先收复 ¥19.46，再站稳 ¥19.95—20.30</h3>
+          <p>¥19.46 是筹码平均成本，¥19.95—20.30 是炸板回落后的阻力密集区。放量且 MACD 柱重新扩张时，修复获得确认。</p>
+          <ul><li>收复 ¥19.46：停止看空加码</li><li>站稳 ¥19.95：进入观察仓</li><li>放量站稳 ¥20.30：增加确认仓</li></ul>
+        </div>
+        <div class="execution-card sell-card">
+          <div class="card-number">03</div>
+          <small>持仓卖出纪律</small>
+          <h3>反弹 ¥19.35—19.46 减仓</h3>
+          <p>MA10 与筹码成本构成反弹压力带，7/29 经验显示冲高即卖点。</p>
+          <ul><li>跌破 ¥18.27：退出修复仓</li><li>失守 ¥17.40：继续降仓</li><li>跌破 ¥15.28：长期趋势离场</li></ul>
+        </div>
+      </section>
+
+      <section class="price-map" id="levels">
+        <div class="section-heading"><div><small>价格作战地图</small><h2>从上到下看压力、信号与支撑</h2></div></div>
+        <div class="level-table">
+          {levels.map((item) => (
+            <div class:list={['level-row', item.tone]}>
+              <strong>{item.price}</strong><span>{item.name}</span><b>{item.action}</b>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div class="detail-layout">
+        <article class="detail-column">
+          <section id="evidence">
+            <div class="section-heading"><div><small>收盘证据链</small><h2>当前技术位置</h2></div></div>
+            <div class="evidence-grid">
+              <div><small>收盘价</small><strong>¥19.02</strong><span>08/03 · -2.66%</span></div>
+              <div><small>MA5</small><strong>¥20.17</strong><span>收盘低 5.7%</span></div>
+              <div><small>MA10</small><strong>¥19.35</strong><span>收盘已跌破</span></div>
+              <div><small>MA20</small><strong>¥18.27</strong><span>核心支撑，收盘高 4.1%</span></div>
+              <div><small>平均成本</small><strong>¥19.46</strong><span>收盘低 2.3%</span></div>
+              <div><small>获利盘</small><strong>36.6%</strong><span>套牢盘占多数</span></div>
+              <div><small>RSI6</small><strong>47.95</strong><span>中性，无超卖</span></div>
+              <div><small>RSI12</small><strong>51.22</strong><span>动量偏弱</span></div>
+              <div><small>90%集中度</small><strong>14.3%</strong><span>筹码较分散</span></div>
+              <div><small>量比</small><strong>0.60</strong><span>缩量</span></div>
+              <div><small>换手率</small><strong>10.44%</strong><span>交投仍活跃</span></div>
+              <div><small>区间跌幅</small><strong>-37.6%</strong><span>2/25 高点 30.49 → 8/3</span></div>
+            </div>
+            <p class="desk-note">区间高点 30.49（2/25）一路下行至 19.02（8/3），跌幅 37.6%；7/29 炸板日单日 24.00→20.48（-14.7%）。当前价夹在 MA20 与平均成本之间：下方有 MA20 承接，上方 MA10/成本/MA5 三重压力。7/15 低点 15.28 是趋势防线，跌破前不构成长期持有条件。</p>
+          </section>
+
+          <section id="scenarios">
+            <div class="section-heading"><div><small>次日应对</small><h2>三种走势，三套动作</h2></div></div>
+            <div class="scenario-list">
+              <div><b>A</b><strong>放量收复 ¥19.46 并站稳 ¥19.95—20.30</strong><span>修复确认，观察仓转确认仓；站稳 ¥20.30 后按分档加仓。</span></div>
+              <div><b>B</b><strong>围绕 ¥18.27—19.46 震荡</strong><span>保持轻仓或空仓；上沿用于减仓，下沿观察承接，等待方向选择。</span></div>
+              <div><b>C</b><strong>跌破 ¥18.27</strong><span>防守延续，持仓继续降仓；依次看 ¥17.40 与 ¥15.28，跌破后者长期离场。</span></div>
+            </div>
+          </section>
+
+          <section id="history">
+            <div class="section-heading"><div><small>复盘教训</small><h2>下跌趋势中追多：小赚大亏</h2></div></div>
+            <div class="history-line"><span>1h 周期 8 笔</span><strong>2 胜 6 负</strong><em>平均 -3.18% · 盈亏比 0.86</em></div>
+            <div class="history-line"><span>10m 周期 21 笔</span><strong>7 胜 14 负</strong><em>平均 -1.17% · 盈亏比 0.98</em></div>
+            <div class="history-line"><span>07/29 卖出</span><strong>10m 09:30 / 1h 10:30</strong><em>炸板日开 24 收 20.48，卖出纪律满分</em></div>
+            <p>3 月以来股价处于单边下行通道，1h/10m 买入信号反复出现但胜率仅 25%—33%，且平均亏损超过平均盈利。唯一持续有效的部分是卖出纪律：7/29 两个周期都在炸板日高位卖出，锁住当轮盈利（1h +9.46%、10m +9.17%）。结论：趋势向下时该策略应只做卖出纪律、暂停追多；或提高买入过滤（要求收复平均成本并放量），把信号从「触发即买」改为「确认后买」。</p>
+          </section>
+
+          <section id="rules">
+            <div class="section-heading"><div><small>系统优化</small><h2>买卖点过滤规则</h2></div></div>
+            <div class="rule-list">
+              <div><strong>追多降级</strong><span>价格位于平均成本下方时，买入信号降为观察；收复成本且放量才恢复执行</span></div>
+              <div><strong>卖出优先</strong><span>趋势下行期，卖出信号无条件执行；冲高（距 MA5 ≥10%）即兑现</span></div>
+              <div><strong>同价簇合并</strong><span>相邻同周期同方向、价格差 ≤1%，首次用于执行，后续只累计确认</span></div>
+            </div>
+          </section>
+        </article>
+
+        <aside class="trade-sidebar" aria-label="今日执行清单">
+          <div class="sidebar-status"><small>当前动作</small><strong>等待确认 / 反弹减仓</strong><span>收盘空方位置 · 无持仓信号</span></div>
+          <h3>买入确认清单</h3>
+          <label><input type="checkbox" disabled /> 收复平均成本 ¥19.46</label>
+          <label><input type="checkbox" disabled /> 放量站稳 ¥19.95—20.30</label>
+          <label><input type="checkbox" disabled /> 量比回升至 1 以上</label>
+          <label><input type="checkbox" disabled /> RSI6 重新向上拐头</label>
+          <label><input type="checkbox" disabled /> 新卖出节点停止增加</label>
+          <h3>卖出纪律清单</h3>
+          <label><input type="checkbox" checked disabled /> 收盘位于平均成本与 MA10 下方</label>
+          <label><input type="checkbox" checked disabled /> 07/29 卖出后无新买入信号</label>
+          <label><input type="checkbox" disabled /> 反弹 ¥19.35—19.46 减仓执行</label>
+          <div class="sidebar-bottom"><small>执行原则</small><p>趋势向下时信号先于预测：卖出纪律无条件执行，买入必须等确认。</p></div>
+        </aside>
+      </div>
+
+      <section class="final-order" id="conclusion">
+        <small>复盘操盘结论</small>
+        <h2>当前无持仓信号，不追多。反弹 ¥19.35—19.46 分批减仓；收复 ¥19.46 并放量站稳 ¥19.95—20.30 才确认买入；跌破 ¥18.27 退出修复仓，失守 ¥15.28 长期趋势离场。</h2>
+        <p>数据来源：用户提供的 1小时/10分钟买卖点序列（2026-03-11 至 2026-07-29）、iWenCai 2026-08-03 收盘行情与技术指标、腾讯前复权日线。配对收益按买入/卖出日收盘价近似计算，未含滑点与手续费；价格水平为研究观察值，确认/失效条件以清单为准。</p>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style is:global>
+  .stat-duo{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.8rem}
+  .stat-card{border:1px solid #e2e8f0;border-radius:12px;padding:.9rem;background:#fafbfc}
+  .stat-head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;margin-bottom:.6rem}
+  .stat-head strong{font-size:.95rem;color:#14243b}
+  .stat-head em{font-style:normal;color:#64748b;font-size:.7rem;font-weight:700}
+  .stat-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.4rem}
+  .stat-cell{display:flex;flex-direction:column;gap:.15rem;padding:.45rem .5rem;border:1px solid #edf1f5;border-radius:8px;background:#fff}
+  .stat-cell small{color:#8b98a9;font-size:.6rem;font-weight:750}
+  .stat-cell strong{color:#14243b;font-size:.85rem;font-weight:900}
+  .stat-cell span{color:#64748b;font-size:.58rem;line-height:1.35}
+  .trade-table-duo{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.8rem}
+  .trade-table{width:100%;border-collapse:collapse;font-size:.68rem}
+  .trade-table th{color:#8b98a9;font-size:.62rem;font-weight:800;text-align:left;padding:.35rem .4rem;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+  .trade-table td{padding:.3rem .4rem;border-bottom:1px solid #f1f5f9;color:#334155;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .trade-table td.is-win{color:#b91c1c;font-weight:850}
+  .trade-table td.is-loss{color:#047857;font-weight:850}
+  @media(max-width:860px){.stat-duo,.trade-table-duo{grid-template-columns:1fr}.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>

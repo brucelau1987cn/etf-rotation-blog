@@ -11,7 +11,14 @@ export const rollingInsightArticles: RollingInsightArticle[] = [
     symbol: '002173',
     name: '创新医疗',
     initials: 'cxyl',
+    tradeDate: '2026-08-04',
+    href: '/rolling/insights/2026-08-04/',
+  },
+  {
+    symbol: '002173',
+    name: '创新医疗',
+    initials: 'cxyl',
     tradeDate: '2026-07-30',
-    href: '/rolling/insights/',
+    href: '/rolling/insights/2026-07-30/',
   },
 ];
