@@ -29,12 +29,18 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert len(data["periods"]["week"]) == 177
     assert len(data["periods"]["month"]) == 582
     assert len(data["periods"]["quarter"]) == 269
-    assert len(data["intersection"]) == 29
+    assert len(data["intersection_before_filters"]) == 29
+    assert len(data["intersection"]) == 21
+    assert all(not code.endswith(".BJ") for code in data["intersection"])
+    assert data["filters"]["excluded_bj"] == ["920065.BJ", "920079.BJ", "920083.BJ", "920189.BJ", "920193.BJ", "920808.BJ"]
+    assert data["filters"]["excluded_unlock_risk"] == ["688759.SH", "688765.SH"]
+    assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
     quarterly_codes = {item["symbol"] for item in data["periods"]["quarter"]}
-    assert set(data["intersection"]) == weekly_codes & monthly_codes & quarterly_codes
+    assert set(data["intersection_before_filters"]) == weekly_codes & monthly_codes & quarterly_codes
+    assert set(data["intersection"]) < set(data["intersection_before_filters"])
     assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
 
 
@@ -51,6 +57,10 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         'id="chip-search-input"',
         ".chip-page-num.is-active",
         ".chip-pager[hidden],.chip-row[hidden]",
+        "chip-industry",
+        "chip-quality",
+        "优质股东 ✓",
+        "剔除北交所及未来3个月存在限售股解禁",
         "收盘获利比例",
     ):
         assert marker in page
@@ -60,7 +70,9 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
     assert 'hidden={index >= PAGE_SIZE}' in page
-    for stock_name in ("好莱客", "永新光学", "必贝特"):
+    for stock_name in ("好莱客", "永新光学", "华大九天"):
         assert stock_name in data
+    assert "920065.BJ" not in json.loads(data)["intersection"]
+    assert "688759.SH" not in json.loads(data)["intersection"]
     assert "gradient" not in page.lower()
     assert "innerHTML" not in page

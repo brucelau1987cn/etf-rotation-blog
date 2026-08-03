@@ -55,6 +55,10 @@ const rows = intersectionRows.map((row) => ({
   month: fmt(valuesBySymbol[row.symbol].month, 1),
   quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
   nameInitials: nameInitials(row.name),
+  industry: lowChipData.enrichments?.[row.symbol]?.industry || '待补充',
+  sector: lowChipData.enrichments?.[row.symbol]?.sector || '待补充',
+  qualityShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.quality_shareholder),
+  qualityShareholderNames: lowChipData.enrichments?.[row.symbol]?.quality_shareholder_names || [],
 }));
 ---
 <!doctype html>
@@ -69,11 +73,11 @@ const rows = intersectionRows.map((row) => ({
         <div>
           <p class="eyebrow">A股滚动 · 低筹码筛选</p>
           <h1>低筹码股</h1>
-          <p>筛选条件：A股、非ST、非退市，收盘获利比例低于3%。该比例表示按对应周期筹码成本模型估算，收盘时处于盈利状态的筹码占比。</p>
+          <p>筛选条件：沪深A股、非ST、非退市，收盘获利比例低于3%；剔除北交所及未来3个月存在限售股解禁的标的。</p>
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd>{lowChipData.data_as_of}</dd></div>
-          <div><dt>三周期均低于3%</dt><dd>{rows.length}只</dd></div>
+          <div><dt>过滤后标的</dt><dd>{rows.length}只</dd></div>
         </dl>
       </header>
 
@@ -104,12 +108,18 @@ const rows = intersectionRows.map((row) => ({
               data-symbol={row.symbol}
               data-name={row.name}
               data-initials={row.nameInitials}
+              data-industry={row.industry}
               data-board-index={index}
               hidden={index >= PAGE_SIZE}
             >
               <div class="chip-row-main">
-                <strong class="chip-row-name">{row.name}</strong>
-                <span class="chip-row-code">{row.symbol}</span>
+                <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-row-code">{row.symbol}</span></div>
+                <span class="chip-industry" title={row.industry}>{row.sector}</span>
+                {row.qualityShareholder ? (
+                  <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
+                ) : (
+                  <span class="chip-quality is-none" title="按社保、养老、国家大基金、国新、深创投及主权资金口径未识别">优质股东 —</span>
+                )}
               </div>
               <div class="chip-row-metrics">
                 <span class="chip-metric">周线 <em class="chip-val">{row.week}%</em></span>
@@ -131,8 +141,8 @@ const rows = intersectionRows.map((row) => ({
 
       <footer class="data-note">
         <strong>数据来源：iWenCai</strong>
-        <span>筛选日期：2026-07-31 · 指标：收盘获利比例 · 阈值：低于3%</span>
-        <p>收盘获利比例属于筹码成本模型估算值。低于3%表示对应周期内绝大多数筹码处于浮亏状态，页面用于超跌与套牢盘观察。</p>
+        <span>筛选日期：2026-07-31 · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
+        <p>已剔除北交所与未来3个月存在限售股解禁的标的。优质股东口径：十大流通股东中的社保、基本养老、国家大基金、国新投资、深创投及主权资金；该标记属于股东结构观察项。</p>
       </footer>
     </main>
     <Footer />
@@ -164,7 +174,8 @@ const rows = intersectionRows.map((row) => ({
           var sym = String(c.dataset.symbol || '').toLowerCase();
           var name = String(c.dataset.name || '').toLowerCase();
           var initials = String(c.dataset.initials || '').toLowerCase();
-          return sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0;
+          var industry = String(c.dataset.industry || '').toLowerCase();
+          return sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
         });
       }
 
@@ -248,9 +259,13 @@ const rows = intersectionRows.map((row) => ({
   .chip-row{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
   .chip-row:hover{background:#f8fafc}
   .chip-row:last-child{border-bottom:0}
-  .chip-row-main{display:flex;align-items:baseline;gap:.4rem;min-width:120px}
+  .chip-row-main{display:flex;align-items:center;gap:.4rem;min-width:270px;flex-wrap:wrap}
+  .chip-identity{display:flex;align-items:baseline;gap:.4rem}
   .chip-row-name{font-size:.95rem;color:#14243b}
   .chip-row-code{color:#64748b;font-size:.78rem}
+  .chip-industry,.chip-quality{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:nowrap}
+  .chip-quality{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
+  .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
   .chip-row-metrics{display:flex;gap:1rem;flex:1}
   .chip-metric{color:#526176;font-size:.82rem}
   .chip-val{font-style:normal;font-weight:800;color:#9a3412;margin-left:.2rem}
@@ -266,5 +281,5 @@ const rows = intersectionRows.map((row) => ({
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:0}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-row{flex-wrap:wrap;gap:.35rem;padding:.55rem 1rem}.chip-row-main{min-width:100%}.chip-row-metrics{gap:.5rem;flex-wrap:wrap}}
 </style>
