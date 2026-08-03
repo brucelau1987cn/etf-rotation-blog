@@ -1,0 +1,77 @@
+---
+import InsightNavigator from './InsightNavigator.astro';
+import { rollingDailyArticleCatalog, type DailyInsightReport } from '../data/rolling-daily-insights';
+
+const { report } = Astro.props as { report: DailyInsightReport };
+const isLatest = report.tradeDate === '2026-08-03';
+---
+<InsightNavigator articles={rollingDailyArticleCatalog} currentSymbol="ROLLING" currentDate={report.tradeDate} />
+
+<header class="trade-hero daily-trade-hero">
+  <div class="trade-title-row">
+    <div>
+      <div class="eyebrow">滚动罗盘 · 全市场收盘复盘 · {report.shortDate}</div>
+      <h1>{report.title}</h1>
+      <p>{report.subtitle} · 数据截止 {report.cutoff}</p>
+    </div>
+    <div class="market-bias is-bearish">
+      <small>当日信号标的</small>
+      <strong>{report.signals.length}只</strong>
+      <span>{isLatest ? 'A股 + 港股' : '期货 + 美股'}</span>
+    </div>
+  </div>
+</header>
+
+<section class="command-board daily-command-board" aria-label="当日操盘指令">
+  <div class="command-primary">
+    <div class="command-label">今日操作结论</div>
+    <h2>{report.summary}</h2>
+  </div>
+  <div class="command-action is-buy"><small>什么时候买</small><strong>信号价收复后再确认</strong><span>{report.buyRule}</span></div>
+  <div class="command-action is-sell"><small>什么时候卖</small><strong>反抽压力区执行风控</strong><span>{report.sellRule}</span></div>
+</section>
+
+<section class="today-panel daily-signal-overview">
+  <div class="section-heading"><div><small>今日信号表</small><h2>逐标的收盘验证</h2></div><span class="status-tag">{report.tradeDate}</span></div>
+  <div class="daily-signal-table" role="table" aria-label={`${report.tradeDate}滚动信号收盘验证`}>
+    <div class="daily-signal-head" role="row"><span>标的</span><span>信号</span><span>收盘</span><span>验证</span><span>操作结论</span></div>
+    {report.signals.map((item) => (
+      <article class="daily-signal-row" role="row">
+        <div class="daily-stock"><strong>{item.name}</strong><span>{item.symbol} · {item.market}</span></div>
+        <div><strong>{item.nodes}</strong><span>{item.signalPrices}</span></div>
+        <div><strong>{item.close}</strong><span class:list={[item.change.startsWith('+') ? 'positive' : 'negative']}>{item.change}</span></div>
+        <div><span class:list={['validation-pill', `is-${item.validation}`]}>{item.validationLabel}</span></div>
+        <p>{item.verdict}</p>
+      </article>
+    ))}
+  </div>
+</section>
+
+<section class="daily-detail-list" aria-label="逐标的操盘计划">
+  {report.signals.map((item, index) => (
+    <article class="daily-detail-item" id={`signal-${item.symbol.replace(/[^a-zA-Z0-9]/g, '-')}`}>
+      <header>
+        <div><small>{String(index + 1).padStart(2, '0')} · {item.market}</small><h2>{item.name} <span>{item.symbol}</span></h2></div>
+        <span class:list={['validation-pill', `is-${item.validation}`]}>{item.validationLabel}</span>
+      </header>
+      <p class="daily-verdict">{item.verdict}</p>
+      <div class="daily-plan-grid">
+        <div><small>信号节点 / 信号价</small><strong>{item.nodes}</strong><span>{item.signalPrices}</span></div>
+        <div><small>收盘验证</small><strong>{item.close}</strong><span>{item.change}</span></div>
+        <div><small>关键支撑</small><strong>{item.support}</strong></div>
+        <div><small>关键压力</small><strong>{item.pressure}</strong></div>
+      </div>
+      <div class="daily-actions">
+        <div class="is-buy"><small>买入条件</small><p>{item.buyPlan}</p></div>
+        <div class="is-sell"><small>卖出纪律</small><p>{item.sellPlan}</p></div>
+      </div>
+      <ul class="daily-evidence">{item.evidence.map((line) => <li>{line}</li>)}</ul>
+    </article>
+  ))}
+</section>
+
+<section class="final-order" id="conclusion">
+  <small>执行纪律</small>
+  <h2>{report.discipline}</h2>
+  <p>数据来源：{report.sources} 页面用于滚动信号研究、收盘验证与交易纪律展示。</p>
+</section>

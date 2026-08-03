@@ -4,3 +4,24 @@
 
 @media(max-width:980px){.insight-navigator{flex-wrap:wrap}.insight-search{flex-basis:100%}.insight-date-control{flex:1 1 auto}.insight-stock-pager{margin-left:auto}}
 @media(max-width:680px){.insight-navigator{display:grid;grid-template-columns:1fr;gap:.65rem;padding:.75rem}.insight-search{min-width:0}.insight-search label{width:2.2rem}.insight-date-control{width:100%}.insight-date-control .control-label{width:2.2rem}.insight-date-control select{flex:1;width:auto}.insight-stock-pager{width:100%;margin:0;padding-left:2.75rem}.stock-page-button{flex:1}.stock-page-count{margin-left:.2rem}.insight-search input{height:44px}.date-arrow,.insight-date-control select,.stock-page-button{height:44px}}
+
+.daily-trade-hero h1{font-size:clamp(1.65rem,4vw,2.45rem)}
+.daily-command-board .command-primary h2{font-size:1rem;line-height:1.7}
+.daily-signal-table{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.daily-signal-head,.daily-signal-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(145px,1.1fr) minmax(110px,.75fr) minmax(100px,.75fr) minmax(260px,2fr);gap:.8rem;align-items:center;padding:.7rem .85rem}
+.daily-signal-head{background:#f8fafc;color:#64748b;font-size:.7rem;font-weight:850}
+.daily-signal-row{border-top:1px solid #edf1f5;font-size:.78rem}
+.daily-signal-row strong,.daily-signal-row span{display:block}.daily-signal-row span{margin-top:.16rem;color:#64748b;font-size:.7rem}.daily-signal-row p{margin:0;color:#475569;line-height:1.55}
+.daily-stock strong{font-size:.88rem}.daily-stock span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.daily-signal-row .positive{color:#b91c1c}.daily-signal-row .negative{color:#047857}
+.validation-pill{display:inline-flex!important;align-items:center;justify-content:center;width:max-content;margin:0!important;padding:.28rem .55rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569!important;font-size:.7rem!important;font-weight:850;white-space:nowrap}
+.validation-pill.is-confirmed{border-color:#86efac;background:#f0fdf4;color:#15803d!important}.validation-pill.is-reclaimed{border-color:#fca5a5;background:#fef2f2;color:#b91c1c!important}.validation-pill.is-mixed,.validation-pill.is-watch{border-color:#fcd34d;background:#fffbeb;color:#a16207!important}
+.daily-detail-list{display:grid;gap:1rem;margin-bottom:1rem}
+.daily-detail-item{padding:1.1rem 1.2rem;border:1px solid #d7dee8;border-radius:14px;background:#fff}
+.daily-detail-item header{display:flex;align-items:center;justify-content:space-between;gap:1rem}.daily-detail-item header small{color:#64748b;font-size:.68rem;font-weight:850}.daily-detail-item h2{margin:.18rem 0;font-size:1.18rem}.daily-detail-item h2 span{color:#64748b;font-size:.7em}
+.daily-verdict{margin:.55rem 0 .8rem;color:#475569;font-size:.82rem;line-height:1.7}
+.daily-plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem}.daily-plan-grid>div{padding:.65rem .7rem;border:1px solid #e2e8f0;border-radius:9px;background:#fbfcfd}.daily-plan-grid small,.daily-actions small{display:block;color:#64748b;font-size:.66rem;font-weight:850}.daily-plan-grid strong{display:block;margin:.18rem 0;font-size:.83rem}.daily-plan-grid span{color:#64748b;font-size:.7rem}
+.daily-actions{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-top:.55rem}.daily-actions>div{padding:.65rem .75rem;border-radius:9px}.daily-actions .is-buy{border-left:3px solid #dc2626;background:#fff7f7}.daily-actions .is-sell{border-left:3px solid #16a34a;background:#f4fbf6}.daily-actions p{margin:.2rem 0 0;color:#475569;font-size:.76rem;line-height:1.55}
+.daily-evidence{display:flex;flex-wrap:wrap;gap:.35rem 1rem;margin:.7rem 0 0;padding:.65rem .75rem;border-top:1px solid #edf1f5;color:#64748b;font-size:.7rem;list-style-position:inside}
+@media(max-width:980px){.daily-signal-head{display:none}.daily-signal-row{grid-template-columns:1fr 1fr 1fr}.daily-signal-row p{grid-column:1/-1}.daily-plan-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.daily-signal-row{grid-template-columns:1fr 1fr}.daily-signal-row>div:nth-child(4){justify-self:end}.daily-signal-row p{grid-column:1/-1}.daily-plan-grid,.daily-actions{grid-template-columns:1fr}.daily-detail-item{padding:.9rem}.daily-detail-item header{align-items:flex-start}.daily-evidence{display:block}.daily-evidence li+li{margin-top:.25rem}}
