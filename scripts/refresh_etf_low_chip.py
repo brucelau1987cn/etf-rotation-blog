@@ -19,7 +19,7 @@ ROOT = "/root/projects/etf-rotation-blog"
 CN = timezone(timedelta(hours=8))
 IWENCAI = "/root/.hermes/scripts/iwencai-market-query"
 OUT = f"{ROOT}/public/data/etf-low-chip-stocks.json"
-THRESHOLD = 3.0
+THRESHOLD = 2.0
 
 
 def iwencai(query: str, limit: int = 100, page: int = 1) -> dict:
@@ -69,7 +69,7 @@ def tencent_quotes(codes: list[str]) -> dict[str, dict]:
 
 def main() -> None:
     etf_rows = fetch_all("股票ETF 跟踪指数、基金规模、基金份额")
-    idx_rows = fetch_all("指数 收盘获利比例小于3%")
+    idx_rows = fetch_all(f"指数 收盘获利比例小于{THRESHOLD:g}%")
 
     etfs: dict[str, dict] = {}
     for x in etf_rows:

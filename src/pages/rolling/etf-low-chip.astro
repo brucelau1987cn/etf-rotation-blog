@@ -7,7 +7,7 @@ import { SITE_TITLE } from '../../consts';
 import etfData from '../../../public/data/etf-low-chip-stocks.json';
 
 const title = `低筹码ETF｜跟踪指数获利盘筛选 | ${SITE_TITLE}`;
-const description = '跟踪指数收盘获利比例低于3%的股票型ETF筛选结果（指数筹码分布代理口径）。';
+const description = '跟踪指数收盘获利比例低于2%的股票型ETF筛选结果（指数筹码分布代理口径）。';
 const fmt = (value: number | null | undefined, digits = 2) => value == null ? '—' : Number(value).toFixed(digits);
 const fmtYi = (value: number | null | undefined) => value == null ? '—' : `${Number(value).toFixed(2)}亿`;
 const fmtPct = (value: number | null | undefined, digits = 1) => value == null ? '—' : `${Number(value).toFixed(digits)}%`;
@@ -71,7 +71,7 @@ const rows = etfData.etfs.map((row) => ({
         <div>
           <p class="eyebrow">A股滚动 · ETF筹码筛选</p>
           <h1>低筹码ETF</h1>
-          <p>股票型ETF中，跟踪指数收盘获利比例低于3%的标的。ETF本身无独立筹码分布，以跟踪指数的收盘获利比例（iWenCai指数口径）作为获利盘代理。</p>
+          <p>股票型ETF中，跟踪指数收盘获利比例低于2%的标的。ETF本身无独立筹码分布，以跟踪指数的收盘获利比例（iWenCai指数口径）作为获利盘代理。</p>
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd>{etfData.data_as_of}</dd></div>
@@ -83,7 +83,7 @@ const rows = etfData.etfs.map((row) => ({
         <div class="chip-toolbar">
           <div class="chip-toolbar-left">
             <p class="eyebrow">跟踪指数同时满足</p>
-            <h2 id="chip-title">指数收盘获利比例低于3%</h2>
+            <h2 id="chip-title">指数收盘获利比例低于2%</h2>
           </div>
           <div class="chip-toolbar-right">
             <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
@@ -162,7 +162,7 @@ const rows = etfData.etfs.map((row) => ({
 
       <footer class="data-note">
         <strong>数据来源：iWenCai + 腾讯行情</strong>
-        <span>筛选日期：{etfData.data_as_of} · 指标：跟踪指数收盘获利比例（代理口径） · 阈值：低于3% · 范围：股票型ETF</span>
+        <span>筛选日期：{etfData.data_as_of} · 指标：跟踪指数收盘获利比例（代理口径） · 阈值：低于2% · 范围：股票型ETF</span>
         <p>ETF无独立筹码分布字段，本页以 iWenCai 指数的「收盘获利比例」作为获利盘代理：获利比例越低，表示跟踪指数处于套牢盘密集区。覆盖 {etfData.counts.low_profit_indices} 个低获利指数中的 {etfData.counts.matched_indices} 个可映射指数（{etfData.counts.matched_etfs} 只ETF）。价格与涨跌幅来自腾讯行情，指数获利来自 iWenCai。</p>
       </footer>
     </main>
