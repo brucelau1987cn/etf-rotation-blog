@@ -36,20 +36,26 @@ const links = [
   .futures-subnav a{
     display:flex;
     align-items:center;
-    gap:.4rem;
-    padding:.45rem .85rem;
+    justify-content:center;
+    flex:0 0 auto;
+    min-height:36px;
+    padding:.5rem .85rem;
     border-radius:10px;
+    color:rgb(var(--gray-dark));
     font-size:.82rem;
     font-weight:850;
-    color:rgb(var(--gray-dark));
+    line-height:1;
     text-decoration:none;
     white-space:nowrap;
-    border:1px solid transparent;
   }
-  .futures-subnav a:hover{background:var(--warm-2);color:rgb(var(--black))}
-  .futures-subnav a.active{background:rgb(var(--black));color:#fff}
-  @media(max-width:680px){
-    .futures-subnav{min-height:44px}
-    .futures-subnav a{padding:.4rem .7rem;font-size:.78rem}
+  .futures-subnav a:hover{background:#f1f5f9}
+  .futures-subnav a.active{background:#14243b;color:#fff}
+  @media(max-width:620px){
+    .futures-subnav{
+      position:sticky;
+      top:3.55rem;
+      z-index:18;
+      box-shadow:0 8px 20px rgba(15,23,42,.08);
+    }
   }
 </style>

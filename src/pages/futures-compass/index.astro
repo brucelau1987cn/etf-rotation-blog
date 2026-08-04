@@ -90,8 +90,8 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
   </head>
   <body>
     <Header />
-    <FuturesSubnav active="home" />
     <main>
+      <FuturesSubnav active="home" />
       <section class="terminal" aria-label="期货罗盘决策总览">
         <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>先验价格与持仓方向，再核验结构、关键位、成交活跃度及仓单；缺失数据标记为未知。</p></div><div class="data-stamp"><strong id="data-time">{snapshotTime.slice(0,16)}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
         <div class="briefing-grid" aria-label="期货事件提示">
