@@ -87,12 +87,12 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
         evidence: ['收盘高于信号价6.86%', '主力净流入6.37亿元', 'RSI6 84.06', '量比0.43，追涨需谨慎']
       },
       {
-      {
         name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '1h/10m 买卖点复盘', signalPrices: '成本区 ¥19.46', close: '¥19.02', change: '-2.66%', validation: 'confirmed', validationLabel: '趋势下行确认',
         verdict: '3/11—7/29 共 29 笔 1h/10m 配对交易整体小赚大亏（1h 胜率 25% 盈亏比 0.86；10m 胜率 33% 盈亏比 0.98）。7/29 炸板后信号停止；8/3 收盘 ¥19.02 仍在平均成本 ¥19.46 与 MA10 下方。卖出纪律比买入信号更可靠，当前不追多。',
         support: 'MA20 ¥18.27；长期 ¥15.28', pressure: 'MA10 ¥19.35；平均成本 ¥19.46；确认区 ¥19.95—20.30', buyPlan: '收复 ¥19.46 后观察；放量站稳 ¥19.95—20.30 确认；或回踩 MA20 ¥18.27 缩量止跌小仓试错。', sellPlan: '反弹 ¥19.35—19.46 分批减仓；跌破 ¥18.27 退出修复仓；失守 ¥15.28 长期离场。',
         evidence: ['1h 8 笔配对胜率 25% / 盈亏比 0.86', '10m 21 笔配对胜率 33% / 盈亏比 0.98', '7/29 卖出后信号停止', '收益按日收盘近似，未含滑点']
       },
+      {
         name: '中国宏桥', symbol: '01378', market: '港股', direction: 'SELL', nodes: '10m / 15m / 30m / 60m', signalPrices: 'HK$23.16 / 23.38 / 23.10 / 22.86', close: 'HK$22.96', change: '-6.44%', validation: 'confirmed', validationLabel: '空方簇确认',
         verdict: '四个空方节点连续点亮，收盘低于平均信号价0.71%，成交量较前一交易日放大约63%。价格贴近MA20，短线进入支撑测试。',
         support: 'HK$22.66当日低点；MA20 HK$22.63', pressure: 'HK$23.10—23.38信号密集区；MA5 HK$23.67', buyPlan: '守住HK$22.63并收复HK$23.38后观察，站稳MA5再确认。', sellPlan: '反弹信号密集区减仓；跌破HK$22.63继续防守。',
