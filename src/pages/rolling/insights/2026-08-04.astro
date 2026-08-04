@@ -254,6 +254,10 @@ const levels = [
               <div><strong>追多降级</strong><span>价格位于平均成本下方时，买入信号降为观察；收复成本且放量才恢复执行</span></div>
               <div><strong>卖出优先</strong><span>趋势下行期，卖出信号无条件执行；冲高（距 MA5 ≥10%）即兑现</span></div>
               <div><strong>同价簇合并</strong><span>相邻同周期同方向、价格差 ≤1%，首次用于执行，后续只累计确认</span></div>
+              <div><strong>时间过滤</strong><span>3月/5月主跌段全部信号 0% 胜率（合计 -42.3%），空仓；只在 6—7 月交易</span></div>
+              <div><strong>位置过滤</strong><span>买入价距 5 日低点 &gt;8% 的追高信号 14 笔合计 -35%，禁止追高；只做距 5 日低 &lt;8% 的低吸位</span></div>
+              <div><strong>持仓纪律</strong><span>持仓 ≤2 天的信号 15 笔合计 -40%（触发即被反扫），买入后至少持有 3 天</span></div>
+              <div><strong>组合回测</strong><span>6/7月 + 持仓≥3天 → 7 笔 +7.9%、胜率 57%；对比全部 29 笔 -49.9%</span></div>
             </div>
           </section>
         </article>

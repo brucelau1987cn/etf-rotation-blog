@@ -51,7 +51,7 @@ def test_low_chip_page_publishes_week_month_quarter_results():
         },
     }
     assert all("financials" in data["enrichments"][code] for code in data["intersection"])
-    assert data["shareholder_metrics"]["fields"] == ["股东人数", "人均流通股", "较上期变化", "90%筹码集中度", "十大流通股东持股占比"]
+    assert data["shareholder_metrics"]["fields"] == ["总户数", "总户数较上期变动", "总户数较上期增长率", "公告日期", "户均持股数量", "集中度90", "前十大流通股东持股比例合计"]
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
     assert data["enrichments"]["002992.SZ"]["institutional_shareholder"] is True
     assert "香港中央结算有限公司" in data["enrichments"]["002992.SZ"]["institutional_shareholder_names"]
