@@ -7,7 +7,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <BaseHead title="金十数据｜宏观日历与重要事件 | ETF罗盘" description="按日期查看全球宏观数据、央行决议、重要事件及公布值与预期差。" />
+  <BaseHead title="宏观数据｜宏观日历与重要事件 | ETF罗盘" description="按日期查看全球宏观数据、央行决议、重要事件及公布值与预期差。" />
   <style is:global>
     main{width:var(--shell-width);padding:1rem 0 3rem}
     .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:1.15rem}
@@ -70,19 +70,19 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     <FuturesSubnav active="jin10" />
     <div class="page-head">
       <div>
-        <small>Jin10 data · 金十数据</small>
-        <h1>金十数据</h1>
+        <small>Macro calendar · 宏观数据</small>
+        <h1>宏观数据</h1>
         <p>按北京时间查看全球宏观数据、央行决议和重要事件。优先关注三星以上项目及公布值—预期值的偏离。</p>
       </div>
     </div>
-    <section aria-label="金十数据查询">
+    <section aria-label="宏观数据查询">
       <div class="calendar-controls">
         <div class="date-field"><label for="calendar-date">查询日期</label><input id="calendar-date" type="date" /></div>
         <div class="calendar-actions"><button id="calendar-prev" type="button">前一天</button><button id="calendar-today" type="button">今天</button><button id="calendar-refresh" class="primary" type="button">刷新</button></div>
       </div>
       <div class="calendar-tabs" aria-label="日历分类"><button class="active" data-calendar-filter="important" type="button">重要总览</button><button data-calendar-filter="important-data" type="button">重要数据</button><button data-calendar-filter="important-event" type="button">重要事件</button><button data-calendar-filter="all" type="button">全部</button></div>
       <div class="summary" aria-label="日历统计"><div class="summary-card"><span>全部</span><strong id="calendar-count">—</strong></div><div class="summary-card"><span>宏观数据</span><strong id="calendar-data-count">—</strong></div><div class="summary-card"><span>事件总数</span><strong id="calendar-event-count">—</strong></div><div class="summary-card"><span>三星以上</span><strong id="calendar-important-count">—</strong></div></div>
-      <div class="calendar-status" id="calendar-status" role="status" aria-live="polite">正在加载金十数据…</div>
+      <div class="calendar-status" id="calendar-status" role="status" aria-live="polite">正在加载宏观数据…</div>
       <div class="calendar-list" id="calendar-list"></div>
       <p class="source-note">来源：金十财经日历，经本站 Cloudflare Pages Function 只读代理与短时缓存。数据版权归原始提供方所有；<a href="https://rili.jin10.com/" target="_blank" rel="noopener noreferrer">查看金十原始日历</a>。</p>
     </section>
