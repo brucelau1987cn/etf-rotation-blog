@@ -20,9 +20,12 @@ def test_primary_navigation_uses_rolling_compass_name():
     header = HEADER.read_text(encoding="utf-8")
     footer = FOOTER.read_text(encoding="utf-8")
     subnav = SUBNAV.read_text(encoding="utf-8")
-    for source in (header, footer, subnav):
+    for source in (header, subnav):
         assert "滚动罗盘" in source
         assert "滚动轮盘" not in source
+    assert "Veilx CDN" in footer
+    assert "footer-links" not in footer
+    assert "滚动轮盘" not in footer
 
 
 def test_rolling_subnav_order_is_a_futures_hk_us():
