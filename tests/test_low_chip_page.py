@@ -23,16 +23,17 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert "收盘获利比例低于3%" in page
     assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
-    assert data["data_as_of"] == "2026-08-03"
+    assert data["data_as_of"] == "2026-08-04"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 233
-    assert len(data["periods"]["month"]) == 286
-    assert len(data["periods"]["quarter"]) == 79
-    assert len(data["intersection_before_filters"]) == 6
-    assert len(data["intersection"]) == 5
+    assert len(data["periods"]["week"]) == 2
+    assert len(data["periods"]["month"]) == 94
+    assert len(data["periods"]["quarter"]) == 129
+    assert len(data["intersection_before_filters"]) == 1
+    assert len(data["intersection"]) == 1
+    assert data["intersection"] == ["600605.SH"]
     assert all(not code.endswith(".BJ") for code in data["intersection"])
-    assert data["filters"]["excluded_bj"] == ["920258.BJ"]
+    assert data["filters"]["excluded_bj"] == []
     assert data["filters"]["excluded_unlock_risk"] == []
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"] == {
@@ -53,17 +54,16 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert all("financials" in data["enrichments"][code] for code in data["intersection"])
     assert data["shareholder_metrics"]["fields"] == ["总户数", "总户数较上期变动", "总户数较上期增长率", "公告日期", "户均持股数量", "集中度90", "前十大流通股东持股比例合计"]
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
-    assert data["enrichments"]["002992.SZ"]["institutional_shareholder"] is True
-    assert "香港中央结算有限公司" in data["enrichments"]["002992.SZ"]["institutional_shareholder_names"]
-    assert data["enrichments"]["002993.SZ"]["quality_shareholder"] is True
-    assert any("社保基金" in n for n in data["enrichments"]["002993.SZ"]["quality_shareholder_names"])
-    assert data["enrichments"]["603407.SH"]["institutional_shareholder"] is False
+    assert data["enrichments"]["600605.SH"]["quality_shareholder"] is True
+    assert any("社保基金" in n for n in data["enrichments"]["600605.SH"]["quality_shareholder_names"])
+    assert data["enrichments"]["600605.SH"]["institutional_shareholder"] is True
+    assert any("私募" in n or "基金" in n for n in data["enrichments"]["600605.SH"]["institutional_shareholder_names"])
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
     quarterly_codes = {item["symbol"] for item in data["periods"]["quarter"]}
     assert set(data["intersection_before_filters"]) == weekly_codes & monthly_codes & quarterly_codes
-    assert set(data["intersection"]) < set(data["intersection_before_filters"])
+    assert set(data["intersection"]) <= set(data["intersection_before_filters"])
     assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
 
 
@@ -72,7 +72,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     data = DATA.read_text(encoding="utf-8")
     for marker in (
         "数据来源：iWenCai",
-        "筛选日期：2026-08-03",
+        "筛选日期：2026-08-04",
         "三个周期同时满足",
         'class="chip-row"',
         'class="chip-toolbar-right"',
@@ -113,8 +113,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
     assert 'hidden={index >= PAGE_SIZE}' in page
-    for stock_name in ("宝明科技", "长裕集团", "清溢光电"):
+    for stock_name in ("汇通能源",):
         assert stock_name in data
-    assert "920258.BJ" not in json.loads(data)["intersection"]
+    assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()
     assert "innerHTML" not in page
