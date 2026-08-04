@@ -1,0 +1,260 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import RollingSubnav from '../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../consts';
+import indexData from '../../../public/data/index-low-chip.json';
+
+const title = `低筹码指数｜收盘获利筛选 | ${SITE_TITLE}`;
+const description = '指数收盘获利比例低于2%的筛选结果。';
+const fmt = (value: number | null | undefined, digits = 2) => value == null ? '—' : Number(value).toFixed(digits);
+const fmtPct = (value: number | null | undefined, digits = 1) => value == null ? '—' : `${Number(value).toFixed(digits)}%`;
+
+const CHAR_INITIAL: Record<string, string> = {
+  近: 'j', 期: 'q', 新: 'x', 高: 'g', 昨: 'z', 日: 'r', 换: 'h', 手: 's', 前: 'q', 十: 's',
+  百: 'b', 上: 's', 市: 's', 首: 's', 五: 'w',
+};
+const nameInitials = (name: string) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  return Array.from(raw).map((ch) => /[A-Za-z0-9]/.test(ch) ? ch.toLowerCase() : CHAR_INITIAL[ch] || '').join('');
+};
+
+const PAGE_SIZE = 8;
+const rows = indexData.indices.map((row) => ({
+  ...row,
+  nameInitials: nameInitials(row.name),
+}));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="low-chip-main site-shell">
+      <RollingSubnav active="index-low-chip" />
+
+      <header class="low-chip-hero">
+        <div>
+          <p class="eyebrow">滚动罗盘 · 指数筹码筛选</p>
+          <h1>低筹码指数</h1>
+          <p>筛选条件：指数收盘获利比例低于2%。iWenCai 无商品期货收盘获利字段，本页仅覆盖指数口径，不映射 ETF 或期货合约。</p>
+        </div>
+        <dl>
+          <div><dt>筛选日期</dt><dd>{indexData.data_as_of}</dd></div>
+          <div><dt>过滤后标的</dt><dd>{rows.length}只</dd></div>
+        </dl>
+      </header>
+
+      <section class="chip-section" aria-labelledby="chip-title">
+        <div class="chip-toolbar">
+          <div class="chip-toolbar-left">
+            <p class="eyebrow">指数同时满足</p>
+            <h2 id="chip-title">收盘获利比例低于2%</h2>
+          </div>
+          <div class="chip-toolbar-right">
+            <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
+              <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
+              <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
+              <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
+              <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
+            </div>
+            <label class="chip-search-wrap">
+              <span class="chip-search-label">检索</span>
+              <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" />
+            </label>
+          </div>
+        </div>
+
+        <div class="chip-financial-filters" id="chip-financial-filters" aria-label="条件说明">
+          <span class="chip-filter-meta" id="chip-filter-meta">阈值：低于2% · 数据源 iWenCai 指数</span>
+        </div>
+
+        <div class="chip-list" id="chip-list">
+          {rows.map((row, index) => (
+            <div
+              class="chip-row"
+              data-symbol={row.code}
+              data-name={row.name}
+              data-initials={row.nameInitials}
+              data-board-index={index}
+              hidden={index >= PAGE_SIZE}
+            >
+              <div class="chip-row-top">
+                <div class="chip-row-main">
+                  <div class="chip-identity">
+                    <strong class="chip-row-name">{row.name}</strong>
+                    <span class="chip-row-code">{row.code}</span>
+                  </div>
+                  <span class="chip-industry" title={`收盘获利比例 ${fmtPct(row.profit)}`}>收盘获利 <em class="chip-idx-profit">{fmtPct(row.profit)}</em></span>
+                </div>
+                <div class="chip-row-metrics" aria-label="收盘获利比例">
+                  <span class="chip-metric"><em class="chip-val">{fmtPct(row.profit)}</em><small>收盘获利</small></span>
+                  <span class="chip-metric"><em class="chip-val">{fmt(row.price)}</em><small>最新价</small></span>
+                  <span class="chip-metric"><em class="chip-val">{row.change_percent == null ? '—' : `${row.change_percent >= 0 ? '+' : ''}${fmt(row.change_percent)}%`}</em><small>涨跌幅</small></span>
+                </div>
+                <div class="chip-row-footer">
+                  <span class="chip-price">{fmt(row.price)}</span>
+                  <span class:list={['chip-change', (row.change_percent ?? 0) >= 0 ? 'chip-up' : 'chip-down']}>
+                    {(row.change_percent ?? 0) >= 0 ? '+' : ''}{fmt(row.change_percent)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div class="chip-row chip-row-empty" id="chip-search-empty" hidden>
+            <strong>没有匹配标的</strong>
+            <span>换个代码、名称或首字母试试</span>
+          </div>
+        </div>
+      </section>
+
+      <footer class="data-note">
+        <strong>数据来源：iWenCai</strong>
+        <span>筛选日期：{indexData.data_as_of} · 指标：收盘获利比例 · 阈值：低于2% · 范围：指数</span>
+        <p>{indexData.notes} 当前共 {indexData.counts.indices} 只指数满足条件。收盘获利比例越低，表示指数处于套牢盘更密集区域。</p>
+      </footer>
+    </main>
+    <Footer />
+
+    <script is:inline>
+    (function() {
+      var list = document.getElementById('chip-list');
+      var pager = document.getElementById('chip-pager');
+      var nums = document.getElementById('chip-page-nums');
+      var meta = document.getElementById('chip-page-meta');
+      var prevBtn = document.getElementById('chip-page-prev');
+      var nextBtn = document.getElementById('chip-page-next');
+      var searchInput = document.getElementById('chip-search-input');
+      var empty = document.getElementById('chip-search-empty');
+      if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
+
+      var PAGE_SIZE = Math.max(1, Number(pager.dataset.pageSize || 8));
+      var rows = Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
+      if (!rows.length) return;
+
+      var page = 1;
+      var query = '';
+
+      function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
+
+      function filtered() {
+        return rows.filter(function(c) {
+          if (!query) return true;
+          var sym = String(c.dataset.symbol || '').toLowerCase();
+          var name = String(c.dataset.name || '').toLowerCase();
+          var initials = String(c.dataset.initials || '').toLowerCase();
+          return sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0;
+        });
+      }
+
+      function render() {
+        var matched = filtered();
+        var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
+        if (page > totalPages) page = totalPages;
+        if (page < 1) page = 1;
+        var start = (page - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+        var visible = matched.slice(start, end);
+
+        rows.forEach(function(c) { c.hidden = true; });
+        visible.forEach(function(c) { c.hidden = false; });
+        if (empty) empty.hidden = matched.length > 0;
+
+        var showPager = matched.length > PAGE_SIZE;
+        pager.hidden = !showPager;
+        meta.textContent = matched.length ? ('第 ' + page + '/' + totalPages + ' 页 · ' + matched.length + ' 只') : '无匹配';
+
+        nums.replaceChildren();
+        if (showPager) {
+          for (var i = 1; i <= totalPages; i++) {
+            (function(p) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
+              btn.textContent = String(i);
+              btn.setAttribute('aria-label', '第 ' + i + ' 页');
+              if (i === page) btn.setAttribute('aria-current', 'page');
+              btn.addEventListener('click', function() { page = p; render(); });
+              nums.appendChild(btn);
+            })(i);
+          }
+        }
+        prevBtn.disabled = page <= 1 || matched.length === 0;
+        nextBtn.disabled = page >= totalPages || matched.length === 0;
+      }
+
+      prevBtn.addEventListener('click', function() { if (page > 1) { page--; render(); } });
+      nextBtn.addEventListener('click', function() { page++; render(); });
+      if (searchInput) {
+        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; render(); });
+      }
+      render();
+    })();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .low-chip-main{padding-bottom:3rem;color:#14243b}
+  .low-chip-hero,.chip-section,.data-note{border:1px solid #dbe3ec;border-radius:14px;background:#fff}
+  .low-chip-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.25rem;padding:1.35rem}
+  .eyebrow{margin:0 0 .35rem;color:#64748b;font-size:.75rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+  h1,h2,p{margin-top:0}.low-chip-hero h1{margin-bottom:.45rem;font-size:2rem}.low-chip-hero p:last-child{max-width:720px;margin-bottom:0;color:#526176;line-height:1.7}
+  .low-chip-hero dl{display:grid;grid-template-columns:repeat(2,minmax(82px,1fr));gap:.5rem;margin:0}
+  .low-chip-hero dl div{padding:.65rem .8rem;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}
+  dt{color:#64748b;font-size:.72rem;font-weight:800}dd{margin:.2rem 0 0;font-size:1rem;font-weight:900}
+
+  .chip-section{margin-top:1rem;overflow:hidden}
+  .chip-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
+  .chip-toolbar h2{margin:0;font-size:1.15rem}
+  .chip-toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap}
+  .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
+  .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
+  .chip-search-input{width:200px;height:2.1rem;padding:0 .9rem;border:1px solid #dbe3ec;border-radius:999px;font-size:.82rem;font-weight:650;outline:0;transition:border-color .15s}
+  .chip-search-input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+
+  .chip-pager{display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+  .chip-page-btn,.chip-page-num{min-width:2rem;height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#334155;font-size:.74rem;font-weight:750;cursor:pointer;transition:all .12s}
+  .chip-page-btn:hover:not(:disabled),.chip-page-num:hover:not(.is-active){background:#f0f2f5;border-color:#b0bec5}
+  .chip-page-btn:disabled{opacity:.4;cursor:default}
+  .chip-page-nums{display:inline-flex;align-items:center;gap:.25rem}
+  .chip-page-num{display:inline-flex;align-items:center;justify-content:center;padding:0 .35rem}
+  .chip-page-num.is-active{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}
+  .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
+  .chip-pager[hidden],.chip-row[hidden]{display:none!important}
+  .chip-financial-filters{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.65rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+  .chip-filter-meta{color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
+
+  .chip-list{display:flex;flex-direction:column}
+  .chip-row{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
+  .chip-row:hover{background:#f8fafc}
+  .chip-row:last-child{border-bottom:0}
+  .chip-row-top{display:grid;grid-template-columns:minmax(230px,1.3fr) minmax(170px,auto) auto;align-items:center;gap:.9rem;width:100%}
+  .chip-row-main{display:flex;align-items:center;gap:.45rem;min-width:0;flex-wrap:wrap}
+  .chip-identity{display:flex;align-items:baseline;gap:.4rem}
+  .chip-row-name{font-size:.95rem;color:#14243b}
+  .chip-row-code{color:#64748b;font-size:.78rem}
+  .chip-industry{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:nowrap}
+  .chip-idx-profit{font-style:normal;color:#9a3412;font-weight:850}
+  .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
+  .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:70px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
+  .chip-metric:first-child{border-left:0}
+  .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
+  .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
+  .chip-row-footer{display:flex;align-items:center;gap:.75rem;margin-left:auto}
+  .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
+  .chip-change{font-size:.8rem;font-weight:800;min-width:56px;padding:.22rem .5rem;border-radius:999px;text-align:center;background:#f1f5f9}
+  .chip-up{color:#b91c1c;background:#fdecec}.chip-down{color:#047857;background:#e7f5f0}
+  .chip-row.chip-row-empty{justify-content:center;padding:1.5rem;border-bottom:0;color:#64748b}
+  .chip-row.chip-row-empty strong{display:block;margin-bottom:.2rem;color:#14243b}
+
+  .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
+  .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
+
+  @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
+  @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-row-footer{margin-left:0}}
+</style>
