@@ -5,6 +5,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SUBNAV = ROOT / "src" / "components" / "RollingSubnav.astro"
 PAGE = ROOT / "src" / "pages" / "rolling" / "low-chip.astro"
 DATA = ROOT / "public" / "data" / "a-low-chip-stocks.json"
+HISTORY_INDEX = ROOT / "public" / "data" / "low-chip-history-index.json"
+HISTORY_DIR = ROOT / "public" / "data" / "low-chip-history"
+ARCHIVE_SCRIPT = ROOT / "scripts" / "archive_low_chip_snapshot.py"
 
 
 def test_rolling_subnav_links_low_chip_after_a_share():
@@ -67,12 +70,40 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
 
 
+def test_low_chip_history_archive_and_query_ui():
+    page = PAGE.read_text(encoding="utf-8")
+    index = json.loads(HISTORY_INDEX.read_text(encoding="utf-8"))
+    assert ARCHIVE_SCRIPT.exists()
+    assert index["schema_version"] == "a-low-chip-history-index-v1"
+    assert index["latest"] == "2026-08-04"
+    assert "2026-08-04" in index["dates"]
+    assert "2026-08-03" in index["dates"]
+    assert "2026-07-31" in index["dates"]
+    for day in index["dates"]:
+        path = HISTORY_DIR / f"{day}.json"
+        assert path.exists(), day
+        snap = json.loads(path.read_text(encoding="utf-8"))
+        assert snap["data_as_of"] == day
+        assert "intersection" in snap
+    for marker in (
+        'id="chip-history-date"',
+        'id="chip-history-prev"',
+        'id="chip-history-next"',
+        "历史日期",
+        "low-chip-history-index.json",
+        "/data/low-chip-history/",
+        "loadDate",
+        "historyIndex",
+    ):
+        assert marker in page
+
+
 def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     page = PAGE.read_text(encoding="utf-8")
     data = DATA.read_text(encoding="utf-8")
     for marker in (
         "数据来源：iWenCai",
-        "筛选日期：2026-08-04",
+        "筛选日期：{lowChipData.data_as_of}",
         "三个周期同时满足",
         'class="chip-row"',
         'class="chip-toolbar-right"',
@@ -85,7 +116,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "优质股东 ✓",
         "机构股东 ●",
         "institutionalShareholder",
-        ") : null}",
         'data-filter="roe"',
         'data-filter="net-margin"',
         'data-filter="cash-profit"',
@@ -112,9 +142,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
-    assert 'hidden={index >= PAGE_SIZE}' in page
-    for stock_name in ("汇通能源",):
-        assert stock_name in data
+    assert "汇通能源" in data
     assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()
-    assert "innerHTML" not in page

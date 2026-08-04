@@ -5,6 +5,9 @@ import Header from '../../components/Header.astro';
 import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 import lowChipData from '../../../public/data/a-low-chip-stocks.json';
+import lowChipHistoryIndex from '../../../public/data/low-chip-history-index.json';
+const historyDates = lowChipHistoryIndex.dates || [];
+const historyItems = lowChipHistoryIndex.items || [];
 
 const title = `低筹码股｜周月季收盘获利筛选 | ${SITE_TITLE}`;
 const description = 'A股收盘获利比例低于3%的周线、月线、季线筛选结果。';
@@ -82,8 +85,9 @@ const rows = intersectionRows.map((row) => ({
           <p>筛选条件：沪深A股、非ST、非退市，收盘获利比例低于3%；剔除北交所及未来3个月存在限售股解禁的标的。</p>
         </div>
         <dl>
-          <div><dt>筛选日期</dt><dd>{lowChipData.data_as_of}</dd></div>
-          <div><dt>过滤后标的</dt><dd>{rows.length}只</dd></div>
+          <div><dt>筛选日期</dt><dd id="chip-as-of">{lowChipData.data_as_of}</dd></div>
+          <div><dt>过滤后标的</dt><dd id="chip-count">{rows.length}只</dd></div>
+          <div><dt>历史存档</dt><dd>{historyDates.length}天</dd></div>
         </dl>
       </header>
 
@@ -92,6 +96,19 @@ const rows = intersectionRows.map((row) => ({
           <div class="chip-toolbar-left">
             <p class="eyebrow">三个周期同时满足</p>
             <h2 id="chip-title">周线、月线、季线均低于3%</h2>
+            <div class="chip-history" id="chip-history" aria-label="历史日期查询">
+              <label class="chip-history-label" for="chip-history-date">历史日期</label>
+              <button type="button" class="chip-history-btn" id="chip-history-prev" aria-label="更早日期">‹</button>
+              <select id="chip-history-date" class="chip-history-select" aria-label="选择历史筛选日期">
+                {historyItems.map((item, index) => (
+                  <option value={item.date} selected={item.date === lowChipData.data_as_of}>
+                    {item.date}{index === 0 ? ' · 最新' : ''} · {item.intersection_count}只
+                  </option>
+                ))}
+              </select>
+              <button type="button" class="chip-history-btn" id="chip-history-next" aria-label="更新日期">›</button>
+              <span class="chip-history-status" id="chip-history-status">最新快照</span>
+            </div>
           </div>
           <div class="chip-toolbar-right">
             <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
@@ -179,13 +196,13 @@ const rows = intersectionRows.map((row) => ({
 
       <footer class="data-note">
         <strong>数据来源：iWenCai</strong>
-        <span>筛选日期：2026-08-04 · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
+        <span id="chip-data-note">筛选日期：{lowChipData.data_as_of} · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
         <p>已剔除北交所与未来3个月存在限售股解禁的标的。股东分级：优质股东为社保、养老、国家大基金、国新及主权资金等长期资本；机构股东覆盖公募、保险、阳光私募、QFII/外资、香港中央结算及产业资本。标记属于股东结构观察项。</p>
       </footer>
     </main>
     <Footer />
 
-    <script is:inline>
+    <script is:inline define:vars={{ initialData: lowChipData, historyIndex: lowChipHistoryIndex, pageSize: PAGE_SIZE }}>
     (function() {
       var list = document.getElementById('chip-list');
       var pager = document.getElementById('chip-pager');
@@ -198,21 +215,162 @@ const rows = intersectionRows.map((row) => ({
       var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
       var filterReset = document.getElementById('chip-filter-reset');
       var filterMeta = document.getElementById('chip-filter-meta');
-      var shrToggles = Array.from(list.querySelectorAll('.chip-shr-toggle'));
+      var dateSelect = document.getElementById('chip-history-date');
+      var historyPrev = document.getElementById('chip-history-prev');
+      var historyNext = document.getElementById('chip-history-next');
+      var historyStatus = document.getElementById('chip-history-status');
+      var asOfEl = document.getElementById('chip-as-of');
+      var countEl = document.getElementById('chip-count');
+      var dataNote = document.getElementById('chip-data-note');
       if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
 
-      var PAGE_SIZE = Math.max(1, Number(pager.dataset.pageSize || 6));
-      var rows = Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
-      if (!rows.length) return;
-
+      var PAGE_SIZE = Math.max(1, Number(pageSize || pager.dataset.pageSize || 6));
       var page = 1;
       var query = '';
       var activeFilters = new Set();
+      var currentDate = String((initialData && initialData.data_as_of) || '');
+      var dates = (historyIndex && historyIndex.dates) || [];
+      var cache = {};
+      if (initialData && initialData.data_as_of) cache[initialData.data_as_of] = initialData;
+      var loading = false;
+
+      var CHAR_INITIAL = {
+        上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
+        三:'s',安:'a',光:'g',深:'s',科:'k',技:'j',德:'d',福:'f',
+        民:'m',爆:'b',信:'x',息:'x',东:'d',方:'f',明:'m',珠:'z',
+        长:'c',鑫:'x',国:'g',术:'s',澜:'l',起:'q',华:'h',天:'t',
+        中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',汇:'h',通:'t',
+        能:'n',源:'y',集:'j',团:'t',金:'j',股:'g',份:'f'
+      };
 
       function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
+      function nameInitials(name) {
+        return Array.from(String(name || '').trim()).map(function(ch) {
+          return /[A-Za-z0-9]/.test(ch) ? ch.toLowerCase() : (CHAR_INITIAL[ch] || '');
+        }).join('');
+      }
+      function fmt(value, digits) {
+        digits = digits == null ? 2 : digits;
+        var n = Number(value);
+        return Number.isFinite(n) ? n.toFixed(digits) : '—';
+      }
+      function fmtInt(value) {
+        var n = Math.round(Number(value));
+        return Number.isFinite(n) ? n.toLocaleString('zh-CN') : '—';
+      }
+      function fmtMetric(value, digits, suffix) {
+        if (value == null || value === '') return '—';
+        var n = Number(value);
+        if (!Number.isFinite(n)) return '—';
+        return n.toFixed(digits == null ? 1 : digits) + (suffix || '');
+      }
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function buildRows(data) {
+        var periods = data.periods || {};
+        var week = periods.week || [];
+        var month = periods.month || [];
+        var quarter = periods.quarter || [];
+        var weekMap = Object.fromEntries(week.map(function(r) { return [r.symbol, r]; }));
+        var monthMap = Object.fromEntries(month.map(function(r) { return [r.symbol, r]; }));
+        var quarterMap = Object.fromEntries(quarter.map(function(r) { return [r.symbol, r]; }));
+        var enrichments = data.enrichments || {};
+        var intersection = data.intersection || [];
+        return intersection.map(function(symbol) {
+          var base = weekMap[symbol] || monthMap[symbol] || quarterMap[symbol] || { symbol: symbol, name: symbol, price: null, change_percent: 0};
+          var enr = enrichments[symbol] || {};
+          var financials = enr.financials || {};
+          var shareholderMetrics = enr.shareholder_metrics || {};
+          return {
+            symbol: symbol,
+            name: base.name || symbol,
+            price: base.price,
+            change_percent: base.change_percent,
+            week: weekMap[symbol] ? weekMap[symbol].value : null,
+            month: monthMap[symbol] ? monthMap[symbol].value : null,
+            quarter: quarterMap[symbol] ? quarterMap[symbol].value : null,
+            industry: enr.industry || '待补充',
+            sector: enr.sector || '待补充',
+            qualityShareholder: !!enr.quality_shareholder,
+            qualityShareholderNames: enr.quality_shareholder_names || [],
+            institutionalShareholder: !!enr.institutional_shareholder,
+            institutionalShareholderNames: enr.institutional_shareholder_names || [],
+            financials: financials,
+            shareholderMetrics: shareholderMetrics,
+            nameInitials: nameInitials(base.name || symbol)
+          };
+        });
+      }
+
+      function rowHtml(row, index) {
+        var change = Number(row.change_percent);
+        var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
+        var changeText = (change >= 0 ? '+' : '') + fmt(change) + '%';
+        var badge = '';
+        if (row.qualityShareholder) {
+          badge = '<span class="chip-quality" title="优质股东：' + esc((row.qualityShareholderNames || []).join('、')) + '">优质股东 ✓</span>';
+        } else if (row.institutionalShareholder) {
+          badge = '<span class="chip-institutional" title="机构股东：' + esc((row.institutionalShareholderNames || []).join('、')) + '">机构股东 ●</span>';
+        }
+        var sm = row.shareholderMetrics || {};
+        var changePct = sm.shareholder_change_pct;
+        var changeClass = Number(changePct) <= 0 ? 'is-concentrating' : 'is-dispersing';
+        return (
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+            '<div class="chip-row-top">' +
+              '<div class="chip-row-main">' +
+                '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong><span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
+                '<span class="chip-industry" title="' + esc(row.industry) + '">' + esc(row.sector) + '</span>' +
+                badge +
+              '</div>' +
+              '<div class="chip-row-metrics" aria-label="三周期收盘获利比例">' +
+                '<span class="chip-metric"><em class="chip-val">' + fmt(row.week, 1) + '%</em><small>周线</small></span>' +
+                '<span class="chip-metric"><em class="chip-val">' + fmt(row.month, 1) + '%</em><small>月线</small></span>' +
+                '<span class="chip-metric"><em class="chip-val">' + fmt(row.quarter, 1) + '%</em><small>季线</small></span>' +
+              '</div>' +
+              '<div class="chip-row-footer">' +
+                '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
+                '<span class="chip-change ' + changeCls + '">' + changeText + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="chip-row-shareholders" aria-label="' + esc(row.name) + '股东与筹码指标">' +
+              '<button type="button" class="chip-shr-toggle" aria-expanded="false"><span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i></button>' +
+              '<div class="chip-shr-head" aria-hidden="true"><span>股东人数</span><span>人均流通股</span><span>较上期变化</span><span>90%筹码集中度</span><span>十大流通股东</span></div>' +
+              '<div class="chip-shr-body">' +
+                '<span><strong>' + fmtInt(sm.shareholder_count) + '</strong></span>' +
+                '<span><strong>' + fmtInt(sm.average_holding) + '</strong></span>' +
+                '<span><strong class="' + changeClass + '">' + fmtMetric(changePct, 2, '%') + '</strong></span>' +
+                '<span><strong>' + fmtMetric(sm.concentration90, 1, '%') + '</strong></span>' +
+                '<span><strong>' + fmtMetric(sm.top10_float_ratio, 1, '%') + '</strong></span>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      function bindShareholderToggles() {
+        Array.from(list.querySelectorAll('.chip-shr-toggle')).forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var row = btn.closest('.chip-row');
+            if (!row) return;
+            var open = row.classList.toggle('is-shr-open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          });
+        });
+      }
+
+      function rowsEls() {
+        return Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
+      }
 
       function filtered() {
-        return rows.filter(function(c) {
+        return rowsEls().filter(function(c) {
           var sym = String(c.dataset.symbol || '').toLowerCase();
           var name = String(c.dataset.name || '').toLowerCase();
           var initials = String(c.dataset.initials || '').toLowerCase();
@@ -228,7 +386,7 @@ const rows = intersectionRows.map((row) => ({
         });
       }
 
-      function render() {
+      function renderPager() {
         var matched = filtered();
         var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
         if (page > totalPages) page = totalPages;
@@ -236,16 +394,13 @@ const rows = intersectionRows.map((row) => ({
         var start = (page - 1) * PAGE_SIZE;
         var end = start + PAGE_SIZE;
         var visible = matched.slice(start, end);
-
-        rows.forEach(function(c) { c.hidden = true; });
+        rowsEls().forEach(function(c) { c.hidden = true; });
         visible.forEach(function(c) { c.hidden = false; });
         if (empty) empty.hidden = matched.length > 0;
-
         var showPager = matched.length > PAGE_SIZE;
         pager.hidden = !showPager;
-        meta.textContent = matched.length ? '\u7B2C ' + page + '/' + totalPages + ' \u9875 \u00B7 ' + matched.length + ' \u53EA' : '\u65E0\u5339\u914D';
-        if (filterMeta) filterMeta.textContent = activeFilters.size ? '\u5DF2\u542F\u7528 ' + activeFilters.size + ' \u9879 \u00B7 ' + matched.length + ' \u53EA' : '\u672A\u542F\u7528\u8D22\u52A1\u7B5B\u9009';
-
+        meta.textContent = matched.length ? ('第 ' + page + '/' + totalPages + ' 页 · ' + matched.length + ' 只') : '无匹配';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? ('已启用 ' + activeFilters.size + ' 项 · ' + matched.length + ' 只') : '未启用财务筛选';
         nums.replaceChildren();
         if (showPager) {
           for (var i = 1; i <= totalPages; i++) {
@@ -254,9 +409,9 @@ const rows = intersectionRows.map((row) => ({
               btn.type = 'button';
               btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
               btn.textContent = String(i);
-              btn.setAttribute('aria-label', '\u7B2C ' + i + ' \u9875');
+              btn.setAttribute('aria-label', '第 ' + i + ' 页');
               if (i === page) btn.setAttribute('aria-current', 'page');
-              btn.addEventListener('click', function() { page = p; render(); });
+              btn.addEventListener('click', function() { page = p; renderPager(); });
               nums.appendChild(btn);
             })(i);
           }
@@ -265,10 +420,74 @@ const rows = intersectionRows.map((row) => ({
         nextBtn.disabled = page >= totalPages || matched.length === 0;
       }
 
-      prevBtn.addEventListener('click', function() { if (page > 1) { page--; render(); } });
-      nextBtn.addEventListener('click', function() { page++; render(); });
+      function setStatus(text, isError) {
+        if (!historyStatus) return;
+        historyStatus.textContent = text;
+        historyStatus.classList.toggle('is-error', !!isError);
+      }
+
+      function updateMeta(data) {
+        var day = data.data_as_of || currentDate;
+        var count = (data.intersection || []).length;
+        if (asOfEl) asOfEl.textContent = day;
+        if (countEl) countEl.textContent = count + '只';
+        if (dataNote) dataNote.textContent = '筛选日期：' + day + ' · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股';
+        if (dateSelect) dateSelect.value = day;
+        var latest = dates[0] || day;
+        setStatus(day === latest ? '最新快照' : ('历史 · ' + day), false);
+        var idx = dates.indexOf(day);
+        if (historyPrev) historyPrev.disabled = idx < 0 || idx >= dates.length - 1 || loading;
+        if (historyNext) historyNext.disabled = idx <= 0 || loading;
+        if (dateSelect) dateSelect.disabled = loading;
+      }
+
+      function paint(data) {
+        currentDate = data.data_as_of || currentDate;
+        var rows = buildRows(data);
+        var html = rows.map(rowHtml).join('') +
+          '<div class="chip-row chip-row-empty" id="chip-search-empty" hidden><strong>没有匹配标的</strong><span>换个代码、名称或首字母试试</span></div>';
+        list.innerHTML = html;
+        empty = document.getElementById('chip-search-empty');
+        bindShareholderToggles();
+        page = 1;
+        updateMeta(data);
+        renderPager();
+      }
+
+      function loadDate(day) {
+        if (!day || day === currentDate || loading) return;
+        if (cache[day]) {
+          paint(cache[day]);
+          return;
+        }
+        loading = true;
+        setStatus('加载中…', false);
+        if (dateSelect) dateSelect.disabled = true;
+        if (historyPrev) historyPrev.disabled = true;
+        if (historyNext) historyNext.disabled = true;
+        fetch('/data/low-chip-history/' + day + '.json?bust=' + Date.now(), { cache: 'no-store' })
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(data) {
+            cache[day] = data;
+            loading = false;
+            paint(data);
+          })
+          .catch(function(err) {
+            loading = false;
+            setStatus('加载失败', true);
+            if (dateSelect) { dateSelect.disabled = false; dateSelect.value = currentDate; }
+            updateMeta(cache[currentDate] || { data_as_of: currentDate, intersection: [] });
+            console.error(err);
+          });
+      }
+
+      prevBtn.addEventListener('click', function() { if (page > 1) { page--; renderPager(); } });
+      nextBtn.addEventListener('click', function() { page++; renderPager(); });
       if (searchInput) {
-        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; render(); });
+        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; renderPager(); });
       }
       filterButtons.forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -278,24 +497,41 @@ const rows = intersectionRows.map((row) => ({
           btn.classList.toggle('is-active', activeFilters.has(key));
           btn.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
           page = 1;
-          render();
+          renderPager();
         });
       });
       if (filterReset) filterReset.addEventListener('click', function() {
         activeFilters.clear();
         filterButtons.forEach(function(btn) { btn.classList.remove('is-active'); btn.setAttribute('aria-pressed', 'false'); });
         page = 1;
-        render();
+        renderPager();
       });
-      shrToggles.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var row = btn.closest('.chip-row');
-          if (!row) return;
-          var open = row.classList.toggle('is-shr-open');
-          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
+      if (dateSelect) dateSelect.addEventListener('change', function() { loadDate(dateSelect.value); });
+      if (historyPrev) historyPrev.addEventListener('click', function() {
+        var idx = dates.indexOf(currentDate);
+        if (idx >= 0 && idx < dates.length - 1) loadDate(dates[idx + 1]);
       });
-      render();
+      if (historyNext) historyNext.addEventListener('click', function() {
+        var idx = dates.indexOf(currentDate);
+        if (idx > 0) loadDate(dates[idx - 1]);
+      });
+
+      // support ?date=YYYY-MM-DD deep link
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var qDate = params.get('date');
+        if (qDate && dates.indexOf(qDate) !== -1 && qDate !== currentDate) {
+          loadDate(qDate);
+        } else {
+          bindShareholderToggles();
+          updateMeta(initialData);
+          renderPager();
+        }
+      } catch (e) {
+        bindShareholderToggles();
+        updateMeta(initialData);
+        renderPager();
+      }
     })();
     </script>
   </body>
@@ -317,6 +553,14 @@ const rows = intersectionRows.map((row) => ({
   .chip-toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap}
   .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
+  .chip-history{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}
+  .chip-history-label{color:#64748b;font-size:.78rem;font-weight:800}
+  .chip-history-select{min-width:210px;height:2rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;padding:0 .55rem;font-size:.86rem;font-weight:700}
+  .chip-history-btn{width:2rem;height:2rem;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a;font-size:1rem;line-height:1;cursor:pointer}
+  .chip-history-btn:disabled{opacity:.45;cursor:not-allowed}
+  .chip-history-status{color:#64748b;font-size:.78rem;font-weight:700}
+  .chip-history-status.is-error{color:#b91c1c}
+  .low-chip-hero dl{grid-template-columns:repeat(3,minmax(82px,1fr))}
   .chip-search-input{width:180px;height:2.1rem;padding:0 .9rem;border:1px solid #dbe3ec;border-radius:999px;font-size:.82rem;font-weight:650;outline:0;transition:border-color .15s}
   .chip-search-input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
 
@@ -375,5 +619,5 @@ const rows = intersectionRows.map((row) => ({
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history-select{min-width:0;flex:1}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 </style>
