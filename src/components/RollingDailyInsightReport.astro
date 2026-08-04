@@ -3,7 +3,9 @@ import InsightNavigator from './InsightNavigator.astro';
 import { rollingDailyArticleCatalog, type DailyInsightReport } from '../data/rolling-daily-insights';
 
 const { report } = Astro.props as { report: DailyInsightReport };
-const isLatest = report.tradeDate === '2026-08-03';
+const latestDate = rollingDailyArticleCatalog[0]?.tradeDate;
+const isLatest = report.tradeDate === latestDate;
+const markets = [...new Set(report.signals.map((item) => item.market))].join(' + ');
 ---
 <InsightNavigator articles={rollingDailyArticleCatalog} currentSymbol="ROLLING" currentDate={report.tradeDate} />
 
@@ -17,7 +19,7 @@ const isLatest = report.tradeDate === '2026-08-03';
     <div class="market-bias is-bearish">
       <small>当日信号标的</small>
       <strong>{report.signals.length}只</strong>
-      <span>{isLatest ? 'A股 + 港股' : '期货 + 美股'}</span>
+      <span>{markets || (isLatest ? 'A股 + 港股' : '多市场')}</span>
     </div>
   </div>
 </header>
