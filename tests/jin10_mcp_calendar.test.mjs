@@ -135,3 +135,47 @@ test('handleMcpCalendar rotates multiple comma-separated tokens by minute', asyn
   assert.equal(fake.calls[0].options.headers['authorization'], `Bearer ${expectedToken}`);
   assert.equal(fake.calls[1].options.headers['authorization'], `Bearer ${expectedToken}`);
 });
+
+test('handleMcpCalendar supports a safe search_news query for futures policy briefing', async () => {
+  const searchResponse = sse({
+    jsonrpc: '2.0', id: 2, result: {
+      structuredContent: { data: [{ id: 'n1', title: '工信部发布多晶硅行业政策', summary: '推动绿色产能', url: 'https://example/news', pub_time: '2026-08-02 10:00' }] },
+    },
+  });
+  const fake = makeFetch([
+    { body: mcpSessionResponse, sessionId: 'sess-search' },
+    { body: searchResponse, sessionId: 'sess-search' },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar?tool=search_news&keyword=%E5%A4%9A%E6%99%B6%E7%A1%85%E6%94%BF%E7%AD%96');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(fake.calls[1].body.params.name, 'search_news');
+  assert.deepEqual(fake.calls[1].body.params.arguments, { keyword: '多晶硅政策' });
+  assert.equal(payload.items[0].title, '工信部发布多晶硅行业政策');
+  assert.equal(payload.items[0].url, 'https://example/news');
+});
+
+test('handleMcpCalendar rejects unsupported tool names', async () => {
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar?tool=get_quote');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token' });
+  assert.equal(response.status, 400);
+});
+
+test('handleMcpCalendar extracts search results wrapped in a data object', async () => {
+  const searchResponse = sse({
+    jsonrpc: '2.0', id: 2, result: {
+      structuredContent: { data: { list: [{ id: 'n2', title: '新能源材料政策', url: 'https://example/n2' }] } },
+    },
+  });
+  const fake = makeFetch([
+    { body: mcpSessionResponse, sessionId: 'sess-wrapped' },
+    { body: searchResponse, sessionId: 'sess-wrapped' },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar?tool=search_news&keyword=%E6%96%B0%E8%83%BD%E6%BA%90');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.items[0].title, '新能源材料政策');
+});

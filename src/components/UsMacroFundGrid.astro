@@ -7,14 +7,14 @@ type FundItem = {
   value: string;
   detail: string;
   as_of?: string;
+  observation_period?: string;
   source?: string;
   source_url?: string;
-  news?: Array<{
-    title: string;
-    url: string;
-    published_at?: string;
-    source?: string;
-  }>;
+  next_release?: {
+    time?: string;
+    star?: number | null;
+    consensus?: string | number | null;
+  };
 };
 
 type Props = {
@@ -44,7 +44,7 @@ const { kicker, title, note, items } = Astro.props;
         <h3>{item.value}</h3>
         <p>{item.detail}</p>
         <small>
-          更新日 {item.as_of || 'N/A'} · {
+          更新日 {item.as_of || 'N/A'}{item.observation_period ? ` · 数据期 ${item.observation_period}` : ''} · {
             item.source_url
               ? <a href={item.source_url} target="_blank" rel="noopener noreferrer">{item.source} ↗</a>
               : item.source
@@ -52,17 +52,6 @@ const { kicker, title, note, items } = Astro.props;
         </small>
         {item.next_release?.time ? (
           <small class="next-release">下次更新 {item.next_release.time.replace('T', ' ').slice(0, 16)}{item.next_release.star ? ` · ${'★'.repeat(item.next_release.star)}` : ''}{item.next_release.consensus != null ? ` · 预期 ${item.next_release.consensus}` : ''}</small>
-        ) : null}
-        {item.news?.length ? (
-          <div class="fund-news">
-            <b>最新解读</b>
-            {item.news.map((news) => (
-              <a href={news.url} target="_blank" rel="noopener noreferrer">
-                <span>{news.title}</span>
-                <small>{news.source || '同花顺问财'}{news.published_at ? ` · ${news.published_at.replace('T', ' ').slice(0, 16)} ET` : ''} ↗</small>
-              </a>
-            ))}
-          </div>
         ) : null}
       </article>
     ))}

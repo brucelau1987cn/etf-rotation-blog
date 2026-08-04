@@ -13,13 +13,12 @@ import json
 import math
 import os
 import re
-import subprocess
 import tempfile
 import time
 import urllib.error
 import urllib.request
 import zipfile
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -35,10 +34,32 @@ BEA_CORE_PCE_URL = "https://www.bea.gov/data/personal-consumption-expenditures-p
 CENSUS_MARTS_URL = "https://www.census.gov/econ_getzippedfile/?programCode=MARTS"
 BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
 JIN10_INDICATOR_API = "https://etf.peekabo.cc/api/public/v1/jin10-indicator-history"
-IWENCAI_NEWS_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
-IWENCAI_NEWS_QUERIES = {
-    "core_pce": "美国最新核心PCE 数据 解读 美联储",
-    "real_retail": "美国最新零售销售 实际零售销售 消费 数据 解读",
+FRED_SAHM_URL = "https://fred.stlouisfed.org/series/SAHMREALTIME"
+
+# Release dates are source metadata, separate from each series' observation month.
+# Refresh these from the official BLS/Census release schedules when the source advances.
+BLS_RELEASES = {
+    "employment": {
+        "observation_period": "2026-06",
+        "date": "2026-07-02",
+        "updated_at": "2026-07-02T08:30:00-04:00",
+        "next_release": {"time": "2026-08-07T08:30", "star": None, "consensus": None},
+    },
+    "cpi": {
+        "observation_period": "2026-06",
+        "date": "2026-07-14",
+        "updated_at": "2026-07-14T08:30:00-04:00",
+        "next_release": {"time": "2026-08-12T08:30", "star": None, "consensus": None},
+    },
+}
+REAL_RETAIL_RELEASE = {
+    "observation_period": "2026-06",
+    "date": "2026-07-16",
+    "updated_at": "2026-07-16T08:30:00-04:00",
+    "next_release": {"time": "2026-08-14T08:30", "star": None, "consensus": None},
+}
+CORE_PCE_RELEASE = {
+    "next_release": {"time": "2026-08-26", "star": None, "consensus": None},
 }
 
 FRED_META = {
@@ -100,6 +121,21 @@ def numeric(raw: Any) -> float:
     return float(text)
 
 
+def previous_year_month(raw_date: str) -> str:
+    observed = date.fromisoformat(raw_date)
+    return f"{observed.year - 1:04d}-{observed.month:02d}"
+
+
+def calendar_yoy_pct(rows: list[tuple[str, float]]) -> float | None:
+    if not rows:
+        return None
+    latest_date, latest_value = rows[-1]
+    target = previous_year_month(latest_date)
+    values = {raw_date[:7]: value for raw_date, value in rows}
+    year_ago = values.get(target)
+    return round((latest_value / year_ago - 1) * 100, 2) if year_ago else None
+
+
 def atomic_write(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".tmp")
@@ -116,72 +152,6 @@ def request_json(url: str) -> Any:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=20) as response:
         return json.load(response)
-
-
-def parse_iwencai_news(payload: dict[str, Any], key: str, limit: int = 2) -> list[dict[str, Any]]:
-    del key  # Reserved for future per-indicator filters.
-    items: list[dict[str, Any]] = []
-    rows = payload.get("data")
-    if not isinstance(rows, list):
-        return items
-    seen: set[str] = set()
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        title = " ".join(str(row.get("title") or "").split())
-        url = str(row.get("url") or "").strip()
-        if not title or not url or url in seen:
-            continue
-        published_at = None
-        raw_time = row.get("publish_time")
-        if isinstance(raw_time, (int, float)):
-            published_at = datetime.fromtimestamp(raw_time, timezone.utc).astimezone(NY).isoformat(timespec="seconds")
-        items.append({
-            "title": title[:180],
-            "summary": " ".join(str(row.get("summary") or "").split())[:280],
-            "url": url,
-            "published_at": published_at,
-            "source": "同花顺问财",
-        })
-        seen.add(url)
-        if len(items) >= limit:
-            break
-    return items
-
-
-def iwencai_news(query: str, size: int = 5) -> list[dict[str, Any]]:
-    if not IWENCAI_NEWS_WRAPPER.exists():
-        raise RuntimeError("iWenCai news wrapper unavailable")
-    proc = subprocess.run(
-        [str(IWENCAI_NEWS_WRAPPER), "news-search", query, "--size", str(size), "--timeout", "30"],
-        cwd=ROOT, text=True, capture_output=True, timeout=45,
-    )
-    if proc.returncode:
-        raise RuntimeError((proc.stderr or proc.stdout or "iWenCai news failed").strip()[:300])
-    payload = json.loads(proc.stdout)
-    if payload.get("status_code") != 0:
-        raise RuntimeError(f"iWenCai news status={payload.get('status_code')}")
-    return parse_iwencai_news(payload, "macro", limit=2)
-
-
-def attach_macro_news(
-    fundamentals: list[dict[str, Any]], failures: dict[str, str], previous_snapshot: dict[str, Any] | None = None,
-) -> None:
-    previous = {
-        str(item.get("key") or ""): item.get("news")
-        for item in (previous_snapshot or {}).get("fundamentals", [])
-        if isinstance(item, dict) and isinstance(item.get("news"), list)
-    }
-    for item in fundamentals:
-        key = str(item.get("key") or "")
-        query = IWENCAI_NEWS_QUERIES.get(key)
-        if not query:
-            continue
-        try:
-            item["news"] = iwencai_news(query, size=5)
-        except Exception as exc:
-            failures[f"news_{key}"] = str(exc)
-            item["news"] = previous.get(key, [])
 
 
 def yahoo(symbol: str) -> dict[str, Any]:
@@ -232,9 +202,8 @@ def fred(series: str) -> dict[str, Any]:
         "previous": round(previous, 4), "source": "FRED", "series": series,
         "frequency": frequency, "unit": unit, "stale": False,
     }
-    if len(rows) >= 13 and frequency == "月频":
-        year_ago = rows[-13][1]
-        result["change_yoy_pct"] = round((value / year_ago - 1) * 100, 2) if year_ago else None
+    if frequency == "月频":
+        result["change_yoy_pct"] = calendar_yoy_pct(rows)
     if len(rows) >= 4 and frequency == "月频":
         three_month = rows[-4][1]
         result["change_3m_pct"] = round((value / three_month - 1) * 100, 2) if three_month else None
@@ -288,6 +257,7 @@ def nyfed_sofr() -> dict[str, Any]:
     return {
         "value": value, "date": current["effectiveDate"], "change": round(value - prior, 4), "previous": prior,
         "volume_billions": numeric(current["volumeInBillions"]), "source": "Federal Reserve Bank of New York",
+        "source_url": "https://www.newyorkfed.org/markets/reference-rates/sofr",
         "series": "SOFR", "frequency": "日频", "unit": "%", "stale": False,
     }
 
@@ -306,6 +276,7 @@ def nyfed_rrp(today: date) -> dict[str, Any]:
     return {
         "value": round(value, 4), "date": rows[0]["operationDate"], "change": round(value - previous, 4),
         "previous": round(previous, 4), "source": "Federal Reserve Bank of New York",
+        "source_url": "https://www.newyorkfed.org/markets/desk-operations/reverse-repo",
         "series": "ON RRP accepted amount", "frequency": "日频", "unit": "十亿美元", "stale": False,
     }
 
@@ -328,7 +299,9 @@ def fiscal_tga() -> dict[str, Any]:
     observation_date, value = parsed[0]; previous = parsed[1][1]
     return {
         "value": value, "date": observation_date, "change": round(value - previous, 4), "previous": previous,
-        "source": "U.S. Department of the Treasury Fiscal Data", "series": "TGA Closing Balance",
+        "source": "U.S. Department of the Treasury Fiscal Data",
+        "source_url": "https://fiscaldata.treasury.gov/datasets/daily-treasury-statement/operating-cash-balance",
+        "series": "TGA Closing Balance",
         "frequency": "日频", "unit": "百万美元", "stale": False,
     }
 
@@ -356,7 +329,107 @@ def fed_h41_assets() -> dict[str, Any]:
     return {
         "value": value, "date": observation.isoformat(), "change": weekly_change, "previous": value - weekly_change,
         "change_yoy": yearly_change, "release_date": released.isoformat(), "source": "Board of Governors of the Federal Reserve System",
+        "source_url": "https://www.federalreserve.gov/releases/h41/",
         "series": "H.4.1 Total assets", "frequency": "周频", "unit": "百万美元", "stale": False,
+    }
+
+
+def parse_fred_sahm_metadata(text: str) -> dict[str, Any]:
+    observation = re.search(r"\b([A-Z][a-z]{2})\s+(\d{4}):\s*([-+]?\d+(?:\.\d+)?)", text)
+    updated = re.search(
+        r"Updated:\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s+(\d{4})\s+(\d{1,2}):(\d{2})\s+(AM|PM)\s+(CST|CDT)",
+        text,
+    )
+    next_release = re.search(r"Next Release Date:\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s+(\d{4})", text)
+    if not observation or not updated or not next_release:
+        raise RuntimeError("FRED Sahm metadata is incomplete")
+    month_numbers = {name: number for number, name in enumerate(
+        ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    )}
+    observation_period = f"{int(observation.group(2)):04d}-{month_numbers[observation.group(1)]:02d}"
+    hour = int(updated.group(4)) % 12 + (12 if updated.group(6) == "PM" else 0)
+    offset = "-05:00" if updated.group(7) == "CDT" else "-06:00"
+    updated_date = date(int(updated.group(3)), month_numbers[updated.group(1)], int(updated.group(2)))
+    updated_at = f"{updated_date.isoformat()}T{hour:02d}:{int(updated.group(5)):02d}:00{offset}"
+    next_date = date(int(next_release.group(3)), month_numbers[next_release.group(1)], int(next_release.group(2)))
+    return {
+        "value": float(observation.group(3)),
+        "observation_period": observation_period,
+        "updated_at": updated_at,
+        "date": updated_date.isoformat(),
+        "next_release": {"time": next_date.isoformat(), "star": None, "consensus": None},
+    }
+
+
+def fred_sahm_metadata() -> dict[str, Any]:
+    request = urllib.request.Request(FRED_SAHM_URL, headers={"User-Agent": UA})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        html = response.read().decode("utf-8", "replace")
+    parser = TextExtractor(); parser.feed(html)
+    return parse_fred_sahm_metadata(" ".join(parser.parts))
+
+
+def apply_sahm_metadata(official: dict[str, dict[str, Any]], metadata: dict[str, Any]) -> None:
+    item = official.get("sahm") or {}
+    item.update({
+        "value": metadata["value"],
+        "date": metadata["date"],
+        "observation_period": metadata["observation_period"],
+        "updated_at": metadata["updated_at"],
+        "next_release": metadata["next_release"],
+        "source": "Federal Reserve Bank of St. Louis",
+        "source_url": FRED_SAHM_URL,
+        "series": "SAHMREALTIME",
+        "frequency": "月频",
+        "unit": "百分点",
+        "stale": False,
+    })
+    official["sahm"] = item
+
+
+def apply_bls_release_metadata(official: dict[str, dict[str, Any]]) -> None:
+    for key in ("unemployment", "payrolls"):
+        if key in official:
+            official[key].update(BLS_RELEASES["employment"])
+    for key in ("cpi", "core_cpi"):
+        if key in official:
+            official[key].update(BLS_RELEASES["cpi"])
+
+
+def apply_real_retail_release_metadata(item: dict[str, Any]) -> None:
+    item.update(REAL_RETAIL_RELEASE)
+
+
+def apply_core_pce_release_metadata(item: dict[str, Any]) -> None:
+    item.update(CORE_PCE_RELEASE)
+
+
+def payroll_change(item: dict[str, Any]) -> float | None:
+    try:
+        return round(float(item["value"]) - float(item["previous"]), 4)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def build_fundamental_card(
+    key: str, title: str, formatter: str, detail: str, item: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not item:
+        return {"key": key, "title": title, "value": "数据待更新", "detail": detail, "as_of": None, "frequency": "—", "source": "FRED", "tone": "missing"}
+    render_item = dict(item)
+    if key == "payrolls":
+        render_item["change"] = payroll_change(item)
+    try:
+        display_value = formatter.format(**render_item)
+    except (KeyError, TypeError, ValueError):
+        display_value = f"{item.get('value', '—')} {item.get('unit', '')}".strip()
+    return {
+        "key": key, "title": title, "value": display_value, "detail": detail,
+        "as_of": item.get("date"), "observation_period": item.get("observation_period"),
+        "updated_at": item.get("updated_at"), "frequency": item.get("frequency", "按来源"),
+        "source": item.get("source", "FRED"), "source_url": item.get("source_url"),
+        "tone": "warning" if item.get("stale") else "neutral",
+        "stale": bool(item.get("stale")), "next_release": item.get("next_release"),
     }
 
 
@@ -388,12 +461,14 @@ def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
             continue
         observation_date, value = rows[-1]; previous = rows[-2][1]
         unit = "%" if key == "unemployment" else "千人" if key == "payrolls" else "指数"
-        result = {"value": value, "date": observation_date, "change": round(value - previous, 4), "previous": previous,
-                  "source": "U.S. Bureau of Labor Statistics", "series": block["seriesID"], "frequency": "月频", "unit": unit, "stale": False}
+        result = {"value": value, "date": observation_date, "observation_period": observation_date[:7],
+                  "change": round(value - previous, 4), "previous": previous,
+                  "source": "U.S. Bureau of Labor Statistics", "source_url": "https://www.bls.gov/news.release/empsit.nr0.htm",
+                  "series": block["seriesID"], "frequency": "月频", "unit": unit, "stale": False}
         if key == "core_cpi":
-            result["source_url"] = "https://www.bls.gov/cpi/"
-        if len(rows) >= 13 and key in {"cpi", "core_cpi"}:
-            result["change_yoy_pct"] = round((value / rows[-13][1] - 1) * 100, 2)
+            result["source_url"] = "https://www.bls.gov/news.release/cpi.nr0.htm"
+        if key in {"cpi", "core_cpi"}:
+            result["change_yoy_pct"] = calendar_yoy_pct(rows)
         output[key] = result
         if key == "unemployment":
             unemployment_rows = rows
@@ -403,7 +478,9 @@ def bls_fallback(today: date) -> dict[str, dict[str, Any]]:
         current_sahm = current_average - prior_low
         previous_sahm = averages[-2][1] - min(value for _, value in averages[-14:-2]) if len(averages) >= 14 else None
         output["sahm"] = {"value": round(current_sahm, 2), "date": current_date, "change": round(current_sahm - previous_sahm, 2) if previous_sahm is not None else None,
-                          "source": "BLS unemployment · calculated Sahm rule", "series": "LNS14000000", "frequency": "月频", "unit": "百分点", "stale": False}
+                          "source": "BLS unemployment · calculated Sahm rule", "source_url": "https://fred.stlouisfed.org/series/SAHMREALTIME",
+                          "series": "LNS14000000", "frequency": "月频", "unit": "百分点", "stale": False}
+    apply_bls_release_metadata(output)
     return output
 
 
@@ -424,13 +501,22 @@ def bea_core_pce() -> dict[str, Any]:
     if len(rows) < 2:
         raise RuntimeError("BEA Core PCE page has insufficient observations")
     observation_date, value = rows[-1]; previous = rows[-2][1]
-    return {
-        "value": value, "date": observation_date, "change": round(value - previous, 2),
+    # Extract release date from "Page last modified on M/D/YY"
+    release_match = re.search(r"Page last modified on (\d{1,2})/(\d{1,2})/(\d{2})", text)
+    release_date = observation_date  # fallback to observation period
+    if release_match:
+        m, d, y = int(release_match.group(1)), int(release_match.group(2)), int(release_match.group(3))
+        release_date = date(2000 + y, m, d).isoformat()
+    result = {
+        "value": value, "date": release_date, "change": round(value - previous, 2),
         "previous": previous, "change_yoy_pct": value,
+        "observation_period": observation_date[:7], "updated_at": release_date + "T00:00:00-04:00",
         "source": "U.S. Bureau of Economic Analysis", "source_url": BEA_CORE_PCE_URL,
         "series": "Core PCE price index · change from month one year ago",
         "frequency": "月频", "unit": "% YoY", "stale": False,
     }
+    apply_core_pce_release_metadata(result)
+    return result
 
 
 def _csv_section(lines: list[str], title: str) -> list[dict[str, str]]:
@@ -499,15 +585,18 @@ def census_real_retail() -> dict[str, Any]:
         raise RuntimeError("Census/BLS month alignment has insufficient observations")
     observation_date, value, nominal, cpi_value = real_rows[-1]
     previous = real_rows[-2][1]; three_month = real_rows[-4][1]
-    return {
-        "value": round(value, 2), "date": observation_date,
+    result = {
+        "value": round(value, 2), "date": observation_date, "observation_period": observation_date[:7],
         "change": round(value - previous, 2), "previous": round(previous, 2),
         "change_3m_pct": round((value / three_month - 1) * 100, 2),
         "nominal_sales_millions": nominal, "cpi_sa": cpi_value,
         "source": "U.S. Census Bureau MARTS ÷ U.S. BLS CPI-U",
-        "source_url": CENSUS_MARTS_URL, "series": "Official-data reconstruction of real retail and food-services sales",
+        "source_url": "https://www.census.gov/retail/sales.html",
+        "series": "Official-data reconstruction of real retail and food-services sales",
         "frequency": "月频", "unit": "百万实际美元（1982-84=100）", "stale": False,
     }
+    apply_real_retail_release_metadata(result)
+    return result
 
 
 def treasury_fallback(today: date) -> dict[str, dict[str, Any]]:
@@ -531,18 +620,28 @@ def treasury_fallback(today: date) -> dict[str, dict[str, Any]]:
     return output
 
 
+def parse_gdpnow_text(text: str) -> dict[str, Any]:
+    value_match = re.search(r"([-+]?\d+(?:\.\d+)?)\s*%+\s+\w[\w\s-]{0,40}GDPNow Estimate", text)
+    date_match = re.search(r"Updated:\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})", text)
+    next_match = re.search(r"Next update:\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})", text)
+    if not value_match or not date_match:
+        raise RuntimeError("GDPNow value or update date not found")
+    result = {"value": float(value_match.group(1)), "date": datetime.strptime(date_match.group(1), "%B %d, %Y").date().isoformat(), "change": 0,
+            "source": "Federal Reserve Bank of Atlanta", "source_url": "https://www.atlantafed.org/cqer/research/gdpnow",
+            "series": "GDPNow", "frequency": "季频滚动更新", "unit": "% SAAR", "stale": False}
+    if next_match:
+        next_date = datetime.strptime(next_match.group(1), "%B %d, %Y").date()
+        result["next_release"] = {"time": next_date.isoformat(), "star": None, "consensus": None}
+    return result
+
+
 def gdpnow_fallback() -> dict[str, Any]:
     url = "https://www.atlantafed.org/research-and-data/data/gdpnow"
     request = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(request, timeout=25) as response:
         html = response.read().decode("utf-8", "replace")
-    parser = TextExtractor(); parser.feed(html); text = " ".join(parser.parts)
-    value_match = re.search(r"([-+]?\d+(?:\.\d+)?)%\s+Latest GDPNow Estimate", text)
-    date_match = re.search(r"Updated:\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})", text)
-    if not value_match or not date_match:
-        raise RuntimeError("GDPNow value or update date not found")
-    return {"value": float(value_match.group(1)), "date": datetime.strptime(date_match.group(1), "%B %d, %Y").date().isoformat(), "change": 0,
-            "source": "Federal Reserve Bank of Atlanta", "series": "GDPNow", "frequency": "季频滚动更新", "unit": "% SAAR", "stale": False}
+    parser = TextExtractor(); parser.feed(html)
+    return parse_gdpnow_text(" ".join(parser.parts))
 
 
 def jin10_indicator(ind_id: int) -> tuple[dict, list[dict]]:
@@ -653,12 +752,31 @@ def main() -> None:
     for key, item in previous_snapshot.get("official", {}).items():
         if key not in official:
             official[key] = {**item, "stale": True}
+            failures.pop(key, None)
     for key, item in previous_snapshot.get("market", {}).items():
         if key not in market:
             market[key] = {**item, "stale": True}
-    # Attach next scheduled release dates from Jin10 calendar API
+    try:
+        apply_sahm_metadata(official, fred_sahm_metadata())
+    except Exception as exc:
+        previous_sahm = previous_snapshot.get("official", {}).get("sahm")
+        if previous_sahm:
+            official["sahm"] = {**previous_sahm, "stale": False}
+        else:
+            failures["sahm_metadata"] = str(exc)
+    apply_bls_release_metadata(official)
+    if "real_retail" in official:
+        apply_real_retail_release_metadata(official["real_retail"])
+    if "core_pce" in official:
+        apply_core_pce_release_metadata(official["core_pce"])
+    # Attach next scheduled release dates from Jin10 calendar API. Official schedules below win.
     nr_failures = attach_next_release(official)
     failures.update(nr_failures)
+    apply_bls_release_metadata(official)
+    if "real_retail" in official:
+        apply_real_retail_release_metadata(official["real_retail"])
+    if "core_pce" in official:
+        apply_core_pce_release_metadata(official["core_pce"])
 
     def business_days_old(raw_date: str | None) -> int:
         if not raw_date:
@@ -771,21 +889,7 @@ def main() -> None:
     ]
 
     def fundamental(key: str, title: str, formatter: str, detail: str) -> dict[str, Any]:
-        item = official.get(key)
-        if not item:
-            return {"key": key, "title": title, "value": "数据待更新", "detail": detail, "as_of": None, "frequency": "—", "source": "FRED", "tone": "missing"}
-        try:
-            display_value = formatter.format(**item)
-        except (KeyError, TypeError, ValueError):
-            display_value = f"{item.get('value', '—')} {item.get('unit', '')}".strip()
-        return {
-            "key": key, "title": title, "value": display_value, "detail": detail,
-            "as_of": item.get("date"), "frequency": item.get("frequency", "按来源"),
-            "source": item.get("source", "FRED"), "source_url": item.get("source_url"),
-            "tone": "warning" if item.get("stale") else "neutral",
-            "stale": bool(item.get("stale")),
-            "next_release": item.get("next_release"),
-        }
+        return build_fundamental_card(key, title, formatter, detail, official.get(key))
 
     def liquidity_card(key: str, title: str, scale: float, suffix: str, detail: str) -> dict[str, Any]:
         card = fundamental(key, title, "{value}", detail)
@@ -805,12 +909,11 @@ def main() -> None:
         fundamental("sahm", "萨姆规则", "{value:.2f}pp", "≥0.50pp才触发衰退信号"),
         fundamental("unemployment", "失业率", "{value:.1f}%", "就业温度计，不用单月波动机械交易"),
         fundamental("payrolls", "非农就业", "{change:+.0f}千人", "较前月就业人数变化"),
-        fundamental("core_cpi", "核心CPI", "同比 {change_yoy_pct:.2f}%", "剔除食品与能源后的价格趋势"),
+        fundamental("core_cpi", "核心CPI", "同比 {change_yoy_pct:.1f}%", "剔除食品与能源后的价格趋势"),
         fundamental("core_pce", "核心PCE", "同比 {change_yoy_pct:.2f}%", "美联储重点通胀口径"),
         fundamental("real_retail", "实际零售销售", "3月 {change_3m_pct:+.2f}%", "消费动能的三个月变化"),
         fundamental("gdpnow", "GDPNow", "{value:.2f}%", "当前季度实际GDP年化即时估计"),
     ]
-    attach_macro_news(fundamentals, failures, previous_snapshot)
 
     impacts = []
     if y10 is not None:
@@ -833,7 +936,7 @@ def main() -> None:
         "dimensions": dimensions, "liquidity_components": liquidity_components, "fundamentals": fundamentals, "impacts": impacts[:3],
         "events": events,
         "market": market, "official": official,
-        "data_quality": {"failed": len(failures), "failures": failures, "note": "免费公开源；不同序列频率不同，卡片显示各自观察日期。"},
+        "data_quality": {"failed": len(failures), "failures": failures, "note": "免费公开源；卡片显示各来源的发布/更新日期，观察期单独保存。"},
         "sources": ["Yahoo Chart API", "Federal Reserve Bank of New York", "Board of Governors H.4.1", "U.S. Treasury Fiscal Data", "U.S. Department of the Treasury", "U.S. Bureau of Labor Statistics", "Federal Reserve Bank of Atlanta GDPNow", "Federal Reserve FOMC Calendar", "FRED (fallback only)"],
     }
     if len(dimensions) < 4 or (not market and not official):

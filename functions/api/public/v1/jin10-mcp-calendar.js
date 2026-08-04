@@ -71,6 +71,15 @@ const mcpPost = async (url, token, body, sessionId = null, fetchImpl = fetch) =>
  * with affect_txt (利空/利多/影响较小) for every item.
  */
 export async function handleMcpCalendar(request, env = {}) {
+  const url = new URL(request.url);
+  const tool = String(url.searchParams.get('tool') || 'list_calendar').trim();
+  if (!['list_calendar', 'search_news', 'search_flash'].includes(tool)) {
+    return json({ error: 'unsupported tool', source: 'jin10-mcp' }, 400);
+  }
+  const keyword = String(url.searchParams.get('keyword') || '').trim().slice(0, 80);
+  if (tool !== 'list_calendar' && !keyword) {
+    return json({ error: 'keyword is required', source: 'jin10-mcp' }, 400);
+  }
   const rawTokens = String(env.JIN10_MCP_TOKEN || '').trim();
   if (!rawTokens) return json({ error: 'unauthorized', source: 'jin10-mcp' }, 401);
   const tokens = rawTokens.split(',').map((t) => t.trim()).filter(Boolean);
@@ -97,12 +106,12 @@ export async function handleMcpCalendar(request, env = {}) {
       return json({ error: 'mcp initialization failed', detail: initPayload?.error?.message || null }, 502);
     }
 
-    // 2. tools/call list_calendar
+    // 2. tools/call allowlisted Jin10 tool
     const { payload: calPayload } = await mcpPost(MCP_URL, token, {
       jsonrpc: '2.0',
       id: 2,
       method: 'tools/call',
-      params: { name: 'list_calendar', arguments: {} },
+      params: { name: tool, arguments: tool === 'list_calendar' ? {} : { keyword } },
     }, sessionId, fetchImpl);
 
     if (calPayload?.error) {
@@ -121,22 +130,32 @@ export async function handleMcpCalendar(request, env = {}) {
       rawData = inner?.data || null;
     }
 
+    if (!Array.isArray(rawData) && tool !== 'list_calendar' && rawData && typeof rawData === 'object') {
+      rawData = rawData.list || rawData.items || rawData.news || rawData.data || null;
+    }
     if (!Array.isArray(rawData)) {
       return json({ error: 'invalid mcp calendar response', source: 'jin10-mcp' }, 502);
     }
 
     // 4. Normalize
-    const items = rawData.map((item) => ({
-      time: item.pub_time || null,
-      star: Number.isFinite(Number(item.star)) ? Number(item.star) : null,
-      title: String(item.title || '未命名事项'),
-      previous: item.previous ?? null,
-      consensus: item.consensus ?? null,
-      actual: item.actual ?? null,
-      revised: item.revised ?? null,
-      affect_txt: String(item.affect_txt || '').trim() || null,
-      impact: String(item.affect_txt || '').trim() || null,
-    }));
+    const items = rawData.map((item) => tool === 'list_calendar' ? ({
+        time: item.pub_time || null,
+        star: Number.isFinite(Number(item.star)) ? Number(item.star) : null,
+        title: String(item.title || '未命名事项'),
+        previous: item.previous ?? null,
+        consensus: item.consensus ?? null,
+        actual: item.actual ?? null,
+        revised: item.revised ?? null,
+        affect_txt: String(item.affect_txt || '').trim() || null,
+        impact: String(item.affect_txt || '').trim() || null,
+      }) : ({
+        id: item.id ?? null,
+        time: item.pub_time || item.time || item.published_at || null,
+        title: String(item.title || item.name || '未命名资讯'),
+        summary: String(item.summary || item.content || item.brief || '').trim(),
+        url: String(item.url || item.link || '').trim() || null,
+        source: '金十数据',
+      }));
 
     const counts = { bullish: 0, bearish: 0, neutral: 0 };
     for (const item of items) {
@@ -148,6 +167,7 @@ export async function handleMcpCalendar(request, env = {}) {
     return json({
       status: 'ok',
       source: 'jin10-mcp',
+      tool,
       count: items.length,
       counts,
       items,
