@@ -10,8 +10,8 @@ import { persistJin10EtfHoldings, readJin10EtfHoldings } from '../../../_lib/jin
  *  - /api/etf-reports        → daily snapshots {trust, change, value, reported_on}
  *  - /api/etf-reports/view   → weekly/monthly aggregates {inc_trust, dec_trust, ...}
  *
- * Daily mode (default): filters snapshots by trust magnitude to separate
- * gold (~1000t) from silver (~15000t), returns newest-first.
+ * Daily mode (default): request per-asset with all=1 so zero-change days are
+ * included. Upstream default (no all) only returns non-zero change rows.
  */
 const UPSTREAM = 'https://mp-api.jin10.com/api/etf-reports';
 const UPSTREAM_VIEW = 'https://mp-api.jin10.com/api/etf-reports/view';
@@ -32,8 +32,18 @@ const upstreamHeaders = (env) => ({
   'accept-language': 'zh-CN,zh-Hans;q=0.9',
 });
 
+const normalizeDailyRows = (rows, limit) => (rows || [])
+  .slice(0, limit)
+  .map((r) => ({
+    reported_on: r.reported_on,
+    trust: r.trust,
+    change: r.change ?? 0,
+    value: r.value,
+    updated_at: r.updated_at,
+  }));
+
 const buildResponse = (attrId, unit, limit, rows) => {
-  const netChange = rows.reduce((sum, r) => sum + (r.change || 0), 0);
+  const netChange = rows.reduce((sum, r) => sum + (Number(r.change) || 0), 0);
   const isWeek = unit === 'week';
   return json({
     status: 'ok',
@@ -83,25 +93,20 @@ export async function onRequestGet({ request, env, waitUntil }) {
         return buildResponse(attrId, unit, limit, rows);
       }
 
-      // 3. Fallback / refresh: fetch upstream
-      const qs = new URLSearchParams({ date_start: iso(dateStart), date: iso(dateEnd) });
+      // 3. Fallback / refresh: per-asset daily feed with all=1 (includes change=0 days)
+      const qs = new URLSearchParams({
+        attr_id: String(attrId),
+        date_start: iso(dateStart),
+        date: iso(dateEnd),
+        all: '1',
+      });
       const resp = await fetch(`${UPSTREAM}?${qs}`, { headers: upstreamHeaders(env) });
       if (!resp.ok) {
         if (rows && rows.length > 0) return buildResponse(attrId, unit, limit, rows);
         return json({ error: `upstream HTTP ${resp.status}`, source: 'jin10-etf-reports' }, 502);
       }
       const upstream = await resp.json();
-      const boundary = 5000;
-      rows = (upstream?.data || [])
-        .filter((r) => (attrId === 1 ? r.trust < boundary : r.trust >= boundary))
-        .slice(0, limit)
-        .map((r) => ({
-          reported_on: r.reported_on,
-          trust: r.trust,
-          change: r.change,
-          value: r.value,
-          updated_at: r.updated_at,
-        }));
+      rows = normalizeDailyRows(upstream?.data || [], limit);
 
       // 4. Persist to D1 (async, non-blocking)
       if (db?.prepare && waitUntil) {
