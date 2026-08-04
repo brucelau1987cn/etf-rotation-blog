@@ -32,6 +32,32 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-08-04': {
+    tradeDate: '2026-08-04',
+    shortDate: '08/04',
+    title: '8月4日滚动信号收盘复盘',
+    subtitle: '当日D1入库2只：东方明珠多方连续确认，上海电气早盘空方接近收盘持平。',
+    cutoff: '2026-08-04 收市',
+    summary: '执行重点在东方明珠：4.5h/5.5h 多方同价簇收盘贴着信号价确认，但量比仅0.70、RSI6 78.8，次日更适合回踩确认而非追高。上海电气10m空方触发后收盘略回信号价上方，属于弱空观察，反抽MA5附近可减、跌破当日低点再加码防守。',
+    buyRule: '东方明珠优先等回踩 MA5 ¥8.18 或放量站稳 ¥8.40；上海电气仅在收复 ¥7.02 且量比回升后观察。',
+    sellRule: '东方明珠失守 ¥8.23 取消突破预期；上海电气反弹 ¥6.94—7.02 减仓，跌破 ¥6.93 继续降仓。',
+    discipline: '同价多方簇首次节点执行、后续累计置信度；缩量贴近信号价时不做追高，等回踩或放量突破二选一。',
+    sources: '滚动罗盘D1首次入库信号（trade_date=2026-08-04）；iWenCai 2026-08-04收盘行情、均线、RSI、筹码与资金。',
+    signals: [
+      {
+        name: '东方明珠', symbol: '600637', market: 'A股', direction: 'BUY', nodes: '4.5h / 5.5h', signalPrices: '¥8.39 / ¥8.38', close: '¥8.38', change: '+0.96%', validation: 'confirmed', validationLabel: '多方收盘确认',
+        verdict: '北京时间14:00与15:00先后点亮4.5h/5.5h多方，信号价¥8.39/8.38，收盘¥8.38几乎贴合信号簇，完成收盘确认。价格站上MA5 ¥8.18、MA10 ¥7.99、MA20 ¥7.84，但量比0.70、RSI6 78.8，属于缩量偏热确认，次日追高性价比低。',
+        support: '¥8.23当日低点；MA5 ¥8.18', pressure: '¥8.40当日高点；平均成本 ¥9.24', buyPlan: '回踩¥8.18—8.23缩量企稳可观察；放量突破并站稳¥8.40后确认加仓。', sellPlan: '失守¥8.23取消突破预期；跌回MA5 ¥8.18下方减仓。',
+        evidence: ['收盘较信号簇约0%', '量比0.70，确认量不足', 'RSI6 78.8，短线偏热', '主力净流入约1654万元', '收盘获利35.2% / 平均成本¥9.24']
+      },
+      {
+        name: '上海电气', symbol: '601727', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥6.94', close: '¥6.97', change: '-0.71%', validation: 'watch', validationLabel: '空方弱观察',
+        verdict: '早盘10m空方在¥6.94入库，收盘¥6.97略高于信号价0.43%，空方未获强收盘确认。价格仍在MA5 ¥6.94附近纠缠，量比0.61缩量，适合把该节点当风险提醒，反抽减仓优先于追空。',
+        support: '¥6.93当日低点；MA20 ¥6.69', pressure: '信号价¥6.94；当日高点¥7.02；平均成本¥8.10', buyPlan: '收复并站稳¥7.02后观察，放量站上MA10 ¥6.79/结构修复后再确认。', sellPlan: '反弹¥6.94—7.02减仓；跌破¥6.93继续降仓。',
+        evidence: ['收盘高于信号价0.43%', '量比0.61', 'RSI6 64.2', '主力净流出约5056万元', '收盘获利18.9% / 平均成本¥8.10']
+      }
+    ]
+  },
   '2026-08-03': {
     tradeDate: '2026-08-03',
     shortDate: '08/03',
@@ -161,7 +187,9 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-03', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-04', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-03', href: '/rolling/insights/2026-08-03/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-31', href: '/rolling/insights/2026-07-31/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-30', href: '/rolling/insights/2026-07-30/' },
 ];
+

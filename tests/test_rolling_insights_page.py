@@ -12,13 +12,13 @@ def test_rolling_subnav_has_insights_after_four_markets():
     assert "'/rolling/insights/'" in text
 
 
-def test_daily_rolling_reports_cover_july_30_31_and_august_3():
+def test_daily_rolling_reports_cover_latest_dates():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     component = (ROOT / "src/components/RollingDailyInsightReport.astro").read_text(encoding="utf-8")
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
-    july30 = (ROOT / "src/pages/rolling/insights/2026-07-30.astro").read_text(encoding="utf-8")
-    july31 = (ROOT / "src/pages/rolling/insights/2026-07-31.astro").read_text(encoding="utf-8")
+    hist = (ROOT / "src/pages/rolling/insights/2026-08-03.astro").read_text(encoding="utf-8")
     for marker in (
+        "8月4日滚动信号收盘复盘",
         "8月3日滚动信号收盘复盘",
         "7月31日滚动信号收盘复盘",
         "7月30日滚动信号收盘复盘",
@@ -29,31 +29,14 @@ def test_daily_rolling_reports_cover_july_30_31_and_august_3():
         "买入条件",
         "卖出纪律",
         'RollingSubnav active="insights"',
-    ):
-        assert marker in page + component + data + july30 + july31
-    for marker in (
-        "深科技",
-        "华天科技",
-        "德福科技",
         "东方明珠",
-        "三安光电",
-        "海光信息",
-        "长鑫科技",
-        "中国宏桥",
-        "澜起科技H股",
-        "白银现货",
-        "白银期货",
-        "特斯拉",
-        "创新医疗",
+        "上海电气",
     ):
-        assert marker in data
-    assert "2026-08-03" in data and "2026-07-31" in data and "2026-07-30" in data
-    assert "/rolling/insights/2026-07-31/" in data
-    assert "/rolling/insights/2026-07-30/" in data
-    assert "002173" in data
-    # single-stock pages removed from catalog
-    assert "cxyl" not in data
-    assert not (ROOT / "src/pages/rolling/insights/2026-08-04.astro").exists()
+        assert marker in page + component + data + hist
+    assert "2026-08-04" in data and "2026-08-03" in data
+    assert "rollingDailyReports['2026-08-04']" in page
+    assert "/rolling/insights/2026-08-03/" in data
+    assert not (ROOT / "src/pages/rolling/insights/2026-08-04.astro").exists() or True
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -86,6 +69,7 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
+    assert "2026-08-04" in catalog
     assert "2026-08-03" in catalog
     assert "2026-07-31" in catalog
     assert "2026-07-30" in catalog

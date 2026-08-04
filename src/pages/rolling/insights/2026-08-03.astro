@@ -1,0 +1,26 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+import '../../../styles/rolling-insights.css';
+
+const report = rollingDailyReports['2026-08-03'];
+const title = `${report.title} | ${SITE_TITLE}`;
+const description = '2026年8月3日A股与港股滚动信号逐标的收盘验证、支撑压力、买入条件和卖出纪律。';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="rolling-insights-main">
+      <RollingSubnav active="insights" />
+      <RollingDailyInsightReport report={report} />
+    </main>
+    <Footer />
+  </body>
+</html>
