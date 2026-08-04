@@ -1,6 +1,7 @@
 ---
 import { SITE_AUTHOR, SITE_TITLE } from '../consts';
 const today = new Date();
+const veilxOrderUrl = 'https://veilx.io/#/hello/3B2WSRN2';
 ---
 <footer>
   <div class="site-shell footer-inner">
@@ -28,16 +29,25 @@ const today = new Date();
       <a href="/rss.xml">RSS订阅</a>
     </nav>
   </div>
-  <div class="site-shell promo-cdn" aria-label="CDN 推广">
-    <div class="promo-cdn-copy">
-      <strong>很多站长不知道，推荐你使用这家 CDN</strong>
-      <ul>
-        <li>全国多地节点覆盖，秒开不卡顿</li>
-        <li>99.9% SLA 服务保障，业务永不掉线</li>
-        <li>一对一技术支持，配置不懂随时问</li>
-      </ul>
+  <div class="site-shell promo-cdn" aria-label="Veilx CDN 推广">
+    <div class="promo-cdn-main">
+      <a class="promo-cdn-brand" href="https://veilx.io/" target="_blank" rel="noopener noreferrer sponsored" aria-label="Veilx CDN 官网">
+        <img class="promo-cdn-logo" src="/images/veilx-logo.svg" width="32" height="32" alt="Veilx CDN" loading="lazy" decoding="async" />
+        <span class="promo-cdn-brand-text">
+          <strong>Veilx CDN</strong>
+          <em>veilx.io</em>
+        </span>
+      </a>
+      <div class="promo-cdn-copy">
+        <strong>很多站长不知道，推荐你使用 <span class="promo-cdn-name">Veilx CDN</span></strong>
+        <ul>
+          <li>全国多地节点覆盖，秒开不卡顿</li>
+          <li>99.9% SLA 服务保障，业务永不掉线</li>
+          <li>一对一技术支持，配置不懂随时问</li>
+        </ul>
+      </div>
     </div>
-    <a class="promo-cdn-link" href="https://veilx.io/#/hello/3B2WSRN2" target="_blank" rel="noopener noreferrer sponsored">下单链接</a>
+    <a class="promo-cdn-link" href={veilxOrderUrl} target="_blank" rel="noopener noreferrer sponsored">Veilx CDN 下单</a>
   </div>
   <div class="site-shell disclaimer">本站仅用于个人研究和策略复盘，不构成投资建议。数据可能延迟、缺失或错误；历史表现不代表未来收益，交易风险由使用者自行承担。</div>
   <div class="site-shell copyright">© {today.getFullYear()} {SITE_AUTHOR} · 个人研究记录</div>
@@ -50,10 +60,18 @@ const today = new Date();
   .footer-links { display: flex; max-width: 600px; gap: 0.45rem 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
   .footer-links a { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.86rem; font-weight: 750; }
   .footer-links a:hover { color: var(--accent); }
-  .promo-cdn { margin-top: 1.2rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .promo-cdn-copy strong { display: block; margin-bottom: 0.35rem; font-size: 0.92rem; }
+  .promo-cdn { margin-top: 1.2rem; padding: 0.95rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .promo-cdn-main { display: flex; align-items: flex-start; gap: 0.9rem; min-width: 0; }
+  .promo-cdn-brand { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; color: inherit; flex: 0 0 auto; }
+  .promo-cdn-logo { width: 32px; height: 32px; display: block; border-radius: 8px; background: #1f1f26; box-shadow: 0 0 0 1px rgba(64,105,246,.18); }
+  .promo-cdn-brand-text { display: flex; flex-direction: column; gap: 0.05rem; line-height: 1.15; }
+  .promo-cdn-brand-text strong { font-size: 0.98rem; letter-spacing: 0.01em; color: #14243b; }
+  .promo-cdn-brand-text em { font-style: normal; font-size: 0.72rem; font-weight: 700; color: #64748b; letter-spacing: 0.04em; text-transform: lowercase; }
+  .promo-cdn-copy { min-width: 0; }
+  .promo-cdn-copy > strong { display: block; margin-bottom: 0.35rem; font-size: 0.92rem; }
+  .promo-cdn-name { color: #4069f6; }
   .promo-cdn-copy ul { margin: 0; padding-left: 1.05rem; font-size: 0.8rem; line-height: 1.55; color: rgb(var(--gray-dark)); }
-  .promo-cdn-link { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 2.2rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: #14243b; color: #fff; text-decoration: none; font-size: 0.84rem; font-weight: 800; white-space: nowrap; }
+  .promo-cdn-link { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 2.2rem; padding: 0.45rem 0.95rem; border-radius: 999px; background: #14243b; color: #fff; text-decoration: none; font-size: 0.84rem; font-weight: 800; white-space: nowrap; }
   .promo-cdn-link:hover { opacity: 0.92; color: #fff; }
   .copyright { margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.78rem; color: rgb(var(--gray)); }
   .disclaimer { margin-top: 1.1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(255,255,255,.48); border: 1px solid var(--border); font-size: 0.78rem; line-height: 1.6; }
@@ -62,6 +80,7 @@ const today = new Date();
     .footer-inner { flex-direction: column; }
     .footer-links { justify-content: flex-start; }
     .promo-cdn { flex-direction: column; align-items: flex-start; }
+    .promo-cdn-main { width: 100%; flex-direction: column; }
     .promo-cdn-link { width: 100%; }
   }
 </style>
