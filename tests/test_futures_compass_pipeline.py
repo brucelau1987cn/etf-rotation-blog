@@ -104,7 +104,7 @@ def test_futures_page_contains_event_briefing_sections():
     assert len(briefing["fed_watch"]["latest"]) >= 2
     assert 'class="command-grid"' not in page
     assert '<section class="terminal"' in page and '<div class="briefing-grid"' in page
-    assert "距交割 {deliveryDays} 天" in page
+    assert "距交割 <span class=\"delivery-days\">{deliveryDays}</span> 天" in page
     assert "briefing-panel+.briefing-panel{border-left:1px" in page
     assert "background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%)" in page
     assert "background:#17243a" in page
