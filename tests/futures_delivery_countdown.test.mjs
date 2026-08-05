@@ -30,6 +30,8 @@ test('page wires countdown to a daily browser-side updater', async () => {
   assert.match(page, /id="delivery-countdown"/);
   assert.match(page, /futures-delivery-countdown\.js/);
   assert.match(page, /delivery-countdown\.is-urgent/);
+  assert.match(page, /is:global/);
   assert.match(page, /font-size:1\.45rem/);
   assert.match(page, /delivery-days/);
+  assert.match(page, /span class=\"delivery-days\"/);
 });

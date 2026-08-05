@@ -70,10 +70,34 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
 <html lang="zh-CN">
   <head>
     <BaseHead title="期货罗盘 | ETF罗盘" description="期货罗盘跟踪中国商品期货主力行情、量仓结构、BOS与CHoCH、关键位、FVG及交易所仓单。" />
+    <style is:global>
+      /* Delivery countdown must stay unscoped: JS rewrites #delivery-countdown
+         children without Astro data-cid attributes. */
+      .briefing-panel .delivery-countdown{
+        display:block;
+        margin-top:.45rem;
+        color:#fff;
+        font-size:1.45rem;
+        line-height:1;
+        font-weight:800;
+        font-variant-numeric:tabular-nums;
+      }
+      .briefing-panel .delivery-countdown .delivery-days{
+        color:#fff;
+        font-size:1.45rem;
+        line-height:1;
+        font-weight:800;
+        font-variant-numeric:tabular-nums;
+      }
+      .briefing-panel .delivery-countdown.is-urgent,
+      .briefing-panel .delivery-countdown.is-urgent .delivery-days{
+        color:#e1a13c;
+      }
+    </style>
     <style>
       main{width:var(--shell-width);padding:1rem 0 3rem}.terminal{margin-top:.7rem;padding:1.25rem 1.35rem;border:1px solid #d9dfe6;border-radius:14px;background:linear-gradient(145deg,#fbfcfe 0%,#fff 58%,#f7f3ed 100%);color:#182235;box-shadow:0 4px 14px rgba(15,23,42,.07)}
       .terminal-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2rem;align-items:end}.terminal h1{margin:.25rem 0 .35rem;color:#182235;font-size:clamp(1.65rem,3vw,2rem);line-height:1.18;letter-spacing:0}.terminal p{margin:0;color:#687386;font-size:.82rem;line-height:1.55;max-width:830px}.terminal-top .eyebrow{color:#335f8a}.data-stamp{display:flex;align-items:center;gap:.45rem;padding-bottom:.14rem;text-align:right;color:#7d8795;font-size:.7rem;white-space:nowrap;font-variant-numeric:tabular-nums}.data-stamp strong{color:#465267;font-size:.72rem}.data-stamp span+span:before{content:'·';margin-right:.45rem;color:#a4adba}
-      .briefing-grid{display:grid;grid-template-columns:.72fr 1.14fr 1.14fr;margin-top:1rem;padding:1rem 1.05rem;border-radius:17px;background:#17243a;color:#fff}.briefing-panel{padding:.1rem 1.2rem .05rem;background:transparent;min-width:0;color:#f8fafc}.briefing-panel:first-child{padding-left:0}.briefing-panel:last-child{padding-right:0}.briefing-panel+.briefing-panel{border-left:1px solid rgba(255,255,255,.14)}.briefing-panel .eyebrow{color:#aebacc;font-size:.58rem;letter-spacing:.07em}.briefing-panel h2{margin:.08rem 0 0;color:#f8fafc;font-size:1rem;line-height:1.5}.briefing-panel>p{margin:.3rem 0 0;color:#b9c6d7;font-size:.72rem;line-height:1.55}.delivery-date{display:flex;align-items:baseline;flex-wrap:wrap;gap:.38rem;margin-top:.65rem}.delivery-date strong{color:#fff;font-size:1.45rem;line-height:1;font-variant-numeric:tabular-nums}.delivery-date span{color:#e1a13c;font-size:.72rem;font-weight:800}.delivery-countdown{display:block;margin-top:.45rem;color:#fff;font-size:1.45rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}.briefing-panel .delivery-countdown .delivery-days{color:#fff;font-size:1.45rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}.briefing-panel .delivery-countdown.is-urgent,.briefing-panel .delivery-countdown.is-urgent .delivery-days{color:#e1a13c}.brief-list{display:grid;gap:.48rem;margin-top:.55rem}.brief-item{padding-top:.48rem;border-top:1px solid rgba(255,255,255,.14)}.brief-item:first-child{padding-top:0;border-top:0}.brief-item a,.brief-item strong{display:block;color:#f3f6f9;font-size:.78rem;line-height:1.4;font-weight:650;text-decoration:none}.brief-item small{display:block;margin-top:.1rem;color:#9daabd;font-size:.63rem}.brief-item p{display:-webkit-box;margin:.18rem 0 0;overflow:hidden;color:#c4cedb;font-size:.7rem;line-height:1.48;-webkit-box-orient:vertical;-webkit-line-clamp:2}.fed-result{font-weight:600!important;color:#e9eef4!important}.source-line{margin-top:.5rem!important;padding-top:.45rem;border-top:1px solid rgba(255,255,255,.14)}.source-line a{color:#e1a13c}
+      .briefing-grid{display:grid;grid-template-columns:.72fr 1.14fr 1.14fr;margin-top:1rem;padding:1rem 1.05rem;border-radius:17px;background:#17243a;color:#fff}.briefing-panel{padding:.1rem 1.2rem .05rem;background:transparent;min-width:0;color:#f8fafc}.briefing-panel:first-child{padding-left:0}.briefing-panel:last-child{padding-right:0}.briefing-panel+.briefing-panel{border-left:1px solid rgba(255,255,255,.14)}.briefing-panel .eyebrow{color:#aebacc;font-size:.58rem;letter-spacing:.07em}.briefing-panel h2{margin:.08rem 0 0;color:#f8fafc;font-size:1rem;line-height:1.5}.briefing-panel>p{margin:.3rem 0 0;color:#b9c6d7;font-size:.72rem;line-height:1.55}.delivery-date{display:flex;align-items:baseline;flex-wrap:wrap;gap:.38rem;margin-top:.65rem}.delivery-date strong{color:#fff;font-size:1.45rem;line-height:1;font-variant-numeric:tabular-nums}.delivery-date span{color:#e1a13c;font-size:.72rem;font-weight:800}.brief-list{display:grid;gap:.48rem;margin-top:.55rem}.brief-item{padding-top:.48rem;border-top:1px solid rgba(255,255,255,.14)}.brief-item:first-child{padding-top:0;border-top:0}.brief-item a,.brief-item strong{display:block;color:#f3f6f9;font-size:.78rem;line-height:1.4;font-weight:650;text-decoration:none}.brief-item small{display:block;margin-top:.1rem;color:#9daabd;font-size:.63rem}.brief-item p{display:-webkit-box;margin:.18rem 0 0;overflow:hidden;color:#c4cedb;font-size:.7rem;line-height:1.48;-webkit-box-orient:vertical;-webkit-line-clamp:2}.fed-result{font-weight:600!important;color:#e9eef4!important}.source-line{margin-top:.5rem!important;padding-top:.45rem;border-top:1px solid rgba(255,255,255,.14)}.source-line a{color:#e1a13c}
       .section-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin:1.35rem 0 .65rem}.section-head h2{margin:0;font-size:1.3rem}.section-head p{margin:0;color:rgb(var(--gray));font-size:.78rem}.eyebrow{display:block;color:var(--amber);font-size:.65rem;font-weight:900;text-transform:uppercase}
       .refresh-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.65rem 0}.refresh-status{color:rgb(var(--gray));font-size:.75rem}.refresh-status strong{color:rgb(var(--gray-dark))}.refresh-button{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .65rem;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-size:.74rem;font-weight:800;cursor:pointer}.refresh-button.loading .refresh-icon{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
       .watch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}.future-card{padding:.88rem;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:var(--box-shadow);min-width:0}.future-card.up{border-top:4px solid var(--market-up)}.future-card.down{border-top:4px solid var(--market-down)}.future-card.flat{border-top:4px solid #999}
