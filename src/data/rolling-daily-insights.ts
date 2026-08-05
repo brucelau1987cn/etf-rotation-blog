@@ -32,6 +32,38 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-08-05': {
+    tradeDate: '2026-08-05',
+    shortDate: '08/05',
+    title: '8月5日滚动信号收盘复盘',
+    subtitle: '当日D1入库3只：三安光电与国民技术1h45m多方确认，白银现货4h/5h/5.5h多方簇继续抬升。',
+    cutoff: '2026-08-05 收市',
+    summary: '执行重点在两只A股多方确认与白银中段抬升。三安光电1h45m多方后收盘站稳信号价上方并放量，适合回踩确认；国民技术同步1h45m多方收盘确认，但MA20仍在上方，优先回踩不追高。白银现货盘中4h→5h→5.5h多方簇把中枢抬到$61.4附近，晚间现货约$61.3、期货约$61.7，顺多持有、回踩$61.4—59.9观察。',
+    buyRule: '三安光电回踩¥13.32—12.46企稳或放量站稳¥13.50后加确认；国民技术回踩¥18.38—17.92企稳观察；白银守住$61.43并回踩不破$59.90后顺多。',
+    sellRule: '三安光电失守¥13.32减仓、跌破¥12.59退出；国民技术失守¥18.38减仓、跌破¥17.50退出；白银跌回$61.43下方降仓、失守$59.90取消当日多方簇。',
+    discipline: '观察窗1h45m与正式4h/5h/5.5h分开看：A股观察窗收盘确认后仍先等回踩；白银同向多节点按首次执行、后续累计置信度，不在热区追高。',
+    sources: '滚动罗盘D1首次入库信号（trade_date=2026-08-05，公开API storage=d1）；iWenCai 2026-08-05收盘行情、均线、RSI、筹码与资金；Yahoo SI=F日线；新浪hf_XAG现货报价。',
+    signals: [
+      {
+        name: '三安光电', symbol: '600703', market: 'A股', direction: 'BUY', nodes: '1h45m', signalPrices: '¥13.32', close: '¥13.35', change: '+5.12%', validation: 'confirmed', validationLabel: '多方收盘确认',
+        verdict: '北京时间11:15点亮1h45m多方观察窗，信号价¥13.32；收盘¥13.35略高于信号价0.23%，完成收盘确认。量比1.56、主力净流入约1.73亿元，价格站上MA5 ¥12.46与MA10 ¥12.29，并贴近MA20 ¥13.25。RSI6 63.8中性偏强，次日更适合回踩确认而非直接追高。',
+        support: '信号价¥13.32；MA5 ¥12.46；当日低点¥12.59', pressure: '当日高点¥13.50；平均成本¥15.00', buyPlan: '回踩¥13.32—12.46缩量企稳可观察；放量突破并站稳¥13.50后确认加仓。', sellPlan: '失守¥13.32减仓；跌破¥12.59退出短线修复。',
+        evidence: ['收盘高于信号价0.23%', '量比1.56，确认量尚可', 'RSI6 63.8', '主力净流入约1.73亿元', '收盘获利39.8% / 平均成本¥15.00']
+      },
+      {
+        name: '国民技术', symbol: '300077', market: 'A股', direction: 'BUY', nodes: '1h45m', signalPrices: '¥18.38', close: '¥18.48', change: '+2.10%', validation: 'confirmed', validationLabel: '多方收盘确认',
+        verdict: '北京时间11:15同步点亮1h45m多方，信号价¥18.38；收盘¥18.48高于信号价0.54%。量比1.57、换手12.93%，价格站上MA5 ¥17.01与MA10 ¥17.14，但仍低于MA20 ¥19.45。RSI6 57.6未过热，适合把信号当回踩观察起点，不在收盘后追高。',
+        support: '信号价¥18.38；平均成本¥17.92；当日低点¥17.50', pressure: '当日高点¥18.66；MA20 ¥19.45', buyPlan: '回踩¥18.38—17.92缩量企稳可观察；放量站稳¥18.66并逼近MA20后提高仓位。', sellPlan: '失守¥18.38减仓；跌破¥17.50退出短线。',
+        evidence: ['收盘高于信号价0.54%', '量比1.57 / 换手12.93%', 'RSI6 57.6', '主力净流入约1863万元', '收盘获利66.3% / 平均成本¥17.92']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F', market: 'COMEX/24H', direction: 'BUY', nodes: '4h / 5h / 5.5h', signalPrices: '$59.904 / $61.8151 / $61.4342', close: '期货约$61.73 / 现货约$61.31', change: '+2.79%（SI=F相对前收）', validation: 'confirmed', validationLabel: '多方簇确认',
+        verdict: '北京时间10:00/16:00/17:00先后点亮4h、5h、5.5h多方，信号价$59.90→61.82→61.43，属于同向抬升簇。Yahoo SI=F日线收约$61.73（高低约$62.18/$59.62），新浪hf_XAG晚间约$61.31。收盘/现价仍在5.5h信号附近上方，4h信号成为下方第一支撑；5h高点信号可作冲高兑现参考。',
+        support: '5.5h $61.43；4h $59.90；日线低点约$59.62', pressure: '5h $61.82；日线高点约$62.18', buyPlan: '守住$61.43并回踩不破$59.90可顺多；放量站稳$61.82—62.18后确认延续。', sellPlan: '跌回$61.43下方降仓；失守$59.90取消当日多方簇。',
+        evidence: ['4h/5h/5.5h同向多方簇', 'SI=F收约$61.73，相对前收约+2.79%', 'hf_XAG约$61.31（+3.04% vs 前收$59.50）', '日线高低约$62.18 / $59.62']
+      }
+    ]
+  },
   '2026-08-04': {
     tradeDate: '2026-08-04',
     shortDate: '08/04',
@@ -187,7 +219,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-04', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-05', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-04', href: '/rolling/insights/2026-08-04/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-03', href: '/rolling/insights/2026-08-03/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-31', href: '/rolling/insights/2026-07-31/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-30', href: '/rolling/insights/2026-07-30/' },

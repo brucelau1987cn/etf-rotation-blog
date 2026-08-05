@@ -16,8 +16,9 @@ def test_daily_rolling_reports_cover_latest_dates():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     component = (ROOT / "src/components/RollingDailyInsightReport.astro").read_text(encoding="utf-8")
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
-    hist = (ROOT / "src/pages/rolling/insights/2026-08-03.astro").read_text(encoding="utf-8")
+    hist = (ROOT / "src/pages/rolling/insights/2026-08-04.astro").read_text(encoding="utf-8")
     for marker in (
+        "8月5日滚动信号收盘复盘",
         "8月4日滚动信号收盘复盘",
         "8月3日滚动信号收盘复盘",
         "7月31日滚动信号收盘复盘",
@@ -29,14 +30,15 @@ def test_daily_rolling_reports_cover_latest_dates():
         "买入条件",
         "卖出纪律",
         'RollingSubnav active="insights"',
-        "东方明珠",
-        "上海电气",
+        "三安光电",
+        "国民技术",
+        "白银现货",
     ):
         assert marker in page + component + data + hist
-    assert "2026-08-04" in data and "2026-08-03" in data
-    assert "rollingDailyReports['2026-08-04']" in page
-    assert "/rolling/insights/2026-08-03/" in data
-    assert not (ROOT / "src/pages/rolling/insights/2026-08-04.astro").exists() or True
+    assert "2026-08-05" in data and "2026-08-04" in data
+    assert "rollingDailyReports['2026-08-05']" in page
+    assert "/rolling/insights/2026-08-04/" in data
+    assert (ROOT / "src/pages/rolling/insights/2026-08-04.astro").exists()
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -69,10 +71,11 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
+    assert "2026-08-05" in catalog
     assert "2026-08-04" in catalog
     assert "2026-08-03" in catalog
     assert "2026-07-31" in catalog
     assert "2026-07-30" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
-    assert "/rolling/insights/2026-08-04 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-05 /rolling/insights/ 301" in redirects
