@@ -171,13 +171,13 @@ const rows = intersectionRows.map((row) => {
                     <span class="chip-institutional" title={`机构股东：${row.institutionalShareholderNames.join('、')}`}>机构股东 ●</span>
                   ) : null}
                 </div>
-                <div class="chip-row-metrics" aria-label="三周期收盘获利比例">
+                <div class="chip-row-metrics" aria-label="三周期收盘获利比例与查询日期">
                   <span class="chip-metric"><em class="chip-val">{row.week}%</em><small>周线</small></span>
                   <span class="chip-metric"><em class="chip-val">{row.month}%</em><small>月线</small></span>
                   <span class="chip-metric"><em class="chip-val">{row.quarter}%</em><small>季线</small></span>
+                  <span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">{asOfLabel || lowChipData.data_as_of}</em><small>日期</small></span>
                 </div>
                 <div class="chip-row-footer">
-                  <span class="chip-asof" title="查询日期股价">{asOfLabel || lowChipData.data_as_of}</span>
                   <span class="chip-price">¥{fmt(row.price)}</span>
                   <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
                 </div>
@@ -349,13 +349,13 @@ const rows = intersectionRows.map((row) => {
                 '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
-              '<div class="chip-row-metrics" aria-label="三周期收盘获利比例">' +
+              '<div class="chip-row-metrics" aria-label="三周期收盘获利比例与查询日期">' +
                 '<span class="chip-metric"><em class="chip-val">' + fmt(row.week, 1) + '%</em><small>周线</small></span>' +
                 '<span class="chip-metric"><em class="chip-val">' + fmt(row.month, 1) + '%</em><small>月线</small></span>' +
                 '<span class="chip-metric"><em class="chip-val">' + fmt(row.quarter, 1) + '%</em><small>季线</small></span>' +
+                '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
               '</div>' +
               '<div class="chip-row-footer">' +
-                '<span class="chip-asof" title="查询日期股价">' + esc(asOfLabel) + '</span>' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
                 '<span class="chip-change ' + changeCls + '">' + changeText + '</span>' +
               '</div>' +
@@ -617,10 +617,11 @@ const rows = intersectionRows.map((row) => {
   .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
   .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:64px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
   .chip-metric:first-child{border-left:0}
+  .chip-metric-asof{min-width:92px}
   .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
   .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
+  .chip-asof-val{font-variant-numeric:tabular-nums;letter-spacing:.01em}
   .chip-row-footer{display:flex;align-items:center;gap:.55rem;margin-left:auto}
-  .chip-asof{color:#8b98a9;font-size:.68rem;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
   .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
   .chip-change{font-size:.8rem;font-weight:800;min-width:56px;padding:.22rem .5rem;border-radius:999px;text-align:center;background:#f1f5f9}
   .chip-up{color:#b91c1c}
