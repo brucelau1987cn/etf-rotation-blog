@@ -54,21 +54,30 @@ const nameInitials = (name: string) => {
 };
 
 const PAGE_SIZE = 6;
-const rows = intersectionRows.map((row) => ({
-  ...row,
-  week: fmt(valuesBySymbol[row.symbol].week, 1),
-  month: fmt(valuesBySymbol[row.symbol].month, 1),
-  quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
-  nameInitials: nameInitials(row.name),
-  industry: lowChipData.enrichments?.[row.symbol]?.industry || '待补充',
-  sector: lowChipData.enrichments?.[row.symbol]?.sector || '待补充',
-  qualityShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.quality_shareholder),
-  qualityShareholderNames: lowChipData.enrichments?.[row.symbol]?.quality_shareholder_names || [],
-  institutionalShareholder: Boolean(lowChipData.enrichments?.[row.symbol]?.institutional_shareholder),
-  institutionalShareholderNames: lowChipData.enrichments?.[row.symbol]?.institutional_shareholder_names || [],
-  financials: lowChipData.enrichments?.[row.symbol]?.financials || {},
-  shareholderMetrics: lowChipData.enrichments?.[row.symbol]?.shareholder_metrics || {},
-}));
+const asOfLabel = String(lowChipData.data_as_of || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3');
+const rows = intersectionRows.map((row) => {
+  const enr = lowChipData.enrichments?.[row.symbol] || {};
+  const sector = enr.sector || '待补充';
+  const theme = enr.theme_concept || '';
+  return {
+    ...row,
+    week: fmt(valuesBySymbol[row.symbol].week, 1),
+    month: fmt(valuesBySymbol[row.symbol].month, 1),
+    quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
+    nameInitials: nameInitials(row.name),
+    industry: enr.industry || '待补充',
+    sector,
+    sectorWithTheme: enr.sector_with_theme || (theme ? `${sector}（${theme}）` : sector),
+    themeConcept: theme,
+    themeConcepts: enr.theme_concepts || [],
+    qualityShareholder: Boolean(enr.quality_shareholder),
+    qualityShareholderNames: enr.quality_shareholder_names || [],
+    institutionalShareholder: Boolean(enr.institutional_shareholder),
+    institutionalShareholderNames: enr.institutional_shareholder_names || [],
+    financials: enr.financials || {},
+    shareholderMetrics: enr.shareholder_metrics || {},
+  };
+});
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -153,7 +162,9 @@ const rows = intersectionRows.map((row) => ({
               <div class="chip-row-top">
                 <div class="chip-row-main">
                   <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-row-code">{row.symbol}</span></div>
-                  <span class="chip-industry" title={row.industry}>{row.sector}</span>
+                  <span class="chip-industry" title={row.themeConcept ? `${row.industry} · 近期贴合：${row.themeConcepts.join('、') || row.themeConcept}` : row.industry}>
+                    {row.sector}{row.themeConcept ? <em class="chip-theme">（{row.themeConcept}）</em> : null}
+                  </span>
                   {row.qualityShareholder ? (
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
                   ) : row.institutionalShareholder ? (
@@ -166,6 +177,7 @@ const rows = intersectionRows.map((row) => ({
                   <span class="chip-metric"><em class="chip-val">{row.quarter}%</em><small>季线</small></span>
                 </div>
                 <div class="chip-row-footer">
+                  <span class="chip-asof" title="查询日期股价">{asOfLabel || lowChipData.data_as_of}</span>
                   <span class="chip-price">¥{fmt(row.price)}</span>
                   <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
                 </div>
@@ -197,7 +209,7 @@ const rows = intersectionRows.map((row) => ({
       <footer class="data-note">
         <strong>数据来源：iWenCai</strong>
         <span id="chip-data-note">筛选日期：{lowChipData.data_as_of} · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
-        <p>已剔除北交所与未来3个月存在限售股解禁的标的。股东分级：优质股东为社保、养老、国家大基金、国新及主权资金等长期资本；机构股东覆盖公募、保险、阳光私募、QFII/外资、香港中央结算及产业资本。标记属于股东结构观察项。</p>
+        <p>已剔除北交所与未来3个月存在限售股解禁的标的。股东分级：优质股东为社保、养老、国家大基金、国新及主权资金等长期资本；机构股东覆盖公募、保险、阳光私募、QFII/外资、香港中央结算及产业资本。标记属于股东结构观察项。行业后括号为近期概念贴合（同花顺所属概念，排除行业重复与沪深股通等宽泛标签）。</p>
       </footer>
     </main>
     <Footer />
@@ -297,6 +309,8 @@ const rows = intersectionRows.map((row) => ({
             quarter: quarterMap[symbol] ? quarterMap[symbol].value : null,
             industry: enr.industry || '待补充',
             sector: enr.sector || '待补充',
+            themeConcept: enr.theme_concept || '',
+            themeConcepts: enr.theme_concepts || [],
             qualityShareholder: !!enr.quality_shareholder,
             qualityShareholderNames: enr.quality_shareholder_names || [],
             institutionalShareholder: !!enr.institutional_shareholder,
@@ -308,7 +322,7 @@ const rows = intersectionRows.map((row) => ({
         });
       }
 
-      function rowHtml(row, index) {
+      function rowHtml(row, index, asOf) {
         var change = Number(row.change_percent);
         var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
         var changeText = (change >= 0 ? '+' : '') + fmt(change) + '%';
@@ -318,15 +332,21 @@ const rows = intersectionRows.map((row) => ({
         } else if (row.institutionalShareholder) {
           badge = '<span class="chip-institutional" title="机构股东：' + esc((row.institutionalShareholderNames || []).join('、')) + '">机构股东 ●</span>';
         }
+        var theme = row.themeConcept || '';
+        var themeTitle = theme
+          ? esc(row.industry) + ' · 近期贴合：' + esc((row.themeConcepts || []).join('、') || theme)
+          : esc(row.industry);
+        var themeHtml = theme ? '<em class="chip-theme">（' + esc(theme) + '）</em>' : '';
+        var asOfLabel = String(asOf || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3') || String(asOf || '');
         var sm = row.shareholderMetrics || {};
         var changePct = sm.shareholder_change_pct;
         var changeClass = Number(changePct) <= 0 ? 'is-concentrating' : 'is-dispersing';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(theme) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong><span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
-                '<span class="chip-industry" title="' + esc(row.industry) + '">' + esc(row.sector) + '</span>' +
+                '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
               '<div class="chip-row-metrics" aria-label="三周期收盘获利比例">' +
@@ -335,6 +355,7 @@ const rows = intersectionRows.map((row) => ({
                 '<span class="chip-metric"><em class="chip-val">' + fmt(row.quarter, 1) + '%</em><small>季线</small></span>' +
               '</div>' +
               '<div class="chip-row-footer">' +
+                '<span class="chip-asof" title="查询日期股价">' + esc(asOfLabel) + '</span>' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
                 '<span class="chip-change ' + changeCls + '">' + changeText + '</span>' +
               '</div>' +
@@ -444,7 +465,7 @@ const rows = intersectionRows.map((row) => ({
       function paint(data) {
         currentDate = data.data_as_of || currentDate;
         var rows = buildRows(data);
-        var html = rows.map(rowHtml).join('') +
+        var html = rows.map(function(row, index) { return rowHtml(row, index, currentDate); }).join('') +
           '<div class="chip-row chip-row-empty" id="chip-search-empty" hidden><strong>没有匹配标的</strong><span>换个代码、名称或首字母试试</span></div>';
         list.innerHTML = html;
         empty = document.getElementById('chip-search-empty');
@@ -589,6 +610,7 @@ const rows = intersectionRows.map((row) => ({
   .chip-row-name{font-size:.95rem;color:#14243b}
   .chip-row-code{color:#64748b;font-size:.78rem}
   .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:nowrap}
+  .chip-theme{margin-left:.05rem;color:#9a3412;font-style:normal;font-weight:800}
   .chip-quality{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
   .chip-institutional{border-color:#cbd5e1;background:#f8fafc;color:#475569}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
@@ -597,7 +619,8 @@ const rows = intersectionRows.map((row) => ({
   .chip-metric:first-child{border-left:0}
   .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
   .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
-  .chip-row-footer{display:flex;align-items:center;gap:.75rem;margin-left:auto}
+  .chip-row-footer{display:flex;align-items:center;gap:.55rem;margin-left:auto}
+  .chip-asof{color:#8b98a9;font-size:.68rem;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
   .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
   .chip-change{font-size:.8rem;font-weight:800;min-width:56px;padding:.22rem .5rem;border-radius:999px;text-align:center;background:#f1f5f9}
   .chip-up{color:#b91c1c}

@@ -61,6 +61,9 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert any("社保基金" in n for n in data["enrichments"]["600605.SH"]["quality_shareholder_names"])
     assert data["enrichments"]["600605.SH"]["institutional_shareholder"] is True
     assert any("私募" in n or "基金" in n for n in data["enrichments"]["600605.SH"]["institutional_shareholder_names"])
+    assert data["enrichments"]["600605.SH"]["theme_concept"]
+    assert "（" in data["enrichments"]["600605.SH"]["sector_with_theme"]
+    assert "芯片" in data["enrichments"]["600605.SH"]["theme_concept"] or data["enrichments"]["600605.SH"]["theme_concepts"]
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}
@@ -112,10 +115,14 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         ".chip-page-num.is-active",
         ".chip-pager[hidden],.chip-row[hidden]",
         "chip-industry",
+        "chip-theme",
+        "chip-asof",
         "chip-quality",
         "优质股东 ✓",
         "机构股东 ●",
         "institutionalShareholder",
+        "themeConcept",
+        "查询日期股价",
         'data-filter="roe"',
         'data-filter="net-margin"',
         'data-filter="cash-profit"',
