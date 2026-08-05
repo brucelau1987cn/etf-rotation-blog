@@ -39,6 +39,13 @@ export const beijingIsoDay = (now = new Date()) => new Intl.DateTimeFormat('en-C
   timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
 }).format(now);
 
+export const renderDeliveryCountdown = (days) => {
+  if (days === null || days === undefined || !Number.isFinite(Number(days))) return '';
+  const n = Math.max(0, Number(days));
+  if (n === 0) return '今日交割';
+  return `距交割 <strong class="delivery-days">${n}</strong> 天`;
+};
+
 export const updateDeliveryCountdown = (now = new Date()) => {
   const dateNode = document.getElementById('delivery-date');
   const countdownNode = document.getElementById('delivery-countdown');
@@ -49,7 +56,10 @@ export const updateDeliveryCountdown = (now = new Date()) => {
   dateNode.textContent = delivery;
   dateNode.dataset.deliveryDate = delivery;
   const days = deliveryCountdown(delivery, today);
-  countdownNode.textContent = days === 0 ? '今日交割' : `距交割 ${days} 天`;
+  if (days === null) return;
+  countdownNode.dataset.days = String(days);
+  countdownNode.classList.toggle('is-urgent', days <= 7);
+  countdownNode.innerHTML = renderDeliveryCountdown(days);
 };
 
 if (typeof document !== 'undefined') {
