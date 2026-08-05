@@ -75,6 +75,10 @@ A_SHARE_MANAGED = {
     RESEARCH_AUDIT_FILE,
     PAPER_TRADING_FILE,
     *GENERATED_PUBLIC_FILES,
+    # Temporary 08:30 closure expansion when nightly final never mounted:
+    # shadow/path-shadow must advance with qfq baseline or batch validation fails.
+    "public/data/model-lab/a-share-shadow.json",
+    "public/data/model-lab/a-share-path-shadow.json",
 }
 
 
