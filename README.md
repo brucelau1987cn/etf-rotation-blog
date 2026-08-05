@@ -5,89 +5,146 @@
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
 [![Build](https://img.shields.io/github/actions/workflow/status/brucelau1987cn/etf-rotation-blog/validate.yml?branch=main&style=flat-square&label=build)](https://github.com/brucelau1987cn/etf-rotation-blog/actions/workflows/validate.yml)
 
-面向 A股、港股与美股的 ETF/股票研究和交易决策仪表盘，提供实时行情、滚动多空信号、趋势风控、宏观约束、历史验证和模拟交易。前端基于 Astro，生产环境运行于 Cloudflare Pages、Functions 与 D1。
+面向 A股、港股、美股与商品期货的研究/交易决策仪表盘：实时行情、滚动多空信号、ETF 轮动、宏观约束、历史验证与模拟交易。前端 Astro，生产环境 Cloudflare Pages + Functions + D1。
 
 **在线访问：[https://etf.peekabo.cc/](https://etf.peekabo.cc/)**
 
-快速入口：[A股罗盘](https://etf.peekabo.cc/a-compass/) · [滚动罗盘](https://etf.peekabo.cc/rolling/) · [期货滚动](https://etf.peekabo.cc/rolling/futures/) · [港股滚动](https://etf.peekabo.cc/rolling/hk/) · [美股罗盘](https://etf.peekabo.cc/us-compass/) · [期货罗盘](https://etf.peekabo.cc/futures-compass/) · [财经日历](https://etf.peekabo.cc/calendar/)
+快速入口：
+[A股罗盘](https://etf.peekabo.cc/a-compass/) ·
+[滚动罗盘](https://etf.peekabo.cc/rolling/) ·
+[低筹码股](https://etf.peekabo.cc/rolling/low-chip/) ·
+[期货滚动](https://etf.peekabo.cc/rolling/futures/) ·
+[美股罗盘](https://etf.peekabo.cc/us-compass/) ·
+[期货罗盘](https://etf.peekabo.cc/futures-compass/) ·
+[宏观数据](https://etf.peekabo.cc/futures-compass/jin10/) ·
+[金银持仓](https://etf.peekabo.cc/futures-compass/holdings/) ·
+[模拟盘](https://etf.peekabo.cc/paper/)
 
 > 本项目提供研究与教育信息，不构成投资建议。影子模型仅用于研究和审计，不改变正式动作、权重、关键位或模拟执行规则。
 
 ## 主要页面
 
-- `/a-compass/`：A 股 ETF 罗盘与正式动作摘要
-- `/a-momentum/`：A 股 ETF 动量和全池浏览
+### A股 / 美股罗盘
+- `/a-compass/`：A 股 ETF 罗盘与正式动作摘要（08:30 / 11:30 / 14:30 / 22:00 四窗）
+- `/a-momentum/`：A 股 ETF 动量与全池
 - `/a-macro/`：A 股中观与风险约束
-- `/rolling/`、`/rolling/futures/`、`/rolling/hk/`、`/rolling/us/`：A股、期货、港股与美股滚动多空能量传导
 - `/us-compass/`、`/us-momentum/`、`/us-macro/`：美股 ETF 对应页面
+
+### 滚动罗盘（一级导航）
+二级固定顺序：**A股 → 期货 → 港股 → 美股**
+- `/rolling/`：A 股滚动多空能量传导
+- `/rolling/futures/`：期货/现货滚动（当前白银现货 `SI=F` / `hf_XAG`）
+- `/rolling/hk/`、`/rolling/us/`：港股 / 美股滚动
+- `/rolling/low-chip/`：低筹码股（周/月/季三周期交集，横条双行）
+- `/rolling/insights/`：滚动详细解读（盘后日更）
+
+### 期货罗盘
+- `/futures-compass/`：期货看板与简报
+- `/futures-compass/jin10/`：宏观数据（金十日历；原 `/calendar/` 301 到此）
+- `/futures-compass/holdings/`：金银 ETF 日频持仓（含 `change=0` 日）
+
+### 其他
 - `/paper/`：公开模拟交易快照
-- `/lab/`：只读研究与影子模型结果
-- `/research-framework/`：风口瓶颈、公司对抗研究、证据校验、论文追踪与异动归因
-- `/calendar/`：金十财经日历（宏观数据与重要事件，按北京时间，含影响方向标签）
+- `/lab/`：只读研究与影子模型
+- `/research-framework/`：研究框架与证据层
 
 ## 核心能力
 
-- **多市场决策罗盘**：A股、港股、美股及商品期货统一导航与状态呈现。
-- **实时行情覆盖**：Cloudflare Edge 行情接口，支持批量报价、缓存分层和多数据源降级。
-- **滚动多空信号**：观察窗口与正式窗口分层显示，多标的同屏、信号时间精确到秒。
-- **交易时段控制**：D1 保存 A股、港股、美股交易日历；仅在有效交易时段刷新行情，休市自动暂停。
-- **风险与研究隔离**：正式动作、影子模型、历史审计和模拟交易保持明确边界。
-- **数据契约与构建门禁**：公开 JSON Schema、批次一致性、敏感字段与静态产物自动校验。
+- **多市场决策罗盘**：A股 / 港股 / 美股 / 商品期货统一导航与状态呈现。
+- **实时行情**：Edge Quote（腾讯 → 新浪 → 雪球等降级），批量报价 + 短缓存。
+- **滚动多空信号**：
+  - TradingView Webhook → D1 日锁（first-write-wins）
+  - 信号点股价服务端 1m close 入库，前端不扇出 kline
+  - 能量矩阵列按 `triggered_at` **时间序**排列；后出现的多方落在更早空方右侧
+  - 多方/空方各最多展示最新 4 个正式窗口
+- **金银持仓**：金十 ETF 报告代理，`attr_id=1|2&all=1` 保留 0 变动日；D1 缓存 ≤2 天热读
+- **低筹码股**：iWenCai 周/月/季筛选 + 日归档历史查询
+- **交易时段控制**：D1 多市场日历；休市停轮询、连续品种（金银油美元）24H 独立刷新
+- **风险与研究隔离**：正式动作、影子模型、历史审计、模拟交易边界清晰
+- **数据契约与构建门禁**：Schema、批次一致性、敏感字段与静态产物校验
 
 ## 技术架构
 
 ```text
-Astro 静态页面
-  ├─ Cloudflare Pages
-  ├─ Pages Functions：行情、市场日历、金十日历/MCP 代理、Webhook、登录与上传 API
-  ├─ Cloudflare D1：用户会话、多市场交易日历与金十日历归档
-  ├─ Edge Quote API：腾讯 → 新浪 → 雪球降级链路
-  └─ JSON 数据契约：Schema、目录、快照与审计记录
+Astro 静态页面 (dist/)
+  ├─ Cloudflare Pages（主站 etf.peekabo.cc）
+  ├─ Pages Functions
+  │    quote / kline / market-calendar
+  │    rolling-signals（D1 日板 + LKG）
+  │    jin10-calendar / jin10-mcp-calendar
+  │    jin10-etf-reports / jin10-indicator-history
+  │    TradingView webhook / auth / upload
+  ├─ Cloudflare D1 (etf-compass-auth)
+  │    rolling_signals · jin10_calendar_items · jin10_etf_holdings
+  │    market_calendar · auth/session
+  ├─ Edge Quote：腾讯 → 新浪 → 雪球
+  └─ JSON 契约：public/data + public/schemas + catalog
 ```
 
-现有路由由 `src/pages/` 定义；Phase 1 数据契约不调整页面路径。
+生产以 **`wrangler pages deploy dist`** 为准；`git push` 只更新 GitHub。
 
-## 公开数据契约
+## 滚动信号（D1 日锁）
 
-- 核心目录：`/data/catalog.json`
-- A 股精简看板：`/data/a-compass-dashboard.json`
-- JSON Schema：`/schemas/*.schema.json`
-- 字段、时间、null/unknown、角色和兼容政策：[`docs/data-contracts.md`](docs/data-contracts.md)
+```text
+TradingView POST /api/v1/tradingview
+  → 解析 trigger 分钟价（payload 或 Edge kline?at=）
+  → D1 INSERT OR IGNORE
+       PK (trade_date, symbol, cycle_code, signal)
+  → 当日同节点只锁首次；可选 WxPusher / Telegram
 
-目录记录核心公开文件的角色、市场、Schema 版本、观察日、生成时间、完整率、降级状态、通用来源类别、稳定语义摘要、原始 SHA-256、字节数和公开 URL。稳定 `batch_id` 由数据语义生成，不依赖文件修改时间。
+GET /api/public/v1/rolling-signals?symbol=
+  → 静态 LKG + 当日 D1 合并
+  → storage=d1 表示走了日板
+```
+
+前端：`public/js/a-rolling-app.js` + `ARollingEnergyMatrix.astro`  
+正式多方窗：`2h…8h`（观察 `1.75h/105m`）  
+正式空方窗：`15m…240m`（观察 `10m`；`240m` 展示「停止验证 240m」）
+
+## 金银持仓
+
+- 页面：`/futures-compass/holdings/`
+- API：`GET /api/public/v1/jin10-etf-reports?attr_id=1|2&limit=15`
+  - `attr_id=1` 黄金 ETF，`attr_id=2` 白银 ETF
+  - 日频默认；`unit=week` 为周聚合
+  - 上游日频必须带 **`all=1`**，否则 `change=0` 日被过滤
+- 缓存：D1 `jin10_etf_holdings` 优先（行数够且最新 ≤2 天）；否则拉上游并 `waitUntil` 落库
+- 浏览器：`public/js/jin10-holdings-app.js`（打开即拉，无独立 cron）
+
+## 金十宏观数据
+
+- 页面：`/futures-compass/jin10/`（`/calendar/` → 301）
+- 直连：`GET /api/public/v1/jin10-calendar?date=YYYY-MM-DD`
+- MCP：`GET /api/public/v1/jin10-mcp-calendar`（当前自然周 + `affect_txt`）
+- 指标历史：`GET /api/public/v1/jin10-indicator-history?id=…`
+- 独立可复用代理：[`brucelau1987cn/jin10-mcp-proxy`](https://github.com/brucelau1987cn/jin10-mcp-proxy)
 
 ## 实时行情契约
 
-- Edge API：`GET /api/public/v1/quote?symbols=600021.SH,XLC`
+- Edge API：`GET /api/public/v1/quote?symbols=600021.SH,hf_XAG,SI=F`
 - 响应：`{ status: "ok", source, count, quotes: { [code]: { price, change_percent, ... } } }`
-- 客户端统一适配：`src/lib/normalizeQuotePayload.mjs`（ESM）与 `/js/normalize-quote-payload.js`（浏览器 IIFE，`window.EtfQuote`）
+- 客户端适配：`src/lib/normalizeQuotePayload.mjs` + `/js/normalize-quote-payload.js`（`window.EtfQuote`）
 - 可见性轮询：`/js/etf-live-poll.js`（`window.EtfLivePoll`）
-- 行情服务源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)
-  - 修改源仓后执行 `npm run sync:quote` 拷贝到 `functions/api/public/v1/quote.js`
-  - 改适配器后执行 `npm run sync:adapter` 做 ESM/IIFE 行为校验
-- Edge 双层短缓存 + 静态资源长缓存 + 生产探针：详见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)
+- 源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)  
+  - `npm run sync:quote` / `npm run sync:adapter`
+- 部署/缓存探针：[`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)
 
-`git push` 只更新 GitHub；**生产站点以 Cloudflare Pages 直接部署为准**。
+## 定时链路（摘要）
 
-## 金十财经日历
+| 时段 | 作用 |
+|------|------|
+| 08:30 / 11:40 / 14:30 | A 股罗盘阶段内容 + 原子发布 |
+| 17:00 | 低筹码股日更 |
+| 18:00 | 滚动详细解读日更 |
+| 21:00 / 21:50 / 22:00 / 22:30 | A 股 qfq 缓存 → prepare 门禁 → 夜间内容 → 确定性发布 |
+| 美股 06:30 等 | 美股收盘罗盘 / paper / 影子扫描 |
+| 期货 08:30 / 15:20 / 23:10 | 期货罗盘 preopen / day-close / night |
 
-日历页 `/calendar/` 由两条数据链路合并渲染：
-
-- **直连 API**：`GET /api/public/v1/jin10-calendar?date=YYYY-MM-DD`（支持 `start_date`/`end_date` 区间，最多31天）
-  - 上游 `rili-open-api.jin10.com/data/week_info`
-  - 每条含 `impact` 方向（`affect=1 → 利空`、`affect=2 → 利多`，需 `show_affect=1` 且 `actual` 已公布）
-  - `?sync=1` + `Authorization: Bearer <JIN10_SYNC_TOKEN>` 归档到 D1 `jin10_calendar_items`
-- **MCP 代理**：`GET /api/public/v1/jin10-mcp-calendar`
-  - 直接调用金十 MCP 服务器（JSON-RPC over HTTP/SSE，无需 MCP SDK），返回当前自然周全部日历
-  - 每条含 `affect_txt`（利空/利多/影响较小），覆盖全部指标
-  - 多 token 轮询：`JIN10_MCP_TOKEN` 逗号分隔多个 token，按分钟取模轮询放大每日配额（1500次/天/工具/token）
-  - 前端按 `impact || affect_txt` 合并渲染标签（利空绿/利多红/影响较小灰）
-
-详细说明见 `skills/research/jin10-calendar/SKILL.md`；独立可复用版见 [`brucelau1987cn/jin10-mcp-proxy`](https://github.com/brucelau1987cn/jin10-mcp-proxy)。
+多 publisher 共享 worktree：外脏路径会硬拦（`korea-tech-factor-shadow.json` / `us-selector-shadow.json` 豁免）。夜间 `base_commit` 漂移需重跑 prepare。
 
 ## 开发
 
-要求 Node.js 22.12+ 与 Python 3.12（Python 3.11 亦可用于当前本地测试）。包管理使用 **npm**（`package-lock.json`）；`pnpm-lock.yaml` 仅为历史残留，请勿混用。
+要求 Node.js 22.12+ 与 Python 3.12（3.11 亦可）。包管理 **npm**（`package-lock.json`）。
 
 ```sh
 npm ci
@@ -104,89 +161,91 @@ npm run audit
 git diff --check
 ```
 
-`npm run build` 的发布门禁顺序为：
+`npm run build` 门禁顺序：
 
-1. 校验跨文件批次一致性；
-2. 生成 A 股浏览器精简看板；
-3. 生成公开数据目录；
-4. 校验 Schema、目录完整性与公开字段安全；
-5. 执行 Astro 静态构建。
+1. 启动 build Python / 期货快照新鲜度
+2. 跨文件批次一致性（A 股 + 美股）
+3. 生成浏览器精简看板与公开目录
+4. Schema / 目录 / 字段安全
+5. Astro 静态构建 + JS 版本注入
 
-契约验证会阻断哈希或字节数不一致、错误 URL/角色/日期、未披露的未知或降级状态、重复证券代码、批次漂移、敏感字段、私有路径、HTML 分隔符及非有限数值。
+**页面-only 改动**（`.astro` / CSS / JS，数据 JSON 未变）可：
+
+```sh
+rm -rf dist && npx astro build
+node scripts/inject_public_js_version.mjs dist
+```
 
 ## 生产发布（Cloudflare Pages）
 
-校验通过后，正式上线必须直接部署 `dist`：
-
 ```sh
 # 1) 构建
-npm run build
+npm run build   # 或页面-only: npx astro build + inject
 
-# 2) 加载 Cloudflare token（本机约定路径）
-source ~/.hermes/credentials/cloudflare-pages.env
+# 2) 凭证
+set -a; . ~/.hermes/credentials/cloudflare-pages.env; set +a
 
-# 3) 部署
+# 3) 部署（shadow 脏树需 --commit-dirty=true）
 npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
 
-# 4) 探针：确认线上 HTML 已含新适配器、页面 app 脚本、缓存头与 quote 路径
+# 4) 探针
 npm run verify:pages
 ```
 
-或合并构建+部署：
+或：
 
 ```sh
-source ~/.hermes/credentials/cloudflare-pages.env
-npm run deploy:pages
-npm run verify:pages
-```
-
-### 一键双活发布（推荐）
-
-```sh
-# edge Worker 次路径 + blog Pages 主路径 + 探针
-npm run release:dual
-
-# 只发 Pages（跳过 Worker）
 npm run release:pages
-
-# 只跑生产探针
-bash scripts/release_dual_live.sh --verify-only
+npm run release:dual    # Pages + edge Worker
 ```
 
-凭证约定（本机，不入库）：
+凭证（本机，不入库）：
 
 - Pages：`~/.hermes/credentials/cloudflare-pages.env`
-- Workers：`~/.hermes/credentials/cloudflare-global.env`
-
-探针会检查：
-
-- 共享脚本与页面 app 资产内容标记
-- `/js/*` 长缓存（`max-age=31536000, immutable`）与 HTML 短缓存
-- 主交易页 / 工具页 / 文章页关键 DOM 与脚本引用
-- Pages quote：`status=ok` + session/TTL + warm HIT/age
-- Worker 次路径：`https://edge-quote-api.brucelau1987.workers.dev` status + HIT（可用 `SKIP_WORKER_PROBE=1` 跳过）
-
-完整契约见 [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)。
+- D1/Workers 全局：`~/.hermes/credentials/cloudflare-global.env`
 
 ## 项目结构
 
 ```text
-public/data/       公开 JSON 快照与目录
-public/js/         浏览器共享脚本与页面 app（行情适配器 / 轮询 / 各页客户端）
-public/schemas/    版本化 JSON Schema
-functions/         Cloudflare Pages Functions（quote / webhook / auth / jin10 日历与 MCP 代理）
-scripts/           数据生成、验证、同步、版本注入与静态审计
-docs/investment-research-layer.md  投资研究层实施与写入边界
-src/pages/         Astro 路由
-src/lib/           前端共享库（含 normalizeQuotePayload）
-src/content/       研究文章与历史内容
-tests/             Python 单元和流水线测试 + Node quote 测试
-docs/              方法与契约文档
+public/data/          公开 JSON 快照与目录
+public/js/            浏览器脚本（行情适配 / 轮询 / 滚动 / 持仓 / 罗盘）
+public/schemas/       JSON Schema
+functions/            Pages Functions
+  api/public/v1/      quote · kline · rolling-signals · jin10-*
+  _lib/               D1 helpers
+migrations/           D1 迁移（auth / calendar / rolling / jin10 holdings）
+scripts/              数据生成、门禁、发布器、Pages 探针
+src/pages/            路由
+  rolling/            滚动子页（futures / hk / us / low-chip / insights）
+  futures-compass/    期货罗盘 / 宏观数据 / 金银持仓
+src/components/       布局与看板组件（能量矩阵、摘要条等）
+src/content/blog/     A 股日更与研究文章
+tests/                Python + Node 回归
+docs/                 契约与运维文档
 ```
 
 ## 数据原则
 
-- 正式输出、影子研究、历史记录、运行快照和精简导出具有明确角色。
-- `null` 和 `unknown` 不解释为零；未知必须披露原因。
-- 页面使用的数据先生成、再编目、再校验；失败时构建关闭。
-- 公开契约只使用通用来源类别，不发布凭据、私有文件位置或运行实现细节。
+- 正式输出、影子研究、历史记录、运行快照角色分离。
+- `null` / 缺数 **不等于零**；未知必须披露。
+- 页面数据先生成、再编目、再校验；失败时构建关闭。
+- 公开契约不发布凭据、私有路径或内部实现细节。
+
+## 近期维护要点（2026-08）
+
+| 项 | 说明 |
+|----|------|
+| 滚动能量矩阵时间序 | 买卖共享列按触发时间左→右；后多方接在前空方后（`84e8a6e`） |
+| 金银持仓 `all=1` | 日频保留 `change=0`（如白银 08-03 +0.00t）（`5811ef8`） |
+| 低筹码股 | 仅股票页 `/rolling/low-chip/`，三周期交集 + 日归档 |
+| 滚动解读 | `/rolling/insights/` 全市场日更，禁单股页 |
+| 期货二级导航 | 期货罗盘 · 宏观数据 · 金银持仓 |
+| Footer | Veilx CDN 推广条 |
+| 发布耦合 | 多 cron 共享 worktree；dirty / `base_commit` / 批次校验会互锁 |
+
+## 相关文档
+
+- [`docs/data-contracts.md`](docs/data-contracts.md) — 公开数据契约
+- [`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md) — 部署与缓存探针
+- [`docs/investment-research-layer.md`](docs/investment-research-layer.md) — 研究层与写入边界
+- [`docs/nightly-github-trigger.md`](docs/nightly-github-trigger.md) — 夜间 GH 触发
