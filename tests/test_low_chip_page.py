@@ -127,6 +127,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "优质股东 ✓",
         "机构股东 ●",
         "institutionalShareholder",
+        ".chip-quality,.chip-institutional",
         "themeConcept",
         "查询日期股价",
         'data-filter="roe"',
