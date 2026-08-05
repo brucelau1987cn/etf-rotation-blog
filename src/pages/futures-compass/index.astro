@@ -105,7 +105,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
               data-days={String(deliveryDays)}
             >
               {deliveryDays === 0 ? '今日交割' : (
-                <>距交割 <strong class="delivery-days">{deliveryDays}</strong> 天</>
+                <>距交割 <span class="delivery-days">{deliveryDays}</span> 天</>
               )}
             </span>
           ) : null}

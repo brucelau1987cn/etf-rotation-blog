@@ -43,7 +43,8 @@ export const renderDeliveryCountdown = (days) => {
   if (days === null || days === undefined || !Number.isFinite(Number(days))) return '';
   const n = Math.max(0, Number(days));
   if (n === 0) return '今日交割';
-  return `距交割 <strong class="delivery-days">${n}</strong> 天`;
+  // Use span (not strong): global.css paints all strong black and would override white days.
+  return `距交割 <span class="delivery-days">${n}</span> 天`;
 };
 
 export const updateDeliveryCountdown = (now = new Date()) => {

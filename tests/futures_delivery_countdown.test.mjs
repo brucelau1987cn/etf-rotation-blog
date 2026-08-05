@@ -19,8 +19,8 @@ test('next delivery rolls to next month immediately after expiry', () => {
 
 test('countdown markup keeps days white and turns urgent within 7 days', () => {
   assert.equal(renderDeliveryCountdown(0), '今日交割');
-  assert.equal(renderDeliveryCountdown(16), '距交割 <strong class="delivery-days">16</strong> 天');
-  assert.equal(renderDeliveryCountdown(7), '距交割 <strong class="delivery-days">7</strong> 天');
+  assert.equal(renderDeliveryCountdown(16), '距交割 <span class="delivery-days">16</span> 天');
+  assert.equal(renderDeliveryCountdown(7), '距交割 <span class="delivery-days">7</span> 天');
 });
 
 test('page wires countdown to a daily browser-side updater', async () => {
