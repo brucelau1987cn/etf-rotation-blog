@@ -7,6 +7,8 @@
  *  - sell: green, lit by 10m
  * Formal rails:
  *  - buy / sell each show the latest 4 formal windows only (max 8 badges)
+ *  - columns are chronological by triggered_at (left → right)
+ *  - later BUY columns sit after earlier SELL columns on the shared timeline
  */
 (function() {
   const { normalizeQuotePayload, findQuoteItem } = window.EtfQuote || {};
@@ -141,15 +143,43 @@
   const isBuyObservation = (code) => code === '1.75h' || code === '105m';
   const isSellObservation = (code) => code === '10m';
 
-  /** Higher cycle rank is treated as the newer display window. */
+  const signalTimeMs = (item) => {
+    const ms = new Date(item?.triggered_at || item?.received_at || 0).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  };
+
+  /** Keep the latest N formal windows by trigger time; return chronological (old → new). */
   const takeLatestFormal = (items, orderIndex, limit = MAX_FORMAL_PER_SIDE) => {
     const sorted = items.slice().sort((a, b) => {
+      const ta = signalTimeMs(a);
+      const tb = signalTimeMs(b);
+      if (ta !== tb) return ta - tb;
       const oa = orderIndex(a.code);
       const ob = orderIndex(b.code);
       if (oa !== ob) return oa - ob;
-      return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+      return String(a.code || '').localeCompare(String(b.code || ''));
     });
     return sorted.slice(Math.max(0, sorted.length - limit));
+  };
+
+  /** Shared left→right columns: all selected formal signals ordered by trigger time. */
+  const buildChronologicalColumns = (buys, sells) => {
+    const columns = [
+      ...buys.map((item) => ({ kind: 'BUY', item })),
+      ...sells.map((item) => ({ kind: 'SELL', item })),
+    ];
+    return columns.sort((a, b) => {
+      const ta = signalTimeMs(a.item);
+      const tb = signalTimeMs(b.item);
+      if (ta !== tb) return ta - tb;
+      // Same timestamp: SELL before BUY keeps “先空后多” readable on rare ties.
+      if (a.kind !== b.kind) return a.kind === 'SELL' ? -1 : 1;
+      const orderIndex = a.kind === 'BUY' ? buyOrderIndex : sellOrderIndex;
+      const oa = orderIndex(a.item.code);
+      const ob = orderIndex(b.item.code);
+      if (oa !== ob) return oa - ob;
+      return String(a.item.code || '').localeCompare(String(b.item.code || ''));
+    });
   };
 
   const normalizeTimeline = (data) => {
@@ -270,35 +300,31 @@
       }
     };
 
-    // Sell rail is left-padded by buy count so formal sells sit after buys.
-    buys.forEach((item) => appendSpacer(sellContainer, item.code));
-    if (sells.length === 0) {
-      if (buys.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-rail';
-        empty.textContent = '空方信号暂无';
-        sellContainer.appendChild(empty);
-      }
-    } else {
-      sells.forEach((item) => appendBadge(sellContainer, item, 'SELL'));
+    if (buys.length === 0 && sells.length === 0) {
+      const sellEmpty = document.createElement('div');
+      sellEmpty.className = 'empty-rail';
+      sellEmpty.textContent = '空方信号暂无';
+      sellContainer.appendChild(sellEmpty);
+      const buyEmpty = document.createElement('div');
+      buyEmpty.className = 'empty-rail';
+      buyEmpty.textContent = '多方信号暂无';
+      buyContainer.appendChild(buyEmpty);
+      return;
     }
 
-    if (buys.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-rail';
-      empty.textContent = '多方信号暂无';
-      buyContainer.appendChild(empty);
-      sells.forEach((item) => {
-        appendSpacer(buyContainer, item.code);
-        if (item.code === '240m') appendSpacer(buyContainer, 'stop-validation');
-      });
-    } else {
-      buys.forEach((item) => appendBadge(buyContainer, item, 'BUY'));
-      sells.forEach((item) => {
-        appendSpacer(buyContainer, item.code);
-        if (item.code === '240m') appendSpacer(buyContainer, 'stop-validation');
-      });
-    }
+    // One shared timeline: each formal signal owns one column; opposite rail gets a spacer.
+    // Example: early SELLs first, later BUYs after them; a new BUY after a SELL sits to its right.
+    const columns = buildChronologicalColumns(buys, sells);
+    columns.forEach(({ kind, item }) => {
+      if (kind === 'BUY') {
+        appendBadge(buyContainer, item, 'BUY');
+        appendSpacer(sellContainer, item.code);
+        return;
+      }
+      appendBadge(sellContainer, item, 'SELL');
+      appendSpacer(buyContainer, item.code);
+      if (item.code === '240m') appendSpacer(buyContainer, 'stop-validation');
+    });
   };
 
   const formatStartDate = (value) => {

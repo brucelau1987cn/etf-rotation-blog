@@ -185,6 +185,10 @@ def test_summary_shows_today_only_signals_and_240m_stop_validation_card():
     assert "formatBadgePrice" in matrix
     assert "badge-price" in app
     assert "formatBadgePrice" in app
+    assert "buildChronologicalColumns" in app
+    assert "buildChronologicalColumns" in matrix
+    assert "列按触发时间从左到右排列" in matrix
+    assert "Sell rail is left-padded by buy count so formal sells sit after buys" not in app
     assert ".a-rolling-main .today-signal-row" not in styles
     assert ".a-rolling-main .stop-validation-card" in styles
     assert ".a-rolling-main .summary-signal-point.is-stop-validation" in styles

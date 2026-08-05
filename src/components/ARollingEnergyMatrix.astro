@@ -4,7 +4,8 @@
  * Layout:
  *  - left stock panel is fixed (never pans)
  *  - right signal panel scrolls horizontally
- *  - formal sell cells follow buy cells on the right
+ *  - shared columns are chronological by triggered_at (left → right)
+ *  - later BUY columns sit after earlier SELL columns
  * Display cap:
  *  - formal buy rail: latest 4 windows only
  *  - formal sell rail: latest 4 windows only
@@ -79,19 +80,49 @@ const formatBadgePrice = (value?: number | null, exchange?: string) => {
     : `¥${price.toFixed(2)}`;
 };
 
-/** Keep the most advanced formal windows (higher cycle rank = newer display). */
+const signalTimeMs = (item?: TimelineItem | null) => {
+  const ms = new Date(item?.triggered_at || 0).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+};
+
+/** Keep the latest N formal windows by trigger time; return chronological (old → new). */
 const takeLatestFormal = <T extends TimelineItem>(
   items: T[],
   orderIndex: (code: string) => number,
   limit = MAX_FORMAL_PER_SIDE,
 ) => {
   const sorted = items.slice().sort((a, b) => {
+    const ta = signalTimeMs(a);
+    const tb = signalTimeMs(b);
+    if (ta !== tb) return ta - tb;
     const oa = orderIndex(a.code);
     const ob = orderIndex(b.code);
     if (oa !== ob) return oa - ob;
-    return new Date(a.triggered_at || 0).getTime() - new Date(b.triggered_at || 0).getTime();
+    return String(a.code || '').localeCompare(String(b.code || ''));
   });
   return sorted.slice(Math.max(0, sorted.length - limit));
+};
+
+type FormalColumn = { kind: 'BUY' | 'SELL'; item: TimelineItem };
+
+/** Shared left→right columns: selected formal signals ordered by trigger time. */
+const buildChronologicalColumns = (buys: TimelineItem[], sells: TimelineItem[]): FormalColumn[] => {
+  const columns: FormalColumn[] = [
+    ...buys.map((item) => ({ kind: 'BUY' as const, item })),
+    ...sells.map((item) => ({ kind: 'SELL' as const, item })),
+  ];
+  return columns.sort((a, b) => {
+    const ta = signalTimeMs(a.item);
+    const tb = signalTimeMs(b.item);
+    if (ta !== tb) return ta - tb;
+    // Same timestamp: SELL before BUY keeps “先空后多” readable on rare ties.
+    if (a.kind !== b.kind) return a.kind === 'SELL' ? -1 : 1;
+    const orderIndex = a.kind === 'BUY' ? buyOrderIndex : sellOrderIndex;
+    const oa = orderIndex(a.item.code);
+    const ob = orderIndex(b.item.code);
+    if (oa !== ob) return oa - ob;
+    return String(a.item.code || '').localeCompare(String(b.item.code || ''));
+  });
 };
 
 const splitTimeline = (timeline: TimelineItem[] = []) => {
@@ -101,9 +132,11 @@ const splitTimeline = (timeline: TimelineItem[] = []) => {
   const allSells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
   const buys = takeLatestFormal(allBuys, buyOrderIndex);
   const sells = takeLatestFormal(allSells, sellOrderIndex);
+  const columns = buildChronologicalColumns(buys, sells);
   return {
     buys,
     sells,
+    columns,
     buyObservation,
     sellObservation,
     buyTotal: allBuys.length,
@@ -145,7 +178,7 @@ const nameInitials = (name: string) => {
     <div class="section-head-title">
       <h2 id="matrix-title">多标的双向能量传导</h2>
       <p class="matrix-sub">
-        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。空方正式信号排在多方序列右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 3 只；可用代码、名称或首字母检索。
+        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。列按触发时间从左到右排列；后出现的多方信号排在更早空方信号右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 3 只；可用代码、名称或首字母检索。
       </p>
     </div>
     <div class="matrix-controls">
@@ -185,7 +218,7 @@ const nameInitials = (name: string) => {
         <span>新标的须点名后接入。点名后会在此展示多方/空方正式窗口与观察点。</span>
       </div>
     ) : instruments.map((inst, index) => {
-      const { buys, sells, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
+      const { columns, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       const startDateText = formatStartDate(inst.startDate);
       const initials = nameInitials(inst.instrumentName);
       return (
@@ -223,28 +256,27 @@ const nameInitials = (name: string) => {
                     ></i>
                   </div>
                   <div class="cells-scroll" data-role="sell-cells">
-                    {buys.map((item) => (
-                      <div class="cell-spacer" data-align-buy={item.code} aria-hidden="true"></div>
-                    ))}
-                    {sells.length === 0 ? (
-                      buys.length === 0 ? (
-                        <div class="empty-rail">空方信号暂无</div>
-                      ) : null
+                    {columns.length === 0 ? (
+                      <div class="empty-rail">空方信号暂无</div>
                     ) : (
-                      sells.map((item) => (
-                        <>
-                          <div class="cell-badge sell-sell" data-sell-code={item.code}>
-                            <div class="badge-code">{item.code}</div>
-                            <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price, inst.exchange)}</div>
-                            <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
-                          </div>
-                          {item.code === '240m' ? (
-                            <div class="stop-validation-card" data-role="stop-validation" aria-label="空方力量达到240分钟，停止验证">
-                              <strong>停止验证</strong>
-                              <span>空方已达 240m</span>
+                      columns.map(({ kind, item }) => (
+                        kind === 'SELL' ? (
+                          <>
+                            <div class="cell-badge sell-sell" data-sell-code={item.code}>
+                              <div class="badge-code">{item.code}</div>
+                              <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price, inst.exchange)}</div>
+                              <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                             </div>
-                          ) : null}
-                        </>
+                            {item.code === '240m' ? (
+                              <div class="stop-validation-card" data-role="stop-validation" aria-label="空方力量达到240分钟，停止验证">
+                                <strong>停止验证</strong>
+                                <span>空方已达 240m</span>
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          <div class="cell-spacer" data-align-buy={item.code} aria-hidden="true"></div>
+                        )
                       ))
                     )}
                   </div>
@@ -261,32 +293,23 @@ const nameInitials = (name: string) => {
                     ></i>
                   </div>
                   <div class="cells-scroll" data-role="buy-cells">
-                    {buys.length === 0 ? (
-                      <>
-                        <div class="empty-rail">多方信号暂无</div>
-                        {sells.map((item) => (
-                          <>
-                            <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
-                            {item.code === '240m' ? <div class="cell-spacer" data-align-sell="stop-validation" aria-hidden="true"></div> : null}
-                          </>
-                        ))}
-                      </>
+                    {columns.length === 0 ? (
+                      <div class="empty-rail">多方信号暂无</div>
                     ) : (
-                      <>
-                        {buys.map((item) => (
+                      columns.map(({ kind, item }) => (
+                        kind === 'BUY' ? (
                           <div class="cell-badge buy-buy" data-buy-code={item.code}>
                             <div class="badge-code">{item.code}</div>
                             <div class="badge-price" title="信号点股价">{formatBadgePrice(item.price, inst.exchange)}</div>
                             <div class="badge-time">{formatTime(item.triggered_at, true, false)}</div>
                           </div>
-                        ))}
-                        {sells.map((item) => (
+                        ) : (
                           <>
                             <div class="cell-spacer" data-align-sell={item.code} aria-hidden="true"></div>
                             {item.code === '240m' ? <div class="cell-spacer" data-align-sell="stop-validation" aria-hidden="true"></div> : null}
                           </>
-                        ))}
-                      </>
+                        )
+                      ))
                     )}
                   </div>
                 </div>
