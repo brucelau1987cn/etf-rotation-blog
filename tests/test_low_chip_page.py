@@ -63,7 +63,12 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert any("私募" in n or "基金" in n for n in data["enrichments"]["600605.SH"]["institutional_shareholder_names"])
     assert data["enrichments"]["600605.SH"]["theme_concept"]
     assert "（" in data["enrichments"]["600605.SH"]["sector_with_theme"]
-    assert "芯片" in data["enrichments"]["600605.SH"]["theme_concept"] or data["enrichments"]["600605.SH"]["theme_concepts"]
+    assert isinstance(data["enrichments"]["600605.SH"]["theme_concepts"], list)
+    assert 1 <= len(data["enrichments"]["600605.SH"]["theme_concepts"]) <= 3
+    hist_0803 = json.loads((HISTORY_DIR / "2026-08-03.json").read_text(encoding="utf-8"))
+    baoming = hist_0803["enrichments"]["002992.SZ"]
+    assert baoming["theme_concepts"][:3] == ["小米概念", "无人机", "比亚迪概念"]
+    assert "小米概念" in baoming["sector_with_theme"] and "无人机" in baoming["sector_with_theme"] and "比亚迪概念" in baoming["sector_with_theme"]
 
     weekly_codes = {item["symbol"] for item in data["periods"]["week"]}
     monthly_codes = {item["symbol"] for item in data["periods"]["month"]}

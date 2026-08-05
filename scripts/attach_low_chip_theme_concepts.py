@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Attach theme/concept fit labels for low-chip stocks (同花顺所属概念).
 
-Picks a non-industry "why it's moving" concept for display, e.g.
-  商业物业经营（芯片概念）
+Picks up to 3 non-industry "why it's moving" concepts for display, e.g.
+  LED（小米概念、无人机、比亚迪概念）
 
 Usage:
   python3 scripts/attach_low_chip_theme_concepts.py
@@ -71,17 +71,21 @@ def is_generic(concept: str, tokens: set[str]) -> bool:
     return False
 
 
-def rank_key(concept: str) -> tuple:
-    hot = any(k in concept for k in ("芯片", "脑机", "液冷", "算力", "机器人", "AI", "存储", "光模块", "CPO", "半导体", "创新药", "商业航天"))
-    has_concept = "概念" in concept
-    return (0 if hot else 1, 0 if has_concept else 1, len(concept), concept)
-
-
-def pick_theme(concepts: list[str], industry: str, sector: str) -> tuple[str | None, list[str]]:
+def pick_theme(concepts: list[str], industry: str, sector: str, limit: int = 3) -> tuple[list[str], list[str]]:
+    """Keep original concept order after filtering; show up to `limit` themes."""
     tokens = industry_tokens(industry, sector)
-    filtered = [c for c in concepts if isinstance(c, str) and not is_generic(c, tokens)]
-    filtered = sorted(dict.fromkeys(filtered), key=rank_key)
-    return (filtered[0] if filtered else None, filtered[:5])
+    filtered: list[str] = []
+    seen: set[str] = set()
+    for c in concepts:
+        if not isinstance(c, str):
+            continue
+        c = c.strip()
+        if not c or c in seen or is_generic(c, tokens):
+            continue
+        seen.add(c)
+        filtered.append(c)
+    top = filtered[: max(1, limit)]
+    return top, filtered[:5]
 
 
 def query_concepts(symbols: list[str]) -> dict[str, list[str]]:
@@ -128,15 +132,16 @@ def attach(data: dict, concept_map: dict[str, list[str]] | None = None) -> dict:
                 if k.startswith(bare):
                     concepts = v
                     break
-        theme, themes = pick_theme(concepts, enr.get("industry") or "", enr.get("sector") or "")
+        themes, theme_pool = pick_theme(concepts, enr.get("industry") or "", enr.get("sector") or "", limit=3)
         enr["concepts"] = concepts
-        enr["theme_concept"] = theme
         enr["theme_concepts"] = themes
-        if theme:
-            sector = enr.get("sector") or "待补充"
-            enr["sector_with_theme"] = f"{sector}（{theme}）"
+        enr["theme_concept"] = "、".join(themes) if themes else None
+        enr["theme_concept_pool"] = theme_pool
+        sector = enr.get("sector") or "待补充"
+        if themes:
+            enr["sector_with_theme"] = f"{sector}（{'、'.join(themes)}）"
         else:
-            enr["sector_with_theme"] = enr.get("sector") or "待补充"
+            enr["sector_with_theme"] = sector
     data["theme_source"] = "iWenCai 所属概念 / 热门概念筛选"
     return data
 
