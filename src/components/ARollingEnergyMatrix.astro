@@ -11,7 +11,7 @@
  *  - formal sell rail: latest 4 windows only
  * Observation dots:
  *  - buy rail: red, lit by 1.75h (105m)
- *  - sell rail: green, lit by 10m
+ *  - sell rail: green, lit by 5m
  */
 type TimelineItem = {
   type: 'BUY' | 'SELL' | string;
@@ -39,7 +39,7 @@ type Props = {
 const { instruments = [], formatTime } = Astro.props;
 
 const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
-const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+const FORMAL_SELL_ORDER = ['10m', '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
 const MAX_FORMAL_PER_SIDE = 4;
 
 const buyOrderIndex = (code: string) => {
@@ -53,7 +53,7 @@ const sellOrderIndex = (code: string) => {
 };
 
 const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
-const isSellObservation = (code: string) => code === '10m';
+const isSellObservation = (code: string) => code === '5m';
 
 const formatStartDate = (value?: string | null) => {
   if (!value) return '—';
@@ -184,7 +184,7 @@ const nameInitials = (name: string) => {
     <div class="matrix-controls">
       <div class="legend-list">
         <span class="legend-item"><i class="dot dot-red"></i>多方 1.75h 观察</span>
-        <span class="legend-item"><i class="dot dot-green"></i>空方 10m 观察</span>
+        <span class="legend-item"><i class="dot dot-green"></i>空方 5m 观察</span>
         <span class="legend-item"><i class="dot dot-gray"></i>观察未触发</span>
       </div>
     </div>
@@ -251,7 +251,7 @@ const nameInitials = (name: string) => {
                     <i
                       class={`watch-dot sell-watch ${sellObservation ? 'lit' : ''}`}
                       data-role="sell-watch-dot"
-                      title={sellObservation ? `10m 观察已触发 ${formatTime(sellObservation.triggered_at, true, false)}` : '10m 观察窗口未触发'}
+                      title={sellObservation ? `5m 观察已触发 ${formatTime(sellObservation.triggered_at, true, false)}` : '5m 观察窗口未触发'}
                       aria-label={sellObservation ? '空方观察窗口已点亮' : '空方观察窗口未点亮'}
                     ></i>
                   </div>

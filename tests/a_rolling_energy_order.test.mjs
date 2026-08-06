@@ -8,7 +8,7 @@ const appSource = readFileSync(APP, 'utf8');
 const matrixSource = readFileSync(MATRIX, 'utf8');
 
 const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
-const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+const FORMAL_SELL_ORDER = ['10m', '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
 const MAX_FORMAL_PER_SIDE = 4;
 const buyOrderIndex = (code) => {
   const i = FORMAL_BUY_ORDER.indexOf(code);

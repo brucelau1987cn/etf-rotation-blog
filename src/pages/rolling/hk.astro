@@ -56,7 +56,7 @@ const summarize = (payloadItem: Payload) => {
         ...(payloadItem.sell_chain?.nodes || []).map((n) => ({ type: 'SELL', code: n.code, triggered_at: n.triggered_at, sell_state: n.sell_state })),
       ];
   const isBuyObs = (code: string) => code === '1.75h' || code === '105m';
-  const isSellObs = (code: string) => code === '10m';
+  const isSellObs = (code: string) => code === '5m';
   const b = t.filter((item) => item.type === 'BUY' && !isBuyObs(item.code));
   const s = t.filter((item) => item.type === 'SELL' && !isSellObs(item.code));
   const l = t
@@ -120,7 +120,7 @@ const pageDescription = '港股滚动看板：中国宏桥、澜起科技的多�
               <span class="pill live-pill" id="live-status-pill">实时连接中</span>
             </div>
             <h1 id="page-title">港股滚动</h1>
-            <p>中国宏桥、澜起科技展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 10m 观察窗。多方/空方各最多显示最新 4 个。</p>
+            <p>中国宏桥、澜起科技展示。红=多方正式买入，绿=空方正式卖出；标签后小圆为 1.75h / 5m 观察窗。多方/空方各最多显示最新 4 个。</p>
           </div>
         </div>
         <ARollingStatsStrip buyTotal={buyTotal} sellTotal={sellTotal} instruments={summaries} latestAction={latestAction} indexMarket="hk" />

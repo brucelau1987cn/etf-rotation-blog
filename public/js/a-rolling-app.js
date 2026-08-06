@@ -4,7 +4,7 @@
  *
  * Observation dots:
  *  - buy: red, lit by 1.75h / 105m
- *  - sell: green, lit by 10m
+ *  - sell: green, lit by 5m
  * Formal rails:
  *  - buy / sell each show the latest 4 formal windows only (max 8 badges)
  *  - columns are chronological by triggered_at (left → right)
@@ -18,7 +18,7 @@
   }
 
   const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
-  const FORMAL_SELL_ORDER = ['15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
+  const FORMAL_SELL_ORDER = ['10m', '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
   const MAX_FORMAL_PER_SIDE = 4;
   const A_INSTRUMENTS = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
@@ -141,7 +141,7 @@
   };
 
   const isBuyObservation = (code) => code === '1.75h' || code === '105m';
-  const isSellObservation = (code) => code === '10m';
+  const isSellObservation = (code) => code === '5m';
 
   const signalTimeMs = (item) => {
     const ms = new Date(item?.triggered_at || item?.received_at || 0).getTime();
@@ -386,8 +386,8 @@
     setWatchDot(
       board.querySelector('[data-role="sell-watch-dot"]'),
       !!sellObservation,
-      `10m 观察已触发 ${formatTime(sellObservation?.triggered_at, true, false)}`,
-      '10m 观察窗口未触发'
+      `5m 观察已触发 ${formatTime(sellObservation?.triggered_at, true, false)}`,
+      '5m 观察窗口未触发'
     );
   };
 
