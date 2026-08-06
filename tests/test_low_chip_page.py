@@ -26,15 +26,15 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert "收盘获利比例低于3%" in page
     assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
-    assert data["data_as_of"] == "2026-08-05"
+    assert data["data_as_of"] == "2026-08-06"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 2
-    assert len(data["periods"]["month"]) == 15
-    assert len(data["periods"]["quarter"]) == 75
-    assert len(data["intersection_before_filters"]) == 2
-    assert len(data["intersection"]) == 1
-    assert data["intersection"] == ["600363.SH"]
+    assert len(data["periods"]["week"]) == 5
+    assert len(data["periods"]["month"]) == 20
+    assert len(data["periods"]["quarter"]) == 86
+    assert len(data["intersection_before_filters"]) == 5
+    assert len(data["intersection"]) == 4
+    assert data["intersection"] == ["001232.SZ", "301677.SZ", "600363.SH", "603468.SH"]
     assert all(not code.endswith(".BJ") for code in data["intersection"])
     assert data["filters"]["excluded_bj"] == ["920038.BJ"]
     assert data["filters"]["excluded_unlock_risk"] == []
@@ -83,7 +83,8 @@ def test_low_chip_history_archive_and_query_ui():
     index = json.loads(HISTORY_INDEX.read_text(encoding="utf-8"))
     assert ARCHIVE_SCRIPT.exists()
     assert index["schema_version"] == "a-low-chip-history-index-v1"
-    assert index["latest"] == "2026-08-05"
+    assert index["latest"] == "2026-08-06"
+    assert "2026-08-06" in index["dates"]
     assert "2026-08-05" in index["dates"]
     assert "2026-08-03" in index["dates"]
     assert "2026-07-31" in index["dates"]
@@ -156,6 +157,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
-    assert "联创光电" in data
+    assert "嘉立创" in data
     assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()
