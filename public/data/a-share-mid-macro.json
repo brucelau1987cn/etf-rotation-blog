@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-05 22:06:38 CST",
+  "generated_at": "2026-08-06 22:06:38 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": -1.02,
+          "value": -1.1,
           "unit": "pp",
-          "display": "-1.02pp",
+          "display": "-1.10pp",
           "as_of": "2026-08-05",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "中性",
       "score": 0.5,
-      "headline": "权益5日仍强于固收-1.02pp",
+      "headline": "权益5日仍强于固收-1.10pp",
       "as_of": "2026-08-05"
     },
     {
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 25.0,
+          "value": 37.5,
           "unit": "%",
-          "display": "25.00%",
+          "display": "37.50%",
           "as_of": "2026-08-05",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -440,25 +440,25 @@
         {
           "key": "margin_balance",
           "title": "两融余额",
-          "value": 25923.14,
+          "value": 26045.37,
           "unit": "亿元",
-          "display": "25923亿元",
-          "as_of": "2026-08-04",
+          "display": "26045亿元",
+          "as_of": "2026-08-05",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
-          "detail": "5日 -2.06% · 20日 -12.33%",
-          "change": -2.06,
+          "detail": "5日 -0.64% · 20日 -11.35%",
+          "change": -0.64,
           "change_label": "5日",
           "tone": "warning"
         },
         {
           "key": "margin_share",
           "title": "融资余额占比",
-          "value": 2.659012,
+          "value": 2.628435,
           "unit": "%",
-          "display": "2.66%",
-          "as_of": "2026-08-04",
+          "display": "2.63%",
+          "as_of": "2026-08-05",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
@@ -469,9 +469,9 @@
         }
       ],
       "state": "逆风",
-      "score": 2.0,
-      "headline": "两融余额5日-2.06%",
-      "as_of": "2026-08-04"
+      "score": 1.5,
+      "headline": "两融余额5日回落-0.64%",
+      "as_of": "2026-08-05"
     }
   ],
   "scoring_scope": {
@@ -494,10 +494,10 @@
       "label": "固收相对权益强弱",
       "state": "中性",
       "score": 0.5,
-      "headline": "权益5日仍强于固收-1.02pp",
+      "headline": "权益5日仍强于固收-1.10pp",
       "reasons": [
-        "权益5日仍强于固收-1.02pp",
-        "固收20日相对偏强+2.04pp"
+        "权益5日仍强于固收-1.10pp",
+        "固收20日相对偏强+1.96pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -512,16 +512,16 @@
       "metrics": {
         "bond_ret5": 0.12,
         "bond_ret20": 0.21,
-        "equity_ret5": 1.14,
-        "equity_ret20": -1.83,
-        "bond_vs_equity_5d_pp": -1.02,
-        "bond_vs_equity_20d_pp": 2.04
+        "equity_ret5": 1.22,
+        "equity_ret20": -1.75,
+        "bond_vs_equity_5d_pp": -1.1,
+        "bond_vs_equity_20d_pp": 1.96
       },
       "details": {
         "511260": {
           "ret5": 0.22,
           "ret20": 0.4,
-          "last": 135.46,
+          "last": 135.457,
           "date": "2026-08-05"
         },
         "511010": {
@@ -537,9 +537,9 @@
           "date": "2026-08-05"
         },
         "510300": {
-          "ret5": 1.14,
-          "ret20": -1.83,
-          "last": 4.71,
+          "ret5": 1.22,
+          "ret20": -1.75,
+          "last": 4.714,
           "date": "2026-08-05"
         }
       },
@@ -569,7 +569,7 @@
         "proxy_ret20_avg": 0.34,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.25
+        "overseas_weak_share": 0.375
       },
       "details": {
         "159941": {
@@ -603,40 +603,34 @@
       "key": "margin_financing",
       "label": "市场资金与杠杆",
       "state": "逆风",
-      "score": 2.0,
-      "headline": "两融余额5日-2.06%",
+      "score": 1.5,
+      "headline": "两融余额5日回落-0.64%",
       "reasons": [
-        "两融余额5日-2.06%",
-        "两融余额20日-12.33%"
+        "两融余额5日回落-0.64%",
+        "两融余额20日-11.35%"
       ],
       "status": "ok",
       "quality": "market_data",
       "completeness": 1.0,
       "interpretation": "境内杠杆资金强度与风险偏好指标，属于市场资金层。",
       "metrics": {
-        "rzye": 2592313734952.0,
-        "rzye_yi": 25923.14,
-        "rzyezb": 2.659012,
-        "chg5_pct": -2.06,
-        "chg10_pct": -3.91,
-        "chg20_pct": -12.33,
+        "rzye": 2604537143099.0,
+        "rzye_yi": 26045.37,
+        "rzyezb": 2.628435,
+        "chg5_pct": -0.64,
+        "chg10_pct": -3.49,
+        "chg20_pct": -11.35,
         "down_streak": 0,
-        "as_of": "2026-08-04"
+        "as_of": "2026-08-05"
       },
       "details": {
         "latest": {
-          "date": "2026-08-04",
-          "rzye": 2592313734952.0,
-          "rzyezb": 2.659012,
-          "rzmre": 210985056732
+          "date": "2026-08-05",
+          "rzye": 2604537143099.0,
+          "rzyezb": 2.628435,
+          "rzmre": 260465292992
         },
         "points": [
-          {
-            "date": "2026-07-20",
-            "rzye": 2697776157310.0,
-            "rzyezb": 2.827415,
-            "rzmre": 214769058951
-          },
           {
             "date": "2026-07-21",
             "rzye": 2697879659971.0,
@@ -702,17 +696,23 @@
             "rzye": 2592313734952.0,
             "rzyezb": 2.659012,
             "rzmre": 210985056732
+          },
+          {
+            "date": "2026-08-05",
+            "rzye": 2604537143099.0,
+            "rzyezb": 2.628435,
+            "rzmre": 260465292992
           }
         ]
       },
-      "as_of": "2026-08-04"
+      "as_of": "2026-08-05"
     }
   ],
   "constraint": {
     "headwind_level": 1,
     "headwind_count": 1,
     "watch_count": 0,
-    "score_total": 2.5,
+    "score_total": 2.0,
     "label": "偏逆风",
     "allow_chase": false,
     "allow_new_offense": true,
