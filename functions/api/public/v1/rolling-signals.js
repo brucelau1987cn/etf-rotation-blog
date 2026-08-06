@@ -107,8 +107,13 @@ const loadLkg = async (request, env, symbol) => {
   return applyInstrumentMeta(validatePublicPayload(await readJsonResponse(response)), symbol);
 };
 
-const mergeTimelines = (...lists) => {
+const mergeTimelines = (today = null, ...lists) => {
   const map = new Map();
+  const isToday = item => {
+    if (!today) return false;
+    const ts = item.received_at || item.triggered_at;
+    return Boolean(ts) && shanghaiTradeDate(ts) === today;
+  };
   for (const list of lists) {
     for (const item of list || []) {
       if (!item || !item.type || !item.code) continue;
@@ -118,6 +123,20 @@ const mergeTimelines = (...lists) => {
         map.set(key, item);
         continue;
       }
+      // Today's D1 row wins over any older projection (static LKG or historical D1).
+      // Cross-day rows must not shadow the live day board.
+      const prevIsToday = isToday(prev);
+      const itemIsToday = isToday(item);
+      if (itemIsToday && !prevIsToday) {
+        map.set(key, {
+          ...prev,
+          ...item,
+          price: item.price ?? prev.price ?? null,
+          price_source: item.price_source ?? prev.price_source ?? null,
+        });
+        continue;
+      }
+      if (prevIsToday) continue;
       // Keep earliest formal receipt for the day/node, but preserve D1 price if available.
       const prevTs = new Date(prev.received_at || prev.triggered_at || 0).getTime();
       const nextTs = new Date(item.received_at || item.triggered_at || 0).getTime();
@@ -203,8 +222,9 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
       }
 
       // Merge with static LKG so authorized historical projections remain visible.
+      // Today's D1 rows win per type:code; older projections never shadow the live day board.
       const staticTimeline = Array.isArray(lkg.timeline) ? lkg.timeline : [];
-      const timeline = mergeTimelines(staticTimeline, d1Timeline);
+      const timeline = mergeTimelines(tradeDate, staticTimeline, d1Timeline);
       if (timeline.length) {
         const latestReceivedAt = timeline
           .map(item => item.received_at || item.triggered_at)

@@ -32,9 +32,11 @@ const makeDb = (rows) => ({
       async first() { return null; },
       async all() {
         if (/FROM rolling_signals/i.test(text)) {
-          const [symbol, tradeDate] = bound._args;
+          const args = bound._args;
+          const symbols = args.filter(a => typeof a === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(a));
+          const tradeDate = args.find(a => typeof a === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a));
           return {
-            results: rows.filter(r => r.symbol === symbol && (!tradeDate || r.trade_date === tradeDate)),
+            results: rows.filter(r => symbols.includes(r.symbol) && (!tradeDate || r.trade_date === tradeDate)),
           };
         }
         return { results: [] };
@@ -135,4 +137,102 @@ test('unknown D1 symbol keeps its own instrument identity', async () => {
   const body = await (await handleRollingSignals(request, assetEnv(payload, db))).json();
   assert.equal(body.instrument.symbol, 'NEW1');
   assert.deepEqual(body.timeline.map(item => [item.type, item.code]), [['BUY', '1h']]);
+});
+
+test('today D1 rows override older static LKG rows for the same node (cross-day no shadow)', async () => {
+  const tradeDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const todayReceived = new Date().toISOString();
+  const db = makeDb([
+    {
+      trade_date: tradeDate,
+      symbol: '06809',
+      cycle_code: '15m',
+      signal: 'SELL',
+      trigger_time_utc: todayReceived,
+      received_at: todayReceived,
+      event_id: 'evt-today-15m',
+      label: '15m',
+    },
+    {
+      trade_date: tradeDate,
+      symbol: '06809',
+      cycle_code: '10m',
+      signal: 'SELL',
+      trigger_time_utc: todayReceived,
+      received_at: todayReceived,
+      event_id: 'evt-today-10m',
+      label: '10m',
+    },
+  ]);
+  const payload = lkgPayload('06809');
+  payload.timeline = [
+    { type: 'SELL', code: '15m', triggered_at: '2026-07-30T07:15:08.097Z', received_at: '2026-07-30T07:15:08.097Z', event_id: 'evt-old-15m', label: '15m' },
+    { type: 'SELL', code: '10m', triggered_at: '2026-08-03T01:55:03.273Z', received_at: '2026-08-03T01:55:03.273Z', event_id: 'evt-old-10m', label: '10m' },
+  ];
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=06809');
+  const body = await (await handleRollingSignals(request, assetEnv(payload, db))).json();
+  assert.equal(body.delivery.state, 'live');
+  assert.equal(body.storage, 'd1');
+  const byCode = Object.fromEntries(body.timeline.map(item => [item.code, item]));
+  // Today's first-write row must win; the older static LKG rows must not shadow it.
+  assert.equal(byCode['15m'].event_id, 'evt-today-15m');
+  assert.equal(byCode['10m'].event_id, 'evt-today-10m');
+});
+
+test('older D1 history does not shadow today rows but fills nodes missing today', async () => {
+  const tradeDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const todayReceived = new Date().toISOString();
+  const db = makeDb([
+    // Historical D1 rows (earlier days) for the same nodes.
+    {
+      trade_date: '2026-08-03',
+      symbol: '06809',
+      cycle_code: '10m',
+      signal: 'SELL',
+      trigger_time_utc: '2026-08-03T01:55:03.273Z',
+      received_at: '2026-08-03T01:55:03.273Z',
+      event_id: 'evt-hist-10m',
+      label: '10m',
+    },
+    {
+      trade_date: '2026-07-30',
+      symbol: '06809',
+      cycle_code: '15m',
+      signal: 'SELL',
+      trigger_time_utc: '2026-07-30T07:15:08.097Z',
+      received_at: '2026-07-30T07:15:08.097Z',
+      event_id: 'evt-hist-15m',
+      label: '15m',
+    },
+    // Today's first-write rows.
+    {
+      trade_date: tradeDate,
+      symbol: '06809',
+      cycle_code: '15m',
+      signal: 'SELL',
+      trigger_time_utc: todayReceived,
+      received_at: todayReceived,
+      event_id: 'evt-today-15m',
+      label: '15m',
+    },
+    {
+      trade_date: tradeDate,
+      symbol: '06809',
+      cycle_code: '10m',
+      signal: 'SELL',
+      trigger_time_utc: todayReceived,
+      received_at: todayReceived,
+      event_id: 'evt-today-10m',
+      label: '10m',
+    },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/rolling-signals?symbol=06809');
+  const body = await (await handleRollingSignals(request, assetEnv(lkgPayload('06809'), db))).json();
+  const byCode = Object.fromEntries(body.timeline.map(item => [item.code, item]));
+  assert.equal(byCode['15m'].event_id, 'evt-today-15m');
+  assert.equal(byCode['10m'].event_id, 'evt-today-10m');
 });
