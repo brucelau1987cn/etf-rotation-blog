@@ -172,7 +172,17 @@ def _publish_stage(stage_key: str, message: str | None = None, dry_run: bool = F
     base = git_head()
     remote = run(["git", "rev-parse", "origin/main"]).stdout.strip()
     if base != remote:
-        raise RuntimeError(f"main must equal origin/main before publication: local={base[:12]} remote={remote[:12]}")
+        # 本地领先（origin 是 HEAD 祖先）：先推送本地已提交内容再继续。
+        # 单机单用户场景下领先提交多为 cron/agent 自己的合法提交（如滚动看板
+        # 部署、低筹码更新），不推送会让 14:30 stage 硬中止并留下 dirty 文件，
+        # 连锁触发 15:10 paper / 15:20 futures 发布器拦截（2026-08-06 三连败根因）。
+        # 仅当真正 diverged（双方都有对方没有的提交）时才中止。
+        if is_ancestor(remote, base):
+            run(["git", "push", "origin", f"{base}:main"])
+            run(["git", "fetch", "origin", "main"])
+            remote = run(["git", "rev-parse", "origin/main"]).stdout.strip()
+        if base != remote:
+            raise RuntimeError(f"main and origin/main diverged: local={base[:12]} remote={remote[:12]}")
 
     trade_date, expected_stage = validate_stage_inputs(stage_key)
     current = datetime.now(CN).isoformat()
