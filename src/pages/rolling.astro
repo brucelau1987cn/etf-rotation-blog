@@ -97,9 +97,15 @@ const isSellObservation = (code: string) => code === '5m';
 const summarizeInstrument = (payload: Payload) => {
   const timeline = toTimeline(payload);
   const buys = timeline.filter((item) => item.type === 'BUY' && !isBuyObservation(item.code));
-  const sells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
+  // 多方重置空方历史：空方只保留最近一次正式多方之后的窗口
+  // （原则 多方→空方→多方→空方；新多方出现后，更早的空方不再显示）。
+  const latestBuyTime = buys.reduce((max, item) => Math.max(max, new Date(item.triggered_at || 0).getTime()), 0);
+  const roundSells = latestBuyTime > 0
+    ? timeline.filter((item) => item.type === 'SELL' && new Date(item.triggered_at || 0).getTime() >= latestBuyTime)
+    : timeline.filter((item) => item.type === 'SELL');
+  const sells = roundSells.filter((item) => !isSellObservation(item.code));
   const buyWatch = timeline.some((item) => item.type === 'BUY' && isBuyObservation(item.code));
-  const sellWatch = timeline.some((item) => item.type === 'SELL' && isSellObservation(item.code));
+  const sellWatch = roundSells.some((item) => isSellObservation(item.code));
   return {
     name: payload.instrument.instrument_name,
     symbol: payload.instrument.symbol,

@@ -54,7 +54,12 @@ const timeline: TimelineItem[] = Array.isArray(payload.timeline) && payload.time
 const isBuyObservation = (code: string) => code === '1.75h' || code === '105m';
 const isSellObservation = (code: string) => code === '5m';
 const buys = timeline.filter((item) => item.type === 'BUY' && !isBuyObservation(item.code));
-const sells = timeline.filter((item) => item.type === 'SELL' && !isSellObservation(item.code));
+// 多方重置空方历史：空方只保留最近一次正式多方之后的窗口
+const latestBuyTime = buys.reduce((max, item) => Math.max(max, new Date(item.triggered_at || 0).getTime()), 0);
+const roundSells = latestBuyTime > 0
+  ? timeline.filter((item) => item.type === 'SELL' && new Date(item.triggered_at || 0).getTime() >= latestBuyTime)
+  : timeline.filter((item) => item.type === 'SELL');
+const sells = roundSells.filter((item) => !isSellObservation(item.code));
 const latest = timeline
   .filter((item) => item.triggered_at)
   .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
@@ -67,7 +72,7 @@ const summary = {
   buyCount: buys.length,
   sellCount: sells.length,
   buyWatch: timeline.some((item) => item.type === 'BUY' && isBuyObservation(item.code)),
-  sellWatch: timeline.some((item) => item.type === 'SELL' && isSellObservation(item.code)),
+  sellWatch: roundSells.some((item) => isSellObservation(item.code)),
   latest,
 };
 const latestAction = latest

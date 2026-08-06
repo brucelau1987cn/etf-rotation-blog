@@ -99,3 +99,56 @@ test('new buy after a later sell sits to the right of that sell', () => {
     ['BUY:2h', 'SELL:15m', 'SELL:30m', 'BUY:3h'],
   );
 });
+
+// 多方重置空方历史（原则 多方→空方→多方→空方）：
+// 空方只保留最近一次正式多方之后的窗口；更早的空方（观察 5m 或正式）不再显示。
+const roundSellsFor = (timeline) => {
+  const latestBuyTime = timeline
+    .filter((x) => x.type === 'BUY' && !(x.code === '1.75h' || x.code === '105m'))
+    .reduce((max, item) => Math.max(max, signalTimeMs(item)), 0);
+  return latestBuyTime > 0
+    ? timeline.filter((item) => item.type === 'SELL' && signalTimeMs(item) >= latestBuyTime)
+    : timeline.filter((item) => item.type === 'SELL');
+};
+
+test('sell history is reset by the latest formal buy (multi-round alternation)', () => {
+  const timeline = [
+    // 第 1 轮：空方先出
+    { type: 'SELL', code: '5m', triggered_at: '2026-08-01T01:00:00Z' },
+    { type: 'SELL', code: '10m', triggered_at: '2026-08-01T01:05:00Z' },
+    { type: 'SELL', code: '15m', triggered_at: '2026-08-01T02:00:00Z' },
+    // 第 1 轮多方：重置空方历史
+    { type: 'BUY', code: '2h', triggered_at: '2026-08-01T04:00:00Z' },
+    // 第 2 轮空方
+    { type: 'SELL', code: '5m', triggered_at: '2026-08-02T01:00:00Z' },
+    { type: 'SELL', code: '15m', triggered_at: '2026-08-02T02:00:00Z' },
+    // 第 2 轮多方：再次重置
+    { type: 'BUY', code: '3h', triggered_at: '2026-08-02T06:00:00Z' },
+    // 第 3 轮空方
+    { type: 'SELL', code: '30m', triggered_at: '2026-08-03T01:00:00Z' },
+  ];
+  const roundSells = roundSellsFor(timeline);
+  // 只剩第 3 轮空方：更早的 5m/10m/15m 被第 2 轮多方覆盖，第 2 轮空方被第 3 轮多方覆盖
+  assert.deepEqual(
+    roundSells.map((s) => `${s.code}@${s.triggered_at.slice(0, 10)}`),
+    ['30m@2026-08-03'],
+  );
+  // 观察窗也受同样规则约束
+  assert.equal(roundSells.some((s) => s.code === '5m'), false);
+});
+
+test('no formal buy yet: all sells stay visible (first round)', () => {
+  const timeline = [
+    { type: 'SELL', code: '5m', triggered_at: '2026-08-01T01:00:00Z' },
+    { type: 'SELL', code: '15m', triggered_at: '2026-08-01T02:00:00Z' },
+  ];
+  const roundSells = roundSellsFor(timeline);
+  assert.deepEqual(roundSells.map((s) => s.code), ['5m', '15m']);
+});
+
+test('source encodes the multi-round sell reset in both app and matrix', () => {
+  assert.match(appSource, /多方重置空方历史/);
+  assert.match(matrixSource, /多方重置空方历史/);
+  assert.match(appSource, /roundSells/);
+  assert.match(matrixSource, /roundSells/);
+});

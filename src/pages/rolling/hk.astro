@@ -58,7 +58,12 @@ const summarize = (payloadItem: Payload) => {
   const isBuyObs = (code: string) => code === '1.75h' || code === '105m';
   const isSellObs = (code: string) => code === '5m';
   const b = t.filter((item) => item.type === 'BUY' && !isBuyObs(item.code));
-  const s = t.filter((item) => item.type === 'SELL' && !isSellObs(item.code));
+  // 多方重置空方历史：空方只保留最近一次正式多方之后的窗口
+  const latestBuyTime = b.reduce((max, item) => Math.max(max, new Date(item.triggered_at || 0).getTime()), 0);
+  const roundSells = latestBuyTime > 0
+    ? t.filter((item) => item.type === 'SELL' && new Date(item.triggered_at || 0).getTime() >= latestBuyTime)
+    : t.filter((item) => item.type === 'SELL');
+  const s = roundSells.filter((item) => !isSellObs(item.code));
   const l = t
     .filter((item) => item.triggered_at)
     .sort((a, b) => new Date(b.triggered_at || 0).getTime() - new Date(a.triggered_at || 0).getTime())[0] || null;
@@ -71,7 +76,7 @@ const summarize = (payloadItem: Payload) => {
     buyCount: b.length,
     sellCount: s.length,
     buyWatch: t.some((item) => item.type === 'BUY' && isBuyObs(item.code)),
-    sellWatch: t.some((item) => item.type === 'SELL' && isSellObs(item.code)),
+    sellWatch: roundSells.some((item) => isSellObs(item.code)),
     latest: l,
     data_as_of: payloadItem.data_as_of,
     sell_alerts: payloadItem.sell_alerts || [],
