@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-06T19:10:21.599974-04:00",
+  "generated_at": "2026-08-07T19:10:48.906072-04:00",
   "timezone": "America/New_York",
   "status": "ok",
   "model_version": "US selector shadow v1.2",
@@ -26,22 +26,13 @@
     }
   ],
   "summary": {
-    "candidate_count": 10,
+    "candidate_count": 9,
     "formal_overlap": 1,
-    "new_candidates": 9,
-    "raw_us_symbols": 49,
-    "leveraged_filtered": 39
+    "new_candidates": 8,
+    "raw_us_symbols": 39,
+    "leveraged_filtered": 30
   },
   "candidates": [
-    {
-      "symbol": "AMEM",
-      "name": "Amana发展中世界ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 5
-    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -125,15 +116,6 @@
     }
   ],
   "new_candidates": [
-    {
-      "symbol": "AMEM",
-      "name": "Amana发展中世界ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 5
-    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -220,8 +202,8 @@
   ],
   "leveraged_noise": [
     {
-      "symbol": "AXTC",
-      "name": "AXTI每日2倍做多ETF",
+      "symbol": "RDWU",
+      "name": "2倍做多RDW每日目标",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -238,7 +220,7 @@
       "rank_no": 2
     },
     {
-      "symbol": "AXTL",
+      "symbol": "AXTX",
       "name": "2倍做多AXTI每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
@@ -247,7 +229,7 @@
       "rank_no": 3
     },
     {
-      "symbol": "AXTX",
+      "symbol": "AXTL",
       "name": "2倍做多AXTI每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
@@ -256,8 +238,17 @@
       "rank_no": 4
     },
     {
-      "symbol": "RDWU",
-      "name": "2倍做多RDW每日目标",
+      "symbol": "AXTC",
+      "name": "AXTI每日2倍做多ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 5
+    },
+    {
+      "symbol": "COHX",
+      "name": "2倍做多COHR每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -274,8 +265,8 @@
       "rank_no": 7
     },
     {
-      "symbol": "AAOX",
-      "name": "2倍做多AAOI每日ETF",
+      "symbol": "COHH",
+      "name": "2倍做多COHR每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
@@ -292,31 +283,13 @@
       "rank_no": 9
     },
     {
-      "symbol": "COHH",
-      "name": "2倍做多COHR每日ETF",
+      "symbol": "AAOX",
+      "name": "2倍做多AAOI每日ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
       "source_query": "美股 ETF 近5日涨幅前20",
       "rank_no": 10
-    },
-    {
-      "symbol": "COHX",
-      "name": "2倍做多COHR每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 11
-    },
-    {
-      "symbol": "VELL",
-      "name": "每日2倍做多VELO ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 12
     },
     {
       "symbol": "TEUP",
@@ -325,61 +298,16 @@
       "likely_etf": true,
       "leveraged_product": true,
       "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 13
+      "rank_no": 11
     },
     {
-      "symbol": "AEHG",
-      "name": "每日2倍做多AEHR ETF",
+      "symbol": "PLTU",
+      "name": "每日PLTR 2倍做多ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
       "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 14
-    },
-    {
-      "symbol": "OUSL",
-      "name": "OUST每日目标2倍做多",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 15
-    },
-    {
-      "symbol": "PLTG",
-      "name": "2倍做多PLTR每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 16
-    },
-    {
-      "symbol": "FNG",
-      "name": "2倍做多FN每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 17
-    },
-    {
-      "symbol": "VRC",
-      "name": "VRT每日2倍做多ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 18
-    },
-    {
-      "symbol": "PLTL",
-      "name": "每日2倍做多PLTR ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 19
+      "rank_no": 12
     },
     {
       "symbol": "PTIR",
@@ -388,7 +316,61 @@
       "likely_etf": true,
       "leveraged_product": true,
       "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 20
+      "rank_no": 13
+    },
+    {
+      "symbol": "PLTA",
+      "name": "2倍做多PLTR",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 14
+    },
+    {
+      "symbol": "PLTG",
+      "name": "2倍做多PLTR每日ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 15
+    },
+    {
+      "symbol": "PLTL",
+      "name": "每日2倍做多PLTR ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 16
+    },
+    {
+      "symbol": "VELL",
+      "name": "每日2倍做多VELO ETF",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 17
+    },
+    {
+      "symbol": "GDXU",
+      "name": "金矿指数3倍做多ETN",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 18
+    },
+    {
+      "symbol": "LUNL",
+      "name": "每日目标2倍做多LUNR",
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": true,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 19
     },
     {
       "symbol": "UNX",
@@ -396,8 +378,8 @@
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
-      "source_query": "美股 ETF 近20日涨幅前20",
-      "rank_no": 2
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 20
     }
   ],
   "disclaimer": "影子候选，不进入生产动作与仓位计算。仅保留美股上市代码，过滤A股QDII与2x/3x日内杠杆单股产品。"

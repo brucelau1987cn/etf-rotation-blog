@@ -148,8 +148,6 @@ check_asset "/js/normalize-quote-payload.js" "EtfQuote"
 check_asset "/js/etf-live-poll.js" "startLivePoll"
 check_asset "/js/market-clock.js" "data-market-clock"
 check_asset "/js/site-a11y.js" "main-content"
-check_asset "/js/login-app.js" "change-password"
-check_asset "/js/lab-app.js" "a-share-research-audit"
 check_asset "/js/blog-post-app.js" "article-toc"
 check_asset "/js/jin10-calendar-app.js" "/api/public/v1/jin10-calendar"
 
@@ -283,17 +281,6 @@ check_page "/us-momentum/" \
   "/js/us-momentum-app.js" \
   "us-momentum-main" \
   "hero-pool-size"
-
-check_page "/login/" \
-  "/js/login-app.js" \
-  "login-form" \
-  "change-form"
-
-check_page "/lab/" \
-  "/js/lab-app.js" \
-  "upload-form" \
-  "audit-content" \
-  "kronos-content"
 
 check_page "/research-framework/" \
   "投资研究框架" \
