@@ -39,7 +39,7 @@
 - `/rolling/insights/`：滚动详细解读（盘后日更）
 
 ### 期货罗盘
-- `/futures-compass/`：期货看板与简报
+- `/futures-compass/`：期货看板与简报（akshare 数据源，显示名与数据源名可不同：铜/铝/猪肉 → 沪铜/沪铝/生猪）
 - `/futures-compass/jin10/`：宏观数据（金十日历；原 `/calendar/` 301 到此）
 - `/futures-compass/holdings/`：金银 ETF 日频持仓（含 `change=0` 日）
 
@@ -240,8 +240,10 @@ docs/                 契约与运维文档
 | 低筹码股 | 仅股票页 `/rolling/low-chip/`，三周期交集 + 日归档 |
 | 滚动解读 | `/rolling/insights/` 全市场日更，禁单股页 |
 | 期货二级导航 | 期货罗盘 · 宏观数据 · 金银持仓 |
-| Footer | Veilx CDN 推广条 |
+| 期货数据源·显示名 | akshare 名 ≠ 显示名（铜/铝/猪肉 → 沪铜/沪铝/生猪）；仓单 GFEX+SHFE 可用，DCE 反爬拦截，INE 未适配 |
+| cron 模型跟随默认 | 全部定时任务跟随 config 默认模型/provider，不再 per-job pin（避免单 provider 配额 429 阻断全链路） |
 | 发布耦合 | 多 cron 共享 worktree；dirty / `base_commit` / 批次校验会互锁 |
+| 公开文本净化 | 构建期剔除公开 JSON 中的 HTML 分隔符（`<`/`>`）与私有路径 |
 
 ## 相关文档
 

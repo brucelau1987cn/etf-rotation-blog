@@ -1,0 +1,72 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`404 — ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <meta name="robots" content="noindex" />
+  </head>
+  <body>
+    <Header />
+    <main class="error-page">
+      <div class="error-content">
+        <h1>404</h1>
+        <p class="subtitle">页面未找到</p>
+        <p>可能是链接过期、页面已移动，或输入有误。</p>
+        <div class="nav-links">
+          <a href="/" class="btn">返回首页</a>
+          <a href="/a-compass/" class="btn">A股罗盘</a>
+          <a href="/rolling/" class="btn">滚动罗盘</a>
+          <a href="/futures-compass/" class="btn">期货罗盘</a>
+        </div>
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .error-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+  }
+  .error-content h1 {
+    font-size: 6rem;
+    margin: 0;
+    line-height: 1;
+    opacity: 0.3;
+  }
+  .subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary, #666);
+    margin: 0.5rem 0 1rem;
+  }
+  .nav-links {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+  .btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  .btn:hover {
+    background: var(--hover-bg, #f5f5f5);
+  }
+</style>
