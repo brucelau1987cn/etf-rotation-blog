@@ -38,11 +38,56 @@
       "note": "当前以国债、信用债相对沪深300的价格表现作为日频风险偏好代理。",
       "observations": [
         {
+          "key": "m2_yoy",
+          "title": "M2同比",
+          "value": 8.0,
+          "unit": "%",
+          "display": "8.00%",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+          "detail": "前值 8.6% · 广义流动性",
+          "change": -0.6,
+          "change_label": "较上期",
+          "tone": "positive"
+        },
+        {
+          "key": "m1_yoy",
+          "title": "M1同比",
+          "value": 4.0,
+          "unit": "%",
+          "display": "4.00%",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+          "detail": "前值 5.5% · 资金活化程度",
+          "change": -1.5,
+          "change_label": "较上期",
+          "tone": "neutral"
+        },
+        {
+          "key": "m1_m2_gap",
+          "title": "M1-M2剪刀差",
+          "value": -4.0,
+          "unit": "pp",
+          "display": "-4.00pp",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+          "detail": "差值回升通常对应企业资金活化改善",
+          "change": -0.9,
+          "change_label": "较上期",
+          "tone": "neutral"
+        },
+        {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": -1.8,
+          "value": -2.0,
           "unit": "pp",
-          "display": "-1.80pp",
+          "display": "-2.00pp",
           "as_of": "2026-08-07",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -55,7 +100,7 @@
       ],
       "state": "中性",
       "score": 0.5,
-      "headline": "权益5日仍强于固收-1.80pp",
+      "headline": "权益5日仍强于固收-2.00pp",
       "as_of": "2026-08-07"
     },
     {
@@ -81,14 +126,60 @@
           "type": "官方发布"
         }
       ],
-      "coverage": "pending_official",
+      "coverage": "official",
       "factor_key": null,
       "note": "等待稳定接入官方月度时序；缺失时不参与日度风险评分。",
-      "observations": [],
-      "state": "待接入",
+      "observations": [
+        {
+          "key": "rmb_loan",
+          "title": "新增人民币贷款",
+          "value": 17650.0,
+          "unit": "亿元",
+          "display": "17650亿元",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
+          "detail": "上月 4965亿元 · 当月新增",
+          "change": 12685.0,
+          "change_label": "较上期",
+          "tone": "neutral"
+        },
+        {
+          "key": "loan_yoy",
+          "title": "新增贷款同比",
+          "value": -25.21186441,
+          "unit": "%",
+          "display": "-25.21%",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
+          "detail": "反映当月信用投放相对去年同期",
+          "change": null,
+          "change_label": "较上期",
+          "tone": "warning"
+        },
+        {
+          "key": "loan_ytd",
+          "title": "年内贷款累计",
+          "value": 107605.0,
+          "unit": "亿元",
+          "display": "107605亿元",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "人民银行金融统计",
+          "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
+          "detail": "累计同比 -15.5%",
+          "change": null,
+          "change_label": "较上期",
+          "tone": "warning"
+        }
+      ],
+      "state": "已更新",
+      "headline": "新增人民币贷款 17650亿元",
       "score": null,
-      "headline": "等待稳定的官方免费时序数据",
-      "as_of": null
+      "as_of": "2026-06-01"
     },
     {
       "key": "growth_cycle",
@@ -113,14 +204,60 @@
           "type": "数据查询"
         }
       ],
-      "coverage": "pending_official",
+      "coverage": "official",
       "factor_key": null,
       "note": "用于判断盈利周期和顺周期行业背景，按官方发布日期更新。",
-      "observations": [],
-      "state": "待接入",
+      "observations": [
+        {
+          "key": "manufacturing_pmi",
+          "title": "制造业PMI",
+          "value": 49.2,
+          "unit": "",
+          "display": "49.20",
+          "as_of": "2026-07-01",
+          "frequency": "月频",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "前值 50.3 · 50为荣枯线",
+          "change": -1.1,
+          "change_label": "较上期",
+          "tone": "warning"
+        },
+        {
+          "key": "non_manufacturing_pmi",
+          "title": "非制造业PMI",
+          "value": 49.0,
+          "unit": "",
+          "display": "49.00",
+          "as_of": "2026-07-01",
+          "frequency": "月频",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "前值 50.2 · 服务与建筑景气",
+          "change": -1.2,
+          "change_label": "较上期",
+          "tone": "warning"
+        },
+        {
+          "key": "gdp_yoy",
+          "title": "GDP累计同比",
+          "value": 4.7,
+          "unit": "%",
+          "display": "4.70%",
+          "as_of": "2026-06-01",
+          "frequency": "季度",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "2026年第1-2季度 · 第三产业 5.2%",
+          "change": -0.3,
+          "change_label": "较上期",
+          "tone": "neutral"
+        }
+      ],
+      "state": "已更新",
+      "headline": "制造业PMI 49.20",
       "score": null,
-      "headline": "等待稳定的官方免费时序数据",
-      "as_of": null
+      "as_of": "2026-07-01"
     },
     {
       "key": "inflation_margin",
@@ -145,14 +282,60 @@
           "type": "数据查询"
         }
       ],
-      "coverage": "pending_official",
+      "coverage": "official",
       "factor_key": null,
       "note": "重点观察PPI方向与上下游利润再分配，不把单月读数直接当交易信号。",
-      "observations": [],
-      "state": "待接入",
+      "observations": [
+        {
+          "key": "cpi_yoy",
+          "title": "CPI同比",
+          "value": 1.0,
+          "unit": "%",
+          "display": "1.00%",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "环比 -0.3% · 前值 1.2%",
+          "change": -0.2,
+          "change_label": "较上期",
+          "tone": "positive"
+        },
+        {
+          "key": "ppi_yoy",
+          "title": "PPI同比",
+          "value": 4.1,
+          "unit": "%",
+          "display": "4.10%",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "前值 3.9% · 工业品价格周期",
+          "change": 0.2,
+          "change_label": "较上期",
+          "tone": "positive"
+        },
+        {
+          "key": "ppi_cpi_gap",
+          "title": "PPI-CPI剪刀差",
+          "value": 3.1,
+          "unit": "pp",
+          "display": "3.10pp",
+          "as_of": "2026-06-01",
+          "frequency": "月频",
+          "source": "国家统计局",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/",
+          "detail": "正值通常有利上游价格与工业收入",
+          "change": 0.4,
+          "change_label": "较上期",
+          "tone": "positive"
+        }
+      ],
+      "state": "已更新",
+      "headline": "CPI同比 1.00%",
       "score": null,
-      "headline": "等待稳定的官方免费时序数据",
-      "as_of": null
+      "as_of": "2026-06-01"
     },
     {
       "key": "external_fx",
@@ -189,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 5.75,
+          "value": 5.86,
           "unit": "%",
-          "display": "5.75%",
+          "display": "5.86%",
           "as_of": "2026-08-07",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +0.26% · 汇率与溢折价会扰动",
+          "detail": "20日 +0.37% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -204,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 50.0,
+          "value": 12.5,
           "unit": "%",
-          "display": "50.00%",
+          "display": "12.50%",
           "as_of": "2026-08-07",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -214,12 +397,12 @@
           "detail": "样本 8只 · 只作确认项",
           "change": null,
           "change_label": "较上期",
-          "tone": "warning"
+          "tone": "neutral"
         }
       ],
       "state": "中性",
-      "score": 0.25,
-      "headline": "海外映射ETF 5日+5.75%",
+      "score": 0.0,
+      "headline": "海外映射ETF 5日+5.86%",
       "as_of": "2026-08-07"
     },
     {
@@ -311,10 +494,10 @@
       "label": "固收相对权益强弱",
       "state": "中性",
       "score": 0.5,
-      "headline": "权益5日仍强于固收-1.80pp",
+      "headline": "权益5日仍强于固收-2.00pp",
       "reasons": [
-        "权益5日仍强于固收-1.80pp",
-        "固收20日相对偏强+2.10pp"
+        "权益5日仍强于固收-2.00pp",
+        "固收20日相对偏强+1.91pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -327,36 +510,36 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": 0.07,
-        "bond_ret20": 0.26,
-        "equity_ret5": 1.87,
-        "equity_ret20": -1.84,
-        "bond_vs_equity_5d_pp": -1.8,
-        "bond_vs_equity_20d_pp": 2.1
+        "bond_ret5": 0.08,
+        "bond_ret20": 0.27,
+        "equity_ret5": 2.08,
+        "equity_ret20": -1.64,
+        "bond_vs_equity_5d_pp": -2.0,
+        "bond_vs_equity_20d_pp": 1.91
       },
       "details": {
         "511260": {
-          "ret5": 0.09,
-          "ret20": 0.42,
-          "last": 135.5,
+          "ret5": 0.1,
+          "ret20": 0.43,
+          "last": 135.513,
           "date": "2026-08-07"
         },
         "511010": {
-          "ret5": 0.07,
-          "ret20": 0.2,
-          "last": 141.07,
+          "ret5": 0.09,
+          "ret20": 0.22,
+          "last": 141.09,
           "date": "2026-08-07"
         },
         "511110": {
           "ret5": 0.06,
           "ret20": 0.15,
-          "last": 103.01,
+          "last": 103.014,
           "date": "2026-08-07"
         },
         "510300": {
-          "ret5": 1.87,
-          "ret20": -1.84,
-          "last": 4.74,
+          "ret5": 2.08,
+          "ret20": -1.64,
+          "last": 4.75,
           "date": "2026-08-07"
         }
       },
@@ -366,11 +549,10 @@
       "key": "overseas_deleveraging",
       "label": "海外风险映射压力",
       "state": "中性",
-      "score": 0.25,
-      "headline": "海外映射ETF 5日+5.75%",
+      "score": 0.0,
+      "headline": "海外映射ETF 5日+5.86%",
       "reasons": [
-        "海外映射ETF 5日+5.75%",
-        "海外相关池弱化占比50%（确认项）"
+        "海外映射ETF 5日+5.86%"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -383,11 +565,11 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 5.75,
-        "proxy_ret20_avg": 0.26,
+        "proxy_ret5_avg": 5.86,
+        "proxy_ret20_avg": 0.37,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.5
+        "overseas_weak_share": 0.125
       },
       "details": {
         "159941": {
@@ -397,21 +579,21 @@
           "date": "2026-08-07"
         },
         "513500": {
-          "ret5": 7.21,
-          "ret20": 6.45,
-          "last": 2.69,
+          "ret5": 7.61,
+          "ret20": 6.85,
+          "last": 2.7,
           "date": "2026-08-07"
         },
         "159502": {
-          "ret5": 2.97,
-          "ret20": -7.31,
-          "last": 1.56,
+          "ret5": 3.04,
+          "ret20": -7.25,
+          "last": 1.561,
           "date": "2026-08-07"
         },
         "513520": {
-          "ret5": 5.45,
-          "ret20": -2.48,
-          "last": 2.285,
+          "ret5": 5.4,
+          "ret20": -2.52,
+          "last": 2.284,
           "date": "2026-08-07"
         }
       },
@@ -530,22 +712,22 @@
     "headwind_level": 0,
     "headwind_count": 0,
     "watch_count": 0,
-    "score_total": 1.25,
+    "score_total": 1.0,
     "label": "中性",
     "allow_chase": true,
     "allow_new_offense": true,
-    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_position": "权益10%-30%；防御/现金70%-90%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "极弱",
+    "base_market_state": "防御",
     "base_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
     "constrained_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
-    "position": "权益0%-10%；防御/现金90%-100%",
+    "position": "权益10%-30%；防御/现金70%-90%",
     "equity_constraint": "中观中性：按关键位正常执行",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
@@ -569,9 +751,7 @@
     ],
     "margin_source": "eastmoney RPTA_RZRQ_LSHJ",
     "price_source": "tencent qfq day bars",
-    "failures": {
-      "macro_observations": "Remote end closed connection without response"
-    }
+    "failures": {}
   },
   "disclaimer": "中观约束只压缩权益风险预算与追高资格，不替代ETF关键位触发。"
 }
