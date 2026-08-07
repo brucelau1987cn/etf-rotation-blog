@@ -41,7 +41,8 @@ def shareholders_from_row(row: dict) -> list[str]:
 
 def main() -> None:
     payload = load(DATA)
-    original = list(payload.get("intersection") or [])
+    # The raw intersection (before any filtering) is preserved in intersection_before_filters
+    original = list(payload.get("intersection_before_filters") or [])
     excluded_bj = [symbol for symbol in original if symbol.endswith(".BJ")]
     filtered = [symbol for symbol in original if not symbol.endswith(".BJ")]
 
