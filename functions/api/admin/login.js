@@ -1,6 +1,9 @@
 // POST /api/admin/login
-// Body: { password } — 校验管理员密码（env.ADMIN_PASSWORD）→ 发管理员 cookie
-import { signToken, setCookie, ADMIN_COOKIE } from '../../_lib/subscription-auth.js';
+// Body: { username, password, remember?, captcha_token? }
+// 校验管理员用户名+密码（D1 admin_credentials 表，可运行时修改）
+// remember=true → cookie 30 天（记住本机设备）；否则 12 小时
+// captcha_token 预留：env.CAPTCHA_ENABLED='true' 时启用（当前未接入验证码服务）
+import { sha256Hex, signToken, setCookie, ADMIN_COOKIE } from '../../_lib/subscription-auth.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -10,21 +13,46 @@ export async function onRequestPost(context) {
   } catch {
     return Response.json({ ok: false, error: '无效请求' }, { status: 400 });
   }
+  const username = String(body.username || '').trim();
   const password = String(body.password || '');
-  const expected = env.ADMIN_PASSWORD || '';
-  if (!expected || password !== expected) {
-    return Response.json({ ok: false, error: '管理员密码错误' }, { status: 401 });
+  const remember = body.remember === true;
+  const captchaToken = String(body.captcha_token || '').trim();
+
+  // 验证码预留接口：启用时校验（当前返回未启用）
+  if ((env.CAPTCHA_ENABLED || '') === 'true') {
+    if (!captchaToken) {
+      return Response.json({ ok: false, error: '请完成验证码校验', need_captcha: true }, { status: 403 });
+    }
+    // TODO: 接入验证码服务（预留 — 当前无验证码后端，直接拒绝防止绕过）
+    return Response.json({ ok: false, error: '验证码服务未配置，请联系管理员' }, { status: 501 });
   }
 
-  const exp = new Date(Date.now() + 12 * 3600 * 1000).toISOString(); // 12h 管理会话
+  if (!username || !password) {
+    return Response.json({ ok: false, error: '请输入用户名和密码' }, { status: 400 });
+  }
+
+  // 从 D1 读取管理员凭据（运行时可修改）
+  const row = await env.DB.prepare(
+    'SELECT username, password_hash FROM admin_credentials WHERE id = 1 LIMIT 1',
+  ).first();
+
+  const storedUser = row?.username || '';
+  const storedHash = row?.password_hash || '';
+  const hash = await sha256Hex(`${username}:${password}`);
+  if (!storedHash || username !== storedUser || hash !== storedHash) {
+    return Response.json({ ok: false, error: '用户名或密码错误' }, { status: 401 });
+  }
+
+  const ttlSec = remember ? 30 * 24 * 3600 : 12 * 3600; // 记住本机=30天，否则12小时
+  const exp = new Date(Date.now() + ttlSec * 1000).toISOString();
   const token = await signToken({ role: 'admin', exp }, env.ADMIN_SECRET || 'dev-admin-secret');
   return new Response(
-    JSON.stringify({ ok: true, expires_at: exp }),
+    JSON.stringify({ ok: true, expires_at: exp, remember }),
     {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': setCookie(ADMIN_COOKIE, token, { maxAge: 12 * 3600, path: '/' }),
+        'Set-Cookie': setCookie(ADMIN_COOKIE, token, { maxAge: ttlSec, path: '/' }),
       },
     },
   );

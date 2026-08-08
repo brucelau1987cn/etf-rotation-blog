@@ -5,7 +5,7 @@ import Header from '../../components/Header.astro';
 import { SITE_TITLE } from '../../consts';
 
 const title = `订阅管理后台 | ${SITE_TITLE}`;
-const description = '管理订阅密码：创建、查看、撤销订阅。';
+const description = '管理订阅密码：创建、查看、撤销订阅；修改管理员账号。';
 ---
 <BaseHead title={title} description={description} />
 <body>
@@ -15,7 +15,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
       <div>
         <p class="admin-eyebrow">ETF 罗盘 · 管理后台</p>
         <h1>订阅管理</h1>
-        <p class="admin-desc">创建带有效期的订阅密码、查看全部订阅、撤销不再续订的账号。密码只显示一次，请及时保存。</p>
+        <p class="admin-desc">创建带有效期的订阅密码、查看全部订阅、撤销不再续订的账号。密码只显示一次，请及时保存。管理员登录为用户名+密码方式，可勾选记住本机设备（30 天内免登录）。</p>
       </div>
     </div>
 
@@ -23,8 +23,14 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
     <section class="admin-login" id="admin-login" hidden>
       <h2>管理员登录</h2>
       <form id="admin-login-form" novalidate>
-        <label for="admin-password">管理员密码</label>
+        <label for="admin-username">用户名</label>
+        <input id="admin-username" type="text" autocomplete="username" placeholder="管理员用户名" required />
+        <label for="admin-password">密码</label>
         <input id="admin-password" type="password" autocomplete="current-password" placeholder="管理员密码" required />
+        <label class="remember-row">
+          <input id="admin-remember" type="checkbox" checked />
+          <span>记住本机设备（30 天内免登录）</span>
+        </label>
         <button type="submit">登录 →</button>
         <p class="admin-msg" id="admin-login-msg" role="status"></p>
       </form>
@@ -60,6 +66,22 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
           </thead>
           <tbody id="sub-tbody"></tbody>
         </table>
+      </div>
+
+      <div class="admin-account">
+        <h2>管理员账号设置</h2>
+        <form id="change-form" class="change-form" novalidate>
+          <div class="change-row">
+            <label for="change-username">新用户名</label>
+            <input id="change-username" type="text" autocomplete="username" placeholder="3-32 字符" />
+          </div>
+          <div class="change-row">
+            <label for="change-password">新密码</label>
+            <input id="change-password" type="password" autocomplete="new-password" placeholder="至少 8 个字符" />
+          </div>
+          <button type="submit">保存修改</button>
+          <p class="admin-msg" id="change-msg" role="status"></p>
+        </form>
       </div>
     </section>
   </main>
@@ -111,7 +133,11 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
         msg.textContent = ''; msg.className = 'admin-msg';
         const { status, data } = await api('/api/admin/login', {
           method: 'POST',
-          body: JSON.stringify({ password: $('admin-password').value }),
+          body: JSON.stringify({
+            username: $('admin-username').value.trim(),
+            password: $('admin-password').value,
+            remember: $('admin-remember').checked,
+          }),
         });
         if (status === 200 && data.ok) { msg.textContent = '✔ 登录成功'; msg.className = 'admin-msg ok'; loadList(); }
         else { msg.textContent = data.error || '登录失败'; msg.className = 'admin-msg error'; }
@@ -134,6 +160,28 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
         }
       });
 
+      $('change-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('change-msg');
+        msg.textContent = ''; msg.className = 'admin-msg';
+        const { status, data } = await api('/api/admin/change-credentials', {
+          method: 'POST',
+          body: JSON.stringify({
+            username: $('change-username').value.trim(),
+            password: $('change-password').value,
+          }),
+        });
+        if (status === 200 && data.ok) {
+          msg.textContent = `✔ 已保存，新用户名：${data.username}（下次登录生效）`;
+          msg.className = 'admin-msg ok';
+          $('change-username').value = '';
+          $('change-password').value = '';
+        } else {
+          msg.textContent = data.error || '保存失败';
+          msg.className = 'admin-msg error';
+        }
+      });
+
       loadList();
     })();
   </script>
@@ -152,10 +200,12 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
   .admin-login { max-width: 400px; }
   .admin-login h2, .admin-panel h2 { font-size: 1.05rem; margin: 0 0 .9rem; }
   .admin-login label { display: block; font-size: .78rem; font-weight: 800; margin-bottom: .4rem; }
-  .admin-login input {
+  .admin-login input[type="text"], .admin-login input[type="password"] {
     width: 100%; box-sizing: border-box; font-size: 1rem; padding: .6rem .8rem;
     border: 1px solid var(--border); border-radius: 10px; margin-bottom: .8rem; outline: none;
   }
+  .remember-row { display: flex; align-items: center; gap: .45rem; font-weight: 600 !important; margin-bottom: .9rem !important; cursor: pointer; }
+  .remember-row input { width: auto !important; margin: 0 !important; }
   .admin-login button {
     padding: .6rem 1.2rem; font-weight: 800; color: #fff; background: #1e3a8a;
     border: none; border-radius: 10px; cursor: pointer;
@@ -182,7 +232,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
   }
   .create-result span { font-size: .78rem; color: rgb(var(--gray-mid)); }
 
-  .admin-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 1.6rem; }
   .admin-table th, .admin-table td { text-align: left; padding: .55rem .6rem; border-top: 1px solid var(--border); }
   .admin-table th { color: rgb(var(--gray-mid)); font-size: .72rem; }
   .admin-table tbody tr:hover { background: #f8fafc; }
@@ -192,4 +242,18 @@ const description = '管理订阅密码：创建、查看、撤销订阅。';
     background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; cursor: pointer;
   }
   .muted { color: rgb(var(--gray-mid)); }
+
+  .admin-account { border-top: 1px solid var(--border); padding-top: 1.2rem; }
+  .admin-account h2 { margin-bottom: .8rem; }
+  .change-form { max-width: 420px; }
+  .change-row { margin-bottom: .8rem; }
+  .change-row label { display: block; font-size: .78rem; font-weight: 800; margin-bottom: .4rem; }
+  .change-row input {
+    width: 100%; box-sizing: border-box; font-size: .95rem; padding: .55rem .8rem;
+    border: 1px solid var(--border); border-radius: 10px; outline: none;
+  }
+  .change-form button {
+    padding: .55rem 1.1rem; font-weight: 800; color: #fff; background: #b45309;
+    border: none; border-radius: 10px; cursor: pointer;
+  }
 </style>
