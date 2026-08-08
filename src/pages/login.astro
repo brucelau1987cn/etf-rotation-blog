@@ -1,0 +1,104 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+
+const title = `订阅登录 | ${SITE_TITLE}`;
+const description = '输入订阅密码访问 ETF 罗盘。';
+---
+<BaseHead title={title} description={description} />
+<body class="login-body">
+  <Header />
+  <main class="login-main site-shell">
+    <div class="login-card">
+      <p class="login-eyebrow">ETF 罗盘 · 订阅访问</p>
+      <h1>请输入订阅密码</h1>
+      <p class="login-desc">本站为订阅制访问。输入订阅密码即可解锁全部页面；密码到期后需续订。</p>
+
+      <form id="login-form" class="login-form" novalidate>
+        <label for="passphrase">订阅密码</label>
+        <input id="passphrase" name="passphrase" type="password" autocomplete="current-password"
+               placeholder="输入订阅密码" required autofocus />
+        <button type="submit" id="login-btn">解锁访问 →</button>
+        <p class="login-msg" id="login-msg" role="status"></p>
+      </form>
+
+      <p class="login-foot">订阅有效期显示在下方，到期前可正常访问。</p>
+    </div>
+  </main>
+  <Footer />
+
+  <script is:inline>
+    (() => {
+      const form = document.getElementById('login-form');
+      const btn = document.getElementById('login-btn');
+      const msg = document.getElementById('login-msg');
+      const params = new URLSearchParams(location.search);
+      const next = params.get('next') || '/';
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const passphrase = document.getElementById('passphrase').value.trim();
+        if (!passphrase) { msg.textContent = '请输入密码'; msg.className = 'login-msg error'; return; }
+        btn.disabled = true;
+        btn.textContent = '验证中…';
+        msg.textContent = ''; msg.className = 'login-msg';
+        try {
+          const res = await fetch('/api/public/v1/subscription/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ passphrase }),
+          });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            msg.textContent = `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}`;
+            msg.className = 'login-msg ok';
+            setTimeout(() => { location.href = next; }, 600);
+          } else {
+            msg.textContent = data.error || '登录失败';
+            msg.className = 'login-msg error';
+          }
+        } catch (err) {
+          msg.textContent = '网络错误，请重试';
+          msg.className = 'login-msg error';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '解锁访问 →';
+        }
+      });
+    })();
+  </script>
+</body>
+
+<style>
+  .login-main { display: flex; justify-content: center; padding: 3rem 1rem 4rem; }
+  .login-card {
+    width: 100%; max-width: 420px;
+    border: 1px solid var(--border); border-radius: 16px;
+    background: #fff; padding: 2.2rem 2rem;
+    box-shadow: 0 8px 30px rgba(30, 41, 59, .06);
+  }
+  .login-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .5rem; }
+  .login-card h1 { font-size: 1.5rem; margin: 0 0 .6rem; }
+  .login-desc { font-size: .85rem; color: rgb(var(--gray-mid)); line-height: 1.6; margin: 0 0 1.6rem; }
+  .login-form label { display: block; font-size: .78rem; font-weight: 800; margin-bottom: .4rem; }
+  .login-form input {
+    width: 100%; box-sizing: border-box;
+    font-size: 1rem; padding: .7rem .9rem;
+    border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: .9rem; outline: none;
+  }
+  .login-form input:focus { border-color: rgb(var(--gray-dark)); }
+  .login-form button {
+    width: 100%; padding: .75rem 1rem;
+    font-size: .95rem; font-weight: 850; color: #fff;
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    border: none; border-radius: 10px; cursor: pointer;
+  }
+  .login-form button:disabled { opacity: .6; cursor: wait; }
+  .login-msg { font-size: .82rem; margin: .9rem 0 0; min-height: 1.2em; }
+  .login-msg.ok { color: #0aa869; }
+  .login-msg.error { color: #e04444; }
+  .login-foot { font-size: .72rem; color: rgb(var(--gray-mid)); margin: 1.2rem 0 0; text-align: center; }
+</style>
