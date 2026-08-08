@@ -31,14 +31,16 @@ def test_tracking_page_and_entry_link():
     page = TRACKING_PAGE.read_text(encoding="utf-8")
     for marker in (
         "低筹码追踪",
-        "近2周涨跌",
+        "近2周",
         "股价走势",
         "获利盘指数",
         "每日明细",
-        "最新获利盘",
+        "2周最高/最低",
+        "获利盘变化",
         "数据来源：腾讯日线",
         "iWenCai 收盘获利比例",
-        "sparklinePoints",
+        "chartGeom",
+        "threshY",
     ):
         assert marker in page
     low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
