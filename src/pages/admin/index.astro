@@ -42,6 +42,8 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
         <h2>创建订阅</h2>
         <form id="create-form" class="create-form" novalidate>
           <input id="create-label" placeholder="备注（订阅者名）" />
+          <input id="create-username" placeholder="用户名（可选，用于用户名+密码登录）" />
+          <input id="create-account-password" type="password" placeholder="账号密码（选用户名时必填，≥8位）" />
           <select id="create-days">
             <option value="7">7 天</option>
             <option value="30" selected>30 天</option>
@@ -62,7 +64,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
         <h2>全部订阅（<span id="sub-count">0</span>）</h2>
         <table class="admin-table">
           <thead>
-            <tr><th>备注</th><th>到期</th><th>状态</th><th>设备</th><th>创建时间</th><th>操作</th></tr>
+            <tr><th>备注</th><th>用户名</th><th>到期</th><th>状态</th><th>设备</th><th>创建时间</th><th>操作</th></tr>
           </thead>
           <tbody id="sub-tbody"></tbody>
         </table>
@@ -112,6 +114,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
           $('sub-tbody').innerHTML = items.map((it) => `
             <tr class="${it.revoked ? 'row-revoked' : ''}">
               <td>${it.label || '—'}</td>
+              <td>${it.username || '—'}</td>
               <td>${it.expires_at || '—'}</td>
               <td>${it.revoked ? '已撤销' : (it.expires_at < new Date().toISOString().slice(0, 10) ? '已过期' : '有效')}</td>
               <td>${it.device_count ?? 0}/${it.device_limit ?? 5} <button class="mini-btn unbind-btn" data-id="${it.id}" title="解绑该订阅全部设备，需重新登录">解绑</button></td>

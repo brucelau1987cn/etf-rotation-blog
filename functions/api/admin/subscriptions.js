@@ -64,7 +64,7 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
-      `SELECT id, label, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
+      `SELECT id, label, username, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
     ).all();
     const items = (rows.results || []).map((r) => ({ ...r, expires_at: fmtDate(r.expires_at) }));
     // 每订阅设备数
@@ -87,13 +87,35 @@ export async function onRequest(context) {
     }
     const label = String(body.label || '').trim();
     const days = Math.max(1, Math.min(3650, Number(body.days) || 30));
+    const username = String(body.username || '').trim();
     const passphrase = randomPassphrase();
     const hash = await sha256Hex(passphrase);
     const expiresAt = daysAhead(days);
-    await env.DB.prepare(
-      'INSERT INTO subscriptions (passphrase_hash, label, expires_at) VALUES (?, ?, ?)',
-    ).bind(hash, label, expiresAt).run();
-    return Response.json({ ok: true, passphrase, label, expires_at: fmtDate(expiresAt), days });
+
+    // 可选绑定用户名+密码：password_hash 存 sha256(username:password)（与管理员同方案）
+    let accountHash = null;
+    if (username) {
+      const accountPassword = String(body.account_password || '');
+      if (accountPassword.length < 8) {
+        return Response.json({ ok: false, error: '账号密码至少 8 个字符' }, { status: 400 });
+      }
+      accountHash = await sha256Hex(`${username}:${accountPassword}`);
+    }
+
+    try {
+      await env.DB.prepare(
+        'INSERT INTO subscriptions (passphrase_hash, label, expires_at, username, password_hash) VALUES (?, ?, ?, ?, ?)',
+      ).bind(hash, label, expiresAt, username || null, accountHash).run();
+    } catch (e) {
+      if (String(e?.message || '').includes('UNIQUE')) {
+        return Response.json({ ok: false, error: '用户名已存在' }, { status: 409 });
+      }
+      throw e;
+    }
+    return Response.json({
+      ok: true, passphrase, label, expires_at: fmtDate(expiresAt), days,
+      username: username || null,
+    });
   }
 
   return Response.json({ ok: false, error: '不支持的方法' }, { status: 405 });

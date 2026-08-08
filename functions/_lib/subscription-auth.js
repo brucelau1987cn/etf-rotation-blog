@@ -90,6 +90,59 @@ export async function isSubscribed(request, env) {
   return !!row;
 }
 
+// ── 设备会话管理（订阅登录共用）────────────────────────────
+export const MAX_DEVICES = 5;
+
+export function genSid() {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return [...arr].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 解析设备指纹：前端持久 device_id 优先，缺失用 UA 哈希兜底
+// body 为已解析的请求体（避免 body 已消费后 clone().json() 抛错）
+export async function resolveDeviceId(request, body = {}) {
+  const ua = String(request.headers.get('User-Agent') || '');
+  const bodyDevice = String(body?.device_id || '').trim();
+  if (bodyDevice) return { deviceId: bodyDevice, ua };
+  return { deviceId: (await sha256Hex(`ua:${ua}`)).slice(0, 24), ua };
+}
+
+// 设备会话处理：同设备复用 / 新设备限额 / 返回 { sid, isNew, deviceCount }
+export async function acquireSession(env, subscriptionId, expiresAt, deviceId, ua) {
+  const existing = await env.DB.prepare(
+    'SELECT sid FROM sub_sessions WHERE subscription_id = ? AND device_id = ? LIMIT 1',
+  ).bind(subscriptionId, deviceId).first();
+
+  if (existing) {
+    await env.DB.prepare(
+      "UPDATE sub_sessions SET expires_at = ?, last_seen = datetime('now') WHERE sid = ?",
+    ).bind(expiresAt, existing.sid).run();
+    return { sid: existing.sid, isNew: false, deviceCount: null };
+  }
+
+  const countRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM sub_sessions WHERE subscription_id = ? AND expires_at > datetime('now')`,
+  ).bind(subscriptionId).first();
+  const deviceCount = Number(countRow?.n || 0);
+  if (deviceCount >= MAX_DEVICES) {
+    return { limitHit: true, deviceCount };
+  }
+
+  const sid = genSid();
+  await env.DB.prepare(
+    'INSERT INTO sub_sessions (subscription_id, device_id, device_ua, sid, expires_at, last_seen) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
+  ).bind(subscriptionId, deviceId, ua.slice(0, 200), sid, expiresAt).run();
+  return { sid, isNew: true, deviceCount: deviceCount + 1 };
+}
+
+// 签发订阅 cookie（exp 对齐订阅到期）
+export async function issueSubscriptionCookie(env, subId, sid, expiresAt) {
+  const token = await signToken({ sub: `sub:${subId}`, sid, exp: expiresAt }, env.SUBSCRIBE_SECRET || 'dev-secret');
+  const maxAge = Math.max(60, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000));
+  return setCookie(SUB_COOKIE, token, { maxAge, path: '/' });
+}
+
 // 管理员登录态检查
 export async function isAdmin(request, env) {
   const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);

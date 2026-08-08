@@ -34,14 +34,21 @@ describe('subscription-auth lib', () => {
     assert.equal(readCookie(null, 'etf_sub'), null);
   });
 
-  it('isSubscribed honors expiry', async () => {
+  it('isSubscribed honors expiry + sid existence', async () => {
     const secret = 'test-secret';
-    const future = await signToken({ exp: new Date(Date.now() + 3600e3).toISOString() }, secret);
-    const past = await signToken({ exp: new Date(Date.now() - 3600e3).toISOString() }, secret);
-    const env = { SUBSCRIBE_SECRET: secret };
-    assert.equal(await isSubscribed({ headers: new Headers({ Cookie: `etf_sub=${future}` }) }, env), true);
-    assert.equal(await isSubscribed({ headers: new Headers({ Cookie: `etf_sub=${past}` }) }, env), false);
-    assert.equal(await isSubscribed({ headers: new Headers() }, env), false);
+    const mkToken = (expIso) => signToken({ exp: expIso, sid: 'sid-test' }, secret);
+    const future = await mkToken(new Date(Date.now() + 3600e3).toISOString());
+    const past = await mkToken(new Date(Date.now() - 3600e3).toISOString());
+    // mock DB：会话存在 → isSubscribed true；不存在 → false
+    const envWithDb = (exists) => ({
+      SUBSCRIBE_SECRET: secret,
+      DB: { prepare: () => ({ bind: () => ({ first: async () => (exists ? { 1: 1 } : null) }) }) },
+    });
+    const headers = (cookie) => ({ headers: new Headers({ Cookie: `etf_sub=${cookie}` }) });
+    assert.equal(await isSubscribed(headers(future), envWithDb(true)), true);
+    assert.equal(await isSubscribed(headers(future), envWithDb(false)), false); // 会话被删 → 拒
+    assert.equal(await isSubscribed(headers(past), envWithDb(true)), false); // 过期 → 拒
+    assert.equal(await isSubscribed({ headers: new Headers() }, envWithDb(true)), false);
   });
 
   it('isAdmin checks role', async () => {
