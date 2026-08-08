@@ -843,20 +843,17 @@
     return res.json();
   };
 
-  const fetchOneQuote = async (meta) => {
-    let symbolParam;
+  const symbolParamFor = (meta) => {
     if (meta.exchange === 'HKEX') {
-      symbolParam = `${meta.symbol}.HK`;
-    } else if (market === 'futures' || meta.exchange === 'FUTURES') {
-      symbolParam = meta.querySymbol || (String(meta.symbol || '').startsWith('nf_') ? meta.symbol : `nf_${meta.symbol}`);
-    } else if (/^[A-Za-z]/.test(meta.symbol)) {
-      symbolParam = `${meta.symbol}.US`;
-    } else {
-      symbolParam = meta.symbol;
+      return `${meta.symbol}.HK`;
     }
-    const res = await fetch(`/api/public/v1/quote?symbol=${encodeURIComponent(symbolParam)}&exchange=${encodeURIComponent(meta.exchange)}&t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return normalizeQuotePayload(await res.json());
+    if (market === 'futures' || meta.exchange === 'FUTURES') {
+      return meta.querySymbol || (String(meta.symbol || '').startsWith('nf_') ? meta.symbol : `nf_${meta.symbol}`);
+    }
+    if (/^[A-Za-z]/.test(meta.symbol)) {
+      return `${meta.symbol}.US`;
+    }
+    return meta.symbol;
   };
 
   let signalInFlight = false;
@@ -906,17 +903,28 @@
     if (quoteInFlight || document.hidden) return;
     quoteInFlight = true;
     try {
-      await Promise.all([
-        ...INSTRUMENTS.map(async (meta) => {
-          try {
-            updateQuoteUI(meta.symbol, await fetchOneQuote(meta));
-          } catch {
-            updateQuoteUI(meta.symbol, null);
-          }
-        }),
-        // Session-gated batch only; 24H continuous quotes have their own free-running poll.
-        fetchMarketIndices({ sessionOnly: true }),
-      ]);
+      // Batch ALL instrument quotes into ONE /quote request (upstream accepts up to 50 symbols).
+      // This replaces N independent requests with a single round-trip.
+      const symbolParams = INSTRUMENTS.map(meta => symbolParamFor(meta)).filter(Boolean);
+      const uniqueParams = [...new Set(symbolParams)];
+      if (uniqueParams.length) {
+        try {
+          const symbolsStr = uniqueParams.join(',');
+          const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbolsStr)}&t=${Date.now()}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const payload = normalizeQuotePayload(await res.json());
+          INSTRUMENTS.forEach((meta) => {
+            const item = findQuoteItem(payload, meta.symbol)
+              || findQuoteItem(payload, meta.querySymbol)
+              || null;
+            updateQuoteUI(meta.symbol, item ? { ...payload, items: [item] } : null);
+          });
+        } catch {
+          INSTRUMENTS.forEach(meta => updateQuoteUI(meta.symbol, null));
+        }
+      }
+      // Session-gated batch only; 24H continuous quotes have their own free-running poll.
+      await fetchMarketIndices({ sessionOnly: true });
     } finally {
       quoteInFlight = false;
       armQuoteCountdown();
