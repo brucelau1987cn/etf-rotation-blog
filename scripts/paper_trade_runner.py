@@ -372,7 +372,11 @@ def main(argv=None):
             held=set(account["positions"])
             symbols=held if args.mode=="close" else ({x["symbol"] for group in signals for x in group}|held)
             quotes=(fetch_a if args.market=="A" else fetch_us)(sorted(symbols))
-            max_age=(1200 if args.market=="A" else 3600) if args.mode=="close" else (180 if args.market=="A" else 900)
+            # US close runs at 06:50 CST = 18:50 ET prev-day, i.e. ~9.3h after
+            # the 16:00 ET close. A 1h age cap would always drop every quote and
+            # silently skip the close (nav history stalls). Accept same-day close
+            # quotes up to 15h old for US close; A close stays at 20m.
+            max_age=(1200 if args.market == "A" else 54000) if args.mode == "close" else (180 if args.market == "A" else 900)
             quotes={symbol:bar for symbol,bar in quotes.items() if quote_day(args.market,bar)==today and quote_age_seconds(args.market,bar,ts)<=max_age}
             # A close snapshot is valid only when every held position has a fresh quote.
             if held-set(quotes): return
