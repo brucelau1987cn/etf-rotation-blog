@@ -158,6 +158,8 @@ const compactMarketState = (raw: string) => {
       || afterConclusion
       || parts[0];
     const conclusion = String(rankedHit || '')
+      // 剥掉与 stage 重复的阶段前缀（原文以 22:00夜间最终版｜ 开头时）
+      .replace(/^(08:30|11:30|14:30|22:00)\s*(盘前|上午|尾盘)?夜间?(最终版|最终收盘)?\s*[｜|:：]?\s*/, '')
       .split(/[；;]/)
       .map((item) => item.trim())
       .filter(Boolean)
