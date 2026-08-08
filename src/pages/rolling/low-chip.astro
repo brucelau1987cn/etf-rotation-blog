@@ -94,7 +94,7 @@ const rows = intersectionRows.map((row) => {
         <div>
           <p class="eyebrow">A股滚动 · 低筹码筛选</p>
           <h1>低筹码股</h1>
-          <p>筛选条件：沪深A股、非ST、非退市，收盘获利比例低于3%；剔除北交所及未来3个月存在限售股解禁的标的。</p>
+          <p>筛选条件：沪深A股、非ST、非退市，收盘获利比例低于3%；剔除北交所、上市不足90天的新股（无完整周/月/季线周期）及未来3个月存在限售股解禁的标的。</p>
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd id="chip-as-of">{lowChipData.data_as_of}</dd></div>
@@ -202,6 +202,12 @@ const rows = intersectionRows.map((row) => {
               </div>
             </div>
           ))}
+          {rows.length === 0 && (
+            <div class="chip-row chip-row-empty">
+              <strong>今日无符合标的</strong>
+              <span>三周期（周线/月线/季线）收盘获利比例均低于3%的标的存在，且已剔除新股（上市不足90天）与解禁风险；市场整体获利盘偏高时会出现空集。</span>
+            </div>
+          )}
           <div class="chip-row chip-row-empty" id="chip-search-empty" hidden>
             <strong>没有匹配标的</strong>
             <span>换个代码、名称或首字母试试</span>

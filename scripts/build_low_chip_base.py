@@ -14,10 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 DATE = sys.argv[1] if len(sys.argv) > 1 else "2026-08-07"
 
+# 新股（上市不足 90 天）没有完整季线周期 K 线，iWenCai 返回的周/月/季
+# 获利比例是失真值（0.1~0.5% 极易误入选）。cutoff 用于查询条件与审计。
+MIN_LISTING_DAYS = 90
+CUTOFF = (datetime.date.fromisoformat(DATE) - datetime.timedelta(days=MIN_LISTING_DAYS)).isoformat()
+
 PERIODS = [
-    ("week", "周线收盘获利", "A股 周线收盘获利小于3%，非ST，非退市"),
-    ("month", "月线收盘获利", "A股 月线收盘获利小于3%，非ST，非退市"),
-    ("quarter", "季线收盘获利", "A股 季线收盘获利小于3%，非ST，非退市"),
+    ("week", "周线收盘获利", f"A股 周线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
+    ("month", "月线收盘获利", f"A股 月线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
+    ("quarter", "季线收盘获利", f"A股 季线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
 ]
 
 
@@ -100,6 +105,16 @@ def main() -> int:
     # Pre-filter .BJ out of intersection (enrich_low_chip_stocks.py will read it from here)
     excluded_bj_initial = [c for c in inter_raw if c.endswith(".BJ")]
     inter_pre = [c for c in inter_raw if not c.endswith(".BJ")]
+
+    # 审计：无上市日期过滤的周线查询，识别被 cutoff 排除的新股（上市不足 90 天）
+    excluded_new_listing = []
+    try:
+        raw_rows, _ = paginate(f"A股 周线收盘获利小于3%，非ST，非退市")
+        raw_week_codes = {r.get("股票代码") or "" for r in raw_rows} - {""}
+        excluded_new_listing = sorted(raw_week_codes - week_codes)
+    except Exception as exc:  # 审计失败不阻塞主流程
+        print(f"new-listing audit skipped: {exc}", flush=True)
+    print(f"excluded_new_listing: {excluded_new_listing}", flush=True)
     print(f"intersection_raw: {inter_raw}", flush=True)
     print(f"excluded_bj: {excluded_bj_initial}", flush=True)
 
@@ -119,6 +134,10 @@ def main() -> int:
         "filters": {
             "exclude_bj": True,
             "excluded_bj": excluded_bj_initial,
+            "listing_min_days": MIN_LISTING_DAYS,
+            "listing_cutoff": CUTOFF,
+            "exclude_new_listing": True,
+            "excluded_new_listing": excluded_new_listing,
             "unlock_window": "未来3个月",
             "exclude_unlock_risk": True,
             "excluded_unlock_risk": [],

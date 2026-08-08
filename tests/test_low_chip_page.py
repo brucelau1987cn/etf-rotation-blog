@@ -29,18 +29,21 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert data["data_as_of"] == "2026-08-07"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 5
-    assert len(data["periods"]["month"]) == 15
-    assert len(data["periods"]["quarter"]) == 73
-    assert len(data["intersection_before_filters"]) == 3
-    assert len(data["intersection"]) == 2
-    assert data["intersection"] == ["301677.SZ", "603468.SH"]
+    assert len(data["periods"]["week"]) == 2
+    assert len(data["periods"]["month"]) == 11
+    assert len(data["periods"]["quarter"]) == 63
+    # 新股（上市不足90天）被排除：301677.SZ 欣兴工具(07-30)、603468.SH 津富士达(08-06)
+    assert data["filters"]["exclude_new_listing"] is True
+    assert data["filters"]["listing_min_days"] == 90
+    assert data["filters"]["listing_cutoff"] == "2026-05-09"
+    assert set(data["filters"]["excluded_new_listing"]) >= {"301677.SZ", "603468.SH"}
+    assert len(data["intersection_before_filters"]) == 0
+    assert len(data["intersection"]) == 0
+    assert data["intersection"] == []
     assert all(not code.endswith(".BJ") for code in data["intersection"])
-    assert data["filters"]["excluded_bj"] == ["920258.BJ"]
-    assert data["filters"]["excluded_unlock_risk"] == []
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"] == {
-        "report_period": "20251231",
+        "report_period": None,
         "roe_min": 30,
         "net_margin_min": 25,
         "cash_profit_ratio_min": 20,
@@ -58,12 +61,7 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert data["shareholder_metrics"]["fields"] == ["总户数", "总户数较上期变动", "总户数较上期增长率", "公告日期", "户均持股数量", "集中度90", "前十大流通股东持股比例合计"]
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
     # 301677 (欣兴工具) is in today's intersection and is a new listing (no top10)
-    assert data["enrichments"]["301677.SZ"]["quality_shareholder"] is False
-    assert data["enrichments"]["301677.SZ"]["quality_shareholder_names"] == []
-    assert data["enrichments"]["301677.SZ"]["theme_concept"]
-    assert "（" in data["enrichments"]["301677.SZ"]["sector_with_theme"]
-    assert isinstance(data["enrichments"]["301677.SZ"]["theme_concepts"], list)
-    assert 1 <= len(data["enrichments"]["301677.SZ"]["theme_concepts"]) <= 3
+    # 新股已排除 → intersection 为空，无 enrichment 断言；历史 08-03 存档仍有标的
     hist_0803 = json.loads((HISTORY_DIR / "2026-08-03.json").read_text(encoding="utf-8"))
     baoming = hist_0803["enrichments"]["002992.SZ"]
     assert baoming["theme_concepts"][:3] == ["小米概念", "无人机", "比亚迪概念"]
@@ -148,7 +146,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "较上期变化",
         "90%筹码集中度",
         "十大流通股东",
-        "剔除北交所及未来3个月存在限售股解禁",
+        "剔除北交所、上市不足90天的新股",
+        "上市不足90天的新股",
         "收盘获利比例",
     ):
         assert marker in page
@@ -157,6 +156,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
-    assert "欣兴工具" in data
+    assert "今日无符合标的" in page
     assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()

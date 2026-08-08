@@ -119,6 +119,10 @@ def main() -> None:
     payload["filters"] = {
         "exclude_bj": True,
         "excluded_bj": excluded_bj,
+        "listing_min_days": payload.get("filters", {}).get("listing_min_days", 90),
+        "listing_cutoff": payload.get("filters", {}).get("listing_cutoff", ""),
+        "exclude_new_listing": True,
+        "excluded_new_listing": payload.get("filters", {}).get("excluded_new_listing", []),
         "unlock_window": "未来3个月",
         "exclude_unlock_risk": True,
         "excluded_unlock_risk": [code for code in filtered if code in unlocks],
