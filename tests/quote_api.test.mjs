@@ -36,6 +36,13 @@ v_sh517520="1~黄金股ETF永赢~517520~1.808~1.886~1.791~3339573~1690342~164906
     assert.equal(dataBatch.count, 2);
     assert.equal(dataBatch.quotes['600021'].price, 14.6);
     assert.equal(dataBatch.quotes['517520'].price, 1.808);
+
+    // 3. Yahoo 连续合约别名（SI=F → hf_XAG 新浪通道）
+    const alias = mod.parseSymbol('SI=F');
+    assert.equal(alias.sina, 'hf_XAG');
+    assert.equal(alias.tencent, 'hf_XAG');
+    assert.equal(alias.type, 'futures');
+    assert.equal(mod.parseSymbol('GC=F').sina, 'hf_XAU');
   } finally {
     globalThis.fetch = previous;
   }
