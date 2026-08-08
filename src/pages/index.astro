@@ -69,7 +69,7 @@ const firstClauses = (raw: string, maxClauses = 2) => String(raw || '')
   .slice(0, maxClauses)
   .join('；');
 const extractActionLine = (raw: string) => {
-  const text = String(raw || '').trim();
+  const text = String(raw || '').trim().replace(/['"`]+/g, '');
   if (!text) return '';
   const stripStage = (value: string) => value
     .replace(/^(08:30|11:30|14:30|22:00)夜间?(最终版|最终收盘)?[：:]?/, '')
@@ -91,7 +91,7 @@ const extractActionLine = (raw: string) => {
   return firstClauses(stripStage(parts[parts.length - 1] || text), 1);
 };
 const compactHomeMarketState = (raw: string) => {
-  const text = String(raw || '').trim();
+  const text = String(raw || '').trim().replace(/['"`]+/g, '');
   if (!text) return '待更新';
   if (text.length <= 28) return text;
   const stageMatch = text.match(/^(08:30|11:30|14:30|22:00)/);
