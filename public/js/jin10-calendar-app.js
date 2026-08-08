@@ -68,11 +68,22 @@
     });
   };
 
+  /** 影响对象映射：标题含金银→金银；美国数据→美元；中国数据→人民币。 */
+  const impactAsset = (item) => {
+    const title = String(item.title || '');
+    if (/黄金|白银|贵金属|金银/.test(title)) return '金银';
+    if (item.country === '美国') return '美元';
+    if (item.country === '中国') return '人民币';
+    return '';
+  };
+
   const renderItem = (item) => {
     const typeLabel = item.type === 'data' ? '数据' : item.type === 'event' ? '事件' : item.type === 'holiday' ? '假期' : '其他';
     const values = item.type === 'data' ? `<div class="calendar-values"><span>前值 <b>${displayValue(item.previous, item.unit)}</b></span><span>预期 <b>${displayValue(item.consensus, item.unit)}</b></span><span>公布 <b>${displayValue(item.actual, item.unit)}</b></span></div>` : '';
     const impactText = item.impact || item.affect_txt || null;
-    const impact = impactText ? `<div class="impact-tag impact-${impactText === '利空' ? 'bearish' : impactText === '利多' ? 'bullish' : 'neutral'}">${escapeHtml(impactText)}</div>` : '';
+    const asset = impactAsset(item);
+    // 影响标签带对象：利多金银 / 利空美元 / 利多人民币
+    const impact = impactText ? `<div class="impact-tag impact-${impactText === '利空' ? 'bearish' : impactText === '利多' ? 'bullish' : 'neutral'}">${escapeHtml(impactText)}${asset ? escapeHtml(asset) : ''}</div>` : '';
     const safeStar = Math.max(0, Math.min(5, Math.trunc(Number(item.star) || 0)));
     const stars = safeStar ? '★'.repeat(safeStar) : '—';
     return `<article class="calendar-item" data-type="${escapeHtml(item.type)}">
@@ -82,7 +93,11 @@
     </article>`;
   };
 
+  // 只显示中国和美国的信息，其余屏蔽。
+  const isCnUs = (item) => ['中国', '美国'].includes(String(item.country || ''));
+
   const filteredItems = () => currentItems.filter((item) => {
+    if (!isCnUs(item)) return false;
     if (activeFilter === 'important') return ['data', 'event'].includes(item.type) && Number(item.star) >= 3;
     if (activeFilter === 'important-data') return item.type === 'data' && Number(item.star) >= 3;
     if (activeFilter === 'important-event') return item.type === 'event' && Number(item.star) >= 3;
@@ -122,10 +137,12 @@
         }
       }
       currentItems = items;
-      count.textContent = String(items.length);
-      dataCount.textContent = String(payload.counts?.data || 0);
-      eventCount.textContent = String(payload.counts?.event || 0);
-      importantCount.textContent = String(items.filter((item) => Number(item.star) >= 3).length);
+      // 统计只基于中国+美国条目（与列表过滤一致）。
+      const cnUsItems = items.filter(isCnUs);
+      count.textContent = String(cnUsItems.length);
+      dataCount.textContent = String(cnUsItems.filter((item) => item.type === 'data').length);
+      eventCount.textContent = String(cnUsItems.filter((item) => item.type === 'event').length);
+      importantCount.textContent = String(cnUsItems.filter((item) => Number(item.star) >= 3).length);
       renderList();
       const nextUrl = new URL(location.href);
       nextUrl.searchParams.set('date', date);

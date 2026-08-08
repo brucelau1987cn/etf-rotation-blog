@@ -94,14 +94,15 @@ test('jin10 calendar proxy returns general impact direction', async () => {
     data: [{ type: 'data', data: {
       data_id: 1182694, indicator_id: 951, pub_time: '2026-08-01 01:00', country: '美国',
       star: 3, indicator_name: '当周石油钻井总数', previous: '450', actual: '451', unit: '口',
-      affect: 1, show_affect: 1,
+      affect: 0, show_affect: 1,
     } }],
   }), { status: 200 });
   try {
     const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-08-01') });
     const payload = await response.json();
-    assert.equal(payload.items[0].impact, '利空');
-    assert.equal(payload.items[0].affect, 1);
+    // affect=0 正向：actual(451) > previous(450) → 利多
+    assert.equal(payload.items[0].impact, '利多');
+    assert.equal(payload.items[0].affect, 0);
     assert.equal(payload.items[0].show_affect, 1);
   } finally {
     globalThis.fetch = previous;
@@ -115,14 +116,14 @@ test('unreleased or unverified items expose no impact', async () => {
     message: 'OK',
     data: [
       { type: 'data', data: { data_id: 2, indicator_id: 951, pub_time: '2026-08-08 01:00', indicator_name: '当周石油钻井总数', affect: 1, show_affect: 1, actual: null } },
-      { type: 'data', data: { data_id: 3, indicator_id: 951, pub_time: '2026-07-31 01:00', indicator_name: '当周石油钻井总数', affect: 2, show_affect: 1, actual: '449' } },
+      { type: 'data', data: { data_id: 3, indicator_id: 951, pub_time: '2026-07-31 01:00', indicator_name: '当周石油钻井总数', affect: 1, show_affect: 1, actual: '449', previous: '455' } },
     ],
   }), { status: 200 });
   try {
     const response = await handler({ request: new Request('https://etf.peekabo.cc/api/public/v1/jin10-calendar?start_date=2026-07-31&end_date=2026-08-08') });
     const payload = await response.json();
     // items sorted by time ascending: 07-31 first, 08-08 second
-    // affect=2 → 利多
+    // affect=1 反向：actual(449) < previous(455) → 利多
     assert.equal(payload.items[0].impact, '利多');
     // null actual → no impact
     assert.equal(payload.items[1].impact, null);

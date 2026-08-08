@@ -30,9 +30,23 @@ const normalizeItem = (entry) => {
   const rawStar = Number(data.star);
   const star = Number.isFinite(rawStar) ? Math.max(0, Math.min(5, Math.trunc(rawStar))) : null;
   const rawAffect = Number(data.affect);
+  // 影响方向（金十 web 规则）：基准 = consensus ?? previous；
+  // affect=0 正向指标（数值大→利多）；affect≠0 反向指标（数值大→利空）；相等→影响较小。
   const impact = type === 'data' && Number(data.show_affect) === 1
     && data.actual !== null && data.actual !== undefined && data.actual !== ''
-    ? (rawAffect === 1 ? '利空' : rawAffect === 2 ? '利多' : null)
+    ? (() => {
+        const base = data.consensus !== null && data.consensus !== undefined && data.consensus !== ''
+          ? data.consensus
+          : data.previous;
+        if (base === null || base === undefined || base === '' || Number(base) === 0) return null;
+        const r = Number(data.actual);
+        const b = Number(base);
+        if (!Number.isFinite(r) || !Number.isFinite(b)) return null;
+        if (r === b) return '影响较小';
+        return rawAffect === 0
+          ? (r > b ? '利多' : '利空')
+          : (r > b ? '利空' : '利多');
+      })()
     : null;
   return {
     type,
