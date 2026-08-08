@@ -431,6 +431,7 @@ def build_fundamental_card(
     render_item = dict(item)
     if key == "payrolls":
         render_item["change"] = payroll_change(item)
+        render_item["change_10k"] = round(render_item["change"] / 10, 1) if render_item["change"] is not None else None
     try:
         display_value = formatter.format(**render_item)
     except (KeyError, TypeError, ValueError):
@@ -921,16 +922,16 @@ def main() -> None:
         return card
 
     liquidity_components = [
-        liquidity_card("sofr", "SOFR", 1, "%", "纽约联储担保隔夜融资利率"),
+        liquidity_card("sofr", "SOFR", 1, "%", "纽约联储担保隔夜融资利率（Secured Overnight Financing Rate）：美国银行与机构以国债为抵押的隔夜拆借利率，是美联储体系内最重要的短期资金价格基准，影响房贷、企业融资与货币市场定价。"),
         liquidity_card("fed_assets", "Fed总资产", 1_000_000, "万亿美元", "美联储H.4.1周度资产负债表"),
-        liquidity_card("tga", "财政部TGA", 1_000, "十亿美元", "财政部每日现金余额；上升通常回笼市场流动性"),
-        liquidity_card("rrp", "ON RRP", 1, "十亿美元", "纽约联储隔夜逆回购实际使用量"),
+        liquidity_card("tga", "财政部TGA", 100, "亿美元", "财政部TGA（Treasury General Account）：美国财政部在美联储的现金账户余额。余额上升表示财政部从市场回笼资金、收紧流动性；下降则表示释放资金、增加市场流动性。"),
+        liquidity_card("rrp", "ON RRP", 0.1, "亿美元", "ON RRP（隔夜逆回购）：货币基金等机构将闲置资金存入美联储隔夜逆回购工具的实际使用量。使用量越高说明市场闲置资金越多、流动性越充裕；使用量骤降通常是资金开始流出避险工具、投向风险资产的信号。"),
     ]
 
     fundamentals = [
         fundamental("sahm", "萨姆规则", "{value:.2f}pp", "≥0.50pp才触发衰退信号"),
         fundamental("unemployment", "失业率", "{value:.1f}%", "就业温度计，不用单月波动机械交易"),
-        fundamental("payrolls", "非农就业", "{change:+.0f}千人", "较前月就业人数变化"),
+        fundamental("payrolls", "非农就业", "{change_10k:+.1f}万人", "较前月就业人数变化"),
         fundamental("core_cpi", "核心CPI", "同比 {change_yoy_pct:.1f}%", "剔除食品与能源后的价格趋势"),
         fundamental("core_pce", "核心PCE", "同比 {change_yoy_pct:.2f}%", "美联储重点通胀口径"),
         fundamental("real_retail", "实际零售销售", "3月 {change_3m_pct:+.2f}%", "消费动能的三个月变化"),
