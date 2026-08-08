@@ -68,7 +68,7 @@ function profitPoints(daily: any[]): string {
       <div>
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1>低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日起，记录每日收盘价、涨跌幅与收盘获利盘指数（iWenCai 收盘获利比例）。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
+        <p class="tc-desc">从股票首次进入低筹码筛选日起持续追踪，统计窗口为最近 2 周（10 个交易日）：每日收盘价、涨跌幅与收盘获利盘指数（iWenCai 收盘获利比例）。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
       </div>
       <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
     </div>
@@ -93,7 +93,7 @@ function profitPoints(daily: any[]): string {
 
           <div class="tc-grid">
             <div class="tc-metric">
-              <span class="tc-label">加入以来涨跌</span>
+              <span class="tc-label">近2周涨跌</span>
               <strong class:list={['tc-value', rec.totalChange != null && rec.totalChange >= 0 ? 'tc-up' : 'tc-down']}>
                 {fmt(rec.totalChange, 2)}%
               </strong>

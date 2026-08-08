@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/low-chip-tracking.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记录）
+TRACK_WINDOW_DAYS = 14  # 追踪统计窗口：最近 2 周（约 10 个交易日）
 
 
 def load_history_dates() -> dict[str, list[str]]:
@@ -134,8 +135,11 @@ def main() -> int:
 
         # 已有 daily 的日期集合
         have = {d["date"] for d in rec["daily"]}
-        # 回填：从 first_seen 到 今天（持续追踪，即使已跌出低筹码池）
-        bars = tencent_daily(symbol, rec["first_seen"], today)
+        # 回填：从 first_seen 到 今天（持续追踪，即使已跌出低筹码池）；
+        # 至少覆盖最近 2 周窗口（TRACK_WINDOW_DAYS），窗口起点取更早者
+        window_start = (datetime.date.today() - datetime.timedelta(days=TRACK_WINDOW_DAYS)).isoformat()
+        backfill_start = min(rec["first_seen"], window_start)
+        bars = tencent_daily(symbol, backfill_start, today)
         new_rows = []
         for bar in bars:
             if bar["date"] in have:
