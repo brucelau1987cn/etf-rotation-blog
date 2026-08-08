@@ -47,7 +47,8 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .calendar-values{display:flex;flex-wrap:wrap;gap:.35rem .55rem;margin-top:.35rem}
     .calendar-values span{font-size:.72rem;color:rgb(var(--gray));white-space:nowrap;padding:.2rem .5rem;background:var(--warm-2);border-radius:7px;border:1px solid var(--border)}
     .calendar-values b{color:rgb(var(--black));font-weight:850}
-    .impact-tag{display:inline-flex;margin-top:.32rem;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:900;line-height:1.4}
+    .impact-row{display:inline-flex;flex-wrap:wrap;gap:.3rem;margin-top:.32rem}
+    .impact-tag{display:inline-flex;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:900;line-height:1.4}
     .impact-tag.impact-bearish{background:var(--green-soft);color:var(--green)}
     .impact-tag.impact-bullish{background:var(--accent-soft);color:var(--accent-dark)}
     .impact-tag.impact-neutral{background:var(--warm-2);color:rgb(var(--gray-dark))}
@@ -72,7 +73,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
       <div>
         <small>Macro calendar · 宏观数据</small>
         <h1>宏观数据</h1>
-        <p>按北京时间查看中国与美国宏观数据、央行决议和重要事件。其余国家已屏蔽；影响方向标注对应资产（利多金银 / 利多美元 / 利多人民币）。</p>
+        <p>按北京时间查看中国与美国宏观数据、央行决议和重要事件。其余国家已屏蔽；影响方向按金十口径同时标注金银与美元（如：利多金银 + 利空美元）。</p>
       </div>
     </div>
     <section aria-label="宏观数据查询">
