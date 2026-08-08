@@ -43,6 +43,14 @@ v_sh517520="1~黄金股ETF永赢~517520~1.808~1.886~1.791~3339573~1690342~164906
     assert.equal(alias.tencent, 'hf_XAG');
     assert.equal(alias.type, 'futures');
     assert.equal(mod.parseSymbol('GC=F').sina, 'hf_XAU');
+
+    // 4. kline 模块的 parseSymbol 同样支持别名（之前只有 quote.js 修了，kline 漏修导致 500）
+    const klineModuleUrl = pathToFileURL(new URL('functions/api/public/v1/kline.js', new URL('../', import.meta.url)).pathname).href;
+    const klineMod = await import(klineModuleUrl);
+    const klineAlias = klineMod.parseSymbol('SI=F');
+    assert.equal(klineAlias.sina, 'hf_XAG');
+    assert.equal(klineAlias.type, 'futures');
+    assert.equal(klineMod.parseSymbol('CL=F').sina, 'hf_CL');
   } finally {
     globalThis.fetch = previous;
   }

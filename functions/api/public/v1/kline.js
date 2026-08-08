@@ -284,6 +284,11 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
     return { tencent: 'DINIW', sina: 'DINIW', xueqiu: 'DINIW', displayCode: 'DINIW', type: 'fx' };
   }
 
+  // Yahoo-style continuous futures aliases → Sina wire codes (silver spot SI=F → hf_XAG).
+  const YAHOO_ALIAS = { 'SI=F': 'hf_XAG', 'GC=F': 'hf_XAU', 'CL=F': 'hf_CL' };
+  const alias = YAHOO_ALIAS[upper];
+  if (alias) return { tencent: alias, sina: alias, xueqiu: alias, displayCode: upper, type: 'futures' };
+
   if (/^\d{5}$/.test(s)) return { tencent: `hk${s}`, sina: `hk${s}`, xueqiu: s, displayCode: s, type: 'hk' };
   if (/^[A-Za-z]{1,5}$/.test(s)) return { tencent: `us${s}`, sina: `gb_${s.toLowerCase()}`, xueqiu: s.toUpperCase(), displayCode: s.toUpperCase(), type: 'us' };
 
