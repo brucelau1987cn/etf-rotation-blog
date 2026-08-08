@@ -1,0 +1,204 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import trackingData from '../../../../public/data/low-chip-tracking.json';
+
+const title = `低筹码追踪｜加入以来每日股价与获利盘 | ${SITE_TITLE}`;
+const description = '低筹码股加入以来的每日股价走势与收盘获利盘指数记录。';
+
+const stocks = Object.entries(trackingData.stocks || {})
+  .map(([symbol, rec]) => ({
+    symbol,
+    ...rec,
+    // 派生指标
+    firstClose: rec.daily?.[0]?.close ?? null,
+    lastClose: rec.daily?.[rec.daily.length - 1]?.close ?? null,
+    totalChange: (() => {
+      if (!rec.daily || rec.daily.length < 2 || rec.daily[0].close == null) return null;
+      const base = rec.daily[0].close;
+      const last = rec.daily[rec.daily.length - 1].close;
+      return ((last - base) / base) * 100;
+    })(),
+  }))
+  .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
+
+const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
+
+// SVG sparkline 辅助（返回 polyline points 字符串，空则无图）
+function sparklinePoints(daily: any[]): string {
+  const closes = (daily || []).map((d) => d.close).filter((v) => v != null);
+  if (closes.length < 2) return '';
+  const W = 120, H = 32, PAD = 2;
+  const min = Math.min(...closes), max = Math.max(...closes);
+  const range = max - min || 1;
+  return closes.map((c: number, i: number) => {
+    const x = PAD + (i / (closes.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((c - min) / range) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+function sparklineColor(daily: any[]): string {
+  const closes = (daily || []).map((d) => d.close).filter((v) => v != null);
+  if (closes.length < 2) return 'var(--chip-down, #0aa869)';
+  return closes[closes.length - 1] >= closes[0] ? '#e04444' : '#0aa869';
+}
+function profitPoints(daily: any[]): string {
+  const profits = (daily || []).map((d) => d.profit_ratio).filter((v) => v != null);
+  if (profits.length < 2) return '';
+  const W = 120, H = 32, PAD = 2;
+  const min = Math.min(...profits), max = Math.max(...profits);
+  const range = max - min || 1;
+  return profits.map((c: number, i: number) => {
+    const x = PAD + (i / (profits.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((c - min) / range) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+---
+<BaseHead title={title} description={description} />
+<body>
+  <Header />
+  <RollingSubnav active="low-chip" />
+
+  <main class="site-shell">
+    <div class="tc-header">
+      <div>
+        <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
+        <h1>低筹码追踪</h1>
+        <p class="tc-desc">从股票首次进入低筹码筛选日起，记录每日收盘价、涨跌幅与收盘获利盘指数（iWenCai 收盘获利比例）。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
+      </div>
+      <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
+    </div>
+
+    <section class="tc-list" aria-label="追踪股票列表">
+      {stocks.length === 0 && (
+        <div class="tc-empty">
+          <strong>暂无追踪数据</strong>
+          <span>每日流水线生成低筹码快照后自动开始记录。</span>
+        </div>
+      )}
+      {stocks.map((rec) => (
+        <article class="tc-card">
+          <div class="tc-head">
+            <div class="tc-id">
+              <strong class="tc-name">{rec.name || rec.symbol}</strong>
+              <span class="tc-code">{rec.symbol}</span>
+            </div>
+            <span class="tc-seen">加入 {rec.first_seen} · 共 {rec.daily?.length ?? 0} 个交易日</span>
+          </div>
+          {rec.industry && <div class="tc-industry" title={rec.industry}>{rec.industry.split('--').pop()}</div>}
+
+          <div class="tc-grid">
+            <div class="tc-metric">
+              <span class="tc-label">加入以来涨跌</span>
+              <strong class:list={['tc-value', rec.totalChange != null && rec.totalChange >= 0 ? 'tc-up' : 'tc-down']}>
+                {fmt(rec.totalChange, 2)}%
+              </strong>
+            </div>
+            <div class="tc-metric">
+              <span class="tc-label">首日收盘</span>
+              <strong class="tc-value">¥{fmt(rec.firstClose)}</strong>
+            </div>
+            <div class="tc-metric">
+              <span class="tc-label">最新收盘</span>
+              <strong class="tc-value">¥{fmt(rec.lastClose)}</strong>
+            </div>
+            <div class="tc-metric">
+              <span class="tc-label">最新获利盘</span>
+              <strong class="tc-value">{fmt(rec.daily?.[rec.daily.length - 1]?.profit_ratio)}%</strong>
+            </div>
+          </div>
+
+          <div class="tc-charts">
+            <div class="tc-chart">
+              <span class="tc-chart-label">股价走势（收盘价）</span>
+              {sparklinePoints(rec.daily) && (
+                <svg viewBox="0 0 120 32" width="120" height="32" aria-hidden="true" style="display:block">
+                  <polyline points={sparklinePoints(rec.daily)} fill="none" stroke={sparklineColor(rec.daily)} stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+              )}
+            </div>
+            <div class="tc-chart">
+              <span class="tc-chart-label">获利盘指数</span>
+              {profitPoints(rec.daily) && (
+                <svg viewBox="0 0 120 32" width="120" height="32" aria-hidden="true" style="display:block">
+                  <polyline points={profitPoints(rec.daily)} fill="none" stroke="#b08cf0" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+              )}
+            </div>
+          </div>
+
+          <details class="tc-table-details">
+            <summary>每日明细（{rec.daily?.length ?? 0} 天）</summary>
+            <table class="tc-table">
+              <thead>
+                <tr><th>日期</th><th>收盘价</th><th>涨跌幅</th><th>获利盘 %</th></tr>
+              </thead>
+              <tbody>
+                {(rec.daily || []).map((day: any) => (
+                  <tr>
+                    <td>{day.date}</td>
+                    <td>¥{fmt(day.close)}</td>
+                    <td class:list={day.change_pct != null && day.change_pct >= 0 ? 'tc-up' : 'tc-down'}>{day.change_pct == null ? '—' : `${day.change_pct >= 0 ? '+' : ''}${fmt(day.change_pct)}%`}</td>
+                    <td>{day.profit_ratio == null ? '—' : `${fmt(day.profit_ratio)}%`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        </article>
+      ))}
+    </section>
+
+    <footer class="data-note">
+      <strong>数据来源：腾讯日线（前复权）+ iWenCai 收盘获利比例</strong>
+      <span>获利盘指数 = 当日收盘获利盘占比（iWenCai 收盘获利字段，支持历史日期回查）；股价为前复权收盘价。</span>
+    </footer>
+  </main>
+  <Footer />
+</body>
+
+<style>
+  .tc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin: 1.2rem 0 1.4rem; }
+  .tc-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin-bottom: .35rem; }
+  .tc-header h1 { font-size: 1.6rem; margin: 0 0 .45rem; }
+  .tc-desc { color: rgb(var(--gray-mid)); font-size: .85rem; max-width: 56rem; line-height: 1.55; margin: 0; }
+  .tc-back { flex: 0 0 auto; font-size: .8rem; font-weight: 700; color: rgb(var(--gray-dark)); text-decoration: none; border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem; }
+  .tc-back:hover { border-color: rgb(var(--gray-mid)); }
+
+  .tc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .9rem; }
+  .tc-card { border: 1px solid var(--border); border-radius: 14px; padding: .95rem 1rem; background: #fff; }
+  .tc-head { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .3rem; }
+  .tc-name { font-size: 1rem; }
+  .tc-code { color: rgb(var(--gray-mid)); font-size: .75rem; margin-left: .3rem; }
+  .tc-seen { color: rgb(var(--gray-mid)); font-size: .72rem; white-space: nowrap; }
+  .tc-industry { font-size: .72rem; color: rgb(var(--gray-mid)); margin-bottom: .6rem; }
+
+  .tc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; margin-bottom: .6rem; }
+  .tc-metric { background: rgb(var(--gray-soft)); border-radius: 8px; padding: .4rem .5rem; }
+  .tc-label { display: block; font-size: .65rem; color: rgb(var(--gray-mid)); margin-bottom: .15rem; }
+  .tc-value { font-size: .85rem; }
+  .tc-up { color: #e04444; }
+  .tc-down { color: #0aa869; }
+
+  .tc-charts { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin-bottom: .55rem; }
+  .tc-chart-label { display: block; font-size: .68rem; color: rgb(var(--gray-mid)); margin-bottom: .2rem; }
+
+  .tc-table-details { font-size: .78rem; }
+  .tc-table-details summary { cursor: pointer; color: rgb(var(--gray-dark)); font-weight: 700; padding: .3rem 0; }
+  .tc-table { width: 100%; border-collapse: collapse; margin-top: .3rem; }
+  .tc-table th, .tc-table td { text-align: right; padding: .28rem .35rem; border-top: 1px solid var(--border); }
+  .tc-table th:first-child, .tc-table td:first-child { text-align: left; }
+  .tc-table th { color: rgb(var(--gray-mid)); font-size: .7rem; }
+
+  .tc-empty { border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
+  .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
+  .data-note { margin-top: 1.2rem; }
+  @media (max-width: 640px) {
+    .tc-grid { grid-template-columns: repeat(2, 1fr); }
+    .tc-charts { grid-template-columns: 1fr; }
+  }
+</style>
