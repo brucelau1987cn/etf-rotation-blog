@@ -103,10 +103,15 @@
     status.textContent = `正在加载 ${date}…`;
     list.innerHTML = '';
     try {
+      // MCP affect_txt is a nice-to-have enrichment; never block the main calendar.
+      // Bound it with a 6s abort so a slow/hung MCP upstream degrades to direction-less rows.
+      const mcpController = new AbortController();
+      const mcpTimer = setTimeout(() => mcpController.abort(), 6000);
       const [mainRes, mcpRes] = await Promise.all([
         fetch(`${API}?date=${encodeURIComponent(date)}&t=${Date.now()}`, { cache: 'no-store' }),
-        fetch(`${MCP_API}?t=${Date.now()}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${MCP_API}?t=${Date.now()}`, { cache: 'no-store', signal: mcpController.signal }).catch(() => null),
       ]);
+      clearTimeout(mcpTimer);
       const payload = await mainRes.json();
       if (!mainRes.ok || payload.status !== 'ok') throw new Error(payload.error || '加载失败');
       let items = Array.isArray(payload.items) ? payload.items : [];
