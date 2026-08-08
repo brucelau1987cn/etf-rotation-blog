@@ -22,16 +22,16 @@ def test_tracking_data_contract():
         # daily 按日期升序
         dates = [d["date"] for d in rec["daily"]]
         assert dates == sorted(dates)
-        # 2 周统计窗口：窗口起点不晚于加入日（可能早于加入日回填）
-        assert len(dates) >= 5  # 至少覆盖 1 周交易日
-        assert rec["first_seen"] <= dates[-1]
+        # 加入后统计窗口：从加入日起、最多 10 个交易日、不足按实际天数
+        assert len(dates) <= 10
+        assert dates[0] >= rec["first_seen"]
 
 
 def test_tracking_page_and_entry_link():
     page = TRACKING_PAGE.read_text(encoding="utf-8")
     for marker in (
         "低筹码追踪",
-        "近2周",
+        "加入以来",
         "股价走势",
         "获利盘指数",
         "每日明细",

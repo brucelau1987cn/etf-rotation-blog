@@ -6,8 +6,8 @@ import RollingSubnav from '../../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../../consts';
 import trackingData from '../../../../public/data/low-chip-tracking.json';
 
-const title = `低筹码追踪｜近2周股价与获利盘 | ${SITE_TITLE}`;
-const description = '低筹码股近2周每日股价走势与收盘获利盘指数统计。';
+const title = `低筹码追踪｜加入以来股价与获利盘 | ${SITE_TITLE}`;
+const description = '低筹码股加入以来每日股价走势与收盘获利盘指数统计。';
 
 const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
 
@@ -66,15 +66,15 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div>
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1>低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日起持续追踪，统计窗口为最近 2 周（10 个交易日）：每日收盘价、涨跌幅与收盘获利盘指数。红色线 = 股价走势，紫色线 = 获利盘指数（虚线为 3% 低筹码筛选阈值）。共 {stocks.length} 只。</p>
+        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，记录每日收盘价、涨跌幅与收盘获利盘指数，统计加入后最多 10 个交易日（2 周）；不足 10 个交易日的按实际天数显示。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
       </div>
       <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
     </div>
 
     <div class="tc-summary">
       <div class="tc-summary-stat"><strong>{stocks.length}</strong><span>追踪标的</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) >= 0).length)}</strong><span>近2周上涨</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) < 0).length)}</strong><span>近2周下跌</span></div>
+      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) >= 0).length)}</strong><span>加入以来上涨</span></div>
+      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) < 0).length)}</strong><span>加入以来下跌</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.length ? Math.max(...stocks.map((s) => s.totalChange ?? -999)) : 0, 1)}%</strong><span>最强涨幅</span></div>
     </div>
 
@@ -105,7 +105,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
             <div class="tc-change-row">
               <span class:list={['tc-change', up ? 'tc-up' : 'tc-down']}>{up ? '▲' : '▼'} {fmt(rec.totalChange)}%</span>
-              <span class="tc-change-sub">近2周 · ¥{fmt(rec.firstClose)} → ¥{fmt(rec.lastClose)}</span>
+              <span class="tc-change-sub">加入以来 · ¥{fmt(rec.firstClose)} → ¥{fmt(rec.lastClose)}</span>
             </div>
 
             <div class="tc-charts">

@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/low-chip-tracking.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记录）
-TRACK_WINDOW_DAYS = 14  # 追踪统计窗口：最近 2 周（约 10 个交易日）
+MAX_TRACK_BARS = 10  # 加入后统计窗口：最多 10 个交易日（2 周）；不足按实际天数
 
 
 def load_history_dates() -> dict[str, list[str]]:
@@ -135,11 +135,8 @@ def main() -> int:
 
         # 已有 daily 的日期集合
         have = {d["date"] for d in rec["daily"]}
-        # 回填：从 first_seen 到 今天（持续追踪，即使已跌出低筹码池）；
-        # 至少覆盖最近 2 周窗口（TRACK_WINDOW_DAYS），窗口起点取更早者
-        window_start = (datetime.date.today() - datetime.timedelta(days=TRACK_WINDOW_DAYS)).isoformat()
-        backfill_start = min(rec["first_seen"], window_start)
-        bars = tencent_daily(symbol, backfill_start, today)
+        # 回填：从 first_seen（加入日）到 今天（持续追踪，即使已跌出低筹码池）
+        bars = tencent_daily(symbol, rec["first_seen"], today)
         new_rows = []
         for bar in bars:
             if bar["date"] in have:
@@ -149,6 +146,8 @@ def main() -> int:
             print(f"  {symbol} {bar['date']}: close={bar['close']} chg={bar['change_pct']} profit={pr}", flush=True)
         rec["daily"].extend(new_rows)
         rec["daily"].sort(key=lambda x: x["date"])
+        # 统计窗口：加入日之后的最近 MAX_TRACK_BARS 个交易日（不足按实际天数）
+        rec["daily"] = [d for d in rec["daily"] if d["date"] >= rec["first_seen"]][-MAX_TRACK_BARS:]
 
     # 清理：少于 MIN_TRACK_DAYS 天数的股票（刚加入、数据不足）
     for sym in [s for s, r in stocks.items() if len(r.get("daily", [])) < MIN_TRACK_DAYS]:
