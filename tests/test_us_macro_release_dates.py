@@ -14,10 +14,10 @@ spec.loader.exec_module(module)
 
 def test_bls_release_dates_are_explicit_and_series_specific():
     assert module.BLS_RELEASES["employment"] == {
-        "observation_period": "2026-06",
-        "date": "2026-07-02",
-        "updated_at": "2026-07-02T08:30:00-04:00",
-        "next_release": {"time": "2026-08-07T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-07",
+        "date": "2026-08-07",
+        "updated_at": "2026-08-07T08:30:00-04:00",
+        "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
     }
     assert module.BLS_RELEASES["cpi"] == {
         "observation_period": "2026-06",
@@ -29,17 +29,16 @@ def test_bls_release_dates_are_explicit_and_series_specific():
 
 def test_apply_bls_release_metadata_separates_observation_from_update_date():
     official = {
-        "unemployment": {"value": 4.2, "date": "2026-06-01"},
-        "payrolls": {"value": 158984.0, "date": "2026-06-01"},
-        "core_cpi": {"value": 336.882, "date": "2026-06-01"},
+        "unemployment": {"value": 4.2, "date": "2026-07-01", "observation_period": "2026-07"},
+        "payrolls": {"value": 158984.0, "date": "2026-07-01", "observation_period": "2026-07"},
+        "core_cpi": {"value": 336.882, "date": "2026-06-01", "observation_period": "2026-06"},
     }
 
     module.apply_bls_release_metadata(official)
 
-    assert official["unemployment"]["date"] == "2026-07-02"
-    assert official["payrolls"]["date"] == "2026-07-02"
-    assert official["core_cpi"]["date"] == "2026-07-14"
-    assert official["unemployment"]["observation_period"] == "2026-06"
+    # 数据源已有的 observation_period 保留，next_release 由官方日程补齐
+    assert official["unemployment"]["observation_period"] == "2026-07"
+    assert official["core_cpi"]["observation_period"] == "2026-06"
     assert official["core_cpi"]["next_release"]["time"] == "2026-08-12T08:30"
 
 
@@ -53,8 +52,8 @@ def test_real_retail_release_metadata_uses_census_dates():
 
     module.apply_real_retail_release_metadata(item)
 
-    assert item["date"] == "2026-07-16"
-    assert item["observation_period"] == "2026-06"
+    # 数据源已有 date → 保留；next_release 由官方日程补齐
+    assert item["date"] == "2026-06-01"
     assert item["next_release"]["time"] == "2026-08-14T08:30"
 
 

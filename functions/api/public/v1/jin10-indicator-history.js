@@ -86,36 +86,40 @@ export async function onRequestGet({ request, env }) {
 
     // Next scheduled release: look up the actual next release from the Jin10
     // calendar API for this indicator (searches the next 45 days).
+    // Exact indicator_id match wins; title-substring match is only a fallback
+    // (avoids e.g. US 失业率 being hijacked by 法国ILO失业率 in the same window).
     let next_release = null;
     try {
       const CALENDAR_API = 'https://etf.peekabo.cc/api/public/v1/jin10-calendar';
-      for (let offset = 1; offset <= 45; offset++) {
-        const d = new Date(now);
-        d.setDate(d.getDate() + offset);
-        const dateStr = iso(d);
-        const calResp = await fetch(`${CALENDAR_API}?date=${dateStr}`, { headers: { 'User-Agent': 'ETF-Compass-Macro/1.0' } });
-        if (!calResp.ok) continue;
-        const calPayload = await calResp.json();
-        const calItems = calPayload?.items || calPayload?.data?.items || [];
-        for (const item of calItems) {
-          const title = String(item?.title || '').replace(/\s+/g, '');
-          // Prefer exact indicator_id match; fall back to title substring.
-          const idMatch = Number(item?.indicator_id) === id;
-          const titleMatch = title.includes(meta.titleMatch);
-          if (!idMatch && !titleMatch) continue;
-          const time = item?.time || item?.date || item?.show_time || '';
-          if (!time) continue;
-          next_release = {
-            time: String(time).replace('T', ' ').slice(0, 16),
-            title: item?.title || meta.label,
-            star: Number(item?.star) || 0,
-            previous: item?.previous ?? null,
-            consensus: item?.consensus ?? null,
-            actual: item?.actual ?? null,
-          };
-          break;
+      for (let pass = 0; pass < 2 && !next_release; pass++) {
+        const requireIdMatch = pass === 0;
+        for (let offset = 1; offset <= 45; offset++) {
+          const d = new Date(now);
+          d.setDate(d.getDate() + offset);
+          const dateStr = iso(d);
+          const calResp = await fetch(`${CALENDAR_API}?date=${dateStr}`, { headers: { 'User-Agent': 'ETF-Compass-Macro/1.0' } });
+          if (!calResp.ok) continue;
+          const calPayload = await calResp.json();
+          const calItems = calPayload?.items || calPayload?.data?.items || [];
+          for (const item of calItems) {
+            const title = String(item?.title || '').replace(/\s+/g, '');
+            const idMatch = Number(item?.indicator_id) === id;
+            const titleMatch = title.includes(meta.titleMatch);
+            if (requireIdMatch ? !idMatch : (!idMatch && !titleMatch)) continue;
+            const time = item?.time || item?.date || item?.show_time || '';
+            if (!time) continue;
+            next_release = {
+              time: String(time).replace('T', ' ').slice(0, 16),
+              title: item?.title || meta.label,
+              star: Number(item?.star) || 0,
+              previous: item?.previous ?? null,
+              consensus: item?.consensus ?? null,
+              actual: item?.actual ?? null,
+            };
+            break;
+          }
+          if (next_release) break;
         }
-        if (next_release) break;
       }
     } catch (_) { /* optional */ }
     // Fallback: first Friday rule (nonfarm payroll month pattern).

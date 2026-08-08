@@ -33,17 +33,17 @@ FOMC_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 BEA_CORE_PCE_URL = "https://www.bea.gov/data/personal-consumption-expenditures-price-index-excluding-food-and-energy"
 CENSUS_MARTS_URL = "https://www.census.gov/econ_getzippedfile/?programCode=MARTS"
 BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-JIN10_INDICATOR_API = "https://etf.peekabo.cc/api/public/v1/jin10-indicator-history"
+# (Jin10 no longer used for next-release; all release metadata comes from FRED/官方发布页)
 FRED_SAHM_URL = "https://fred.stlouisfed.org/series/SAHMREALTIME"
 
 # Release dates are source metadata, separate from each series' observation month.
 # Refresh these from the official BLS/Census release schedules when the source advances.
 BLS_RELEASES = {
     "employment": {
-        "observation_period": "2026-06",
-        "date": "2026-07-02",
-        "updated_at": "2026-07-02T08:30:00-04:00",
-        "next_release": {"time": "2026-08-07T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-07",
+        "date": "2026-08-07",
+        "updated_at": "2026-08-07T08:30:00-04:00",
+        "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
     },
     "cpi": {
         "observation_period": "2026-06",
@@ -388,20 +388,32 @@ def apply_sahm_metadata(official: dict[str, dict[str, Any]], metadata: dict[str,
 
 
 def apply_bls_release_metadata(official: dict[str, dict[str, Any]]) -> None:
-    for key in ("unemployment", "payrolls"):
-        if key in official:
-            official[key].update(BLS_RELEASES["employment"])
-    for key in ("cpi", "core_cpi"):
-        if key in official:
-            official[key].update(BLS_RELEASES["cpi"])
+    # 硬编码仅作 fallback：数据源已提供 observation_period/date 时保留真实值，
+    # 否则补发布日元数据（防止硬编码过期覆盖真实观察期）。
+    for key, release in (
+        ("unemployment", BLS_RELEASES["employment"]),
+        ("payrolls", BLS_RELEASES["employment"]),
+        ("cpi", BLS_RELEASES["cpi"]),
+        ("core_cpi", BLS_RELEASES["cpi"]),
+    ):
+        item = official.get(key)
+        if not item or not isinstance(item, dict):
+            continue
+        for field, value in release.items():
+            if field == "next_release" or not item.get(field):
+                item[field] = value
 
 
 def apply_real_retail_release_metadata(item: dict[str, Any]) -> None:
-    item.update(REAL_RETAIL_RELEASE)
+    for field, value in REAL_RETAIL_RELEASE.items():
+        if field == "next_release" or not item.get(field):
+            item[field] = value
 
 
 def apply_core_pce_release_metadata(item: dict[str, Any]) -> None:
-    item.update(CORE_PCE_RELEASE)
+    for field, value in CORE_PCE_RELEASE.items():
+        if field == "next_release" or not item.get(field):
+            item[field] = value
 
 
 def payroll_change(item: dict[str, Any]) -> float | None:
@@ -644,38 +656,48 @@ def gdpnow_fallback() -> dict[str, Any]:
     return parse_gdpnow_text(" ".join(parser.parts))
 
 
-def jin10_indicator(ind_id: int) -> tuple[dict, list[dict]]:
-    """Fetch indicator history from Jin10 proxy API.
-    Returns (payload, rows) where rows are newest-first.
-    """
-    url = f"{JIN10_INDICATOR_API}?id={ind_id}&months=3"
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
-    if payload.get("status") != "ok":
-        raise RuntimeError(payload.get("error", f"jin10 id={ind_id}: {payload.get('status', 'unknown')}"))
-    rows = payload.get("rows", [])
-    if not rows:
-        raise RuntimeError(f"jin10 id={ind_id}: no rows")
-    return payload, rows
-
-
-# fund key → jin10 indicator id for next-release prediction
-JIN10_NEXT_RELEASE_MAP = {
-    "unemployment": 76, "payrolls": 75, "core_cpi": 232, "core_pce": 211, "real_retail": 194,
+# fund key → FRED series page for next-release date (U.S. government source).
+FRED_NEXT_RELEASE_MAP = {
+    "unemployment": "UNRATE", "payrolls": "PAYEMS",
+    "core_cpi": "CPILFESL", "core_pce": "PCEPILFE", "real_retail": "RRSFS",
 }
+
+# FRED blocks browser-ish UAs on /series pages; curl UA works.
+FRED_PAGE_UA = "curl/8.5.0"
+
+
+def fred_next_release(series: str) -> dict | None:
+    """Fetch the 'Next Release Date' from the official FRED series page."""
+    url = f"https://fred.stlouisfed.org/series/{series}"
+    request = urllib.request.Request(url, headers={"User-Agent": FRED_PAGE_UA})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        html = response.read().decode("utf-8", "replace")
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"\s+", " ", text)
+    match = re.search(r"Next Release Date:\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s+(\d{4})", text)
+    if not match:
+        return None
+    month_numbers = {name: number for number, name in enumerate(
+        ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    )}
+    next_date = date(int(match.group(3)), month_numbers[match.group(1)], int(match.group(2)))
+    return {"time": next_date.isoformat(), "star": None, "consensus": None}
 
 
 def attach_next_release(official: dict[str, dict[str, Any]]) -> dict[str, str]:
-    """Attach next scheduled release (time/star/consensus) to matching official items."""
+    """Attach next scheduled release (time/star/consensus) to matching official items.
+
+    Source: official FRED series pages (U.S. government), no Jin10 dependency.
+    """
     failures: dict[str, str] = {}
-    for key, ind_id in JIN10_NEXT_RELEASE_MAP.items():
+    for key, series in FRED_NEXT_RELEASE_MAP.items():
         item = official.get(key)
         if not item or not isinstance(item, dict):
             continue
         try:
-            payload, _ = jin10_indicator(ind_id)
-            item["next_release"] = payload.get("next_release")
+            next_release = fred_next_release(series)
+            if next_release:
+                item["next_release"] = next_release
         except Exception as exc:
             failures[f"next_release_{key}"] = str(exc)
     return failures
