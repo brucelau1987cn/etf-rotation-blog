@@ -37,6 +37,13 @@ const description = '输入订阅密码访问 ETF 罗盘。';
       const params = new URLSearchParams(location.search);
       const next = params.get('next') || '/';
 
+      // 设备指纹：localStorage 持久（换浏览器/清除缓存才变），登录时上报
+      let deviceId = localStorage.getItem('etf_device_id');
+      if (!deviceId) {
+        deviceId = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('etf_device_id', deviceId);
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const passphrase = document.getElementById('passphrase').value.trim();
@@ -48,11 +55,11 @@ const description = '输入订阅密码访问 ETF 罗盘。';
           const res = await fetch('/api/public/v1/subscription/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ passphrase }),
+            body: JSON.stringify({ passphrase, device_id: deviceId }),
           });
           const data = await res.json();
           if (res.ok && data.ok) {
-            msg.textContent = `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}`;
+            msg.textContent = `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/5 台设备` : ''}`;
             msg.className = 'login-msg ok';
             setTimeout(() => { location.href = next; }, 600);
           } else {

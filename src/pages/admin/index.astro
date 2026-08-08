@@ -62,7 +62,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
         <h2>全部订阅（<span id="sub-count">0</span>）</h2>
         <table class="admin-table">
           <thead>
-            <tr><th>备注</th><th>到期</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+            <tr><th>备注</th><th>到期</th><th>状态</th><th>设备</th><th>创建时间</th><th>操作</th></tr>
           </thead>
           <tbody id="sub-tbody"></tbody>
         </table>
@@ -114,6 +114,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
               <td>${it.label || '—'}</td>
               <td>${it.expires_at || '—'}</td>
               <td>${it.revoked ? '已撤销' : (it.expires_at < new Date().toISOString().slice(0, 10) ? '已过期' : '有效')}</td>
+              <td>${it.device_count ?? 0}/${it.device_limit ?? 5} <button class="mini-btn unbind-btn" data-id="${it.id}" title="解绑该订阅全部设备，需重新登录">解绑</button></td>
               <td>${it.created_at ? String(it.created_at).slice(0, 10) : '—'}</td>
               <td>${it.revoked ? '<span class="muted">—</span>' : `<button class="mini-btn" data-id="${it.id}">撤销</button>`}</td>
             </tr>`).join('');
@@ -121,6 +122,13 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
             btn.addEventListener('click', async () => {
               if (!confirm('确认撤销该订阅？')) return;
               await api('/api/admin/subscriptions?action=revoke', { method: 'POST', body: JSON.stringify({ id: btn.dataset.id }) });
+              loadList();
+            });
+          });
+          document.querySelectorAll('.unbind-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              if (!confirm('确认解绑该订阅的全部设备？（设备需重新登录）')) return;
+              await api('/api/admin/subscriptions?action=unbind', { method: 'POST', body: JSON.stringify({ id: btn.dataset.id }) });
               loadList();
             });
           });

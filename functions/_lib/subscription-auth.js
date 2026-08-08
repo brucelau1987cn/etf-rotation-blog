@@ -75,13 +75,19 @@ export function setCookie(name, value, opts = {}) {
   return parts.join('; ');
 }
 
-// 订阅登录态检查：cookie token 有效且未过期 → true
+// 订阅登录态检查：cookie token 有效、未过期，且 sid 在 sub_sessions 中存在（解绑/超限即时生效）
 export async function isSubscribed(request, env) {
   const token = readCookie(request.headers.get('Cookie'), SUB_COOKIE);
   if (!token) return false;
   const payload = await verifyToken(token, env.SUBSCRIBE_SECRET || 'dev-secret');
   if (!payload || !payload.exp) return false;
-  return Date.parse(payload.exp) > Date.now();
+  if (Date.parse(payload.exp) <= Date.now()) return false;
+  if (!payload.sid) return false;
+  // 会话必须在 DB 中存在且未过期（设备被解绑或会话失效 → 拒绝）
+  const row = await env.DB.prepare(
+    'SELECT 1 FROM sub_sessions WHERE sid = ? AND expires_at > datetime(\'now\') LIMIT 1',
+  ).bind(payload.sid).first();
+  return !!row;
 }
 
 // 管理员登录态检查
