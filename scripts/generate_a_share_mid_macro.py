@@ -865,7 +865,8 @@ def main() -> None:
     constraint = build_constraint(factors, base_position if isinstance(base_position, str) else None, market_state if isinstance(market_state, str) else None)
     factor_dates = sorted(str(factor.get("as_of")) for factor in factors if factor.get("as_of"))
     model_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or (factor_dates[-1] if factor_dates else now_cn().date().isoformat()))
-    generated_at = f"{model_date} 22:06:38 CST"
+    # 真实生成时间（实际运行时刻），避免硬编码时间戳误导展示
+    generated_at = now_cn().strftime(f"%Y-%m-%d %H:%M:%S CST")
     factor_map = {factor["key"]: factor for factor in factors}
     framework = []
     for item in MACRO_FRAMEWORK:
