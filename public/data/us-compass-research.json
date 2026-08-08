@@ -1,8 +1,168 @@
 {
   "schema_version": "us-compass-research-v1",
-  "updated_at": "2026-08-01T02:02:26.603900+00:00",
-  "latest_week": "2026-W31",
+  "updated_at": "2026-08-08T01:00:58.086675+00:00",
+  "latest_week": "2026-W32",
   "reports": [
+    {
+      "week_key": "2026-W32",
+      "trade_date": "2026-08-07",
+      "generated_at": "2026-08-08T01:00:58.086675+00:00",
+      "verdict": "样本积累中",
+      "snapshot_count": 20,
+      "metrics": {
+        "t1": {
+          "observations": 19,
+          "rank_ic_pct": -7.06,
+          "positive_rate_pct": 52.63,
+          "deviation_pct": 34.2,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": 0.87
+        },
+        "t5": {
+          "observations": 15,
+          "rank_ic_pct": -6.21,
+          "positive_rate_pct": 46.67,
+          "deviation_pct": 34.27,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": 0.93
+        },
+        "t20": {
+          "observations": 0,
+          "rank_ic_pct": null,
+          "positive_rate_pct": null,
+          "deviation_pct": null,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": null
+        }
+      },
+      "portfolios": {
+        "benchmark": {
+          "total_return_pct": 2.36,
+          "max_drawdown_pct": -2.41,
+          "equity": 20472.51
+        },
+        "timing": {
+          "total_return_pct": -0.34,
+          "max_drawdown_pct": -2.22,
+          "equity": 19932.6
+        },
+        "rotation": {
+          "total_return_pct": 0.48,
+          "max_drawdown_pct": -2.6,
+          "equity": 20096.75
+        },
+        "fusion": {
+          "total_return_pct": -1.9,
+          "max_drawdown_pct": -4.17,
+          "equity": 19620.34
+        }
+      },
+      "attribution": {
+        "timing_pp": -2.7,
+        "rotation_pp": -1.88,
+        "interaction_pp": 0.32,
+        "fusion_vs_benchmark_pp": -4.26
+      },
+      "risk_budget": {
+        "current_exposure_pct": 100.0,
+        "regime": "偏强",
+        "allocation": "60%-80%",
+        "allowed_budgets_pct": [
+          0,
+          50,
+          100
+        ]
+      },
+      "top10": [
+        {
+          "symbol": "SKYY",
+          "theme": "云计算",
+          "trend_score": 100,
+          "risk_score": 30.9,
+          "state": "可持有"
+        },
+        {
+          "symbol": "GDX",
+          "theme": "黄金矿业",
+          "trend_score": 100,
+          "risk_score": 100,
+          "state": "观察"
+        },
+        {
+          "symbol": "COPX",
+          "theme": "铜矿",
+          "trend_score": 100,
+          "risk_score": 47.0,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "XME",
+          "theme": "金属矿业",
+          "trend_score": 99.8,
+          "risk_score": 60.4,
+          "state": "观察"
+        },
+        {
+          "symbol": "HACK",
+          "theme": "网络安全",
+          "trend_score": 94.4,
+          "risk_score": 24.5,
+          "state": "可持有"
+        },
+        {
+          "symbol": "IGV",
+          "theme": "软件",
+          "trend_score": 93.8,
+          "risk_score": 26.2,
+          "state": "可持有"
+        },
+        {
+          "symbol": "URA",
+          "theme": "核能",
+          "trend_score": 85.8,
+          "risk_score": 58.3,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "XAR",
+          "theme": "国防",
+          "trend_score": 82.5,
+          "risk_score": 22.8,
+          "state": "可持有"
+        },
+        {
+          "symbol": "FDN",
+          "theme": "互联网",
+          "trend_score": 80.3,
+          "risk_score": 19.2,
+          "state": "可持有"
+        },
+        {
+          "symbol": "IHI",
+          "theme": "医疗器械",
+          "trend_score": 79.2,
+          "risk_score": 22.3,
+          "state": "可持有"
+        }
+      ],
+      "iwencai": {
+        "status": "ok",
+        "source": "同花顺问财",
+        "summary": "问财查询“美股 云计算 黄金矿业 铜矿 金属矿业 网络安全 近20日涨幅、成交额、行业，按涨幅排序”，返回25条候选；前列样本：Ero Copper、Trilogy Metals、Hudbay Minerals、Northern Dynasty、西方铜金。"
+      },
+      "execution_basis": {
+        "signal": "T日收盘生成",
+        "execution": "T+1开盘执行",
+        "rebalance": "次日开盘再平衡",
+        "one_way_cost_pct": 0.1
+      },
+      "production_change_allowed": false,
+      "observations": [
+        "T+5成熟样本达到20个前维持观察。",
+        "T+20无成熟样本时持续标记样本积累中。",
+        "周报仅记录研究证据，不自动修改权重或仓位阈值。"
+      ]
+    },
     {
       "week_key": "2026-W31",
       "trade_date": "2026-07-31",
