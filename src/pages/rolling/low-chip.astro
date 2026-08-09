@@ -612,9 +612,10 @@ const rows = intersectionRows.map((row) => {
   .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
   .chip-pager[hidden],.chip-row[hidden]{display:none!important}
   .chip-financial-filters{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.65rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
-  .chip-filter-btn,.chip-filter-reset{height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#475569;font-size:.72rem;font-weight:750;cursor:pointer}
-  .chip-filter-btn.is-active{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
-  .chip-filter-reset{color:#64748b}
+  .chip-filter-btn,.chip-filter-reset{height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#475569;font-size:.72rem;font-weight:750;cursor:pointer;transition:all .15s ease}
+  .chip-filter-btn.is-active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  .chip-filter-reset{border-color:#e2e8f0;color:#94a3b8}
+  .chip-filter-reset:hover{border-color:#fca5a5;color:#dc2626;background:#fef2f2}
   .chip-filter-meta{margin-left:auto;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
 
   .chip-list{display:flex;flex-direction:column}
