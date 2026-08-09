@@ -82,6 +82,13 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <span class="tc-toolbar-label">排序</span>
       <button type="button" class="tc-sort-btn is-active" id="tc-sort-days" aria-pressed="true">加入日</button>
       <button type="button" class="tc-sort-btn" id="tc-sort-change" aria-pressed="false">涨幅</button>
+      <span class="tc-toolbar-divider" aria-hidden="true"></span>
+      <label class="tc-star-switch" for="tc-star-toggle">
+        <input type="checkbox" id="tc-star-toggle" checked />
+        <span class="tc-star-track" aria-hidden="true"><span></span></span>
+        <span>科创板</span>
+      </label>
+      <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
 
     <section class="tc-list" id="tc-list" aria-label="追踪股票列表">
@@ -96,7 +103,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange}>
+          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -205,8 +212,22 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var list = document.getElementById('tc-list');
       var sortDays = document.getElementById('tc-sort-days');
       var sortChange = document.getElementById('tc-sort-change');
-      if (!list || !sortDays || !sortChange) return;
+      var starToggle = document.getElementById('tc-star-toggle');
+      var filterCount = document.getElementById('tc-filter-count');
+      if (!list || !sortDays || !sortChange || !starToggle) return;
       var items = Array.from(list.querySelectorAll('.tc-card'));
+      var storageKey = 'low_chip_tracking_include_star';
+      var saved = localStorage.getItem(storageKey);
+      if (saved === '0') starToggle.checked = false;
+      function applyFilter() {
+        var visible = 0;
+        items.forEach(function(el) {
+          var show = starToggle.checked || el.dataset.starMarket !== '1';
+          el.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
+      }
       function sortByDays() {
         items.sort(function(a, b) {
           return (b.dataset.firstSeen || '').localeCompare(a.dataset.firstSeen || ''); // 最新加入在前（降序）
@@ -229,6 +250,11 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       }
       sortDays.addEventListener('click', sortByDays);
       sortChange.addEventListener('click', sortByChange);
+      starToggle.addEventListener('change', function() {
+        localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
+        applyFilter();
+      });
+      applyFilter();
     })();
   </script>
 </body>
@@ -246,6 +272,15 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-toolbar-label { font-size: .7rem; color: rgb(var(--gray-mid)); font-weight: 700; margin-right: .15rem; }
   .tc-sort-btn { height: 1.8rem; padding: 0 .6rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .15s ease; }
   .tc-sort-btn.is-active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+  .tc-toolbar-divider { width: 1px; height: 1.15rem; margin: 0 .2rem; background: var(--border); }
+  .tc-star-switch { display: inline-flex; align-items: center; gap: .38rem; cursor: pointer; font-size: .7rem; font-weight: 800; color: rgb(var(--gray-dark)); user-select: none; }
+  .tc-star-switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .tc-star-track { position: relative; width: 2rem; height: 1.1rem; border-radius: 999px; background: #cbd5e1; transition: background .15s ease; }
+  .tc-star-track span { position: absolute; top: .15rem; left: .15rem; width: .8rem; height: .8rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .25); transition: transform .15s ease; }
+  .tc-star-switch input:checked + .tc-star-track { background: #7c3aed; }
+  .tc-star-switch input:checked + .tc-star-track span { transform: translateX(.9rem); }
+  .tc-star-switch input:focus-visible + .tc-star-track { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .tc-filter-count { margin-left: auto; font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; }
 
   /* 顶部统计条 */
   .tc-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
@@ -255,6 +290,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
   .tc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: .9rem; }
   .tc-card { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.05rem; background: #fff; transition: box-shadow .15s ease, transform .15s ease; }
+  .tc-card[hidden] { display: none !important; }
   .tc-card:hover { box-shadow: 0 4px 16px rgba(30, 41, 59, .08); transform: translateY(-1px); }
 
   .tc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .45rem; }
@@ -296,6 +332,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 760px) {
+    .tc-toolbar { flex-wrap: wrap; }
+    .tc-filter-count { width: 100%; margin-left: 0; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }
     .tc-charts { grid-template-columns: 1fr; }
     .tc-metrics { grid-template-columns: repeat(2, 1fr); }

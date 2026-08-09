@@ -41,6 +41,10 @@ def test_tracking_page_and_entry_link():
         "iWenCai 收盘获利比例",
         "chartGeom",
         "threshY",
+        "科创板",
+        "tc-star-toggle",
+        "data-star-market",
+        "low_chip_tracking_include_star",
     ):
         assert marker in page
     low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
