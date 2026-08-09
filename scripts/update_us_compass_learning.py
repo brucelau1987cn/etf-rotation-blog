@@ -17,8 +17,18 @@ from pathlib import Path
 from typing import Any
 
 if __package__:
+    from .us_compass_fingerprint import build_model_fingerprint
     from .us_compass_research_metrics import ranks, spearman
 else:
+    fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
+    fingerprint_name = f"_us_compass_fingerprint_{id(fingerprint_path)}"
+    fingerprint_spec = importlib.util.spec_from_file_location(fingerprint_name, fingerprint_path)
+    if fingerprint_spec is None or fingerprint_spec.loader is None:
+        raise ImportError(f"cannot load model fingerprint from {fingerprint_path}")
+    fingerprint_module = importlib.util.module_from_spec(fingerprint_spec)
+    fingerprint_spec.loader.exec_module(fingerprint_module)
+    build_model_fingerprint = fingerprint_module.build_model_fingerprint
+
     metrics_path = Path(__file__).resolve().with_name("us_compass_research_metrics.py")
     metrics_name = f"_us_compass_research_metrics_{id(metrics_path)}"
     metrics_spec = importlib.util.spec_from_file_location(metrics_name, metrics_path)
@@ -36,6 +46,9 @@ SHADOW = ROOT / "public/data/us-compass-shadow.json"
 HORIZONS = (1, 5, 20)
 INITIAL_CAPITAL = 20_000.0
 ONE_WAY_COST = 0.001
+EXECUTION_BASIS = "T close signal; T+1 open execution; next-open rebalance"
+EXPOSURE_MAPPING = {"偏强": 1.0, "震荡": 0.5, "防御": 0.0}
+DEFAULT_EXPOSURE = 0.5
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -64,7 +77,7 @@ def percentile_ranks(values: list[float]) -> list[float]:
 
 
 def exposure_for(regime: str) -> float:
-    return {"偏强": 1.0, "震荡": 0.5, "防御": 0.0}.get(regime, 0.5)
+    return EXPOSURE_MAPPING.get(regime, DEFAULT_EXPOSURE)
 
 
 def choose_top10(rows: list[dict[str, Any]]) -> list[str]:
@@ -170,7 +183,7 @@ def shadow_portfolios(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
             daily[name] = round(net, 6)
         history.append({"signal_date": signal["date"], "entry_date": entry["date"], "exit_date": exit_["date"], "exposure": exp, "returns": daily})
     stats = {n: {"equity": round(equity[n], 2), "total_return": round(equity[n] / INITIAL_CAPITAL - 1, 6), "max_drawdown": round(max_dd[n], 6)} for n in names}
-    return {"version": 1, "basis": "T close signal; T+1 open execution; next-open rebalance", "initial_capital_usd": INITIAL_CAPITAL, "one_way_cost": ONE_WAY_COST, "stats": stats, "history": history[-520:]}
+    return {"version": 1, "basis": EXECUTION_BASIS, "initial_capital_usd": INITIAL_CAPITAL, "one_way_cost": ONE_WAY_COST, "stats": stats, "history": history[-520:]}
 
 
 def aggregate(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
@@ -199,14 +212,25 @@ def main() -> None:
     snapshots = [s for s in snapshots if s.get("date") != current["date"]]
     snapshots.append(current); snapshots.sort(key=lambda s: s["date"]); snapshots = snapshots[-520:]
     mature(snapshots)
+    fingerprint = build_model_fingerprint(
+        pool,
+        horizons=HORIZONS,
+        one_way_cost=ONE_WAY_COST,
+        initial_capital=INITIAL_CAPITAL,
+        execution_basis=EXECUTION_BASIS,
+        exposure_mapping=EXPOSURE_MAPPING,
+        default_exposure=DEFAULT_EXPOSURE,
+    )
     payload.update({
         "updated_at": datetime.now(timezone.utc).isoformat(), "universe": current["universe"],
         "horizons": list(HORIZONS), "cost_assumption": {"one_way": ONE_WAY_COST},
         "metrics": aggregate(snapshots), "snapshots": snapshots,
+        "model_fingerprint": dict(fingerprint),
         "note": "Forward-only self-evaluation. Cross-sectional deviation is monitored against the 1/3 random reference; AGRU is not active.",
     })
     shadow = shadow_portfolios(snapshots)
     shadow["updated_at"] = payload["updated_at"]
+    shadow["model_fingerprint"] = dict(fingerprint)
     atomic_write(OUT, payload); atomic_write(SHADOW, shadow)
     print(json.dumps({"date": current["date"], "snapshots": len(snapshots), "top10": current["top10"], "exposure": current["exposure"], "metrics": payload["metrics"], "shadow_intervals": len(shadow["history"])}, ensure_ascii=False))
 

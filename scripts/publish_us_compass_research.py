@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import subprocess
@@ -104,10 +105,16 @@ def build_report(learning: dict[str, Any], shadow: dict[str, Any], pool: dict[st
     exposure = float(raw_exposure) if isinstance(raw_exposure, (int, float, str)) else 0.5
     top_symbols = [str(item) for item in (latest.get("top10") or [])][:10]
     source = iwencai or {"status": "unavailable", "summary": "问财验证暂不可用", "source": "同花顺问财"}
+    raw_fingerprint = learning.get("model_fingerprint")
+    model_fingerprint = copy.deepcopy(raw_fingerprint) if isinstance(raw_fingerprint, dict) else {
+        "status": "unavailable",
+        "reason": "model fingerprint unavailable",
+    }
     return {
         "week_key": week_key(trade_date),
         "trade_date": trade_date,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "model_fingerprint": model_fingerprint,
         "verdict": "达到月度评估门槛" if t5_observations >= 20 else "样本积累中",
         "snapshot_count": len(snapshots),
         "metrics": metrics,

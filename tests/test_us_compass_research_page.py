@@ -22,6 +22,12 @@ def load_module():
 def fixtures():
     learning = {
         "updated_at": "2026-07-31T22:31:00Z",
+        "model_fingerprint": {
+            "model_version": "us-compass-v1",
+            "universe_count": 2,
+            "symbols_sha256": "a" * 64,
+            "config_sha256": "b" * 64,
+        },
         "snapshots": [{"date": "2026-07-31", "top10": ["KWEB", "XLE"], "exposure": 0.5}],
         "metrics": {
             "t1": {"observations": 14, "rank_ic_mean": -0.002839, "rank_ic_positive_rate": 0.642857, "deviation_mean": 0.327498, "random_deviation_reference": 0.333333},
@@ -64,7 +70,27 @@ def test_build_report_preserves_sample_gate_and_attribution():
     assert report["attribution"]["rotation_pp"] == -0.72
     assert report["attribution"]["interaction_pp"] == -0.76
     assert report["iwencai"]["source"] == "同花顺问财"
+    assert report["model_fingerprint"] == learning["model_fingerprint"]
+    assert report["model_fingerprint"] is not learning["model_fingerprint"]
     assert report["production_change_allowed"] is False
+
+
+def test_build_report_marks_missing_or_invalid_fingerprint_unavailable():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning.pop("model_fingerprint")
+    report = module.build_report(learning, shadow, pool)
+    assert report["model_fingerprint"] == {
+        "status": "unavailable",
+        "reason": "model fingerprint unavailable",
+    }
+
+    learning["model_fingerprint"] = ["not", "an", "object"]
+    report = module.build_report(learning, shadow, pool)
+    assert report["model_fingerprint"] == {
+        "status": "unavailable",
+        "reason": "model fingerprint unavailable",
+    }
 
 
 def test_merge_archive_is_first_write_per_week():

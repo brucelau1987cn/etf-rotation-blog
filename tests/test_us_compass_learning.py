@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/update_us_compass_learning.py"
@@ -52,3 +53,39 @@ def test_exposure_mapping_and_top10_theme_dedup():
         {"symbol": "D", "theme": "能源", "trend_score": 99, "trade_state": "退出"},
     ]
     assert mod.choose_top10(rows) == ["A", "C"]
+
+
+def test_main_writes_identical_model_fingerprint_to_learning_and_shadow(tmp_path, monkeypatch):
+    pool_path = tmp_path / "pool.json"
+    learning_path = tmp_path / "learning.json"
+    shadow_path = tmp_path / "shadow.json"
+    pool_path.write_text(json.dumps({
+        "model_date": "2026-01-01",
+        "model_version": "us-compass-v1",
+        "market_regime": {"state": "震荡"},
+        "rows": [
+            {
+                "symbol": "SPY", "theme": "大盘", "trend_score": 80,
+                "trading_risk_score": 10, "trade_state": "可持有",
+                "adjusted_close": 100, "day_open": 100, "price": 100,
+            },
+            {
+                "symbol": "QQQ", "theme": "科技", "trend_score": 90,
+                "trading_risk_score": 12, "trade_state": "可持有",
+                "adjusted_close": 100, "day_open": 100, "price": 100,
+            },
+        ],
+    }), encoding="utf-8")
+    monkeypatch.setattr(mod, "POOL", pool_path)
+    monkeypatch.setattr(mod, "OUT", learning_path)
+    monkeypatch.setattr(mod, "SHADOW", shadow_path)
+
+    mod.main()
+
+    learning = json.loads(learning_path.read_text(encoding="utf-8"))
+    shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
+    assert learning["model_fingerprint"] == shadow["model_fingerprint"]
+    assert learning["model_fingerprint"]["model_version"] == "us-compass-v1"
+    assert learning["model_fingerprint"]["universe_count"] == 2
+    assert learning["model_fingerprint"]["execution_basis"] == shadow["basis"]
+    assert not (tmp_path / "public" / "data").exists()
