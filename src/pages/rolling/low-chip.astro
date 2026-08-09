@@ -28,7 +28,12 @@ const valuesBySymbol = Object.fromEntries(
 );
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
 const fmtInt = (value: number) => Math.round(Number(value)).toLocaleString('zh-CN');
-const fmtMetric = (value: number | null | undefined, digits = 1, suffix = '') => value == null ? '—' : `${Number(value).toFixed(digits)}${suffix}`;
+const fmtMetric = (value: number | null, digits = 2, suffix = '') => value == null ? '—' : Number(value).toFixed(digits) + suffix;
+const shrinkControlLabel = (label: string | null) => {
+  if (!label) return '';
+  const map: Record<string, string> = { '轻度控盘': '轻度', '中度控盘': '中度', '高度控盘': '完全', '不控盘': '不控', '无控盘': '不控' };
+  return map[label] || label;
+};
 
 const CHAR_INITIAL: Record<string, string> = {
   上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
@@ -191,12 +196,12 @@ const rows = intersectionRows.map((row) => {
                   <span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i>
                 </button>
                 <div class="chip-shr-head" aria-hidden="true">
-                  <span>股东人数</span><span>股东变化</span><span>主力控股</span><span>90%筹码集中度</span><span>十大流通股东</span>
+                  <span>股东人数</span><span>股东变化</span><span>主力控盘</span><span>90%筹码集中度</span><span>十大流通股东</span>
                 </div>
                 <div class="chip-shr-body">
                   <span><strong>{fmtInt(row.shareholderMetrics.shareholder_count)}</strong></span>
                   <span><strong class:list={[row.shareholderMetrics.shareholder_change_pct <= 0 ? 'is-concentrating' : 'is-dispersing']}>{fmtMetric(row.shareholderMetrics.shareholder_change_pct, 2, '%')}</strong></span>
-                  <span><strong>{row.shareholderMetrics.main_force || '—'}{row.shareholderMetrics.main_force && row.shareholderMetrics.main_force_label ? '（' + row.shareholderMetrics.main_force_label + '）' : ''}</strong></span>
+                  <span><strong>{row.shareholderMetrics.main_force || '—'}{row.shareholderMetrics.main_force && row.shareholderMetrics.main_force_label ? '（' + shrinkControlLabel(row.shareholderMetrics.main_force_label) + '）' : ''}</strong></span>
                   <span><strong>{fmtMetric(row.shareholderMetrics.concentration90, 1, '%')}</strong></span>
                   <span><strong>{fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%')}</strong></span>
                 </div>
@@ -356,6 +361,10 @@ const rows = intersectionRows.map((row) => {
         var sm = row.shareholderMetrics || {};
         var changePct = sm.shareholder_change_pct;
         var changeClass = Number(changePct) <= 0 ? 'is-concentrating' : 'is-dispersing';
+        var shrinkLabel = function(label) {
+          var map = { '轻度控盘': '轻度', '中度控盘': '中度', '高度控盘': '完全', '不控盘': '不控', '无控盘': '不控' };
+          return map[label] || label || '';
+        };
         return (
           '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
@@ -377,11 +386,11 @@ const rows = intersectionRows.map((row) => {
             '</div>' +
             '<div class="chip-row-shareholders" aria-label="' + esc(row.name) + '股东与筹码指标">' +
               '<button type="button" class="chip-shr-toggle" aria-expanded="false"><span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i></button>' +
-              '<div class="chip-shr-head" aria-hidden="true"><span>股东人数</span><span>股东变化</span><span>主力控股</span><span>90%筹码集中度</span><span>十大流通股东</span></div>' +
+              '<div class="chip-shr-head" aria-hidden="true"><span>股东人数</span><span>股东变化</span><span>主力控盘</span><span>90%筹码集中度</span><span>十大流通股东</span></div>' +
               '<div class="chip-shr-body">' +
                 '<span><strong>' + fmtInt(sm.shareholder_count) + '</strong></span>' +
                 '<span><strong class="' + changeClass + '">' + fmtMetric(changePct, 2, '%') + '</strong></span>' +
-                '<span><strong>' + (sm.main_force || '—') + (sm.main_force && sm.main_force_label ? '（' + sm.main_force_label + '）' : '') + '</strong></span>' +
+                '<span><strong>' + (sm.main_force || '—') + (sm.main_force && sm.main_force_label ? '（' + shrinkLabel(sm.main_force_label) + '）' : '') + '</strong></span>' +
                 '<span><strong>' + fmtMetric(sm.concentration90, 1, '%') + '</strong></span>' +
                 '<span><strong>' + fmtMetric(sm.top10_float_ratio, 1, '%') + '</strong></span>' +
               '</div>' +
