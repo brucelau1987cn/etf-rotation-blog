@@ -163,6 +163,37 @@ def test_validate_catalog_uses_active_registry_order(monkeypatch, tmp_path):
     assert errors == []
 
 
+def test_validate_catalog_reports_absent_optional_dataset_as_unknown(monkeypatch, tmp_path):
+    validator = load_module("task4_validate_public_data_contracts_inactive", VALIDATE_SCRIPT)
+    optional = catalog.DatasetSpec(
+        "optional", "optional.json", "shadow", "US", "optional-v1", ("derived_research",), ("as_of",), (), False
+    )
+    monkeypatch.setattr(validator, "DATASETS", (optional,))
+    monkeypatch.setattr(validator, "active_dataset_specs", catalog.active_dataset_specs)
+    entry = {
+        "dataset_id": "optional",
+        "role": "shadow",
+        "market": "US",
+        "observation_date": "2026-08-07",
+        "public_url": "/data/optional.json",
+        "source_categories": ["derived_research"],
+        "completeness": {"status": "unknown", "ratio": None, "reason": "test"},
+        "degradation": {"status": "healthy", "reasons": []},
+    }
+    stable = {
+        "schema_version": catalog.CATALOG_SCHEMA_VERSION,
+        "contract_url": catalog.CATALOG_CONTRACT_URL,
+        "datasets": [entry],
+    }
+    payload = {**stable, "batch_id": catalog.stable_batch_id(stable)}
+    errors: list[str] = []
+
+    validator.validate_catalog(tmp_path, payload, errors)
+
+    assert "catalog unknown dataset: 'optional'" in errors
+    assert "catalog optional target file is missing" not in errors
+
+
 def test_validate_catalog_rejects_missing_active_optional_dataset(monkeypatch, tmp_path):
     validator = load_module("task4_validate_public_data_contracts_present", VALIDATE_SCRIPT)
     required = catalog.DatasetSpec(

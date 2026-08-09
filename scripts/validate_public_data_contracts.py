@@ -295,7 +295,7 @@ def validate_catalog(data_dir: Path, catalog: dict[str, Any], errors: list[str])
     if catalog.get("batch_id") != stable_batch_id(stable):
         errors.append("catalog batch_id differs from stable catalog semantics")
 
-    by_id = {spec.dataset_id: spec for spec in DATASETS}
+    by_id = {spec.dataset_id: spec for spec in active_specs}
     for item in datasets:
         if not isinstance(item, dict):
             continue

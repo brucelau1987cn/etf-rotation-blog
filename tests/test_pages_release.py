@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from pathlib import Path
 import io
 import json
+import subprocess
 
 from scripts import pages_release
 
@@ -35,6 +36,41 @@ def test_release_scope_allows_only_known_external_shadow_snapshots():
     assert pages_release.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
     assert pages_release.foreign_dirty_paths([" M public/data/us-selector-shadow.json"]) == []
     assert pages_release.foreign_dirty_paths(["?? public/js/uncommitted.js"]) == ["public/js/uncommitted.js"]
+
+
+def test_restore_tracked_public_files_skips_paths_absent_from_head_and_restores_tracked(
+    tmp_path, monkeypatch
+):
+    tracked = "public/data/tracked.json"
+    future = "public/data/future.json"
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        if command == ["git", "cat-file", "-e", f"HEAD:{future}"]:
+            return subprocess.CompletedProcess(command, 1)
+        if command == ["git", "cat-file", "-e", f"HEAD:{tracked}"]:
+            return subprocess.CompletedProcess(command, 0)
+        if command == ["git", "show", f"HEAD:{tracked}"]:
+            return subprocess.CompletedProcess(command, 0, stdout=b'{"tracked": true}\n')
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(pages_release, "ROOT", tmp_path)
+    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", (future, tracked, "src/content/blog/future.md"))
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    pages_release.restore_tracked_public_files()
+
+    assert (tmp_path / "dist/data/tracked.json").read_bytes() == b'{"tracked": true}\n'
+    assert not (tmp_path / "dist/data/future.json").exists()
+    assert [call[0] for call in calls] == [
+        ["git", "cat-file", "-e", f"HEAD:{future}"],
+        ["git", "cat-file", "-e", f"HEAD:{tracked}"],
+        ["git", "show", f"HEAD:{tracked}"],
+    ]
+    assert all(call[1].get("cwd") == tmp_path for call in calls)
+    assert all(call[1].get("shell") is not True for call in calls)
+    assert calls[-1][1].get("check") is True
 
 
 def test_json_probe_retries_during_pages_eventual_consistency(tmp_path, monkeypatch):
