@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import importlib
+import runpy
+import sys
+import types
+from collections.abc import Sequence
+from pathlib import Path
+from typing import get_type_hints
+
 import pytest
 
 from scripts.us_compass_research_metrics import (
@@ -17,16 +25,50 @@ def test_ranks_use_average_rank_for_ties():
     assert ranks([30.0, 10.0, 20.0, 20.0]) == [4.0, 1.0, 2.5, 2.5]
 
 
+def test_ranks_accept_empty_input():
+    assert ranks([]) == []
+
+
 def test_spearman_correlates_average_ranks():
-    assert spearman([10.0, 20.0, 20.0, 30.0], [4.0, 1.0, 2.0, 3.0]) == -0.31622776601683794
+    assert spearman(
+        [10.0, 20.0, 20.0, 30.0], [4.0, 1.0, 2.0, 3.0]
+    ) == pytest.approx(-0.31622776601683794)
 
 
 def test_pearson_returns_linear_correlation():
     assert pearson([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]) == pytest.approx(1.0)
 
 
+@pytest.mark.parametrize("metric", [pearson, spearman])
+def test_correlations_reject_mismatched_lengths(metric):
+    assert metric([1.0, 2.0, 3.0], [1.0, 2.0]) is None
+
+
+@pytest.mark.parametrize("metric", [pearson, spearman])
+def test_correlations_reject_zero_variance(metric):
+    assert metric([1.0, 1.0, 1.0], [1.0, 2.0, 3.0]) is None
+
+
 def test_max_drawdown_measures_worst_peak_to_trough_loss():
     assert max_drawdown([100.0, 120.0, 90.0, 108.0, 80.0]) == pytest.approx(-1 / 3)
+
+
+def test_max_drawdown_returns_none_for_empty_input():
+    assert max_drawdown([]) is None
+
+
+@pytest.mark.parametrize(
+    "equity",
+    [
+        [100.0, 0.0, 90.0],
+        [100.0, -1.0, 90.0],
+        [100.0, float("nan"), 90.0],
+        [100.0, float("inf"), 90.0],
+        [100.0, float("-inf"), 90.0],
+    ],
+)
+def test_max_drawdown_rejects_non_positive_or_non_finite_equity(equity):
+    assert max_drawdown(equity) is None
 
 
 def test_annualized_volatility_uses_sample_standard_deviation():
@@ -35,8 +77,28 @@ def test_annualized_volatility_uses_sample_standard_deviation():
     )
 
 
+@pytest.mark.parametrize("returns", [[], [0.01]])
+def test_annualized_volatility_rejects_insufficient_samples(returns):
+    assert annualized_volatility(returns) is None
+
+
+@pytest.mark.parametrize("periods_per_year", [0, -1])
+def test_annualized_volatility_rejects_non_positive_periods(periods_per_year):
+    assert annualized_volatility([0.01, -0.01], periods_per_year) is None
+
+
 def test_rolling_slices_returns_contiguous_complete_windows():
     assert rolling_slices([1, 2, 3, 4], 3) == [[1, 2, 3], [2, 3, 4]]
+
+
+def test_rolling_slices_returns_empty_when_window_exceeds_sequence():
+    assert rolling_slices([1, 2], 3) == []
+
+
+@pytest.mark.parametrize("window", [0, -1])
+def test_rolling_slices_rejects_non_positive_window(window):
+    with pytest.raises(ValueError, match="window must be positive"):
+        rolling_slices([1, 2], window)
 
 
 def test_finite_numbers_filters_invalid_and_non_finite_values():
@@ -44,3 +106,53 @@ def test_finite_numbers_filters_invalid_and_non_finite_values():
         1.0,
         2.5,
     ]
+
+
+@pytest.mark.parametrize(
+    "function_name, parameter_name",
+    [
+        ("ranks", "values"),
+        ("annualized_volatility", "returns"),
+        ("max_drawdown", "values"),
+        ("pearson", "xs"),
+        ("pearson", "ys"),
+        ("spearman", "xs"),
+        ("spearman", "ys"),
+    ],
+)
+def test_read_only_metric_inputs_are_sequences(function_name, parameter_name):
+    module = importlib.import_module("scripts.us_compass_research_metrics")
+    hints = get_type_hints(getattr(module, function_name))
+    assert hints[parameter_name] == Sequence[float]
+
+
+def test_learning_module_package_import_uses_relative_metrics(monkeypatch):
+    fake = types.ModuleType("us_compass_research_metrics")
+
+    def fake_ranks(values):
+        return values
+
+    def fake_spearman(xs, ys):
+        return None
+
+    setattr(fake, "ranks", fake_ranks)
+    setattr(fake, "spearman", fake_spearman)
+    monkeypatch.setitem(sys.modules, "us_compass_research_metrics", fake)
+    sys.modules.pop("scripts.update_us_compass_learning", None)
+
+    module = importlib.import_module("scripts.update_us_compass_learning")
+
+    assert module.ranks is not fake_ranks
+    assert module.spearman is not fake_spearman
+    assert module.ranks.__module__ == "scripts.us_compass_research_metrics"
+
+
+def test_learning_script_direct_load_uses_sibling_metrics(monkeypatch):
+    script = Path(__file__).resolve().parents[1] / "scripts/update_us_compass_learning.py"
+    monkeypatch.setattr(sys, "path", [path for path in sys.path if path != str(script.parent)])
+    sys.modules.pop("us_compass_research_metrics", None)
+
+    namespace = runpy.run_path(str(script), run_name="us_compass_learning_direct_import")
+
+    assert namespace["ranks"].__module__ == "us_compass_research_metrics"
+    assert namespace["spearman"].__module__ == "us_compass_research_metrics"

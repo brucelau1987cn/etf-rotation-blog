@@ -22,7 +22,7 @@ def finite_numbers(values: Sequence[object]) -> list[float]:
     return result
 
 
-def ranks(values: list[float]) -> list[float]:
+def ranks(values: Sequence[float]) -> list[float]:
     """Return ascending one-based average ranks, preserving input order."""
     order = sorted(range(len(values)), key=values.__getitem__)
     result = [0.0] * len(values)
@@ -46,7 +46,7 @@ def rolling_slices(values: Sequence[T], window: int) -> list[list[T]]:
 
 
 def annualized_volatility(
-    returns: list[float], periods_per_year: int = 252
+    returns: Sequence[float], periods_per_year: int = 252
 ) -> float | None:
     """Return annualized sample volatility for periodic returns."""
     if len(returns) < 2 or periods_per_year <= 0:
@@ -54,9 +54,9 @@ def annualized_volatility(
     return statistics.stdev(returns) * math.sqrt(periods_per_year)
 
 
-def max_drawdown(values: list[float]) -> float | None:
+def max_drawdown(values: Sequence[float]) -> float | None:
     """Return the worst peak-to-trough return in an equity series."""
-    if not values:
+    if not values or any(not math.isfinite(value) or value <= 0 for value in values):
         return None
     peak = values[0]
     worst = 0.0
@@ -67,7 +67,7 @@ def max_drawdown(values: list[float]) -> float | None:
     return worst
 
 
-def pearson(xs: list[float], ys: list[float]) -> float | None:
+def pearson(xs: Sequence[float], ys: Sequence[float]) -> float | None:
     """Return Pearson correlation, or ``None`` when undefined."""
     if len(xs) < 2 or len(xs) != len(ys):
         return None
@@ -78,7 +78,7 @@ def pearson(xs: list[float], ys: list[float]) -> float | None:
     return numerator / (dx * dy) if dx and dy else None
 
 
-def spearman(xs: list[float], ys: list[float]) -> float | None:
+def spearman(xs: Sequence[float], ys: Sequence[float]) -> float | None:
     """Return Spearman rank correlation, or ``None`` when undefined."""
     if len(xs) < 3 or len(xs) != len(ys):
         return None

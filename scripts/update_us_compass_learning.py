@@ -10,15 +10,21 @@ from __future__ import annotations
 import json
 import os
 import statistics
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    from us_compass_research_metrics import ranks, spearman
-except ModuleNotFoundError:  # imported as scripts.update_us_compass_learning
-    from scripts.us_compass_research_metrics import ranks, spearman
+if __package__:
+    from .us_compass_research_metrics import ranks, spearman
+else:
+    script_dir = str(Path(__file__).resolve().parent)
+    sys.path.insert(0, script_dir)
+    try:
+        from us_compass_research_metrics import ranks, spearman
+    finally:
+        sys.path.remove(script_dir)
 
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/us-etf-pool.json"
