@@ -13,7 +13,7 @@ const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Nu
 
 const stocks = Object.entries(trackingData.stocks || {})
   .map(([symbol, rec]) => {
-    const daily = rec.daily || [];
+    const daily = (rec.daily || []).slice(1); // 加入当日不算，隔日股价算第一日
     const closes = daily.map((d) => d.close).filter((v) => v != null);
     const profits = daily.map((d) => d.profit_ratio).filter((v) => v != null);
     const firstClose = closes.length ? closes[0] : null;
@@ -66,7 +66,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div>
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1>低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，记录每日收盘价、涨跌幅与收盘获利盘指数，统计加入后最多 10 个交易日（2 周）；不足 10 个交易日的按实际天数显示。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
+        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，记录每日收盘价、涨跌幅与收盘获利盘指数；加入当日不计入，隔日起算第 1 日，统计最多 10 个交易日；不足 10 个交易日的按实际天数显示。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
       </div>
       <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
     </div>
@@ -76,6 +76,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) >= 0).length)}</strong><span>加入以来上涨</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) < 0).length)}</strong><span>加入以来下跌</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.length ? Math.max(...stocks.map((s) => s.totalChange ?? -999)) : 0, 1)}%</strong><span>最强涨幅</span></div>
+    </div>
+
+    <div class="tc-toolbar">
+      <span class="tc-toolbar-label">排序</span>
+      <button type="button" class="tc-sort-btn is-active" id="tc-sort-days" aria-pressed="true">加入日</button>
+      <button type="button" class="tc-sort-btn" id="tc-sort-change" aria-pressed="false">涨幅</button>
     </div>
 
     <section class="tc-list" aria-label="追踪股票列表">
@@ -90,7 +96,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card">
+          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -146,7 +152,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
             <div class="tc-metrics">
               <div class="tc-metric">
-                <span class="tc-label">首日收盘</span>
+                <span class="tc-label">隔日收盘</span>
                 <strong>¥{fmt(rec.firstClose)}</strong>
               </div>
               <div class="tc-metric">
@@ -194,6 +200,37 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     </footer>
   </main>
   <Footer />
+  <script>
+    ;(function() {
+      var list = document.getElementById('tc-list');
+      var sortDays = document.getElementById('tc-sort-days');
+      var sortChange = document.getElementById('tc-sort-change');
+      if (!list || !sortDays || !sortChange) return;
+      var items = Array.from(list.querySelectorAll('.tc-card'));
+      function sortByDays() {
+        items.sort(function(a, b) {
+          return (a.dataset.firstSeen || '').localeCompare(b.dataset.firstSeen || '') || -1;
+        });
+        items.forEach(function(el) { list.appendChild(el); });
+        sortDays.classList.add('is-active'); sortDays.setAttribute('aria-pressed', 'true');
+        sortChange.classList.remove('is-active'); sortChange.setAttribute('aria-pressed', 'false');
+      }
+      function sortByChange() {
+        items.sort(function(a, b) {
+          var va = parseFloat(a.dataset.totalChange);
+          var vb = parseFloat(b.dataset.totalChange);
+          if (isNaN(va)) return 1;
+          if (isNaN(vb)) return -1;
+          return vb - va; // 涨幅降序
+        });
+        items.forEach(function(el) { list.appendChild(el); });
+        sortChange.classList.add('is-active'); sortChange.setAttribute('aria-pressed', 'true');
+        sortDays.classList.remove('is-active'); sortDays.setAttribute('aria-pressed', 'false');
+      }
+      sortDays.addEventListener('click', sortByDays);
+      sortChange.addEventListener('click', sortByChange);
+    })();
+  </script>
 </body>
 
 <style>
@@ -203,6 +240,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-desc { color: rgb(var(--gray-mid)); font-size: .85rem; max-width: 56rem; line-height: 1.55; margin: 0; }
   .tc-back { flex: 0 0 auto; font-size: .8rem; font-weight: 700; color: rgb(var(--gray-dark)); text-decoration: none; border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem; }
   .tc-back:hover { border-color: rgb(var(--gray-mid)); }
+
+  /* 排序工具栏 */
+  .tc-toolbar { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
+  .tc-toolbar-label { font-size: .7rem; color: rgb(var(--gray-mid)); font-weight: 700; margin-right: .15rem; }
+  .tc-sort-btn { height: 1.8rem; padding: 0 .6rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .15s ease; }
+  .tc-sort-btn.is-active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
 
   /* 顶部统计条 */
   .tc-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
