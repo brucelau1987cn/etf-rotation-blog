@@ -26,7 +26,7 @@ STAGING_BLOCKER = (
 
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint
-    from .us_compass_research_metrics import rate_time_slice_audit
+    from .us_compass_research_metrics import annualized_volatility, rate_shadow_health, rate_time_slice_audit
 else:
     fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
     fingerprint_spec = importlib.util.spec_from_file_location(
@@ -46,6 +46,8 @@ else:
     metrics_module = importlib.util.module_from_spec(metrics_spec)
     metrics_spec.loader.exec_module(metrics_module)
     rate_time_slice_audit = metrics_module.rate_time_slice_audit
+    annualized_volatility = metrics_module.annualized_volatility
+    rate_shadow_health = metrics_module.rate_shadow_health
 
 
 def _valid_date(value: Any) -> bool:
@@ -271,6 +273,139 @@ def build_walk_forward(t5_horizon: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+PORTFOLIOS = ("benchmark", "timing", "rotation", "fusion")
+COST_SCENARIOS = (0.0, 0.0005, 0.001, 0.002, 0.003)
+COST_UNAVAILABLE_REASON = "turnover history unavailable; exact cost scenarios require persisted turnover"
+
+
+def _finite_number(value: Any, label: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"{label} must be finite")
+    return float(value)
+
+
+def extract_shadow_history(shadow: Any) -> list[dict[str, Any]]:
+    if not isinstance(shadow, dict):
+        raise ValueError("shadow must be an object")
+    initial = _finite_number(shadow.get("initial_capital_usd"), "shadow initial_capital_usd")
+    if initial <= 0:
+        raise ValueError("shadow initial_capital_usd must be positive")
+    cost = _finite_number(shadow.get("one_way_cost"), "shadow one_way_cost")
+    if cost < 0:
+        raise ValueError("shadow one_way_cost must be non-negative")
+    history = shadow.get("history")
+    if not isinstance(history, list):
+        raise ValueError("shadow history must be a list")
+    periods = []
+    seen = {name: set() for name in ("signal_date", "entry_date", "exit_date")}
+    for index, row in enumerate(history):
+        if not isinstance(row, dict):
+            raise ValueError(f"shadow history {index} must be an object")
+        dates = {}
+        for field in seen:
+            value = row.get(field)
+            if not _valid_date(value):
+                raise ValueError(f"shadow history {index} {field} must be valid YYYY-MM-DD")
+            if value in seen[field]:
+                raise ValueError(f"duplicate shadow {field}: {value}")
+            seen[field].add(value)
+            dates[field] = value
+        if not dates["signal_date"] < dates["entry_date"] < dates["exit_date"]:
+            raise ValueError(f"shadow history {index} must satisfy signal_date < entry_date < exit_date")
+        returns = row.get("returns")
+        if not isinstance(returns, dict) or set(returns) != set(PORTFOLIOS):
+            raise ValueError(f"shadow history {index} returns must contain exactly benchmark, timing, rotation, fusion")
+        normalized_returns = {}
+        for name in PORTFOLIOS:
+            value = _finite_number(returns[name], f"shadow history {index} returns.{name}")
+            if value <= -1:
+                raise ValueError(f"shadow history {index} returns.{name} must be greater than -1")
+            normalized_returns[name] = value
+        periods.append({**dates, "date": dates["exit_date"], "returns": normalized_returns})
+    periods.sort(key=lambda row: row["exit_date"])
+    return periods
+
+
+def portfolio_health_metrics(periods: list[dict[str, Any]], initial_capital: float, portfolio: str) -> dict[str, Any]:
+    equity = initial_capital
+    returns = []
+    series = []
+    peak = initial_capital
+    longest = duration = 0
+    for period in periods:
+        value = period["returns"][portfolio]
+        returns.append(value)
+        equity *= 1 + value
+        series.append({"date": period["exit_date"], "equity": equity})
+        if equity >= peak:
+            peak = equity
+            duration = 0
+        else:
+            duration += 1
+            longest = max(longest, duration)
+    observations = len(returns)
+    base = {
+        "status": "ACCUMULATING", "observations": observations,
+        "total_return": None, "annualized_volatility": None, "max_drawdown": None,
+        "current_drawdown": None, "longest_drawdown_duration": None,
+        "rolling_20d_volatility": None, "positive_period_rate": None,
+        "excess_return_vs_benchmark": None, "equity_series": series,
+    }
+    if observations < 20:
+        return base
+    total_return = equity / initial_capital - 1
+    peak_value = initial_capital
+    worst = current = 0.0
+    for point in series:
+        peak_value = max(peak_value, point["equity"])
+        current = 1 - point["equity"] / peak_value
+        worst = max(worst, current)
+    positive_rate = sum(value > 0 for value in returns) / observations
+    return {
+        **base, "status": rate_shadow_health(observations, total_return, worst, positive_rate),
+        "total_return": total_return, "annualized_volatility": annualized_volatility(returns),
+        "max_drawdown": worst, "current_drawdown": current,
+        "longest_drawdown_duration": longest,
+        "rolling_20d_volatility": annualized_volatility(returns[-20:]),
+        "positive_period_rate": positive_rate,
+    }
+
+
+def build_shadow_health(shadow: Any) -> dict[str, Any]:
+    periods = extract_shadow_history(shadow)
+    initial = float(shadow["initial_capital_usd"])
+    portfolios = {name: portfolio_health_metrics(periods, initial, name) for name in PORTFOLIOS}
+    benchmark_return = portfolios["benchmark"]["total_return"]
+    for metrics in portfolios.values():
+        if metrics["total_return"] is not None and benchmark_return is not None:
+            metrics["excess_return_vs_benchmark"] = metrics["total_return"] - benchmark_return
+    fusion = portfolios["fusion"]
+    mature = len(periods) >= 20
+    score = None
+    if mature:
+        return_score = max(0.0, min(1.0, (fusion["total_return"] + 0.2) / 0.4))
+        score = 0.5 * fusion["positive_period_rate"] + 0.5 * return_score
+    return {
+        "status": fusion["status"], "observations": len(periods), "initial_capital": initial,
+        "return": fusion["total_return"], "max_drawdown": fusion["max_drawdown"],
+        "score": score, "portfolios": portfolios,
+        "reasons": ([f"shadow requires 20 observations; {len(periods)} available"] if not mature else ["fusion shadow performance rated from persisted net returns"]),
+    }
+
+
+def build_cost_sensitivity(shadow: Any, _shadow_status: str | None = None) -> dict[str, Any]:
+    periods = extract_shadow_history(shadow)
+    return {
+        "status": "UNAVAILABLE", "baseline_cost": float(shadow["one_way_cost"]),
+        "observations": len(periods), "break_even_cost": None, "score": None,
+        "scenarios": [
+            {"one_way_cost": cost, "value": None, "annualized_return": None, "max_drawdown": None}
+            for cost in COST_SCENARIOS
+        ],
+        "reasons": [COST_UNAVAILABLE_REASON],
+    }
+
+
 def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = None) -> dict[str, Any]:
     if not isinstance(learning, dict):
         raise ValueError("learning must be an object")
@@ -301,6 +436,8 @@ def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = 
         if mature else f"T+5 requires 20 observations; {t5['observations']} available"
     )
     overall_score = walk_forward["score"] if mature else None
+    shadow_health = build_shadow_health(shadow)
+    cost_sensitivity = build_cost_sensitivity(shadow, shadow_health["status"])
     payload = {
         "schema_version": "us-compass-health-v1", "market": "US",
         "model_date": max(dates), "generated_at": _utc_timestamp(generated_at),
@@ -311,8 +448,8 @@ def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = 
         },
         "horizons": horizons,
         "walk_forward": walk_forward,
-        "shadow_health": {"status": "ACCUMULATING", "observations": 0, "return": None, "max_drawdown": None, "score": None, "reasons": ["not evaluated in Task 5"]},
-        "cost_sensitivity": {"status": "ACCUMULATING", "scenarios": [], "score": None, "reasons": ["not evaluated in Task 5"]},
+        "shadow_health": shadow_health,
+        "cost_sensitivity": cost_sensitivity,
         "overall": {"status": governing_status, "score": overall_score, "reasons": [maturity_reason]},
     }
     return payload

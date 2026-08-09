@@ -23,7 +23,7 @@ except ModuleNotFoundError:
     from scripts.generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
 
 if __package__:
-    from .us_compass_research_metrics import rate_time_slice_audit
+    from .us_compass_research_metrics import rate_shadow_health, rate_time_slice_audit
 else:
     metrics_path = Path(__file__).resolve().with_name("us_compass_research_metrics.py")
     metrics_spec = importlib.util.spec_from_file_location(
@@ -34,6 +34,7 @@ else:
     metrics_module = importlib.util.module_from_spec(metrics_spec)
     metrics_spec.loader.exec_module(metrics_module)
     rate_time_slice_audit = metrics_module.rate_time_slice_audit
+    rate_shadow_health = metrics_module.rate_shadow_health
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data"
@@ -432,38 +433,90 @@ def validate_us_compass_health_payload(
             payload.get("walk_forward"), ("score",), "walk_forward", sample_immature
         )
     )
-    errors.extend(
-        _require_null_immature_metrics(
-            payload.get("shadow_health"),
-            ("return", "max_drawdown", "score"),
-            "shadow_health",
-            sample_immature,
-        )
-    )
+    shadow_health = payload.get("shadow_health")
+    if isinstance(shadow_health, dict):
+        observations = shadow_health.get("observations")
+        initial = shadow_health.get("initial_capital")
+        portfolios = shadow_health.get("portfolios")
+        if isinstance(portfolios, dict):
+            fusion = portfolios.get("fusion")
+            for name, portfolio in portfolios.items():
+                if not isinstance(portfolio, dict):
+                    continue
+                series = portfolio.get("equity_series")
+                count = portfolio.get("observations")
+                if isinstance(series, list) and isinstance(count, int) and len(series) != count:
+                    errors.append(f"shadow_health.portfolios.{name}.equity_series: length must equal observations")
+                dates = [point.get("date") for point in series if isinstance(point, dict)] if isinstance(series, list) else []
+                if isinstance(series, list) and (
+                    len(dates) != len(series)
+                    or not all(isinstance(value, str) and valid_date(value) for value in dates)
+                ):
+                    errors.append(f"shadow_health.portfolios.{name}.equity_series: dates must be valid")
+                elif dates != sorted(dates) or len(dates) != len(set(dates)):
+                    errors.append(f"shadow_health.portfolios.{name}.equity_series: dates must be unique and strictly ascending")
+                immature = isinstance(count, int) and count < 20
+                errors.extend(_require_null_immature_metrics(
+                    portfolio,
+                    ("total_return", "annualized_volatility", "max_drawdown", "current_drawdown", "longest_drawdown_duration", "rolling_20d_volatility", "positive_period_rate", "excess_return_vs_benchmark"),
+                    f"shadow_health.portfolios.{name}", immature,
+                ))
+                if isinstance(observations, int) and count != observations:
+                    errors.append(f"shadow_health.portfolios.{name}.observations: must equal shadow_health.observations")
+                if not immature and isinstance(series, list) and series and isinstance(initial, (int, float)):
+                    equities = [point.get("equity") for point in series if isinstance(point, dict)]
+                    if len(equities) == len(series) and all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value > 0 for value in equities):
+                        total = equities[-1] / initial - 1
+                        peak = initial
+                        worst = current = 0.0
+                        longest = duration = 0
+                        for value in equities:
+                            if value >= peak:
+                                peak, duration = value, 0
+                            else:
+                                duration += 1
+                                longest = max(longest, duration)
+                            current = 1 - value / peak
+                            worst = max(worst, current)
+                        for field, expected in (("total_return", total), ("max_drawdown", worst), ("current_drawdown", current), ("longest_drawdown_duration", longest)):
+                            actual = portfolio.get(field)
+                            if not isinstance(actual, (int, float)) or isinstance(actual, bool) or abs(actual - expected) > 1e-10:
+                                errors.append(f"shadow_health.portfolios.{name}.{field}: inconsistent with equity_series")
+            if isinstance(fusion, dict):
+                if shadow_health.get("return") != fusion.get("total_return"):
+                    errors.append("shadow_health.return: must equal fusion total_return")
+                if shadow_health.get("max_drawdown") != fusion.get("max_drawdown"):
+                    errors.append("shadow_health.max_drawdown: must equal fusion max_drawdown")
+    shadow_immature = isinstance(shadow_health, dict) and isinstance(shadow_health.get("observations"), int) and shadow_health["observations"] < 20
+    errors.extend(_require_null_immature_metrics(shadow_health, ("return", "max_drawdown", "score"), "shadow_health", shadow_immature))
     cost_sensitivity = payload.get("cost_sensitivity")
     errors.extend(
         _require_null_immature_metrics(
-            cost_sensitivity, ("score",), "cost_sensitivity", sample_immature
+            cost_sensitivity, ("score",), "cost_sensitivity", False
         )
     )
     cost_status_immature = (
         isinstance(cost_sensitivity, dict)
         and cost_sensitivity.get("status") in {"ACCUMULATING", "UNAVAILABLE"}
     )
-    if isinstance(cost_sensitivity, dict) and (sample_immature or cost_status_immature):
-        reason = (
-            "sample maturity is immature"
-            if sample_immature
-            else f"status is {cost_sensitivity['status']}"
-        )
+    if isinstance(cost_sensitivity, dict) and cost_status_immature:
+        reason = f"status is {cost_sensitivity['status']}"
         scenarios = cost_sensitivity.get("scenarios")
         if isinstance(scenarios, list):
+            costs = []
             for index, scenario in enumerate(scenarios):
-                if isinstance(scenario, dict) and scenario.get("value") is not None:
-                    errors.append(
-                        f"cost_sensitivity.scenarios[{index}].value: "
-                        f"must be null while {reason}"
-                    )
+                if not isinstance(scenario, dict):
+                    continue
+                costs.append(scenario.get("one_way_cost"))
+                for field in ("value", "annualized_return", "max_drawdown"):
+                    if scenario.get(field) is not None:
+                        errors.append(
+                            f"cost_sensitivity.scenarios[{index}].{field}: must be null while {reason}"
+                        )
+            if costs != [0, 0.0005, 0.001, 0.002, 0.003]:
+                errors.append("cost_sensitivity.scenarios: exact scenario costs must be sorted and unique")
+        if cost_sensitivity.get("break_even_cost") is not None or cost_sensitivity.get("score") is not None:
+            errors.append("cost_sensitivity: break_even_cost and score must be null while UNAVAILABLE")
     errors.extend(
         _require_null_immature_metrics(
             payload.get("overall"), ("score",), "overall", sample_immature

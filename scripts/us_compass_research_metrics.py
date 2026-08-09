@@ -88,6 +88,38 @@ def rate_time_slice_audit(
     return "STABLE" if t5_icir is not None and t5_icir > 0 else "MIXED"
 
 
+def rate_shadow_health(
+    observations: int,
+    total_return: float,
+    max_drawdown_loss: float,
+    positive_rate: float,
+    minimum_observations: int = 20,
+) -> str:
+    """Rate mature shadow performance while failing closed on invalid inputs."""
+    if isinstance(observations, bool) or not isinstance(observations, int) or observations < 0:
+        raise ValueError("observations must be a non-negative integer")
+    if isinstance(minimum_observations, bool) or not isinstance(minimum_observations, int) or minimum_observations <= 0:
+        raise ValueError("minimum_observations must be a positive integer")
+    for name, value in (
+        ("total_return", total_return),
+        ("max_drawdown_loss", max_drawdown_loss),
+        ("positive_rate", positive_rate),
+    ):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if max_drawdown_loss < 0:
+        raise ValueError("max_drawdown_loss must be non-negative")
+    if not 0 <= positive_rate <= 1:
+        raise ValueError("positive_rate must be in [0, 1]")
+    if observations < minimum_observations:
+        return "ACCUMULATING"
+    if total_return > 0 and max_drawdown_loss <= 0.15 and positive_rate >= 0.55:
+        return "STABLE"
+    if total_return >= 0 or positive_rate >= 0.5:
+        return "MIXED"
+    return "FRAGILE"
+
+
 def annualized_volatility(
     returns: Sequence[float], periods_per_year: int = 252
 ) -> float | None:

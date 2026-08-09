@@ -4,118 +4,380 @@
   "title": "US Compass research health",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "market", "model_date", "generated_at", "model_fingerprint", "sample_maturity", "horizons", "walk_forward", "shadow_health", "cost_sensitivity", "overall"],
+  "required": [
+    "schema_version",
+    "market",
+    "model_date",
+    "generated_at",
+    "model_fingerprint",
+    "sample_maturity",
+    "horizons",
+    "walk_forward",
+    "shadow_health",
+    "cost_sensitivity",
+    "overall"
+  ],
   "properties": {
-    "schema_version": {"const": "us-compass-health-v1"},
-    "market": {"const": "US"},
-    "model_date": {"type": "string", "format": "date"},
-    "generated_at": {"type": "string", "format": "date-time"},
-    "model_fingerprint": {"$ref": "#/$defs/model_fingerprint"},
-    "sample_maturity": {"$ref": "#/$defs/sample_maturity"},
+    "schema_version": {
+      "const": "us-compass-health-v1"
+    },
+    "market": {
+      "const": "US"
+    },
+    "model_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "model_fingerprint": {
+      "$ref": "#/$defs/model_fingerprint"
+    },
+    "sample_maturity": {
+      "$ref": "#/$defs/sample_maturity"
+    },
     "horizons": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["t1", "t5", "t20"],
+      "required": [
+        "t1",
+        "t5",
+        "t20"
+      ],
       "properties": {
-        "t1": {"$ref": "#/$defs/horizon_health"},
-        "t5": {"$ref": "#/$defs/horizon_health"},
-        "t20": {"$ref": "#/$defs/horizon_health"}
+        "t1": {
+          "$ref": "#/$defs/horizon_health"
+        },
+        "t5": {
+          "$ref": "#/$defs/horizon_health"
+        },
+        "t20": {
+          "$ref": "#/$defs/horizon_health"
+        }
       }
     },
-    "walk_forward": {"$ref": "#/$defs/walk_forward"},
+    "walk_forward": {
+      "$ref": "#/$defs/walk_forward"
+    },
     "shadow_health": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "observations", "return", "max_drawdown"],
+      "required": [
+        "status",
+        "observations",
+        "initial_capital",
+        "return",
+        "max_drawdown",
+        "score",
+        "portfolios",
+        "reasons"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "observations": {"type": "integer", "minimum": 0},
-        "return": {"$ref": "#/$defs/nullable_number"},
-        "max_drawdown": {"$ref": "#/$defs/nullable_number"},
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "return": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "max_drawdown": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "score": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        },
+        "initial_capital": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "portfolios": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "benchmark",
+            "timing",
+            "rotation",
+            "fusion"
+          ],
+          "properties": {
+            "benchmark": {
+              "$ref": "#/$defs/portfolio_health"
+            },
+            "timing": {
+              "$ref": "#/$defs/portfolio_health"
+            },
+            "rotation": {
+              "$ref": "#/$defs/portfolio_health"
+            },
+            "fusion": {
+              "$ref": "#/$defs/portfolio_health"
+            }
+          }
+        }
       }
     },
     "cost_sensitivity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "scenarios", "score"],
+      "required": [
+        "status",
+        "baseline_cost",
+        "observations",
+        "break_even_cost",
+        "scenarios",
+        "score",
+        "reasons"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
         "scenarios": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["one_way_cost", "value"],
+            "required": [
+              "one_way_cost",
+              "value",
+              "annualized_return",
+              "max_drawdown"
+            ],
             "properties": {
-              "one_way_cost": {"type": "number", "minimum": 0},
-              "value": {"$ref": "#/$defs/nullable_number"}
+              "one_way_cost": {
+                "type": "number",
+                "minimum": 0
+              },
+              "value": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "annualized_return": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "max_drawdown": {
+                "$ref": "#/$defs/nullable_nonnegative_number"
+              }
             }
           }
         },
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "score": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        },
+        "baseline_cost": {
+          "type": "number",
+          "minimum": 0
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "break_even_cost": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        }
       }
     },
     "overall": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "score", "reasons"],
+      "required": [
+        "status",
+        "score",
+        "reasons"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "score": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        }
       }
     }
   },
   "$defs": {
-    "health_status": {"enum": ["ACCUMULATING", "FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"]},
-    "nullable_number": {"type": ["number", "null"]},
-    "nullable_nonnegative_number": {"type": ["number", "null"], "minimum": 0},
-    "nullable_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-    "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "health_status": {
+      "enum": [
+        "ACCUMULATING",
+        "FRAGILE",
+        "MIXED",
+        "STABLE",
+        "UNAVAILABLE"
+      ]
+    },
+    "nullable_number": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "nullable_nonnegative_number": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "nullable_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "sample_maturity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "observations", "minimum_observations", "mature", "reasons"],
+      "required": [
+        "status",
+        "observations",
+        "minimum_observations",
+        "mature",
+        "reasons"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "observations": {"type": "integer", "minimum": 0},
-        "minimum_observations": {"type": "integer", "minimum": 1},
-        "mature": {"type": "boolean"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_observations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mature": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        }
       }
     },
     "horizon_health": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "observations", "minimum_required", "maturity_ratio", "rank_ic_mean", "rank_ic_median", "rank_ic_std", "icir", "positive_rate", "recent_5_mean", "recent_5_count", "recent_10_mean", "recent_10_count", "trend", "series"],
+      "required": [
+        "status",
+        "observations",
+        "minimum_required",
+        "maturity_ratio",
+        "rank_ic_mean",
+        "rank_ic_median",
+        "rank_ic_std",
+        "icir",
+        "positive_rate",
+        "recent_5_mean",
+        "recent_5_count",
+        "recent_10_mean",
+        "recent_10_count",
+        "trend",
+        "series"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "observations": {"type": "integer", "minimum": 0},
-        "minimum_required": {"type": "integer", "minimum": 1},
-        "maturity_ratio": {"type": "number", "minimum": 0, "maximum": 1},
-        "rank_ic_mean": {"$ref": "#/$defs/nullable_number"},
-        "rank_ic_median": {"$ref": "#/$defs/nullable_number"},
-        "rank_ic_std": {"$ref": "#/$defs/nullable_nonnegative_number"},
-        "icir": {"$ref": "#/$defs/nullable_number"},
-        "positive_rate": {"$ref": "#/$defs/nullable_score"},
-        "recent_5_mean": {"$ref": "#/$defs/nullable_number"},
-        "recent_5_count": {"type": "integer", "minimum": 0, "maximum": 5},
-        "recent_10_mean": {"$ref": "#/$defs/nullable_number"},
-        "recent_10_count": {"type": "integer", "minimum": 0, "maximum": 10},
-        "trend": {"type": ["string", "null"], "enum": ["IMPROVING", "WEAKENING", "FLAT", null]},
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_required": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maturity_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rank_ic_mean": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "rank_ic_median": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "rank_ic_std": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        },
+        "icir": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "positive_rate": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "recent_5_mean": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "recent_5_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "recent_10_mean": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "recent_10_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "trend": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "IMPROVING",
+            "WEAKENING",
+            "FLAT",
+            null
+          ]
+        },
         "series": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["signal_date", "date", "value"],
+            "required": [
+              "signal_date",
+              "date",
+              "value"
+            ],
             "properties": {
-              "signal_date": {"type": "string", "format": "date"},
-              "date": {"type": "string", "format": "date"},
-              "value": {"type": "number"}
+              "signal_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "value": {
+                "type": "number"
+              }
             }
           }
         }
@@ -124,69 +386,282 @@
     "scored_health": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "windows", "score"],
+      "required": [
+        "status",
+        "windows",
+        "score"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "windows": {"type": "integer", "minimum": 0},
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "windows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "score": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        }
       }
     },
     "walk_forward": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "windows", "evaluated_windows", "positive_windows", "positive_slice_rate", "score", "slice_size", "horizon", "slices", "reasons"],
+      "required": [
+        "status",
+        "windows",
+        "evaluated_windows",
+        "positive_windows",
+        "positive_slice_rate",
+        "score",
+        "slice_size",
+        "horizon",
+        "slices",
+        "reasons"
+      ],
       "properties": {
-        "status": {"$ref": "#/$defs/health_status"},
-        "windows": {"type": "integer", "minimum": 0},
-        "evaluated_windows": {"type": "integer", "minimum": 0},
-        "positive_windows": {"type": "integer", "minimum": 0},
-        "positive_slice_rate": {"$ref": "#/$defs/nullable_score"},
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "slice_size": {"const": 5},
-        "horizon": {"const": "t5"},
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "windows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evaluated_windows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "positive_windows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "positive_slice_rate": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "score": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "slice_size": {
+          "const": 5
+        },
+        "horizon": {
+          "const": "t5"
+        },
         "slices": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["index", "start_date", "end_date", "observations", "status", "mean", "positive_rate", "signal_start_date", "signal_end_date"],
+            "required": [
+              "index",
+              "start_date",
+              "end_date",
+              "observations",
+              "status",
+              "mean",
+              "positive_rate",
+              "signal_start_date",
+              "signal_end_date"
+            ],
             "properties": {
-              "index": {"type": "integer", "minimum": 0},
-              "start_date": {"type": "string", "format": "date"},
-              "end_date": {"type": "string", "format": "date"},
-              "signal_start_date": {"type": "string", "format": "date"},
-              "signal_end_date": {"type": "string", "format": "date"},
-              "observations": {"type": "integer", "minimum": 1, "maximum": 5},
-              "status": {"enum": ["POSITIVE", "NON_POSITIVE", "INSUFFICIENT"]},
-              "mean": {"$ref": "#/$defs/nullable_number"},
-              "positive_rate": {"$ref": "#/$defs/nullable_score"}
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "start_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "end_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "signal_start_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "signal_end_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "observations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "status": {
+                "enum": [
+                  "POSITIVE",
+                  "NON_POSITIVE",
+                  "INSUFFICIENT"
+                ]
+              },
+              "mean": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "positive_rate": {
+                "$ref": "#/$defs/nullable_score"
+              }
             }
           }
         },
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        }
       }
     },
     "model_fingerprint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["model_version", "universe_count", "symbols_sha256", "config_sha256", "execution_basis", "one_way_cost", "initial_capital", "horizons", "exposure_mapping"],
+      "required": [
+        "model_version",
+        "universe_count",
+        "symbols_sha256",
+        "config_sha256",
+        "execution_basis",
+        "one_way_cost",
+        "initial_capital",
+        "horizons",
+        "exposure_mapping"
+      ],
       "properties": {
-        "model_version": {"type": "string", "minLength": 1},
-        "universe_count": {"type": "integer", "minimum": 1},
-        "symbols_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "execution_basis": {"type": "string", "minLength": 1},
-        "one_way_cost": {"type": "number", "minimum": 0},
-        "initial_capital": {"type": "number", "exclusiveMinimum": 0},
-        "horizons": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "universe_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "symbols_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "execution_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "one_way_cost": {
+          "type": "number",
+          "minimum": 0
+        },
+        "initial_capital": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "horizons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
         "exposure_mapping": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["values", "default"],
+          "required": [
+            "values",
+            "default"
+          ],
           "properties": {
-            "values": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}},
-            "default": {"type": "number", "minimum": 0, "maximum": 1}
+            "values": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "default": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    },
+    "portfolio_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "observations",
+        "total_return",
+        "annualized_volatility",
+        "max_drawdown",
+        "current_drawdown",
+        "longest_drawdown_duration",
+        "rolling_20d_volatility",
+        "positive_period_rate",
+        "excess_return_vs_benchmark",
+        "equity_series"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/health_status"
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_return": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "annualized_volatility": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        },
+        "max_drawdown": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        },
+        "current_drawdown": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        },
+        "longest_drawdown_duration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rolling_20d_volatility": {
+          "$ref": "#/$defs/nullable_nonnegative_number"
+        },
+        "positive_period_rate": {
+          "$ref": "#/$defs/nullable_score"
+        },
+        "excess_return_vs_benchmark": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "equity_series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "date",
+              "equity"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "equity": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
           }
         }
       }

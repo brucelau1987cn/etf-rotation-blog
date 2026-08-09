@@ -17,6 +17,7 @@ from scripts.us_compass_research_metrics import (
     pearson,
     ranks,
     rate_time_slice_audit,
+    rate_shadow_health,
     rolling_slices,
     spearman,
 )
@@ -176,6 +177,25 @@ def test_rate_time_slice_audit_rejects_invalid_inputs(
 ):
     with pytest.raises(ValueError):
         rate_time_slice_audit(observations, rate, icir, minimum)
+
+
+@pytest.mark.parametrize(
+    ("observations", "total_return", "drawdown", "positive_rate", "expected"),
+    [
+        (19, 1.0, 0.0, 1.0, "ACCUMULATING"),
+        (20, 0.0001, 0.15, 0.55, "STABLE"),
+        (20, 0.0001, 0.150001, 0.55, "MIXED"),
+        (20, 0.0, 0.9, 0.0, "MIXED"),
+        (20, -0.1, 0.9, 0.5, "MIXED"),
+        (20, -0.1, 0.9, 0.499999, "FRAGILE"),
+    ],
+)
+def test_rate_shadow_health_exact_boundaries(
+    observations, total_return, drawdown, positive_rate, expected
+):
+    assert rate_shadow_health(
+        observations, total_return, drawdown, positive_rate
+    ) == expected
 
 
 @pytest.mark.parametrize(

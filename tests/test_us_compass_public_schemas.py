@@ -90,8 +90,35 @@ def health_payload(model_fingerprint):
             }],
             "reasons": ["T+5 requires 20 observations; 4 available"],
         },
-        "shadow_health": {"status": "ACCUMULATING", "observations": 4, "return": None, "max_drawdown": None},
-        "cost_sensitivity": {"status": "ACCUMULATING", "scenarios": [], "score": None},
+        "shadow_health": {
+            "status": "ACCUMULATING", "observations": 4, "initial_capital": 20_000.0,
+            "return": None, "max_drawdown": None, "score": None,
+            "portfolios": {
+                name: {
+                    "status": "ACCUMULATING", "observations": 4, "total_return": None,
+                    "annualized_volatility": None, "max_drawdown": None,
+                    "current_drawdown": None, "longest_drawdown_duration": None,
+                    "rolling_20d_volatility": None, "positive_period_rate": None,
+                    "excess_return_vs_benchmark": None,
+                    "equity_series": [
+                        {"date": f"2026-08-{index + 2:02d}", "equity": 20_000.0}
+                        for index in range(4)
+                    ],
+                }
+                for name in ("benchmark", "timing", "rotation", "fusion")
+            },
+            "reasons": ["shadow requires 20 observations; 4 available"],
+        },
+        "cost_sensitivity": {
+            "status": "UNAVAILABLE", "baseline_cost": 0.001, "observations": 4,
+            "break_even_cost": None,
+            "scenarios": [
+                {"one_way_cost": cost, "value": None, "annualized_return": None, "max_drawdown": None}
+                for cost in (0, 0.0005, 0.001, 0.002, 0.003)
+            ],
+            "score": None,
+            "reasons": ["turnover history unavailable; exact cost scenarios require persisted turnover"],
+        },
         "overall": {"status": "ACCUMULATING", "score": None, "reasons": ["insufficient history"]},
     }
 
@@ -323,18 +350,16 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
             for index in range(4)
         ],
     }
-    health_payload["shadow_health"] = {
-        "status": "STABLE",
-        "observations": 20,
-        "return": 0,
-        "max_drawdown": 0,
-        "score": 0,
-    }
-    health_payload["cost_sensitivity"] = {
-        "status": "STABLE",
-        "scenarios": [{"one_way_cost": 0, "value": 0}],
-        "score": 0,
-    }
+    shadow = health_payload["shadow_health"]
+    shadow.update({"status": "MIXED", "observations": 20, "return": 0, "max_drawdown": 0, "score": 0.25})
+    for portfolio in shadow["portfolios"].values():
+        portfolio.update(
+            status="MIXED", observations=20, total_return=0, annualized_volatility=0,
+            max_drawdown=0, current_drawdown=0, longest_drawdown_duration=0,
+            rolling_20d_volatility=0, positive_period_rate=0,
+            excess_return_vs_benchmark=0,
+            equity_series=[{"date": f"2026-01-{index + 1:02d}", "equity": 20_000.0} for index in range(20)],
+        )
     health_payload["overall"] = {"status": "FRAGILE", "score": 0, "reasons": []}
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
@@ -376,6 +401,7 @@ def test_mature_unavailable_health_accepts_null_results(validator_module, health
         status="UNAVAILABLE", observations=20, minimum_observations=20, mature=True
     )
     set_health_result_statuses(health_payload, "UNAVAILABLE")
+    health_payload["cost_sensitivity"]["status"] = "UNAVAILABLE"
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
 
