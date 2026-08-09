@@ -14,7 +14,11 @@ function randomPassphrase(len = 12) {
   return s;
 }
 
+const PERMANENT_DAYS = 9999;
+const PERMANENT_EXPIRY = '2099-12-31T00:00:00.000Z';
+
 function daysAhead(days) {
+  if (days >= PERMANENT_DAYS) return PERMANENT_EXPIRY;
   return new Date(Date.now() + days * 86400 * 1000).toISOString();
 }
 

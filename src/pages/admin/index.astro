@@ -96,6 +96,7 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
                 <option value="90">90 天 · 季度订阅</option>
                 <option value="180">180 天 · 半年订阅</option>
                 <option value="365">365 天 · 年度订阅</option>
+                <option value="9999">🔥 永久订阅</option>
               </select>
             </label>
             <button class="primary-btn" id="create-submit" type="submit">创建授权</button>
@@ -190,8 +191,8 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
       }
 
       const today = () => new Date().toISOString().slice(0, 10);
-      const getStatus = (it) => it.revoked ? 'revoked' : (it.expires_at < today() ? 'expired' : 'active');
-      const statusLabel = { active: '有效', expired: '已过期', revoked: '已停用' };
+      const getStatus = (it) => it.revoked ? 'revoked' : (it.expires_at >= '2099-01-01' ? 'permanent' : (it.expires_at < today() ? 'expired' : 'active'));
+      const statusLabel = { active: '有效', expired: '已过期', revoked: '已停用', permanent: '永久有效' };
 
       function makeButton(text, className, handler) {
         const button = document.createElement('button');
@@ -233,7 +234,7 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
           const statusEl = document.createElement('span'); statusEl.className = `status-tag ${status}`; statusEl.textContent = statusLabel[status]; statusTd.append(statusEl);
 
           const expiryTd = document.createElement('td');
-          const expiry = document.createElement('strong'); expiry.className = 'date-value'; expiry.textContent = it.expires_at || '—';
+          const expiry = document.createElement('strong'); expiry.className = 'date-value'; expiry.textContent = it.expires_at >= '2099-01-01' ? '永久有效' : (it.expires_at || '—');
           const created = document.createElement('small'); created.className = 'created-date'; created.textContent = `创建于 ${String(it.created_at || '').slice(0, 10) || '—'}`;
           expiryTd.append(expiry, created);
 
@@ -329,7 +330,7 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
         submit.disabled = false; submit.textContent = '创建授权';
         if (status === 200 && data.ok) {
           $('create-pass').textContent = data.passphrase;
-          $('create-meta').textContent = `${mode === 'vip' ? `VIP账号 ${data.username} · ` : ''}${data.days} 天 · 到期 ${data.expires_at}`;
+          $('create-meta').textContent = `${mode === 'vip' ? `VIP账号 ${data.username} · ` : ''}${data.days >= 9999 ? '永久有效' : data.days + ' 天 · 到期 ' + data.expires_at}`;
           $('create-result').hidden = false;
           $('create-label').value = '';
           $('create-username').value = '';
@@ -429,7 +430,7 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
   .table-avatar.vip { background: #eff6ff; } .user-cell > div { display: grid; gap: .15rem; } .user-cell strong { font-size: .78rem; } .user-cell small, .created-date { color: #94a3b8; font-size: .65rem; }
   .level-pill, .status-tag { display: inline-flex; align-items: center; border-radius: 999px; padding: .28rem .52rem; font-size: .66rem; font-weight: 850; white-space: nowrap; }
   .level-pill { color: #475569; background: #f1f5f9; } .level-pill.vip { color: #1d4ed8; background: #dbeafe; }
-  .status-tag.active { color: #15803d; background: #dcfce7; } .status-tag.expired { color: #b45309; background: #fef3c7; } .status-tag.revoked { color: #64748b; background: #e2e8f0; }
+  .status-tag.active { color: #15803d; background: #dcfce7; } .status-tag.expired { color: #b45309; background: #fef3c7; } .status-tag.revoked { color: #64748b; background: #e2e8f0; } .status-tag.permanent { color: #7c3aed; background: #ede9fe; }
   .date-value { display: block; font-size: .75rem; } .created-date { display: block; margin-top: .18rem; }
   .device-cell { display: grid; gap: .3rem; min-width: 70px; } .device-cell span { font-weight: 800; }
   .device-cell i { display: block; width: 62px; height: 5px; overflow: hidden; background: #e2e8f0; border-radius: 999px; } .device-cell b { display: block; height: 100%; background: #60a5fa; border-radius: inherit; }
