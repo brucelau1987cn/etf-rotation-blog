@@ -54,9 +54,11 @@ describe('subscription-auth lib', () => {
   it('isAdmin checks role', async () => {
     const secret = 'admin-test';
     const ok = await signToken({ role: 'admin', exp: new Date(Date.now() + 3600e3).toISOString() }, secret);
+    const superOk = await signToken({ role: 'super_admin', exp: new Date(Date.now() + 3600e3).toISOString() }, secret);
     const wrongRole = await signToken({ role: 'user', exp: new Date(Date.now() + 3600e3).toISOString() }, secret);
     const env = { ADMIN_SECRET: secret };
     assert.equal(await isAdmin({ headers: new Headers({ Cookie: `etf_admin=${ok}` }) }, env), true);
+    assert.equal(await isAdmin({ headers: new Headers({ Cookie: `etf_admin=${superOk}` }) }, env), true);
     assert.equal(await isAdmin({ headers: new Headers({ Cookie: `etf_admin=${wrongRole}` }) }, env), false);
     assert.equal(await isAdmin({ headers: new Headers() }, env), false);
   });

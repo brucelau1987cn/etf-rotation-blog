@@ -143,12 +143,12 @@ export async function issueSubscriptionCookie(env, subId, sid, expiresAt) {
   return setCookie(SUB_COOKIE, token, { maxAge, path: '/' });
 }
 
-// 管理员登录态检查
+// 管理员登录态检查（super_admin 或 admin 都算管理员）
 export async function isAdmin(request, env) {
   const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);
   if (!token) return false;
   const payload = await verifyToken(token, env.ADMIN_SECRET || 'dev-admin-secret');
-  if (!payload || payload.role !== 'admin' || !payload.exp) return false;
+  if (!payload || !['admin', 'super_admin'].includes(payload.role) || !payload.exp) return false;
   return Date.parse(payload.exp) > Date.now();
 }
 

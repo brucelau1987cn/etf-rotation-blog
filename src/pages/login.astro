@@ -14,7 +14,7 @@ const description = '输入订阅密码或用户名密码访问 ETF 罗盘。';
     <div class="login-card">
       <p class="login-eyebrow">ETF 罗盘 · 订阅访问</p>
       <h1>登录解锁</h1>
-      <p class="login-desc">本站为订阅制访问。两种登录方式任选其一，登录后解锁全部页面；订阅到期后需续订。</p>
+      <p class="login-desc">本站为订阅制访问。订阅密码、订阅账号、管理员账号都在此登录：管理员登录后自动进入管理后台。订阅到期后需续订。</p>
 
       <div class="login-tabs" role="tablist">
         <button type="button" class="login-tab active" id="tab-passphrase" role="tab" aria-selected="true">订阅密码</button>
@@ -87,9 +87,13 @@ const description = '输入订阅密码或用户名密码访问 ETF 罗盘。';
           });
           const data = await res.json();
           if (res.ok && data.ok) {
-            msgEl.textContent = `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/5 台设备` : ''}`;
+            msgEl.textContent = data.kind === 'admin'
+              ? `✔ 管理员登录成功（${data.role === 'super_admin' ? '超级管理员' : '二级管理员'}），进入管理后台…`
+              : `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/5 台设备` : ''}`;
             msgEl.className = 'login-msg ok';
-            setTimeout(() => { location.href = next; }, 600);
+            setTimeout(() => {
+              location.href = data.kind === 'admin' ? '/admin/' : next;
+            }, 600);
           } else {
             msgEl.textContent = data.error || '登录失败';
             msgEl.className = 'login-msg error';
@@ -115,7 +119,7 @@ const description = '输入订阅密码或用户名密码访问 ETF 罗盘。';
         const username = $('account-username').value.trim();
         const password = $('account-password').value;
         if (!username || !password) { $('login-msg-account').textContent = '请输入用户名和密码'; $('login-msg-account').className = 'login-msg error'; return; }
-        doLogin('/api/public/v1/subscription/login-account', { username, password }, $('login-msg-account'), $('login-btn-account'));
+        doLogin('/api/public/v1/login-account', { username, password, remember: true }, $('login-msg-account'), $('login-btn-account'));
       });
     })();
   </script>
