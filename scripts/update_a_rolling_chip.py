@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 INSTRUMENTS_PATH = ROOT / "public/data/a-rolling-instruments.json"
 OUTPUT_PATH = ROOT / "public/data/a-rolling-chip.json"
-DEFAULT_ENDPOINT = "https://edge-quote-api.brucelau1987.workers.dev/api/public/v1/chip"
+DEFAULT_ENDPOINT = "https://etf.peekabo.cc/api/public/v1/chip"
 
 
 def load_instruments() -> list[dict]:
