@@ -14,8 +14,13 @@
     "sample_maturity": {"$ref": "#/$defs/sample_maturity"},
     "horizons": {
       "type": "object",
-      "additionalProperties": {"$ref": "#/$defs/horizon_health"},
-      "minProperties": 1
+      "additionalProperties": false,
+      "required": ["t1", "t5", "t20"],
+      "properties": {
+        "t1": {"$ref": "#/$defs/horizon_health"},
+        "t5": {"$ref": "#/$defs/horizon_health"},
+        "t20": {"$ref": "#/$defs/horizon_health"}
+      }
     },
     "walk_forward": {"$ref": "#/$defs/scored_health"},
     "shadow_health": {
@@ -67,6 +72,7 @@
   "$defs": {
     "health_status": {"enum": ["ACCUMULATING", "FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"]},
     "nullable_number": {"type": ["number", "null"]},
+    "nullable_nonnegative_number": {"type": ["number", "null"], "minimum": 0},
     "nullable_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
     "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "sample_maturity": {
@@ -84,15 +90,34 @@
     "horizon_health": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "sample_count", "value"],
+      "required": ["status", "observations", "minimum_required", "maturity_ratio", "rank_ic_mean", "rank_ic_median", "rank_ic_std", "icir", "positive_rate", "recent_5_mean", "recent_5_count", "recent_10_mean", "recent_10_count", "trend", "series"],
       "properties": {
         "status": {"$ref": "#/$defs/health_status"},
-        "sample_count": {"type": "integer", "minimum": 0},
-        "value": {"$ref": "#/$defs/nullable_number"},
-        "rank_ic": {"$ref": "#/$defs/nullable_number"},
-        "cross_sectional_deviation": {"$ref": "#/$defs/nullable_number"},
-        "score": {"$ref": "#/$defs/nullable_score"},
-        "reasons": {"$ref": "#/$defs/reasons"}
+        "observations": {"type": "integer", "minimum": 0},
+        "minimum_required": {"type": "integer", "minimum": 1},
+        "maturity_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "rank_ic_mean": {"$ref": "#/$defs/nullable_number"},
+        "rank_ic_median": {"$ref": "#/$defs/nullable_number"},
+        "rank_ic_std": {"$ref": "#/$defs/nullable_nonnegative_number"},
+        "icir": {"$ref": "#/$defs/nullable_number"},
+        "positive_rate": {"$ref": "#/$defs/nullable_score"},
+        "recent_5_mean": {"$ref": "#/$defs/nullable_number"},
+        "recent_5_count": {"type": "integer", "minimum": 0, "maximum": 5},
+        "recent_10_mean": {"$ref": "#/$defs/nullable_number"},
+        "recent_10_count": {"type": "integer", "minimum": 0, "maximum": 10},
+        "trend": {"type": ["string", "null"], "enum": ["IMPROVING", "WEAKENING", "FLAT", null]},
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["date", "value"],
+            "properties": {
+              "date": {"type": "string", "format": "date"},
+              "value": {"type": "number"}
+            }
+          }
+        }
       }
     },
     "scored_health": {

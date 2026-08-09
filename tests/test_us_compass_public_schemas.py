@@ -51,7 +51,13 @@ def model_fingerprint():
 
 @pytest.fixture
 def health_payload(model_fingerprint):
-    metric = {"status": "ACCUMULATING", "sample_count": 4, "value": None}
+    metric = {
+        "status": "ACCUMULATING", "observations": 4, "minimum_required": 20,
+        "maturity_ratio": 0.2, "rank_ic_mean": None, "rank_ic_median": None,
+        "rank_ic_std": None, "icir": None, "positive_rate": None,
+        "recent_5_mean": None, "recent_5_count": 0, "recent_10_mean": None,
+        "recent_10_count": 0, "trend": None, "series": [],
+    }
     return {
         "schema_version": "us-compass-health-v1",
         "market": "US",
@@ -136,13 +142,9 @@ def test_valid_fixture_payloads_pass(validator_module, health_payload, rotation_
 @pytest.mark.parametrize(
     ("change", "path"),
     [
-        (lambda value: value["horizons"]["t1"].update(value=0), "horizons.t1.value"),
-        (lambda value: value["horizons"]["t1"].update(rank_ic=0), "horizons.t1.rank_ic"),
-        (
-            lambda value: value["horizons"]["t1"].update(cross_sectional_deviation=0),
-            "horizons.t1.cross_sectional_deviation",
-        ),
-        (lambda value: value["horizons"]["t1"].update(score=0), "horizons.t1.score"),
+        (lambda value: value["horizons"]["t1"].update(rank_ic_mean=0), "horizons.t1.rank_ic_mean"),
+        (lambda value: value["horizons"]["t1"].update(rank_ic_median=0), "horizons.t1.rank_ic_median"),
+        (lambda value: value["horizons"]["t1"].update(positive_rate=0), "horizons.t1.positive_rate"),
         (lambda value: value["walk_forward"].update(score=0), "walk_forward.score"),
         (lambda value: value["shadow_health"].update({"return": 0}), "shadow_health.return"),
         (
@@ -163,11 +165,10 @@ def test_valid_fixture_payloads_pass(validator_module, health_payload, rotation_
 def test_immature_health_result_metrics_must_be_null(
     validator_module, health_payload, change, path
 ):
-    set_health_result_statuses(health_payload, "STABLE")
     change(health_payload)
     errors = validator_module.validate_us_compass_health_payload(health_payload)
     assert any(
-        path in error and "must be null while sample maturity is immature" in error
+        path in error and "must be null" in error
         for error in errors
     ), errors
 
@@ -223,11 +224,12 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
     )
     health_payload["horizons"]["t1"] = {
         "status": "STABLE",
-        "sample_count": 20,
-        "value": 0,
-        "rank_ic": 0,
-        "cross_sectional_deviation": 0,
-        "score": 0,
+        "observations": 20, "minimum_required": 20, "maturity_ratio": 1,
+        "rank_ic_mean": 0, "rank_ic_median": 0, "rank_ic_std": 0,
+        "icir": None, "positive_rate": 0, "recent_5_mean": 0,
+        "recent_5_count": 5, "recent_10_mean": 0, "recent_10_count": 10,
+        "trend": "FLAT",
+        "series": [{"date": f"2026-01-{index + 1:02d}", "value": 0} for index in range(20)],
     }
     health_payload["walk_forward"] = {"status": "STABLE", "windows": 1, "score": 0}
     health_payload["shadow_health"] = {

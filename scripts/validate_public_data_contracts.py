@@ -178,14 +178,53 @@ def validate_us_compass_health_payload(
     horizons = payload.get("horizons")
     if isinstance(horizons, dict):
         for name, horizon in horizons.items():
+            expected_immature = False
+            if isinstance(horizon, dict):
+                observations = horizon.get("observations")
+                minimum_required = horizon.get("minimum_required")
+                maturity_ratio = horizon.get("maturity_ratio")
+                if (
+                    isinstance(observations, int)
+                    and not isinstance(observations, bool)
+                    and isinstance(minimum_required, int)
+                    and not isinstance(minimum_required, bool)
+                    and minimum_required > 0
+                ):
+                    expected_ratio = min(1.0, observations / minimum_required)
+                    if not isinstance(maturity_ratio, (int, float)) or isinstance(maturity_ratio, bool) or not math.isfinite(maturity_ratio) or abs(maturity_ratio - expected_ratio) > 1e-12:
+                        errors.append(f"horizons.{name}.maturity_ratio: inconsistent with observations")
+                    expected_immature = observations < minimum_required
+                    status = horizon.get("status")
+                    if expected_immature and status not in {"ACCUMULATING", "UNAVAILABLE"}:
+                        errors.append(f"horizons.{name}.status: must be ACCUMULATING or UNAVAILABLE before its sample threshold")
+                    if not expected_immature and status == "ACCUMULATING":
+                        errors.append(f"horizons.{name}.status: cannot be ACCUMULATING after its sample threshold")
+                else:
+                    expected_immature = False
             errors.extend(
                 _require_null_immature_metrics(
                     horizon,
-                    ("value", "rank_ic", "cross_sectional_deviation", "score"),
+                    (
+                        "rank_ic_mean", "rank_ic_median", "rank_ic_std", "icir",
+                        "positive_rate", "recent_5_mean", "recent_10_mean", "trend",
+                    ),
                     f"horizons.{name}",
-                    sample_immature,
+                    expected_immature,
                 )
             )
+            if isinstance(horizon, dict) and expected_immature:
+                if horizon.get("recent_5_count") != 0 or horizon.get("recent_10_count") != 0:
+                    errors.append(f"horizons.{name}: recent counts must be zero while horizon is immature")
+                if horizon.get("series") != []:
+                    errors.append(f"horizons.{name}.series: must be empty while horizon is immature")
+            elif isinstance(horizon, dict):
+                series = horizon.get("series")
+                observations = horizon.get("observations")
+                if isinstance(series, list) and isinstance(observations, int) and len(series) != observations:
+                    errors.append(f"horizons.{name}.series: length must equal observations")
+                dates = [point.get("date") for point in series if isinstance(point, dict)] if isinstance(series, list) else []
+                if isinstance(series, list) and (len(dates) != len(series) or dates != sorted(dates) or len(dates) != len(set(dates))):
+                    errors.append(f"horizons.{name}.series: dates must be unique and strictly ascending")
     errors.extend(
         _require_null_immature_metrics(
             payload.get("walk_forward"), ("score",), "walk_forward", sample_immature
