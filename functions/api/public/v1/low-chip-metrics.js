@@ -36,10 +36,13 @@ export async function onRequest(context) {
         concentration90 REAL,
         top10_float_ratio REAL,
         price REAL,
+        announcement_date TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
     `).run();
+    // Backward-compatible column add
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN announcement_date TEXT').run(); } catch (e) {}
   };
 
   if (method === 'GET') {
@@ -86,13 +89,14 @@ export async function onRequest(context) {
         INSERT OR REPLACE INTO stock_metrics
           (trade_date, stock_code, stock_name, shareholder_count,
            shareholder_change_pct, main_force, main_force_label,
-           concentration90, top10_float_ratio, price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           concentration90, top10_float_ratio, price, announcement_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         m.trade_date, m.stock_code || null, m.stock_name || null,
         m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
         m.main_force ?? null, m.main_force_label || null,
         m.concentration90 ?? null, m.top10_float_ratio ?? null, m.price ?? null,
+        m.announcement_date || null,
       ).run();
       const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
       if (changes > 0) inserted++;

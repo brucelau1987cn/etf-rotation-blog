@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS stock_metrics (
   concentration90 REAL,            -- 90%筹码集中度（%）
   top10_float_ratio REAL,          -- 十大流通股东占比（%）
   price REAL,                      -- 当日收盘价
+  announcement_date TEXT,          -- 股东数据公告日期（YYYYMMDD）
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (trade_date, stock_code)
 );

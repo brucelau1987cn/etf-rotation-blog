@@ -69,6 +69,7 @@ def main() -> int:
             "concentration90": sm.get("concentration90"),
             "top10_float_ratio": sm.get("top10_float_ratio"),
             "price": sm.get("price"),
+            "announcement_date": sm.get("announcement_date"),
         })
 
     if not metrics:
