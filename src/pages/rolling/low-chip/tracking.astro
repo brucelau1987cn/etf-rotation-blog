@@ -209,7 +209,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var items = Array.from(list.querySelectorAll('.tc-card'));
       function sortByDays() {
         items.sort(function(a, b) {
-          return (a.dataset.firstSeen || '').localeCompare(b.dataset.firstSeen || '') || -1;
+          return (b.dataset.firstSeen || '').localeCompare(a.dataset.firstSeen || ''); // 最新加入在前（降序）
         });
         items.forEach(function(el) { list.appendChild(el); });
         sortDays.classList.add('is-active'); sortDays.setAttribute('aria-pressed', 'true');
