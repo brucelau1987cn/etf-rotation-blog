@@ -5,55 +5,158 @@ import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
 const title = `个人信息 | ${SITE_TITLE}`;
-const description = '查看当前登录身份、订阅到期时间与绑定设备。';
+const description = '查看当前账号等级、授权有效期与绑定设备。';
 ---
 <BaseHead title={title} description={description} />
 <body>
   <Header />
   <main class="account-main site-shell">
-    <div class="account-card">
-      <p class="account-eyebrow">ETF 罗盘 · 个人中心</p>
-      <h1>个人信息</h1>
-      <div class="account-loading" id="account-loading">加载中…</div>
-      <div class="account-body" id="account-body" hidden>
-        <dl class="account-grid" id="account-grid"></dl>
-        <button class="account-logout" id="account-logout">退出登录</button>
+    <div class="account-heading">
+      <div>
+        <p class="page-kicker">ACCOUNT CENTER</p>
+        <h1>个人信息</h1>
+        <p>查看当前登录身份、授权状态和设备使用情况。</p>
       </div>
+      <a class="back-link" href="/">返回首页</a>
     </div>
+
+    <div class="account-loading" id="account-loading">
+      <span class="loading-dot"></span> 正在读取账号信息…
+    </div>
+
+    <section class="account-layout" id="account-body" hidden style="display:none">
+      <article class="identity-card">
+        <div class="identity-top">
+          <div class="identity-avatar" id="identity-avatar">👤</div>
+          <div>
+            <span class="status-pill"><i></i> 授权有效</span>
+            <h2 id="identity-role">—</h2>
+            <p id="identity-caption">—</p>
+          </div>
+        </div>
+        <div class="identity-meta" id="identity-meta"></div>
+      </article>
+
+      <div class="account-content">
+        <article class="info-card">
+          <div class="card-heading">
+            <div>
+              <p class="section-kicker">OVERVIEW</p>
+              <h2>账号概览</h2>
+            </div>
+          </div>
+          <dl class="info-list" id="account-grid"></dl>
+        </article>
+
+        <article class="device-card" id="device-card">
+          <div class="card-heading">
+            <div>
+              <p class="section-kicker">DEVICE ACCESS</p>
+              <h2>设备使用</h2>
+            </div>
+            <strong id="device-count">0 / 5</strong>
+          </div>
+          <div class="device-progress" aria-label="设备使用率">
+            <span id="device-progress-bar"></span>
+          </div>
+          <p id="device-tip">每个订阅最多绑定 5 台设备。同一设备重复登录不会重复占用名额。</p>
+        </article>
+
+        <article class="security-card">
+          <div>
+            <p class="section-kicker">SECURITY</p>
+            <h2>登录安全</h2>
+            <p>退出后将清除本机登录状态，再次访问需要重新验证。</p>
+          </div>
+          <button class="account-logout" id="account-logout">退出当前账号</button>
+        </article>
+      </div>
+    </section>
   </main>
   <Footer />
 
   <script is:inline>
     (() => {
       const $ = (id) => document.getElementById(id);
+      const formatTime = (value) => {
+        if (!value) return '—';
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value).replace('T', ' ').slice(0, 16);
+        return new Intl.DateTimeFormat('zh-CN', {
+          timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false,
+        }).format(d).replaceAll('/', '-');
+      };
+
+      function renderRows(rows) {
+        const list = $('account-grid');
+        const nodes = rows.map(([label, value, accent]) => {
+          const row = document.createElement('div');
+          const dt = document.createElement('dt');
+          const dd = document.createElement('dd');
+          dt.textContent = label;
+          dd.textContent = value;
+          if (accent) dd.className = accent;
+          row.append(dt, dd);
+          return row;
+        });
+        list.replaceChildren(...nodes);
+      }
+
       fetch('/api/public/v1/me', { credentials: 'same-origin' })
         .then((r) => r.json())
         .then((d) => {
           $('account-loading').hidden = true;
+          $('account-loading').style.display = 'none';
           if (d.kind === 'anonymous') {
             location.href = '/login/?next=%2Faccount%2F';
             return;
           }
           $('account-body').hidden = false;
-          const rows = [];
+          $('account-body').style.display = 'grid';
+
           if (d.kind === 'admin') {
-            rows.push(['身份', d.role === 'super_admin' ? '超级管理员' : '管理员']);
-            rows.push(['登录方式', '管理员账号']);
-            rows.push(['会话到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
+            const role = d.role === 'super_admin' ? '超级管理员' : '管理员';
+            $('identity-avatar').textContent = '🛠';
+            $('identity-role').textContent = role;
+            $('identity-caption').textContent = '管理账号 · 可管理订阅授权';
+            $('identity-meta').textContent = '管理会话';
+            renderRows([
+              ['账号等级', role, 'value-blue'],
+              ['登录方式', '用户名 + 密码'],
+              ['会话到期', formatTime(d.expires_at)],
+              ['管理权限', d.role === 'super_admin' ? '全部权限' : '账号开通与订阅管理'],
+            ]);
+            $('device-card').hidden = true;
           } else {
-            rows.push(['身份', d.vip ? 'VIP用户' : '订阅用户']);
-            rows.push(['备注', d.label || '—']);
-            rows.push(['订阅到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
-            rows.push(['绑定设备', `${d.device_count ?? 0}/5 台`]);
-            rows.push(['设备上限', '5 台（如需更换请联系管理员解绑）']);
+            const role = d.vip ? 'VIP用户' : '订阅用户';
+            const deviceCount = Number(d.device_count || 0);
+            const deviceLimit = Number(d.device_limit || 5);
+            $('identity-avatar').textContent = d.vip ? '💎' : '👤';
+            $('identity-role').textContent = role;
+            $('identity-caption').textContent = d.label || 'ETF 罗盘订阅账号';
+            $('identity-meta').textContent = `授权至 ${formatTime(d.expires_at)}`;
+            renderRows([
+              ['账号等级', role, d.vip ? 'value-blue' : ''],
+              ['账号备注', d.label || '—'],
+              ['登录方式', d.vip ? '用户名 + 密码 / 订阅密码' : '订阅密码'],
+              ['授权到期', formatTime(d.expires_at), 'value-green'],
+            ]);
+            $('device-count').textContent = `${deviceCount} / ${deviceLimit}`;
+            $('device-progress-bar').style.width = `${Math.min(100, deviceCount / deviceLimit * 100)}%`;
+            $('device-tip').textContent = deviceCount >= deviceLimit
+              ? '设备名额已满。如需更换设备，请联系管理员解绑后重新登录。'
+              : `还可绑定 ${Math.max(0, deviceLimit - deviceCount)} 台设备。同一设备重复登录不会重复占用名额。`;
           }
-          $('account-grid').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
         })
         .catch(() => {
-          $('account-loading').textContent = '加载失败，请刷新重试';
+          $('account-loading').textContent = '账号信息加载失败，请刷新页面重试。';
+          $('account-loading').classList.add('error');
         });
 
       $('account-logout').addEventListener('click', () => {
+        $('account-logout').disabled = true;
+        $('account-logout').textContent = '正在退出…';
         fetch('/api/public/v1/logout', { method: 'POST', credentials: 'same-origin' })
           .finally(() => { location.href = '/login/'; });
       });
@@ -62,26 +165,51 @@ const description = '查看当前登录身份、订阅到期时间与绑定设�
 </body>
 
 <style>
-  .account-main { display: flex; justify-content: center; padding: 3rem 1rem 4rem; }
-  .account-card {
-    width: 100%; max-width: 480px;
-    border: 1px solid var(--border); border-radius: 16px;
-    background: #fff; padding: 2rem 2.2rem;
-    box-shadow: 0 8px 30px rgba(30, 41, 59, .06);
+  .account-main { padding: 2.2rem 0 4rem; }
+  .account-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
+  .page-kicker, .section-kicker { margin: 0 0 .35rem; color: #2563eb; font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+  .account-heading h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+  .account-heading p:last-child { margin: .45rem 0 0; color: rgb(var(--gray-mid)); font-size: .9rem; }
+  .back-link { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 999px; padding: .5rem .85rem; font-size: .8rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  .account-loading { display: flex; align-items: center; gap: .55rem; min-height: 160px; color: rgb(var(--gray-mid)); font-size: .88rem; }
+  .account-loading[hidden], .account-layout[hidden] { display: none !important; }
+  .account-loading.error { color: #dc2626; }
+  .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; box-shadow: 0 0 0 5px #dbeafe; }
+  .account-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.5fr); gap: 1rem; align-items: start; }
+  .identity-card, .info-card, .device-card, .security-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
+  .identity-card { position: sticky; top: 5.4rem; padding: 1.5rem; background: linear-gradient(160deg, #0f172a 0%, #172554 100%); color: #fff; border: none; box-shadow: 0 16px 40px rgba(15, 23, 42, .14); }
+  .identity-top { display: flex; align-items: center; gap: 1rem; }
+  .identity-avatar { display: grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 16px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.14); font-size: 1.35rem; }
+  .status-pill { display: inline-flex; align-items: center; gap: .35rem; color: #bbf7d0; font-size: .68rem; font-weight: 850; }
+  .status-pill i { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+  .identity-card h2 { margin: .3rem 0 .15rem; font-size: 1.35rem; }
+  .identity-card p { margin: 0; color: #cbd5e1; font-size: .8rem; }
+  .identity-meta { margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,.12); color: #bfdbfe; font-size: .78rem; line-height: 1.55; }
+  .account-content { display: grid; gap: 1rem; }
+  .info-card, .device-card { padding: 1.35rem; }
+  .card-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .card-heading h2, .security-card h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.01em; }
+  .card-heading strong { color: #1d4ed8; font-size: .9rem; }
+  .info-list { display: grid; margin: 0; }
+  .info-list div { display: grid; grid-template-columns: minmax(100px, .45fr) minmax(0, 1fr); gap: 1rem; padding: .85rem 0; border-top: 1px solid #f1f5f9; }
+  .info-list div:first-child { border-top: 0; }
+  .info-list dt { color: #64748b; font-size: .78rem; font-weight: 750; }
+  .info-list dd { margin: 0; color: #0f172a; font-size: .88rem; font-weight: 800; text-align: right; }
+  .info-list .value-blue { color: #1d4ed8; }
+  .info-list .value-green { color: #15803d; }
+  .device-progress { height: 8px; overflow: hidden; background: #eef2f7; border-radius: 999px; }
+  .device-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2563eb, #60a5fa); transition: width .35s ease; }
+  .device-card > p { margin: .8rem 0 0; color: #64748b; font-size: .78rem; line-height: 1.55; }
+  .security-card { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.25rem 1.35rem; }
+  .security-card p:not(.section-kicker) { margin: .35rem 0 0; color: #64748b; font-size: .78rem; line-height: 1.5; }
+  .account-logout { flex: 0 0 auto; padding: .62rem 1rem; color: #b91c1c; background: #fff; border: 1px solid #fecaca; border-radius: 999px; font-size: .8rem; font-weight: 850; cursor: pointer; }
+  .account-logout:hover { background: #fef2f2; }
+  .account-logout:disabled { opacity: .6; cursor: wait; }
+  @media (max-width: 760px) {
+    .account-main { padding: 1.3rem 0 3rem; }
+    .account-layout { grid-template-columns: 1fr; }
+    .identity-card { position: static; }
+    .security-card { align-items: stretch; flex-direction: column; }
+    .account-logout { width: 100%; }
   }
-  .account-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .5rem; }
-  .account-card h1 { font-size: 1.4rem; margin: 0 0 1.3rem; }
-  .account-loading { color: rgb(var(--gray-mid)); font-size: .9rem; }
-  .account-grid { display: grid; gap: 0.65rem; margin: 0 0 1.6rem; }
-  .account-grid div {
-    display: flex; justify-content: space-between; gap: 1rem;
-    padding: .7rem .9rem; background: #f8fafc; border-radius: 10px;
-  }
-  .account-grid dt { font-size: .8rem; font-weight: 800; color: rgb(var(--gray-mid)); }
-  .account-grid dd { font-size: .88rem; font-weight: 750; color: rgb(var(--black)); margin: 0; text-align: right; }
-  .account-logout {
-    width: 100%; padding: .65rem 1rem; font-size: .88rem; font-weight: 800;
-    color: #e04444; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; cursor: pointer;
-  }
-  .account-logout:hover { background: #fde8e8; }
 </style>

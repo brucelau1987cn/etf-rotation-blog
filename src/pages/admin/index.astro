@@ -4,76 +4,171 @@ import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
 import { SITE_TITLE } from '../../consts';
 
-const title = `订阅管理后台 | ${SITE_TITLE}`;
-const description = '管理订阅密码：创建、查看、撤销订阅；修改管理员账号。';
+const title = `账号开通 | ${SITE_TITLE}`;
+const description = '创建和管理订阅用户、VIP账号、授权期限与绑定设备。';
 ---
 <BaseHead title={title} description={description} />
 <body>
   <Header />
   <main class="admin-main site-shell">
-    <div class="admin-header">
+    <header class="page-heading">
       <div>
-        <p class="admin-eyebrow">ETF 罗盘 · 管理后台</p>
-        <h1>订阅管理</h1>
-        <p class="admin-desc">创建带有效期的订阅密码、查看全部订阅、撤销不再续订的账号。密码只显示一次，请及时保存。管理员登录为用户名+密码方式，可勾选记住本机设备（30 天内免登录）。</p>
+        <p class="page-kicker">ACCESS MANAGEMENT</p>
+        <h1>账号开通</h1>
+        <p>创建订阅授权、管理有效期和设备。所有授权均受服务端校验。</p>
       </div>
-    </div>
+      <div class="admin-identity">
+        <span class="role-badge" id="admin-role">管理员</span>
+        <a href="/account/">个人信息</a>
+      </div>
+    </header>
 
-    <!-- 未登录提示 -->
-    <section class="admin-login" id="admin-login" hidden>
-      <h2>需要登录</h2>
-      <p class="admin-desc">请先到 <a href="/login/?next=%2Fadmin%2F">登录页</a> 登录管理员账号（brucelau1987 或 18918851888），登录后自动进入管理后台。</p>
+    <section class="auth-required" id="admin-login" hidden>
+      <div class="auth-icon">🔒</div>
+      <h2>需要管理员权限</h2>
+      <p>请先通过统一登录页验证管理员账号。</p>
+      <a href="/login/?next=%2Fadmin%2F">前往登录</a>
     </section>
 
-    <!-- 管理面板 -->
     <section class="admin-panel" id="admin-panel" hidden>
-      <div class="admin-panel-top">
-        <h2>创建订阅</h2>
-        <form id="create-form" class="create-form" novalidate>
-          <input id="create-label" placeholder="备注（订阅者名）" />
-          <input id="create-username" placeholder="用户名（可选，用于用户名+密码登录）" />
-          <input id="create-account-password" type="password" placeholder="账号密码（选用户名时必填，≥8位）" />
-          <select id="create-days">
-            <option value="7">7 天</option>
-            <option value="30" selected>30 天</option>
-            <option value="90">90 天</option>
-            <option value="180">180 天</option>
-            <option value="365">365 天</option>
-          </select>
-          <button type="submit">生成密码</button>
-        </form>
-        <div class="create-result" id="create-result" hidden>
-          <strong>新订阅密码（只显示一次）</strong>
-          <code id="create-pass"></code>
-          <span id="create-meta"></span>
+      <div class="overview-grid">
+        <article class="stat-card">
+          <span>全部授权</span>
+          <strong id="stat-total">0</strong>
+          <small>当前系统记录</small>
+        </article>
+        <article class="stat-card active">
+          <span>有效授权</span>
+          <strong id="stat-active">0</strong>
+          <small>可正常登录</small>
+        </article>
+        <article class="stat-card">
+          <span>VIP用户</span>
+          <strong id="stat-vip">0</strong>
+          <small>用户名 + 密码</small>
+        </article>
+        <article class="stat-card">
+          <span>绑定设备</span>
+          <strong id="stat-devices">0</strong>
+          <small>全部在线设备</small>
+        </article>
+      </div>
+
+      <div class="admin-layout">
+        <aside class="create-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">NEW ACCESS</p>
+              <h2>创建授权</h2>
+            </div>
+          </div>
+
+          <div class="mode-switch" role="radiogroup" aria-label="授权方式">
+            <button type="button" class="mode-btn active" data-mode="passphrase" aria-pressed="true">
+              <span>🔑</span><b>订阅密码</b><small>一个密码解锁全站</small>
+            </button>
+            <button type="button" class="mode-btn" data-mode="vip" aria-pressed="false">
+              <span>💎</span><b>VIP账号</b><small>用户名 + 密码登录</small>
+            </button>
+          </div>
+
+          <form id="create-form" class="create-form" novalidate>
+            <input id="create-mode" type="hidden" value="passphrase" />
+            <label class="field">
+              <span>用户备注</span>
+              <input id="create-label" placeholder="例如：刘先生 / 公司账号" required />
+            </label>
+            <div class="vip-fields" id="vip-fields" hidden>
+              <label class="field">
+                <span>登录用户名</span>
+                <input id="create-username" autocomplete="off" placeholder="3–32 个字符" />
+              </label>
+              <label class="field">
+                <span>登录密码</span>
+                <input id="create-account-password" type="password" autocomplete="new-password" placeholder="至少 8 个字符" />
+              </label>
+            </div>
+            <label class="field">
+              <span>授权有效期</span>
+              <select id="create-days">
+                <option value="7">7 天 · 临时体验</option>
+                <option value="30" selected>30 天 · 月度订阅</option>
+                <option value="90">90 天 · 季度订阅</option>
+                <option value="180">180 天 · 半年订阅</option>
+                <option value="365">365 天 · 年度订阅</option>
+              </select>
+            </label>
+            <button class="primary-btn" id="create-submit" type="submit">创建授权</button>
+            <p class="form-hint">系统会同时生成一个备用订阅密码，仅显示一次。</p>
+          </form>
+
+          <div class="create-result" id="create-result" hidden>
+            <div class="result-head">
+              <span class="success-icon">✓</span>
+              <div><strong>授权创建成功</strong><small>请立即保存凭据</small></div>
+            </div>
+            <div class="credential-box">
+              <span>订阅密码</span>
+              <code id="create-pass"></code>
+              <button type="button" id="copy-pass">复制</button>
+            </div>
+            <p id="create-meta"></p>
+          </div>
+        </aside>
+
+        <section class="list-card">
+          <div class="list-heading">
+            <div>
+              <p class="section-kicker">SUBSCRIPTIONS</p>
+              <h2>授权账号</h2>
+            </div>
+            <div class="list-tools">
+              <label class="search-box">
+                <span>⌕</span>
+                <input id="subscription-search" type="search" placeholder="搜索备注或用户名" />
+              </label>
+              <select id="status-filter" aria-label="筛选授权状态">
+                <option value="all">全部状态</option>
+                <option value="active">有效</option>
+                <option value="expired">已过期</option>
+                <option value="revoked">已停用</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>用户</th><th>等级</th><th>授权状态</th><th>到期时间</th><th>设备</th><th>操作</th></tr>
+              </thead>
+              <tbody id="sub-tbody"></tbody>
+            </table>
+            <div class="empty-state" id="empty-state" hidden>
+              <span>◎</span><strong>暂无匹配授权</strong><p>调整筛选条件或创建一个新授权。</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="admin-account" id="admin-account" hidden>
+        <div class="account-setting-copy">
+          <p class="section-kicker">SUPER ADMIN</p>
+          <h2>超级管理员账号</h2>
+          <p>修改后将用于下一次登录。当前会话继续有效。</p>
         </div>
-      </div>
-
-      <div class="admin-list">
-        <h2>全部订阅（<span id="sub-count">0</span>）</h2>
-        <table class="admin-table">
-          <thead>
-            <tr><th>备注</th><th>用户名</th><th>到期</th><th>状态</th><th>设备</th><th>创建时间</th><th>操作</th></tr>
-          </thead>
-          <tbody id="sub-tbody"></tbody>
-        </table>
-      </div>
-
-      <div class="admin-account" id="admin-account">
-        <h2>管理员账号设置 <span class="role-badge" id="admin-role"></span></h2>
         <form id="change-form" class="change-form" novalidate>
-          <div class="change-row">
-            <label for="change-username">新用户名</label>
-            <input id="change-username" type="text" autocomplete="username" placeholder="3-32 字符" />
-          </div>
-          <div class="change-row">
-            <label for="change-password">新密码</label>
+          <label class="field">
+            <span>新用户名</span>
+            <input id="change-username" type="text" autocomplete="username" placeholder="3–32 个字符" />
+          </label>
+          <label class="field">
+            <span>新密码</span>
             <input id="change-password" type="password" autocomplete="new-password" placeholder="至少 8 个字符" />
-          </div>
-          <button type="submit">保存修改</button>
+          </label>
+          <button type="submit" class="secondary-btn">保存管理员账号</button>
           <p class="admin-msg" id="change-msg" role="status"></p>
         </form>
-      </div>
+      </section>
     </section>
   </main>
   <Footer />
@@ -81,96 +176,192 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
   <script is:inline>
     (() => {
       const $ = (id) => document.getElementById(id);
-      const loginBox = $('admin-login'), panel = $('admin-panel');
+      const loginBox = $('admin-login');
+      const panel = $('admin-panel');
+      let subscriptions = [];
 
       async function api(path, opts = {}) {
         const res = await fetch(path, {
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           ...opts,
         });
         return { status: res.status, data: await res.json().catch(() => ({})) };
       }
 
-      function loadList() {
-        api('/api/admin/subscriptions').then(({ status, data }) => {
-          if (status === 401) {
-            loginBox.hidden = false; panel.hidden = true;
-            return;
+      const today = () => new Date().toISOString().slice(0, 10);
+      const getStatus = (it) => it.revoked ? 'revoked' : (it.expires_at < today() ? 'expired' : 'active');
+      const statusLabel = { active: '有效', expired: '已过期', revoked: '已停用' };
+
+      function makeButton(text, className, handler) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.textContent = text;
+        button.addEventListener('click', handler);
+        return button;
+      }
+
+      function renderTable() {
+        const query = $('subscription-search').value.trim().toLowerCase();
+        const filter = $('status-filter').value;
+        const visible = subscriptions.filter((it) => {
+          const status = getStatus(it);
+          const matchesText = !query || `${it.label || ''} ${it.username || ''}`.toLowerCase().includes(query);
+          return matchesText && (filter === 'all' || filter === status);
+        });
+        const tbody = $('sub-tbody');
+        tbody.replaceChildren();
+
+        visible.forEach((it) => {
+          const status = getStatus(it);
+          const tr = document.createElement('tr');
+          if (status !== 'active') tr.className = 'row-muted';
+
+          const userTd = document.createElement('td');
+          const user = document.createElement('div'); user.className = 'user-cell';
+          const avatar = document.createElement('span'); avatar.className = `table-avatar ${it.username ? 'vip' : ''}`; avatar.textContent = it.username ? '💎' : '👤';
+          const userText = document.createElement('div');
+          const label = document.createElement('strong'); label.textContent = it.label || '未命名用户';
+          const username = document.createElement('small'); username.textContent = it.username || '单密码授权';
+          userText.append(label, username); user.append(avatar, userText); userTd.append(user);
+
+          const levelTd = document.createElement('td');
+          const level = document.createElement('span'); level.className = `level-pill ${it.username ? 'vip' : ''}`; level.textContent = it.username ? 'VIP用户' : '订阅用户'; levelTd.append(level);
+
+          const statusTd = document.createElement('td');
+          const statusEl = document.createElement('span'); statusEl.className = `status-tag ${status}`; statusEl.textContent = statusLabel[status]; statusTd.append(statusEl);
+
+          const expiryTd = document.createElement('td');
+          const expiry = document.createElement('strong'); expiry.className = 'date-value'; expiry.textContent = it.expires_at || '—';
+          const created = document.createElement('small'); created.className = 'created-date'; created.textContent = `创建于 ${String(it.created_at || '').slice(0, 10) || '—'}`;
+          expiryTd.append(expiry, created);
+
+          const deviceTd = document.createElement('td');
+          const device = document.createElement('div'); device.className = 'device-cell';
+          const deviceText = document.createElement('span'); deviceText.textContent = `${it.device_count ?? 0} / ${it.device_limit ?? 5}`;
+          const meter = document.createElement('i'); const fill = document.createElement('b'); fill.style.width = `${Math.min(100, Number(it.device_count || 0) / Number(it.device_limit || 5) * 100)}%`; meter.append(fill);
+          device.append(deviceText, meter); deviceTd.append(device);
+
+          const actionsTd = document.createElement('td'); actionsTd.className = 'actions-cell';
+          if (Number(it.device_count || 0) > 0) {
+            actionsTd.append(makeButton('解绑设备', 'text-btn', async () => {
+              if (!confirm(`确认解绑「${it.label || '该用户'}」的全部设备？`)) return;
+              await api('/api/admin/subscriptions?action=unbind', { method: 'POST', body: JSON.stringify({ id: it.id }) });
+              loadList();
+            }));
           }
-          loginBox.hidden = true; panel.hidden = false;
-          const items = data.items || [];
-          $('sub-count').textContent = items.length;
-          // 账号设置区仅超级管理员可见（角色在登录响应/header 中）
-          api('/api/admin/me').then(({ status, data }) => {
-            const role = data.role;
-            const accountBox = document.getElementById('admin-account');
-            if (accountBox) accountBox.hidden = role !== 'super_admin';
-            const roleBadge = document.getElementById('admin-role');
-            if (roleBadge) roleBadge.textContent = role === 'super_admin' ? '超级管理员' : '管理员';
-          });
-          $('sub-tbody').innerHTML = items.map((it) => `
-            <tr class="${it.revoked ? 'row-revoked' : ''}">
-              <td>${it.label || '—'}</td>
-              <td>${it.username || '—'}</td>
-              <td>${it.expires_at || '—'}</td>
-              <td>${it.revoked ? '已撤销' : (it.expires_at < new Date().toISOString().slice(0, 10) ? '已过期' : '有效')}</td>
-              <td>${it.device_count ?? 0}/${it.device_limit ?? 5} <button class="mini-btn unbind-btn" data-id="${it.id}" title="解绑该订阅全部设备，需重新登录">解绑</button></td>
-              <td>${it.created_at ? String(it.created_at).slice(0, 10) : '—'}</td>
-              <td>${it.revoked ? '<span class="muted">—</span>' : `<button class="mini-btn" data-id="${it.id}">撤销</button>`}</td>
-            </tr>`).join('');
-          document.querySelectorAll('.mini-btn').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-              if (!confirm('确认撤销该订阅？')) return;
-              await api('/api/admin/subscriptions?action=revoke', { method: 'POST', body: JSON.stringify({ id: btn.dataset.id }) });
+          if (status !== 'revoked') {
+            actionsTd.append(makeButton('停用', 'text-btn danger', async () => {
+              if (!confirm(`确认停用「${it.label || '该用户'}」？停用后将立即无法登录。`)) return;
+              await api('/api/admin/subscriptions?action=revoke', { method: 'POST', body: JSON.stringify({ id: it.id }) });
               loadList();
-            });
-          });
-          document.querySelectorAll('.unbind-btn').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-              if (!confirm('确认解绑该订阅的全部设备？（设备需重新登录）')) return;
-              await api('/api/admin/subscriptions?action=unbind', { method: 'POST', body: JSON.stringify({ id: btn.dataset.id }) });
-              loadList();
-            });
+            }));
+          } else {
+            const dash = document.createElement('span'); dash.className = 'muted'; dash.textContent = '—'; actionsTd.append(dash);
+          }
+
+          tr.append(userTd, levelTd, statusTd, expiryTd, deviceTd, actionsTd);
+          tbody.append(tr);
+        });
+        $('empty-state').hidden = visible.length > 0;
+      }
+
+      function updateStats() {
+        $('stat-total').textContent = subscriptions.length;
+        $('stat-active').textContent = subscriptions.filter((it) => getStatus(it) === 'active').length;
+        $('stat-vip').textContent = subscriptions.filter((it) => !!it.username).length;
+        $('stat-devices').textContent = subscriptions.reduce((sum, it) => sum + Number(it.device_count || 0), 0);
+      }
+
+      async function loadList() {
+        const { status, data } = await api('/api/admin/subscriptions');
+        if (status === 401) {
+          loginBox.hidden = false;
+          panel.hidden = true;
+          return;
+        }
+        loginBox.hidden = true;
+        panel.hidden = false;
+        subscriptions = data.items || [];
+        updateStats();
+        renderTable();
+
+        const me = await api('/api/admin/me');
+        const role = me.data.role;
+        $('admin-role').textContent = role === 'super_admin' ? '超级管理员' : '管理员';
+        $('admin-account').hidden = role !== 'super_admin';
+      }
+
+      document.querySelectorAll('.mode-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          const mode = button.dataset.mode;
+          $('create-mode').value = mode;
+          $('vip-fields').hidden = mode !== 'vip';
+          document.querySelectorAll('.mode-btn').forEach((item) => {
+            const active = item === button;
+            item.classList.toggle('active', active);
+            item.setAttribute('aria-pressed', String(active));
           });
         });
-      }
+      });
 
       $('create-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const mode = $('create-mode').value;
+        const label = $('create-label').value.trim();
+        const username = $('create-username').value.trim();
+        const accountPassword = $('create-account-password').value;
+        if (!label) { alert('请填写用户备注'); return; }
+        if (mode === 'vip' && (!username || accountPassword.length < 8)) {
+          alert('VIP账号需要用户名和至少 8 位密码'); return;
+        }
+        const submit = $('create-submit');
+        submit.disabled = true; submit.textContent = '正在创建…';
+        const payload = { label, days: Number($('create-days').value) };
+        if (mode === 'vip') {
+          payload.username = username;
+          payload.account_password = accountPassword;
+        }
         const { status, data } = await api('/api/admin/subscriptions', {
-          method: 'POST',
-          body: JSON.stringify({ label: $('create-label').value, days: Number($('create-days').value) }),
+          method: 'POST', body: JSON.stringify(payload),
         });
+        submit.disabled = false; submit.textContent = '创建授权';
         if (status === 200 && data.ok) {
           $('create-pass').textContent = data.passphrase;
-          $('create-meta').textContent = `备注 ${data.label || '—'} · ${data.days} 天 · 到期 ${data.expires_at}`;
+          $('create-meta').textContent = `${mode === 'vip' ? `VIP账号 ${data.username} · ` : ''}${data.days} 天 · 到期 ${data.expires_at}`;
           $('create-result').hidden = false;
           $('create-label').value = '';
+          $('create-username').value = '';
+          $('create-account-password').value = '';
           loadList();
         } else {
           alert(data.error || '创建失败');
         }
       });
 
+      $('copy-pass').addEventListener('click', async () => {
+        await navigator.clipboard.writeText($('create-pass').textContent || '');
+        $('copy-pass').textContent = '已复制';
+        setTimeout(() => { $('copy-pass').textContent = '复制'; }, 1500);
+      });
+      $('subscription-search').addEventListener('input', renderTable);
+      $('status-filter').addEventListener('change', renderTable);
+
       $('change-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const msg = $('change-msg');
-        msg.textContent = ''; msg.className = 'admin-msg';
+        msg.textContent = '';
         const { status, data } = await api('/api/admin/change-credentials', {
           method: 'POST',
-          body: JSON.stringify({
-            username: $('change-username').value.trim(),
-            password: $('change-password').value,
-          }),
+          body: JSON.stringify({ username: $('change-username').value.trim(), password: $('change-password').value }),
         });
         if (status === 200 && data.ok) {
-          msg.textContent = `✔ 已保存，新用户名：${data.username}（下次登录生效）`;
+          msg.textContent = `已保存，新用户名：${data.username}（下次登录生效）`;
           msg.className = 'admin-msg ok';
-          $('change-username').value = '';
-          $('change-password').value = '';
+          $('change-username').value = ''; $('change-password').value = '';
         } else {
-          msg.textContent = data.error || '保存失败';
-          msg.className = 'admin-msg error';
+          msg.textContent = data.error || '保存失败'; msg.className = 'admin-msg error';
         }
       });
 
@@ -179,78 +370,90 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
   </script>
 </body>
 
-<style>
-  .admin-main { padding-bottom: 3rem; }
-  .admin-header { margin: 1.2rem 0 1.4rem; }
-  .admin-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .35rem; }
-  .admin-header h1 { font-size: 1.6rem; margin: 0 0 .45rem; }
-  .admin-desc { color: rgb(var(--gray-mid)); font-size: .85rem; max-width: 52rem; line-height: 1.55; margin: 0; }
-
-  .admin-login, .admin-panel {
-    border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 1.4rem 1.5rem; margin-bottom: 1rem;
+<style is:global>
+  .admin-main { padding: 2.2rem 0 4rem; }
+  .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.35rem; }
+  .page-kicker, .section-kicker { margin: 0 0 .35rem; color: #2563eb; font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+  .page-heading h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+  .page-heading > div > p:last-child { margin: .45rem 0 0; color: #64748b; font-size: .88rem; }
+  .admin-identity { display: flex; align-items: center; gap: .55rem; }
+  .admin-identity a, .role-badge { border-radius: 999px; padding: .45rem .75rem; font-size: .75rem; font-weight: 850; text-decoration: none; }
+  .admin-identity a { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+  .role-badge { color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; }
+  .auth-required { max-width: 440px; margin: 3rem auto; padding: 2rem; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; }
+  .auth-icon { font-size: 1.6rem; } .auth-required h2 { margin: .75rem 0 .4rem; } .auth-required p { color: #64748b; }
+  .auth-required a { display: inline-block; margin-top: .5rem; padding: .6rem 1rem; color: #fff; background: #2563eb; border-radius: 999px; text-decoration: none; font-weight: 800; }
+  .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: .9rem; }
+  .stat-card { display: grid; gap: .28rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; }
+  .stat-card span, .stat-card small { color: #64748b; font-size: .72rem; font-weight: 700; }
+  .stat-card strong { color: #0f172a; font-size: 1.55rem; line-height: 1; }
+  .stat-card.active { background: #eff6ff; border-color: #bfdbfe; } .stat-card.active strong { color: #1d4ed8; }
+  .admin-layout { display: grid; grid-template-columns: minmax(300px, .72fr) minmax(0, 1.65fr); gap: .9rem; align-items: start; }
+  .create-card, .list-card, .admin-account { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
+  .create-card { position: sticky; top: 5.3rem; padding: 1.25rem; }
+  .section-heading h2, .list-heading h2, .admin-account h2 { margin: 0; font-size: 1.1rem; }
+  .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: 1rem 0; }
+  .mode-btn { display: grid; justify-items: start; gap: .15rem; padding: .75rem; text-align: left; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; }
+  .mode-btn span { font-size: 1rem; } .mode-btn b { color: #0f172a; font-size: .82rem; } .mode-btn small { font-size: .65rem; }
+  .mode-btn.active { background: #eff6ff; border-color: #93c5fd; box-shadow: inset 0 0 0 1px #bfdbfe; }
+  .create-form, .change-form { display: grid; gap: .8rem; }
+  .vip-fields { display: grid; gap: .8rem; } .vip-fields[hidden] { display: none; }
+  .field { display: grid; gap: .38rem; }
+  .field > span { color: #334155; font-size: .75rem; font-weight: 800; }
+  .field input, .field select, .list-tools input, .list-tools select { box-sizing: border-box; width: 100%; min-height: 42px; padding: .62rem .75rem; color: #0f172a; background: #fff; border: 1px solid #dbe2ea; border-radius: 10px; outline: none; font: inherit; font-size: .82rem; }
+  .field input:focus, .field select:focus, .list-tools input:focus, .list-tools select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+  .primary-btn, .secondary-btn { min-height: 43px; padding: .65rem 1rem; color: #fff; background: #2563eb; border: 0; border-radius: 999px; font-size: .82rem; font-weight: 850; cursor: pointer; }
+  .primary-btn:hover { background: #1d4ed8; } .primary-btn:disabled { opacity: .6; cursor: wait; }
+  .form-hint { margin: -.2rem 0 0; color: #94a3b8; font-size: .68rem; line-height: 1.5; }
+  .create-result { margin-top: 1rem; padding: .9rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; }
+  .result-head { display: flex; align-items: center; gap: .55rem; margin-bottom: .75rem; }
+  .result-head div { display: grid; } .result-head strong { font-size: .82rem; } .result-head small { color: #64748b; font-size: .68rem; }
+  .success-icon { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; color: #fff; background: #16a34a; border-radius: 50%; font-weight: 900; }
+  .credential-box { display: grid; grid-template-columns: 1fr auto; gap: .35rem .6rem; padding: .65rem .7rem; background: #fff; border-radius: 10px; }
+  .credential-box span { grid-column: 1/-1; color: #64748b; font-size: .65rem; font-weight: 800; }
+  .credential-box code { color: #0f172a; font-size: 1rem; font-weight: 900; letter-spacing: .08em; }
+  .credential-box button { color: #1d4ed8; background: #eff6ff; border: 0; border-radius: 8px; font-weight: 800; cursor: pointer; }
+  .create-result > p { margin: .6rem 0 0; color: #64748b; font-size: .68rem; }
+  .list-card { min-width: 0; overflow: hidden; }
+  .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.15rem 1.2rem; border-bottom: 1px solid #eef2f7; }
+  .list-tools { display: flex; gap: .45rem; }
+  .search-box { position: relative; } .search-box span { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+  .search-box input { width: 180px; padding-left: 1.75rem; } .list-tools select { width: 110px; }
+  .table-wrap { overflow-x: auto; }
+  .admin-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: .78rem; }
+  .admin-table th { padding: .7rem .8rem; color: #64748b; background: #f8fafc; font-size: .66rem; letter-spacing: .03em; text-align: left; }
+  .admin-table td { padding: .8rem; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+  .admin-table tbody tr:hover { background: #fafcff; } .row-muted { opacity: .58; }
+  .user-cell { display: flex; align-items: center; gap: .65rem; min-width: 150px; }
+  .table-avatar { display: grid; place-items: center; width: 2rem; height: 2rem; background: #f1f5f9; border-radius: 10px; }
+  .table-avatar.vip { background: #eff6ff; } .user-cell > div { display: grid; gap: .15rem; } .user-cell strong { font-size: .78rem; } .user-cell small, .created-date { color: #94a3b8; font-size: .65rem; }
+  .level-pill, .status-tag { display: inline-flex; align-items: center; border-radius: 999px; padding: .28rem .52rem; font-size: .66rem; font-weight: 850; white-space: nowrap; }
+  .level-pill { color: #475569; background: #f1f5f9; } .level-pill.vip { color: #1d4ed8; background: #dbeafe; }
+  .status-tag.active { color: #15803d; background: #dcfce7; } .status-tag.expired { color: #b45309; background: #fef3c7; } .status-tag.revoked { color: #64748b; background: #e2e8f0; }
+  .date-value { display: block; font-size: .75rem; } .created-date { display: block; margin-top: .18rem; }
+  .device-cell { display: grid; gap: .3rem; min-width: 70px; } .device-cell span { font-weight: 800; }
+  .device-cell i { display: block; width: 62px; height: 5px; overflow: hidden; background: #e2e8f0; border-radius: 999px; } .device-cell b { display: block; height: 100%; background: #60a5fa; border-radius: inherit; }
+  .actions-cell { display: flex; gap: .3rem; white-space: nowrap; }
+  .text-btn { padding: .34rem .52rem; color: #1d4ed8; background: transparent; border: 1px solid #bfdbfe; border-radius: 8px; font-size: .68rem; font-weight: 800; cursor: pointer; }
+  .text-btn:hover { background: #eff6ff; } .text-btn.danger { color: #b91c1c; border-color: #fecaca; } .text-btn.danger:hover { background: #fef2f2; }
+  .muted { color: #94a3b8; }
+  .empty-state { padding: 3rem 1rem; text-align: center; color: #64748b; } .empty-state span { display: block; font-size: 1.5rem; } .empty-state strong { display: block; margin-top: .5rem; color: #334155; } .empty-state p { margin: .25rem 0 0; font-size: .75rem; }
+  .admin-account { display: grid; grid-template-columns: minmax(220px,.7fr) minmax(0,1fr); gap: 2rem; margin-top: .9rem; padding: 1.25rem; }
+  .admin-account[hidden] { display: none; } .account-setting-copy p:last-child { color: #64748b; font-size: .75rem; line-height: 1.5; }
+  .secondary-btn { justify-self: start; background: #0f172a; } .admin-msg { margin: 0; font-size: .75rem; } .admin-msg.ok { color: #15803d; } .admin-msg.error { color: #b91c1c; }
+  @media (max-width: 900px) {
+    .overview-grid { grid-template-columns: repeat(2, 1fr); }
+    .admin-layout { grid-template-columns: 1fr; }
+    .create-card { position: static; }
   }
-  .admin-login { max-width: 400px; }
-  .admin-login h2, .admin-panel h2 { font-size: 1.05rem; margin: 0 0 .9rem; }
-  .admin-login label { display: block; font-size: .78rem; font-weight: 800; margin-bottom: .4rem; }
-  .admin-login input[type="text"], .admin-login input[type="password"] {
-    width: 100%; box-sizing: border-box; font-size: 1rem; padding: .6rem .8rem;
-    border: 1px solid var(--border); border-radius: 10px; margin-bottom: .8rem; outline: none;
-  }
-  .remember-row { display: flex; align-items: center; gap: .45rem; font-weight: 600 !important; margin-bottom: .9rem !important; cursor: pointer; }
-  .remember-row input { width: auto !important; margin: 0 !important; }
-  .admin-login button {
-    padding: .6rem 1.2rem; font-weight: 800; color: #fff; background: #1e3a8a;
-    border: none; border-radius: 10px; cursor: pointer;
-  }
-  .admin-msg { font-size: .82rem; margin: .8rem 0 0; }
-  .admin-msg.ok { color: #0aa869; }
-  .admin-msg.error { color: #e04444; }
-
-  .admin-panel-top { margin-bottom: 1.4rem; }
-  .create-form { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
-  .create-form input { flex: 1 1 200px; padding: .55rem .8rem; border: 1px solid var(--border); border-radius: 10px; font-size: .9rem; }
-  .create-form select { padding: .55rem .6rem; border: 1px solid var(--border); border-radius: 10px; font-size: .9rem; }
-  .create-form button {
-    padding: .55rem 1.1rem; font-weight: 800; color: #fff; background: #0aa869;
-    border: none; border-radius: 10px; cursor: pointer;
-  }
-  .create-result {
-    margin-top: 1rem; padding: 1rem; border: 1px dashed #34d399; border-radius: 12px; background: #f0fdf4;
-  }
-  .create-result strong { display: block; font-size: .8rem; margin-bottom: .5rem; }
-  .create-result code {
-    display: block; font-size: 1.3rem; font-weight: 900; letter-spacing: .12em;
-    padding: .6rem .8rem; background: #fff; border-radius: 8px; margin-bottom: .4rem;
-  }
-  .create-result span { font-size: .78rem; color: rgb(var(--gray-mid)); }
-
-  .admin-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 1.6rem; }
-  .admin-table th, .admin-table td { text-align: left; padding: .55rem .6rem; border-top: 1px solid var(--border); }
-  .admin-table th { color: rgb(var(--gray-mid)); font-size: .72rem; }
-  .admin-table tbody tr:hover { background: #f8fafc; }
-  .row-revoked { opacity: .5; }
-  .mini-btn {
-    padding: .3rem .7rem; font-size: .74rem; font-weight: 700; color: #e04444;
-    background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; cursor: pointer;
-  }
-  .muted { color: rgb(var(--gray-mid)); }
-  .role-badge {
-    display: inline-block; font-size: .68rem; font-weight: 800;
-    padding: .15rem .55rem; border-radius: 999px; vertical-align: middle;
-    background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
-  }
-
-  .admin-account { border-top: 1px solid var(--border); padding-top: 1.2rem; }
-  .admin-account h2 { margin-bottom: .8rem; }
-  .change-form { max-width: 420px; }
-  .change-row { margin-bottom: .8rem; }
-  .change-row label { display: block; font-size: .78rem; font-weight: 800; margin-bottom: .4rem; }
-  .change-row input {
-    width: 100%; box-sizing: border-box; font-size: .95rem; padding: .55rem .8rem;
-    border: 1px solid var(--border); border-radius: 10px; outline: none;
-  }
-  .change-form button {
-    padding: .55rem 1.1rem; font-weight: 800; color: #fff; background: #b45309;
-    border: none; border-radius: 10px; cursor: pointer;
+  @media (max-width: 640px) {
+    .admin-main { padding: 1.25rem 0 3rem; }
+    .page-heading { align-items: flex-start; flex-direction: column; }
+    .overview-grid { gap: .5rem; }
+    .stat-card { padding: .8rem; }
+    .list-heading { align-items: stretch; flex-direction: column; }
+    .list-tools { display: grid; grid-template-columns: 1fr 110px; }
+    .search-box input { width: 100%; }
+    .admin-account { grid-template-columns: 1fr; gap: 1rem; }
   }
 </style>
