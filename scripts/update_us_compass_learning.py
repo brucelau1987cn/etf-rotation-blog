@@ -8,13 +8,17 @@ portfolios. No brokerage/account access and no production-weight mutation.
 from __future__ import annotations
 
 import json
-import math
 import os
 import statistics
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    from us_compass_research_metrics import ranks, spearman
+except ModuleNotFoundError:  # imported as scripts.update_us_compass_learning
+    from scripts.us_compass_research_metrics import ranks, spearman
 
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/us-etf-pool.json"
@@ -42,32 +46,6 @@ def atomic_write(path: Path, payload: Any) -> None:
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
-
-
-def ranks(values: list[float]) -> list[float]:
-    order = sorted(range(len(values)), key=lambda i: values[i])
-    out = [0.0] * len(values)
-    i = 0
-    while i < len(order):
-        j = i + 1
-        while j < len(order) and values[order[j]] == values[order[i]]:
-            j += 1
-        rank = (i + j - 1) / 2 + 1
-        for k in range(i, j):
-            out[order[k]] = rank
-        i = j
-    return out
-
-
-def spearman(xs: list[float], ys: list[float]) -> float | None:
-    if len(xs) < 3 or len(xs) != len(ys):
-        return None
-    rx, ry = ranks(xs), ranks(ys)
-    mx, my = statistics.fmean(rx), statistics.fmean(ry)
-    num = sum((x - mx) * (y - my) for x, y in zip(rx, ry))
-    dx = math.sqrt(sum((x - mx) ** 2 for x in rx))
-    dy = math.sqrt(sum((y - my) ** 2 for y in ry))
-    return num / (dx * dy) if dx and dy else None
 
 
 def percentile_ranks(values: list[float]) -> list[float]:
