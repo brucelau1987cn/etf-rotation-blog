@@ -84,7 +84,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <button type="button" class="tc-sort-btn" id="tc-sort-change" aria-pressed="false">涨幅</button>
     </div>
 
-    <section class="tc-list" aria-label="追踪股票列表">
+    <section class="tc-list" id="tc-list" aria-label="追踪股票列表">
       {stocks.length === 0 && (
         <div class="tc-empty">
           <strong>暂无追踪数据</strong>
