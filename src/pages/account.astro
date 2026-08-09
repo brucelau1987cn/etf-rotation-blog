@@ -175,18 +175,29 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
   .account-loading[hidden], .account-layout[hidden] { display: none !important; }
   .account-loading.error { color: #dc2626; }
   .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; box-shadow: 0 0 0 5px #dbeafe; }
-  .account-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.5fr); gap: 1rem; align-items: start; }
+  .account-layout { display: grid; gap: 1rem; }
   .identity-card, .info-card, .device-card, .security-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
-  .identity-card { position: sticky; top: 5.4rem; padding: 1.5rem; background: linear-gradient(160deg, #0f172a 0%, #172554 100%); color: #fff; border: none; box-shadow: 0 16px 40px rgba(15, 23, 42, .14); }
-  .identity-top { display: flex; align-items: center; gap: 1rem; }
-  .identity-avatar { display: grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 16px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.14); font-size: 1.35rem; }
+  .identity-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 2rem;
+    min-height: 132px; padding: 1.45rem 1.6rem;
+    background: linear-gradient(135deg, #0f172a 0%, #172554 62%, #1e3a8a 100%);
+    color: #fff; border: none; box-shadow: 0 14px 34px rgba(15, 23, 42, .14);
+  }
+  .identity-top { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+  .identity-avatar { flex: 0 0 auto; display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 16px; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.16); font-size: 1.35rem; }
   .status-pill { display: inline-flex; align-items: center; gap: .35rem; color: #bbf7d0; font-size: .68rem; font-weight: 850; }
   .status-pill i { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
-  .identity-card h2 { margin: .3rem 0 .15rem; font-size: 1.35rem; }
-  .identity-card p { margin: 0; color: #cbd5e1; font-size: .8rem; }
-  .identity-meta { margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,.12); color: #bfdbfe; font-size: .78rem; line-height: 1.55; }
-  .account-content { display: grid; gap: 1rem; }
+  .identity-card h2 { margin: .3rem 0 .15rem; color: #fff !important; font-size: 1.45rem; line-height: 1.2; }
+  .identity-card p { margin: 0; color: #cbd5e1 !important; font-size: .8rem; }
+  .identity-meta {
+    flex: 0 0 auto; min-width: 180px; margin: 0; padding: .8rem 1rem;
+    color: #dbeafe; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; font-size: .78rem; line-height: 1.55; text-align: right;
+  }
+  .account-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .info-card { grid-column: 1 / -1; }
   .info-card, .device-card { padding: 1.35rem; }
+  .device-card[hidden] { display: none !important; }
   .card-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
   .card-heading h2, .security-card h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.01em; }
   .card-heading strong { color: #1d4ed8; font-size: .9rem; }
@@ -207,8 +218,10 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
   .account-logout:disabled { opacity: .6; cursor: wait; }
   @media (max-width: 760px) {
     .account-main { padding: 1.3rem 0 3rem; }
-    .account-layout { grid-template-columns: 1fr; }
-    .identity-card { position: static; }
+    .identity-card { align-items: flex-start; flex-direction: column; gap: 1.1rem; }
+    .identity-meta { width: 100%; box-sizing: border-box; min-width: 0; text-align: left; }
+    .account-content { grid-template-columns: 1fr; }
+    .info-card { grid-column: auto; }
     .security-card { align-items: stretch; flex-direction: column; }
     .account-logout { width: 100%; }
   }
