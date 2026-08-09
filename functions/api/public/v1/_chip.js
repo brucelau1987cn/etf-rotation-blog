@@ -158,12 +158,13 @@ function computeChipDistributionAt(klines, index) {
   for (let i = 0; i < factor; i++) totalChips += xdata[i];
 
   function getCostByChip(chip) {
+    if (totalChips === 0) return 0;
     let sum = 0;
     for (let i = 0; i < factor; i++) {
       sum += xdata[i];
       if (sum > chip) return minprice + i * accuracy;
     }
-    return minprice + (factor - 1) * accuracy;
+    return 0;
   }
 
   let below = 0;

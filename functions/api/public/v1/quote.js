@@ -282,6 +282,11 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
   const s = rawSymbol.trim();
   if (!s) return null;
 
+  const yahooAlias = { 'SI=F': 'hf_XAG', 'GC=F': 'hf_XAU', 'CL=F': 'hf_CL' }[s.toUpperCase()];
+  if (yahooAlias) {
+    return { tencent: yahooAlias, sina: yahooAlias, xueqiu: yahooAlias, displayCode: s.toUpperCase(), type: 'futures' };
+  }
+
   if (s.includes('.')) {
     const parts = s.split('.');
     const code = parts[0];
@@ -1201,7 +1206,7 @@ export async function onRequestGet({ request }) {
           status: 400, headers,
         });
       }
-      if (!Number.isInteger(limit) || limit < 1 || limit > 90) {
+      if (!/^(?:[1-9]|[1-8]\d|90)$/.test(limitRaw)) {
         headers['cache-control'] = 'no-store';
         return new Response(JSON.stringify({ status: 'error', message: 'invalid limit' }), {
           status: 400, headers,
@@ -1216,18 +1221,19 @@ export async function onRequestGet({ request }) {
       const marketCode = symbol.startsWith('6') ? 1 : 0;
       const secid = `${marketCode}.${symbol}`;
       const now = Date.now();
+      const cached = chipCache.get(cacheKey);
       if (!bypassCache) {
-        const cached = chipCache.get(cacheKey);
         if (cached?.payload && cached.expiresAt > now) {
           headers['x-chip-cache'] = 'HIT';
           headers['x-chip-cache-age-ms'] = String(now - cached.storedAt);
           return new Response(JSON.stringify(cached.payload), { status: 200, headers });
         }
-        if (cached?.promise) {
-          const payload = await cached.promise;
-          headers['x-chip-cache'] = 'COALESCED';
-          return new Response(JSON.stringify(payload), { status: 200, headers });
-        }
+      }
+      if (cached?.promise) {
+        const payload = await cached.promise;
+        headers['x-chip-cache'] = 'COALESCED';
+        if (bypassCache) headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify(payload), { status: 200, headers });
       }
       const loadPayload = async () => {
         let klines;
@@ -1239,9 +1245,10 @@ export async function onRequestGet({ request }) {
           klines = await fetchKlineFromPush2his(secid, adjust);
         }
         const chip = computeChipDistribution(klines);
+        const comparisonSeries = computeChipDistributionSeries(klines, 2);
         const series = computeChipDistributionSeries(klines, limit);
-        const latest = series.at(-1) || null;
-        const previous = series.at(-2) || null;
+        const latest = comparisonSeries.at(-1) || null;
+        const previous = comparisonSeries.at(-2) || null;
         if (!chip || !latest) throw new Error('chip computation failed');
         return {
           status: 'ok', symbol, secid, adjust, source,
@@ -1265,15 +1272,13 @@ export async function onRequestGet({ request }) {
         };
       };
       const promise = loadPayload();
-      if (!bypassCache) {
-        chipCache.set(cacheKey, { promise });
-        trimChipCache();
-      }
+      chipCache.set(cacheKey, { promise });
+      trimChipCache();
       let payload;
       try {
         payload = await promise;
       } catch (error) {
-        if (!bypassCache) chipCache.delete(cacheKey);
+        chipCache.delete(cacheKey);
         throw error;
       }
       if (!bypassCache) {
@@ -1285,6 +1290,7 @@ export async function onRequestGet({ request }) {
         trimChipCache();
       }
       headers['x-chip-cache'] = bypassCache ? 'BYPASS' : 'MISS';
+      if (bypassCache) headers['cache-control'] = 'no-store';
       return new Response(JSON.stringify(payload), { status: 200, headers });
     } catch (err) {
       headers['cache-control'] = 'no-store';
