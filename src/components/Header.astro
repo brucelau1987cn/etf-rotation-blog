@@ -35,9 +35,9 @@ const isHome = Astro.url.pathname === '/';
               <span class="user-role" id="user-role">—</span>
               <span class="user-sub" id="user-sub">—</span>
             </div>
-            <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
-            <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
-            <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
+            <a href="/account/" class="user-item" role="menuitem"><span class="menu-icon">👤</span> 个人信息</a>
+            <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden><span class="menu-icon">🛠</span> 账号开通</a>
+            <button type="button" class="user-item" id="user-logout" role="menuitem"><span class="menu-icon">🚪</span> 退出登录</button>
           </div>
         </div>
       </div>
@@ -160,6 +160,7 @@ const isHome = Astro.url.pathname === '/';
     color: rgb(var(--gray-dark)) !important; background: none; border: none; cursor: pointer; font-weight: 700 !important;
   }
   .user-item:hover { background: var(--warm) !important; color: rgb(var(--black)) !important; }
+  .menu-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.2rem; height: 1.2rem; line-height: 1; }
   .user-item.admin-only { color: #b45309 !important; }
   nav :global(a) { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.88rem; font-weight: 750; padding: 0.5rem 0.68rem; border-radius: 999px; white-space: nowrap; }
   nav :global(a.active) { color: var(--accent-dark); background: var(--accent-soft); }
