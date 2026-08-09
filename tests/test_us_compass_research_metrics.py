@@ -29,6 +29,12 @@ def test_ranks_accept_empty_input():
     assert ranks([]) == []
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_ranks_reject_non_finite_values(value):
+    with pytest.raises(ValueError, match="values must be finite"):
+        ranks([1.0, value, 2.0])
+
+
 def test_spearman_correlates_average_ranks():
     assert spearman(
         [10.0, 20.0, 20.0, 30.0], [4.0, 1.0, 2.0, 3.0]
@@ -47,6 +53,16 @@ def test_correlations_reject_mismatched_lengths(metric):
 @pytest.mark.parametrize("metric", [pearson, spearman])
 def test_correlations_reject_zero_variance(metric):
     assert metric([1.0, 1.0, 1.0], [1.0, 2.0, 3.0]) is None
+
+
+@pytest.mark.parametrize("metric", [pearson, spearman])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_correlations_reject_non_finite_inputs(metric, value):
+    assert metric([1.0, value, 3.0], [1.0, 2.0, 3.0]) is None
+
+
+def test_pearson_returns_none_when_intermediate_calculation_overflows():
+    assert pearson([1e308, -1e308, 1e308], [1.0, 2.0, 3.0]) is None
 
 
 def test_max_drawdown_measures_worst_peak_to_trough_loss():
@@ -85,6 +101,15 @@ def test_annualized_volatility_rejects_insufficient_samples(returns):
 @pytest.mark.parametrize("periods_per_year", [0, -1])
 def test_annualized_volatility_rejects_non_positive_periods(periods_per_year):
     assert annualized_volatility([0.01, -0.01], periods_per_year) is None
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_annualized_volatility_rejects_non_finite_inputs(value):
+    assert annualized_volatility([0.01, value]) is None
+
+
+def test_annualized_volatility_returns_none_when_calculation_overflows():
+    assert annualized_volatility([1e308, -1e308]) is None
 
 
 def test_rolling_slices_returns_contiguous_complete_windows():
@@ -149,10 +174,25 @@ def test_learning_module_package_import_uses_relative_metrics(monkeypatch):
 
 def test_learning_script_direct_load_uses_sibling_metrics(monkeypatch):
     script = Path(__file__).resolve().parents[1] / "scripts/update_us_compass_learning.py"
-    monkeypatch.setattr(sys, "path", [path for path in sys.path if path != str(script.parent)])
-    sys.modules.pop("us_compass_research_metrics", None)
+    fake = types.ModuleType("us_compass_research_metrics")
+
+    def fake_ranks(values):
+        return [999.0] * len(values)
+
+    def fake_spearman(xs, ys):
+        return 999.0
+
+    setattr(fake, "ranks", fake_ranks)
+    setattr(fake, "spearman", fake_spearman)
+    monkeypatch.setitem(sys.modules, "us_compass_research_metrics", fake)
+    original_path = sys.path.copy()
 
     namespace = runpy.run_path(str(script), run_name="us_compass_learning_direct_import")
 
-    assert namespace["ranks"].__module__ == "us_compass_research_metrics"
-    assert namespace["spearman"].__module__ == "us_compass_research_metrics"
+    assert namespace["ranks"]([30.0, 10.0, 20.0]) == [3.0, 1.0, 2.0]
+    assert namespace["spearman"]([1.0, 2.0, 3.0], [3.0, 2.0, 1.0]) == pytest.approx(-1.0)
+    assert namespace["ranks"] is not fake_ranks
+    assert namespace["spearman"] is not fake_spearman
+    assert namespace["ranks"].__module__.startswith("_us_compass_research_metrics_")
+    assert sys.modules["us_compass_research_metrics"] is fake
+    assert sys.path == original_path

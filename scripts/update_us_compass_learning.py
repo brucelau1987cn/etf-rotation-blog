@@ -7,10 +7,10 @@ portfolios. No brokerage/account access and no production-weight mutation.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import statistics
-import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,12 +19,15 @@ from typing import Any
 if __package__:
     from .us_compass_research_metrics import ranks, spearman
 else:
-    script_dir = str(Path(__file__).resolve().parent)
-    sys.path.insert(0, script_dir)
-    try:
-        from us_compass_research_metrics import ranks, spearman
-    finally:
-        sys.path.remove(script_dir)
+    metrics_path = Path(__file__).resolve().with_name("us_compass_research_metrics.py")
+    metrics_name = f"_us_compass_research_metrics_{id(metrics_path)}"
+    metrics_spec = importlib.util.spec_from_file_location(metrics_name, metrics_path)
+    if metrics_spec is None or metrics_spec.loader is None:
+        raise ImportError(f"cannot load research metrics from {metrics_path}")
+    metrics_module = importlib.util.module_from_spec(metrics_spec)
+    metrics_spec.loader.exec_module(metrics_module)
+    ranks = metrics_module.ranks
+    spearman = metrics_module.spearman
 
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/us-etf-pool.json"

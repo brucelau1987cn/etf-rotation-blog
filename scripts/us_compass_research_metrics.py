@@ -24,6 +24,8 @@ def finite_numbers(values: Sequence[object]) -> list[float]:
 
 def ranks(values: Sequence[float]) -> list[float]:
     """Return ascending one-based average ranks, preserving input order."""
+    if any(not math.isfinite(value) for value in values):
+        raise ValueError("values must be finite")
     order = sorted(range(len(values)), key=values.__getitem__)
     result = [0.0] * len(values)
     start = 0
@@ -49,9 +51,17 @@ def annualized_volatility(
     returns: Sequence[float], periods_per_year: int = 252
 ) -> float | None:
     """Return annualized sample volatility for periodic returns."""
-    if len(returns) < 2 or periods_per_year <= 0:
+    if (
+        len(returns) < 2
+        or periods_per_year <= 0
+        or any(not math.isfinite(value) for value in returns)
+    ):
         return None
-    return statistics.stdev(returns) * math.sqrt(periods_per_year)
+    try:
+        result = statistics.stdev(returns) * math.sqrt(periods_per_year)
+    except ArithmeticError:
+        return None
+    return result if math.isfinite(result) else None
 
 
 def max_drawdown(values: Sequence[float]) -> float | None:
@@ -69,17 +79,31 @@ def max_drawdown(values: Sequence[float]) -> float | None:
 
 def pearson(xs: Sequence[float], ys: Sequence[float]) -> float | None:
     """Return Pearson correlation, or ``None`` when undefined."""
-    if len(xs) < 2 or len(xs) != len(ys):
+    if (
+        len(xs) < 2
+        or len(xs) != len(ys)
+        or any(not math.isfinite(value) for value in xs)
+        or any(not math.isfinite(value) for value in ys)
+    ):
         return None
-    mx, my = statistics.fmean(xs), statistics.fmean(ys)
-    numerator = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
-    dx = math.sqrt(sum((x - mx) ** 2 for x in xs))
-    dy = math.sqrt(sum((y - my) ** 2 for y in ys))
-    return numerator / (dx * dy) if dx and dy else None
+    try:
+        mx, my = statistics.fmean(xs), statistics.fmean(ys)
+        numerator = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        dx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+        dy = math.sqrt(sum((y - my) ** 2 for y in ys))
+        result = numerator / (dx * dy) if dx and dy else None
+    except ArithmeticError:
+        return None
+    return result if result is not None and math.isfinite(result) else None
 
 
 def spearman(xs: Sequence[float], ys: Sequence[float]) -> float | None:
     """Return Spearman rank correlation, or ``None`` when undefined."""
-    if len(xs) < 3 or len(xs) != len(ys):
+    if (
+        len(xs) < 3
+        or len(xs) != len(ys)
+        or any(not math.isfinite(value) for value in xs)
+        or any(not math.isfinite(value) for value in ys)
+    ):
         return None
     return pearson(ranks(xs), ranks(ys))
