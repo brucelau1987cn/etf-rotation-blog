@@ -37,11 +37,11 @@ const description = '查看当前登录身份、订阅到期时间与绑定设�
           $('account-body').hidden = false;
           const rows = [];
           if (d.kind === 'admin') {
-            rows.push(['身份', d.role === 'super_admin' ? '超级管理员' : '二级管理员']);
+            rows.push(['身份', d.role === 'super_admin' ? '超级管理员' : '管理员']);
             rows.push(['登录方式', '管理员账号']);
             rows.push(['会话到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
           } else {
-            rows.push(['身份', '订阅用户']);
+            rows.push(['身份', d.vip ? 'VIP用户' : '订阅用户']);
             rows.push(['备注', d.label || '—']);
             rows.push(['订阅到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
             rows.push(['绑定设备', `${d.device_count ?? 0}/5 台`]);

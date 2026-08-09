@@ -19,24 +19,24 @@ const isHome = Astro.url.pathname === '/';
         <HeaderLink href="/us-compass/" activePaths={['/us-compass/', '/us-momentum', '/us-macro']}>美股罗盘</HeaderLink>
         <HeaderLink href="/paper/">模拟盘</HeaderLink>
         <HeaderLink href="/research-framework/">研究框架</HeaderLink>
-      </div>
-    </div>
-    <div class="user-menu" id="user-menu">
-      <a href="/login/" class="user-login-link" id="user-login-link">登录</a>
-      <div class="user-dropdown" id="user-dropdown" hidden>
-        <button type="button" class="user-trigger" id="user-trigger" aria-haspopup="true" aria-expanded="false">
-          <span class="user-avatar" id="user-avatar">👤</span>
-          <span class="user-name" id="user-name">用户</span>
-          <span class="user-caret">▾</span>
-        </button>
-        <div class="user-panel" id="user-panel" role="menu">
-          <div class="user-panel-head">
-            <span class="user-role" id="user-role">—</span>
-            <span class="user-sub" id="user-sub">—</span>
+        <div class="user-menu" id="user-menu">
+          <a href="/login/" class="user-login-link" id="user-login-link">登录</a>
+          <div class="user-dropdown" id="user-dropdown" hidden>
+            <button type="button" class="user-trigger" id="user-trigger" aria-haspopup="true" aria-expanded="false">
+              <span class="user-avatar" id="user-avatar">👤</span>
+              <span class="user-name" id="user-name">用户</span>
+              <span class="user-caret">▾</span>
+            </button>
+            <div class="user-panel" id="user-panel" role="menu">
+              <div class="user-panel-head">
+                <span class="user-role" id="user-role">—</span>
+                <span class="user-sub" id="user-sub">—</span>
+              </div>
+              <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
+              <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
+              <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
+            </div>
           </div>
-          <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
-          <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
-          <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
         </div>
       </div>
     </div>
@@ -67,16 +67,19 @@ const isHome = Astro.url.pathname === '/';
         loginLink.hidden = true;
         dropdown.hidden = false;
         if (d.kind === 'admin') {
-          nameEl.textContent = d.role === 'super_admin' ? '超级管理员' : '二级管理员';
-          roleEl.textContent = d.role === 'super_admin' ? '超级管理员' : '二级管理员';
+          const roleName = d.role === 'super_admin' ? '超级管理员' : '管理员';
+          nameEl.textContent = roleName;
+          roleEl.textContent = roleName;
           subEl.textContent = '管理后台';
           avatarEl.textContent = '🛠';
           adminLink.hidden = false;
         } else {
-          nameEl.textContent = d.label || '订阅用户';
-          roleEl.textContent = '订阅用户';
-          subEl.textContent = `订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/5`;
-          avatarEl.textContent = '👤';
+          // 有账号密码的订阅 = VIP 用户；纯密码订阅 = 订阅用户
+          const roleName = d.vip ? 'VIP用户' : '订阅用户';
+          nameEl.textContent = roleName;
+          roleEl.textContent = roleName;
+          subEl.textContent = `${d.label || ''} · 订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/5`;
+          avatarEl.textContent = d.vip ? '💎' : '👤';
           adminLink.hidden = true;
         }
       })

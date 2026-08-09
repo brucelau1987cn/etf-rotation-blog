@@ -106,7 +106,7 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
             const accountBox = document.getElementById('admin-account');
             if (accountBox) accountBox.hidden = role !== 'super_admin';
             const roleBadge = document.getElementById('admin-role');
-            if (roleBadge) roleBadge.textContent = role === 'super_admin' ? '超级管理员' : '二级管理员';
+            if (roleBadge) roleBadge.textContent = role === 'super_admin' ? '超级管理员' : '管理员';
           });
           $('sub-tbody').innerHTML = items.map((it) => `
             <tr class="${it.revoked ? 'row-revoked' : ''}">

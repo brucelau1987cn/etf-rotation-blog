@@ -88,7 +88,7 @@ const description = '输入订阅密码或用户名密码访问 ETF 罗盘。';
           const data = await res.json();
           if (res.ok && data.ok) {
             msgEl.textContent = data.kind === 'admin'
-              ? `✔ 管理员登录成功（${data.role === 'super_admin' ? '超级管理员' : '二级管理员'}），进入管理后台…`
+              ? `✔ 管理员登录成功（${data.role === 'super_admin' ? '超级管理员' : '管理员'}），进入管理后台…`
               : `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/5 台设备` : ''}`;
             msgEl.className = 'login-msg ok';
             setTimeout(() => {

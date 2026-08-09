@@ -24,19 +24,22 @@ export async function onRequestGet(context) {
     const p = await verifyToken(subToken, env.SUBSCRIBE_SECRET || 'dev-secret');
     if (p && p.exp && Date.parse(p.exp) > Date.now() && p.sid) {
       const subId = Number(String(p.sub || '').replace('sub:', ''));
-      let label = null, deviceCount = null;
+      let label = null, deviceCount = null, isVip = false;
       if (subId) {
         const sub = await env.DB.prepare(
-          'SELECT label, expires_at FROM subscriptions WHERE id = ?',
+          'SELECT label, username FROM subscriptions WHERE id = ?',
         ).bind(subId).first();
-        if (sub) label = sub.label;
+        if (sub) {
+          label = sub.label;
+          isVip = !!sub.username; // 有用户名账号密码的订阅 = VIP 用户
+        }
         const c = await env.DB.prepare(
           `SELECT COUNT(*) AS n FROM sub_sessions WHERE subscription_id = ? AND expires_at > datetime('now')`,
         ).bind(subId).first();
         deviceCount = Number(c?.n || 0);
       }
       return Response.json({
-        ok: true, kind: 'subscriber', label, expires_at: p.exp,
+        ok: true, kind: 'subscriber', label, vip: isVip, expires_at: p.exp,
         device_count: deviceCount, device_limit: 5,
       });
     }
