@@ -55,6 +55,46 @@ def read_json(path: Path, default: Any = None) -> Any:
         return {} if default is None else default
 
 
+def _validate_archive_report(report: Any, field: str) -> None:
+    if not isinstance(report, dict):
+        raise ValueError(f"{field} must be a JSON object")
+    week = report.get("week_key")
+    if not isinstance(week, str) or not week.strip():
+        raise ValueError(f"{field} week_key must be a nonempty string")
+    parse_iso_date(report.get("trade_date"), f"{field} trade_date")
+    if "generated_at" in report:
+        parse_utc_timestamp(report["generated_at"], f"{field} generated_at")
+
+
+def validate_existing_archive_payload(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("existing archive must be a JSON object")
+    schema_version = payload.get("schema_version")
+    if schema_version is not None and schema_version not in {
+        "us-compass-research-v1", "us-compass-research-v2",
+    }:
+        raise ValueError("existing archive schema_version is invalid")
+    reports = payload.get("reports")
+    if not isinstance(reports, list):
+        raise ValueError("existing archive reports must be a list")
+    week_keys: set[str] = set()
+    for index, report in enumerate(reports):
+        _validate_archive_report(report, f"existing archive reports[{index}]")
+        week = report["week_key"]
+        if week in week_keys:
+            raise ValueError(f"existing archive duplicate week_key: {week}")
+        week_keys.add(week)
+    if "updated_at" in payload:
+        parse_utc_timestamp(payload["updated_at"], "existing archive updated_at")
+    if "latest_week" in payload:
+        latest_week = payload["latest_week"]
+        if not isinstance(latest_week, str) or not latest_week.strip():
+            raise ValueError("existing archive latest_week must be a nonempty string")
+        if latest_week not in week_keys:
+            raise ValueError("existing archive latest_week must belong to a report")
+    return payload
+
+
 def read_existing_archive(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"schema_version": "us-compass-research-v2", "reports": []}
@@ -62,11 +102,7 @@ def read_existing_archive(path: Path) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise ValueError(f"existing archive unreadable or invalid: {path}") from exc
-    if not isinstance(payload, dict):
-        raise ValueError("existing archive must be a JSON object")
-    if not isinstance(payload.get("reports"), list):
-        raise ValueError("existing archive reports must be a list")
-    return payload
+    return validate_existing_archive_payload(payload)
 
 
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -326,7 +362,14 @@ def build_report(
 
 
 def merge_archive(existing: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
-    reports = [item for item in existing.get("reports", []) if isinstance(item, dict) and item.get("week_key") != report.get("week_key")]
+    validate_existing_archive_payload(existing)
+    try:
+        _validate_archive_report(report, "incoming report")
+    except ValueError as exc:
+        if "incoming report" in str(exc):
+            raise
+        raise ValueError(f"incoming report invalid: {exc}") from exc
+    reports = [item for item in existing["reports"] if item["week_key"] != report["week_key"]]
     reports.append(report)
     reports.sort(
         key=lambda item: (str(item.get("trade_date") or ""), str(item.get("generated_at") or "")),

@@ -438,16 +438,83 @@ def test_main_publish_with_nondefault_output_rejects_before_inputs_or_external_c
     assert not output.exists()
 
 
-@pytest.mark.parametrize("contents", ["{", "[]", '{"reports": {}}'])
-def test_read_existing_archive_rejects_invalid_existing_archive(tmp_path, contents):
+def archive_report(week="2026-W30", trade_date="2026-07-24", **extra):
+    return {"week_key": week, "trade_date": trade_date, **extra}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        [17],
+        {"reports": {}},
+        {"reports": [17]},
+        {"reports": [{}]},
+        {"reports": [archive_report(trade_date="2026-99-99")]},
+        {"reports": [archive_report(generated_at="2026-07-24T23:00:00")]},
+        {"reports": [], "updated_at": "2026-07-24T23:00:00"},
+        {"schema_version": "us-compass-research-v3", "reports": []},
+        {"reports": [archive_report()], "latest_week": "2026-W29"},
+        {"reports": [archive_report(), archive_report(trade_date="2026-07-25")]},
+    ],
+)
+def test_read_existing_archive_rejects_corrupt_archive_payloads(tmp_path, payload):
     module = load_module()
     output = tmp_path / "research.json"
+    contents = json.dumps(payload)
     output.write_text(contents, encoding="utf-8")
 
     with pytest.raises(ValueError, match="existing archive"):
         module.read_existing_archive(output)
 
     assert output.read_text(encoding="utf-8") == contents
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"reports": [17]},
+        {"reports": [{}]},
+        {"reports": [archive_report(trade_date="invalid")]},
+        {"reports": [archive_report(), archive_report(trade_date="2026-07-25")]},
+    ],
+)
+def test_merge_archive_rejects_invalid_existing_payload_when_called_directly(payload):
+    module = load_module()
+    incoming = archive_report(
+        "2026-W31", "2026-07-31", generated_at="2026-07-31T23:00:00Z"
+    )
+
+    with pytest.raises(ValueError, match="existing archive"):
+        module.merge_archive(payload, incoming)
+
+
+@pytest.mark.parametrize(
+    "incoming",
+    [
+        {},
+        archive_report(week=""),
+        archive_report(trade_date="invalid"),
+        archive_report(generated_at="2026-07-24T23:00:00"),
+    ],
+)
+def test_merge_archive_rejects_invalid_incoming_report(incoming):
+    module = load_module()
+
+    with pytest.raises(ValueError, match="incoming report"):
+        module.merge_archive({"reports": []}, incoming)
+
+
+def test_read_existing_archive_preserves_unknown_legacy_fields(tmp_path):
+    module = load_module()
+    payload = {
+        "schema_version": "us-compass-research-v1",
+        "legacy_archive_field": {"keep": True},
+        "reports": [archive_report(legacy_report_field="keep")],
+    }
+    output = tmp_path / "research.json"
+    output.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert module.read_existing_archive(output) == payload
 
 
 def test_cli_malformed_existing_archive_is_not_overwritten(tmp_path):
@@ -458,7 +525,7 @@ def test_cli_malformed_existing_archive_is_not_overwritten(tmp_path):
         paths[name] = tmp_path / f"{name}.json"
         paths[name].write_text(json.dumps(payload), encoding="utf-8")
     output = tmp_path / "research.json"
-    original = b'{"reports": '
+    original = b'{"schema_version":"us-compass-research-v2","reports":[17]}\n'
     output.write_bytes(original)
 
     result = subprocess.run([
