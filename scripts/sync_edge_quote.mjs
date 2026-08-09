@@ -10,14 +10,17 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceRoot = resolve(process.env.EDGE_QUOTE_API_ROOT || join(root, '..', 'edge-quote-api'));
 const source = join(sourceRoot, 'src', 'index.js');
+const chipSource = join(sourceRoot, 'src', 'chip.js');
 const target = join(root, 'functions', 'api', 'public', 'v1', 'quote.js');
+const chipRouteTarget = join(root, 'functions', 'api', 'public', 'v1', 'chip.js');
+const chipHelperTarget = join(root, 'functions', 'api', 'public', 'v1', '_chip.js');
 
-if (!existsSync(source)) {
-  console.error(`edge-quote-api source not found: ${source}`);
+if (!existsSync(source) || !existsSync(chipSource)) {
+  console.error(`edge-quote-api source not found: ${source} / ${chipSource}`);
   process.exit(1);
 }
 
-const text = readFileSync(source, 'utf8');
+const text = readFileSync(source, 'utf8').replaceAll("from './chip.js'", "from './_chip.js'");
 if (!text.includes('export async function onRequestGet') && !text.includes('export function onRequestGet')) {
   console.error('edge-quote-api/src/index.js must export onRequestGet for Pages Functions compatibility');
   process.exit(1);
@@ -28,5 +31,8 @@ if (!text.includes('export default')) {
 }
 
 mkdirSync(dirname(target), { recursive: true });
+mkdirSync(dirname(chipRouteTarget), { recursive: true });
 writeFileSync(target, text);
-console.log(`synced quote handler:\n  ${source}\n  -> ${target}`);
+writeFileSync(chipRouteTarget, text);
+copyFileSync(chipSource, chipHelperTarget);
+console.log(`synced quote/chip handlers:\n  ${source}\n  -> ${target}\n  -> ${chipRouteTarget}\n  ${chipSource}\n  -> ${chipHelperTarget}`);

@@ -255,7 +255,7 @@ const nameInitials = (name: string) => {
                 const code = String(inst.symbol).split('.')[0];
                 const chip = (chipData?.chips || {})[code];
                 if (!chip) return null;
-                const diff = chip.profit_ratio != null && chip.yesterday_profit != null ? chip.profit_ratio - chip.yesterday_profit : null;
+                const diff = chip.profit_ratio_change_pp ?? null;
                 const diffUp = (diff ?? 0) >= 0;
                 return (
                   <div class="chip-panel" data-role="chip" data-symbol={inst.symbol}>
