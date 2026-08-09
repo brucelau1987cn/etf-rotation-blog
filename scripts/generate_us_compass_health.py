@@ -18,6 +18,7 @@ DEFAULT_LEARNING = ROOT / "public/data/us-compass-learning.json"
 DEFAULT_SHADOW = ROOT / "public/data/us-compass-shadow.json"
 DEFAULT_OUTPUT = ROOT / "public/data/us-compass-health.json"
 HORIZON_THRESHOLDS = {"t1": (20, 40), "t5": (20, 40), "t20": (12, 20)}
+SLICE_SIZE = 5
 STAGING_BLOCKER = (
     "staging blocker: default US Compass learning and shadow artifacts must be regenerated "
     "by update_us_compass_learning.py to add matching model_fingerprint values"
@@ -163,11 +164,77 @@ def horizon_health(series: list[dict[str, Any]], initial: int, stable: int) -> d
     }
 
 
-def _overall_score(t5: dict[str, Any]) -> float:
-    positive_rate = float(t5["positive_rate"])
-    mean = float(t5["rank_ic_mean"])
-    mean_component = max(0.0, min(1.0, (mean + 0.2) / 0.4))
-    return max(0.0, min(1.0, 0.5 * positive_rate + 0.5 * mean_component))
+def build_time_slices(
+    series: list[dict[str, Any]], size: int = SLICE_SIZE
+) -> list[dict[str, Any]]:
+    """Partition sorted mature RankIC points into consecutive time slices."""
+    slices = []
+    for index, offset in enumerate(range(0, len(series), size)):
+        chunk = series[offset : offset + size]
+        values = [point["value"] for point in chunk]
+        complete = len(chunk) == size
+        mean = statistics.fmean(values) if complete else None
+        slices.append({
+            "index": index,
+            "start_date": chunk[0]["date"],
+            "end_date": chunk[-1]["date"],
+            "signal_start_date": chunk[0]["signal_date"],
+            "signal_end_date": chunk[-1]["signal_date"],
+            "observations": len(chunk),
+            "status": (
+                "POSITIVE" if complete and statistics.fmean(values) > 0
+                else "NON_POSITIVE" if complete
+                else "INSUFFICIENT"
+            ),
+            "mean": mean,
+            "positive_rate": (
+                sum(value > 0 for value in values) / len(values) if complete else None
+            ),
+        })
+    return slices
+
+
+def rate_time_slice_audit(
+    mature_observations: int,
+    positive_slice_rate: float | None,
+    t5_icir: float | None,
+) -> str:
+    """Rate credibility from the governing T+5 time-slice audit."""
+    if mature_observations < HORIZON_THRESHOLDS["t5"][0] or positive_slice_rate is None:
+        return "ACCUMULATING"
+    if positive_slice_rate < 0.5:
+        return "FRAGILE"
+    if positive_slice_rate < 0.7:
+        return "MIXED"
+    return "STABLE" if t5_icir is not None and t5_icir > 0 else "MIXED"
+
+
+def build_walk_forward(t5_horizon: dict[str, Any]) -> dict[str, Any]:
+    """Build the T+5 non-overlapping time-slice credibility audit."""
+    slices = build_time_slices(t5_horizon["series"])
+    evaluated = [item for item in slices if item["status"] != "INSUFFICIENT"]
+    positive = sum(item["status"] == "POSITIVE" for item in evaluated)
+    positive_slice_rate = positive / len(evaluated) if evaluated else None
+    observations = t5_horizon["observations"]
+    status = rate_time_slice_audit(observations, positive_slice_rate, t5_horizon["icir"])
+    mature = observations >= HORIZON_THRESHOLDS["t5"][0]
+    reason = (
+        f"{positive} of {len(evaluated)} evaluated T+5 slices have positive mean RankIC"
+        if mature
+        else f"T+5 requires 20 observations; {observations} available"
+    )
+    return {
+        "status": status,
+        "windows": len(slices),
+        "evaluated_windows": len(evaluated),
+        "positive_windows": positive,
+        "positive_slice_rate": positive_slice_rate,
+        "score": positive_slice_rate if mature else None,
+        "slice_size": SLICE_SIZE,
+        "horizon": "t5",
+        "slices": slices,
+        "reasons": [reason],
+    }
 
 
 def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = None) -> dict[str, Any]:
@@ -193,12 +260,13 @@ def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = 
     }
     t5 = horizons["t5"]
     mature = t5["observations"] >= 20
-    governing_status = t5["status"] if mature else "ACCUMULATING"
+    walk_forward = build_walk_forward(t5)
+    governing_status = walk_forward["status"]
     maturity_reason = (
         f"T+5 reached the 20-observation research gate; status is {governing_status}"
         if mature else f"T+5 requires 20 observations; {t5['observations']} available"
     )
-    overall_score = _overall_score(t5) if mature else None
+    overall_score = walk_forward["score"] if mature else None
     payload = {
         "schema_version": "us-compass-health-v1", "market": "US",
         "model_date": max(dates), "generated_at": _utc_timestamp(generated_at),
@@ -208,7 +276,7 @@ def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = 
             "minimum_observations": 20, "mature": mature, "reasons": [maturity_reason],
         },
         "horizons": horizons,
-        "walk_forward": {"status": "ACCUMULATING", "windows": 0, "score": None, "reasons": ["not evaluated in Task 5"]},
+        "walk_forward": walk_forward,
         "shadow_health": {"status": "ACCUMULATING", "observations": 0, "return": None, "max_drawdown": None, "score": None, "reasons": ["not evaluated in Task 5"]},
         "cost_sensitivity": {"status": "ACCUMULATING", "scenarios": [], "score": None, "reasons": ["not evaluated in Task 5"]},
         "overall": {"status": governing_status, "score": overall_score, "reasons": [maturity_reason]},

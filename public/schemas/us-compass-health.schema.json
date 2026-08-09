@@ -22,7 +22,7 @@
         "t20": {"$ref": "#/$defs/horizon_health"}
       }
     },
-    "walk_forward": {"$ref": "#/$defs/scored_health"},
+    "walk_forward": {"$ref": "#/$defs/walk_forward"},
     "shadow_health": {
       "type": "object",
       "additionalProperties": false,
@@ -129,6 +129,41 @@
         "status": {"$ref": "#/$defs/health_status"},
         "windows": {"type": "integer", "minimum": 0},
         "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "walk_forward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "windows", "evaluated_windows", "positive_windows", "positive_slice_rate", "score", "slice_size", "horizon", "slices", "reasons"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "windows": {"type": "integer", "minimum": 0},
+        "evaluated_windows": {"type": "integer", "minimum": 0},
+        "positive_windows": {"type": "integer", "minimum": 0},
+        "positive_slice_rate": {"$ref": "#/$defs/nullable_score"},
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "slice_size": {"const": 5},
+        "horizon": {"const": "t5"},
+        "slices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["index", "start_date", "end_date", "observations", "status", "mean", "positive_rate", "signal_start_date", "signal_end_date"],
+            "properties": {
+              "index": {"type": "integer", "minimum": 0},
+              "start_date": {"type": "string", "format": "date"},
+              "end_date": {"type": "string", "format": "date"},
+              "signal_start_date": {"type": "string", "format": "date"},
+              "signal_end_date": {"type": "string", "format": "date"},
+              "observations": {"type": "integer", "minimum": 1, "maximum": 5},
+              "status": {"enum": ["POSITIVE", "NON_POSITIVE", "INSUFFICIENT"]},
+              "mean": {"$ref": "#/$defs/nullable_number"},
+              "positive_rate": {"$ref": "#/$defs/nullable_score"}
+            }
+          }
+        },
         "reasons": {"$ref": "#/$defs/reasons"}
       }
     },

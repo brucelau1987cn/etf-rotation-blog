@@ -249,6 +249,137 @@ def validate_us_compass_health_payload(
                             errors.append(
                                 f"horizons.{name}.series[{index}].signal_date must be before date"
                             )
+
+    walk_forward = payload.get("walk_forward")
+    t5 = horizons.get("t5") if isinstance(horizons, dict) else None
+    if isinstance(walk_forward, dict):
+        slices = walk_forward.get("slices")
+        if isinstance(slices, list):
+            if walk_forward.get("windows") != len(slices):
+                errors.append("walk_forward.windows: must equal slices length")
+            evaluated = 0
+            positive = 0
+            total_observations = 0
+            previous_end = None
+            previous_signal_end = None
+            for index, item in enumerate(slices):
+                if not isinstance(item, dict):
+                    continue
+                if item.get("index") != index:
+                    errors.append(f"walk_forward.slices[{index}].index: must be sequential")
+                observations = item.get("observations")
+                status = item.get("status")
+                mean = item.get("mean")
+                positive_rate = item.get("positive_rate")
+                if isinstance(observations, int) and not isinstance(observations, bool):
+                    total_observations += observations
+                    if observations < 5:
+                        if status != "INSUFFICIENT" or mean is not None or positive_rate is not None:
+                            errors.append(
+                                f"walk_forward.slices[{index}]: INSUFFICIENT requires fewer than 5 observations and null metrics"
+                            )
+                    elif observations == 5:
+                        evaluated += 1
+                        if status == "POSITIVE":
+                            positive += 1
+                        if status not in {"POSITIVE", "NON_POSITIVE"} or mean is None or positive_rate is None:
+                            errors.append(
+                                f"walk_forward.slices[{index}]: evaluated slice requires status and non-null metrics"
+                            )
+                        elif (status == "POSITIVE") != (mean > 0):
+                            errors.append(
+                                f"walk_forward.slices[{index}].status: must match mean direction"
+                            )
+                start_date = item.get("start_date")
+                end_date = item.get("end_date")
+                signal_start = item.get("signal_start_date")
+                signal_end = item.get("signal_end_date")
+                if isinstance(start_date, str) and isinstance(end_date, str) and all(valid_date(value) for value in (start_date, end_date)):
+                    if start_date > end_date or (previous_end is not None and start_date <= previous_end):
+                        errors.append("walk_forward.slices: outcome date ranges must be strictly ascending and non-overlapping")
+                    previous_end = end_date
+                if isinstance(signal_start, str) and isinstance(signal_end, str) and all(valid_date(value) for value in (signal_start, signal_end)):
+                    if signal_start > signal_end or (
+                        previous_signal_end is not None and signal_start <= previous_signal_end
+                    ):
+                        errors.append("walk_forward.slices: signal date ranges must be strictly ascending and non-overlapping")
+                    previous_signal_end = signal_end
+            if walk_forward.get("evaluated_windows") != evaluated:
+                errors.append("walk_forward.evaluated_windows: inconsistent with slices")
+            if walk_forward.get("positive_windows") != positive:
+                errors.append("walk_forward.positive_windows: inconsistent with slices")
+            expected_rate = positive / evaluated if evaluated else None
+            actual_rate = walk_forward.get("positive_slice_rate")
+            if expected_rate is None:
+                if actual_rate is not None:
+                    errors.append("walk_forward.positive_slice_rate: must be null without evaluated slices")
+            elif not isinstance(actual_rate, (int, float)) or isinstance(actual_rate, bool) or abs(actual_rate - expected_rate) > 1e-12:
+                errors.append("walk_forward.positive_slice_rate: inconsistent with slices")
+            if isinstance(t5, dict):
+                observations = t5.get("observations")
+                if isinstance(observations, int) and total_observations != observations:
+                    errors.append("walk_forward.slices observations: sum must equal horizons.t5.observations")
+                series = t5.get("series")
+                if isinstance(series, list):
+                    for index, item in enumerate(slices):
+                        if not isinstance(item, dict):
+                            continue
+                        chunk = series[index * 5 : index * 5 + 5]
+                        if not chunk:
+                            continue
+                        expected_boundaries = (
+                            chunk[0].get("date"), chunk[-1].get("date"),
+                            chunk[0].get("signal_date"), chunk[-1].get("signal_date"),
+                        ) if all(isinstance(point, dict) for point in chunk) else None
+                        actual_boundaries = (
+                            item.get("start_date"), item.get("end_date"),
+                            item.get("signal_start_date"), item.get("signal_end_date"),
+                        )
+                        if expected_boundaries is not None and actual_boundaries != expected_boundaries:
+                            errors.append(f"walk_forward.slices[{index}]: boundaries must match consecutive T+5 observations")
+                        if item.get("observations") != len(chunk):
+                            errors.append(f"walk_forward.slices[{index}].observations: must match T+5 assignment")
+                        if len(chunk) == 5 and all(
+                            isinstance(point.get("value"), (int, float))
+                            and not isinstance(point.get("value"), bool)
+                            for point in chunk if isinstance(point, dict)
+                        ):
+                            values = [point["value"] for point in chunk]
+                            expected_mean = sum(values) / 5
+                            expected_positive_rate = sum(value > 0 for value in values) / 5
+                            if not isinstance(item.get("mean"), (int, float)) or abs(item["mean"] - expected_mean) > 1e-12:
+                                errors.append(f"walk_forward.slices[{index}].mean: inconsistent with T+5 observations")
+                            if not isinstance(item.get("positive_rate"), (int, float)) or abs(item["positive_rate"] - expected_positive_rate) > 1e-12:
+                                errors.append(f"walk_forward.slices[{index}].positive_rate: inconsistent with T+5 observations")
+        if isinstance(sample_maturity, dict) and sample_maturity.get("mature") is True:
+            rate = walk_forward.get("positive_slice_rate")
+            icir = t5.get("icir") if isinstance(t5, dict) else None
+            expected_status = None
+            if isinstance(rate, (int, float)) and not isinstance(rate, bool):
+                if rate < 0.5:
+                    expected_status = "FRAGILE"
+                elif rate < 0.7:
+                    expected_status = "MIXED"
+                else:
+                    expected_status = (
+                        "STABLE"
+                        if isinstance(icir, (int, float))
+                        and not isinstance(icir, bool)
+                        and icir > 0
+                        else "MIXED"
+                    )
+            if expected_status is not None and walk_forward.get("status") != expected_status:
+                errors.append("walk_forward.status: inconsistent with time-slice rating")
+            if walk_forward.get("score") != walk_forward.get("positive_slice_rate"):
+                errors.append("walk_forward.score: must equal positive_slice_rate after maturity")
+            overall = payload.get("overall")
+            if isinstance(overall, dict):
+                if overall.get("status") != walk_forward.get("status"):
+                    errors.append("overall.status: must equal walk_forward.status after maturity")
+                if overall.get("score") != walk_forward.get("score"):
+                    errors.append("overall.score: must equal walk_forward.score after maturity")
+            if sample_maturity.get("status") != walk_forward.get("status"):
+                errors.append("sample_maturity.status: must equal walk_forward.status after maturity")
     errors.extend(
         _require_null_immature_metrics(
             payload.get("walk_forward"), ("score",), "walk_forward", sample_immature

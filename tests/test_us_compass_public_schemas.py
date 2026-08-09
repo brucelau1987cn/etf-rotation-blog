@@ -78,7 +78,18 @@ def health_payload(model_fingerprint):
             "reasons": ["forward sample is immature"],
         },
         "horizons": {"t1": metric, "t5": metric, "t20": metric},
-        "walk_forward": {"status": "ACCUMULATING", "windows": 0, "score": None},
+        "walk_forward": {
+            "status": "ACCUMULATING", "windows": 1, "evaluated_windows": 0,
+            "positive_windows": 0, "positive_slice_rate": None, "score": None,
+            "slice_size": 5, "horizon": "t5",
+            "slices": [{
+                "index": 0, "start_date": "2026-08-02", "end_date": "2026-08-05",
+                "signal_start_date": "2026-08-01", "signal_end_date": "2026-08-04",
+                "observations": 4, "status": "INSUFFICIENT", "mean": None,
+                "positive_rate": None,
+            }],
+            "reasons": ["T+5 requires 20 observations; 4 available"],
+        },
         "shadow_health": {"status": "ACCUMULATING", "observations": 4, "return": None, "max_drawdown": None},
         "cost_sensitivity": {"status": "ACCUMULATING", "scenarios": [], "score": None},
         "overall": {"status": "ACCUMULATING", "score": None, "reasons": ["insufficient history"]},
@@ -226,7 +237,7 @@ def test_sample_maturity_status_must_match_maturity_direction(
 
 def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, health_payload):
     health_payload["sample_maturity"].update(
-        status="STABLE", observations=20, minimum_observations=20, mature=True
+        status="FRAGILE", observations=20, minimum_observations=20, mature=True
     )
     health_payload["horizons"]["t1"] = {
         "status": "STABLE",
@@ -240,7 +251,23 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
             for index in range(20)
         ],
     }
-    health_payload["walk_forward"] = {"status": "STABLE", "windows": 1, "score": 0}
+    health_payload["horizons"]["t5"] = copy.deepcopy(health_payload["horizons"]["t1"])
+    health_payload["walk_forward"] = {
+        "status": "FRAGILE", "windows": 4, "evaluated_windows": 4,
+        "positive_windows": 0, "positive_slice_rate": 0, "score": 0,
+        "slice_size": 5, "horizon": "t5", "reasons": ["zero is legitimate"],
+        "slices": [
+            {
+                "index": index, "start_date": f"2026-01-{index * 5 + 1:02d}",
+                "end_date": f"2026-01-{index * 5 + 5:02d}",
+                "signal_start_date": f"2025-12-{index * 5 + 1:02d}",
+                "signal_end_date": f"2025-12-{index * 5 + 5:02d}",
+                "observations": 5, "status": "NON_POSITIVE", "mean": 0,
+                "positive_rate": 0,
+            }
+            for index in range(4)
+        ],
+    }
     health_payload["shadow_health"] = {
         "status": "STABLE",
         "observations": 20,
@@ -253,7 +280,7 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
         "scenarios": [{"one_way_cost": 0, "value": 0}],
         "score": 0,
     }
-    health_payload["overall"] = {"status": "STABLE", "score": 0, "reasons": []}
+    health_payload["overall"] = {"status": "FRAGILE", "score": 0, "reasons": []}
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
 
@@ -419,3 +446,112 @@ def test_health_series_accepts_valid_signal_and_outcome_date_sequences(
     validator_module, health_payload
 ):
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda value: value["walk_forward"].update(windows=2), "windows"),
+        (lambda value: value["walk_forward"]["slices"][0].update(index=1), "index"),
+        (lambda value: value["walk_forward"]["slices"][0].update(observations=5), "observations"),
+        (lambda value: value["walk_forward"]["slices"][0].update(mean=0), "INSUFFICIENT"),
+        (lambda value: value["walk_forward"].update(evaluated_windows=1), "evaluated_windows"),
+        (lambda value: value["walk_forward"].update(positive_windows=1), "positive_windows"),
+        (lambda value: value["walk_forward"].update(positive_slice_rate=0), "positive_slice_rate"),
+    ],
+)
+def test_walk_forward_semantic_mutations_fail(
+    validator_module, health_payload, change, message
+):
+    change(health_payload)
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(message in error for error in errors), errors
+
+
+def test_mature_overall_must_match_walk_forward(validator_module, health_payload):
+    health_payload["sample_maturity"].update(
+        status="MIXED", observations=20, minimum_observations=20, mature=True
+    )
+    t5 = health_payload["horizons"]["t5"]
+    t5.update(
+        status="MIXED", observations=20, maturity_ratio=1, rank_ic_mean=0.01,
+        rank_ic_median=0.01, rank_ic_std=0.1, icir=0.1, positive_rate=0.5,
+        recent_5_mean=0.01, recent_5_count=5, recent_10_mean=0.01,
+        recent_10_count=10, trend="FLAT",
+    )
+    t5["series"] = [
+        {
+            "signal_date": f"2025-12-{index + 1:02d}",
+            "date": f"2026-01-{index + 1:02d}",
+            "value": 0.1 if index < 15 else -0.1,
+        }
+        for index in range(20)
+    ]
+    health_payload["walk_forward"] = {
+        "status": "MIXED", "windows": 4, "evaluated_windows": 4,
+        "positive_windows": 3, "positive_slice_rate": 0.75, "score": 0.75,
+        "slice_size": 5, "horizon": "t5", "reasons": ["audit"],
+        "slices": [
+            {
+                "index": index, "start_date": f"2026-01-{index * 5 + 1:02d}",
+                "end_date": f"2026-01-{index * 5 + 5:02d}",
+                "signal_start_date": f"2025-12-{index * 5 + 1:02d}",
+                "signal_end_date": f"2025-12-{index * 5 + 5:02d}",
+                "observations": 5, "status": "POSITIVE" if index < 3 else "NON_POSITIVE",
+                "mean": 0.1 if index < 3 else -0.1,
+                "positive_rate": 1 if index < 3 else 0,
+            }
+            for index in range(4)
+        ],
+    }
+    health_payload["overall"] = {"status": "FRAGILE", "score": 0.5, "reasons": []}
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("overall.status" in error for error in errors), errors
+    assert any("overall.score" in error for error in errors), errors
+
+
+def test_mature_walk_forward_status_must_match_rating(validator_module, health_payload):
+    health_payload["sample_maturity"].update(
+        status="FRAGILE", observations=20, minimum_observations=20, mature=True
+    )
+    t5 = health_payload["horizons"]["t5"]
+    t5.update(
+        status="MIXED", observations=20, maturity_ratio=1, rank_ic_mean=0.05,
+        rank_ic_median=0.05, rank_ic_std=0.1, icir=0.5, positive_rate=0.75,
+        recent_5_mean=0.1, recent_5_count=5, recent_10_mean=0.1,
+        recent_10_count=10, trend="FLAT",
+    )
+    t5["series"] = [
+        {
+            "signal_date": f"2025-12-{index + 1:02d}",
+            "date": f"2026-01-{index + 1:02d}",
+            "value": 0.1 if index < 15 else -0.1,
+        }
+        for index in range(20)
+    ]
+    health_payload["walk_forward"] = {
+        "status": "FRAGILE", "windows": 4, "evaluated_windows": 4,
+        "positive_windows": 3, "positive_slice_rate": 0.75, "score": 0.75,
+        "slice_size": 5, "horizon": "t5", "reasons": ["audit"],
+        "slices": [
+            {
+                "index": index, "start_date": f"2026-01-{index * 5 + 1:02d}",
+                "end_date": f"2026-01-{index * 5 + 5:02d}",
+                "signal_start_date": f"2025-12-{index * 5 + 1:02d}",
+                "signal_end_date": f"2025-12-{index * 5 + 5:02d}",
+                "observations": 5, "status": "POSITIVE" if index < 3 else "NON_POSITIVE",
+                "mean": 0.1 if index < 3 else -0.1,
+                "positive_rate": 1 if index < 3 else 0,
+            }
+            for index in range(4)
+        ],
+    }
+    health_payload["overall"] = {"status": "FRAGILE", "score": 0.75, "reasons": []}
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("walk_forward.status" in error and "rating" in error for error in errors), errors

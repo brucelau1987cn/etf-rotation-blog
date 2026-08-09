@@ -144,6 +144,89 @@ def test_zero_standard_deviation_has_null_icir():
     assert result["rank_ic_std"] == 0 and result["icir"] is None
 
 
+@pytest.mark.parametrize(
+    ("count", "expected_observations", "expected_statuses"),
+    [
+        (0, [], []),
+        (4, [4], ["INSUFFICIENT"]),
+        (5, [5], ["POSITIVE"]),
+        (6, [5, 1], ["POSITIVE", "INSUFFICIENT"]),
+        (10, [5, 5], ["POSITIVE", "POSITIVE"]),
+        (11, [5, 5, 1], ["POSITIVE", "POSITIVE", "INSUFFICIENT"]),
+    ],
+)
+def test_time_slices_partition_consecutively_without_overlap(
+    count, expected_observations, expected_statuses
+):
+    series = [point(index, 0.1) for index in range(count)]
+
+    slices = load_module().build_time_slices(series)
+
+    assert [item["observations"] for item in slices] == expected_observations
+    assert [item["status"] for item in slices] == expected_statuses
+    assert [item["index"] for item in slices] == list(range(len(slices)))
+    assigned = []
+    for item in slices:
+        assigned.extend(
+            p["date"]
+            for p in series
+            if item["start_date"] <= p["date"] <= item["end_date"]
+        )
+    assert assigned == [p["date"] for p in series]
+    assert len(assigned) == len(set(assigned))
+
+
+def test_time_slice_metrics_and_remainder_null_results():
+    values = [0.2, -0.1, 0.0, 0.3, -0.2, 0.9]
+
+    slices = load_module().build_time_slices(
+        [point(index, value) for index, value in enumerate(values)]
+    )
+
+    assert slices[0]["mean"] == pytest.approx(0.04)
+    assert slices[0]["positive_rate"] == pytest.approx(0.4)
+    assert slices[0]["status"] == "POSITIVE"
+    assert slices[0]["start_date"] == "2026-01-01"
+    assert slices[0]["end_date"] == "2026-01-05"
+    assert slices[0]["signal_start_date"] == "2025-12-01"
+    assert slices[0]["signal_end_date"] == "2025-12-05"
+    assert slices[1]["status"] == "INSUFFICIENT"
+    assert slices[1]["mean"] is None and slices[1]["positive_rate"] is None
+
+
+@pytest.mark.parametrize(
+    ("observations", "rate", "icir", "expected"),
+    [
+        (19, 1.0, 1.0, "ACCUMULATING"),
+        (20, 0.4999, 1.0, "FRAGILE"),
+        (20, 0.5, 1.0, "MIXED"),
+        (20, 0.6999, 1.0, "MIXED"),
+        (20, 0.7, -0.1, "MIXED"),
+        (20, 0.7, None, "MIXED"),
+        (20, 0.7, 0.1, "STABLE"),
+    ],
+)
+def test_time_slice_rating_boundaries(observations, rate, icir, expected):
+    assert load_module().rate_time_slice_audit(observations, rate, icir) == expected
+
+
+def test_walk_forward_aggregates_evaluated_slices_and_rate():
+    values = [0.2] * 5 + [-0.2] * 5 + [0.1] * 5 + [0.3] * 5 + [0.7]
+    t5 = load_module().horizon_health(
+        [point(index, value) for index, value in enumerate(values)], 20, 40
+    )
+
+    result = load_module().build_walk_forward(t5)
+
+    assert result["horizon"] == "t5" and result["slice_size"] == 5
+    assert result["windows"] == 5 and result["evaluated_windows"] == 4
+    assert result["positive_windows"] == 3
+    assert result["positive_slice_rate"] == pytest.approx(0.75)
+    assert result["score"] == pytest.approx(0.75)
+    assert result["status"] == "STABLE"
+    assert result["slices"][-1]["status"] == "INSUFFICIENT"
+
+
 @pytest.mark.parametrize("recent,expected", [([0.02] * 5, "IMPROVING"), ([0.0] * 5, "WEAKENING"), ([0.014] * 5, "FLAT")])
 def test_trend_compares_recent_five_with_prior_five(recent, expected):
     values = [0.01] * 15 + recent
@@ -170,8 +253,28 @@ def test_stable_t5_governs_overall_with_bounded_score(fingerprint):
     learning = learning_with({"t1": positive_variable, "t5": positive_variable, "t20": [0.1, 0.2] * 10}, fingerprint)
     payload = load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-03-01T00:00:00Z")
     assert payload["sample_maturity"]["status"] == "STABLE"
+    assert payload["walk_forward"]["status"] == "STABLE"
+    assert payload["walk_forward"]["windows"] == 8
+    assert payload["walk_forward"]["evaluated_windows"] == 8
+    assert payload["walk_forward"]["positive_windows"] == 8
+    assert payload["walk_forward"]["positive_slice_rate"] == 1
+    assert payload["overall"]["status"] == payload["walk_forward"]["status"]
+    assert payload["overall"]["score"] == payload["walk_forward"]["score"] == 1
+
+
+def test_mature_overall_uses_slice_rating_not_horizon_status(fingerprint):
+    values = [-0.1] * 5 + [0.1] * 15
+    payload = load_module().build_health_payload(
+        learning_with({"t5": values}, fingerprint),
+        shadow_with(fingerprint),
+        "2026-03-01T00:00:00Z",
+    )
+
+    assert payload["horizons"]["t5"]["status"] == "MIXED"
+    assert payload["walk_forward"]["status"] == "STABLE"
+    assert payload["sample_maturity"]["status"] == "STABLE"
     assert payload["overall"]["status"] == "STABLE"
-    assert 0 <= payload["overall"]["score"] <= 1
+    assert payload["overall"]["score"] == pytest.approx(0.75)
 
 
 def test_full_payload_validates_and_cli_writes_atomically(tmp_path, fingerprint):
