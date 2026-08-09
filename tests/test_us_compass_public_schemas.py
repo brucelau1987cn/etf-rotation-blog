@@ -73,6 +73,13 @@ def health_payload(model_fingerprint):
     }
 
 
+def set_health_result_statuses(payload, status):
+    for horizon in payload["horizons"].values():
+        horizon["status"] = status
+    for section in ("walk_forward", "shadow_health", "cost_sensitivity", "overall"):
+        payload[section]["status"] = status
+
+
 @pytest.fixture
 def rotation_payload():
     return {
@@ -156,15 +163,64 @@ def test_valid_fixture_payloads_pass(validator_module, health_payload, rotation_
 def test_immature_health_result_metrics_must_be_null(
     validator_module, health_payload, change, path
 ):
+    set_health_result_statuses(health_payload, "STABLE")
     change(health_payload)
     errors = validator_module.validate_us_compass_health_payload(health_payload)
     assert any(
-        path in error and "must be null while status is ACCUMULATING" in error
+        path in error and "must be null while sample maturity is immature" in error
         for error in errors
     ), errors
 
 
-def test_stable_health_accepts_legitimate_numeric_zero(validator_module, health_payload):
+@pytest.mark.parametrize(
+    ("observations", "minimum_observations", "mature"),
+    [(19, 20, True), (20, 20, False)],
+)
+def test_sample_mature_flag_must_match_observation_counts(
+    validator_module, health_payload, observations, minimum_observations, mature
+):
+    health_payload["sample_maturity"].update(
+        observations=observations,
+        minimum_observations=minimum_observations,
+        mature=mature,
+    )
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("sample_maturity.mature" in error and "must equal" in error for error in errors), errors
+
+
+@pytest.mark.parametrize(
+    ("observations", "minimum_observations", "mature", "status"),
+    [
+        (19, 20, False, "STABLE"),
+        (20, 20, True, "ACCUMULATING"),
+    ],
+)
+def test_sample_maturity_status_must_match_maturity_direction(
+    validator_module,
+    health_payload,
+    observations,
+    minimum_observations,
+    mature,
+    status,
+):
+    health_payload["sample_maturity"].update(
+        observations=observations,
+        minimum_observations=minimum_observations,
+        mature=mature,
+        status=status,
+    )
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("sample_maturity.status" in error and "inconsistent" in error for error in errors), errors
+
+
+def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, health_payload):
+    health_payload["sample_maturity"].update(
+        status="STABLE", observations=20, minimum_observations=20, mature=True
+    )
     health_payload["horizons"]["t1"] = {
         "status": "STABLE",
         "sample_count": 20,
@@ -187,6 +243,15 @@ def test_stable_health_accepts_legitimate_numeric_zero(validator_module, health_
         "score": 0,
     }
     health_payload["overall"] = {"status": "STABLE", "score": 0, "reasons": []}
+
+    assert validator_module.validate_us_compass_health_payload(health_payload) == []
+
+
+def test_mature_unavailable_health_accepts_null_results(validator_module, health_payload):
+    health_payload["sample_maturity"].update(
+        status="UNAVAILABLE", observations=20, minimum_observations=20, mature=True
+    )
+    set_health_result_statuses(health_payload, "UNAVAILABLE")
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
 

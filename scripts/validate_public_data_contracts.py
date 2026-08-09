@@ -115,13 +115,23 @@ def _schema(name: str, schema: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def _require_null_immature_metrics(
-    section: Any, fields: tuple[str, ...], path: str
+    section: Any,
+    fields: tuple[str, ...],
+    path: str,
+    sample_immature: bool = False,
 ) -> list[str]:
-    if not isinstance(section, dict) or section.get("status") not in {"ACCUMULATING", "UNAVAILABLE"}:
+    if not isinstance(section, dict):
         return []
-    status = section["status"]
+    status = section.get("status")
+    if not sample_immature and status not in {"ACCUMULATING", "UNAVAILABLE"}:
+        return []
+    reason = (
+        "sample maturity is immature"
+        if sample_immature
+        else f"status is {status}"
+    )
     return [
-        f"{path}.{field}: must be null while status is {status}"
+        f"{path}.{field}: must be null while {reason}"
         for field in fields
         if field in section and section[field] is not None
     ]
@@ -134,6 +144,37 @@ def validate_us_compass_health_payload(
     if not isinstance(payload, dict):
         return errors
 
+    sample_maturity = payload.get("sample_maturity")
+    sample_immature = False
+    if isinstance(sample_maturity, dict):
+        observations = sample_maturity.get("observations")
+        minimum_observations = sample_maturity.get("minimum_observations")
+        mature = sample_maturity.get("mature")
+        status = sample_maturity.get("status")
+        if (
+            isinstance(observations, int)
+            and not isinstance(observations, bool)
+            and isinstance(minimum_observations, int)
+            and not isinstance(minimum_observations, bool)
+            and isinstance(mature, bool)
+        ):
+            expected_mature = observations >= minimum_observations
+            if mature != expected_mature:
+                errors.append(
+                    "sample_maturity.mature: must equal "
+                    "observations >= minimum_observations"
+                )
+            allowed_statuses = (
+                {"FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"}
+                if expected_mature
+                else {"ACCUMULATING", "UNAVAILABLE"}
+            )
+            if status not in allowed_statuses:
+                errors.append(
+                    "sample_maturity.status: inconsistent with observation maturity"
+                )
+            sample_immature = not mature or not expected_mature
+
     horizons = payload.get("horizons")
     if isinstance(horizons, dict):
         for name, horizon in horizons.items():
@@ -142,34 +183,51 @@ def validate_us_compass_health_payload(
                     horizon,
                     ("value", "rank_ic", "cross_sectional_deviation", "score"),
                     f"horizons.{name}",
+                    sample_immature,
                 )
             )
     errors.extend(
-        _require_null_immature_metrics(payload.get("walk_forward"), ("score",), "walk_forward")
+        _require_null_immature_metrics(
+            payload.get("walk_forward"), ("score",), "walk_forward", sample_immature
+        )
     )
     errors.extend(
         _require_null_immature_metrics(
             payload.get("shadow_health"),
             ("return", "max_drawdown", "score"),
             "shadow_health",
+            sample_immature,
         )
     )
     cost_sensitivity = payload.get("cost_sensitivity")
-    errors.extend(_require_null_immature_metrics(cost_sensitivity, ("score",), "cost_sensitivity"))
-    if isinstance(cost_sensitivity, dict) and cost_sensitivity.get("status") in {
-        "ACCUMULATING",
-        "UNAVAILABLE",
-    }:
-        status = cost_sensitivity["status"]
+    errors.extend(
+        _require_null_immature_metrics(
+            cost_sensitivity, ("score",), "cost_sensitivity", sample_immature
+        )
+    )
+    cost_status_immature = (
+        isinstance(cost_sensitivity, dict)
+        and cost_sensitivity.get("status") in {"ACCUMULATING", "UNAVAILABLE"}
+    )
+    if isinstance(cost_sensitivity, dict) and (sample_immature or cost_status_immature):
+        reason = (
+            "sample maturity is immature"
+            if sample_immature
+            else f"status is {cost_sensitivity['status']}"
+        )
         scenarios = cost_sensitivity.get("scenarios")
         if isinstance(scenarios, list):
             for index, scenario in enumerate(scenarios):
                 if isinstance(scenario, dict) and scenario.get("value") is not None:
                     errors.append(
                         f"cost_sensitivity.scenarios[{index}].value: "
-                        f"must be null while status is {status}"
+                        f"must be null while {reason}"
                     )
-    errors.extend(_require_null_immature_metrics(payload.get("overall"), ("score",), "overall"))
+    errors.extend(
+        _require_null_immature_metrics(
+            payload.get("overall"), ("score",), "overall", sample_immature
+        )
+    )
     return errors
 
 
