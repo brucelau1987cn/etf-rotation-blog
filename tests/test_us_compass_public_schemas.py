@@ -123,11 +123,41 @@ def health_payload(model_fingerprint):
     }
 
 
-def set_health_result_statuses(payload, status):
-    for horizon in payload["horizons"].values():
-        horizon["status"] = status
-    for section in ("walk_forward", "shadow_health", "cost_sensitivity", "overall"):
-        payload[section]["status"] = status
+@pytest.fixture
+def mature_shadow_payload(health_payload):
+    shadow = health_payload["shadow_health"]
+    shadow.update(
+        {
+            "status": "MIXED",
+            "observations": 20,
+            "return": 0,
+            "max_drawdown": 0,
+            "score": 0.25,
+        }
+    )
+    for portfolio in shadow["portfolios"].values():
+        portfolio.update(
+            status="MIXED",
+            observations=20,
+            total_return=0,
+            annualized_volatility=0,
+            max_drawdown=0,
+            current_drawdown=0,
+            longest_drawdown_duration=0,
+            rolling_20d_volatility=0,
+            positive_period_rate=0,
+            excess_return_vs_benchmark=0,
+            equity_series=[
+                {
+                    "date": f"2026-01-{index + 1:02d}",
+                    "equity": 20_000.0,
+                    "period_return": 0.0,
+                }
+                for index in range(20)
+            ],
+        )
+    health_payload["cost_sensitivity"]["observations"] = 20
+    return health_payload
 
 
 @pytest.fixture
@@ -214,6 +244,33 @@ def test_immature_health_result_metrics_must_be_null(
     assert any(
         path in error and "must be null" in error
         for error in errors
+    ), errors
+
+
+@pytest.mark.parametrize(
+    ("change", "path"),
+    [
+        (
+            lambda value: value["shadow_health"].update(status="STABLE"),
+            "shadow_health.status",
+        ),
+        (
+            lambda value: value["shadow_health"]["portfolios"]["fusion"].update(
+                status="STABLE"
+            ),
+            "shadow_health.portfolios.fusion.status",
+        ),
+    ],
+)
+def test_immature_shadow_statuses_must_independently_be_accumulating(
+    validator_module, health_payload, change, path
+):
+    change(health_payload)
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(
+        path in error and "must be ACCUMULATING" in error for error in errors
     ), errors
 
 
@@ -317,6 +374,49 @@ def test_sample_maturity_status_must_match_maturity_direction(
     assert any("sample_maturity.status" in error and "inconsistent" in error for error in errors), errors
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "total_return",
+        "annualized_volatility",
+        "max_drawdown",
+        "current_drawdown",
+        "rolling_20d_volatility",
+        "positive_period_rate",
+        "excess_return_vs_benchmark",
+    ],
+)
+def test_mature_shadow_metric_wrong_types_return_errors_without_raising(
+    validator_module, mature_shadow_payload, field
+):
+    mature_shadow_payload["shadow_health"]["portfolios"]["fusion"][field] = "forged"
+
+    errors = validator_module.validate_us_compass_health_payload(
+        mature_shadow_payload
+    )
+
+    assert any(
+        f"shadow_health.portfolios.fusion.{field}" in error for error in errors
+    ), errors
+
+
+def test_mature_shadow_duration_forgery_is_rejected(
+    validator_module, mature_shadow_payload
+):
+    mature_shadow_payload["shadow_health"]["portfolios"]["fusion"][
+        "longest_drawdown_duration"
+    ] = 999
+
+    errors = validator_module.validate_us_compass_health_payload(
+        mature_shadow_payload
+    )
+
+    assert any(
+        "shadow_health.portfolios.fusion.longest_drawdown_duration" in error
+        for error in errors
+    ), errors
+
+
 def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, health_payload):
     health_payload["sample_maturity"].update(
         status="FRAGILE", observations=20, minimum_observations=20, mature=True
@@ -401,8 +501,10 @@ def test_mature_unavailable_health_accepts_null_results(validator_module, health
     health_payload["sample_maturity"].update(
         status="UNAVAILABLE", observations=20, minimum_observations=20, mature=True
     )
-    set_health_result_statuses(health_payload, "UNAVAILABLE")
-    health_payload["cost_sensitivity"]["status"] = "UNAVAILABLE"
+    for horizon in health_payload["horizons"].values():
+        horizon["status"] = "UNAVAILABLE"
+    for section in ("walk_forward", "cost_sensitivity", "overall"):
+        health_payload[section]["status"] = "UNAVAILABLE"
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []
 

@@ -160,6 +160,25 @@ def _require_null_immature_metrics(
     ]
 
 
+def _semantic_value_matches(actual: Any, expected: Any) -> bool:
+    if expected is None:
+        return actual is None
+    if isinstance(expected, bool):
+        return isinstance(actual, bool) and actual is expected
+    if isinstance(expected, int):
+        return isinstance(actual, int) and not isinstance(actual, bool) and actual == expected
+    if isinstance(expected, float):
+        return (
+            isinstance(actual, (int, float))
+            and not isinstance(actual, bool)
+            and math.isfinite(actual)
+            and math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-8)
+        )
+    if isinstance(expected, str):
+        return isinstance(actual, str) and actual == expected
+    return type(actual) is type(expected) and actual == expected
+
+
 def validate_us_compass_health_payload(
     payload: Any, schema: dict[str, Any] | None = None
 ) -> list[str]:
@@ -450,12 +469,25 @@ def validate_us_compass_health_payload(
         if initial != fp_initial:
             errors.append("shadow_health.initial_capital: must equal model_fingerprint.initial_capital")
         portfolios = shadow_health.get("portfolios")
+        shadow_immature = (
+            isinstance(observations, int)
+            and not isinstance(observations, bool)
+            and observations < 20
+        )
+        if shadow_immature and shadow_health.get("status") != "ACCUMULATING":
+            errors.append(
+                "shadow_health.status: must be ACCUMULATING before 20 observations"
+            )
         benchmark_total = portfolios.get("benchmark", {}).get("total_return") if isinstance(portfolios, dict) else None
         if isinstance(portfolios, dict):
             fusion = portfolios.get("fusion")
             for name, portfolio in portfolios.items():
                 if not isinstance(portfolio, dict):
                     continue
+                if shadow_immature and portfolio.get("status") != "ACCUMULATING":
+                    errors.append(
+                        f"shadow_health.portfolios.{name}.status: must be ACCUMULATING before 20 observations"
+                    )
                 series = portfolio.get("equity_series")
                 count = portfolio.get("observations")
                 if isinstance(series, list) and isinstance(count, int) and len(series) != count:
@@ -498,7 +530,7 @@ def validate_us_compass_health_payload(
                         expected["status"] = rate_shadow_health(count, expected["total_return"], worst, expected["positive_period_rate"])
                         for field, wanted in expected.items():
                             actual = portfolio.get(field)
-                            if wanted is None and actual is not None or wanted is not None and (not isinstance(actual, (int, float, str)) or isinstance(actual, bool) or (isinstance(wanted, float) and abs(actual - wanted) > 1e-10) or isinstance(wanted, str) and actual != wanted):
+                            if not _semantic_value_matches(actual, wanted):
                                 errors.append(f"shadow_health.portfolios.{name}.{field}: inconsistent with period returns")
             if isinstance(fusion, dict):
                 for root, field in (("return", "total_return"), ("max_drawdown", "max_drawdown"), ("status", "status")):
