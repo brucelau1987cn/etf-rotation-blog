@@ -21,9 +21,85 @@ const isHome = Astro.url.pathname === '/';
         <HeaderLink href="/research-framework/">研究框架</HeaderLink>
       </div>
     </div>
+    <div class="user-menu" id="user-menu">
+      <a href="/login/" class="user-login-link" id="user-login-link">登录</a>
+      <div class="user-dropdown" id="user-dropdown" hidden>
+        <button type="button" class="user-trigger" id="user-trigger" aria-haspopup="true" aria-expanded="false">
+          <span class="user-avatar" id="user-avatar">👤</span>
+          <span class="user-name" id="user-name">用户</span>
+          <span class="user-caret">▾</span>
+        </button>
+        <div class="user-panel" id="user-panel" role="menu">
+          <div class="user-panel-head">
+            <span class="user-role" id="user-role">—</span>
+            <span class="user-sub" id="user-sub">—</span>
+          </div>
+          <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
+          <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
+          <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
+        </div>
+      </div>
+    </div>
   </nav>
 </header>
 <script is:inline src="/js/site-a11y.js"></script>
+<script is:inline>
+  (() => {
+    const menu = document.getElementById('user-menu');
+    const loginLink = document.getElementById('user-login-link');
+    const dropdown = document.getElementById('user-dropdown');
+    const trigger = document.getElementById('user-trigger');
+    const panel = document.getElementById('user-panel');
+    const nameEl = document.getElementById('user-name');
+    const roleEl = document.getElementById('user-role');
+    const subEl = document.getElementById('user-sub');
+    const adminLink = document.getElementById('user-admin-link');
+    const avatarEl = document.getElementById('user-avatar');
+
+    // 若在登录页/管理页则不干扰页面内逻辑
+    const isAuthPage = ['/login/', '/admin/'].some((p) => location.pathname.startsWith(p));
+
+    fetch('/api/public/v1/me', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.kind === 'anonymous') return;
+        // 已登录 → 隐藏登录链接，显示用户菜单
+        loginLink.hidden = true;
+        dropdown.hidden = false;
+        if (d.kind === 'admin') {
+          nameEl.textContent = d.role === 'super_admin' ? '超级管理员' : '二级管理员';
+          roleEl.textContent = d.role === 'super_admin' ? '超级管理员' : '二级管理员';
+          subEl.textContent = '管理后台';
+          avatarEl.textContent = '🛠';
+          adminLink.hidden = false;
+        } else {
+          nameEl.textContent = d.label || '订阅用户';
+          roleEl.textContent = '订阅用户';
+          subEl.textContent = `订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/5`;
+          avatarEl.textContent = '👤';
+          adminLink.hidden = true;
+        }
+      })
+      .catch(() => {});
+
+    trigger?.addEventListener('click', () => {
+      const open = trigger.getAttribute('aria-expanded') === 'true';
+      trigger.setAttribute('aria-expanded', String(!open));
+      panel.hidden = open;
+    });
+    // 点击外部关闭
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target)) {
+        trigger?.setAttribute('aria-expanded', 'false');
+        if (panel) panel.hidden = true;
+      }
+    });
+    document.getElementById('user-logout')?.addEventListener('click', () => {
+      fetch('/api/public/v1/logout', { method: 'POST', credentials: 'same-origin' })
+        .finally(() => { location.href = '/login/'; });
+    });
+  })();
+</script>
 <style>
   header {
     position: sticky;
@@ -44,6 +120,35 @@ const isHome = Astro.url.pathname === '/';
   .nav-scroll { min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .nav-scroll::-webkit-scrollbar { display: none; }
   .internal-links { display: flex; align-items: center; gap: 0.25rem; width: max-content; margin-left: auto; }
+  /* 用户菜单 */
+  .user-menu { flex: 0 0 auto; position: relative; margin-left: 0.4rem; }
+  .user-login-link { display: inline-block; padding: 0.5rem 0.95rem !important; font-weight: 800 !important; color: #fff !important; background: #1e3a8a; border-radius: 999px !important; }
+  .user-login-link:hover { background: #2563eb !important; }
+  .user-dropdown { position: relative; }
+  .user-trigger {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.4rem; border: 1px solid var(--border);
+    border-radius: 999px; background: #fff; cursor: pointer; font-weight: 750;
+    color: rgb(var(--gray-dark)); font-size: 0.85rem;
+  }
+  .user-trigger:hover { border-color: rgb(var(--gray-dark)); }
+  .user-avatar { display: inline-flex; align-items: center; justify-content: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--accent-soft); font-size: 0.85rem; }
+  .user-caret { font-size: 0.65rem; color: rgb(var(--gray-mid)); }
+  .user-panel {
+    position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 50;
+    min-width: 230px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 12px 34px rgba(30, 41, 59, 0.12); padding: 0.5rem; display: grid; gap: 0.15rem;
+  }
+  .user-panel-head { padding: 0.5rem 0.65rem 0.55rem; border-bottom: 1px solid var(--border); margin-bottom: 0.3rem; display: grid; gap: 0.2rem; }
+  .user-role { font-size: 0.85rem; font-weight: 850; color: rgb(var(--black)); }
+  .user-sub { font-size: 0.72rem; color: rgb(var(--gray-mid)); }
+  .user-item {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left;
+    padding: 0.55rem 0.65rem !important; border-radius: 9px !important; font-size: 0.85rem !important;
+    color: rgb(var(--gray-dark)) !important; background: none; border: none; cursor: pointer; font-weight: 700 !important;
+  }
+  .user-item:hover { background: var(--warm) !important; color: rgb(var(--black)) !important; }
+  .user-item.admin-only { color: #b45309 !important; }
   nav :global(a) { color: rgb(var(--gray-dark)); text-decoration: none; font-size: 0.88rem; font-weight: 750; padding: 0.5rem 0.68rem; border-radius: 999px; white-space: nowrap; }
   nav :global(a.active) { color: var(--accent-dark); background: var(--accent-soft); }
   nav :global(a:hover) { background: var(--warm); color: rgb(var(--black)); }

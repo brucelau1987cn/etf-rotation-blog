@@ -26,8 +26,9 @@ export async function onRequest(context) {
   // 管理后台页面放行（页面内 JS 判断登录态并调用 API）；管理 API 由 API 层校验
   if (ADMIN_PREFIXES.some((p) => pathname.startsWith(p))) return next();
 
-  // 其余全部页面需要订阅登录
+  // 其余全部页面需要订阅登录（或管理员登录）
   if (await isSubscribed(request, env)) return next();
+  if (await isAdmin(request, env)) return next(); // 管理员 cookie 同样解锁全站
 
   // 未登录 → 跳登录页（带原路径，登录后跳回）
   const nextUrl = pathname === '/' ? '/' : pathname;

@@ -1,0 +1,87 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+
+const title = `个人信息 | ${SITE_TITLE}`;
+const description = '查看当前登录身份、订阅到期时间与绑定设备。';
+---
+<BaseHead title={title} description={description} />
+<body>
+  <Header />
+  <main class="account-main site-shell">
+    <div class="account-card">
+      <p class="account-eyebrow">ETF 罗盘 · 个人中心</p>
+      <h1>个人信息</h1>
+      <div class="account-loading" id="account-loading">加载中…</div>
+      <div class="account-body" id="account-body" hidden>
+        <dl class="account-grid" id="account-grid"></dl>
+        <button class="account-logout" id="account-logout">退出登录</button>
+      </div>
+    </div>
+  </main>
+  <Footer />
+
+  <script is:inline>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      fetch('/api/public/v1/me', { credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then((d) => {
+          $('account-loading').hidden = true;
+          if (d.kind === 'anonymous') {
+            location.href = '/login/?next=%2Faccount%2F';
+            return;
+          }
+          $('account-body').hidden = false;
+          const rows = [];
+          if (d.kind === 'admin') {
+            rows.push(['身份', d.role === 'super_admin' ? '超级管理员' : '二级管理员']);
+            rows.push(['登录方式', '管理员账号']);
+            rows.push(['会话到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
+          } else {
+            rows.push(['身份', '订阅用户']);
+            rows.push(['备注', d.label || '—']);
+            rows.push(['订阅到期', String(d.expires_at || '').replace('T', ' ').slice(0, 16)]);
+            rows.push(['绑定设备', `${d.device_count ?? 0}/5 台`]);
+            rows.push(['设备上限', '5 台（如需更换请联系管理员解绑）']);
+          }
+          $('account-grid').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+        })
+        .catch(() => {
+          $('account-loading').textContent = '加载失败，请刷新重试';
+        });
+
+      $('account-logout').addEventListener('click', () => {
+        fetch('/api/public/v1/logout', { method: 'POST', credentials: 'same-origin' })
+          .finally(() => { location.href = '/login/'; });
+      });
+    })();
+  </script>
+</body>
+
+<style>
+  .account-main { display: flex; justify-content: center; padding: 3rem 1rem 4rem; }
+  .account-card {
+    width: 100%; max-width: 480px;
+    border: 1px solid var(--border); border-radius: 16px;
+    background: #fff; padding: 2rem 2.2rem;
+    box-shadow: 0 8px 30px rgba(30, 41, 59, .06);
+  }
+  .account-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .5rem; }
+  .account-card h1 { font-size: 1.4rem; margin: 0 0 1.3rem; }
+  .account-loading { color: rgb(var(--gray-mid)); font-size: .9rem; }
+  .account-grid { display: grid; gap: 0.65rem; margin: 0 0 1.6rem; }
+  .account-grid div {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding: .7rem .9rem; background: #f8fafc; border-radius: 10px;
+  }
+  .account-grid dt { font-size: .8rem; font-weight: 800; color: rgb(var(--gray-mid)); }
+  .account-grid dd { font-size: .88rem; font-weight: 750; color: rgb(var(--black)); margin: 0; text-align: right; }
+  .account-logout {
+    width: 100%; padding: .65rem 1rem; font-size: .88rem; font-weight: 800;
+    color: #e04444; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; cursor: pointer;
+  }
+  .account-logout:hover { background: #fde8e8; }
+</style>
