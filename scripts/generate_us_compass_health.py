@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import importlib.util
 import json
 import math
 import os
@@ -17,10 +18,23 @@ DEFAULT_LEARNING = ROOT / "public/data/us-compass-learning.json"
 DEFAULT_SHADOW = ROOT / "public/data/us-compass-shadow.json"
 DEFAULT_OUTPUT = ROOT / "public/data/us-compass-health.json"
 HORIZON_THRESHOLDS = {"t1": (20, 40), "t5": (20, 40), "t20": (12, 20)}
-FINGERPRINT_FIELDS = {
-    "model_version", "universe_count", "symbols_sha256", "config_sha256",
-    "execution_basis", "one_way_cost", "initial_capital", "horizons", "exposure_mapping",
-}
+STAGING_BLOCKER = (
+    "staging blocker: default US Compass learning and shadow artifacts must be regenerated "
+    "by update_us_compass_learning.py to add matching model_fingerprint values"
+)
+
+if __package__:
+    from .us_compass_fingerprint import consistent_model_fingerprint
+else:
+    fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
+    fingerprint_spec = importlib.util.spec_from_file_location(
+        f"_us_compass_fingerprint_{id(fingerprint_path)}", fingerprint_path
+    )
+    if fingerprint_spec is None or fingerprint_spec.loader is None:
+        raise ImportError(f"cannot load model fingerprint from {fingerprint_path}")
+    fingerprint_module = importlib.util.module_from_spec(fingerprint_spec)
+    fingerprint_spec.loader.exec_module(fingerprint_module)
+    consistent_model_fingerprint = fingerprint_module.consistent_model_fingerprint
 
 
 def _valid_date(value: Any) -> bool:
@@ -47,20 +61,33 @@ def _utc_timestamp(value: str | None) -> str:
 
 
 def extract_rank_ic_series(learning: Any, horizon: str) -> list[dict[str, Any]]:
-    """Return valid matured RankIC points sorted by frozen snapshot date."""
+    """Return matured RankIC points with signal and outcome-date provenance."""
     if not isinstance(learning, dict):
         raise ValueError("learning must be an object")
     snapshots = learning.get("snapshots")
     if not isinstance(snapshots, list):
         raise ValueError("learning snapshots must be an array")
-    points: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    if not horizon.startswith("t") or not horizon[1:].isdigit() or int(horizon[1:]) < 1:
+        raise ValueError(f"invalid horizon: {horizon}")
+    step = int(horizon[1:])
+    normalized: list[dict[str, Any]] = []
+    seen_dates: set[str] = set()
     for index, snapshot in enumerate(snapshots):
         if not isinstance(snapshot, dict):
             raise ValueError(f"snapshot {index} must be an object")
         raw_date = snapshot.get("date")
         if not _valid_date(raw_date):
             raise ValueError(f"snapshot {index} date must be valid YYYY-MM-DD")
+        if raw_date in seen_dates:
+            raise ValueError(f"duplicate snapshot date: {raw_date}")
+        seen_dates.add(raw_date)
+        normalized.append(snapshot)
+    normalized.sort(key=lambda snapshot: snapshot["date"])
+
+    points: list[dict[str, Any]] = []
+    seen_outcome_dates: set[str] = set()
+    for index, snapshot in enumerate(normalized):
+        raw_date = snapshot["date"]
         outcomes = snapshot.get("outcomes")
         if outcomes is None:
             continue
@@ -71,13 +98,24 @@ def extract_rank_ic_series(learning: Any, horizon: str) -> list[dict[str, Any]]:
             continue
         if not isinstance(outcome, dict):
             raise ValueError(f"snapshot {raw_date} {horizon} outcome must be an object")
+        end_date = outcome.get("end_date")
+        if not _valid_date(end_date):
+            raise ValueError(f"snapshot {raw_date} {horizon} end_date must be valid YYYY-MM-DD")
+        future_index = index + step
+        if future_index >= len(normalized):
+            raise ValueError(f"snapshot {raw_date} {horizon} outcome has no future snapshot at +{step}")
+        expected_end_date = normalized[future_index]["date"]
+        if end_date != expected_end_date:
+            raise ValueError(
+                f"snapshot {raw_date} {horizon} end_date {end_date} expected {expected_end_date}"
+            )
         value = outcome.get("rank_ic")
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ValueError(f"snapshot {raw_date} {horizon} rank_ic must be finite")
-        if raw_date in seen:
-            raise ValueError(f"duplicate {horizon} rank_ic date: {raw_date}")
-        seen.add(raw_date)
-        points.append({"date": raw_date, "value": float(value)})
+        if end_date in seen_outcome_dates:
+            raise ValueError(f"duplicate {horizon} rank_ic outcome date: {end_date}")
+        seen_outcome_dates.add(end_date)
+        points.append({"signal_date": raw_date, "date": end_date, "value": float(value)})
     points.sort(key=lambda point: point["date"])
     return points
 
@@ -90,7 +128,8 @@ def horizon_health(series: list[dict[str, Any]], initial: int, stable: int) -> d
         "maturity_ratio": min(1.0, count / initial), "rank_ic_mean": None,
         "rank_ic_median": None, "rank_ic_std": None, "icir": None,
         "positive_rate": None, "recent_5_mean": None, "recent_5_count": 0,
-        "recent_10_mean": None, "recent_10_count": 0, "trend": None, "series": [],
+        "recent_10_mean": None, "recent_10_count": 0, "trend": None,
+        "series": copy.deepcopy(series),
     }
     if count < initial:
         return base
@@ -124,39 +163,6 @@ def horizon_health(series: list[dict[str, Any]], initial: int, stable: int) -> d
     }
 
 
-def _validate_fingerprint(value: Any) -> dict[str, Any]:
-    if not isinstance(value, dict) or set(value) != FINGERPRINT_FIELDS:
-        raise ValueError("model_fingerprint is missing or malformed")
-    if not isinstance(value.get("model_version"), str) or not value["model_version"].strip():
-        raise ValueError("model_fingerprint model_version is invalid")
-    if not isinstance(value.get("universe_count"), int) or isinstance(value["universe_count"], bool) or value["universe_count"] < 1:
-        raise ValueError("model_fingerprint universe_count is invalid")
-    for field in ("symbols_sha256", "config_sha256"):
-        digest = value.get(field)
-        if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
-            raise ValueError(f"model_fingerprint {field} is invalid")
-    if not isinstance(value.get("execution_basis"), str) or not value["execution_basis"].strip():
-        raise ValueError("model_fingerprint execution_basis is invalid")
-    for field in ("one_way_cost", "initial_capital"):
-        number = value.get(field)
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number):
-            raise ValueError(f"model_fingerprint {field} is invalid")
-    if value["one_way_cost"] < 0 or value["initial_capital"] <= 0:
-        raise ValueError("model_fingerprint numeric assumptions are invalid")
-    horizons = value.get("horizons")
-    if not isinstance(horizons, list) or not horizons or len(set(horizons)) != len(horizons) or any(isinstance(v, bool) or not isinstance(v, int) or v < 1 for v in horizons):
-        raise ValueError("model_fingerprint horizons are invalid")
-    exposure = value.get("exposure_mapping")
-    values = exposure.get("values") if isinstance(exposure, dict) else None
-    default = exposure.get("default") if isinstance(exposure, dict) else None
-    if set(exposure or {}) != {"values", "default"} or not isinstance(values, dict) or not values:
-        raise ValueError("model_fingerprint exposure_mapping is invalid")
-    for key, number in {**values, "__default__": default}.items():
-        if (key != "__default__" and (not isinstance(key, str) or not key.strip())) or isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number) or not 0 <= number <= 1:
-            raise ValueError("model_fingerprint exposure_mapping is invalid")
-    return copy.deepcopy(value)
-
-
 def _overall_score(t5: dict[str, Any]) -> float:
     positive_rate = float(t5["positive_rate"])
     mean = float(t5["rank_ic_mean"])
@@ -164,7 +170,7 @@ def _overall_score(t5: dict[str, Any]) -> float:
     return max(0.0, min(1.0, 0.5 * positive_rate + 0.5 * mean_component))
 
 
-def build_health_payload(learning: Any, generated_at: str | None = None) -> dict[str, Any]:
+def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = None) -> dict[str, Any]:
     if not isinstance(learning, dict):
         raise ValueError("learning must be an object")
     snapshots = learning.get("snapshots")
@@ -180,7 +186,7 @@ def build_health_payload(learning: Any, generated_at: str | None = None) -> dict
             raise ValueError(f"duplicate snapshot date: {snapshot_date}")
         seen_dates.add(snapshot_date)
         dates.append(snapshot_date)
-    fingerprint = _validate_fingerprint(learning.get("model_fingerprint"))
+    fingerprint = consistent_model_fingerprint(learning, shadow)
     horizons = {
         name: horizon_health(extract_rank_ic_series(learning, name), *thresholds)
         for name, thresholds in HORIZON_THRESHOLDS.items()
@@ -228,18 +234,28 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
         raise
 
 
+def _read_payload(path: Path, label: str) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read {label} payload: {path}") from exc
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--learning", type=Path, default=DEFAULT_LEARNING)
-    parser.add_argument("--shadow", type=Path, default=DEFAULT_SHADOW, help="reserved for future shadow health")
+    parser.add_argument("--shadow", type=Path, default=DEFAULT_SHADOW)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--generated-at")
     args = parser.parse_args()
     try:
-        learning = json.loads(args.learning.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"cannot read learning payload: {args.learning}") from exc
-    payload = build_health_payload(learning, args.generated_at)
+        learning = _read_payload(args.learning, "learning")
+        shadow = _read_payload(args.shadow, "shadow")
+        payload = build_health_payload(learning, shadow, args.generated_at)
+    except ValueError as exc:
+        if args.learning == DEFAULT_LEARNING and args.shadow == DEFAULT_SHADOW and "model_fingerprint" in str(exc):
+            raise SystemExit(STAGING_BLOCKER) from None
+        raise SystemExit(str(exc)) from None
     atomic_write_json(args.output, payload)
     print(
         f"health generated: model_date={payload['model_date']} "

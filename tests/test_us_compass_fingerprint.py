@@ -20,6 +20,71 @@ def test_fingerprint_module_exists():
     assert SCRIPT.exists()
 
 
+def valid_fingerprint():
+    return {
+        "model_version": "us-compass-v1", "universe_count": 2,
+        "symbols_sha256": "a" * 64, "config_sha256": "b" * 64,
+        "execution_basis": "T close; T+1 open", "one_way_cost": 0.001,
+        "initial_capital": 20_000.0, "horizons": [1, 5, 20],
+        "exposure_mapping": {"values": {"strong": 1.0, "weak": 0.0}, "default": 0.5},
+    }
+
+
+def test_validate_model_fingerprint_projects_known_fields_and_deep_copies():
+    module = load_module()
+    source = valid_fingerprint()
+    source["private_extra"] = {"secret": True}
+    projected = module.validate_model_fingerprint(source)
+    assert "private_extra" not in projected
+    assert projected == valid_fingerprint()
+    projected["exposure_mapping"]["values"]["strong"] = 0.25
+    assert source["exposure_mapping"]["values"]["strong"] == 1.0
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("model_version", " v1 "), ("universe_count", True),
+    ("symbols_sha256", "A" * 64), ("config_sha256", "b" * 63),
+    ("execution_basis", " basis "), ("one_way_cost", -0.0),
+    ("initial_capital", "overflow"), ("horizons", [5, 1, 20]),
+    ("horizons", [1, 1, 20]),
+])
+def test_validate_model_fingerprint_rejects_noncanonical_fields(field, value):
+    module = load_module()
+    fingerprint = valid_fingerprint()
+    fingerprint[field] = 10 ** 10000 if value == "overflow" else value
+    with pytest.raises(ValueError, match="model_fingerprint"):
+        module.validate_model_fingerprint(fingerprint)
+
+
+def test_validate_model_fingerprint_rejects_noncanonical_exposure_values():
+    module = load_module()
+    for exposure in (
+        {"values": {" strong ": 1.0}, "default": 0.5},
+        {"values": {"strong": -0.0}, "default": 0.5},
+        {"values": {"strong": 1.0}, "default": -0.0},
+    ):
+        fingerprint = valid_fingerprint()
+        fingerprint["exposure_mapping"] = exposure
+        with pytest.raises(ValueError, match="model_fingerprint"):
+            module.validate_model_fingerprint(fingerprint)
+
+
+def test_consistent_model_fingerprint_requires_matching_valid_values():
+    module = load_module()
+    learning = {"model_fingerprint": valid_fingerprint()}
+    shadow = {"model_fingerprint": valid_fingerprint()}
+    assert module.consistent_model_fingerprint(learning, shadow) == valid_fingerprint()
+    shadow["model_fingerprint"]["horizons"] = [1, 5]
+    with pytest.raises(ValueError, match="learning/shadow model fingerprint mismatch"):
+        module.consistent_model_fingerprint(learning, shadow)
+
+
+def test_consistent_model_fingerprint_rejects_missing_values_clearly():
+    module = load_module()
+    with pytest.raises(ValueError, match="learning model_fingerprint"):
+        module.consistent_model_fingerprint({}, {"model_fingerprint": valid_fingerprint()})
+
+
 def test_build_model_fingerprint_canonicalizes_semantic_inputs():
     module = load_module()
     kwargs = {

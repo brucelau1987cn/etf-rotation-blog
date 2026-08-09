@@ -4,10 +4,18 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import copy
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 UNKNOWN_MODEL_VERSION = "__MISSING_MODEL_VERSION__"
+FINGERPRINT_FIELDS = (
+    "model_version", "universe_count", "symbols_sha256", "config_sha256",
+    "execution_basis", "one_way_cost", "initial_capital", "horizons",
+    "exposure_mapping",
+)
+SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 
 
 def _finite_number(
@@ -171,3 +179,92 @@ def build_model_fingerprint(
         "horizons": payload["horizons"],
         "exposure_mapping": payload["exposure_mapping"],
     }
+
+
+def _canonical_public_number(
+    value: Any,
+    name: str,
+    *,
+    positive: bool = False,
+    maximum: float | None = None,
+) -> int | float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"model_fingerprint {name} is invalid")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"model_fingerprint {name} is invalid") from exc
+    if (
+        not math.isfinite(number)
+        or (number == 0.0 and math.copysign(1.0, number) < 0)
+        or (number <= 0 if positive else number < 0)
+        or (maximum is not None and number > maximum)
+    ):
+        raise ValueError(f"model_fingerprint {name} is invalid")
+    return value
+
+
+def validate_model_fingerprint(value: Any) -> dict[str, Any]:
+    """Validate and project the canonical public model fingerprint fields."""
+    if not isinstance(value, Mapping):
+        raise ValueError("model_fingerprint must be an object")
+    for field in FINGERPRINT_FIELDS:
+        if field not in value:
+            raise ValueError(f"model_fingerprint {field} is missing")
+
+    model_version = value["model_version"]
+    execution_basis = value["execution_basis"]
+    for field, item in (("model_version", model_version), ("execution_basis", execution_basis)):
+        if not isinstance(item, str) or not item or item != item.strip():
+            raise ValueError(f"model_fingerprint {field} is invalid")
+
+    universe_count = value["universe_count"]
+    if isinstance(universe_count, bool) or not isinstance(universe_count, int) or universe_count < 1:
+        raise ValueError("model_fingerprint universe_count is invalid")
+    for field in ("symbols_sha256", "config_sha256"):
+        digest = value[field]
+        if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
+            raise ValueError(f"model_fingerprint {field} is invalid")
+
+    _canonical_public_number(value["one_way_cost"], "one_way_cost")
+    _canonical_public_number(value["initial_capital"], "initial_capital", positive=True)
+
+    horizons = value["horizons"]
+    if (
+        not isinstance(horizons, list)
+        or not horizons
+        or any(isinstance(item, bool) or not isinstance(item, int) or item < 1 for item in horizons)
+        or horizons != sorted(set(horizons))
+    ):
+        raise ValueError("model_fingerprint horizons are invalid")
+
+    exposure = value["exposure_mapping"]
+    if not isinstance(exposure, Mapping) or set(exposure) != {"values", "default"}:
+        raise ValueError("model_fingerprint exposure_mapping is invalid")
+    values = exposure["values"]
+    if not isinstance(values, Mapping) or not values:
+        raise ValueError("model_fingerprint exposure_mapping is invalid")
+    for key, number in values.items():
+        if not isinstance(key, str) or not key or key != key.strip():
+            raise ValueError("model_fingerprint exposure_mapping is invalid")
+        _canonical_public_number(number, "exposure_mapping", maximum=1.0)
+    _canonical_public_number(exposure["default"], "exposure_mapping", maximum=1.0)
+    return {field: copy.deepcopy(value[field]) for field in FINGERPRINT_FIELDS}
+
+
+def consistent_model_fingerprint(learning: Any, shadow: Any) -> dict[str, Any]:
+    if not isinstance(learning, Mapping):
+        raise ValueError("learning must be an object")
+    if not isinstance(shadow, Mapping):
+        raise ValueError("shadow must be an object")
+    try:
+        learning_fingerprint = validate_model_fingerprint(learning.get("model_fingerprint"))
+    except ValueError as exc:
+        raise ValueError(f"learning model_fingerprint is invalid: {exc}") from exc
+    try:
+        shadow_fingerprint = validate_model_fingerprint(shadow.get("model_fingerprint"))
+    except ValueError as exc:
+        raise ValueError(f"shadow model_fingerprint is invalid: {exc}") from exc
+    if learning_fingerprint != shadow_fingerprint:
+        raise ValueError("learning/shadow model fingerprint mismatch")
+    return copy.deepcopy(learning_fingerprint)

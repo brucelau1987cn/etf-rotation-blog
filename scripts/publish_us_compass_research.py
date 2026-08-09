@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import copy
+import importlib.util
 import json
-import math
 import os
-import re
 import subprocess
 import tempfile
 from datetime import date, datetime, timezone
@@ -23,12 +21,18 @@ OUT = DATA / "us-compass-research.json"
 CATALOG = DATA / "catalog.json"
 IWENCAI_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 PROJECT = "etf-rotation-blog"
-FINGERPRINT_FIELDS = (
-    "model_version", "universe_count", "symbols_sha256", "config_sha256",
-    "execution_basis", "one_way_cost", "initial_capital", "horizons",
-    "exposure_mapping",
-)
-SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+if __package__:
+    from .us_compass_fingerprint import consistent_model_fingerprint as _strict_consistent_fingerprint
+else:
+    fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
+    fingerprint_spec = importlib.util.spec_from_file_location(
+        f"_us_compass_fingerprint_{id(fingerprint_path)}", fingerprint_path
+    )
+    if fingerprint_spec is None or fingerprint_spec.loader is None:
+        raise ImportError(f"cannot load model fingerprint from {fingerprint_path}")
+    fingerprint_module = importlib.util.module_from_spec(fingerprint_spec)
+    fingerprint_spec.loader.exec_module(fingerprint_module)
+    _strict_consistent_fingerprint = fingerprint_module.consistent_model_fingerprint
 
 
 def read_json(path: Path, default: Any = None) -> Any:
@@ -76,90 +80,16 @@ def current_rows(pool: dict[str, Any], top_symbols: list[str]) -> list[dict[str,
     return rows
 
 
-def _valid_finite_number(
-    value: Any, *, positive: bool = False, maximum: float | None = None
-) -> bool:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return False
-    try:
-        number = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return False
-    if not math.isfinite(number):
-        return False
-    if number == 0.0 and math.copysign(1.0, number) < 0:
-        return False
-    return (
-        (number > 0 if positive else number >= 0)
-        and (maximum is None or number <= maximum)
-    )
-
-
-def _validated_model_fingerprint(value: Any) -> dict[str, Any] | None:
-    if not isinstance(value, dict):
-        return None
-    model_version = value.get("model_version")
-    universe_count = value.get("universe_count")
-    execution_basis = value.get("execution_basis")
-    horizons = value.get("horizons")
-    exposure = value.get("exposure_mapping")
-    if (
-        not isinstance(model_version, str)
-        or not model_version.strip()
-        or model_version != model_version.strip()
-    ):
-        return None
-    if isinstance(universe_count, bool) or not isinstance(universe_count, int) or universe_count <= 0:
-        return None
-    if not isinstance(value.get("symbols_sha256"), str) or not SHA256_RE.fullmatch(value["symbols_sha256"]):
-        return None
-    if not isinstance(value.get("config_sha256"), str) or not SHA256_RE.fullmatch(value["config_sha256"]):
-        return None
-    if (
-        not isinstance(execution_basis, str)
-        or not execution_basis.strip()
-        or execution_basis != execution_basis.strip()
-    ):
-        return None
-    if not _valid_finite_number(value.get("one_way_cost")):
-        return None
-    if not _valid_finite_number(value.get("initial_capital"), positive=True):
-        return None
-    if (
-        not isinstance(horizons, list) or not horizons
-        or any(isinstance(item, bool) or not isinstance(item, int) or item <= 0 for item in horizons)
-        or horizons != sorted(set(horizons))
-    ):
-        return None
-    if not isinstance(exposure, dict) or set(exposure) != {"values", "default"}:
-        return None
-    values = exposure.get("values")
-    if not isinstance(values, dict) or not values:
-        return None
-    if any(
-        not isinstance(key, str)
-        or not key.strip()
-        or key != key.strip()
-        or not _valid_finite_number(item, maximum=1.0)
-        for key, item in values.items()
-    ):
-        return None
-    if not _valid_finite_number(exposure.get("default"), maximum=1.0):
-        return None
-    return {field: copy.deepcopy(value[field]) for field in FINGERPRINT_FIELDS}
-
-
 def consistent_model_fingerprint(learning: dict[str, Any], shadow: dict[str, Any]) -> dict[str, Any]:
-    learning_fingerprint = _validated_model_fingerprint(learning.get("model_fingerprint"))
-    shadow_fingerprint = _validated_model_fingerprint(shadow.get("model_fingerprint"))
-    if learning_fingerprint is None or shadow_fingerprint is None:
+    try:
+        return _strict_consistent_fingerprint(learning, shadow)
+    except ValueError as exc:
+        if "mismatch" in str(exc):
+            return {
+                "status": "unavailable",
+                "reason": "learning/shadow model fingerprint mismatch",
+            }
         return {"status": "unavailable", "reason": "model fingerprint unavailable"}
-    if learning_fingerprint != shadow_fingerprint:
-        return {
-            "status": "unavailable",
-            "reason": "learning/shadow model fingerprint mismatch",
-        }
-    return copy.deepcopy(learning_fingerprint)
 
 
 def build_report(learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any], iwencai: dict[str, Any] | None = None) -> dict[str, Any]:

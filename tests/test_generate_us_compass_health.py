@@ -36,30 +36,37 @@ def fingerprint():
 
 
 def learning_with(values_by_horizon, fingerprint):
+    steps = {name: int(name[1:]) for name in values_by_horizon}
+    length = max((len(values) + steps[name] for name, values in values_by_horizon.items()), default=1)
+    dates = [(date(2026, 1, 1) + timedelta(days=index)).isoformat() for index in range(length)]
     snapshots = []
-    length = max((len(values) for values in values_by_horizon.values()), default=1)
-    for index in range(length):
+    for index, signal_date in enumerate(dates):
         outcomes = {}
         for horizon, values in values_by_horizon.items():
             if index < len(values):
-                outcomes[horizon] = {"rank_ic": values[index]}
-        snapshots.append({
-            "date": (date(2026, 1, 1) + timedelta(days=index)).isoformat(),
-            "outcomes": outcomes,
-        })
+                outcomes[horizon] = {"rank_ic": values[index], "end_date": dates[index + steps[horizon]]}
+        snapshots.append({"date": signal_date, "outcomes": outcomes})
     return {"snapshots": snapshots, "model_fingerprint": copy.deepcopy(fingerprint)}
 
 
-def test_extract_rank_ic_series_sorts_snapshots_by_date():
-    module = load_module()
-    learning = {"snapshots": [
-        {"date": "2026-01-03", "outcomes": {"t5": {"rank_ic": -0.2}}},
-        {"date": "2026-01-01", "outcomes": {"t5": {"rank_ic": 0.1}}},
-        {"date": "2026-01-02", "outcomes": {}},
-    ]}
-    assert module.extract_rank_ic_series(learning, "t5") == [
-        {"date": "2026-01-01", "value": 0.1},
-        {"date": "2026-01-03", "value": -0.2},
+def shadow_with(fingerprint):
+    return {"model_fingerprint": copy.deepcopy(fingerprint)}
+
+
+def point(index, value):
+    return {
+        "signal_date": (date(2025, 12, 1) + timedelta(days=index)).isoformat(),
+        "date": (date(2026, 1, 1) + timedelta(days=index)).isoformat(),
+        "value": value,
+    }
+
+
+def test_extract_rank_ic_series_sorts_snapshots_by_signal_date_and_uses_end_date(fingerprint):
+    learning = learning_with({"t5": [0.1, -0.2]}, fingerprint)
+    learning["snapshots"] = list(reversed(learning["snapshots"]))
+    assert load_module().extract_rank_ic_series(learning, "t5") == [
+        {"signal_date": "2026-01-01", "date": "2026-01-06", "value": 0.1},
+        {"signal_date": "2026-01-02", "date": "2026-01-07", "value": -0.2},
     ]
 
 
@@ -67,43 +74,61 @@ def test_build_rejects_duplicate_snapshot_dates_even_without_outcomes(fingerprin
     learning = learning_with({"t5": [0.1]}, fingerprint)
     learning["snapshots"].append({"date": "2026-01-01", "outcomes": {}})
     with pytest.raises(ValueError, match="duplicate snapshot date"):
-        load_module().build_health_payload(learning, "2026-02-01T00:00:00Z")
+        load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-02-01T00:00:00Z")
 
 
-@pytest.mark.parametrize("snapshots,message", [
-    ([{"date": "2026-01-01", "outcomes": {"t5": {"rank_ic": 0.1}}},
-      {"date": "2026-01-01", "outcomes": {"t5": {"rank_ic": 0.2}}}], "duplicate"),
-    ([{"date": "bad", "outcomes": {"t5": {"rank_ic": 0.1}}}], "date"),
-    ([{"date": "2026-01-01", "outcomes": {"t5": {"rank_ic": float("nan")}}}], "finite"),
-    ([{"date": "2026-01-01", "outcomes": {"t5": {"rank_ic": True}}}], "finite"),
+@pytest.mark.parametrize("snapshots,message,horizon", [
+    ([{"date": "2026-01-01", "outcomes": {}}, {"date": "2026-01-01", "outcomes": {}}], "duplicate", "t1"),
+    ([{"date": "bad", "outcomes": {}}], "date", "t1"),
+    ([{"date": "2026-01-01", "outcomes": {"t1": {"end_date": "2026-01-02", "rank_ic": float("nan")}}}, {"date": "2026-01-02", "outcomes": {}}], "finite", "t1"),
+    ([{"date": "2026-01-01", "outcomes": {"t1": {"end_date": "2026-01-02", "rank_ic": True}}}, {"date": "2026-01-02", "outcomes": {}}], "finite", "t1"),
 ])
-def test_extract_rank_ic_series_rejects_malformed_points(snapshots, message):
+def test_extract_rank_ic_series_rejects_malformed_points(snapshots, message, horizon):
     with pytest.raises(ValueError, match=message):
-        load_module().extract_rank_ic_series({"snapshots": snapshots}, "t5")
+        load_module().extract_rank_ic_series({"snapshots": snapshots}, horizon)
 
 
-def test_immature_horizon_nulls_all_statistics():
-    result = load_module().horizon_health(
-        [{"date": "2026-01-01", "value": 0.2}], initial=20, stable=40
-    )
+@pytest.mark.parametrize(("outcome", "message"), [
+    ({"rank_ic": 0.1}, "end_date"),
+    ({"rank_ic": 0.1, "end_date": "bad"}, "end_date"),
+    ({"rank_ic": 0.1, "end_date": "2026-01-03"}, "expected 2026-01-02"),
+])
+def test_extract_rejects_missing_malformed_or_mismatched_end_date(outcome, message):
+    learning = {"snapshots": [
+        {"date": "2026-01-01", "outcomes": {"t1": outcome}},
+        {"date": "2026-01-02", "outcomes": {}},
+    ]}
+    with pytest.raises(ValueError, match=message):
+        load_module().extract_rank_ic_series(learning, "t1")
+
+
+def test_extract_rejects_outcome_without_future_snapshot():
+    learning = {"snapshots": [{
+        "date": "2026-01-01",
+        "outcomes": {"t5": {"rank_ic": 0.1, "end_date": "2026-01-06"}},
+    }]}
+    with pytest.raises(ValueError, match="future snapshot"):
+        load_module().extract_rank_ic_series(learning, "t5")
+
+
+def test_immature_horizon_nulls_statistics_but_preserves_series():
+    series = [point(0, 0.2)]
+    result = load_module().horizon_health(series, initial=20, stable=40)
     assert result == {
         "status": "ACCUMULATING", "observations": 1, "minimum_required": 20,
         "maturity_ratio": 0.05, "rank_ic_mean": None, "rank_ic_median": None,
         "rank_ic_std": None, "icir": None, "positive_rate": None,
         "recent_5_mean": None, "recent_5_count": 0, "recent_10_mean": None,
-        "recent_10_count": 0, "trend": None, "series": [],
+        "recent_10_count": 0, "trend": None, "series": series,
     }
+    assert result["series"] is not series
 
 
 def test_mature_horizon_computes_exact_statistics_and_recent_actual_counts():
     values = [0.1, -0.2, 0.3, 0.4, -0.1] * 4
-    result = load_module().horizon_health(
-        [{"date": f"2026-01-{i+1:02d}", "value": value} for i, value in enumerate(values)],
-        initial=20, stable=40,
-    )
+    result = load_module().horizon_health([point(i, value) for i, value in enumerate(values)], 20, 40)
     assert result["status"] == "MIXED"
-    assert result["observations"] == 20
-    assert result["maturity_ratio"] == 1
+    assert result["observations"] == 20 and result["maturity_ratio"] == 1
     assert result["rank_ic_mean"] == pytest.approx(statistics.fmean(values))
     assert result["rank_ic_median"] == pytest.approx(statistics.median(values))
     assert result["rank_ic_std"] == pytest.approx(statistics.stdev(values))
@@ -115,25 +140,19 @@ def test_mature_horizon_computes_exact_statistics_and_recent_actual_counts():
 
 
 def test_zero_standard_deviation_has_null_icir():
-    result = load_module().horizon_health(
-        [{"date": f"2026-01-{i+1:02d}", "value": 0.1} for i in range(20)], 20, 40
-    )
-    assert result["rank_ic_std"] == 0
-    assert result["icir"] is None
+    result = load_module().horizon_health([point(i, 0.1) for i in range(20)], 20, 40)
+    assert result["rank_ic_std"] == 0 and result["icir"] is None
 
 
 @pytest.mark.parametrize("recent,expected", [([0.02] * 5, "IMPROVING"), ([0.0] * 5, "WEAKENING"), ([0.014] * 5, "FLAT")])
 def test_trend_compares_recent_five_with_prior_five(recent, expected):
     values = [0.01] * 15 + recent
-    result = load_module().horizon_health(
-        [{"date": f"2026-01-{i+1:02d}", "value": v} for i, v in enumerate(values)], 20, 40
-    )
-    assert result["trend"] == expected
+    assert load_module().horizon_health([point(i, v) for i, v in enumerate(values)], 20, 40)["trend"] == expected
 
 
 def test_thresholds_and_governing_maturity_use_t5(fingerprint):
     learning = learning_with({"t1": [0.1] * 20, "t5": [0.1] * 19, "t20": [0.1] * 12}, fingerprint)
-    payload = load_module().build_health_payload(learning, "2026-02-01T00:00:00Z")
+    payload = load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-02-01T00:00:00Z")
     assert payload["horizons"]["t1"]["status"] == "MIXED"
     assert payload["horizons"]["t5"]["status"] == "ACCUMULATING"
     assert payload["horizons"]["t20"]["status"] == "MIXED"
@@ -149,7 +168,7 @@ def test_thresholds_and_governing_maturity_use_t5(fingerprint):
 def test_stable_t5_governs_overall_with_bounded_score(fingerprint):
     positive_variable = [0.1, 0.2] * 20
     learning = learning_with({"t1": positive_variable, "t5": positive_variable, "t20": [0.1, 0.2] * 10}, fingerprint)
-    payload = load_module().build_health_payload(learning, "2026-02-01T00:00:00Z")
+    payload = load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-03-01T00:00:00Z")
     assert payload["sample_maturity"]["status"] == "STABLE"
     assert payload["overall"]["status"] == "STABLE"
     assert 0 <= payload["overall"]["score"] <= 1
@@ -157,18 +176,19 @@ def test_stable_t5_governs_overall_with_bounded_score(fingerprint):
 
 def test_full_payload_validates_and_cli_writes_atomically(tmp_path, fingerprint):
     learning = learning_with({"t1": [0.1] * 20, "t5": [0.1] * 20, "t20": [0.1] * 12}, fingerprint)
-    learning_path, output = tmp_path / "learning.json", tmp_path / "health.json"
+    learning_path, shadow_path, output = tmp_path / "learning.json", tmp_path / "shadow.json", tmp_path / "health.json"
     learning_path.write_text(json.dumps(learning), encoding="utf-8")
+    shadow_path.write_text(json.dumps(shadow_with(fingerprint)), encoding="utf-8")
     completed = subprocess.run([
         str(ROOT / ".build-venv/bin/python"), str(SCRIPT), "--learning", str(learning_path),
-        "--output", str(output), "--generated-at", "2026-02-01T00:00:00Z",
+        "--shadow", str(shadow_path), "--output", str(output),
+        "--generated-at", "2026-03-01T00:00:00Z",
     ], cwd=ROOT, text=True, capture_output=True, check=True)
     payload = json.loads(output.read_text(encoding="utf-8"))
     validator = load_module(VALIDATOR, "health_validator")
     assert validator.validate_us_compass_health_payload(payload) == []
-    assert payload["generated_at"] == "2026-02-01T00:00:00Z"
-    assert "health generated" in completed.stdout
-    assert not list(tmp_path.glob("*.tmp"))
+    assert payload["generated_at"] == "2026-03-01T00:00:00Z"
+    assert "health generated" in completed.stdout and not list(tmp_path.glob("*.tmp"))
 
 
 @pytest.mark.parametrize("learning,message", [
@@ -176,16 +196,23 @@ def test_full_payload_validates_and_cli_writes_atomically(tmp_path, fingerprint)
     ({"snapshots": [{"date": "2026-01-01", "outcomes": {}}]}, "model_fingerprint"),
     ({"snapshots": [{"date": "2026-01-01", "outcomes": {}}], "model_fingerprint": {}}, "model_fingerprint"),
 ])
-def test_build_rejects_malformed_or_empty_learning(learning, message):
+def test_build_rejects_malformed_or_empty_learning(learning, message, fingerprint):
     with pytest.raises(ValueError, match=message):
-        load_module().build_health_payload(learning, "2026-02-01T00:00:00Z")
+        load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-02-01T00:00:00Z")
+
+
+def test_build_requires_matching_learning_and_shadow_fingerprints(fingerprint):
+    learning = learning_with({"t5": [0.1]}, fingerprint)
+    mismatched = shadow_with(fingerprint)
+    mismatched["model_fingerprint"]["config_sha256"] = "c" * 64
+    with pytest.raises(ValueError, match="learning/shadow model fingerprint mismatch"):
+        load_module().build_health_payload(learning, mismatched, "2026-02-01T00:00:00Z")
 
 
 def test_generated_payload_contains_no_nonfinite_numbers(fingerprint):
     payload = load_module().build_health_payload(
         learning_with({"t1": [0.1] * 20, "t5": [0.1] * 20, "t20": []}, fingerprint),
-        "2026-02-01T00:00:00Z",
-    )
+        shadow_with(fingerprint), "2026-02-01T00:00:00Z")
     def walk(value):
         if isinstance(value, dict):
             for item in value.values(): walk(item)
@@ -199,4 +226,32 @@ def test_generated_payload_contains_no_nonfinite_numbers(fingerprint):
 def test_build_rejects_invalid_generated_at(fingerprint):
     learning = learning_with({"t5": [0.1]}, fingerprint)
     with pytest.raises(ValueError, match="generated_at"):
-        load_module().build_health_payload(learning, "2026-02-01")
+        load_module().build_health_payload(learning, shadow_with(fingerprint), "2026-02-01")
+
+
+def test_default_cli_fails_with_staging_blocker_and_writes_no_output(tmp_path):
+    output = tmp_path / "health.json"
+    completed = subprocess.run(
+        [str(ROOT / ".build-venv/bin/python"), str(SCRIPT), "--output", str(output)],
+        cwd=ROOT, text=True, capture_output=True)
+    assert completed.returncode != 0
+    message = completed.stdout + completed.stderr
+    assert "staging blocker" in message
+    assert "must be regenerated by update_us_compass_learning.py to add matching model_fingerprint values" in message
+    assert not output.exists()
+
+
+def test_explicit_cli_read_error_is_concise_and_writes_no_output(tmp_path, fingerprint):
+    missing = tmp_path / "missing-learning.json"
+    shadow_path = tmp_path / "shadow.json"
+    output = tmp_path / "health.json"
+    shadow_path.write_text(json.dumps(shadow_with(fingerprint)), encoding="utf-8")
+    completed = subprocess.run([
+        str(ROOT / ".build-venv/bin/python"), str(SCRIPT),
+        "--learning", str(missing), "--shadow", str(shadow_path), "--output", str(output),
+    ], cwd=ROOT, text=True, capture_output=True)
+    message = completed.stdout + completed.stderr
+    assert completed.returncode != 0
+    assert f"cannot read learning payload: {missing}" in message
+    assert "Traceback" not in message
+    assert not output.exists()

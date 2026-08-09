@@ -215,9 +215,7 @@ def validate_us_compass_health_payload(
             if isinstance(horizon, dict) and expected_immature:
                 if horizon.get("recent_5_count") != 0 or horizon.get("recent_10_count") != 0:
                     errors.append(f"horizons.{name}: recent counts must be zero while horizon is immature")
-                if horizon.get("series") != []:
-                    errors.append(f"horizons.{name}.series: must be empty while horizon is immature")
-            elif isinstance(horizon, dict):
+            if isinstance(horizon, dict):
                 series = horizon.get("series")
                 observations = horizon.get("observations")
                 if isinstance(series, list) and isinstance(observations, int) and len(series) != observations:

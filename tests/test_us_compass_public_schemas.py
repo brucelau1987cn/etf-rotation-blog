@@ -56,7 +56,13 @@ def health_payload(model_fingerprint):
         "maturity_ratio": 0.2, "rank_ic_mean": None, "rank_ic_median": None,
         "rank_ic_std": None, "icir": None, "positive_rate": None,
         "recent_5_mean": None, "recent_5_count": 0, "recent_10_mean": None,
-        "recent_10_count": 0, "trend": None, "series": [],
+        "recent_10_count": 0, "trend": None,
+        "series": [
+            {"signal_date": "2026-08-01", "date": "2026-08-02", "value": 0.1},
+            {"signal_date": "2026-08-02", "date": "2026-08-03", "value": -0.1},
+            {"signal_date": "2026-08-03", "date": "2026-08-04", "value": 0.2},
+            {"signal_date": "2026-08-04", "date": "2026-08-05", "value": 0.0},
+        ],
     }
     return {
         "schema_version": "us-compass-health-v1",
@@ -229,7 +235,10 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
         "icir": None, "positive_rate": 0, "recent_5_mean": 0,
         "recent_5_count": 5, "recent_10_mean": 0, "recent_10_count": 10,
         "trend": "FLAT",
-        "series": [{"date": f"2026-01-{index + 1:02d}", "value": 0} for index in range(20)],
+        "series": [
+            {"signal_date": f"2025-12-{index + 1:02d}", "date": f"2026-01-{index + 1:02d}", "value": 0}
+            for index in range(20)
+        ],
     }
     health_payload["walk_forward"] = {"status": "STABLE", "windows": 1, "score": 0}
     health_payload["shadow_health"] = {
@@ -350,3 +359,16 @@ def test_schema_registry_checks_new_schemas_without_future_data_files(validator_
     assert not errors
     assert set(SCHEMA_NAMES).issubset(schemas)
     assert not list(tmp_path.iterdir())
+
+
+def test_immature_health_series_length_and_outcome_date_order_are_enforced(
+    validator_module, health_payload
+):
+    health_payload["horizons"]["t1"]["observations"] = 3
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+    assert any("length must equal observations" in error for error in errors), errors
+
+    health_payload["horizons"]["t1"]["observations"] = 4
+    health_payload["horizons"]["t1"]["series"][1]["date"] = "2026-08-02"
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+    assert any("unique and strictly ascending" in error for error in errors), errors

@@ -111,8 +111,9 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["date", "value"],
+            "required": ["signal_date", "date", "value"],
             "properties": {
+              "signal_date": {"type": "string", "format": "date"},
               "date": {"type": "string", "format": "date"},
               "value": {"type": "number"}
             }
