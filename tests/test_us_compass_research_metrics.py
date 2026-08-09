@@ -11,6 +11,8 @@ from typing import get_type_hints
 import pytest
 
 from scripts.us_compass_research_metrics import (
+    COST_SCENARIOS,
+    COST_UNAVAILABLE_REASON,
     annualized_volatility,
     finite_numbers,
     max_drawdown,
@@ -19,8 +21,22 @@ from scripts.us_compass_research_metrics import (
     rate_time_slice_audit,
     rate_shadow_health,
     rolling_slices,
+    shadow_health_score,
     spearman,
 )
+
+
+def test_shadow_provenance_constants_and_score_are_shared():
+    assert COST_SCENARIOS == (0, 0.0005, 0.001, 0.002, 0.003)
+    assert COST_UNAVAILABLE_REASON == "turnover history unavailable; exact cost scenarios require persisted turnover"
+    assert shadow_health_score(0.2, 0.6) == pytest.approx(0.8)
+    assert shadow_health_score(-0.2, 0.6) == pytest.approx(0.3)
+
+
+@pytest.mark.parametrize("total_return,positive_rate", [(True, .5), (float("nan"), .5), (0, True), (0, -0.1), (0, 1.1)])
+def test_shadow_health_score_rejects_invalid_inputs(total_return, positive_rate):
+    with pytest.raises(ValueError):
+        shadow_health_score(total_return, positive_rate)
 
 
 def test_ranks_use_average_rank_for_ties():

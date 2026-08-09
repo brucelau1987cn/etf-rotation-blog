@@ -101,7 +101,7 @@ def health_payload(model_fingerprint):
                     "rolling_20d_volatility": None, "positive_period_rate": None,
                     "excess_return_vs_benchmark": None,
                     "equity_series": [
-                        {"date": f"2026-08-{index + 2:02d}", "equity": 20_000.0}
+                        {"date": f"2026-08-{index + 2:02d}", "equity": 20_000.0, "period_return": 0.0}
                         for index in range(4)
                     ],
                 }
@@ -358,8 +358,9 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
             max_drawdown=0, current_drawdown=0, longest_drawdown_duration=0,
             rolling_20d_volatility=0, positive_period_rate=0,
             excess_return_vs_benchmark=0,
-            equity_series=[{"date": f"2026-01-{index + 1:02d}", "equity": 20_000.0} for index in range(20)],
+            equity_series=[{"date": f"2026-01-{index + 1:02d}", "equity": 20_000.0, "period_return": 0.0} for index in range(20)],
         )
+    health_payload["cost_sensitivity"]["observations"] = 20
     health_payload["overall"] = {"status": "FRAGILE", "score": 0, "reasons": []}
 
     assert validator_module.validate_us_compass_health_payload(health_payload) == []

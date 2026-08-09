@@ -26,7 +26,10 @@ STAGING_BLOCKER = (
 
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint
-    from .us_compass_research_metrics import annualized_volatility, rate_shadow_health, rate_time_slice_audit
+    from .us_compass_research_metrics import (
+        COST_SCENARIOS, COST_UNAVAILABLE_REASON, annualized_volatility,
+        rate_shadow_health, rate_time_slice_audit, shadow_health_score,
+    )
 else:
     fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
     fingerprint_spec = importlib.util.spec_from_file_location(
@@ -48,6 +51,9 @@ else:
     rate_time_slice_audit = metrics_module.rate_time_slice_audit
     annualized_volatility = metrics_module.annualized_volatility
     rate_shadow_health = metrics_module.rate_shadow_health
+    shadow_health_score = metrics_module.shadow_health_score
+    COST_SCENARIOS = metrics_module.COST_SCENARIOS
+    COST_UNAVAILABLE_REASON = metrics_module.COST_UNAVAILABLE_REASON
 
 
 def _valid_date(value: Any) -> bool:
@@ -274,8 +280,6 @@ def build_walk_forward(t5_horizon: dict[str, Any]) -> dict[str, Any]:
 
 
 PORTFOLIOS = ("benchmark", "timing", "rotation", "fusion")
-COST_SCENARIOS = (0.0, 0.0005, 0.001, 0.002, 0.003)
-COST_UNAVAILABLE_REASON = "turnover history unavailable; exact cost scenarios require persisted turnover"
 
 
 def _finite_number(value: Any, label: str) -> float:
@@ -323,6 +327,15 @@ def extract_shadow_history(shadow: Any) -> list[dict[str, Any]]:
             normalized_returns[name] = value
         periods.append({**dates, "date": dates["exit_date"], "returns": normalized_returns})
     periods.sort(key=lambda row: row["exit_date"])
+    for field in ("signal_date", "entry_date", "exit_date"):
+        values = [row[field] for row in periods]
+        if values != sorted(values) or len(values) != len(set(values)):
+            raise ValueError(f"shadow {field}s must be unique and strictly ascending")
+    for previous, current in zip(periods, periods[1:]):
+        if previous["entry_date"] > current["signal_date"]:
+            raise ValueError("previous entry_date must be on or before next signal_date")
+        if previous["exit_date"] > current["entry_date"]:
+            raise ValueError("previous exit_date must be on or before next entry_date")
     return periods
 
 
@@ -336,7 +349,7 @@ def portfolio_health_metrics(periods: list[dict[str, Any]], initial_capital: flo
         value = period["returns"][portfolio]
         returns.append(value)
         equity *= 1 + value
-        series.append({"date": period["exit_date"], "equity": equity})
+        series.append({"date": period["exit_date"], "equity": equity, "period_return": value})
         if equity >= peak:
             peak = equity
             duration = 0
@@ -383,8 +396,7 @@ def build_shadow_health(shadow: Any) -> dict[str, Any]:
     mature = len(periods) >= 20
     score = None
     if mature:
-        return_score = max(0.0, min(1.0, (fusion["total_return"] + 0.2) / 0.4))
-        score = 0.5 * fusion["positive_period_rate"] + 0.5 * return_score
+        score = shadow_health_score(fusion["total_return"], fusion["positive_period_rate"])
     return {
         "status": fusion["status"], "observations": len(periods), "initial_capital": initial,
         "return": fusion["total_return"], "max_drawdown": fusion["max_drawdown"],
@@ -423,6 +435,14 @@ def build_health_payload(learning: Any, shadow: Any, generated_at: str | None = 
         seen_dates.add(snapshot_date)
         dates.append(snapshot_date)
     fingerprint = consistent_model_fingerprint(learning, shadow)
+    shadow_initial = _finite_number(shadow.get("initial_capital_usd"), "shadow initial_capital_usd")
+    fingerprint_initial = _finite_number(fingerprint.get("initial_capital"), "model_fingerprint.initial_capital")
+    if shadow_initial != fingerprint_initial:
+        raise ValueError("shadow initial_capital_usd must equal model_fingerprint.initial_capital")
+    shadow_cost = _finite_number(shadow.get("one_way_cost"), "shadow one_way_cost")
+    fingerprint_cost = _finite_number(fingerprint.get("one_way_cost"), "model_fingerprint.one_way_cost")
+    if shadow_cost != fingerprint_cost:
+        raise ValueError("shadow one_way_cost must equal model_fingerprint.one_way_cost")
     horizons = {
         name: horizon_health(extract_rank_ic_series(learning, name), *thresholds)
         for name, thresholds in HORIZON_THRESHOLDS.items()

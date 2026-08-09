@@ -628,6 +628,7 @@
           "$ref": "#/$defs/nullable_nonnegative_number"
         },
         "longest_drawdown_duration": {
+          "description": "Consecutive periods below the high-water mark.",
           "type": [
             "integer",
             "null"
@@ -650,7 +651,8 @@
             "additionalProperties": false,
             "required": [
               "date",
-              "equity"
+              "equity",
+              "period_return"
             ],
             "properties": {
               "date": {
@@ -660,6 +662,9 @@
               "equity": {
                 "type": "number",
                 "exclusiveMinimum": 0
+              },
+              "period_return": {
+                "type": "number"
               }
             }
           }

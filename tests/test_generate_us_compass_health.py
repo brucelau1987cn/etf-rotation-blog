@@ -433,6 +433,25 @@ def test_build_requires_matching_learning_and_shadow_fingerprints(fingerprint):
         load_module().build_health_payload(learning, mismatched, "2026-02-01T00:00:00Z")
 
 
+@pytest.mark.parametrize(("field", "value", "message"), [
+    ("initial_capital_usd", 10_000.0, "initial_capital_usd.*model_fingerprint.initial_capital"),
+    ("one_way_cost", 0.002, "one_way_cost.*model_fingerprint.one_way_cost"),
+])
+def test_build_requires_shadow_metadata_to_match_fingerprint(fingerprint, field, value, message):
+    shadow = shadow_with(fingerprint)
+    shadow[field] = value
+    with pytest.raises(ValueError, match=message):
+        load_module().build_health_payload(learning_with({"t5": [0.1]}, fingerprint), shadow, "2026-02-01T00:00:00Z")
+
+
+def test_extract_shadow_history_rejects_crossed_adjacent_periods(fingerprint):
+    shadow = shadow_history(2, fingerprint)
+    shadow["history"][0]["exit_date"] = "2026-01-04"
+    shadow["history"][1].update(signal_date="2026-01-02", entry_date="2026-01-03", exit_date="2026-01-05")
+    with pytest.raises(ValueError, match="previous exit_date.*next entry_date"):
+        load_module().extract_shadow_history(shadow)
+
+
 def test_generated_payload_contains_no_nonfinite_numbers(fingerprint):
     payload = load_module().build_health_payload(
         learning_with({"t1": [0.1] * 20, "t5": [0.1] * 20, "t20": []}, fingerprint),

@@ -8,6 +8,20 @@ from typing import TypeVar
 
 T = TypeVar("T")
 
+COST_SCENARIOS = (0, 0.0005, 0.001, 0.002, 0.003)
+COST_UNAVAILABLE_REASON = "turnover history unavailable; exact cost scenarios require persisted turnover"
+
+
+def shadow_health_score(total_return: float, positive_rate: float) -> float:
+    """Return the bounded fusion shadow score from persisted performance."""
+    for name, value in (("total_return", total_return), ("positive_rate", positive_rate)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if not 0 <= positive_rate <= 1:
+        raise ValueError("positive_rate must be in [0, 1]")
+    return_score = max(0.0, min(1.0, (total_return + 0.2) / 0.4))
+    return 0.5 * positive_rate + 0.5 * return_score
+
 
 def finite_numbers(values: Sequence[object]) -> list[float]:
     """Coerce values to floats and retain only finite numbers."""
