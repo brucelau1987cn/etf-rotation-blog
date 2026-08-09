@@ -26,6 +26,7 @@ class DatasetSpec(NamedTuple):
     source_categories: tuple[str, ...]
     observation_fields: tuple[str, ...]
     generated_fields: tuple[str, ...]
+    required: bool = True
 
 
 DATASETS = (
@@ -40,6 +41,9 @@ DATASETS = (
     DatasetSpec("us-etf-pool", "us-etf-pool.json", "runtime", "US", "legacy-unversioned", ("market_data", "derived_research"), ("quote_trade_date", "model_date"), ("generated_at",)),
     DatasetSpec("us-macro-dashboard", "us-macro-dashboard.json", "production", "US", "us-macro-dashboard-v2", ("market_data", "official_statistics", "public_events"), ("__latest_as_of__",), ("generated_at",)),
     DatasetSpec("us-compass-research", "us-compass-research.json", "history", "US", "us-compass-research-v1", ("historical_market_data", "model_output", "derived_research", "public_events"), ("__research_report__",), ("updated_at",)),
+    DatasetSpec("us-compass-health", "us-compass-health.json", "shadow", "US", "us-compass-health-v1", ("historical_market_data", "model_output", "derived_research"), ("model_date",), ("generated_at",), False),
+    DatasetSpec("us-compass-rotation-map", "us-compass-rotation-map.json", "shadow", "US", "us-compass-rotation-map-v1", ("historical_market_data", "derived_research"), ("as_of",), (), False),
+    DatasetSpec("us-compass-risk", "us-compass-risk.json", "shadow", "US", "us-compass-risk-v1", ("historical_market_data", "derived_research"), ("as_of",), (), False),
     DatasetSpec("paper-trading", "paper-trading.json", "history", "MULTI", "paper-trading-v1", ("simulated_execution", "derived_research"), ("__paper_history__",), ("updated_at",)),
     DatasetSpec("a-share-nightly-deployment", "a-share-nightly-deployment.json", "history", "CN", "a-share-nightly-deployment-v1", ("publication_receipt",), ("trade_date",), ()),
 )
@@ -251,8 +255,18 @@ def catalog_generated_at(entries: list[dict[str, Any]]) -> str:
     return fallback.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def active_dataset_specs(
+    data_dir: Path, datasets: tuple[DatasetSpec, ...] | None = None
+) -> tuple[DatasetSpec, ...]:
+    registry = DATASETS if datasets is None else datasets
+    return tuple(
+        spec for spec in registry
+        if spec.required or (data_dir / spec.relative_path).is_file()
+    )
+
+
 def build_catalog(data_dir: Path = DATA, *, generated_at: str | None = None) -> dict[str, Any]:
-    entries = [entry_for(data_dir, spec) for spec in DATASETS]
+    entries = [entry_for(data_dir, spec) for spec in active_dataset_specs(data_dir)]
     stable = {"schema_version": CATALOG_SCHEMA_VERSION, "contract_url": CATALOG_CONTRACT_URL, "datasets": entries}
     return {
         "schema_version": CATALOG_SCHEMA_VERSION,

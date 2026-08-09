@@ -15,10 +15,10 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
 try:
-    from generate_data_catalog import DATASETS, entry_for, stable_batch_id
+    from generate_data_catalog import DATASETS, active_dataset_specs, entry_for, stable_batch_id
     from generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
 except ModuleNotFoundError:
-    from scripts.generate_data_catalog import DATASETS, entry_for, stable_batch_id
+    from scripts.generate_data_catalog import DATASETS, active_dataset_specs, entry_for, stable_batch_id
     from scripts.generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -285,9 +285,10 @@ def validate_catalog(data_dir: Path, catalog: dict[str, Any], errors: list[str])
     if not isinstance(datasets, list):
         return
     ids = [item.get("dataset_id") for item in datasets if isinstance(item, dict)]
-    expected_ids = [spec.dataset_id for spec in DATASETS]
+    active_specs = active_dataset_specs(data_dir, DATASETS)
+    expected_ids = [spec.dataset_id for spec in active_specs]
     if ids != expected_ids:
-        errors.append("catalog datasets must match the ordered core dataset registry")
+        errors.append("catalog datasets must match the ordered active dataset registry")
     if len(ids) != len(set(ids)):
         errors.append("catalog contains duplicate dataset_id values")
     stable = {"schema_version": catalog.get("schema_version"), "contract_url": catalog.get("contract_url"), "datasets": datasets}
