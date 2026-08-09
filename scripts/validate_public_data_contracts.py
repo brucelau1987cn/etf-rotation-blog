@@ -28,6 +28,7 @@ SCHEMA_FILES = (
     "data-catalog.schema.json", "a-compass-dashboard.schema.json",
     "forward-evidence-ledger.schema.json", "decision-thesis.schema.json", "decision-drift.schema.json",
     "investment-research-layer.schema.json",
+    "us-compass-health.schema.json", "us-compass-rotation-map.schema.json", "us-compass-risk.schema.json",
 )
 ROLES = {"production", "shadow", "history", "runtime", "export"}
 SOURCE_CATEGORIES = {
@@ -107,6 +108,65 @@ def validate_schema_files(schema_dir: Path, errors: list[str]) -> dict[str, dict
 def schema_errors(schema: dict[str, Any], payload: Any) -> list[str]:
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     return [f"{'.'.join(str(part) for part in item.absolute_path) or '$'}: {item.message}" for item in sorted(validator.iter_errors(payload), key=lambda item: list(item.absolute_path))]
+
+
+def _schema(name: str, schema: dict[str, Any] | None) -> dict[str, Any]:
+    return schema if schema is not None else parse_json(SCHEMAS / name)
+
+
+def validate_us_compass_health_payload(
+    payload: Any, schema: dict[str, Any] | None = None
+) -> list[str]:
+    return schema_errors(_schema("us-compass-health.schema.json", schema), payload) + unsafe_paths(payload)
+
+
+def validate_us_compass_rotation_payload(
+    payload: Any, schema: dict[str, Any] | None = None
+) -> list[str]:
+    errors = schema_errors(_schema("us-compass-rotation-map.schema.json", schema), payload) + unsafe_paths(payload)
+    if isinstance(payload, dict) and isinstance(payload.get("items"), list):
+        for index, item in enumerate(payload["items"]):
+            trail = item.get("trail") if isinstance(item, dict) else None
+            if not isinstance(trail, list):
+                continue
+            dates = [point.get("date") for point in trail if isinstance(point, dict)]
+            if len(dates) != len(trail) or not all(valid_date(date) for date in dates):
+                errors.append(f"items.{index}.trail: dates must use valid YYYY-MM-DD format")
+            elif len(set(dates)) != len(dates):
+                errors.append(f"items.{index}.trail: dates must be unique")
+            elif dates != sorted(dates):
+                errors.append(f"items.{index}.trail: dates must be strictly ascending")
+    return errors
+
+
+def validate_us_compass_risk_payload(
+    payload: Any, schema: dict[str, Any] | None = None
+) -> list[str]:
+    errors = schema_errors(_schema("us-compass-risk.schema.json", schema), payload) + unsafe_paths(payload)
+    if not isinstance(payload, dict):
+        return errors
+    symbols = payload.get("symbols")
+    matrix = payload.get("correlation_matrix")
+    if isinstance(symbols, list) and isinstance(matrix, list):
+        size = len(symbols)
+        if len(matrix) != size or any(not isinstance(row, list) or len(row) != size for row in matrix):
+            errors.append("correlation_matrix dimension must match symbols NxN")
+    symbol_set = set(symbols) if isinstance(symbols, list) else None
+    for field in ("volatility", "risk_contribution"):
+        section = payload.get(field)
+        values = section.get("values") if isinstance(section, dict) else None
+        if symbol_set is not None and isinstance(values, dict) and set(values) != symbol_set:
+            errors.append(f"{field}.values keys must align with symbols")
+    contribution = payload.get("risk_contribution")
+    if isinstance(contribution, dict) and contribution.get("status") == "EVALUATED":
+        values = contribution.get("values")
+        if isinstance(values, dict) and values and all(
+            isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            for value in values.values()
+        ):
+            if abs(sum(values.values()) - 1.0) > 0.001:
+                errors.append("risk_contribution.values sum must be within 0.001 of 1")
+    return errors
 
 
 def validate_catalog(data_dir: Path, catalog: dict[str, Any], errors: list[str]) -> None:

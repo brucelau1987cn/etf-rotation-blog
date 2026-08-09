@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/us-compass-rotation-map.schema.json",
+  "title": "US Compass rotation map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark", "long_window", "short_window", "trail_length", "as_of", "items"],
+  "properties": {
+    "schema_version": {"const": "us-compass-rotation-map-v1"},
+    "benchmark": {"type": "string", "minLength": 1},
+    "long_window": {"type": "integer", "minimum": 1},
+    "short_window": {"type": "integer", "minimum": 1},
+    "trail_length": {"type": "integer", "minimum": 1},
+    "as_of": {"type": "string", "format": "date"},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol", "theme", "quadrant", "trail"],
+        "properties": {
+          "symbol": {"type": "string", "minLength": 1},
+          "theme": {"type": "string", "minLength": 1},
+          "quadrant": {"enum": ["LEADING", "WEAKENING", "LAGGING", "IMPROVING", "INSUFFICIENT"]},
+          "trail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["date", "ratio", "momentum"],
+              "properties": {
+                "date": {"type": "string", "format": "date"},
+                "ratio": {"type": "number"},
+                "momentum": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

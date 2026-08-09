@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/us-compass-health.schema.json",
+  "title": "US Compass research health",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "market", "model_date", "generated_at", "model_fingerprint", "sample_maturity", "horizons", "walk_forward", "shadow_health", "cost_sensitivity", "overall"],
+  "properties": {
+    "schema_version": {"const": "us-compass-health-v1"},
+    "market": {"const": "US"},
+    "model_date": {"type": "string", "format": "date"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "model_fingerprint": {"$ref": "#/$defs/model_fingerprint"},
+    "sample_maturity": {"$ref": "#/$defs/sample_maturity"},
+    "horizons": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/horizon_health"},
+      "minProperties": 1
+    },
+    "walk_forward": {"$ref": "#/$defs/scored_health"},
+    "shadow_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "observations", "return", "max_drawdown"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "observations": {"type": "integer", "minimum": 0},
+        "return": {"$ref": "#/$defs/nullable_number"},
+        "max_drawdown": {"$ref": "#/$defs/nullable_number"},
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "cost_sensitivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "scenarios", "score"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["one_way_cost", "value"],
+            "properties": {
+              "one_way_cost": {"type": "number", "minimum": 0},
+              "value": {"$ref": "#/$defs/nullable_number"}
+            }
+          }
+        },
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "overall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "score", "reasons"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    }
+  },
+  "$defs": {
+    "health_status": {"enum": ["ACCUMULATING", "FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"]},
+    "nullable_number": {"type": ["number", "null"]},
+    "nullable_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "sample_maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "observations", "minimum_observations", "mature", "reasons"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "observations": {"type": "integer", "minimum": 0},
+        "minimum_observations": {"type": "integer", "minimum": 1},
+        "mature": {"type": "boolean"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "horizon_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sample_count", "value"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "value": {"$ref": "#/$defs/nullable_number"},
+        "rank_ic": {"$ref": "#/$defs/nullable_number"},
+        "cross_sectional_deviation": {"$ref": "#/$defs/nullable_number"},
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "scored_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "windows", "score"],
+      "properties": {
+        "status": {"$ref": "#/$defs/health_status"},
+        "windows": {"type": "integer", "minimum": 0},
+        "score": {"$ref": "#/$defs/nullable_score"},
+        "reasons": {"$ref": "#/$defs/reasons"}
+      }
+    },
+    "model_fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_version", "universe_count", "symbols_sha256", "config_sha256", "execution_basis", "one_way_cost", "initial_capital", "horizons", "exposure_mapping"],
+      "properties": {
+        "model_version": {"type": "string", "minLength": 1},
+        "universe_count": {"type": "integer", "minimum": 1},
+        "symbols_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "execution_basis": {"type": "string", "minLength": 1},
+        "one_way_cost": {"type": "number", "minimum": 0},
+        "initial_capital": {"type": "number", "exclusiveMinimum": 0},
+        "horizons": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "exposure_mapping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["values", "default"],
+          "properties": {
+            "values": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}},
+            "default": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    }
+  }
+}
