@@ -21,11 +21,14 @@ def pick(row: dict, prefixes: tuple[str, ...]):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="/tmp/low_chip_shareholder_metrics.json")
+    parser.add_argument("--main-force", default="/tmp/low_chip_main_force.json")
     args = parser.parse_args()
 
     payload = json.loads(DATA.read_text(encoding="utf-8"))
     source = json.loads(Path(args.input).read_text(encoding="utf-8"))
     by_code = {str(row.get("股票代码") or ""): row for row in source.get("datas", [])}
+    main_force_source = json.loads(Path(args.main_force).read_text(encoding="utf-8"))
+    mf_by_code = {str(row.get("SECURITY_CODE") or ""): row for row in main_force_source}
     missing = [code for code in payload["intersection"] if code not in by_code]
     if missing:
         raise SystemExit(f"missing shareholder rows: {missing}")
@@ -51,13 +54,14 @@ def main() -> None:
         concentration90 = pick(row, ("集中度90",))
         top10_ratio = pick(row, ("前十大流通股东持股比例合计", "占总股本比"))
         price = pick(row, ("最新价", "收盘价"))
-        main_force = pick(row, ("主力控盘比例",))
+        main_force = None
         main_force_label = None
-        if main_force is not None:
-            if main_force > 50: main_force_label = "高度控盘"
-            elif main_force > 20: main_force_label = "中度控盘"
-            elif main_force > 10: main_force_label = "轻度控盘"
-            else: main_force_label = "无控盘"
+        mf_row = mf_by_code.get(code.split(".")[0])
+        if mf_row:
+            org = mf_row.get("ORG_PARTICIPATE")
+            if org is not None:
+                main_force = round(org * 100, 2)
+                main_force_label = mf_row.get("PARTICIPATE_TYPE_CN")
         required = {
             "shareholder_count": holders,
             "average_holding": average_holding,
