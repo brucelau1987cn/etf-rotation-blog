@@ -159,10 +159,10 @@ npm run build
 
 ### 注意事项
 
-- `functions/api/public/v1/quote.js`、`chip.js`、`_chip.js` 是同步产物；行情和筹码逻辑统一在 `edge-quote-api` 修改，再执行 `npm run sync:quote`。
+- `functions/api/public/v1/quote.js`、`chip.js`、`_chip.js`、`_baostock.js` 是同步产物；行情和筹码逻辑统一在 `edge-quote-api` 修改，再执行 `npm run sync:quote`。
 - 同步脚本需要同时替换 `./chip.js` 的 import 与 re-export。遗漏 re-export 会造成 Pages Functions 循环导入并阻断部署。
 - 同步后必须保留 `SI=F` / `GC=F` / `CL=F` 别名，并与 `kline.js` 保持一致。
-- 腾讯筹码换手率采用当前流通股本近似历史值，适合趋势观察；股本变动期间应结合外部数据复核。
+- 腾讯主源的历史换手率采用当前流通股本近似；腾讯失败后 Cloudflare 直接连接 BaoStock TCP，并使用 BaoStock 每日真实换手率。生产无需本地代理。
 - `refresh=1` 绕过已完成缓存且响应 `no-store`，相同并发刷新仍会合并在途计算。
 - Worker 与 Pages 分别部署。发布后应使用相同 `symbol`、`adjust`、`limit`、`refresh` 请求比较两个入口。
 - Cloudflare Global API Key、API Token、账户邮箱等凭据只存本机凭据文件或 CI Secret，禁止写入仓库、日志和公开 JSON。

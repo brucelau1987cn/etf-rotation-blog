@@ -71,37 +71,6 @@ async function fetchKlineFromTencent(symbol, adjust = '') {
 }
 
 /**
- * 从 push2his 获取日K线数据（可能被限制，作为 fallback）
- */
-async function fetchKlineFromPush2his(secid, adjust) {
-  const adjustMap = { 'qfq': '1', 'hfq': '2', '': '0' };
-  const url = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
-  const params = new URLSearchParams({
-    secid,
-    fields1: 'f1,f2,f3,f4,f5,f6',
-    fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
-    klt: '101',
-    fqt: adjustMap[adjust] || '0',
-    lmt: '210',
-    end: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-  });
-  const res = await fetch(`${url}?${params}`, {
-    headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://quote.eastmoney.com/' },
-  });
-  if (!res.ok) throw new Error(`push2his HTTP ${res.status}`);
-  const d = await res.json();
-  if (d.rc !== 0 || !d.data?.klines) throw new Error(`push2his rc=${d.rc}`);
-  return validateKlines(d.data.klines.map((line) => {
-    const parts = line.split(',');
-    return {
-      date: parts[0], open: Number(parts[1]), close: Number(parts[2]),
-      high: Number(parts[3]), low: Number(parts[4]),
-      volume: Number(parts[5]), hsl: Number(parts[10]),
-    };
-  }));
-}
-
-/**
  * 计算筹码分布（CYQ 算法）
  * 输入: 日K线数组 (open, close, high, low, hsl)
  * 输出: 最新日的获利比例、平均成本、90/70集中度、90/70成本区间
@@ -229,7 +198,6 @@ function computeChipDistributionSeries(klines, limit = 90) {
 
 export {
   fetchKlineFromTencent,
-  fetchKlineFromPush2his,
   computeChipDistribution,
   computeChipDistributionSeries,
 };

@@ -5,17 +5,17 @@
 
 import {
   fetchKlineFromTencent,
-  fetchKlineFromPush2his,
   computeChipDistribution,
   computeChipDistributionSeries,
 } from './_chip.js';
+import { fetchKlineFromBaoStock } from './_baostock.js';
 
 export {
   fetchKlineFromTencent,
-  fetchKlineFromPush2his,
   computeChipDistribution,
   computeChipDistributionSeries,
 } from './_chip.js';
+export { fetchKlineFromBaoStock } from './_baostock.js';
 
 const CHIP_CACHE_TTL_MS = 15 * 60 * 1000;
 const CHIP_CACHE_MAX_ENTRIES = 200;
@@ -1182,10 +1182,11 @@ export async function onRequestGet({ request }) {
   if (isChip) {
     const symbol = url.searchParams.get('symbol') || url.searchParams.get('symbols') || '';
     const adjust = url.searchParams.get('adjust') || '';
+    const provider = url.searchParams.get('provider') || 'auto';
     const limitRaw = url.searchParams.get('limit') || '90';
     const limit = Number(limitRaw);
     const bypassCache = url.searchParams.get('nocache') === '1' || url.searchParams.get('refresh') === '1';
-    const cacheKey = `${symbol}:${adjust}:${limit}`;
+    const cacheKey = `${symbol}:${adjust}:${limit}:${provider}`;
     const headers = {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=3600',
@@ -1203,6 +1204,12 @@ export async function onRequestGet({ request }) {
       if (!['', 'qfq', 'hfq'].includes(adjust)) {
         headers['cache-control'] = 'no-store';
         return new Response(JSON.stringify({ status: 'error', message: 'invalid adjust' }), {
+          status: 400, headers,
+        });
+      }
+      if (!['auto', 'tencent', 'baostock'].includes(provider)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'invalid provider' }), {
           status: 400, headers,
         });
       }
@@ -1237,12 +1244,19 @@ export async function onRequestGet({ request }) {
       }
       const loadPayload = async () => {
         let klines;
-        let source = 'tencent-kline+local-cyq';
-        try {
-          klines = await fetchKlineFromTencent(symbol, adjust);
-        } catch (tencentError) {
-          source = 'eastmoney-push2his+local-cyq';
-          klines = await fetchKlineFromPush2his(secid, adjust);
+        let source;
+        if (provider === 'baostock') {
+          source = 'baostock-tcp+local-cyq';
+          klines = await fetchKlineFromBaoStock(symbol, adjust);
+        } else {
+          source = 'tencent-kline+local-cyq';
+          try {
+            klines = await fetchKlineFromTencent(symbol, adjust);
+          } catch (tencentError) {
+            if (provider === 'tencent') throw tencentError;
+            source = 'baostock-tcp+local-cyq';
+            klines = await fetchKlineFromBaoStock(symbol, adjust);
+          }
         }
         const chip = computeChipDistribution(klines);
         const comparisonSeries = computeChipDistributionSeries(klines, 2);
@@ -1251,14 +1265,14 @@ export async function onRequestGet({ request }) {
         const previous = comparisonSeries.at(-2) || null;
         if (!chip || !latest) throw new Error('chip computation failed');
         return {
-          status: 'ok', symbol, secid, adjust, source,
+          status: 'ok', symbol, secid, adjust, provider, source,
           algorithm: 'akshare-cyq-compatible-approximation',
           assumptions: {
             range_bars: 120,
             price_bins: 150,
             turnover_source: source.startsWith('tencent')
               ? 'daily_volume/current_float_shares'
-              : 'eastmoney_daily_turnover',
+              : 'baostock_daily_turnover',
           },
           kline_count: klines.length,
           as_of: latest.date,

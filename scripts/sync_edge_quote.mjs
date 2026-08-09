@@ -11,16 +11,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceRoot = resolve(process.env.EDGE_QUOTE_API_ROOT || join(root, '..', 'edge-quote-api'));
 const source = join(sourceRoot, 'src', 'index.js');
 const chipSource = join(sourceRoot, 'src', 'chip.js');
+const baostockSource = join(sourceRoot, 'src', 'baostock.js');
 const target = join(root, 'functions', 'api', 'public', 'v1', 'quote.js');
 const chipRouteTarget = join(root, 'functions', 'api', 'public', 'v1', 'chip.js');
 const chipHelperTarget = join(root, 'functions', 'api', 'public', 'v1', '_chip.js');
+const baostockHelperTarget = join(root, 'functions', 'api', 'public', 'v1', '_baostock.js');
 
-if (!existsSync(source) || !existsSync(chipSource)) {
-  console.error(`edge-quote-api source not found: ${source} / ${chipSource}`);
+if (!existsSync(source) || !existsSync(chipSource) || !existsSync(baostockSource)) {
+  console.error(`edge-quote-api source not found: ${source} / ${chipSource} / ${baostockSource}`);
   process.exit(1);
 }
 
-const text = readFileSync(source, 'utf8').replaceAll("from './chip.js'", "from './_chip.js'");
+const text = readFileSync(source, 'utf8')
+  .replaceAll("from './chip.js'", "from './_chip.js'")
+  .replaceAll("from './baostock.js'", "from './_baostock.js'");
 if (!text.includes('export async function onRequestGet') && !text.includes('export function onRequestGet')) {
   console.error('edge-quote-api/src/index.js must export onRequestGet for Pages Functions compatibility');
   process.exit(1);
@@ -35,4 +39,5 @@ mkdirSync(dirname(chipRouteTarget), { recursive: true });
 writeFileSync(target, text);
 writeFileSync(chipRouteTarget, text);
 copyFileSync(chipSource, chipHelperTarget);
-console.log(`synced quote/chip handlers:\n  ${source}\n  -> ${target}\n  -> ${chipRouteTarget}\n  ${chipSource}\n  -> ${chipHelperTarget}`);
+copyFileSync(baostockSource, baostockHelperTarget);
+console.log(`synced quote/chip handlers:\n  ${source}\n  -> ${target}\n  -> ${chipRouteTarget}\n  ${chipSource}\n  -> ${chipHelperTarget}\n  ${baostockSource}\n  -> ${baostockHelperTarget}`);
