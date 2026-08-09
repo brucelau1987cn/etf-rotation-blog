@@ -197,6 +197,7 @@ def test_immature_health_result_metrics_must_be_null(
 def test_sample_mature_flag_must_match_observation_counts(
     validator_module, health_payload, observations, minimum_observations, mature
 ):
+    health_payload["horizons"]["t5"]["observations"] = observations
     health_payload["sample_maturity"].update(
         observations=observations,
         minimum_observations=minimum_observations,
@@ -206,6 +207,59 @@ def test_sample_mature_flag_must_match_observation_counts(
     errors = validator_module.validate_us_compass_health_payload(health_payload)
 
     assert any("sample_maturity.mature" in error and "must equal" in error for error in errors), errors
+
+
+@pytest.mark.parametrize("observations", [3, 21])
+def test_sample_maturity_observations_must_equal_governing_t5(
+    validator_module, health_payload, observations
+):
+    health_payload["sample_maturity"]["observations"] = observations
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(
+        "sample_maturity.observations" in error
+        and "horizons.t5.observations" in error
+        for error in errors
+    ), errors
+
+
+@pytest.mark.parametrize("minimum", [19, 21])
+def test_sample_maturity_minimum_is_fixed_t5_research_gate(
+    validator_module, health_payload, minimum
+):
+    health_payload["sample_maturity"]["minimum_observations"] = minimum
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(
+        "sample_maturity.minimum_observations" in error and "must equal 20" in error
+        for error in errors
+    ), errors
+
+
+@pytest.mark.parametrize(
+    ("t5_observations", "sample_observations", "mature"),
+    [(19, 20, True), (20, 19, False)],
+)
+def test_sample_maturity_cannot_forge_governing_maturity_high_or_low(
+    validator_module,
+    health_payload,
+    t5_observations,
+    sample_observations,
+    mature,
+):
+    health_payload["horizons"]["t5"]["observations"] = t5_observations
+    health_payload["sample_maturity"].update(
+        observations=sample_observations,
+        minimum_observations=20,
+        mature=mature,
+    )
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("sample_maturity.observations" in error for error in errors), errors
+    assert any("sample_maturity.mature" in error for error in errors), errors
 
 
 @pytest.mark.parametrize(
@@ -223,6 +277,7 @@ def test_sample_maturity_status_must_match_maturity_direction(
     mature,
     status,
 ):
+    health_payload["horizons"]["t5"]["observations"] = observations
     health_payload["sample_maturity"].update(
         observations=observations,
         minimum_observations=minimum_observations,
@@ -286,6 +341,37 @@ def test_mature_stable_health_accepts_legitimate_numeric_zero(validator_module, 
 
 
 def test_mature_unavailable_health_accepts_null_results(validator_module, health_payload):
+    t5 = health_payload["horizons"]["t5"]
+    t5.update(observations=20, maturity_ratio=1)
+    t5["series"] = [
+        {
+            "signal_date": f"2025-12-{index + 1:02d}",
+            "date": f"2026-01-{index + 1:02d}",
+            "value": 0,
+        }
+        for index in range(20)
+    ]
+    health_payload["walk_forward"].update(
+        windows=4,
+        evaluated_windows=4,
+        positive_windows=0,
+        positive_slice_rate=0,
+        score=None,
+        slices=[
+            {
+                "index": index,
+                "start_date": f"2026-01-{index * 5 + 1:02d}",
+                "end_date": f"2026-01-{index * 5 + 5:02d}",
+                "signal_start_date": f"2025-12-{index * 5 + 1:02d}",
+                "signal_end_date": f"2025-12-{index * 5 + 5:02d}",
+                "observations": 5,
+                "status": "NON_POSITIVE",
+                "mean": 0,
+                "positive_rate": 0,
+            }
+            for index in range(4)
+        ],
+    )
     health_payload["sample_maturity"].update(
         status="UNAVAILABLE", observations=20, minimum_observations=20, mature=True
     )
@@ -468,6 +554,32 @@ def test_walk_forward_semantic_mutations_fail(
     errors = validator_module.validate_us_compass_health_payload(health_payload)
 
     assert any(message in error for error in errors), errors
+
+
+def test_partial_insufficient_slice_may_only_be_final(validator_module, health_payload):
+    final_slice = copy.deepcopy(health_payload["walk_forward"]["slices"][0])
+    final_slice.update(
+        index=1,
+        start_date="2026-08-06",
+        end_date="2026-08-10",
+        signal_start_date="2026-08-05",
+        signal_end_date="2026-08-09",
+        observations=5,
+        status="POSITIVE",
+        mean=0.1,
+        positive_rate=1,
+    )
+    health_payload["walk_forward"].update(
+        windows=2,
+        evaluated_windows=1,
+        positive_windows=1,
+        positive_slice_rate=1,
+        slices=[health_payload["walk_forward"]["slices"][0], final_slice],
+    )
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("partial INSUFFICIENT slice may only be final" in error for error in errors), errors
 
 
 def test_mature_overall_must_match_walk_forward(validator_module, health_payload):

@@ -16,6 +16,7 @@ from scripts.us_compass_research_metrics import (
     max_drawdown,
     pearson,
     ranks,
+    rate_time_slice_audit,
     rolling_slices,
     spearman,
 )
@@ -131,6 +132,50 @@ def test_finite_numbers_filters_invalid_and_non_finite_values():
         1.0,
         2.5,
     ]
+
+
+@pytest.mark.parametrize(
+    ("observations", "rate", "icir", "minimum", "expected"),
+    [
+        (19, 1.0, 1.0, 20, "ACCUMULATING"),
+        (20, None, 1.0, 20, "ACCUMULATING"),
+        (20, 0.4999, 1.0, 20, "FRAGILE"),
+        (20, 0.5, 1.0, 20, "MIXED"),
+        (20, 0.6999, 1.0, 20, "MIXED"),
+        (20, 0.7, 0.0, 20, "MIXED"),
+        (20, 0.7, None, 20, "MIXED"),
+        (20, 0.7, 0.1, 20, "STABLE"),
+        (9, 1.0, 1.0, 10, "ACCUMULATING"),
+        (10, 1.0, 1.0, 10, "STABLE"),
+    ],
+)
+def test_rate_time_slice_audit_exact_boundaries(
+    observations, rate, icir, minimum, expected
+):
+    assert rate_time_slice_audit(observations, rate, icir, minimum) == expected
+
+
+@pytest.mark.parametrize(
+    ("observations", "rate", "icir", "minimum"),
+    [
+        (True, 0.7, 0.1, 20),
+        (20.0, 0.7, 0.1, 20),
+        (-1, 0.7, 0.1, 20),
+        (20, True, 0.1, 20),
+        (20, -0.1, 0.1, 20),
+        (20, 1.1, 0.1, 20),
+        (20, float("nan"), 0.1, 20),
+        (20, 0.7, True, 20),
+        (20, 0.7, float("inf"), 20),
+        (20, 0.7, 0.1, True),
+        (20, 0.7, 0.1, 0),
+    ],
+)
+def test_rate_time_slice_audit_rejects_invalid_inputs(
+    observations, rate, icir, minimum
+):
+    with pytest.raises(ValueError):
+        rate_time_slice_audit(observations, rate, icir, minimum)
 
 
 @pytest.mark.parametrize(

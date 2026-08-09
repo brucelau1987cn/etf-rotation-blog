@@ -47,6 +47,47 @@ def rolling_slices(values: Sequence[T], window: int) -> list[list[T]]:
     return [list(values[start : start + window]) for start in range(len(values) - window + 1)]
 
 
+def rate_time_slice_audit(
+    mature_observations: int,
+    positive_slice_rate: float | None,
+    t5_icir: float | None,
+    minimum_observations: int = 20,
+) -> str:
+    """Rate credibility from a governing non-overlapping time-slice audit."""
+    if (
+        isinstance(mature_observations, bool)
+        or not isinstance(mature_observations, int)
+        or mature_observations < 0
+    ):
+        raise ValueError("mature_observations must be a non-negative integer")
+    if (
+        isinstance(minimum_observations, bool)
+        or not isinstance(minimum_observations, int)
+        or minimum_observations <= 0
+    ):
+        raise ValueError("minimum_observations must be a positive integer")
+    if positive_slice_rate is not None and (
+        isinstance(positive_slice_rate, bool)
+        or not isinstance(positive_slice_rate, (int, float))
+        or not math.isfinite(positive_slice_rate)
+        or not 0 <= positive_slice_rate <= 1
+    ):
+        raise ValueError("positive_slice_rate must be null or finite in [0, 1]")
+    if t5_icir is not None and (
+        isinstance(t5_icir, bool)
+        or not isinstance(t5_icir, (int, float))
+        or not math.isfinite(t5_icir)
+    ):
+        raise ValueError("t5_icir must be null or finite")
+    if mature_observations < minimum_observations or positive_slice_rate is None:
+        return "ACCUMULATING"
+    if positive_slice_rate < 0.5:
+        return "FRAGILE"
+    if positive_slice_rate < 0.7:
+        return "MIXED"
+    return "STABLE" if t5_icir is not None and t5_icir > 0 else "MIXED"
+
+
 def annualized_volatility(
     returns: Sequence[float], periods_per_year: int = 252
 ) -> float | None:

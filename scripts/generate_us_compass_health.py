@@ -26,6 +26,7 @@ STAGING_BLOCKER = (
 
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint
+    from .us_compass_research_metrics import rate_time_slice_audit
 else:
     fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
     fingerprint_spec = importlib.util.spec_from_file_location(
@@ -36,6 +37,15 @@ else:
     fingerprint_module = importlib.util.module_from_spec(fingerprint_spec)
     fingerprint_spec.loader.exec_module(fingerprint_module)
     consistent_model_fingerprint = fingerprint_module.consistent_model_fingerprint
+    metrics_path = Path(__file__).resolve().with_name("us_compass_research_metrics.py")
+    metrics_spec = importlib.util.spec_from_file_location(
+        f"_us_compass_research_metrics_{id(metrics_path)}", metrics_path
+    )
+    if metrics_spec is None or metrics_spec.loader is None:
+        raise ImportError(f"cannot load research metrics from {metrics_path}")
+    metrics_module = importlib.util.module_from_spec(metrics_spec)
+    metrics_spec.loader.exec_module(metrics_module)
+    rate_time_slice_audit = metrics_module.rate_time_slice_audit
 
 
 def _valid_date(value: Any) -> bool:
@@ -168,6 +178,40 @@ def build_time_slices(
     series: list[dict[str, Any]], size: int = SLICE_SIZE
 ) -> list[dict[str, Any]]:
     """Partition sorted mature RankIC points into consecutive time slices."""
+    if isinstance(size, bool) or not isinstance(size, int) or size != SLICE_SIZE:
+        raise ValueError("slice size must be 5")
+    if not isinstance(series, list):
+        raise ValueError("series must be a list")
+    signal_dates: list[str] = []
+    outcome_dates: list[str] = []
+    for index, point in enumerate(series):
+        if not isinstance(point, dict):
+            raise ValueError(f"point {index} must be an object")
+        if set(point) != {"signal_date", "date", "value"}:
+            raise ValueError(
+                f"point {index} must contain exactly signal_date, date, and value"
+            )
+        signal_date = point["signal_date"]
+        outcome_date = point["date"]
+        if not _valid_date(signal_date):
+            raise ValueError(f"point {index} signal_date must be valid YYYY-MM-DD")
+        if not _valid_date(outcome_date):
+            raise ValueError(f"point {index} date must be valid YYYY-MM-DD")
+        if signal_date >= outcome_date:
+            raise ValueError(f"point {index} signal_date must be before date")
+        value = point["value"]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            raise ValueError(f"point {index} value must be a finite number")
+        signal_dates.append(signal_date)
+        outcome_dates.append(outcome_date)
+    if signal_dates != sorted(signal_dates) or len(signal_dates) != len(set(signal_dates)):
+        raise ValueError("signal_dates must be unique and strictly ascending")
+    if outcome_dates != sorted(outcome_dates) or len(outcome_dates) != len(set(outcome_dates)):
+        raise ValueError("dates must be unique and strictly ascending")
     slices = []
     for index, offset in enumerate(range(0, len(series), size)):
         chunk = series[offset : offset + size]
@@ -194,21 +238,6 @@ def build_time_slices(
     return slices
 
 
-def rate_time_slice_audit(
-    mature_observations: int,
-    positive_slice_rate: float | None,
-    t5_icir: float | None,
-) -> str:
-    """Rate credibility from the governing T+5 time-slice audit."""
-    if mature_observations < HORIZON_THRESHOLDS["t5"][0] or positive_slice_rate is None:
-        return "ACCUMULATING"
-    if positive_slice_rate < 0.5:
-        return "FRAGILE"
-    if positive_slice_rate < 0.7:
-        return "MIXED"
-    return "STABLE" if t5_icir is not None and t5_icir > 0 else "MIXED"
-
-
 def build_walk_forward(t5_horizon: dict[str, Any]) -> dict[str, Any]:
     """Build the T+5 non-overlapping time-slice credibility audit."""
     slices = build_time_slices(t5_horizon["series"])
@@ -216,7 +245,12 @@ def build_walk_forward(t5_horizon: dict[str, Any]) -> dict[str, Any]:
     positive = sum(item["status"] == "POSITIVE" for item in evaluated)
     positive_slice_rate = positive / len(evaluated) if evaluated else None
     observations = t5_horizon["observations"]
-    status = rate_time_slice_audit(observations, positive_slice_rate, t5_horizon["icir"])
+    status = rate_time_slice_audit(
+        observations,
+        positive_slice_rate,
+        t5_horizon["icir"],
+        HORIZON_THRESHOLDS["t5"][0],
+    )
     mature = observations >= HORIZON_THRESHOLDS["t5"][0]
     reason = (
         f"{positive} of {len(evaluated)} evaluated T+5 slices have positive mean RankIC"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import re
@@ -20,6 +21,19 @@ try:
 except ModuleNotFoundError:
     from scripts.generate_data_catalog import DATASETS, active_dataset_specs, entry_for, stable_batch_id
     from scripts.generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
+
+if __package__:
+    from .us_compass_research_metrics import rate_time_slice_audit
+else:
+    metrics_path = Path(__file__).resolve().with_name("us_compass_research_metrics.py")
+    metrics_spec = importlib.util.spec_from_file_location(
+        f"_us_compass_research_metrics_{id(metrics_path)}", metrics_path
+    )
+    if metrics_spec is None or metrics_spec.loader is None:
+        raise ImportError(f"cannot load research metrics from {metrics_path}")
+    metrics_module = importlib.util.module_from_spec(metrics_spec)
+    metrics_spec.loader.exec_module(metrics_module)
+    rate_time_slice_audit = metrics_module.rate_time_slice_audit
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data"
@@ -42,6 +56,7 @@ FORBIDDEN_KEYS = re.compile(
 )
 PRIVATE_PATH = re.compile(r"(?:/root/|/home/|/Users/|[A-Za-z]:\\|file://)")
 HTML_DELIMITER = re.compile(r"[<>]")
+HORIZON_THRESHOLDS = {"t5": (20, 40)}
 
 
 class ValidationResult(NamedTuple):
@@ -158,22 +173,9 @@ def validate_us_compass_health_payload(
             and not isinstance(minimum_observations, bool)
             and isinstance(mature, bool)
         ):
-            expected_mature = observations >= minimum_observations
-            if mature != expected_mature:
-                errors.append(
-                    "sample_maturity.mature: must equal "
-                    "observations >= minimum_observations"
-                )
-            allowed_statuses = (
-                {"FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"}
-                if expected_mature
-                else {"ACCUMULATING", "UNAVAILABLE"}
-            )
-            if status not in allowed_statuses:
-                errors.append(
-                    "sample_maturity.status: inconsistent with observation maturity"
-                )
-            sample_immature = not mature or not expected_mature
+            if minimum_observations != HORIZON_THRESHOLDS["t5"][0]:
+                errors.append("sample_maturity.minimum_observations: must equal 20")
+            sample_immature = not mature
 
     horizons = payload.get("horizons")
     if isinstance(horizons, dict):
@@ -252,6 +254,36 @@ def validate_us_compass_health_payload(
 
     walk_forward = payload.get("walk_forward")
     t5 = horizons.get("t5") if isinstance(horizons, dict) else None
+    if isinstance(sample_maturity, dict) and isinstance(t5, dict):
+        sample_observations = sample_maturity.get("observations")
+        t5_observations = t5.get("observations")
+        mature = sample_maturity.get("mature")
+        status = sample_maturity.get("status")
+        if (
+            isinstance(sample_observations, int)
+            and not isinstance(sample_observations, bool)
+            and isinstance(t5_observations, int)
+            and not isinstance(t5_observations, bool)
+        ):
+            if sample_observations != t5_observations:
+                errors.append(
+                    "sample_maturity.observations: must equal horizons.t5.observations"
+                )
+            expected_mature = t5_observations >= HORIZON_THRESHOLDS["t5"][0]
+            if mature != expected_mature:
+                errors.append(
+                    "sample_maturity.mature: must equal horizons.t5.observations >= 20"
+                )
+            allowed_statuses = (
+                {"FRAGILE", "MIXED", "STABLE", "UNAVAILABLE"}
+                if expected_mature
+                else {"ACCUMULATING", "UNAVAILABLE"}
+            )
+            if status not in allowed_statuses:
+                errors.append(
+                    "sample_maturity.status: inconsistent with observation maturity"
+                )
+            sample_immature = not expected_mature or mature is not True
     if isinstance(walk_forward, dict):
         slices = walk_forward.get("slices")
         if isinstance(slices, list):
@@ -273,6 +305,10 @@ def validate_us_compass_health_payload(
                 positive_rate = item.get("positive_rate")
                 if isinstance(observations, int) and not isinstance(observations, bool):
                     total_observations += observations
+                    if index < len(slices) - 1 and observations != 5:
+                        errors.append(
+                            f"walk_forward.slices[{index}]: partial INSUFFICIENT slice may only be final"
+                        )
                     if observations < 5:
                         if status != "INSUFFICIENT" or mean is not None or positive_rate is not None:
                             errors.append(
@@ -351,23 +387,34 @@ def validate_us_compass_health_payload(
                                 errors.append(f"walk_forward.slices[{index}].mean: inconsistent with T+5 observations")
                             if not isinstance(item.get("positive_rate"), (int, float)) or abs(item["positive_rate"] - expected_positive_rate) > 1e-12:
                                 errors.append(f"walk_forward.slices[{index}].positive_rate: inconsistent with T+5 observations")
-        if isinstance(sample_maturity, dict) and sample_maturity.get("mature") is True:
+        if (
+            isinstance(sample_maturity, dict)
+            and sample_maturity.get("mature") is True
+            and sample_maturity.get("status") != "UNAVAILABLE"
+        ):
             rate = walk_forward.get("positive_slice_rate")
             icir = t5.get("icir") if isinstance(t5, dict) else None
             expected_status = None
-            if isinstance(rate, (int, float)) and not isinstance(rate, bool):
-                if rate < 0.5:
-                    expected_status = "FRAGILE"
-                elif rate < 0.7:
-                    expected_status = "MIXED"
-                else:
-                    expected_status = (
-                        "STABLE"
-                        if isinstance(icir, (int, float))
-                        and not isinstance(icir, bool)
-                        and icir > 0
-                        else "MIXED"
-                    )
+            observations = t5.get("observations") if isinstance(t5, dict) else None
+            if (
+                isinstance(observations, int)
+                and not isinstance(observations, bool)
+                and isinstance(rate, (int, float))
+                and not isinstance(rate, bool)
+                and math.isfinite(rate)
+                and (
+                    icir is None
+                    or isinstance(icir, (int, float))
+                    and not isinstance(icir, bool)
+                    and math.isfinite(icir)
+                )
+            ):
+                expected_status = rate_time_slice_audit(
+                    observations,
+                    rate,
+                    icir,
+                    HORIZON_THRESHOLDS["t5"][0],
+                )
             if expected_status is not None and walk_forward.get("status") != expected_status:
                 errors.append("walk_forward.status: inconsistent with time-slice rating")
             if walk_forward.get("score") != walk_forward.get("positive_slice_rate"):

@@ -194,6 +194,44 @@ def test_time_slice_metrics_and_remainder_null_results():
     assert slices[1]["mean"] is None and slices[1]["positive_rate"] is None
 
 
+@pytest.mark.parametrize("size", [0, -1, True, 4, 6, 5.0, "5"])
+def test_build_time_slices_only_accepts_governing_slice_size(size):
+    with pytest.raises(ValueError, match="^slice size must be 5$"):
+        load_module().build_time_slices([point(0, 0.1)], size)
+
+
+@pytest.mark.parametrize(
+    ("series", "message"),
+    [
+        (None, "series must be a list"),
+        ([None], "point 0 must be an object"),
+        ([{"signal_date": "2025-12-01", "date": "2026-01-01"}], "exactly"),
+        ([{"signal_date": "bad", "date": "2026-01-01", "value": 0.1}], "signal_date"),
+        ([{"signal_date": "2025-12-01", "date": "bad", "value": 0.1}], "date"),
+        ([{"signal_date": "2026-01-01", "date": "2026-01-01", "value": 0.1}], "before"),
+        ([{"signal_date": "2025-12-01", "date": "2026-01-01", "value": True}], "finite"),
+        ([{"signal_date": "2025-12-01", "date": "2026-01-01", "value": float("nan")}], "finite"),
+        ([{"signal_date": "2025-12-01", "date": "2026-01-01", "value": float("inf")}], "finite"),
+    ],
+)
+def test_build_time_slices_rejects_malformed_series_before_statistics(series, message):
+    with pytest.raises(ValueError, match=message):
+        load_module().build_time_slices(series)
+
+
+@pytest.mark.parametrize("field", ["signal_date", "date"])
+@pytest.mark.parametrize("mode", ["duplicate", "descending"])
+def test_build_time_slices_requires_unique_strictly_ascending_dates(field, mode):
+    series = [point(0, 0.1), point(1, 0.2)]
+    if mode == "duplicate":
+        series[1][field] = series[0][field]
+    else:
+        series = list(reversed(series))
+
+    with pytest.raises(ValueError, match=f"{field}s must be unique and strictly ascending"):
+        load_module().build_time_slices(series)
+
+
 @pytest.mark.parametrize(
     ("observations", "rate", "icir", "expected"),
     [
