@@ -11,31 +11,33 @@ const isHome = Astro.url.pathname === '/';
       <span class="mark">ETF</span>
       <span class="brand-copy"><strong>{SITE_TITLE}</strong><small>伏击 · 兑现 · 复盘</small></span>
     </a>
-    <div class="nav-scroll">
-      <div class="internal-links">
-        <HeaderLink href="/a-compass/" activePaths={['/a-compass/', '/blog', '/a-momentum', '/a-macro']}>A股罗盘</HeaderLink>
-        <HeaderLink href="/rolling/" activePaths={['/rolling/', '/rolling/low-chip', '/rolling/futures', '/rolling/hk', '/rolling/us']}>滚动罗盘</HeaderLink>
-        <HeaderLink href="/futures-compass/">期货罗盘</HeaderLink>
-        <HeaderLink href="/us-compass/" activePaths={['/us-compass/', '/us-momentum', '/us-macro']}>美股罗盘</HeaderLink>
-        <HeaderLink href="/paper/">模拟盘</HeaderLink>
-        <HeaderLink href="/research-framework/">研究框架</HeaderLink>
-        <div class="user-menu" id="user-menu">
-          <a href="/login/" class="user-login-link" id="user-login-link">登录</a>
-          <div class="user-dropdown" id="user-dropdown" hidden>
-            <button type="button" class="user-trigger" id="user-trigger" aria-haspopup="true" aria-expanded="false">
-              <span class="user-avatar" id="user-avatar">👤</span>
-              <span class="user-name" id="user-name">用户</span>
-              <span class="user-caret">▾</span>
-            </button>
-            <div class="user-panel" id="user-panel" role="menu" hidden>
-              <div class="user-panel-head">
-                <span class="user-role" id="user-role">—</span>
-                <span class="user-sub" id="user-sub">—</span>
-              </div>
-              <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
-              <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
-              <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
+    <div class="nav-actions">
+      <div class="nav-scroll">
+        <div class="internal-links">
+          <HeaderLink href="/a-compass/" activePaths={['/a-compass/', '/blog', '/a-momentum', '/a-macro']}>A股罗盘</HeaderLink>
+          <HeaderLink href="/rolling/" activePaths={['/rolling/', '/rolling/low-chip', '/rolling/futures', '/rolling/hk', '/rolling/us']}>滚动罗盘</HeaderLink>
+          <HeaderLink href="/futures-compass/">期货罗盘</HeaderLink>
+          <HeaderLink href="/us-compass/" activePaths={['/us-compass/', '/us-momentum', '/us-macro']}>美股罗盘</HeaderLink>
+          <HeaderLink href="/paper/">模拟盘</HeaderLink>
+          <HeaderLink href="/research-framework/">研究框架</HeaderLink>
+        </div>
+      </div>
+      <div class="user-menu" id="user-menu">
+        <a href="/login/" class="user-login-link" id="user-login-link">登录</a>
+        <div class="user-dropdown" id="user-dropdown" hidden>
+          <button type="button" class="user-trigger" id="user-trigger" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar" id="user-avatar">👤</span>
+            <span class="user-name" id="user-name">用户</span>
+            <span class="user-caret">▾</span>
+          </button>
+          <div class="user-panel" id="user-panel" role="menu" hidden>
+            <div class="user-panel-head">
+              <span class="user-role" id="user-role">—</span>
+              <span class="user-sub" id="user-sub">—</span>
             </div>
+            <a href="/account/" class="user-item" role="menuitem">👤 个人信息</a>
+            <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden>🛠 账号开通</a>
+            <button type="button" class="user-item" id="user-logout" role="menuitem">🚪 退出登录</button>
           </div>
         </div>
       </div>
@@ -120,7 +122,8 @@ const isHome = Astro.url.pathname === '/';
   .brand-copy { display: grid; line-height: 1.15; }
   .brand-copy strong { font-size: 0.96rem; }
   .brand-copy small { margin-top: 0.2rem; color: rgb(var(--gray)); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; }
-  .nav-scroll { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav-actions { min-width: 0; display: flex; align-items: center; gap: 0.18rem; margin-left: auto; overflow: visible; }
+  .nav-scroll { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .nav-scroll::-webkit-scrollbar { display: none; }
   .internal-links { display: flex; align-items: center; gap: 0.25rem; width: max-content; margin-left: auto; }
   /* 用户菜单：author CSS 会覆盖原生 [hidden]，必须显式保持隐藏 */
