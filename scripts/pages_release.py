@@ -77,10 +77,11 @@ def restore_tracked_public_files() -> None:
     for path in EXTERNAL_DIRTY:
         if not path.startswith("public/"):
             continue
-        exists = subprocess.run(
-            ["git", "cat-file", "-e", f"HEAD:{path}"], cwd=ROOT, capture_output=True,
+        lookup = subprocess.run(
+            ["git", "ls-tree", "--name-only", "HEAD", "--", path],
+            cwd=ROOT, capture_output=True, check=True,
         )
-        if exists.returncode != 0:
+        if lookup.stdout.splitlines() != [path.encode()]:
             continue
         result = subprocess.run(
             ["git", "show", f"HEAD:{path}"], cwd=ROOT, capture_output=True, check=True,

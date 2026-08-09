@@ -4,6 +4,8 @@ import io
 import json
 import subprocess
 
+import pytest
+
 from scripts import pages_release
 
 
@@ -38,39 +40,91 @@ def test_release_scope_allows_only_known_external_shadow_snapshots():
     assert pages_release.foreign_dirty_paths(["?? public/js/uncommitted.js"]) == ["public/js/uncommitted.js"]
 
 
-def test_restore_tracked_public_files_skips_paths_absent_from_head_and_restores_tracked(
-    tmp_path, monkeypatch
-):
-    tracked = "public/data/tracked.json"
+def test_restore_tracked_public_files_skips_path_absent_from_head(tmp_path, monkeypatch):
     future = "public/data/future.json"
     calls = []
 
     def fake_run(command, **kwargs):
         calls.append((command, kwargs))
-        if command == ["git", "cat-file", "-e", f"HEAD:{future}"]:
-            return subprocess.CompletedProcess(command, 1)
-        if command == ["git", "cat-file", "-e", f"HEAD:{tracked}"]:
-            return subprocess.CompletedProcess(command, 0)
+        if command == ["git", "ls-tree", "--name-only", "HEAD", "--", future]:
+            return subprocess.CompletedProcess(command, 0, stdout=b"")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(pages_release, "ROOT", tmp_path)
+    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", (future,))
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    pages_release.restore_tracked_public_files()
+
+    assert not (tmp_path / "dist/data/future.json").exists()
+    assert [call[0] for call in calls] == [
+        ["git", "ls-tree", "--name-only", "HEAD", "--", future],
+    ]
+    assert calls[0][1]["cwd"] == tmp_path
+    assert calls[0][1]["capture_output"] is True
+    assert calls[0][1]["check"] is True
+    assert calls[0][1].get("shell") is not True
+
+
+def test_restore_tracked_public_files_restores_tracked_path(tmp_path, monkeypatch):
+    tracked = "public/data/tracked.json"
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        if command == ["git", "ls-tree", "--name-only", "HEAD", "--", tracked]:
+            return subprocess.CompletedProcess(command, 0, stdout=f"{tracked}\n".encode())
         if command == ["git", "show", f"HEAD:{tracked}"]:
             return subprocess.CompletedProcess(command, 0, stdout=b'{"tracked": true}\n')
         raise AssertionError(f"unexpected command: {command}")
 
     monkeypatch.setattr(pages_release, "ROOT", tmp_path)
-    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", (future, tracked, "src/content/blog/future.md"))
+    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", (tracked,))
     monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
 
     pages_release.restore_tracked_public_files()
 
     assert (tmp_path / "dist/data/tracked.json").read_bytes() == b'{"tracked": true}\n'
-    assert not (tmp_path / "dist/data/future.json").exists()
     assert [call[0] for call in calls] == [
-        ["git", "cat-file", "-e", f"HEAD:{future}"],
-        ["git", "cat-file", "-e", f"HEAD:{tracked}"],
+        ["git", "ls-tree", "--name-only", "HEAD", "--", tracked],
         ["git", "show", f"HEAD:{tracked}"],
     ]
-    assert all(call[1].get("cwd") == tmp_path for call in calls)
+    assert all(call[1]["cwd"] == tmp_path for call in calls)
+    assert all(call[1]["capture_output"] is True for call in calls)
+    assert all(call[1]["check"] is True for call in calls)
     assert all(call[1].get("shell") is not True for call in calls)
-    assert calls[-1][1].get("check") is True
+
+
+def test_restore_tracked_public_files_propagates_fatal_head_lookup(tmp_path, monkeypatch):
+    tracked = "public/data/tracked.json"
+    error = subprocess.CalledProcessError(
+        128,
+        ["git", "ls-tree", "--name-only", "HEAD", "--", tracked],
+    )
+
+    def fake_run(command, **kwargs):
+        raise error
+
+    monkeypatch.setattr(pages_release, "ROOT", tmp_path)
+    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", (tracked,))
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    with pytest.raises(subprocess.CalledProcessError) as caught:
+        pages_release.restore_tracked_public_files()
+
+    assert caught.value is error
+    assert not (tmp_path / "dist/data/tracked.json").exists()
+
+
+def test_restore_tracked_public_files_skips_non_public_paths(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(pages_release, "ROOT", tmp_path)
+    monkeypatch.setattr(pages_release, "EXTERNAL_DIRTY", ("src/content/blog/future.md",))
+    monkeypatch.setattr(pages_release.subprocess, "run", lambda *args, **kwargs: calls.append(args))
+
+    pages_release.restore_tracked_public_files()
+
+    assert calls == []
 
 
 def test_json_probe_retries_during_pages_eventual_consistency(tmp_path, monkeypatch):
