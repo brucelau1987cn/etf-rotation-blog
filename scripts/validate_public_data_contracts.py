@@ -220,9 +220,35 @@ def validate_us_compass_health_payload(
                 observations = horizon.get("observations")
                 if isinstance(series, list) and isinstance(observations, int) and len(series) != observations:
                     errors.append(f"horizons.{name}.series: length must equal observations")
-                dates = [point.get("date") for point in series if isinstance(point, dict)] if isinstance(series, list) else []
-                if isinstance(series, list) and (len(dates) != len(series) or dates != sorted(dates) or len(dates) != len(set(dates))):
+                dates: list[str] = [
+                    point["date"]
+                    for point in series
+                    if isinstance(point, dict) and isinstance(point.get("date"), str)
+                ] if isinstance(series, list) else []
+                signal_dates: list[str] = [
+                    point["signal_date"]
+                    for point in series
+                    if isinstance(point, dict) and isinstance(point.get("signal_date"), str)
+                ] if isinstance(series, list) else []
+                dates_valid = isinstance(series, list) and len(dates) == len(series) and all(valid_date(date) for date in dates)
+                signal_dates_valid = isinstance(series, list) and len(signal_dates) == len(series) and all(valid_date(date) for date in signal_dates)
+                if isinstance(series, list) and not dates_valid:
+                    errors.append(f"horizons.{name}.series: outcome dates must use valid YYYY-MM-DD format")
+                if dates_valid and (dates != sorted(dates) or len(dates) != len(set(dates))):
                     errors.append(f"horizons.{name}.series: dates must be unique and strictly ascending")
+                if isinstance(series, list) and not signal_dates_valid:
+                    errors.append(f"horizons.{name}.series: signal dates must use valid YYYY-MM-DD format")
+                if signal_dates_valid and (
+                    signal_dates != sorted(signal_dates)
+                    or len(signal_dates) != len(set(signal_dates))
+                ):
+                    errors.append(f"horizons.{name}.series: signal dates must be unique and strictly ascending")
+                if dates_valid and signal_dates_valid:
+                    for index, (signal_date, outcome_date) in enumerate(zip(signal_dates, dates)):
+                        if signal_date >= outcome_date:
+                            errors.append(
+                                f"horizons.{name}.series[{index}].signal_date must be before date"
+                            )
     errors.extend(
         _require_null_immature_metrics(
             payload.get("walk_forward"), ("score",), "walk_forward", sample_immature

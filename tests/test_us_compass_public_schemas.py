@@ -372,3 +372,50 @@ def test_immature_health_series_length_and_outcome_date_order_are_enforced(
     health_payload["horizons"]["t1"]["series"][1]["date"] = "2026-08-02"
     errors = validator_module.validate_us_compass_health_payload(health_payload)
     assert any("unique and strictly ascending" in error for error in errors), errors
+
+
+def test_health_series_rejects_duplicate_signal_dates(validator_module, health_payload):
+    health_payload["horizons"]["t1"]["series"][1]["signal_date"] = "2026-08-01"
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(
+        "signal dates must be unique and strictly ascending" in error for error in errors
+    ), errors
+
+
+def test_health_series_rejects_out_of_order_signal_dates(validator_module, health_payload):
+    health_payload["horizons"]["t1"]["series"][1]["signal_date"] = "2026-07-31"
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any(
+        "signal dates must be unique and strictly ascending" in error for error in errors
+    ), errors
+
+
+def test_health_series_rejects_signal_date_on_or_after_outcome_date(
+    validator_module, health_payload
+):
+    health_payload["horizons"]["t1"]["series"][0]["signal_date"] = "2026-08-02"
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("signal_date must be before date" in error for error in errors), errors
+
+
+@pytest.mark.parametrize("field", ["signal_date", "date"])
+def test_health_series_requires_valid_signal_and_outcome_dates(
+    validator_module, health_payload, field
+):
+    health_payload["horizons"]["t1"]["series"][0][field] = "2026-02-30"
+
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+
+    assert any("valid YYYY-MM-DD format" in error for error in errors), errors
+
+
+def test_health_series_accepts_valid_signal_and_outcome_date_sequences(
+    validator_module, health_payload
+):
+    assert validator_module.validate_us_compass_health_payload(health_payload) == []
