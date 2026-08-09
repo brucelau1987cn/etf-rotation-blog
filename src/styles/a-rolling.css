@@ -786,6 +786,49 @@
   width: 100%;
 }
 
+/* 筹码指标面板 */
+.a-rolling-main .chip-panel {
+  flex: 0 0 150px;
+  width: 150px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-left: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.28rem;
+}
+.a-rolling-main .chip-panel-title {
+  font-size: 0.62rem;
+  font-weight: 850;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.1rem;
+}
+.a-rolling-main .chip-metric {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+.a-rolling-main .chip-metric-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+.a-rolling-main .chip-metric-value {
+  font-size: 0.78rem;
+  font-weight: 850;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.a-rolling-main .chip-metric-value.chip-diff-up { color: #cf1322; }
+.a-rolling-main .chip-metric-value.chip-diff-down { color: #389e0d; }
+
 .a-rolling-main .stock-panel {
   width: 118px;
   flex: 0 0 118px;

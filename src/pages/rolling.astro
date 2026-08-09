@@ -43,6 +43,8 @@ type Payload = {
 const loadPayload = (file: string): Payload =>
   JSON.parse(readFileSync(join(process.cwd(), 'public/data', file), 'utf-8')) as Payload;
 
+const chipData = JSON.parse(readFileSync(join(process.cwd(), 'public/data', 'a-rolling-chip.json'), 'utf-8'));
+
 const shanghai = loadPayload('a-rolling-signals.json');
 const chuangxin = loadPayload('a-rolling-signals-002173.json');
 const sanan = loadPayload('a-rolling-signals-600703.json');
@@ -234,7 +236,7 @@ const pageDescription = 'A股滚动看板：A股标的的多方正式窗口、�
         />
       </section>
 
-      <ARollingEnergyMatrix instruments={boardInstruments} formatTime={formatTime} />
+      <ARollingEnergyMatrix instruments={boardInstruments} formatTime={formatTime} chipData={chipData} />
 
       <ARollingAiAlerts alerts={allAlerts} />
     </main>

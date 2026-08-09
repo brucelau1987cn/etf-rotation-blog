@@ -34,9 +34,10 @@ type BoardInstrument = {
 type Props = {
   instruments: BoardInstrument[];
   formatTime: (value: string | null | undefined, includeDate?: boolean, includeSeconds?: boolean) => string;
+  chipData?: any;
 };
 
-const { instruments = [], formatTime } = Astro.props;
+const { instruments = [], formatTime, chipData } = Astro.props;
 
 const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
 const FORMAL_SELL_ORDER = ['10m', '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
@@ -248,6 +249,37 @@ const nameInitials = (name: string) => {
                 <strong class="start-date-value" data-role="start-date">{startDateText}</strong>
               </div>
             </div>
+
+            {
+              (() => {
+                const code = String(inst.symbol).split('.')[0];
+                const chip = (chipData?.chips || {})[code];
+                if (!chip) return null;
+                const diff = chip.profit_ratio != null && chip.yesterday_profit != null ? chip.profit_ratio - chip.yesterday_profit : null;
+                const diffUp = (diff ?? 0) >= 0;
+                return (
+                  <div class="chip-panel" data-role="chip" data-symbol={inst.symbol}>
+                    <div class="chip-panel-title">筹码指标</div>
+                    <div class="chip-metric">
+                      <span class="chip-metric-label">日线获利盘</span>
+                      <strong class="chip-metric-value">{chip.profit_ratio == null ? '—' : chip.profit_ratio.toFixed(1) + '%'}</strong>
+                    </div>
+                    <div class="chip-metric">
+                      <span class="chip-metric-label">90%集中度</span>
+                      <strong class="chip-metric-value">{chip.concentration90 == null ? '—' : chip.concentration90.toFixed(1) + '%'}</strong>
+                    </div>
+                    <div class="chip-metric">
+                      <span class="chip-metric-label">平均成本</span>
+                      <strong class="chip-metric-value">{chip.avg_cost == null ? '—' : '¥' + chip.avg_cost.toFixed(2)}</strong>
+                    </div>
+                    <div class="chip-metric">
+                      <span class="chip-metric-label">较昨日获利盘</span>
+                      <strong class:list={['chip-metric-value', diff == null ? '' : diffUp ? 'chip-diff-up' : 'chip-diff-down']}>{diff == null ? '—' : (diffUp ? '+' : '') + diff.toFixed(1) + 'pp'}</strong>
+                    </div>
+                  </div>
+                );
+              })()
+            }
 
             <div class="signal-panel" data-role="signal-scroller" tabindex="0" aria-label={`${inst.instrumentName} 信号横向滚动区`}>
               <div class="signal-canvas">
