@@ -30,6 +30,8 @@ const stocks = Object.entries(trackingData.stocks || {})
     };
   })
   .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
+const activeStocks = stocks.filter((s) => s.daily.length < 10);
+const historyStocks = stocks.filter((s) => s.daily.length >= 10);
 
 // ── SVG 图表辅助 ─────────────────────────────────────────────
 // 返回 { points, areaPoints, lastX, lastY, min, max }，空则 null
@@ -66,13 +68,13 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div>
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1>低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，记录每日收盘价、涨跌幅与收盘获利盘指数；加入当日不计入，隔日起算第 1 日，统计最多 10 个交易日；不足 10 个交易日的按实际天数显示。即使后续跌出筛选池，追踪持续到最新交易日。共 {stocks.length} 只。</p>
+        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，固定记录加入后的前 10 个交易日；加入当日作为基准，隔日起算第 1 日。完成 10 日窗口后停止更新并自动进入历史区。当前追踪 {activeStocks.length} 只，历史 {historyStocks.length} 只。</p>
       </div>
       <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
     </div>
 
     <div class="tc-summary">
-      <div class="tc-summary-stat"><strong>{stocks.length}</strong><span>追踪标的</span></div>
+      <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) >= 0).length)}</strong><span>加入以来上涨</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) < 0).length)}</strong><span>加入以来下跌</span></div>
       <div class="tc-summary-stat"><strong>{fmt(stocks.length ? Math.max(...stocks.map((s) => s.totalChange ?? -999)) : 0, 1)}%</strong><span>最强涨幅</span></div>
@@ -82,6 +84,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <span class="tc-toolbar-label">排序</span>
       <button type="button" class="tc-sort-btn is-active" id="tc-sort-days" aria-pressed="true">加入日</button>
       <button type="button" class="tc-sort-btn" id="tc-sort-change" aria-pressed="false">涨幅</button>
+      <span class="tc-toolbar-divider" aria-hidden="true"></span>
+      <button type="button" class="tc-sort-btn is-active" id="tc-view-active" aria-pressed="true">追踪中 {activeStocks.length}</button>
+      <button type="button" class="tc-sort-btn" id="tc-view-history" aria-pressed="false">已完成历史 {historyStocks.length}</button>
       <span class="tc-toolbar-divider" aria-hidden="true"></span>
       <label class="tc-star-switch" for="tc-star-toggle">
         <input type="checkbox" id="tc-star-toggle" checked />
@@ -103,7 +108,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'}>
+          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.daily.length >= 10 ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -214,19 +219,27 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var sortChange = document.getElementById('tc-sort-change');
       var starToggle = document.getElementById('tc-star-toggle');
       var filterCount = document.getElementById('tc-filter-count');
-      if (!list || !sortDays || !sortChange || !starToggle) return;
+      var viewActive = document.getElementById('tc-view-active');
+      var viewHistory = document.getElementById('tc-view-history');
+      if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory) return;
       var items = Array.from(list.querySelectorAll('.tc-card'));
       var storageKey = 'low_chip_tracking_include_star';
+      var viewStorageKey = 'low_chip_tracking_view';
+      var currentView = localStorage.getItem(viewStorageKey) === 'history' ? 'history' : 'active';
       var saved = localStorage.getItem(storageKey);
       if (saved === '0') starToggle.checked = false;
       function applyFilter() {
         var visible = 0;
         items.forEach(function(el) {
-          var show = starToggle.checked || el.dataset.starMarket !== '1';
+          var show = el.dataset.trackingStatus === currentView && (starToggle.checked || el.dataset.starMarket !== '1');
           el.hidden = !show;
           if (show) visible += 1;
         });
         if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
+        viewActive.classList.toggle('is-active', currentView === 'active');
+        viewActive.setAttribute('aria-pressed', currentView === 'active' ? 'true' : 'false');
+        viewHistory.classList.toggle('is-active', currentView === 'history');
+        viewHistory.setAttribute('aria-pressed', currentView === 'history' ? 'true' : 'false');
       }
       function sortByDays() {
         items.sort(function(a, b) {
@@ -253,6 +266,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       starToggle.addEventListener('change', function() {
         localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
         applyFilter();
+      });
+      viewActive.addEventListener('click', function() {
+        currentView = 'active'; localStorage.setItem(viewStorageKey, currentView); applyFilter();
+      });
+      viewHistory.addEventListener('click', function() {
+        currentView = 'history'; localStorage.setItem(viewStorageKey, currentView); applyFilter();
       });
       applyFilter();
     })();

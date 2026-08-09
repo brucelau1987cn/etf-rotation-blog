@@ -22,9 +22,9 @@ def test_tracking_data_contract():
         # daily 按日期升序
         dates = [d["date"] for d in rec["daily"]]
         assert dates == sorted(dates)
-        # 加入后统计窗口：从加入日起、最多 10 个交易日、不足按实际天数
-        assert len(dates) <= 10
-        assert dates[0] >= rec["first_seen"]
+        # 固定窗口：加入日基准 + 加入后的最多 10 个交易日
+        assert len(dates) <= 11
+        assert dates[0] == rec["first_seen"]
 
 
 def test_tracking_page_and_entry_link():
@@ -45,6 +45,10 @@ def test_tracking_page_and_entry_link():
         "tc-star-toggle",
         "data-star-market",
         "low_chip_tracking_include_star",
+        "追踪中",
+        "已完成历史",
+        "data-tracking-status",
+        "low_chip_tracking_view",
     ):
         assert marker in page
     low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
@@ -57,4 +61,7 @@ def test_tracking_script_exists():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "tencent_daily" in text
     assert "iwencai_profit_ratio" in text
+    assert "MAX_STORED_BARS = MAX_TRACK_BARS + 1" in text
+    assert "target_bars = bars[:MAX_STORED_BARS]" in text
+    assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True

@@ -38,6 +38,7 @@ DATA = ROOT / "public/data/low-chip-tracking.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记录）
 MAX_TRACK_BARS = 10  # 加入后统计窗口：最多 10 个交易日（2 周）；不足按实际天数
+MAX_STORED_BARS = MAX_TRACK_BARS + 1  # 加入日基准 + 加入后的 10 个交易日
 
 
 def load_history_dates() -> dict[str, list[str]]:
@@ -133,12 +134,14 @@ def main() -> int:
         rec["first_seen"] = min(rec.get("first_seen") or first, first)
         rec["last_seen"] = last
 
-        # 已有 daily 的日期集合
-        have = {d["date"] for d in rec["daily"]}
-        # 回填：从 first_seen（加入日）到 今天（持续追踪，即使已跌出低筹码池）
+        # 固定追踪窗口：加入日基准 + 加入后的前 10 个交易日；完成后停止请求新数据
         bars = tencent_daily(symbol, rec["first_seen"], today)
+        target_bars = bars[:MAX_STORED_BARS]
+        target_dates = {bar["date"] for bar in target_bars}
+        rec["daily"] = [d for d in rec.get("daily", []) if d.get("date") in target_dates]
+        have = {d["date"] for d in rec["daily"]}
         new_rows = []
-        for bar in bars:
+        for bar in target_bars:
             if bar["date"] in have:
                 continue
             pr = iwencai_profit_ratio(symbol, bar["date"])
@@ -146,8 +149,9 @@ def main() -> int:
             print(f"  {symbol} {bar['date']}: close={bar['close']} chg={bar['change_pct']} profit={pr}", flush=True)
         rec["daily"].extend(new_rows)
         rec["daily"].sort(key=lambda x: x["date"])
-        # 统计窗口：加入日之后的最近 MAX_TRACK_BARS 个交易日（不足按实际天数）
-        rec["daily"] = [d for d in rec["daily"] if d["date"] >= rec["first_seen"]][-MAX_TRACK_BARS:]
+        # 固定首段窗口，禁止滚动成“最近 10 日”而改变加入以来口径
+        rec["daily"] = rec["daily"][:MAX_STORED_BARS]
+        rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
 
     # 清理：少于 MIN_TRACK_DAYS 天数的股票（刚加入、数据不足）
     for sym in [s for s, r in stocks.items() if len(r.get("daily", [])) < MIN_TRACK_DAYS]:
