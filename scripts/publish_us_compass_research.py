@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -17,12 +18,14 @@ DATA = ROOT / "public/data"
 LEARNING = DATA / "us-compass-learning.json"
 SHADOW = DATA / "us-compass-shadow.json"
 POOL = DATA / "us-etf-pool.json"
+HEALTH = DATA / "us-compass-health.json"
 OUT = DATA / "us-compass-research.json"
 CATALOG = DATA / "catalog.json"
 IWENCAI_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 PROJECT = "etf-rotation-blog"
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint as _strict_consistent_fingerprint
+    from .validate_public_data_contracts import validate_us_compass_health_payload
 else:
     fingerprint_path = Path(__file__).resolve().with_name("us_compass_fingerprint.py")
     fingerprint_spec = importlib.util.spec_from_file_location(
@@ -33,6 +36,15 @@ else:
     fingerprint_module = importlib.util.module_from_spec(fingerprint_spec)
     fingerprint_spec.loader.exec_module(fingerprint_module)
     _strict_consistent_fingerprint = fingerprint_module.consistent_model_fingerprint
+    validator_path = Path(__file__).resolve().with_name("validate_public_data_contracts.py")
+    validator_spec = importlib.util.spec_from_file_location(
+        f"_validate_public_data_contracts_{id(validator_path)}", validator_path
+    )
+    if validator_spec is None or validator_spec.loader is None:
+        raise ImportError(f"cannot load health validator from {validator_path}")
+    validator_module = importlib.util.module_from_spec(validator_spec)
+    validator_spec.loader.exec_module(validator_module)
+    validate_us_compass_health_payload = validator_module.validate_us_compass_health_payload
 
 
 def read_json(path: Path, default: Any = None) -> Any:
@@ -81,18 +93,59 @@ def current_rows(pool: dict[str, Any], top_symbols: list[str]) -> list[dict[str,
 
 
 def consistent_model_fingerprint(learning: dict[str, Any], shadow: dict[str, Any]) -> dict[str, Any]:
+    """Return the canonical shared fingerprint or fail closed for v2 reports."""
     try:
         return _strict_consistent_fingerprint(learning, shadow)
     except ValueError as exc:
-        if "mismatch" in str(exc):
-            return {
-                "status": "unavailable",
-                "reason": "learning/shadow model fingerprint mismatch",
-            }
-        return {"status": "unavailable", "reason": "model fingerprint unavailable"}
+        raise ValueError(f"model fingerprint invalid: {exc}") from exc
 
 
-def build_report(learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any], iwencai: dict[str, Any] | None = None) -> dict[str, Any]:
+def _compact(section: dict[str, Any], fields: tuple[str, ...]) -> dict[str, Any]:
+    return {field: section.get(field) for field in fields}
+
+
+def _data_quality(health: dict[str, Any], pool: dict[str, Any]) -> dict[str, Any]:
+    overall = health["overall"]
+    sample = health["sample_maturity"]
+    shadow = health["shadow_health"]
+    cost = health["cost_sensitivity"]
+    reasons = list(overall.get("reasons") or [])
+    key_statuses = (overall.get("status"), sample.get("status"), shadow.get("status"))
+    if "UNAVAILABLE" in key_statuses:
+        status = "UNAVAILABLE"
+    elif "ACCUMULATING" in key_statuses or not sample.get("mature"):
+        status = "ACCUMULATING"
+    else:
+        status = "HEALTHY"
+    if cost.get("status") == "UNAVAILABLE":
+        reasons.extend(reason for reason in cost.get("reasons") or [] if reason not in reasons)
+    return {
+        "status": status,
+        "reasons": reasons,
+        "health_model_date": health.get("model_date"),
+        "pool_model_date": pool.get("model_date"),
+        "fingerprint_consistent": True,
+        "production_change_allowed": False,
+    }
+
+
+def build_report(
+    learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any],
+    health: dict[str, Any], iwencai: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if not isinstance(health, dict) or "model_fingerprint" not in health:
+        raise ValueError("health model fingerprint missing")
+    health_errors = validate_us_compass_health_payload(health)
+    if health_errors:
+        raise ValueError(f"health payload invalid: {health_errors[0]}")
+    if health.get("schema_version") != "us-compass-health-v1" or health.get("market") != "US":
+        raise ValueError("health payload invalid: expected us-compass-health-v1 market US")
+    model_fingerprint = consistent_model_fingerprint(learning, shadow)
+    if health.get("model_fingerprint") != model_fingerprint:
+        raise ValueError("health model fingerprint must exactly equal learning/shadow model fingerprint")
+    pool_model_date = pool.get("model_date")
+    if health.get("model_date") != pool_model_date:
+        raise ValueError("health model_date must equal pool model_date")
     snapshots = learning.get("snapshots") or []
     latest = snapshots[-1] if snapshots else {}
     trade_date = str(pool.get("model_date") or latest.get("date") or "")
@@ -129,12 +182,43 @@ def build_report(learning: dict[str, Any], shadow: dict[str, Any], pool: dict[st
     exposure = float(raw_exposure) if isinstance(raw_exposure, (int, float, str)) else 0.5
     top_symbols = [str(item) for item in (latest.get("top10") or [])][:10]
     source = iwencai or {"status": "unavailable", "summary": "问财验证暂不可用", "source": "同花顺问财"}
-    model_fingerprint = consistent_model_fingerprint(learning, shadow)
     return {
+        "schema_version": "us-compass-research-v2",
         "week_key": week_key(trade_date),
         "trade_date": trade_date,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "model_fingerprint": model_fingerprint,
+        "health_summary": {
+            **_compact(health["overall"], ("status", "score", "reasons")),
+            "model_date": health["model_date"],
+            "generated_at": health["generated_at"],
+        },
+        "sample_maturity": json.loads(json.dumps(health["sample_maturity"])),
+        "walk_forward_summary": _compact(
+            health["walk_forward"],
+            ("status", "windows", "evaluated_windows", "positive_windows", "positive_slice_rate", "score", "reasons"),
+        ),
+        "shadow_health_summary": {
+            **_compact(health["shadow_health"], ("status", "observations", "return", "max_drawdown", "score", "reasons")),
+            "portfolios": {
+                name: _compact(
+                    health["shadow_health"]["portfolios"][name],
+                    ("total_return", "max_drawdown", "annualized_volatility", "positive_period_rate", "excess_return_vs_benchmark"),
+                )
+                for name in ("benchmark", "timing", "rotation", "fusion")
+            },
+        },
+        "cost_sensitivity_summary": {
+            **_compact(
+                health["cost_sensitivity"],
+                ("status", "baseline_cost", "observations", "break_even_cost", "score", "reasons"),
+            ),
+            "scenarios": [
+                _compact(item, ("one_way_cost", "value", "annualized_return", "max_drawdown"))
+                for item in health["cost_sensitivity"]["scenarios"]
+            ],
+        },
+        "data_quality": _data_quality(health, pool),
         "verdict": "达到月度评估门槛" if t5_observations >= 20 else "样本积累中",
         "snapshot_count": len(snapshots),
         "metrics": metrics,
@@ -177,7 +261,7 @@ def merge_archive(existing: dict[str, Any], report: dict[str, Any]) -> dict[str,
     reports.append(report)
     reports.sort(key=lambda item: str(item.get("trade_date") or ""), reverse=True)
     return {
-        "schema_version": "us-compass-research-v1",
+        "schema_version": "us-compass-research-v2",
         "updated_at": report.get("generated_at") or datetime.now(timezone.utc).isoformat(),
         "latest_week": report["week_key"],
         "reports": reports[:104],
@@ -236,14 +320,38 @@ def publish() -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--learning", type=Path, default=LEARNING)
+    parser.add_argument("--shadow", type=Path, default=SHADOW)
+    parser.add_argument("--pool", type=Path, default=POOL)
+    parser.add_argument("--health", type=Path, default=HEALTH)
+    parser.add_argument("--output", type=Path, default=OUT)
     parser.add_argument("--iwencai", action="store_true")
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args(argv)
-    learning, shadow, pool = read_json(LEARNING), read_json(SHADOW), read_json(POOL)
-    report = build_report(learning, shadow, pool, iwencai_validation(pool) if args.iwencai else None)
-    archive = merge_archive(read_json(OUT, {"schema_version": "us-compass-research-v1", "reports": []}), report)
-    atomic_write_json(OUT, archive)
+    if not args.health.is_file():
+        print(f"staging blocker: US Compass health input unavailable: {args.health}", file=sys.stderr)
+        return 2
+    try:
+        learning = json.loads(args.learning.read_text(encoding="utf-8"))
+        shadow = json.loads(args.shadow.read_text(encoding="utf-8"))
+        pool = json.loads(args.pool.read_text(encoding="utf-8"))
+        health = json.loads(args.health.read_text(encoding="utf-8"))
+        report = build_report(
+            learning, shadow, pool, health,
+            iwencai_validation(pool) if args.iwencai else None,
+        )
+        archive = merge_archive(
+            read_json(args.output, {"schema_version": "us-compass-research-v2", "reports": []}),
+            report,
+        )
+        atomic_write_json(args.output, archive)
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     if args.publish:
+        if args.output != OUT:
+            print("publish requires the default production output path", file=sys.stderr)
+            return 2
         print(publish())
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2))

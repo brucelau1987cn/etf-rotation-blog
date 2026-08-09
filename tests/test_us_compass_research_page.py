@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -69,145 +72,243 @@ def fixtures():
     return learning, shadow, pool
 
 
-def test_build_report_preserves_sample_gate_and_attribution():
+def health_fixture(learning, pool):
+    metric = {
+        "status": "ACCUMULATING", "observations": 4, "minimum_required": 20,
+        "maturity_ratio": 0.2, "rank_ic_mean": None, "rank_ic_median": None,
+        "rank_ic_std": None, "icir": None, "positive_rate": None,
+        "recent_5_mean": None, "recent_5_count": 0, "recent_10_mean": None,
+        "recent_10_count": 0, "trend": None,
+        "series": [
+            {"signal_date": "2026-07-20", "date": "2026-07-21", "value": 0.1},
+            {"signal_date": "2026-07-21", "date": "2026-07-22", "value": -0.1},
+            {"signal_date": "2026-07-22", "date": "2026-07-23", "value": 0.2},
+            {"signal_date": "2026-07-23", "date": "2026-07-24", "value": 0.0},
+        ],
+    }
+    portfolio = {
+        "status": "ACCUMULATING", "observations": 4, "total_return": None,
+        "annualized_volatility": None, "max_drawdown": None, "current_drawdown": None,
+        "longest_drawdown_duration": None, "rolling_20d_volatility": None,
+        "positive_period_rate": None, "excess_return_vs_benchmark": None,
+        "equity_series": [
+            {"date": f"2026-07-{index + 21:02d}", "equity": 20_000.0, "period_return": 0.0}
+            for index in range(4)
+        ],
+    }
+    return {
+        "schema_version": "us-compass-health-v1",
+        "market": "US",
+        "model_date": pool["model_date"],
+        "generated_at": "2026-07-31T23:00:00Z",
+        "model_fingerprint": copy.deepcopy(learning["model_fingerprint"]),
+        "sample_maturity": {
+            "status": "ACCUMULATING", "observations": 4,
+            "minimum_observations": 20, "mature": False,
+            "reasons": ["forward sample is immature"],
+        },
+        "horizons": {name: copy.deepcopy(metric) for name in ("t1", "t5", "t20")},
+        "walk_forward": {
+            "status": "ACCUMULATING", "windows": 1, "evaluated_windows": 0,
+            "positive_windows": 0, "positive_slice_rate": None, "score": None,
+            "slice_size": 5, "horizon": "t5",
+            "slices": [{
+                "index": 0, "start_date": "2026-07-21", "end_date": "2026-07-24",
+                "signal_start_date": "2026-07-20", "signal_end_date": "2026-07-23",
+                "observations": 4, "status": "INSUFFICIENT", "mean": None,
+                "positive_rate": None,
+            }],
+            "reasons": ["T+5 requires 20 observations; 4 available"],
+        },
+        "shadow_health": {
+            "status": "ACCUMULATING", "observations": 4, "initial_capital": 20_000.0,
+            "return": None, "max_drawdown": None, "score": None,
+            "portfolios": {name: copy.deepcopy(portfolio) for name in ("benchmark", "timing", "rotation", "fusion")},
+            "reasons": ["shadow requires 20 observations; 4 available"],
+        },
+        "cost_sensitivity": {
+            "status": "UNAVAILABLE", "baseline_cost": 0.001, "observations": 4,
+            "break_even_cost": None, "score": None,
+            "scenarios": [
+                {"one_way_cost": cost, "value": None, "annualized_return": None, "max_drawdown": None}
+                for cost in (0, 0.0005, 0.001, 0.002, 0.003)
+            ],
+            "reasons": ["turnover history unavailable; exact cost scenarios require persisted turnover"],
+        },
+        "overall": {"status": "ACCUMULATING", "score": None, "reasons": ["insufficient history"]},
+    }
+
+
+def test_build_report_v2_preserves_legacy_fields_and_projects_health_summaries():
     module = load_module()
     learning, shadow, pool = fixtures()
-    report = module.build_report(learning, shadow, pool, iwencai={"status": "ok", "summary": "科技与能源仍是主线", "source": "同花顺问财"})
+    health = health_fixture(learning, pool)
+    report = module.build_report(
+        learning, shadow, pool, health,
+        iwencai={"status": "ok", "summary": "科技与能源仍是主线", "source": "同花顺问财"},
+    )
 
+    assert report["schema_version"] == "us-compass-research-v2"
     assert report["trade_date"] == "2026-07-31"
     assert report["verdict"] == "样本积累中"
     assert report["metrics"]["t5"]["observations"] == 10
     assert report["metrics"]["t5"]["rank_ic_pct"] == 15.88
-    assert report["attribution"]["timing_pp"] == -0.21
-    assert report["attribution"]["rotation_pp"] == -0.72
-    assert report["attribution"]["interaction_pp"] == -0.76
+    assert report["attribution"] == {
+        "timing_pp": -0.21, "rotation_pp": -0.72,
+        "interaction_pp": -0.76, "fusion_vs_benchmark_pp": -1.7,
+    }
     assert report["iwencai"]["source"] == "同花顺问财"
     assert report["model_fingerprint"] == learning["model_fingerprint"]
     assert report["model_fingerprint"] is not learning["model_fingerprint"]
+    assert report["health_summary"] == {
+        "status": "ACCUMULATING", "score": None,
+        "reasons": ["insufficient history"], "model_date": "2026-07-31",
+        "generated_at": "2026-07-31T23:00:00Z",
+    }
+    assert report["sample_maturity"] == health["sample_maturity"]
+    assert report["walk_forward_summary"] == {
+        key: health["walk_forward"][key]
+        for key in ("status", "windows", "evaluated_windows", "positive_windows", "positive_slice_rate", "score", "reasons")
+    }
+    assert report["shadow_health_summary"]["portfolios"]["fusion"] == {
+        key: health["shadow_health"]["portfolios"]["fusion"][key]
+        for key in ("total_return", "max_drawdown", "annualized_volatility", "positive_period_rate", "excess_return_vs_benchmark")
+    }
+    assert report["cost_sensitivity_summary"]["scenarios"] == health["cost_sensitivity"]["scenarios"]
+    assert report["data_quality"]["status"] == "ACCUMULATING"
+    assert report["data_quality"]["fingerprint_consistent"] is True
+    assert report["data_quality"]["production_change_allowed"] is False
     assert report["production_change_allowed"] is False
 
 
-def test_build_report_marks_missing_or_invalid_fingerprint_unavailable():
+@pytest.mark.parametrize("location", ["learning", "shadow", "health"])
+def test_build_report_rejects_missing_or_mismatched_fingerprint(location):
     module = load_module()
     learning, shadow, pool = fixtures()
-    learning.pop("model_fingerprint")
-    report = module.build_report(learning, shadow, pool)
-    assert report["model_fingerprint"] == {
-        "status": "unavailable",
-        "reason": "model fingerprint unavailable",
-    }
-
-    learning["model_fingerprint"] = ["not", "an", "object"]
-    report = module.build_report(learning, shadow, pool)
-    assert report["model_fingerprint"] == {
-        "status": "unavailable",
-        "reason": "model fingerprint unavailable",
-    }
+    health = health_fixture(learning, pool)
+    target = {"learning": learning, "shadow": shadow, "health": health}[location]
+    if location == "health":
+        target.pop("model_fingerprint")
+    else:
+        target["model_fingerprint"]["horizons"] = [1, 5]
+    with pytest.raises(ValueError, match="model fingerprint"):
+        module.build_report(learning, shadow, pool, health)
 
 
-def test_build_report_rejects_learning_shadow_fingerprint_mismatch():
+def test_build_report_rejects_invalid_unsafe_and_nonfinite_health():
     module = load_module()
     learning, shadow, pool = fixtures()
-    shadow["model_fingerprint"]["horizons"] = [1, 5]
-    report = module.build_report(learning, shadow, pool)
-    assert report["model_fingerprint"] == {
-        "status": "unavailable",
-        "reason": "learning/shadow model fingerprint mismatch",
-    }
+    for mutate in (
+        lambda value: value.update(schema_version="wrong"),
+        lambda value: value["overall"].update(score=float("nan")),
+        lambda value: value.update(extra="unsafe"),
+    ):
+        health = health_fixture(learning, pool)
+        mutate(health)
+        with pytest.raises(ValueError, match="health payload invalid"):
+            module.build_report(learning, shadow, pool, health)
 
 
-def test_build_report_validates_complete_fingerprint_and_drops_extra_fields():
+def test_build_report_rejects_health_model_date_mismatch():
     module = load_module()
     learning, shadow, pool = fixtures()
-    learning["model_fingerprint"]["unexpected"] = "secret"
-    shadow["model_fingerprint"]["unexpected"] = "secret"
-    report = module.build_report(learning, shadow, pool)
-    assert "unexpected" not in report["model_fingerprint"]
-
-    invalid_values = [
-        ("model_version", ""), ("universe_count", True), ("universe_count", 0),
-        ("symbols_sha256", "A" * 64), ("config_sha256", "b" * 63),
-        ("execution_basis", None), ("one_way_cost", True), ("one_way_cost", -0.1),
-        ("initial_capital", 0), ("horizons", [1, True]),
-        ("exposure_mapping", {"values": {}, "default": 0.5}),
-        ("exposure_mapping", {"values": {"on": True}, "default": 0.5}),
-    ]
-    for field, value in invalid_values:
-        learning, shadow, pool = fixtures()
-        learning["model_fingerprint"][field] = value
-        shadow["model_fingerprint"][field] = value
-        report = module.build_report(learning, shadow, pool)
-        assert report["model_fingerprint"]["status"] == "unavailable", (field, value)
+    health = health_fixture(learning, pool)
+    health["model_date"] = "2026-08-01"
+    with pytest.raises(ValueError, match="health model_date"):
+        module.build_report(learning, shadow, pool, health)
 
 
-def test_build_report_fails_closed_for_oversized_fingerprint_numbers():
-    module = load_module()
-    huge = 10 ** 10000
-    for field in ("one_way_cost", "initial_capital"):
-        learning, shadow, pool = fixtures()
-        learning["model_fingerprint"][field] = huge
-        shadow["model_fingerprint"][field] = huge
-        report = module.build_report(learning, shadow, pool)
-        assert report["model_fingerprint"]["status"] == "unavailable"
-
-    for location in ("value", "default"):
-        learning, shadow, pool = fixtures()
-        if location == "value":
-            learning["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = huge
-            shadow["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = huge
-        else:
-            learning["model_fingerprint"]["exposure_mapping"]["default"] = huge
-            shadow["model_fingerprint"]["exposure_mapping"]["default"] = huge
-        report = module.build_report(learning, shadow, pool)
-        assert report["model_fingerprint"]["status"] == "unavailable"
-
-
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        ("model_version", " v1 "),
-        ("execution_basis", " basis "),
-        ("horizons", [5, 1, 20]),
-        ("horizons", [1, 1, 20]),
-        ("one_way_cost", -0.0),
-    ],
-)
-def test_build_report_rejects_noncanonical_fingerprint_fields(field, value):
+def test_build_report_data_quality_status_rules():
     module = load_module()
     learning, shadow, pool = fixtures()
-    learning["model_fingerprint"][field] = value
-    shadow["model_fingerprint"][field] = value
-    report = module.build_report(learning, shadow, pool)
-    assert report["model_fingerprint"]["status"] == "unavailable"
+    accumulating = health_fixture(learning, pool)
+    assert module.build_report(learning, shadow, pool, accumulating)["data_quality"]["status"] == "ACCUMULATING"
 
+    unavailable = health_fixture(learning, pool)
+    unavailable["overall"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
+    unavailable["sample_maturity"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
+    unavailable["walk_forward"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
+    assert module.build_report(learning, shadow, pool, unavailable)["data_quality"]["status"] == "UNAVAILABLE"
 
-def test_build_report_rejects_noncanonical_exposure_keys_and_signed_zero():
-    module = load_module()
-    for values, default in (({" 偏强 ": 1.0}, 0.5), ({"偏强": -0.0}, 0.5), ({"偏强": 1.0}, -0.0)):
-        learning, shadow, pool = fixtures()
-        exposure = {"values": values, "default": default}
-        learning["model_fingerprint"]["exposure_mapping"] = json.loads(json.dumps(exposure))
-        shadow["model_fingerprint"]["exposure_mapping"] = json.loads(json.dumps(exposure))
-        report = module.build_report(learning, shadow, pool)
-        assert report["model_fingerprint"]["status"] == "unavailable"
+    healthy = health_fixture(learning, pool)
+    healthy["overall"].update(status="MIXED", score=0.75, reasons=[])
+    healthy["sample_maturity"].update(status="MIXED", observations=20, mature=True, reasons=[])
+    healthy["shadow_health"].update(status="MIXED", observations=20, reasons=[])
+    assert module._data_quality(healthy, pool)["status"] == "HEALTHY"
+
+    healthy["shadow_health"].update(status="UNAVAILABLE", reasons=["shadow unavailable"])
+    assert module._data_quality(healthy, pool)["status"] == "UNAVAILABLE"
 
 
 def test_build_report_deep_copies_nested_fingerprint():
     module = load_module()
     learning, shadow, pool = fixtures()
-    report = module.build_report(learning, shadow, pool)
+    report = module.build_report(learning, shadow, pool, health_fixture(learning, pool))
     report["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = 0.25
     assert learning["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
     assert shadow["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
 
 
-def test_merge_archive_is_first_write_per_week():
+def test_merge_archive_preserves_v1_entries_and_dedupes_new_v2_week():
     module = load_module()
-    old = {"schema_version": "us-compass-research-v1", "reports": [{"week_key": "2026-W31", "trade_date": "2026-07-30", "verdict": "旧"}]}
-    new = {"week_key": "2026-W31", "trade_date": "2026-07-31", "verdict": "新"}
+    old = {
+        "schema_version": "us-compass-research-v1",
+        "reports": [
+            {"week_key": "2026-W30", "trade_date": "2026-07-24", "verdict": "旧v1"},
+            {"week_key": "2026-W31", "trade_date": "2026-07-30", "verdict": "被替换"},
+        ],
+    }
+    new = {
+        "schema_version": "us-compass-research-v2", "week_key": "2026-W31",
+        "trade_date": "2026-07-31", "verdict": "新v2", "generated_at": "2026-07-31T23:00:00Z",
+    }
     merged = module.merge_archive(old, new)
-    assert len(merged["reports"]) == 1
-    assert merged["reports"][0]["verdict"] == "新"
+    assert merged["schema_version"] == "us-compass-research-v2"
+    assert [item["verdict"] for item in merged["reports"]] == ["新v2", "旧v1"]
+    assert "schema_version" not in merged["reports"][1]
+
+
+def test_cli_explicit_tmp_inputs_write_atomically(tmp_path):
+    learning, shadow, pool = fixtures()
+    health = health_fixture(learning, pool)
+    paths = {}
+    for name, payload in (("learning", learning), ("shadow", shadow), ("pool", pool), ("health", health)):
+        paths[name] = tmp_path / f"{name}.json"
+        paths[name].write_text(json.dumps(payload), encoding="utf-8")
+    output = tmp_path / "research.json"
+    proc = subprocess.run(
+        [
+            sys.executable, str(SCRIPT), "--learning", str(paths["learning"]),
+            "--shadow", str(paths["shadow"]), "--pool", str(paths["pool"]),
+            "--health", str(paths["health"]), "--output", str(output),
+        ],
+        cwd=ROOT, text=True, capture_output=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "us-compass-research-v2"
+    assert payload["reports"][0]["schema_version"] == "us-compass-research-v2"
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_cli_default_missing_health_is_staging_blocker_without_write(tmp_path):
+    learning, shadow, pool = fixtures()
+    for name, payload in (("learning", learning), ("shadow", shadow), ("pool", pool)):
+        (tmp_path / f"{name}.json").write_text(json.dumps(payload), encoding="utf-8")
+    output = tmp_path / "must-not-exist.json"
+    missing_health = tmp_path / "missing-health.json"
+    proc = subprocess.run(
+        [
+            sys.executable, str(SCRIPT), "--learning", str(tmp_path / "learning.json"),
+            "--shadow", str(tmp_path / "shadow.json"), "--pool", str(tmp_path / "pool.json"),
+            "--health", str(missing_health), "--output", str(output),
+        ],
+        cwd=ROOT, text=True, capture_output=True,
+    )
+    assert proc.returncode != 0
+    assert "staging blocker" in proc.stderr.lower()
+    assert "health" in proc.stderr.lower()
+    assert not output.exists()
 
 
 def test_research_page_and_navigation_contract():
