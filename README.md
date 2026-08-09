@@ -52,6 +52,7 @@
 
 - **多市场决策罗盘**：A股 / 港股 / 美股 / 商品期货统一导航与状态呈现。
 - **实时行情**：Edge Quote（腾讯 → 新浪 → 雪球等降级），批量报价 + 短缓存。
+- **A 股筹码 V2**：滚动卡片展示获利盘、90% 集中度、平均成本和同口径昨日变化；支持不复权 / QFQ / HFQ 与最近 90 日序列。
 - **滚动多空信号**：
   - TradingView Webhook → D1 日锁（first-write-wins）
   - 信号点股价服务端 1m close 入库，前端不扇出 kline
@@ -128,6 +129,43 @@ GET /api/public/v1/rolling-signals?symbol=
 - 源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)  
   - `npm run sync:quote` / `npm run sync:adapter`
 - 部署/缓存探针：[`docs/deploy-cache-probe-contract.md`](docs/deploy-cache-probe-contract.md)
+
+## A 股筹码 V2 契约
+
+- Pages 主接口：`GET https://etf.peekabo.cc/api/public/v1/chip?symbol=600021&adjust=qfq&limit=90`
+- Worker 容灾接口：`GET https://edge-quote-api.brucelau1987.workers.dev/api/public/v1/chip?symbol=600021&adjust=qfq&limit=90`
+- 两个入口由 [`edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api) 的 `src/index.js` 与 `src/chip.js` 生成，响应契约保持同构。
+- 返回 `series`、`latest`、`previous`、`profit_ratio_change_pp`，页面“较昨日获利盘”直接使用同算法相邻交易日结果。
+- `limit` 只控制 `series` 长度；`limit=1` 仍会返回昨日点和变化值。
+- 更新公开滚动数据：`python3 scripts/update_a_rolling_chip.py`。脚本过滤港股、美股等未支持市场，保留成功标的并在 `failures` 中记录失败代码。
+
+### 同步与发布
+
+```bash
+# 1. 在 edge-quote-api 完成修改和测试
+npm test
+
+# 2. 在本仓同步 Pages 路由
+npm run sync:quote
+
+# 3. 验证生成模块与 Cloudflare Functions 构建
+node --test tests/pages_chip_import.test.mjs
+npx wrangler pages functions build functions --outdir /tmp/etf-pages-functions-build
+
+# 4. 刷新滚动筹码数据并构建
+python3 scripts/update_a_rolling_chip.py
+npm run build
+```
+
+### 注意事项
+
+- `functions/api/public/v1/quote.js`、`chip.js`、`_chip.js` 是同步产物；行情和筹码逻辑统一在 `edge-quote-api` 修改，再执行 `npm run sync:quote`。
+- 同步脚本需要同时替换 `./chip.js` 的 import 与 re-export。遗漏 re-export 会造成 Pages Functions 循环导入并阻断部署。
+- 同步后必须保留 `SI=F` / `GC=F` / `CL=F` 别名，并与 `kline.js` 保持一致。
+- 腾讯筹码换手率采用当前流通股本近似历史值，适合趋势观察；股本变动期间应结合外部数据复核。
+- `refresh=1` 绕过已完成缓存且响应 `no-store`，相同并发刷新仍会合并在途计算。
+- Worker 与 Pages 分别部署。发布后应使用相同 `symbol`、`adjust`、`limit`、`refresh` 请求比较两个入口。
+- Cloudflare Global API Key、API Token、账户邮箱等凭据只存本机凭据文件或 CI Secret，禁止写入仓库、日志和公开 JSON。
 
 ## 定时链路（摘要）
 
