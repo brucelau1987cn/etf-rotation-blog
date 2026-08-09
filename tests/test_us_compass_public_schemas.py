@@ -127,6 +127,71 @@ def test_valid_fixture_payloads_pass(validator_module, health_payload, rotation_
 
 
 @pytest.mark.parametrize(
+    ("change", "path"),
+    [
+        (lambda value: value["horizons"]["t1"].update(value=0), "horizons.t1.value"),
+        (lambda value: value["horizons"]["t1"].update(rank_ic=0), "horizons.t1.rank_ic"),
+        (
+            lambda value: value["horizons"]["t1"].update(cross_sectional_deviation=0),
+            "horizons.t1.cross_sectional_deviation",
+        ),
+        (lambda value: value["horizons"]["t1"].update(score=0), "horizons.t1.score"),
+        (lambda value: value["walk_forward"].update(score=0), "walk_forward.score"),
+        (lambda value: value["shadow_health"].update({"return": 0}), "shadow_health.return"),
+        (
+            lambda value: value["shadow_health"].update(max_drawdown=0),
+            "shadow_health.max_drawdown",
+        ),
+        (lambda value: value["shadow_health"].update(score=0), "shadow_health.score"),
+        (
+            lambda value: value["cost_sensitivity"].update(
+                scenarios=[{"one_way_cost": 0, "value": 0}]
+            ),
+            "cost_sensitivity.scenarios[0].value",
+        ),
+        (lambda value: value["cost_sensitivity"].update(score=0), "cost_sensitivity.score"),
+        (lambda value: value["overall"].update(score=0), "overall.score"),
+    ],
+)
+def test_immature_health_result_metrics_must_be_null(
+    validator_module, health_payload, change, path
+):
+    change(health_payload)
+    errors = validator_module.validate_us_compass_health_payload(health_payload)
+    assert any(
+        path in error and "must be null while status is ACCUMULATING" in error
+        for error in errors
+    ), errors
+
+
+def test_stable_health_accepts_legitimate_numeric_zero(validator_module, health_payload):
+    health_payload["horizons"]["t1"] = {
+        "status": "STABLE",
+        "sample_count": 20,
+        "value": 0,
+        "rank_ic": 0,
+        "cross_sectional_deviation": 0,
+        "score": 0,
+    }
+    health_payload["walk_forward"] = {"status": "STABLE", "windows": 1, "score": 0}
+    health_payload["shadow_health"] = {
+        "status": "STABLE",
+        "observations": 20,
+        "return": 0,
+        "max_drawdown": 0,
+        "score": 0,
+    }
+    health_payload["cost_sensitivity"] = {
+        "status": "STABLE",
+        "scenarios": [{"one_way_cost": 0, "value": 0}],
+        "score": 0,
+    }
+    health_payload["overall"] = {"status": "STABLE", "score": 0, "reasons": []}
+
+    assert validator_module.validate_us_compass_health_payload(health_payload) == []
+
+
+@pytest.mark.parametrize(
     ("validator_name", "fixture_name", "mutate"),
     [
         ("validate_us_compass_health_payload", "health_payload", lambda value: value.pop("overall")),

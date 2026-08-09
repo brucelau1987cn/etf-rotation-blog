@@ -114,10 +114,63 @@ def _schema(name: str, schema: dict[str, Any] | None) -> dict[str, Any]:
     return schema if schema is not None else parse_json(SCHEMAS / name)
 
 
+def _require_null_immature_metrics(
+    section: Any, fields: tuple[str, ...], path: str
+) -> list[str]:
+    if not isinstance(section, dict) or section.get("status") not in {"ACCUMULATING", "UNAVAILABLE"}:
+        return []
+    status = section["status"]
+    return [
+        f"{path}.{field}: must be null while status is {status}"
+        for field in fields
+        if field in section and section[field] is not None
+    ]
+
+
 def validate_us_compass_health_payload(
     payload: Any, schema: dict[str, Any] | None = None
 ) -> list[str]:
-    return schema_errors(_schema("us-compass-health.schema.json", schema), payload) + unsafe_paths(payload)
+    errors = schema_errors(_schema("us-compass-health.schema.json", schema), payload) + unsafe_paths(payload)
+    if not isinstance(payload, dict):
+        return errors
+
+    horizons = payload.get("horizons")
+    if isinstance(horizons, dict):
+        for name, horizon in horizons.items():
+            errors.extend(
+                _require_null_immature_metrics(
+                    horizon,
+                    ("value", "rank_ic", "cross_sectional_deviation", "score"),
+                    f"horizons.{name}",
+                )
+            )
+    errors.extend(
+        _require_null_immature_metrics(payload.get("walk_forward"), ("score",), "walk_forward")
+    )
+    errors.extend(
+        _require_null_immature_metrics(
+            payload.get("shadow_health"),
+            ("return", "max_drawdown", "score"),
+            "shadow_health",
+        )
+    )
+    cost_sensitivity = payload.get("cost_sensitivity")
+    errors.extend(_require_null_immature_metrics(cost_sensitivity, ("score",), "cost_sensitivity"))
+    if isinstance(cost_sensitivity, dict) and cost_sensitivity.get("status") in {
+        "ACCUMULATING",
+        "UNAVAILABLE",
+    }:
+        status = cost_sensitivity["status"]
+        scenarios = cost_sensitivity.get("scenarios")
+        if isinstance(scenarios, list):
+            for index, scenario in enumerate(scenarios):
+                if isinstance(scenario, dict) and scenario.get("value") is not None:
+                    errors.append(
+                        f"cost_sensitivity.scenarios[{index}].value: "
+                        f"must be null while status is {status}"
+                    )
+    errors.extend(_require_null_immature_metrics(payload.get("overall"), ("score",), "overall"))
+    return errors
 
 
 def validate_us_compass_rotation_payload(
