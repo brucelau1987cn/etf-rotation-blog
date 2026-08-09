@@ -51,6 +51,13 @@ def main() -> None:
         concentration90 = pick(row, ("集中度90",))
         top10_ratio = pick(row, ("前十大流通股东持股比例合计", "占总股本比"))
         price = pick(row, ("最新价", "收盘价"))
+        main_force = pick(row, ("主力控盘比例",))
+        main_force_label = None
+        if main_force is not None:
+            if main_force > 50: main_force_label = "高度控盘"
+            elif main_force > 20: main_force_label = "中度控盘"
+            elif main_force > 10: main_force_label = "轻度控盘"
+            else: main_force_label = "无控盘"
         required = {
             "shareholder_count": holders,
             "average_holding": average_holding,
@@ -68,6 +75,8 @@ def main() -> None:
             "average_holding": average_holding,
             "concentration90": concentration90,
             "top10_float_ratio": top10_ratio,
+            "main_force": main_force,
+            "main_force_label": main_force_label,
             "price": price,
         }
 

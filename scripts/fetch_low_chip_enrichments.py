@@ -67,7 +67,7 @@ def main() -> int:
     print(f"  quality rows: {len(d.get('datas') or [])}", flush=True)
 
     # /tmp/low_chip_shareholder_metrics.json — share holder count / 90% concentration / top10
-    q = "、".join(bare_codes) + " 最新股东户数、总户数较上期变动、总户数较上期增长率、最新户均持股数量、收盘价、集中度90、前十大流通股东持股比例合计、公告日期"
+    q = "、".join(bare_codes) + " 最新股东户数、总户数较上期变动、总户数较上期增长率、最新户均持股数量、收盘价、集中度90、前十大流通股东持股比例合计、公告日期、主力控盘比例"
     d = iwc(q, limit=max(20, len(bare_codes) * 3))
     Path("/tmp/low_chip_shareholder_metrics.json").write_text(
         json.dumps(d, ensure_ascii=False), encoding="utf-8")
