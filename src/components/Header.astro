@@ -27,7 +27,7 @@ const isHome = Astro.url.pathname === '/';
               <span class="user-name" id="user-name">用户</span>
               <span class="user-caret">▾</span>
             </button>
-            <div class="user-panel" id="user-panel" role="menu">
+            <div class="user-panel" id="user-panel" role="menu" hidden>
               <div class="user-panel-head">
                 <span class="user-role" id="user-role">—</span>
                 <span class="user-sub" id="user-sub">—</span>
@@ -123,18 +123,24 @@ const isHome = Astro.url.pathname === '/';
   .nav-scroll { min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .nav-scroll::-webkit-scrollbar { display: none; }
   .internal-links { display: flex; align-items: center; gap: 0.25rem; width: max-content; margin-left: auto; }
-  /* 用户菜单 */
-  .user-menu { flex: 0 0 auto; position: relative; margin-left: 0.4rem; }
-  .user-login-link { display: inline-block; padding: 0.5rem 0.95rem !important; font-weight: 800 !important; color: #fff !important; background: #1e3a8a; border-radius: 999px !important; }
+  /* 用户菜单：author CSS 会覆盖原生 [hidden]，必须显式保持隐藏 */
+  .user-menu [hidden] { display: none !important; }
+  .user-menu { flex: 0 0 auto; position: relative; margin-left: 0.18rem; }
+  .user-login-link {
+    display: inline-flex; align-items: center; min-height: 40px;
+    padding: 0.5rem 0.78rem !important; font-weight: 800 !important;
+    color: #fff !important; background: #1e3a8a; border-radius: 999px !important;
+  }
   .user-login-link:hover { background: #2563eb !important; }
   .user-dropdown { position: relative; }
   .user-trigger {
-    display: inline-flex; align-items: center; gap: 0.45rem;
-    padding: 0.4rem 0.75rem 0.4rem 0.4rem; border: 1px solid var(--border);
-    border-radius: 999px; background: #fff; cursor: pointer; font-weight: 750;
-    color: rgb(var(--gray-dark)); font-size: 0.85rem;
+    min-height: 40px; display: inline-flex; align-items: center; gap: 0.38rem;
+    padding: 0.32rem 0.68rem 0.32rem 0.34rem; border: 1px solid var(--border);
+    border-radius: 999px; background: #fff; cursor: pointer; font-weight: 800;
+    color: rgb(var(--gray-dark)); font-size: 0.82rem;
+    box-shadow: 0 1px 3px rgba(30, 41, 59, 0.05);
   }
-  .user-trigger:hover { border-color: rgb(var(--gray-dark)); }
+  .user-trigger:hover { border-color: #94a3b8; background: #f8fafc; }
   .user-avatar { display: inline-flex; align-items: center; justify-content: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--accent-soft); font-size: 0.85rem; }
   .user-caret { font-size: 0.65rem; color: rgb(var(--gray-mid)); }
   .user-panel {
