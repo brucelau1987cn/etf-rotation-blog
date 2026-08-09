@@ -21,7 +21,7 @@ def _finite_number(
         raise ValueError(f"{name} must be a finite number")
     try:
         number = float(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{name} must be a finite number") from exc
     if not math.isfinite(number):
         raise ValueError(f"{name} must be finite")

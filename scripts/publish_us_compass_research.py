@@ -81,10 +81,17 @@ def _valid_finite_number(
 ) -> bool:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if not math.isfinite(number):
+        return False
+    if number == 0.0 and math.copysign(1.0, number) < 0:
+        return False
     return (
-        math.isfinite(float(value))
-        and (value > 0 if positive else value >= 0)
-        and (maximum is None or value <= maximum)
+        (number > 0 if positive else number >= 0)
+        and (maximum is None or number <= maximum)
     )
 
 
@@ -96,7 +103,11 @@ def _validated_model_fingerprint(value: Any) -> dict[str, Any] | None:
     execution_basis = value.get("execution_basis")
     horizons = value.get("horizons")
     exposure = value.get("exposure_mapping")
-    if not isinstance(model_version, str) or not model_version.strip():
+    if (
+        not isinstance(model_version, str)
+        or not model_version.strip()
+        or model_version != model_version.strip()
+    ):
         return None
     if isinstance(universe_count, bool) or not isinstance(universe_count, int) or universe_count <= 0:
         return None
@@ -104,7 +115,11 @@ def _validated_model_fingerprint(value: Any) -> dict[str, Any] | None:
         return None
     if not isinstance(value.get("config_sha256"), str) or not SHA256_RE.fullmatch(value["config_sha256"]):
         return None
-    if not isinstance(execution_basis, str) or not execution_basis.strip():
+    if (
+        not isinstance(execution_basis, str)
+        or not execution_basis.strip()
+        or execution_basis != execution_basis.strip()
+    ):
         return None
     if not _valid_finite_number(value.get("one_way_cost")):
         return None
@@ -113,6 +128,7 @@ def _validated_model_fingerprint(value: Any) -> dict[str, Any] | None:
     if (
         not isinstance(horizons, list) or not horizons
         or any(isinstance(item, bool) or not isinstance(item, int) or item <= 0 for item in horizons)
+        or horizons != sorted(set(horizons))
     ):
         return None
     if not isinstance(exposure, dict) or set(exposure) != {"values", "default"}:
@@ -123,6 +139,7 @@ def _validated_model_fingerprint(value: Any) -> dict[str, Any] | None:
     if any(
         not isinstance(key, str)
         or not key.strip()
+        or key != key.strip()
         or not _valid_finite_number(item, maximum=1.0)
         for key, item in values.items()
     ):

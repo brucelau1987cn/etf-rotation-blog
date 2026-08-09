@@ -122,6 +122,31 @@ def test_allowed_signed_zero_is_normalized():
     assert "-0.0" not in str(payload)
 
 
+@pytest.mark.parametrize(
+    "field",
+    ["one_way_cost", "initial_capital", "exposure_value", "default_exposure"],
+)
+def test_oversized_numeric_inputs_fail_with_value_error(field):
+    module = load_module()
+    huge = 10 ** 10000
+    inputs = {
+        "model_version": "v1",
+        "symbols": ["SPY"],
+        "horizons": (1,),
+        "one_way_cost": 0,
+        "initial_capital": 1,
+        "execution_basis": "basis",
+        "exposure_mapping": {"on": 1},
+        "default_exposure": 0,
+    }
+    if field == "exposure_value":
+        inputs["exposure_mapping"] = {"on": huge}
+    else:
+        inputs[field] = huge
+    with pytest.raises(ValueError):
+        module.canonical_fingerprint_payload(**inputs)
+
+
 @pytest.mark.parametrize("bad_key", [1, None, True, "   "])
 def test_exposure_keys_must_be_nonempty_strings(bad_key):
     module = load_module()

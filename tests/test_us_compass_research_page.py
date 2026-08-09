@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "publish_us_compass_research.py"
 PAGE = ROOT / "src" / "pages" / "us-compass" / "research.astro"
@@ -136,6 +138,58 @@ def test_build_report_validates_complete_fingerprint_and_drops_extra_fields():
         shadow["model_fingerprint"][field] = value
         report = module.build_report(learning, shadow, pool)
         assert report["model_fingerprint"]["status"] == "unavailable", (field, value)
+
+
+def test_build_report_fails_closed_for_oversized_fingerprint_numbers():
+    module = load_module()
+    huge = 10 ** 10000
+    for field in ("one_way_cost", "initial_capital"):
+        learning, shadow, pool = fixtures()
+        learning["model_fingerprint"][field] = huge
+        shadow["model_fingerprint"][field] = huge
+        report = module.build_report(learning, shadow, pool)
+        assert report["model_fingerprint"]["status"] == "unavailable"
+
+    for location in ("value", "default"):
+        learning, shadow, pool = fixtures()
+        if location == "value":
+            learning["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = huge
+            shadow["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = huge
+        else:
+            learning["model_fingerprint"]["exposure_mapping"]["default"] = huge
+            shadow["model_fingerprint"]["exposure_mapping"]["default"] = huge
+        report = module.build_report(learning, shadow, pool)
+        assert report["model_fingerprint"]["status"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("model_version", " v1 "),
+        ("execution_basis", " basis "),
+        ("horizons", [5, 1, 20]),
+        ("horizons", [1, 1, 20]),
+        ("one_way_cost", -0.0),
+    ],
+)
+def test_build_report_rejects_noncanonical_fingerprint_fields(field, value):
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning["model_fingerprint"][field] = value
+    shadow["model_fingerprint"][field] = value
+    report = module.build_report(learning, shadow, pool)
+    assert report["model_fingerprint"]["status"] == "unavailable"
+
+
+def test_build_report_rejects_noncanonical_exposure_keys_and_signed_zero():
+    module = load_module()
+    for values, default in (({" 偏强 ": 1.0}, 0.5), ({"偏强": -0.0}, 0.5), ({"偏强": 1.0}, -0.0)):
+        learning, shadow, pool = fixtures()
+        exposure = {"values": values, "default": default}
+        learning["model_fingerprint"]["exposure_mapping"] = json.loads(json.dumps(exposure))
+        shadow["model_fingerprint"]["exposure_mapping"] = json.loads(json.dumps(exposure))
+        report = module.build_report(learning, shadow, pool)
+        assert report["model_fingerprint"]["status"] == "unavailable"
 
 
 def test_build_report_deep_copies_nested_fingerprint():
