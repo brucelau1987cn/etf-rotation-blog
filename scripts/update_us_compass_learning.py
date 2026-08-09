@@ -7,6 +7,7 @@ portfolios. No brokerage/account access and no production-weight mutation.
 """
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import os
@@ -225,12 +226,12 @@ def main() -> None:
         "updated_at": datetime.now(timezone.utc).isoformat(), "universe": current["universe"],
         "horizons": list(HORIZONS), "cost_assumption": {"one_way": ONE_WAY_COST},
         "metrics": aggregate(snapshots), "snapshots": snapshots,
-        "model_fingerprint": dict(fingerprint),
+        "model_fingerprint": copy.deepcopy(fingerprint),
         "note": "Forward-only self-evaluation. Cross-sectional deviation is monitored against the 1/3 random reference; AGRU is not active.",
     })
     shadow = shadow_portfolios(snapshots)
     shadow["updated_at"] = payload["updated_at"]
-    shadow["model_fingerprint"] = dict(fingerprint)
+    shadow["model_fingerprint"] = copy.deepcopy(fingerprint)
     atomic_write(OUT, payload); atomic_write(SHADOW, shadow)
     print(json.dumps({"date": current["date"], "snapshots": len(snapshots), "top10": current["top10"], "exposure": current["exposure"], "metrics": payload["metrics"], "shadow_intervals": len(shadow["history"])}, ensure_ascii=False))
 

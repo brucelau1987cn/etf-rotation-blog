@@ -89,3 +89,24 @@ def test_main_writes_identical_model_fingerprint_to_learning_and_shadow(tmp_path
     assert learning["model_fingerprint"]["universe_count"] == 2
     assert learning["model_fingerprint"]["execution_basis"] == shadow["basis"]
     assert not (tmp_path / "public" / "data").exists()
+
+
+def test_main_gives_learning_and_shadow_independent_nested_fingerprints(tmp_path, monkeypatch):
+    pool_path = tmp_path / "pool.json"
+    pool_path.write_text(json.dumps({
+        "model_date": "2026-01-01", "model_version": "v1",
+        "market_regime": {"state": "震荡"},
+        "rows": [{"symbol": "SPY", "theme": "大盘", "trend_score": 80,
+                  "trading_risk_score": 10, "trade_state": "可持有",
+                  "adjusted_close": 100, "day_open": 100, "price": 100}],
+    }), encoding="utf-8")
+    written = []
+    monkeypatch.setattr(mod, "POOL", pool_path)
+    monkeypatch.setattr(mod, "OUT", tmp_path / "learning.json")
+    monkeypatch.setattr(mod, "SHADOW", tmp_path / "shadow.json")
+    monkeypatch.setattr(mod, "atomic_write", lambda path, payload: written.append(payload))
+    mod.main()
+    learning_fp = written[0]["model_fingerprint"]
+    shadow_fp = written[1]["model_fingerprint"]
+    learning_fp["exposure_mapping"]["values"]["偏强"] = 0.25
+    assert shadow_fp["exposure_mapping"]["values"]["偏强"] == 1.0

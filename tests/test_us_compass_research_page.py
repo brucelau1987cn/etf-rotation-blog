@@ -20,14 +20,23 @@ def load_module():
 
 
 def fixtures():
+    fingerprint = {
+        "model_version": "us-compass-v1",
+        "universe_count": 2,
+        "symbols_sha256": "a" * 64,
+        "config_sha256": "b" * 64,
+        "execution_basis": "T close signal; T+1 open execution; next-open rebalance",
+        "one_way_cost": 0.001,
+        "initial_capital": 20_000.0,
+        "horizons": [1, 5, 20],
+        "exposure_mapping": {
+            "values": {"偏强": 1.0, "震荡": 0.5, "防御": 0.0},
+            "default": 0.5,
+        },
+    }
     learning = {
         "updated_at": "2026-07-31T22:31:00Z",
-        "model_fingerprint": {
-            "model_version": "us-compass-v1",
-            "universe_count": 2,
-            "symbols_sha256": "a" * 64,
-            "config_sha256": "b" * 64,
-        },
+        "model_fingerprint": json.loads(json.dumps(fingerprint)),
         "snapshots": [{"date": "2026-07-31", "top10": ["KWEB", "XLE"], "exposure": 0.5}],
         "metrics": {
             "t1": {"observations": 14, "rank_ic_mean": -0.002839, "rank_ic_positive_rate": 0.642857, "deviation_mean": 0.327498, "random_deviation_reference": 0.333333},
@@ -36,6 +45,7 @@ def fixtures():
         },
     }
     shadow = {
+        "model_fingerprint": json.loads(json.dumps(fingerprint)),
         "basis": "T close signal; T+1 open execution; next-open rebalance",
         "one_way_cost": 0.001,
         "stats": {
@@ -91,6 +101,50 @@ def test_build_report_marks_missing_or_invalid_fingerprint_unavailable():
         "status": "unavailable",
         "reason": "model fingerprint unavailable",
     }
+
+
+def test_build_report_rejects_learning_shadow_fingerprint_mismatch():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    shadow["model_fingerprint"]["horizons"] = [1, 5]
+    report = module.build_report(learning, shadow, pool)
+    assert report["model_fingerprint"] == {
+        "status": "unavailable",
+        "reason": "learning/shadow model fingerprint mismatch",
+    }
+
+
+def test_build_report_validates_complete_fingerprint_and_drops_extra_fields():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning["model_fingerprint"]["unexpected"] = "secret"
+    shadow["model_fingerprint"]["unexpected"] = "secret"
+    report = module.build_report(learning, shadow, pool)
+    assert "unexpected" not in report["model_fingerprint"]
+
+    invalid_values = [
+        ("model_version", ""), ("universe_count", True), ("universe_count", 0),
+        ("symbols_sha256", "A" * 64), ("config_sha256", "b" * 63),
+        ("execution_basis", None), ("one_way_cost", True), ("one_way_cost", -0.1),
+        ("initial_capital", 0), ("horizons", [1, True]),
+        ("exposure_mapping", {"values": {}, "default": 0.5}),
+        ("exposure_mapping", {"values": {"on": True}, "default": 0.5}),
+    ]
+    for field, value in invalid_values:
+        learning, shadow, pool = fixtures()
+        learning["model_fingerprint"][field] = value
+        shadow["model_fingerprint"][field] = value
+        report = module.build_report(learning, shadow, pool)
+        assert report["model_fingerprint"]["status"] == "unavailable", (field, value)
+
+
+def test_build_report_deep_copies_nested_fingerprint():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    report = module.build_report(learning, shadow, pool)
+    report["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = 0.25
+    assert learning["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
+    assert shadow["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
 
 
 def test_merge_archive_is_first_write_per_week():
