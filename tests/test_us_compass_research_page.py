@@ -50,9 +50,11 @@ def fixtures():
         },
     }
     shadow = {
+        "updated_at": "2026-07-31T22:45:00Z",
         "model_fingerprint": json.loads(json.dumps(fingerprint)),
         "basis": "T close signal; T+1 open execution; next-open rebalance",
         "one_way_cost": 0.001,
+        "history": [{"exit_date": "2026-07-31"}],
         "stats": {
             "benchmark": {"total_return": -0.011344, "max_drawdown": -0.024117},
             "timing": {"total_return": -0.013433, "max_drawdown": -0.022248},
@@ -144,8 +146,9 @@ def test_build_report_v2_preserves_legacy_fields_and_projects_health_summaries()
     learning, shadow, pool = fixtures()
     health = health_fixture(learning, pool)
     report = module.build_report(
-        learning, shadow, pool, health,
+        learning, shadow, pool,
         iwencai={"status": "ok", "summary": "科技与能源仍是主线", "source": "同花顺问财"},
+        health=health,
     )
 
     assert report["schema_version"] == "us-compass-research-v2"
@@ -192,7 +195,7 @@ def test_build_report_rejects_missing_or_mismatched_fingerprint(location):
     else:
         target["model_fingerprint"]["horizons"] = [1, 5]
     with pytest.raises(ValueError, match="model fingerprint"):
-        module.build_report(learning, shadow, pool, health)
+        module.build_report(learning, shadow, pool, health=health)
 
 
 def test_build_report_rejects_invalid_unsafe_and_nonfinite_health():
@@ -206,7 +209,7 @@ def test_build_report_rejects_invalid_unsafe_and_nonfinite_health():
         health = health_fixture(learning, pool)
         mutate(health)
         with pytest.raises(ValueError, match="health payload invalid"):
-            module.build_report(learning, shadow, pool, health)
+            module.build_report(learning, shadow, pool, health=health)
 
 
 def test_build_report_rejects_health_model_date_mismatch():
@@ -215,20 +218,97 @@ def test_build_report_rejects_health_model_date_mismatch():
     health = health_fixture(learning, pool)
     health["model_date"] = "2026-08-01"
     with pytest.raises(ValueError, match="health model_date"):
-        module.build_report(learning, shadow, pool, health)
+        module.build_report(learning, shadow, pool, health=health)
+
+
+def test_build_report_requires_health_keyword_and_preserves_fourth_positional_iwencai():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    iwencai = {"status": "ok", "summary": "legacy positional", "source": "同花顺问财"}
+
+    with pytest.raises(ValueError, match="health is required"):
+        module.build_report(learning, shadow, pool, iwencai)
+
+    report = module.build_report(learning, shadow, pool, iwencai, health=health_fixture(learning, pool))
+    assert report["iwencai"]["summary"] == "legacy positional"
+
+
+@pytest.mark.parametrize("snapshots", [[], [{"date": "2026-07-30", "exposure": 0.5}]])
+def test_build_report_rejects_missing_or_stale_latest_learning_snapshot(snapshots):
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning["snapshots"] = snapshots
+    with pytest.raises(ValueError, match="latest learning snapshot date"):
+        module.build_report(learning, shadow, pool, health=health_fixture(learning, pool))
+
+
+def test_build_report_rejects_stale_or_missing_shadow_history_when_observed():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    health = health_fixture(learning, pool)
+    for history in (
+        [],
+        [{"exit_date": "2026-07-30"}],
+        [{"exit_date": "2026-07-31"}, {"exit_date": "2026-07-30"}],
+        [{"exit_date": "not-a-date"}],
+    ):
+        candidate = copy.deepcopy(shadow)
+        candidate["history"] = history
+        with pytest.raises(ValueError, match="shadow history"):
+            module.build_report(learning, candidate, pool, health=health)
+
+
+def test_build_report_allows_empty_shadow_history_when_health_has_zero_observations():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    shadow["history"] = []
+    health = health_fixture(learning, pool)
+    health["shadow_health"]["observations"] = 0
+    health["cost_sensitivity"]["observations"] = 0
+    for portfolio in health["shadow_health"]["portfolios"].values():
+        portfolio["observations"] = 0
+        portfolio["equity_series"] = []
+    report = module.build_report(learning, shadow, pool, health=health)
+    assert report["trade_date"] == pool["model_date"]
+
+
+@pytest.mark.parametrize("field", ["health", "learning", "shadow", "future_health"])
+def test_build_report_rejects_invalid_or_incoherent_timestamps(field):
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    health = health_fixture(learning, pool)
+    if field == "health":
+        health["generated_at"] = "2026-07-31T23:00:00"
+    elif field == "learning":
+        learning["updated_at"] = "2026-08-01T00:00:00Z"
+    elif field == "shadow":
+        shadow["updated_at"] = "not-a-time"
+    else:
+        health["generated_at"] = "2999-01-01T00:00:00Z"
+    with pytest.raises(ValueError, match="timestamp|generated_at|updated_at"):
+        module.build_report(learning, shadow, pool, health=health)
+
+
+@pytest.mark.parametrize("exposure", [True, 2, float("nan"), float("inf"), "oops"])
+def test_build_report_rejects_invalid_exposure(exposure):
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning["snapshots"][-1]["exposure"] = exposure
+    with pytest.raises(ValueError, match="exposure"):
+        module.build_report(learning, shadow, pool, health=health_fixture(learning, pool))
 
 
 def test_build_report_data_quality_status_rules():
     module = load_module()
     learning, shadow, pool = fixtures()
     accumulating = health_fixture(learning, pool)
-    assert module.build_report(learning, shadow, pool, accumulating)["data_quality"]["status"] == "ACCUMULATING"
+    assert module.build_report(learning, shadow, pool, health=accumulating)["data_quality"]["status"] == "ACCUMULATING"
 
     unavailable = health_fixture(learning, pool)
     unavailable["overall"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
     unavailable["sample_maturity"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
     unavailable["walk_forward"].update(status="UNAVAILABLE", reasons=["governing evidence unavailable"])
-    assert module.build_report(learning, shadow, pool, unavailable)["data_quality"]["status"] == "UNAVAILABLE"
+    assert module.build_report(learning, shadow, pool, health=unavailable)["data_quality"]["status"] == "UNAVAILABLE"
 
     healthy = health_fixture(learning, pool)
     healthy["overall"].update(status="MIXED", score=0.75, reasons=[])
@@ -243,7 +323,7 @@ def test_build_report_data_quality_status_rules():
 def test_build_report_deep_copies_nested_fingerprint():
     module = load_module()
     learning, shadow, pool = fixtures()
-    report = module.build_report(learning, shadow, pool, health_fixture(learning, pool))
+    report = module.build_report(learning, shadow, pool, health=health_fixture(learning, pool))
     report["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] = 0.25
     assert learning["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
     assert shadow["model_fingerprint"]["exposure_mapping"]["values"]["偏强"] == 1.0
@@ -266,6 +346,24 @@ def test_merge_archive_preserves_v1_entries_and_dedupes_new_v2_week():
     assert merged["schema_version"] == "us-compass-research-v2"
     assert [item["verdict"] for item in merged["reports"]] == ["新v2", "旧v1"]
     assert "schema_version" not in merged["reports"][1]
+
+
+def test_merge_archive_sorts_deterministically_and_backfills_latest_week_from_first_report():
+    module = load_module()
+    existing = {
+        "reports": [
+            {"week_key": "2026-W30", "trade_date": "2026-07-24", "generated_at": "2026-07-24T23:00:00Z"},
+            {"week_key": "2026-W31-old", "trade_date": "2026-07-31", "generated_at": "2026-07-31T22:00:00Z"},
+        ],
+    }
+    report = {
+        "week_key": "2026-W29", "trade_date": "2026-07-17", "generated_at": "2026-07-17T23:00:00Z",
+    }
+
+    merged = module.merge_archive(existing, report)
+
+    assert [item["week_key"] for item in merged["reports"]] == ["2026-W31-old", "2026-W30", "2026-W29"]
+    assert merged["latest_week"] == "2026-W31-old"
 
 
 def test_cli_explicit_tmp_inputs_write_atomically(tmp_path):
@@ -309,6 +407,69 @@ def test_cli_default_missing_health_is_staging_blocker_without_write(tmp_path):
     assert "staging blocker" in proc.stderr.lower()
     assert "health" in proc.stderr.lower()
     assert not output.exists()
+
+
+def test_main_publish_with_nondefault_output_rejects_before_inputs_or_external_calls(tmp_path, monkeypatch):
+    module = load_module()
+    output = tmp_path / "must-not-exist.json"
+    calls = {"iwencai": 0, "publish": 0}
+
+    def unexpected_iwencai(pool):
+        calls["iwencai"] += 1
+        raise AssertionError("iwencai must not be called")
+
+    def unexpected_publish():
+        calls["publish"] += 1
+        raise AssertionError("publish must not be called")
+
+    monkeypatch.setattr(module, "iwencai_validation", unexpected_iwencai)
+    monkeypatch.setattr(module, "publish", unexpected_publish)
+
+    result = module.main([
+        "--publish", "--iwencai", "--output", str(output),
+        "--learning", str(tmp_path / "missing-learning.json"),
+        "--shadow", str(tmp_path / "missing-shadow.json"),
+        "--pool", str(tmp_path / "missing-pool.json"),
+        "--health", str(tmp_path / "missing-health.json"),
+    ])
+
+    assert result == 2
+    assert calls == {"iwencai": 0, "publish": 0}
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("contents", ["{", "[]", '{"reports": {}}'])
+def test_read_existing_archive_rejects_invalid_existing_archive(tmp_path, contents):
+    module = load_module()
+    output = tmp_path / "research.json"
+    output.write_text(contents, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="existing archive"):
+        module.read_existing_archive(output)
+
+    assert output.read_text(encoding="utf-8") == contents
+
+
+def test_cli_malformed_existing_archive_is_not_overwritten(tmp_path):
+    learning, shadow, pool = fixtures()
+    health = health_fixture(learning, pool)
+    paths = {}
+    for name, payload in (("learning", learning), ("shadow", shadow), ("pool", pool), ("health", health)):
+        paths[name] = tmp_path / f"{name}.json"
+        paths[name].write_text(json.dumps(payload), encoding="utf-8")
+    output = tmp_path / "research.json"
+    original = b'{"reports": '
+    output.write_bytes(original)
+
+    result = subprocess.run([
+        sys.executable, str(SCRIPT), "--learning", str(paths["learning"]),
+        "--shadow", str(paths["shadow"]), "--pool", str(paths["pool"]),
+        "--health", str(paths["health"]), "--output", str(output),
+    ], cwd=ROOT, text=True, capture_output=True)
+
+    assert result.returncode == 2
+    assert "existing archive" in result.stderr
+    assert output.read_bytes() == original
 
 
 def test_research_page_and_navigation_contract():

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import os
 import subprocess
 import sys
@@ -54,6 +55,20 @@ def read_json(path: Path, default: Any = None) -> Any:
         return {} if default is None else default
 
 
+def read_existing_archive(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"schema_version": "us-compass-research-v2", "reports": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"existing archive unreadable or invalid: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("existing archive must be a JSON object")
+    if not isinstance(payload.get("reports"), list):
+        raise ValueError("existing archive reports must be a list")
+    return payload
+
+
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=path.name, suffix=".tmp")
@@ -75,6 +90,36 @@ def week_key(value: str) -> str:
     parsed = date.fromisoformat(value[:10])
     year, week, _ = parsed.isocalendar()
     return f"{year}-W{week:02d}"
+
+
+def parse_utc_timestamp(value: Any, field: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} timestamp must be a UTC-aware ISO datetime")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{field} timestamp must be a UTC-aware ISO datetime") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        raise ValueError(f"{field} timestamp must be UTC-aware")
+    return parsed
+
+
+def parse_iso_date(value: Any, field: str) -> date:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be an ISO date")
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{field} must be an ISO date") from exc
+
+
+def validated_exposure(value: Any) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("latest learning snapshot exposure must be a finite number between 0 and 1")
+    exposure = float(value)
+    if not math.isfinite(exposure) or not 0 <= exposure <= 1:
+        raise ValueError("latest learning snapshot exposure must be a finite number between 0 and 1")
+    return exposure
 
 
 def current_rows(pool: dict[str, Any], top_symbols: list[str]) -> list[dict[str, Any]]:
@@ -131,8 +176,10 @@ def _data_quality(health: dict[str, Any], pool: dict[str, Any]) -> dict[str, Any
 
 def build_report(
     learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any],
-    health: dict[str, Any], iwencai: dict[str, Any] | None = None,
+    iwencai: dict[str, Any] | None = None, *, health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if health is None:
+        raise ValueError("health is required for us-compass-research-v2")
     if not isinstance(health, dict) or "model_fingerprint" not in health:
         raise ValueError("health model fingerprint missing")
     health_errors = validate_us_compass_health_payload(health)
@@ -146,11 +193,34 @@ def build_report(
     pool_model_date = pool.get("model_date")
     if health.get("model_date") != pool_model_date:
         raise ValueError("health model_date must equal pool model_date")
-    snapshots = learning.get("snapshots") or []
-    latest = snapshots[-1] if snapshots else {}
-    trade_date = str(pool.get("model_date") or latest.get("date") or "")
-    if not trade_date:
-        raise RuntimeError("US Compass research inputs have no trade date")
+    model_date = parse_iso_date(pool_model_date, "pool model_date")
+    snapshots = learning.get("snapshots")
+    if not isinstance(snapshots, list) or not snapshots:
+        raise ValueError("latest learning snapshot date must equal pool/health model_date")
+    latest = snapshots[-1]
+    latest_date = parse_iso_date(latest.get("date"), "latest learning snapshot date")
+    if latest_date != model_date:
+        raise ValueError("latest learning snapshot date must equal pool/health model_date")
+    history = shadow.get("history") or []
+    if not isinstance(history, list):
+        raise ValueError("shadow history must be a list")
+    history_dates = [parse_iso_date(item.get("exit_date"), "shadow history exit_date") for item in history]
+    latest_history_date = history_dates[-1] if history_dates else None
+    shadow_observations = health["shadow_health"]["observations"]
+    if shadow_observations > 0 and latest_history_date != model_date:
+        raise ValueError("latest shadow history exit_date must equal model_date when shadow observations exist")
+    if latest_history_date is not None and latest_history_date > model_date:
+        raise ValueError("latest shadow history exit_date must not exceed model_date")
+    report_generated_at = datetime.now(timezone.utc)
+    health_generated_at = parse_utc_timestamp(health.get("generated_at"), "health.generated_at")
+    if health_generated_at > report_generated_at:
+        raise ValueError("health.generated_at must not be later than report generated_at")
+    for source_name, source in (("learning", learning), ("shadow", shadow)):
+        if source.get("updated_at") is not None:
+            updated_at = parse_utc_timestamp(source.get("updated_at"), f"{source_name}.updated_at")
+            if updated_at > health_generated_at:
+                raise ValueError(f"{source_name}.updated_at must not be later than health.generated_at")
+    trade_date = str(pool_model_date)
     metrics: dict[str, Any] = {}
     for key in ("t1", "t5", "t20"):
         raw = (learning.get("metrics") or {}).get(key) or {}
@@ -178,15 +248,14 @@ def build_report(
     rotation = float((stats.get("rotation") or {}).get("total_return") or 0)
     fusion = float((stats.get("fusion") or {}).get("total_return") or 0)
     t5_observations = metrics["t5"]["observations"]
-    raw_exposure = latest.get("exposure")
-    exposure = float(raw_exposure) if isinstance(raw_exposure, (int, float, str)) else 0.5
+    exposure = validated_exposure(latest.get("exposure"))
     top_symbols = [str(item) for item in (latest.get("top10") or [])][:10]
     source = iwencai or {"status": "unavailable", "summary": "问财验证暂不可用", "source": "同花顺问财"}
     return {
         "schema_version": "us-compass-research-v2",
         "week_key": week_key(trade_date),
         "trade_date": trade_date,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": report_generated_at.isoformat(),
         "model_fingerprint": model_fingerprint,
         "health_summary": {
             **_compact(health["overall"], ("status", "score", "reasons")),
@@ -259,12 +328,16 @@ def build_report(
 def merge_archive(existing: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
     reports = [item for item in existing.get("reports", []) if isinstance(item, dict) and item.get("week_key") != report.get("week_key")]
     reports.append(report)
-    reports.sort(key=lambda item: str(item.get("trade_date") or ""), reverse=True)
+    reports.sort(
+        key=lambda item: (str(item.get("trade_date") or ""), str(item.get("generated_at") or "")),
+        reverse=True,
+    )
+    reports = reports[:104]
     return {
         "schema_version": "us-compass-research-v2",
         "updated_at": report.get("generated_at") or datetime.now(timezone.utc).isoformat(),
-        "latest_week": report["week_key"],
-        "reports": reports[:104],
+        "latest_week": reports[0]["week_key"],
+        "reports": reports,
     }
 
 
@@ -328,6 +401,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--iwencai", action="store_true")
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args(argv)
+    if args.publish and args.output != OUT:
+        print("publish requires the default production output path", file=sys.stderr)
+        return 2
     if not args.health.is_file():
         print(f"staging blocker: US Compass health input unavailable: {args.health}", file=sys.stderr)
         return 2
@@ -337,11 +413,12 @@ def main(argv: list[str] | None = None) -> int:
         pool = json.loads(args.pool.read_text(encoding="utf-8"))
         health = json.loads(args.health.read_text(encoding="utf-8"))
         report = build_report(
-            learning, shadow, pool, health,
+            learning, shadow, pool,
             iwencai_validation(pool) if args.iwencai else None,
+            health=health,
         )
         archive = merge_archive(
-            read_json(args.output, {"schema_version": "us-compass-research-v2", "reports": []}),
+            read_existing_archive(args.output),
             report,
         )
         atomic_write_json(args.output, archive)
@@ -349,9 +426,6 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     if args.publish:
-        if args.output != OUT:
-            print("publish requires the default production output path", file=sys.stderr)
-            return 2
         print(publish())
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2))
