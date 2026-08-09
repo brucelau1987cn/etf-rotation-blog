@@ -1,12 +1,12 @@
 // POST /api/admin/change-credentials
 // Body: { username, password } — 修改管理员用户名/密码（需管理员登录态）
 // 改后旧 cookie 立即失效（下次登录用新凭据）
-import { isAdmin, sha256Hex } from '../../_lib/subscription-auth.js';
+import { isSuperAdmin, sha256Hex } from '../../_lib/subscription-auth.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  if (!(await isAdmin(request, env))) {
-    return Response.json({ ok: false, error: '未登录或会话过期' }, { status: 401 });
+  if (!(await isSuperAdmin(request, env))) {
+    return Response.json({ ok: false, error: '仅超级管理员可修改管理员凭据' }, { status: 403 });
   }
   let body;
   try {

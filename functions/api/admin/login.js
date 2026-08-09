@@ -31,10 +31,10 @@ export async function onRequestPost(context) {
     return Response.json({ ok: false, error: '请输入用户名和密码' }, { status: 400 });
   }
 
-  // 从 D1 读取管理员凭据（运行时可修改）
+  // 从 D1 读取管理员凭据（按用户名查询，支持多管理员）
   const row = await env.DB.prepare(
-    'SELECT username, password_hash FROM admin_credentials WHERE id = 1 LIMIT 1',
-  ).first();
+    'SELECT username, password_hash, role FROM admin_credentials WHERE username = ? LIMIT 1',
+  ).bind(username).first();
 
   const storedUser = row?.username || '';
   const storedHash = row?.password_hash || '';
@@ -43,11 +43,12 @@ export async function onRequestPost(context) {
     return Response.json({ ok: false, error: '用户名或密码错误' }, { status: 401 });
   }
 
+  const role = row.role === 'admin' ? 'admin' : 'super_admin';
   const ttlSec = remember ? 30 * 24 * 3600 : 12 * 3600; // 记住本机=30天，否则12小时
   const exp = new Date(Date.now() + ttlSec * 1000).toISOString();
-  const token = await signToken({ role: 'admin', exp }, env.ADMIN_SECRET || 'dev-admin-secret');
+  const token = await signToken({ role, exp }, env.ADMIN_SECRET || 'dev-admin-secret');
   return new Response(
-    JSON.stringify({ ok: true, expires_at: exp, remember }),
+    JSON.stringify({ ok: true, expires_at: exp, remember, role }),
     {
       status: 200,
       headers: {

@@ -151,3 +151,12 @@ export async function isAdmin(request, env) {
   if (!payload || payload.role !== 'admin' || !payload.exp) return false;
   return Date.parse(payload.exp) > Date.now();
 }
+
+// 超级管理员检查（仅 brucelau1987）
+export async function isSuperAdmin(request, env) {
+  const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);
+  if (!token) return false;
+  const payload = await verifyToken(token, env.ADMIN_SECRET || 'dev-admin-secret');
+  if (!payload || payload.role !== 'super_admin' || !payload.exp) return false;
+  return Date.parse(payload.exp) > Date.now();
+}

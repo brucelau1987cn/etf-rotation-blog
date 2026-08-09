@@ -70,8 +70,8 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
         </table>
       </div>
 
-      <div class="admin-account">
-        <h2>管理员账号设置</h2>
+      <div class="admin-account" id="admin-account">
+        <h2>管理员账号设置 <span class="role-badge" id="admin-role"></span></h2>
         <form id="change-form" class="change-form" novalidate>
           <div class="change-row">
             <label for="change-username">新用户名</label>
@@ -111,6 +111,14 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
           loginBox.hidden = true; panel.hidden = false;
           const items = data.items || [];
           $('sub-count').textContent = items.length;
+          // 账号设置区仅超级管理员可见（角色在登录响应/header 中）
+          api('/api/admin/me').then(({ status, data }) => {
+            const role = data.role;
+            const accountBox = document.getElementById('admin-account');
+            if (accountBox) accountBox.hidden = role !== 'super_admin';
+            const roleBadge = document.getElementById('admin-role');
+            if (roleBadge) roleBadge.textContent = role === 'super_admin' ? '超级管理员' : '二级管理员';
+          });
           $('sub-tbody').innerHTML = items.map((it) => `
             <tr class="${it.revoked ? 'row-revoked' : ''}">
               <td>${it.label || '—'}</td>
@@ -253,6 +261,11 @@ const description = '管理订阅密码：创建、查看、撤销订阅；修�
     background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; cursor: pointer;
   }
   .muted { color: rgb(var(--gray-mid)); }
+  .role-badge {
+    display: inline-block; font-size: .68rem; font-weight: 800;
+    padding: .15rem .55rem; border-radius: 999px; vertical-align: middle;
+    background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
+  }
 
   .admin-account { border-top: 1px solid var(--border); padding-top: 1.2rem; }
   .admin-account h2 { margin-bottom: .8rem; }
