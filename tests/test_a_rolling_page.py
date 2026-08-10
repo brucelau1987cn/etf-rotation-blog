@@ -49,7 +49,7 @@ def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
     assert "/api/public/v1/rolling-signals" in app
     assert "startMarketPoll" in app
     assert "calendarMarket" in app
-    assert "initialQuoteLoad" in app
+    assert "fetchAllQuotes" in app
     assert "initBoardPager" in app
     assert 'id="board-search-input"' in matrix
     assert 'id="board-pager"' in matrix
