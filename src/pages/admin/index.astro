@@ -151,6 +151,40 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
         </section>
       </div>
 
+
+      <section class="futures-watchlist-card" id="futures-watchlist-card">
+        <div class="list-heading">
+          <div>
+            <p class="section-kicker">FUTURES COMPASS</p>
+            <h2>期货标的管理</h2>
+            <p class="section-sub">增删启用后，下次 futures 定时刷新会按新名单抓取；页面实时叠加读公开 API。</p>
+          </div>
+          <button type="button" class="ghost-btn" id="fw-refresh">刷新列表</button>
+        </div>
+        <form id="fw-form" class="fw-form" novalidate>
+          <label class="field"><span>代码</span><input id="fw-code" placeholder="JM" required maxlength="4" /></label>
+          <label class="field"><span>连续合约</span><input id="fw-continuous" placeholder="JM0" maxlength="8" /></label>
+          <label class="field"><span>名称</span><input id="fw-name" placeholder="焦煤" required /></label>
+          <label class="field"><span>交易所</span><input id="fw-exchange" placeholder="大商所" /></label>
+          <label class="field"><span>单位</span><input id="fw-unit" placeholder="元/吨" /></label>
+          <label class="field"><span>最小变动</span><input id="fw-tick" type="number" step="any" placeholder="0.5" value="1" /></label>
+          <label class="field"><span>Edge符号</span><input id="fw-edge" placeholder="nf_JM0" /></label>
+          <label class="field"><span>排序</span><input id="fw-sort" type="number" step="1" value="100" /></label>
+          <button class="primary-btn" type="submit" id="fw-submit">保存标的</button>
+        </form>
+        <p class="fw-msg" id="fw-msg" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-table" id="fw-table">
+            <thead>
+              <tr>
+                <th>代码</th><th>连续</th><th>名称</th><th>交易所</th><th>tick</th><th>Edge</th><th>排序</th><th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="fw-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="admin-account" id="admin-account" hidden>
         <div class="account-setting-copy">
           <p class="section-kicker">SUPER ADMIN</p>
@@ -284,6 +318,7 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
         }
         loginBox.hidden = true;
         panel.hidden = false;
+        loadFuturesWatchlist();
         subscriptions = data.items || [];
         updateStats();
         renderTable();
@@ -368,7 +403,143 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
 
       loadList();
     })();
-  </script>
+  
+      // ── Futures watchlist management ──
+      const fwTbody = $('fw-tbody');
+      const fwMsg = $('fw-msg');
+      function setFwMsg(text, ok) {
+        if (!fwMsg) return;
+        fwMsg.textContent = text || '';
+        fwMsg.className = 'fw-msg' + (text ? (ok ? ' ok' : ' error') : '');
+      }
+      function renderFuturesWatchlist(items) {
+        if (!fwTbody) return;
+        fwTbody.innerHTML = '';
+        for (const it of items || []) {
+          const tr = document.createElement('tr');
+          if (!it.enabled) tr.className = 'row-muted';
+          tr.innerHTML = `
+            <td><code>${it.code}</code></td>
+            <td>${it.continuous || ''}</td>
+            <td>${it.name || ''}</td>
+            <td>${it.exchange || ''}</td>
+            <td>${it.tick ?? ''}</td>
+            <td><code>${it.edge_symbol || ''}</code></td>
+            <td>${it.sort_order ?? ''}</td>
+            <td>${it.enabled ? '启用' : '停用'}</td>
+            <td class="row-actions"></td>`;
+          const actions = tr.querySelector('.row-actions');
+          const toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.className = 'link-btn';
+          toggleBtn.textContent = it.enabled ? '停用' : '启用';
+          toggleBtn.addEventListener('click', async () => {
+            const { status, data } = await api('/api/admin/futures-watchlist?action=toggle', {
+              method: 'POST',
+              body: JSON.stringify({ code: it.code, enabled: it.enabled ? 0 : 1 }),
+            });
+            if (status === 200 && data.ok) {
+              setFwMsg(`${it.code} 已${it.enabled ? '停用' : '启用'}`, true);
+              renderFuturesWatchlist(data.items || []);
+            } else {
+              setFwMsg(data.error || '切换失败', false);
+            }
+          });
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'link-btn danger';
+          delBtn.textContent = '删除';
+          delBtn.addEventListener('click', async () => {
+            if (!confirm(`确认删除 ${it.code} ${it.name || ''}？`)) return;
+            const { status, data } = await api('/api/admin/futures-watchlist?action=delete', {
+              method: 'POST',
+              body: JSON.stringify({ code: it.code }),
+            });
+            if (status === 200 && data.ok) {
+              setFwMsg(`已删除 ${it.code}`, true);
+              renderFuturesWatchlist(data.items || []);
+            } else {
+              setFwMsg(data.error || '删除失败', false);
+            }
+          });
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.className = 'link-btn';
+          editBtn.textContent = '填入';
+          editBtn.addEventListener('click', () => {
+            $('fw-code').value = it.code || '';
+            $('fw-continuous').value = it.continuous || '';
+            $('fw-name').value = it.name || '';
+            $('fw-exchange').value = it.exchange || '';
+            $('fw-unit').value = it.unit || '';
+            $('fw-tick').value = it.tick ?? 1;
+            $('fw-edge').value = it.edge_symbol || '';
+            $('fw-sort').value = it.sort_order ?? 100;
+            setFwMsg(`已填入 ${it.code}，修改后点保存`, true);
+          });
+          actions.append(editBtn, toggleBtn, delBtn);
+          fwTbody.appendChild(tr);
+        }
+      }
+      async function loadFuturesWatchlist() {
+        const { status, data } = await api('/api/admin/futures-watchlist');
+        if (status === 200 && data.ok) {
+          renderFuturesWatchlist(data.items || []);
+          setFwMsg(`共 ${data.count || 0} 个标的`, true);
+        } else {
+          setFwMsg(data.error || '加载失败', false);
+        }
+      }
+      $('fw-refresh')?.addEventListener('click', () => loadFuturesWatchlist());
+      $('fw-code')?.addEventListener('input', (e) => {
+        const code = String(e.target.value || '').trim().toUpperCase();
+        e.target.value = code;
+        if (!$('fw-continuous').value || $('fw-continuous').dataset.autogen !== '0') {
+          $('fw-continuous').value = code ? `${code}0` : '';
+          $('fw-continuous').dataset.autogen = '1';
+        }
+        if (!$('fw-edge').value || $('fw-edge').dataset.autogen !== '0') {
+          const cont = $('fw-continuous').value || (code ? `${code}0` : '');
+          $('fw-edge').value = cont ? `nf_${cont}` : '';
+          $('fw-edge').dataset.autogen = '1';
+        }
+      });
+      $('fw-continuous')?.addEventListener('input', (e) => {
+        e.target.dataset.autogen = '0';
+        const cont = String(e.target.value || '').trim().toUpperCase();
+        e.target.value = cont;
+        if (!$('fw-edge').value || $('fw-edge').dataset.autogen !== '0') {
+          $('fw-edge').value = cont ? `nf_${cont}` : '';
+          $('fw-edge').dataset.autogen = '1';
+        }
+      });
+      $('fw-edge')?.addEventListener('input', (e) => { e.target.dataset.autogen = '0'; });
+      $('fw-form')?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const body = {
+          code: $('fw-code').value.trim(),
+          continuous: $('fw-continuous').value.trim(),
+          name: $('fw-name').value.trim(),
+          exchange: $('fw-exchange').value.trim(),
+          unit: $('fw-unit').value.trim(),
+          tick: Number($('fw-tick').value),
+          edge_symbol: $('fw-edge').value.trim(),
+          sort_order: Number($('fw-sort').value || 100),
+          enabled: 1,
+        };
+        const { status, data } = await api('/api/admin/futures-watchlist', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        if (status === 200 && data.ok) {
+          setFwMsg(`已保存 ${body.code}`, true);
+          renderFuturesWatchlist(data.items || []);
+        } else {
+          setFwMsg(data.error || '保存失败', false);
+        }
+      });
+
+</script>
 </body>
 
 <style is:global>
@@ -457,4 +628,18 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
     .search-box input { width: 100%; }
     .admin-account { grid-template-columns: 1fr; gap: 1rem; }
   }
+
+  .futures-watchlist-card { margin-top: .9rem; background:#fff; border:1px solid #e5e7eb; border-radius:18px; padding:1.1rem 1.2rem 1.25rem; }
+  .futures-watchlist-card .section-sub { margin:.35rem 0 0; color:#64748b; font-size:.78rem; line-height:1.45; }
+  .fw-form { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.65rem; margin:1rem 0 .55rem; align-items:end; }
+  .fw-form .primary-btn { height:2.5rem; }
+  .fw-msg { min-height:1.1rem; margin:.2rem 0 .7rem; font-size:.75rem; color:#64748b; }
+  .fw-msg.ok { color:#15803d; } .fw-msg.error { color:#b91c1c; }
+  .link-btn { border:0; background:transparent; color:#1d4ed8; font-weight:700; cursor:pointer; padding:.15rem .35rem; }
+  .link-btn.danger { color:#b91c1c; }
+  .row-actions { display:flex; flex-wrap:wrap; gap:.15rem; }
+  .ghost-btn { border:1px solid #dbeafe; background:#eff6ff; color:#1d4ed8; border-radius:999px; padding:.45rem .8rem; font-weight:800; cursor:pointer; }
+  @media (max-width: 960px) { .fw-form { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .fw-form { grid-template-columns: 1fr; } }
+
 </style>

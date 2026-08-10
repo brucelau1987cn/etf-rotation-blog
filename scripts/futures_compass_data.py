@@ -20,25 +20,112 @@ ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "local" / "futures" / "futures.db"
 LIVE_SNAPSHOT = ROOT / "data" / "local" / "futures" / "live.json"
 PUBLIC_SNAPSHOT = ROOT / "public" / "data" / "futures-compass.json"
+WATCHLIST_CACHE = ROOT / "data" / "local" / "futures" / "watchlist.json"
 IWENCAI_WRAPPER = Path.home() / ".hermes" / "scripts" / "iwencai-skill-run"
 CN = ZoneInfo("Asia/Shanghai")
+PUBLIC_WATCHLIST_URL = "https://etf.peekabo.cc/api/public/v1/futures-watchlist"
 
-WATCHLIST = [
-    {"code": "LC", "continuous": "LC0", "name": "碳酸锂", "exchange": "广期所", "unit": "元/吨", "tick": 20},
-    {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
-    {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所", "unit": "元/吨", "tick": 5},
-    {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所", "unit": "元/克", "tick": 0.02},
-    {"code": "AG", "continuous": "AG0", "name": "白银", "exchange": "上期所", "unit": "元/千克", "tick": 1},
-    {"code": "CU", "continuous": "CU0", "name": "沪铜", "exchange": "上期所", "unit": "元/吨", "tick": 10},
-    {"code": "AL", "continuous": "AL0", "name": "沪铝", "exchange": "上期所", "unit": "元/吨", "tick": 5},
-    {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1},
-    {"code": "LH", "continuous": "LH0", "name": "生猪", "exchange": "大商所", "unit": "元/吨", "tick": 1},
-    {"code": "JM", "continuous": "JM0", "name": "焦煤", "exchange": "大商所", "unit": "元/吨", "tick": 0.5},
+DEFAULT_WATCHLIST = [
+    {"code": "LC", "continuous": "LC0", "name": "碳酸锂", "exchange": "广期所", "unit": "元/吨", "tick": 20, "edge_symbol": "nf_LC0"},
+    {"code": "PS", "continuous": "PS0", "name": "多晶硅", "exchange": "广期所", "unit": "元/吨", "tick": 5, "edge_symbol": "nf_PS0"},
+    {"code": "SI", "continuous": "SI0", "name": "工业硅", "exchange": "广期所", "unit": "元/吨", "tick": 5, "edge_symbol": "nf_SI0"},
+    {"code": "AU", "continuous": "AU0", "name": "黄金", "exchange": "上期所", "unit": "元/克", "tick": 0.02, "edge_symbol": "nf_AU0"},
+    {"code": "AG", "continuous": "AG0", "name": "白银", "exchange": "上期所", "unit": "元/千克", "tick": 1, "edge_symbol": "nf_AG0"},
+    {"code": "CU", "continuous": "CU0", "name": "沪铜", "exchange": "上期所", "unit": "元/吨", "tick": 10, "edge_symbol": "nf_CU0"},
+    {"code": "AL", "continuous": "AL0", "name": "沪铝", "exchange": "上期所", "unit": "元/吨", "tick": 5, "edge_symbol": "nf_AL0"},
+    {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1, "edge_symbol": "nf_SC0"},
+    {"code": "LH", "continuous": "LH0", "name": "生猪", "exchange": "大商所", "unit": "元/吨", "tick": 1, "edge_symbol": "nf_LH0"},
+    {"code": "JM", "continuous": "JM0", "name": "焦煤", "exchange": "大商所", "unit": "元/吨", "tick": 0.5, "edge_symbol": "nf_JM0"},
 ]
+
+
+def _normalize_watchlist_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in rows:
+        code = str(raw.get("code") or "").strip().upper()
+        if not code or code in seen:
+            continue
+        continuous = str(raw.get("continuous") or f"{code}0").strip().upper()
+        name = str(raw.get("name") or code).strip()
+        exchange = str(raw.get("exchange") or "").strip() or "未知交易所"
+        unit = str(raw.get("unit") or "").strip() or "元"
+        try:
+            tick = float(raw.get("tick"))
+        except (TypeError, ValueError):
+            tick = 1.0
+        if tick <= 0:
+            tick = 1.0
+        edge_symbol = str(raw.get("edge_symbol") or f"nf_{continuous}").strip()
+        out.append({
+            "code": code,
+            "continuous": continuous,
+            "name": name,
+            "exchange": exchange,
+            "unit": unit,
+            "tick": tick,
+            "edge_symbol": edge_symbol,
+        })
+        seen.add(code)
+    return out
+
+
+def load_watchlist(*, force_refresh: bool = False) -> list[dict[str, Any]]:
+    """Load enabled futures watchlist: remote API → local cache → DEFAULT."""
+    WATCHLIST_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    if not force_refresh and WATCHLIST_CACHE.exists():
+        try:
+            age = time.time() - WATCHLIST_CACHE.stat().st_mtime
+            if age < 300:
+                cached = json.loads(WATCHLIST_CACHE.read_text(encoding="utf-8"))
+                rows = _normalize_watchlist_rows(cached if isinstance(cached, list) else cached.get("items") or [])
+                if rows:
+                    return rows
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+
+    # Remote public API (D1-backed admin config)
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            PUBLIC_WATCHLIST_URL,
+            headers={"User-Agent": "ETF-Compass-Futures/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        rows = _normalize_watchlist_rows(payload.get("items") or [])
+        if rows:
+            WATCHLIST_CACHE.write_text(json.dumps({"items": rows}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            return rows
+    except Exception:
+        pass
+
+    # Stale local cache
+    if WATCHLIST_CACHE.exists():
+        try:
+            cached = json.loads(WATCHLIST_CACHE.read_text(encoding="utf-8"))
+            rows = _normalize_watchlist_rows(cached if isinstance(cached, list) else cached.get("items") or [])
+            if rows:
+                return rows
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+    return [dict(item) for item in DEFAULT_WATCHLIST]
+
+
+# Back-compat name used across modules/tests.
+WATCHLIST = load_watchlist()
+
+
+def refresh_watchlist() -> list[dict[str, Any]]:
+    global WATCHLIST
+    WATCHLIST = load_watchlist(force_refresh=True)
+    return WATCHLIST
 
 
 def validate_public_snapshot(
     payload: dict[str, Any], *, now: datetime | None = None, max_age_seconds: int = 72 * 3600,
+    watchlist: list[dict[str, Any]] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     current = (now or datetime.now(CN)).astimezone(CN)
@@ -54,7 +141,8 @@ def validate_public_snapshot(
     except ValueError:
         errors.append("futures snapshot generated_at is invalid")
 
-    expected = [item["code"] for item in WATCHLIST]
+    active = watchlist if watchlist is not None else load_watchlist()
+    expected = [item["code"] for item in active]
     if payload.get("ok") is not True:
         errors.append("futures snapshot ok must be true")
     if payload.get("stale") is not False:
@@ -214,12 +302,13 @@ def latest_review(db: sqlite3.Connection) -> dict[str, Any] | None:
 def fetch_realtime() -> dict[str, Any]:
     import akshare as ak  # pyright: ignore[reportMissingImports]
 
+    watchlist = refresh_watchlist()
     started = time.time()
     observed_at = now_iso()
     items: list[dict[str, Any]] = []
     errors: list[str] = []
     with connect() as db:
-        for meta in WATCHLIST:
+        for meta in watchlist:
             try:
                 frame = ak.futures_zh_realtime(symbol=meta["name"])
                 records = frame.to_dict("records")
@@ -290,18 +379,18 @@ def fetch_realtime() -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"{meta['code']}: {exc}")
         latency = round((time.time() - started) * 1000)
-        status = "ok" if len(items) == len(WATCHLIST) else "partial" if items else "error"
+        status = "ok" if len(items) == len(watchlist) else "partial" if items else "error"
         audit(db, "sina-akshare", "realtime", status, len(items), latency, "; ".join(errors)[:500] or None)
         db.commit()
         items = [enrich_item(db, item) for item in items]
         review = latest_review(db)
-    min_coverage = max(6, len(WATCHLIST) - 3)
+    min_coverage = max(1, min(6, max(1, len(watchlist) - 3)))
     if len(items) < min_coverage:
-        raise RuntimeError(f"realtime coverage too low: {len(items)}/{len(WATCHLIST)}; {'; '.join(errors)}")
+        raise RuntimeError(f"realtime coverage too low: {len(items)}/{len(watchlist)}; {'; '.join(errors)}")
     payload = {
         "ok": True, "source": "新浪期货", "generated_at": observed_at,
         "fetched_at": time.time(), "latency_ms": latency, "count": len(items),
-        "expected_count": len(WATCHLIST), "stale": False, "errors": errors,
+        "expected_count": len(watchlist), "stale": False, "errors": errors,
         "iwencai_review": review, "summary": build_summary(items), "items": items,
     }
     atomic_json(LIVE_SNAPSHOT, payload)
@@ -311,9 +400,10 @@ def fetch_realtime() -> dict[str, Any]:
 def fetch_daily_bars() -> dict[str, Any]:
     import akshare as ak  # pyright: ignore[reportMissingImports]
 
+    watchlist = refresh_watchlist()
     started = time.time(); rows = 0; errors = []
     with connect() as db:
-        for meta in WATCHLIST:
+        for meta in watchlist:
             try:
                 frame = ak.futures_zh_daily_sina(symbol=meta["continuous"])
                 for bar in frame.tail(60).to_dict("records"):
@@ -336,7 +426,9 @@ def fetch_daily_bars() -> dict[str, Any]:
 
 
 def run_iwencai_review(slot: str) -> dict[str, Any]:
-    query = "碳酸锂 多晶硅 工业硅 黄金 白银 沪铜 沪铝 原油 生猪 焦煤主力合约最新价涨跌幅成交量持仓量"
+    watchlist = refresh_watchlist()
+    names = " ".join(item["name"] for item in watchlist)
+    query = f"{names} 主力合约最新价涨跌幅成交量持仓量"
     command = [str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query, "--limit", "20", "--timeout", "45"]
     started = time.time(); reviewed_at = now_iso()
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)
