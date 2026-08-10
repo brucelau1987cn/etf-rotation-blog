@@ -25,6 +25,7 @@ const INSTRUMENT_SNAPSHOTS = {
   '300077': '/data/a-rolling-signals-300077.json',
   '002185': '/data/a-rolling-signals-002185.json',
   '06809': '/data/a-rolling-signals-06809.json',
+  '02701': '/data/a-rolling-signals-02701.json',
   '01378': '/data/a-rolling-signals-01378.json',
   'TSLA': '/data/a-rolling-signals-TSLA.json',
   'SI=F': '/data/futures-rolling-signals-hf_XAG.json',
@@ -53,7 +54,13 @@ const normalizeSymbol = value => normalizeRollingSymbol(value);
 
 const snapshotPathForSymbol = symbol => {
   const key = normalizeSymbol(symbol) || '600021';
-  return INSTRUMENT_SNAPSHOTS[key] || null;
+  if (INSTRUMENT_SNAPSHOTS[key]) return INSTRUMENT_SNAPSHOTS[key];
+  // Convention for admin-added instruments without hard-coded map entry.
+  if (key === 'SI=F' || key === 'HF_XAG') return '/data/futures-rolling-signals-hf_XAG.json';
+  if (/^[A-Z][A-Z0-9.\-]{0,9}$/.test(key) && !/^\d+$/.test(key) && key.includes('=')) {
+    return `/data/futures-rolling-signals-${key.replace(/=/g, '_')}.json`;
+  }
+  return `/data/a-rolling-signals-${key}.json`;
 };
 
 const instrumentMetaForSymbol = symbol => INSTRUMENT_META[normalizeSymbol(symbol)] || null;

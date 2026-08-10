@@ -157,6 +157,7 @@
         A_INSTRUMENTS = normalized;
         INSTRUMENTS = A_INSTRUMENTS;
       }
+      syncBoardsFromWatchlist();
       return true;
     } catch (err) {
       console.warn('rolling watchlist load failed', err);
@@ -402,6 +403,110 @@
       }).replace(/年|月/g, '/').replace(/日/g, '');
     }
     return raw;
+  };
+
+
+  const nameInitials = (name) => {
+    const raw = String(name || '').trim();
+    if (!raw) return '—';
+    return raw.slice(0, 2);
+  };
+
+  const formatStartDateText = (value) => {
+    if (!value) return '—';
+    const raw = String(value).trim();
+    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return `${Number(m[1])}/${Number(m[2])}/${Number(m[3])}`;
+    return raw;
+  };
+
+  const ensureInstrumentBoard = (meta, index = 0) => {
+    const list = document.getElementById('rolling-board-list');
+    if (!list || !meta?.symbol) return null;
+    const symbol = String(meta.symbol);
+    let board = list.querySelector(`.instrument-board[data-symbol="${symbol}"]`);
+    if (board) {
+      // keep start date / name synced from watchlist
+      if (meta.name) {
+        board.setAttribute('data-name', meta.name);
+        const nameEl = board.querySelector('[data-role="inst-name"]');
+        if (nameEl) nameEl.textContent = meta.name;
+      }
+      if (meta.start_date) {
+        board.setAttribute('data-start-date', meta.start_date);
+        const startEl = board.querySelector('[data-role="start-date"]');
+        if (startEl) startEl.textContent = formatStartDateText(meta.start_date);
+      }
+      if (meta.exchange) board.setAttribute('data-exchange', meta.exchange);
+      return board;
+    }
+
+    const name = meta.name || symbol;
+    const exchange = meta.exchange || '';
+    const startDate = meta.start_date || '';
+    const article = document.createElement('article');
+    article.className = 'instrument-board';
+    article.setAttribute('data-symbol', symbol);
+    article.setAttribute('data-name', name);
+    article.setAttribute('data-initials', nameInitials(name));
+    article.setAttribute('data-board-index', String(index));
+    article.setAttribute('data-exchange', exchange);
+    article.setAttribute('data-start-date', startDate);
+    article.setAttribute('aria-label', `${name} ${symbol}`);
+    article.innerHTML = `
+      <div class="board-row">
+        <div class="stock-panel">
+          <div class="stock-name-title" data-role="inst-name">${name}</div>
+          <div class="stock-code-tag" data-role="inst-symbol">${symbol}</div>
+          <div class="stock-price-tag" data-role="quote" data-symbol="${symbol}">加载行情...</div>
+          <div class="stock-signal-meta" data-role="signal-meta">
+            <span class="start-date-label">起始日期</span>
+            <strong class="start-date-value" data-role="start-date">${formatStartDateText(startDate)}</strong>
+          </div>
+        </div>
+        <div class="signal-panel" data-role="signal-scroller" tabindex="0" aria-label="${name} 信号横向滚动区">
+          <div class="signal-canvas">
+            <div class="axis-row sell-axis">
+              <div class="axis-label sell-label">
+                <span>空方力量</span>
+                <i class="watch-dot sell-watch" data-role="sell-watch-dot" title="5m 观察窗口未触发" aria-label="空方观察窗口未点亮"></i>
+              </div>
+              <div class="cells-scroll" data-role="sell-cells">
+                <div class="empty-rail">空方信号暂无</div>
+              </div>
+            </div>
+            <div class="axis-row buy-axis">
+              <div class="axis-label buy-label">
+                <span>多方力量</span>
+                <i class="watch-dot buy-watch" data-role="buy-watch-dot" title="1.75h 观察窗口未触发" aria-label="多方观察窗口未点亮"></i>
+              </div>
+              <div class="cells-scroll" data-role="buy-cells">
+                <div class="empty-rail">多方信号暂无</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    // insert before search-empty card if present
+    const emptyCard = list.querySelector('#board-search-empty, .board-search-empty');
+    if (emptyCard) list.insertBefore(article, emptyCard);
+    else list.appendChild(article);
+    return article;
+  };
+
+  const syncBoardsFromWatchlist = () => {
+    const list = document.getElementById('rolling-board-list');
+    if (!list) return;
+    const wanted = new Set(INSTRUMENTS.map((m) => String(m.symbol)));
+    // remove disabled boards no longer in watchlist (keep SSR ones that remain)
+    list.querySelectorAll('.instrument-board').forEach((board) => {
+      const sym = board.getAttribute('data-symbol');
+      if (sym && !wanted.has(sym)) board.remove();
+    });
+    INSTRUMENTS.forEach((meta, index) => ensureInstrumentBoard(meta, index));
+    // re-init pager after DOM changes if available
+    try { initBoardPager(); } catch {}
   };
 
   const updateBoard = (symbol, data) => {
