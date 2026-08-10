@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-10T07:10:59.981879+00:00",
+  "updated_at": "2026-08-10T22:51:01.006344+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -84,14 +84,6 @@
         },
         {
           "date": "2026-08-06",
-          "equity": 150000.0,
-          "cash": 150000.0,
-          "daily_return": 0.0,
-          "cumulative_return": 0.0,
-          "max_drawdown": 0.0
-        },
-        {
-          "date": "2026-08-07",
           "equity": 150000.0,
           "cash": 150000.0,
           "daily_return": 0.0,
@@ -189,7 +181,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 6468.288734553957,
+      "cash": 14515.471010382815,
       "positions": {
         "XLP": {
           "symbol": "XLP",
@@ -204,22 +196,7 @@
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
           "signal_level": 84.7,
-          "last_price": 85.12000274658203
-        },
-        "XLV": {
-          "symbol": "XLV",
-          "name": "Health Care Select Sector",
-          "quantity": 12,
-          "entry_price": 161.5749969482422,
-          "entry_cost": 1.96945,
-          "entry_at": "2026-07-31T13:35:02.575750+00:00",
-          "target": 167.06,
-          "stop": 158.8,
-          "level_basis": null,
-          "signal_date": "2026-07-30",
-          "signal_kind": "plant",
-          "signal_level": 161.98,
-          "last_price": 165.67999267578125
+          "last_price": 84.94999694824219
         },
         "XLRE": {
           "symbol": "XLRE",
@@ -234,37 +211,7 @@
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
           "signal_level": 45.03,
-          "last_price": 44.97999954223633
-        },
-        "VNQ": {
-          "symbol": "VNQ",
-          "name": "Vanguard Real Estate ETF",
-          "quantity": 20,
-          "entry_price": 98.79010009765625,
-          "entry_cost": 1.987901,
-          "entry_at": "2026-07-31T13:50:02.908640+00:00",
-          "target": 101.36,
-          "stop": 97.0,
-          "level_basis": null,
-          "signal_date": "2026-07-30",
-          "signal_kind": "plant",
-          "signal_level": 98.87,
-          "last_price": 98.43000030517578
-        },
-        "OIH": {
-          "symbol": "OIH",
-          "name": "VanEck Oil Services",
-          "quantity": 5,
-          "entry_price": 378.4909973144531,
-          "entry_cost": 1.946227,
-          "entry_at": "2026-08-03T13:30:58.734203+00:00",
-          "target": 400.93,
-          "stop": 363.32,
-          "level_basis": null,
-          "signal_date": "2026-07-31",
-          "signal_kind": "plant",
-          "signal_level": 378.63,
-          "last_price": 388.2799987792969
+          "last_price": 44.400001525878906
         },
         "IBIT": {
           "symbol": "IBIT",
@@ -279,32 +226,17 @@
           "signal_date": "2026-08-04",
           "signal_kind": "plant",
           "signal_level": 36.37,
-          "last_price": 36.79999923706055
-        },
-        "XLE": {
-          "symbol": "XLE",
-          "name": "Energy Select Sector",
-          "quantity": 35,
-          "entry_price": 57.69499969482422,
-          "entry_cost": 2.009662,
-          "entry_at": "2026-08-05T14:35:47.640632+00:00",
-          "target": 60.09,
-          "stop": 56.42,
-          "level_basis": null,
-          "signal_date": "2026-08-04",
-          "signal_kind": "plant",
-          "signal_level": 57.77,
-          "last_price": 57.5
+          "last_price": 36.22999954223633
         }
       },
-      "equity": 20339.828648,
-      "realized_pnl": 224.9569378894043,
-      "unrealized_pnl": 114.87171,
-      "daily_return": 0.00943784,
-      "cumulative_return": 0.01699143,
+      "equity": 20415.570982,
+      "realized_pnl": 437.7440324951172,
+      "unrealized_pnl": -22.17305,
+      "daily_return": 0.00372384,
+      "cumulative_return": 0.02077855,
       "max_drawdown": 0.0,
-      "peak_equity": 20339.828647731447,
-      "cash_ratio": 0.31801097,
+      "peak_equity": 20415.570982154055,
+      "cash_ratio": 0.711,
       "history": [
         {
           "date": "2026-08-04",
@@ -320,6 +252,14 @@
           "cash": 6468.288735,
           "daily_return": 0.00943784,
           "cumulative_return": 0.01699143,
+          "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-08-10",
+          "equity": 20415.570982,
+          "cash": 14515.47101,
+          "daily_return": 0.00372384,
+          "cumulative_return": 0.02077855,
           "max_drawdown": 0.0
         }
       ],
@@ -701,6 +641,86 @@
           "entry_cost": 1.999,
           "target": 14.56,
           "stop": 13.42
+        },
+        {
+          "id": "US:VNQ:sell:1786369849:stop",
+          "timestamp": "2026-08-10T13:50:45.850829+00:00",
+          "market": "US",
+          "symbol": "VNQ",
+          "name": "Vanguard Real Estate ETF",
+          "side": "sell",
+          "quantity": 20,
+          "price": 97.0,
+          "cost": 1.97,
+          "reason": "stop",
+          "signal_date": "2026-07-30",
+          "signal_kind": "plant",
+          "signal_level": 98.87,
+          "entry_at": "2026-07-31T13:50:02.908640+00:00",
+          "entry_price": 98.79010009765625,
+          "entry_cost": 1.987901,
+          "target": 101.36,
+          "stop": 97.0
+        },
+        {
+          "id": "US:OIH:sell:1786370146:target",
+          "timestamp": "2026-08-10T13:55:45.938602+00:00",
+          "market": "US",
+          "symbol": "OIH",
+          "name": "VanEck Oil Services",
+          "side": "sell",
+          "quantity": 5,
+          "price": 400.970001,
+          "cost": 2.002425,
+          "reason": "target",
+          "signal_date": "2026-07-31",
+          "signal_kind": "plant",
+          "signal_level": 378.63,
+          "entry_at": "2026-08-03T13:30:58.734203+00:00",
+          "entry_price": 378.4909973144531,
+          "entry_cost": 1.946227,
+          "target": 400.93,
+          "stop": 363.32
+        },
+        {
+          "id": "US:XLV:sell:1786370454:target",
+          "timestamp": "2026-08-10T14:00:46.088327+00:00",
+          "market": "US",
+          "symbol": "XLV",
+          "name": "Health Care Select Sector",
+          "side": "sell",
+          "quantity": 12,
+          "price": 167.179993,
+          "cost": 2.00308,
+          "reason": "target",
+          "signal_date": "2026-07-30",
+          "signal_kind": "plant",
+          "signal_level": 161.98,
+          "entry_at": "2026-07-31T13:35:02.575750+00:00",
+          "entry_price": 161.5749969482422,
+          "entry_cost": 1.96945,
+          "target": 167.06,
+          "stop": 158.8
+        },
+        {
+          "id": "US:XLE:sell:1786386057:target",
+          "timestamp": "2026-08-10T18:20:52.549368+00:00",
+          "market": "US",
+          "symbol": "XLE",
+          "name": "Energy Select Sector",
+          "side": "sell",
+          "quantity": 35,
+          "price": 60.119999,
+          "cost": 2.0521,
+          "reason": "target",
+          "signal_date": "2026-08-04",
+          "signal_kind": "plant",
+          "signal_level": 57.77,
+          "entry_at": "2026-08-05T14:35:47.640632+00:00",
+          "entry_price": 57.69499969482422,
+          "entry_cost": 2.009662,
+          "target": 60.09,
+          "stop": 56.42
         }
       ],
       "pending_signals": [],
