@@ -57,12 +57,12 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
         "ok": True,
         "source": "fixture",
         "generated_at": "2026-07-28T08:20:00+08:00",
-        "count": 9,
-        "expected_count": 9,
+        "count": 10,
+        "expected_count": 10,
         "stale": False,
         "errors": [],
-        "summary": {"ranking": ["LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH"]},
-        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH")],
+        "summary": {"ranking": ["LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM"]},
+        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM")],
     }
     assert data.validate_public_snapshot(fresh, now=now) == []
 
@@ -73,9 +73,9 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
     assert any("watchlist" in error for error in data.validate_public_snapshot(incomplete, now=now))
 
     shell = {
-        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 9,
-        "expected_count": 9, "stale": False, "errors": [], "summary": fresh["summary"],
-        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH")],
+        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 10,
+        "expected_count": 10, "stale": False, "errors": [], "summary": fresh["summary"],
+        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM")],
     }
     assert any("missing core fields" in error for error in data.validate_public_snapshot(shell, now=now))
 

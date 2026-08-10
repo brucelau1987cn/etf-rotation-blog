@@ -33,6 +33,7 @@ WATCHLIST = [
     {"code": "AL", "continuous": "AL0", "name": "沪铝", "exchange": "上期所", "unit": "元/吨", "tick": 5},
     {"code": "SC", "continuous": "SC0", "name": "原油", "exchange": "能源中心", "unit": "元/桶", "tick": 0.1},
     {"code": "LH", "continuous": "LH0", "name": "生猪", "exchange": "大商所", "unit": "元/吨", "tick": 1},
+    {"code": "JM", "continuous": "JM0", "name": "焦煤", "exchange": "大商所", "unit": "元/吨", "tick": 0.5},
 ]
 
 
@@ -72,7 +73,7 @@ def validate_public_snapshot(
     summary = payload.get("summary")
     ranking = summary.get("ranking") if isinstance(summary, dict) else None
     if not isinstance(ranking, list) or len(ranking) != len(expected) or set(ranking) != set(expected):
-        errors.append("futures snapshot summary ranking must cover all nine instruments")
+        errors.append(f"futures snapshot summary ranking must cover all {len(expected)} instruments")
 
     required_strings = (
         "continuous", "name", "exchange", "contract_code", "contract_name", "quote_time",
@@ -294,8 +295,9 @@ def fetch_realtime() -> dict[str, Any]:
         db.commit()
         items = [enrich_item(db, item) for item in items]
         review = latest_review(db)
-    if len(items) < 6:
-        raise RuntimeError(f"realtime coverage too low: {len(items)}/9; {'; '.join(errors)}")
+    min_coverage = max(6, len(WATCHLIST) - 3)
+    if len(items) < min_coverage:
+        raise RuntimeError(f"realtime coverage too low: {len(items)}/{len(WATCHLIST)}; {'; '.join(errors)}")
     payload = {
         "ok": True, "source": "新浪期货", "generated_at": observed_at,
         "fetched_at": time.time(), "latency_ms": latency, "count": len(items),
@@ -334,7 +336,7 @@ def fetch_daily_bars() -> dict[str, Any]:
 
 
 def run_iwencai_review(slot: str) -> dict[str, Any]:
-    query = "碳酸锂 多晶硅 工业硅 黄金 白银 沪铜 沪铝 原油 生猪主力合约最新价涨跌幅成交量持仓量"
+    query = "碳酸锂 多晶硅 工业硅 黄金 白银 沪铜 沪铝 原油 生猪 焦煤主力合约最新价涨跌幅成交量持仓量"
     command = [str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query, "--limit", "20", "--timeout", "45"]
     started = time.time(); reviewed_at = now_iso()
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)

@@ -46,6 +46,7 @@ const fallbackItems: FutureItem[] = [
   { code: 'AL', continuous: 'AL0', name: '铝', exchange: '上期所' },
   { code: 'SC', continuous: 'SC0', name: '原油', exchange: '能源中心' },
   { code: 'LH', continuous: 'LH0', name: '猪肉', exchange: '大商所' },
+  { code: 'JM', continuous: 'JM0', name: '焦煤', exchange: '大商所' },
 ];
 let snapshot: FuturesPayload = { items: fallbackItems };
 try { snapshot = JSON.parse(readFileSync(join(process.cwd(), 'public/data/futures-compass.json'), 'utf8')); } catch {}
