@@ -22,6 +22,21 @@ LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
     "public/data/korea-tech-factor-shadow.json",
     "public/data/us-selector-shadow.json",
+    # A-share stage generated files — futures publisher should not be blocked
+    # by dirty A-share artifacts (hit 2026-08-10: 08:30 LLM failure left
+    # garden-recommendations/mid-macro/etf-garden-pool/... dirty → all
+    # subsequent publishers failed in cascade).
+    "public/data/etf-garden-backtest.json",
+    "public/data/etf-garden-pool.json",
+    "public/data/model-lab/a-share-shadow.json",
+    "public/data/model-lab/a-share-path-shadow.json",
+    "public/data/model-lab/a-share-research-audit.json",
+    "public/data/a-share-nightly-deployment.json",
+    "public/data/a-share-mid-macro.json",
+    "public/data/a-compass-dashboard.json",
+    "public/data/catalog.json",
+    "public/data/garden-recommendations.json",
+    "public/data/paper-trading.json",
 }
 
 
@@ -50,6 +65,9 @@ def foreign_dirty_paths(lines: list[str]) -> list[str]:
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         if path and path not in EXTERNAL_DIRTY:
+            # Ignore A-share blog articles (dynamic filenames, can't statically list)
+            if path.startswith("src/content/blog/"):
+                continue
             paths.append(path)
     return paths
 
