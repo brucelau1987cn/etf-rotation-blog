@@ -1,112 +1,72 @@
 {
   "date": "2026-08-10",
-  "updated_at": "2026-08-10T13:55:46+08:00",
+  "updated_at": "2026-08-10T22:02:00+08:00",
   "applies_to": "2026-08-10",
-  "data_as_of": "qfq基准=2026-08-07；11:30补发使用盘中行情快照（上证+0.24%/深证-0.91%/创业板-1.96%/科创50-1.93%/沪深300-0.40%）；08:30/11:40定时任务因模型配额失败，本文件为交易日中午后补发。",
-  "level_data_as_of": "2026-08-07",
-  "stage": "11:30上午收盘修正版",
+  "data_as_of": "qfq基线=2026-08-10（21:50准备重基）；22:00收盘=上证+0.67%/深证+0.04%/创业板-0.73%/科创50-0.36%/沪深300+0.16%；成交额2.52万亿缩量；贵金属/医疗服务/军工/能源金属领涨；通信/CPO/保险回调。",
+  "level_data_as_of": "2026-08-10",
+  "stage": "22:00夜间最终版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-08-10+11:30+catchup-v1",
-  "market_state": "11:30上午收盘修正版｜2026-08-10早盘高开后分化：上证+0.24%，深证-0.91%，创业板-1.96%，科创50-1.93%；成长回撤、防御扩散。候选重选为516530物流ETF银华 / 518880黄金ETF华安 / 512690酒ETF鹏华（候场）。结论：不追科技反弹，围绕物流/黄金/酒三只候场执行，权益10%-30%。",
+  "idempotency_key": "CN+2026-08-10+22:00+v3",
+  "market_state": "22:00夜间最终版｜2026-08-10收盘：上证+0.67%五连阳，深证+0.04%，创业板-0.73%，科创50-0.36%，沪深300+0.16%，中证500+0.64%；成交额2.52万亿缩量。超4000股上涨，板块轮动加速：贵金属/医疗服务/军工/能源金属领涨，通信/CPO/保险/玻璃基板回调。候选重选：516530物流/518880黄金/512690酒→513030德国ETF/159870化工ETF/560710船舶ETF（候场）。结论：防御+周期制造轮动方向，维持权益10%-30%，候场触发才做。",
   "position": "权益10%-30%；防御/现金70%-90%",
   "position_base": "权益10%-30%；防御/现金70%-90%",
-  "mainline": "主线=防御扩散+结构轮动；候选=516530物流ETF银华 / 518880黄金ETF华安 / 512690酒ETF鹏华；通信等成长方向仅观察不追；触发才做、失效即撤。",
-  "summary": "2026-08-10补发11:30：指数分化（上证+0.24%/科创50-1.93%），候选由医疗组切换为516530物流ETF银华 / 518880黄金ETF华安 / 512690酒ETF鹏华。结论：维持中性仓位带，尾盘前只执行已触发条件，不预判加仓。",
+  "mainline": "主线=防御扩散+军工/周期制造轮动；候选=513030德国ETF华安 / 159870化工ETF鹏华 / 560710船舶ETF富国（候场，均为趋势B/低风险）；旧候选516530物流/518880黄金/512690酒移出plant→watch历史对照；通信/半导体等科技方向仅观察不追；候场触发才做、失效即撤。",
+  "summary": "2026-08-10 22:00夜间最终整理：沪指五连阳+0.67%，但成长/科技仍弱（创业板-0.73%/科创50-0.36%），防御+军工+周期制造强势。22:00 qfq重基后selector重选：513030德国ETF / 159870化工ETF / 560710船舶ETF入选（候场），原516530物流/518880黄金/512690酒因动量排名下降移出。结论：维持权益10%-30%，围绕新三只候场按触发条件执行，不追通信/科技反弹。",
   "data_quality": {
     "universe_count": 91,
     "valid_count": 91,
     "qfq_count": 91,
     "raw_fallback_count": 0,
     "latest_trade_date": "2026-08-10",
-    "generated_at": "2026-08-10 13:54 CST",
-    "quote_as_of": "2026-08-07 22:00 CST",
+    "generated_at": "2026-08-10 22:02:00 CST",
+    "quote_as_of": "2026-08-10 16:15 CST",
     "quote_date": "2026-08-10",
-    "return_basis_disclosure": "关键位与qfq收益基准仍为2026-08-07收盘；11:30补发盘中价仅用于窗口叙述与执行距离，不改写qfq level_data_as_of。"
+    "return_basis_disclosure": "qfq基线=2026-08-10收盘（21:50准备门禁重基至当日收盘）；盘中价用于窗口叙述与执行距离；22:00 qfq重基后level_data_as_of同步至2026-08-10。"
   },
   "source_audit": {
-    "iwencai_news": "补发查询：A股2026-08-10开盘/走势；开盘三大指数高开、影视院线居前；统计局7月CPI同比+0.5%、核心CPI同比+0.9%；北京优化购房社保年限。",
-    "quotes": "22:00收盘行情：腾讯/edge public quote截至2026-08-07（spot vs prev close 2026-08-06）：指数=上证3940.04+1.02/深证14311.01+1.42/创业板3563.12+1.35/科创板50 1744.02+2.51/沪深300 4694.44+0.93/中证500 7980.12+1.93；旧plant=513500标普500 2.695+0.19/516530物流1.000-0.10/513360教育0.475-0.21；新plant=512170医疗0.346+4.53（vs前收0.331）/513060恒生医疗0.565+5.02（前收0.538）/513030德国1.895+1.07（前收1.875）；科技链=512480半导体1.083+3.44/515880通信0.660+1.23/561980半导体设备0.723+2.41/588000科创50 1.840+2.56/159915创业板ETF3.586+1.30；防御=512800银行0.798-0.87/512890红利低波1.158-0.69/518880黄金8.892+1.10/517520黄金股2.112+3.99",
-    "final_pool": "正式池91/91，21:50准备门禁重基至当日收盘(evaluation_date=latest_trade_date=2026-08-07);market_regime=防御,equity_allocation对应10%-30%;plant=512170医疗/513060恒生医疗/513030德国(候场，顺序为重新选);selector切换：原513500标普/516530物流/513360教育→watch历史对照",
+    "iwencai_news": "22:00查询：①A股2026-08-10收盘复盘（沪指五连阳+0.67%/成交2.52万亿/超4000股上涨）；②军工/船舶/化工板块行情确认（军工午后异动拉升/长城军工洪都航空涨停/船舶56.35%+化工1.94%+贵金属领涨）；③能化现货估价指数+0.94%（中东局势紧张/霍尔木兹海峡航运量骤降/乙二醇库存低位）；④美股/海外映射验证（德国ETF qfq动量排名3/信号74.46）。",
+    "quotes": "22:00收盘行情：edge public quote截至2026-08-10 16:15 CST：指数=上证3966.59+0.67/深证14316.96+0.04/创业板3537.21-0.73/科创50 1737.77-0.36/沪深300 4702.02+0.16/中证500 8030.95+0.64；新plant=513030德国ETF 1.923+1.48/159870化工ETF 0.842+1.94/560710船舶ETF 0.915+2.35；旧plant=516530物流ETF 1.009+0.90/518880黄金ETF 9.005+1.27/512690酒ETF 0.445+2.30；防御链=512800银行0.803+0.63/515180红利1.429+1.06/518880黄金9.005+1.27/517520黄金股2.173+2.89；科技链=512480半导体1.081-0.18/515880通信0.644-2.42/561980半导体设备0.738+2.07/588000科创50 1.835-0.27；医疗链=512170医疗0.353+2.02/513060恒生医疗0.576+1.95/159938医药0.685+1.63/159992创新药0.919+0.99；周期链=512400有色2.018+1.66/159870化工0.842+1.94/560710船舶0.915+2.35。",
+    "final_pool": "正式池91/91，21:50准备门禁重基至当日收盘(evaluation_date=latest_trade_date=2026-08-10)；market_regime=防御,headwind_level=0(中性),equity_allocation=10%-30%；22:00 selector重选：移出516530物流/518880黄金/512690酒，移入513030德国ETF/159870化工ETF/560710船舶ETF；原因：513030动量排名3/信号74.46/趋势B，159870动量排名4/信号70.81/趋势B，560710动量排名6/信号65.69/趋势B；原候选516530下降至排名18/信号58，518880排名14/信号60，512690动量失效(rank 11/momentum=false)。",
     "fallback": "D1 exchange calendar + public market-calendar + Tencent/edge quotes",
-    "mx_fund_flow_as_of": "iWenCai/news-search 11:30前板块异动确认：①半导体板块景气验证（中微上半年预增282-311%、9家预增7家预增+三星/SK海力士评估中微）；②半导体设备ETF招商(561980)冲击4连阳拉升2.41%、半导体设备ETF华夏(562590)涨2.27%；③兴业证券『软硬再平衡』半导体调整接近尾声；④iWenCai market-query ETF代码级核验（513500/516530/513360/512480/515880/561980/588000/159915/512800/512890/518880/517520/511260/511110）已返回正常rows、无NaN；⑤主要资金字段部分返回以news-search披露、不补零；⑥iWenCai market-query指数核验（上证3919.51+0.49%/深证14295.08+1.31%/创业板3577.20+1.75%/科创50 1718.59+1.02%）正常返回rows。",
-    "notes": "22:00晚间最终整理阶段；仅允许修改当日文章、garden-recommendations.json、a-share-mid-macro.json三份content_files。冻结的6个snapshot_files（etf-garden-pool/etf-garden-backtest/a-share-shadow/a-share-path-shadow/a-share-research-audit/a-share-nightly-deployment）只读、本阶段未触碰；22:30确定性发布任务负责再次校验、build、scoped commit、push。"
+    "mx_fund_flow_as_of": "iWenCai/news-search 22:00确认：①沪指五连阳+0.67%，深证+0.04%，创业板-0.73%，超4000只个股上涨；②成交额2.52万亿缩量1447亿；③军工板块异动拉升（长城军工/洪都航空涨停，十五五规划+军贸订单预期）；④贵金属/能源金属/医疗服务领涨，通信/CPO/保险回调；⑤能化现货估价指数+0.94%（中东局势紧张，乙二醇库存低位）；⑥edge proxy行情核验（22只ETF+6只指数）正常返回、无NaN；⑦iWenCai market-query指数行情核验正常。",
+    "notes": "22:00夜间最终整理阶段；仅修改content_files三份（当日文章、garden-recommendations.json、a-share-mid-macro.json）；6个snapshot_files冻结只读、未触碰；22:30确定性发布任务负责再次校验、build、scoped commit、push。"
   },
   "harvest": [],
   "plant": [
     {
       "status": "候场",
-      "code": "516530",
-      "name": "物流ETF银华",
+      "code": "513030",
+      "name": "德国ETF华安",
       "priority": "高",
-      "trigger": "现价1.009，等待回踩0.984附近止跌确认；跌破0.976取消候场。",
-      "action": "现价1.009，等待回踩0.984附近止跌确认；跌破0.976取消候场。",
+      "trigger": "现价1.923，等待回踩1.881附近止跌确认；跌破1.806取消候场。",
+      "action": "现价1.923，等待回踩1.881附近止跌确认；跌破1.806取消候场。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
-      "eligibility_reason": "趋势C；信号得分62.1；动量排名4；距伏击位2.5%；风险低；动量通过",
-      "price": 1.009,
-      "support": 0.984,
-      "target": 1.034,
-      "stop": 0.976,
-      "action_level": 0.984,
-      "trigger_level": 0.984,
+      "eligibility_reason": "趋势B；信号得分74.5；动量排名3；距伏击位2.2%；风险低；动量通过",
+      "price": 1.923,
+      "support": 1.881,
+      "target": 1.965,
+      "stop": 1.806,
+      "action_level": 1.881,
+      "trigger_level": 1.881,
       "action_level_label": "伏击位",
-      "distance_pct": -2.54,
-      "trend_level": "C",
+      "distance_pct": -2.23,
+      "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-08-07",
+      "price_date": "2026-08-10",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-08-10",
-      "selection_score": 74.56,
+      "selection_score": 90.5,
       "selection_rank": 1,
       "candidate_since": "2026-08-10",
       "last_qualified_date": "2026-08-10",
       "qualified_reason": [
-        "趋势C",
-        "信号得分62.1",
-        "动量排名4",
-        "距伏击位2.5%",
-        "风险低",
-        "动量通过"
-      ],
-      "selection_rule_version": "a-candidate-v1"
-    },
-    {
-      "status": "候场",
-      "code": "518880",
-      "name": "黄金ETF华安",
-      "priority": "中",
-      "trigger": "现价8.992，等待回踩8.794附近止跌确认；跌破8.473取消候场。",
-      "action": "现价8.992，等待回踩8.794附近止跌确认；跌破8.473取消候场。",
-      "signal_state": "当日正式池重选候场",
-      "eligibility": "ok",
-      "eligibility_reason": "趋势C；信号得分59.0；动量排名11；距伏击位2.2%；风险低；动量通过",
-      "price": 8.992,
-      "support": 8.794,
-      "target": 9.19,
-      "stop": 8.473,
-      "action_level": 8.794,
-      "trigger_level": 8.794,
-      "action_level_label": "伏击位",
-      "distance_pct": -2.25,
-      "trend_level": "C",
-      "risk_level": "低",
-      "price_date": "2026-08-07",
-      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
-      "model_version": "A ETF Garden Levels v1",
-      "data_source": "tencent",
-      "level_status": "ready",
-      "selected_from_pool_date": "2026-08-10",
-      "selection_score": 71.96,
-      "selection_rank": 2,
-      "candidate_since": "2026-08-10",
-      "last_qualified_date": "2026-08-10",
-      "qualified_reason": [
-        "趋势C",
-        "信号得分59.0",
-        "动量排名11",
+        "趋势B",
+        "信号得分74.5",
+        "动量排名3",
         "距伏击位2.2%",
         "风险低",
         "动量通过"
@@ -115,40 +75,81 @@
     },
     {
       "status": "候场",
-      "code": "512690",
-      "name": "酒ETF鹏华",
+      "code": "159870",
+      "name": "化工ETF鹏华",
       "priority": "中",
-      "trigger": "现价0.447，等待回踩0.430附近止跌确认；跌破0.424取消候场。",
-      "action": "现价0.447，等待回踩0.430附近止跌确认；跌破0.424取消候场。",
+      "trigger": "现价0.842，等待回踩0.810附近止跌确认；跌破0.782取消候场。",
+      "action": "现价0.842，等待回踩0.810附近止跌确认；跌破0.782取消候场。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分66.2；动量排名3；距伏击位4.0%；风险低",
-      "price": 0.447,
-      "support": 0.43,
-      "target": 0.464,
-      "stop": 0.424,
-      "action_level": 0.43,
-      "trigger_level": 0.43,
+      "eligibility_reason": "趋势B；信号得分70.8；动量排名4；距伏击位4.0%；风险低；动量通过",
+      "price": 0.842,
+      "support": 0.81,
+      "target": 0.874,
+      "stop": 0.782,
+      "action_level": 0.81,
+      "trigger_level": 0.81,
       "action_level_label": "伏击位",
       "distance_pct": -3.95,
       "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-08-07",
+      "price_date": "2026-08-10",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-08-10",
-      "selection_score": 70.82,
+      "selection_score": 83.41,
+      "selection_rank": 2,
+      "candidate_since": "2026-08-10",
+      "last_qualified_date": "2026-08-10",
+      "qualified_reason": [
+        "趋势B",
+        "信号得分70.8",
+        "动量排名4",
+        "距伏击位4.0%",
+        "风险低",
+        "动量通过"
+      ],
+      "selection_rule_version": "a-candidate-v1"
+    },
+    {
+      "status": "候场",
+      "code": "560710",
+      "name": "船舶ETF富国",
+      "priority": "中",
+      "trigger": "现价0.915，等待回踩0.887附近止跌确认；跌破0.865取消候场。",
+      "action": "现价0.915，等待回踩0.887附近止跌确认；跌破0.865取消候场。",
+      "signal_state": "当日正式池重选候场",
+      "eligibility": "ok",
+      "eligibility_reason": "趋势B；信号得分65.7；动量排名6；距伏击位3.2%；风险低；动量通过",
+      "price": 0.915,
+      "support": 0.887,
+      "target": 0.943,
+      "stop": 0.865,
+      "action_level": 0.887,
+      "trigger_level": 0.887,
+      "action_level_label": "伏击位",
+      "distance_pct": -3.16,
+      "trend_level": "B",
+      "risk_level": "低",
+      "price_date": "2026-08-10",
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready",
+      "selected_from_pool_date": "2026-08-10",
+      "selection_score": 79.87,
       "selection_rank": 3,
       "candidate_since": "2026-08-10",
       "last_qualified_date": "2026-08-10",
       "qualified_reason": [
         "趋势B",
-        "信号得分66.2",
-        "动量排名3",
-        "距伏击位4.0%",
-        "风险低"
+        "信号得分65.7",
+        "动量排名6",
+        "距伏击位3.2%",
+        "风险低",
+        "动量通过"
       ],
       "selection_rule_version": "a-candidate-v1"
     }
@@ -232,10 +233,19 @@
       "note": "2026-08-10 11:30补发重选后移出"
     },
     {
-      "code": "513030",
-      "name": "德国ETF华安",
-      "status": "替换出plant（历史候场）",
-      "note": "2026-08-10 11:30补发重选后移出"
+      "code": "516530",
+      "name": "物流ETF银华",
+      "note": "22:00替换出plant（qfq重基后动量排名下降，历史候场对照）"
+    },
+    {
+      "code": "518880",
+      "name": "黄金ETF华安",
+      "note": "22:00替换出plant（qfq重基后动量排名下降，历史候场对照）"
+    },
+    {
+      "code": "512690",
+      "name": "酒ETF鹏华",
+      "note": "22:00替换出plant（qfq重基后动量排名下降，历史候场对照）"
     }
   ],
   "intraday_0830": {
@@ -301,16 +311,43 @@
     "stage": "14:30尾盘操作版",
     "status": "not_published",
     "quote_date": "2026-08-10",
-    "breadth": "待2026-08-10 14:30后更新：尾盘确认候选触发与成长回撤幅度。"
+    "breadth": "待2026-08-10 14:30后更新：尾盘确认候选触发与成长回撤幅度。本日14:30未发布。"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "not_published",
+    "status": "complete",
     "quote_date": "2026-08-10",
-    "breadth": "待2026-08-10 22:00后更新：全天收盘复盘与候选重选。"
+    "breadth": "收盘：上证+0.67%五连阳，深证+0.04%，创业板-0.73%，科创50-0.36%；超4000只上涨，成交2.52万亿缩量。防御+军工+周期领涨，科技/通信回调。",
+    "quote_as_of": "2026-08-10 16:15 CST",
+    "prepared": {
+      "plant": 3,
+      "harvest": 0
+    },
+    "executable": {
+      "plant": 0,
+      "harvest": 0,
+      "exit": 0,
+      "hold": 0,
+      "upgrade_candidate": 0,
+      "clear": 0,
+      "cash_sweep_missed": 0
+    },
+    "candidate_swap": {
+      "from": [
+        "516530",
+        "518880",
+        "512690"
+      ],
+      "to": [
+        "513030",
+        "159870",
+        "560710"
+      ],
+      "reason": "22:00 qfq重基后selector重选：513030动量排名3/信号74.46/趋势B，159870排名4/70.81/B，560710排名6/65.69/B；原候选516530降至排名18/58.04，518880排名14/60.16，512690动量失效(momentum=false)"
+    }
   },
   "mid_macro": {
-    "generated_at": "2026-08-10 14:00:57 CST",
+    "generated_at": "2026-08-10 22:42:17 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
@@ -323,14 +360,14 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.0,
-        "headline": "权益5日仍强于固收-2.74pp"
+        "headline": "权益5日仍强于固收-3.39pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.0,
-        "headline": "海外映射ETF 5日+6.43%"
+        "headline": "海外映射ETF 5日+6.75%"
       },
       {
         "key": "margin_financing",
@@ -342,7 +379,7 @@
     ]
   },
   "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-08-10 13:52:20 UTC+08:00",
+  "level_generated_at": "2026-08-10 20:51:55 UTC+08:00",
   "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0,
   "candidate_selection": {
@@ -352,23 +389,23 @@
     "eligible_count": 15,
     "selected_count": 3,
     "selected_codes": [
-      "516530",
-      "518880",
-      "512690"
+      "513030",
+      "159870",
+      "560710"
     ],
     "previous_codes": [
-      "516530",
-      "518880",
-      "512690"
+      "513030",
+      "159870",
+      "560710"
     ],
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
-      "516530",
-      "518880",
-      "512690"
+      "513030",
+      "159870",
+      "560710"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 0

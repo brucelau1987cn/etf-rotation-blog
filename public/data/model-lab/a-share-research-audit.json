@@ -2,13 +2,13 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-08-10T14:00:55.421270+08:00",
+  "generated_at": "2026-08-10T22:42:03.253690+08:00",
   "dataset": {
     "algorithm": "sha256",
-    "value": "4752d76e432e433ca0cf029f3c5056efef3f14ed1fade57797e637cc0e9969d6",
+    "value": "db07e429322455cb1e1ab0246cb715c89ff90d697baf59ce7f8f90d2590ae937",
     "record_count": 401,
     "pool_row_count": 91,
-    "as_of": "2026-08-07",
+    "as_of": "2026-08-10",
     "components": {
       "historical_direction_records": {
         "algorithm": "sha256",
@@ -38,9 +38,9 @@
       },
       "current_action_pool": {
         "algorithm": "sha256",
-        "value": "aa1043bbb576cf659a0afb80bb4ec31ccbed8236d299ffa4a820e8102d6738da",
+        "value": "f27ec94ae9fa068a7e5a0003ba6caa66832a749fefa92ffe9575b572fe8a8131",
         "row_count": 91,
-        "as_of": "2026-08-07",
+        "as_of": "2026-08-10",
         "canonical_scope": "complete_action_pool_rows",
         "volatile_fields_excluded": [
           "generated_at",
@@ -182,7 +182,7 @@
   },
   "execution_audit": {
     "row_count": 91,
-    "latest_trade_date": "2026-08-07",
+    "latest_trade_date": "2026-08-10",
     "blockers": {
       "invalid_levels": {
         "status": "known",
@@ -233,24 +233,24 @@
       }
     },
     "gate_failure_counts": {
-      "dual_momentum": 51,
-      "ma20_above_ma60": 60,
-      "ma_rising": 42,
-      "momentum": 60,
-      "price_above_ma": 16
+      "dual_momentum": 42,
+      "ma20_above_ma60": 61,
+      "ma_rising": 38,
+      "momentum": 54,
+      "price_above_ma": 10
     },
     "gate_unknown_counts": {},
     "risk_flag_counts": {
-      "收盘偏弱": 44,
-      "短线过热": 6,
+      "收盘偏弱": 17,
+      "短线过热": 18,
       "缩量冲高": 2,
-      "跌破20日线": 16,
-      "高位过热": 1
+      "跌破20日线": 10,
+      "高位过热": 3
     },
     "trade_state_counts": {
-      "回踩候选": 6,
-      "观察": 40,
-      "退出": 45
+      "回踩候选": 5,
+      "观察": 51,
+      "退出": 35
     },
     "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
   },
