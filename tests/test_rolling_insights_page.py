@@ -19,7 +19,9 @@ def test_daily_rolling_reports_cover_latest_dates():
     hist = (ROOT / "src/pages/rolling/insights/2026-08-04.astro").read_text(encoding="utf-8")
     static_05 = (ROOT / "src/pages/rolling/insights/2026-08-05.astro").read_text(encoding="utf-8")
     static_06 = (ROOT / "src/pages/rolling/insights/2026-08-06.astro").read_text(encoding="utf-8")
+    static_07 = (ROOT / "src/pages/rolling/insights/2026-08-07.astro").read_text(encoding="utf-8")
     for marker in (
+        "8月10日滚动信号收盘复盘",
         "8月7日滚动信号收盘复盘",
         "8月6日滚动信号收盘复盘",
         "8月5日滚动信号收盘复盘",
@@ -38,15 +40,16 @@ def test_daily_rolling_reports_cover_latest_dates():
         "华天科技",
         "白银期货",
     ):
-        assert marker in page + component + data + hist + static_05 + static_06
-    assert "2026-08-07" in data and "2026-08-06" in data
-    assert "rollingDailyReports['2026-08-07']" in page
+        assert marker in page + component + data + hist + static_05 + static_06 + static_07
+    assert "2026-08-10" in data and "2026-08-07" in data and "2026-08-06" in data
+    assert "rollingDailyReports['2026-08-10']" in page
     assert "/rolling/insights/2026-08-06/" in data
     assert "/rolling/insights/2026-08-05/" in data
     assert "/rolling/insights/2026-08-04/" in data
     assert (ROOT / "src/pages/rolling/insights/2026-08-04.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-05.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-06.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-07.astro").exists()
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -79,6 +82,7 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
+    assert "2026-08-10" in catalog
     assert "2026-08-07" in catalog
     assert "2026-08-06" in catalog
     assert "2026-08-05" in catalog
@@ -88,4 +92,5 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "2026-07-30" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
-    assert "/rolling/insights/2026-08-07 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-10 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-07 /rolling/insights/2026-08-07/ 301" in redirects
