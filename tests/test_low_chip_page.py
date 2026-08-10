@@ -26,24 +26,25 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert "收盘获利比例低于3%" in page
     assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
-    assert data["data_as_of"] == "2026-08-07"
+    assert data["data_as_of"] == "2026-08-10"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 2
-    assert len(data["periods"]["month"]) == 11
-    assert len(data["periods"]["quarter"]) == 63
+    assert len(data["periods"]["week"]) == 3
+    assert len(data["periods"]["month"]) == 7
+    assert len(data["periods"]["quarter"]) == 41
     # 新股（上市不足90天）被排除：301677.SZ 欣兴工具(07-30)、603468.SH 津富士达(08-06)
     assert data["filters"]["exclude_new_listing"] is True
     assert data["filters"]["listing_min_days"] == 90
-    assert data["filters"]["listing_cutoff"] == "2026-05-09"
-    assert set(data["filters"]["excluded_new_listing"]) >= {"301677.SZ", "603468.SH"}
-    assert len(data["intersection_before_filters"]) == 0
-    assert len(data["intersection"]) == 0
-    assert data["intersection"] == []
+    assert data["filters"]["listing_cutoff"] == "2026-05-12"
+    # 08-10 已有更新快照，排除新股
+    assert set(data["filters"]["excluded_new_listing"]) == set()
+    assert len(data["intersection_before_filters"]) == 1
+    assert len(data["intersection"]) == 1
+    assert data["intersection"] == ["600363.SH"]
     assert all(not code.endswith(".BJ") for code in data["intersection"])
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"] == {
-        "report_period": None,
+        "report_period": "20251231",
         "roe_min": 30,
         "net_margin_min": 25,
         "cash_profit_ratio_min": 20,
@@ -58,7 +59,7 @@ def test_low_chip_page_publishes_week_month_quarter_results():
         },
     }
     assert all("financials" in data["enrichments"][code] for code in data["intersection"])
-    assert data["shareholder_metrics"]["fields"] == ["总户数", "总户数较上期变动", "总户数较上期增长率", "公告日期", "户均持股数量", "集中度90", "前十大流通股东持股比例合计"]
+    assert data["shareholder_metrics"]["fields"] == ["股东人数", "较上期变化", "筹码集中度", "十大流通股东", "报告期", "人均流通股", "主力控盘(机构参与度)"]
     assert all("shareholder_metrics" in data["enrichments"][code] for code in data["intersection"])
     # 301677 (欣兴工具) is in today's intersection and is a new listing (no top10)
     # 新股已排除 → intersection 为空，无 enrichment 断言；历史 08-03 存档仍有标的
@@ -80,9 +81,9 @@ def test_low_chip_history_archive_and_query_ui():
     index = json.loads(HISTORY_INDEX.read_text(encoding="utf-8"))
     assert ARCHIVE_SCRIPT.exists()
     assert index["schema_version"] == "a-low-chip-history-index-v1"
-    assert index["latest"] == "2026-08-07"
+    assert index["latest"] == "2026-08-10"
+    assert "2026-08-10" in index["dates"]
     assert "2026-08-07" in index["dates"]
-    assert "2026-08-06" in index["dates"]
     assert "2026-08-05" in index["dates"]
     assert "2026-08-03" in index["dates"]
     assert "2026-07-31" in index["dates"]
@@ -98,7 +99,7 @@ def test_low_chip_history_archive_and_query_ui():
         'id="chip-history-next"',
         "历史日期",
         "low-chip-history-index.json",
-        "/data/low-chip-history/",
+        "/api/public/v1/low-chip-metrics?date=",  # D1-backed history query
         "loadDate",
         "historyIndex",
     ):
@@ -142,10 +143,10 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "chip-shr-head",
         "chip-shr-body",
         "股东人数",
-            "股东变化",
-            "主力控盘",
-            "90%筹码集中度",
-            "十大流通股东",
+        "股东变化",
+        "主力控盘",
+        "筹码集中度",
+        "十大流通股东",
         "剔除北交所、上市不足90天的新股",
         "上市不足90天的新股",
         "收盘获利比例",
