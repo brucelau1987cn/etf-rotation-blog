@@ -5,7 +5,7 @@ import Header from '../../components/Header.astro';
 import { SITE_TITLE } from '../../consts';
 
 const title = `期货管理 | ${SITE_TITLE}`;
-const description = '管理期货罗盘监控标的：查看名称、交易所，支持删除与新增。';
+const description = '管理期货罗盘监控标的：查看名称、交易所，支持停用/启用、删除与新增。';
 ---
 <BaseHead title={title} description={description} />
 <body>
@@ -15,7 +15,7 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
       <div>
         <p class="page-kicker">FUTURES ADMIN</p>
         <h1>期货管理</h1>
-        <p>管理期货罗盘监控标的。列表只显示名称和交易所。</p>
+        <p>管理期货罗盘监控标的。列表显示名称和交易所；可停用/启用，或删除。</p>
       </div>
       <div class="fm-links">
         <a href="/admin/">账号开通</a>
@@ -116,15 +116,32 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
         for (const it of rows) {
           const li = document.createElement('li');
           li.className = 'fm-item' + (it.enabled ? '' : ' muted');
+          const statusText = it.enabled ? '监控中' : '已停用';
           li.innerHTML = `
             <div class="fm-meta">
               <strong>${it.name || it.code}</strong>
-              <span>${it.exchange || '—'}</span>
+              <span>${it.exchange || '—'} · ${statusText}</span>
             </div>
-            <button type="button" class="del-btn">删除</button>
+            <div class="fm-actions">
+              <button type="button" class="toggle-btn">${it.enabled ? '停用' : '启用'}</button>
+              <button type="button" class="del-btn">删除</button>
+            </div>
           `;
+          li.querySelector('.toggle-btn').addEventListener('click', async () => {
+            const next = it.enabled ? 0 : 1;
+            const { status, data } = await api('/api/admin/futures-watchlist?action=toggle', {
+              method: 'POST',
+              body: JSON.stringify({ code: it.code, enabled: next }),
+            });
+            if (status === 200 && data.ok) {
+              setMsg(`${it.name || it.code} 已${next ? '启用' : '停用'}`, true);
+              render(data.items || []);
+            } else {
+              setMsg(data.error || '切换失败', false);
+            }
+          });
           li.querySelector('.del-btn').addEventListener('click', async () => {
-            if (!confirm(`确认删除「${it.name || it.code}」？`)) return;
+            if (!confirm(`确认删除「${it.name || it.code}」？删除后从名单移除。`)) return;
             const { status, data } = await api('/api/admin/futures-watchlist?action=delete', {
               method: 'POST',
               body: JSON.stringify({ code: it.code }),
@@ -234,7 +251,11 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
     .fm-meta { display: grid; gap: .18rem; min-width: 0; }
     .fm-meta strong { font-size: .98rem; color: #0f172a; }
     .fm-meta span { color: #64748b; font-size: .82rem; }
-    .del-btn { border: 1px solid #fecaca; background: #fff1f2; color: #b91c1c; border-radius: 999px; padding: .4rem .85rem; font-size: .78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .fm-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+    .toggle-btn, .del-btn { border-radius: 999px; padding: .4rem .85rem; font-size: .78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .toggle-btn { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+    .toggle-btn:hover { background: #dbeafe; }
+    .del-btn { border: 1px solid #fecaca; background: #fff1f2; color: #b91c1c; }
     .del-btn:hover { background: #ffe4e6; }
     .fm-empty { margin: .4rem 0 0; color: #94a3b8; font-size: .85rem; }
     .fm-msg { min-height: 1.1rem; margin: .7rem 0 0; font-size: .78rem; color: #64748b; }
