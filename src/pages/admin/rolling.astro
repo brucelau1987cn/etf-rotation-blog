@@ -21,7 +21,7 @@ const markets = [
       <div>
         <p class="page-kicker">ROLLING ADMIN</p>
         <h1>滚动管理</h1>
-        <p>统一管理滚动罗盘四个市场的标的与起始日期。修改起始日期后会同步显示，并默认清空该标的历史信号重新观察。</p>
+        <p>统一管理滚动罗盘四个市场的标的与起始日期。列表只显示名称和代码；改起始日期会同步显示并默认清空信号重新观察。</p>
       </div>
       <div class="admin-identity">
         <span class="role-badge" id="rm-role">管理员</span>
@@ -77,10 +77,6 @@ const markets = [
               <input id="rm-symbol" placeholder="例如：600021 / 01378 / TSLA / SI=F" required />
             </label>
             <label class="field">
-              <span>交易所</span>
-              <input id="rm-exchange" placeholder="SSE / SZSE / HKEX / NASDAQ / FUTURES" />
-            </label>
-            <label class="field">
               <span>起始日期</span>
               <input id="rm-start" type="date" required />
             </label>
@@ -89,7 +85,7 @@ const markets = [
               <input id="rm-quote" placeholder="例如：hf_XAG" />
             </label>
             <button class="primary-btn" type="submit" id="rm-submit">保存标的</button>
-            <p class="form-hint">保存后立即进入当前市场名单。改起始日期请在右侧列表直接改，会同步显示并默认清信号重启。</p>
+            <p class="form-hint">只需名称和代码。交易所由市场/代码自动推断。改起始日期会同步显示，并默认清信号重启。</p>
           </form>
           <p class="admin-msg" id="rm-msg" role="status"></p>
         </aside>
@@ -108,8 +104,7 @@ const markets = [
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>名称</th>
-                  <th>交易所</th>
+                  <th>名称 / 代码</th>
                   <th>起始日期</th>
                   <th>状态</th>
                   <th>操作</th>
@@ -194,7 +189,6 @@ const markets = [
                 </div>
               </div>
             </td>
-            <td>${it.exchange || '—'}</td>
             <td>
               <input type="date" class="date-input" value="${it.start_date || ''}" />
             </td>
@@ -336,7 +330,6 @@ const markets = [
         ev.preventDefault();
         const name = $('rm-name').value.trim();
         const symbol = $('rm-symbol').value.trim().toUpperCase();
-        const exchange = $('rm-exchange').value.trim();
         const start_date = $('rm-start').value.trim();
         const quote_symbol = $('rm-quote').value.trim();
         if (!name || !symbol || !start_date) {
@@ -349,7 +342,6 @@ const markets = [
           market,
           symbol,
           name,
-          exchange,
           start_date,
           quote_symbol: quote_symbol || null,
           enabled: 1,
@@ -363,7 +355,6 @@ const markets = [
           setMsg(`已保存 ${name}`, true);
           $('rm-name').value = '';
           $('rm-symbol').value = '';
-          $('rm-exchange').value = '';
           $('rm-quote').value = '';
           $('rm-start').value = todayISO();
           render(data.items || []);
@@ -498,7 +489,7 @@ const markets = [
       cursor: pointer;
     }
     .table-wrap { overflow-x: auto; }
-    .admin-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .78rem; }
+    .admin-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: .78rem; }
     .admin-table th {
       padding: .7rem .8rem;
       color: #64748b;
