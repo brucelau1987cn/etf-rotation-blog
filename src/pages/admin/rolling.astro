@@ -1,0 +1,567 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+
+const title = `滚动管理 | ${SITE_TITLE}`;
+const description = '管理滚动罗盘标的：A股 / 期货 / 港股 / 美股，支持修改起始日期、停用启用与删除。';
+const markets = [
+  { key: 'a', label: 'A股', path: '/rolling/' },
+  { key: 'futures', label: '期货', path: '/rolling/futures/' },
+  { key: 'hk', label: '港股', path: '/rolling/hk/' },
+  { key: 'us', label: '美股', path: '/rolling/us/' },
+];
+---
+<BaseHead title={title} description={description} />
+<body class="rm-body">
+  <Header />
+  <main class="rm-main site-shell">
+    <header class="page-heading">
+      <div>
+        <p class="page-kicker">ROLLING ADMIN</p>
+        <h1>滚动管理</h1>
+        <p>统一管理滚动罗盘四个市场的标的与起始日期。修改起始日期后会同步显示，并默认清空该标的历史信号重新观察。</p>
+      </div>
+      <div class="admin-identity">
+        <span class="role-badge" id="rm-role">管理员</span>
+        <a href="/admin/">账号开通</a>
+        <a href="/admin/futures/">期货管理</a>
+        <a href="/rolling/">滚动罗盘</a>
+      </div>
+    </header>
+
+    <section class="auth-required" id="rm-login" hidden>
+      <div class="auth-icon">🔒</div>
+      <h2>需要管理员权限</h2>
+      <p>请先通过统一登录页验证管理员账号。</p>
+      <a href="/login/?next=%2Fadmin%2Frolling%2F">前往登录</a>
+    </section>
+
+    <section class="rm-panel" id="rm-panel" hidden>
+      <div class="overview-grid">
+        <article class="stat-card active"><span>当前目录</span><strong id="stat-market">A股</strong><small id="stat-path">/rolling/</small></article>
+        <article class="stat-card"><span>监控中</span><strong id="stat-enabled">0</strong><small>进入看板</small></article>
+        <article class="stat-card"><span>已停用</span><strong id="stat-disabled">0</strong><small>保留配置</small></article>
+        <article class="stat-card"><span>本目录合计</span><strong id="stat-total">0</strong><small>当前名单</small></article>
+      </div>
+
+      <div class="market-tabs" role="tablist" aria-label="市场目录">
+        {markets.map((m, i) => (
+          <button
+            type="button"
+            class:list={['market-tab', { active: i === 0 }]}
+            data-market={m.key}
+            data-label={m.label}
+            data-path={m.path}
+            aria-selected={i === 0 ? 'true' : 'false'}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div class="rm-layout">
+        <aside class="create-card">
+          <div class="section-heading">
+            <p class="section-kicker">NEW / UPDATE</p>
+            <h2>添加标的</h2>
+          </div>
+          <form id="rm-form" class="create-form" novalidate>
+            <label class="field">
+              <span>名称</span>
+              <input id="rm-name" placeholder="例如：上海电力" required />
+            </label>
+            <label class="field">
+              <span>代码</span>
+              <input id="rm-symbol" placeholder="例如：600021 / 01378 / TSLA / SI=F" required />
+            </label>
+            <label class="field">
+              <span>交易所</span>
+              <input id="rm-exchange" placeholder="SSE / SZSE / HKEX / NASDAQ / FUTURES" />
+            </label>
+            <label class="field">
+              <span>起始日期</span>
+              <input id="rm-start" type="date" required />
+            </label>
+            <label class="field" id="rm-quote-field" hidden>
+              <span>报价代码（期货可选）</span>
+              <input id="rm-quote" placeholder="例如：hf_XAG" />
+            </label>
+            <button class="primary-btn" type="submit" id="rm-submit">保存标的</button>
+            <p class="form-hint">保存后立即进入当前市场名单。改起始日期请在右侧列表直接改，会同步显示并默认清信号重启。</p>
+          </form>
+          <p class="admin-msg" id="rm-msg" role="status"></p>
+        </aside>
+
+        <section class="list-card">
+          <div class="list-heading">
+            <div>
+              <p class="section-kicker">WATCHLIST</p>
+              <h2 id="list-title">A股标的</h2>
+            </div>
+            <div class="list-tools">
+              <button type="button" class="ghost-btn" id="rm-refresh">刷新</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>交易所</th>
+                  <th>起始日期</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="rm-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="rm-empty" hidden>
+            <span>📭</span>
+            <strong>当前目录暂无标的</strong>
+            <p>在左侧添加后会出现在这里</p>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <Footer />
+
+  <script is:inline>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const loginBox = $('rm-login');
+      const panel = $('rm-panel');
+      const tbody = $('rm-tbody');
+      const emptyEl = $('rm-empty');
+      const msgEl = $('rm-msg');
+      let market = 'a';
+      let marketLabel = 'A股';
+
+      async function api(url, opts = {}) {
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+          ...opts,
+        });
+        let data = {};
+        try { data = await res.json(); } catch {}
+        return { status: res.status, data };
+      }
+
+      function setMsg(text, ok) {
+        if (!msgEl) return;
+        msgEl.textContent = text || '';
+        msgEl.className = 'admin-msg' + (text ? (ok ? ' ok' : ' error') : '');
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function updateStats(items) {
+        const rows = items || [];
+        const enabled = rows.filter((it) => it.enabled).length;
+        $('stat-enabled').textContent = String(enabled);
+        $('stat-disabled').textContent = String(rows.length - enabled);
+        $('stat-total').textContent = String(rows.length);
+        $('stat-market').textContent = marketLabel;
+      }
+
+      function render(items) {
+        const rows = items || [];
+        tbody.innerHTML = '';
+        emptyEl.hidden = rows.length > 0;
+        updateStats(rows);
+        $('list-title').textContent = `${marketLabel}标的`;
+
+        for (const it of rows) {
+          const tr = document.createElement('tr');
+          if (!it.enabled) tr.className = 'row-muted';
+          tr.innerHTML = `
+            <td>
+              <div class="user-cell">
+                <div class="table-avatar">📡</div>
+                <div>
+                  <strong>${it.name || it.symbol}</strong>
+                  <small>${it.symbol || ''}</small>
+                </div>
+              </div>
+            </td>
+            <td>${it.exchange || '—'}</td>
+            <td>
+              <input type="date" class="date-input" value="${it.start_date || ''}" />
+            </td>
+            <td>
+              <span class="status-tag ${it.enabled ? 'active' : 'revoked'}">${it.enabled ? '监控中' : '已停用'}</span>
+            </td>
+            <td class="actions-cell"></td>
+          `;
+
+          const dateInput = tr.querySelector('.date-input');
+          dateInput.addEventListener('change', async () => {
+            const start_date = dateInput.value;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date)) {
+              setMsg('日期格式无效', false);
+              dateInput.value = it.start_date || '';
+              return;
+            }
+            if (start_date === it.start_date) return;
+            if (!confirm(`将「${it.name || it.symbol}」起始日期改为 ${start_date}？\n会清空该标的已有信号并重新观察。`)) {
+              dateInput.value = it.start_date || '';
+              return;
+            }
+            dateInput.disabled = true;
+            const { status, data } = await api('/api/admin/rolling-instruments?action=set-start', {
+              method: 'POST',
+              body: JSON.stringify({
+                market,
+                symbol: it.symbol,
+                start_date,
+                clear_signals: true,
+              }),
+            });
+            dateInput.disabled = false;
+            if (status === 200 && data.ok) {
+              setMsg(`${it.name || it.symbol} 起始日期已改为 ${start_date}（清空信号 ${data.cleared_signals || 0} 条）`, true);
+              render(data.items || []);
+            } else {
+              setMsg(data.error || '修改失败', false);
+              dateInput.value = it.start_date || '';
+            }
+          });
+
+          const actions = tr.querySelector('.actions-cell');
+          const toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.className = 'text-btn';
+          toggleBtn.textContent = it.enabled ? '停用' : '启用';
+          toggleBtn.addEventListener('click', async () => {
+            const next = it.enabled ? 0 : 1;
+            toggleBtn.disabled = true;
+            const { status, data } = await api('/api/admin/rolling-instruments?action=toggle', {
+              method: 'POST',
+              body: JSON.stringify({ market, symbol: it.symbol, enabled: next }),
+            });
+            toggleBtn.disabled = false;
+            if (status === 200 && data.ok) {
+              setMsg(`${it.name || it.symbol} 已${next ? '启用' : '停用'}`, true);
+              render(data.items || []);
+            } else {
+              setMsg(data.error || '切换失败', false);
+            }
+          });
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'text-btn danger';
+          delBtn.textContent = '删除';
+          delBtn.addEventListener('click', async () => {
+            if (!confirm(`确认删除「${it.name || it.symbol}」？\n仅从名单移除，默认保留历史信号。`)) return;
+            delBtn.disabled = true;
+            const { status, data } = await api('/api/admin/rolling-instruments?action=delete', {
+              method: 'POST',
+              body: JSON.stringify({ market, symbol: it.symbol, clear_signals: false }),
+            });
+            delBtn.disabled = false;
+            if (status === 200 && data.ok) {
+              setMsg(`已删除 ${it.name || it.symbol}`, true);
+              render(data.items || []);
+            } else {
+              setMsg(data.error || '删除失败', false);
+            }
+          });
+
+          actions.append(toggleBtn, delBtn);
+          tbody.appendChild(tr);
+        }
+      }
+
+      async function loadList() {
+        const { status, data } = await api(`/api/admin/rolling-instruments?market=${encodeURIComponent(market)}`);
+        if (status === 200 && data.ok) {
+          render(data.items || []);
+          return true;
+        }
+        setMsg(data.error || '加载失败', false);
+        return false;
+      }
+
+      function setMarket(next, label, path) {
+        market = next;
+        marketLabel = label;
+        $('stat-market').textContent = label;
+        $('stat-path').textContent = path || '';
+        document.querySelectorAll('.market-tab').forEach((btn) => {
+          const active = btn.getAttribute('data-market') === next;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        $('rm-quote-field').hidden = next !== 'futures';
+        loadList();
+      }
+
+      async function boot() {
+        const me = await api('/api/admin/me');
+        if (me.status !== 200 || !me.data?.ok) {
+          loginBox.hidden = false;
+          panel.hidden = true;
+          return;
+        }
+        loginBox.hidden = true;
+        panel.hidden = false;
+        $('rm-role').textContent = me.data.role === 'super_admin' ? '超级管理员' : '管理员';
+        if (!$('rm-start').value) $('rm-start').value = todayISO();
+        await loadList();
+      }
+
+      document.querySelectorAll('.market-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          setMarket(
+            btn.getAttribute('data-market'),
+            btn.getAttribute('data-label'),
+            btn.getAttribute('data-path'),
+          );
+        });
+      });
+
+      $('rm-refresh')?.addEventListener('click', () => loadList());
+      $('rm-form')?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const name = $('rm-name').value.trim();
+        const symbol = $('rm-symbol').value.trim().toUpperCase();
+        const exchange = $('rm-exchange').value.trim();
+        const start_date = $('rm-start').value.trim();
+        const quote_symbol = $('rm-quote').value.trim();
+        if (!name || !symbol || !start_date) {
+          setMsg('名称、代码、起始日期必填', false);
+          return;
+        }
+        const submit = $('rm-submit');
+        submit.disabled = true;
+        const body = {
+          market,
+          symbol,
+          name,
+          exchange,
+          start_date,
+          quote_symbol: quote_symbol || null,
+          enabled: 1,
+        };
+        const { status, data } = await api('/api/admin/rolling-instruments', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        submit.disabled = false;
+        if (status === 200 && data.ok) {
+          setMsg(`已保存 ${name}`, true);
+          $('rm-name').value = '';
+          $('rm-symbol').value = '';
+          $('rm-exchange').value = '';
+          $('rm-quote').value = '';
+          $('rm-start').value = todayISO();
+          render(data.items || []);
+        } else {
+          setMsg(data.error || '保存失败', false);
+        }
+      });
+
+      boot();
+    })();
+  </script>
+
+  <style is:global>
+    .rm-body {
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 420px at 12% -10%, rgba(37, 99, 235, .10), transparent 60%),
+        radial-gradient(900px 360px at 90% 0%, rgba(14, 165, 233, .08), transparent 55%),
+        #f6f8fc;
+    }
+    .rm-main { padding: 2.2rem 0 4rem; }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.35rem; }
+    .page-kicker, .section-kicker { margin: 0 0 .35rem; color: #2563eb; font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+    .page-heading h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+    .page-heading > div > p:last-child { margin: .45rem 0 0; color: #64748b; font-size: .88rem; max-width: 46rem; }
+    .admin-identity { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+    .admin-identity a, .role-badge { border-radius: 999px; padding: .45rem .75rem; font-size: .75rem; font-weight: 850; text-decoration: none; }
+    .admin-identity a { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+    .role-badge { color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; }
+
+    .auth-required { max-width: 440px; margin: 3rem auto; padding: 2rem; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; box-shadow: 0 16px 40px rgba(15, 23, 42, .05); }
+    .auth-icon { font-size: 1.6rem; }
+    .auth-required h2 { margin: .75rem 0 .4rem; }
+    .auth-required p { color: #64748b; }
+    .auth-required a { display: inline-block; margin-top: .5rem; padding: .6rem 1rem; color: #fff; background: #2563eb; border-radius: 999px; text-decoration: none; font-weight: 800; }
+
+    .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: .9rem; }
+    .stat-card { display: grid; gap: .28rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, .03); }
+    .stat-card span, .stat-card small { color: #64748b; font-size: .72rem; font-weight: 700; }
+    .stat-card strong { color: #0f172a; font-size: 1.35rem; line-height: 1.1; }
+    .stat-card.active { background: #eff6ff; border-color: #bfdbfe; }
+    .stat-card.active strong { color: #1d4ed8; }
+
+    .market-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .5rem;
+      margin-bottom: .9rem;
+      padding: .4rem;
+      background: #fff;
+      border: 1px solid #e6ebf2;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .03);
+    }
+    .market-tab {
+      border: 0;
+      border-radius: 12px;
+      min-height: 42px;
+      background: transparent;
+      color: #64748b;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .market-tab.active {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, .22);
+    }
+
+    .rm-layout { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.65fr); gap: .9rem; align-items: start; }
+    .create-card, .list-card {
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid #e6ebf2;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .05);
+    }
+    .create-card { position: sticky; top: 5.3rem; padding: 1.25rem; }
+    .section-heading h2, .list-heading h2 { margin: 0; font-size: 1.1rem; }
+    .create-form { display: grid; gap: .8rem; margin-top: 1rem; }
+    .field { display: grid; gap: .38rem; }
+    .field > span { color: #334155; font-size: .75rem; font-weight: 800; }
+    .field input, .date-input {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 42px;
+      padding: .62rem .75rem;
+      color: #0f172a;
+      background: #fff;
+      border: 1px solid #dbe2ea;
+      border-radius: 10px;
+      outline: none;
+      font: inherit;
+      font-size: .82rem;
+    }
+    .field input:focus, .date-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+    .date-input { min-width: 9.5rem; }
+    .primary-btn {
+      min-height: 43px;
+      padding: .65rem 1rem;
+      color: #fff;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      border: 0;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .primary-btn:hover { filter: brightness(1.05); }
+    .primary-btn:disabled { opacity: .6; cursor: wait; }
+    .form-hint { margin: -.2rem 0 0; color: #94a3b8; font-size: .68rem; line-height: 1.5; }
+    .admin-msg { margin: .75rem 0 0; font-size: .75rem; min-height: 1.1rem; color: #64748b; }
+    .admin-msg.ok { color: #15803d; }
+    .admin-msg.error { color: #b91c1c; }
+
+    .list-card { min-width: 0; overflow: hidden; }
+    .list-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.15rem 1.2rem;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .ghost-btn {
+      border: 1px solid #dbeafe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 999px;
+      padding: .45rem .8rem;
+      font-size: .75rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .table-wrap { overflow-x: auto; }
+    .admin-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .78rem; }
+    .admin-table th {
+      padding: .7rem .8rem;
+      color: #64748b;
+      background: #f8fafc;
+      font-size: .66rem;
+      letter-spacing: .03em;
+      text-align: left;
+    }
+    .admin-table td { padding: .8rem; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+    .admin-table tbody tr:hover { background: #fafcff; }
+    .row-muted { opacity: .58; }
+    .user-cell { display: flex; align-items: center; gap: .65rem; min-width: 140px; }
+    .table-avatar {
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      background: #eff6ff;
+      border-radius: 10px;
+    }
+    .user-cell > div { display: grid; gap: .15rem; }
+    .user-cell strong { font-size: .82rem; color: #0f172a; }
+    .user-cell small { color: #94a3b8; font-size: .68rem; }
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: .28rem .52rem;
+      font-size: .66rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .status-tag.active { color: #15803d; background: #dcfce7; }
+    .status-tag.revoked { color: #64748b; background: #f1f5f9; }
+    .actions-cell { display: flex; gap: .3rem; white-space: nowrap; }
+    .text-btn {
+      padding: .34rem .52rem;
+      color: #1d4ed8;
+      background: transparent;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: .68rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .text-btn:hover { background: #eff6ff; }
+    .text-btn.danger { color: #b91c1c; border-color: #fecaca; }
+    .text-btn.danger:hover { background: #fef2f2; }
+    .text-btn:disabled { opacity: .55; cursor: wait; }
+    .empty-state { padding: 3rem 1rem; text-align: center; color: #64748b; }
+    .empty-state span { display: block; font-size: 1.5rem; }
+    .empty-state strong { display: block; margin: .45rem 0 .2rem; color: #0f172a; }
+
+    @media (max-width: 960px) {
+      .overview-grid { grid-template-columns: repeat(2, 1fr); }
+      .rm-layout { grid-template-columns: 1fr; }
+      .create-card { position: static; }
+    }
+    @media (max-width: 640px) {
+      .rm-main { padding: 1.25rem 0 3rem; }
+      .page-heading { align-items: flex-start; flex-direction: column; }
+      .market-tabs { grid-template-columns: repeat(2, 1fr); }
+      .admin-table { min-width: 560px; }
+    }
+  </style>
+</body>

@@ -5,6 +5,7 @@ import {
   shanghaiTradeDate,
   updateRollingSignalPriceIfMissing,
 } from '../../../_lib/rolling-signals-d1.js';
+import { findRollingInstrumentBySymbol } from '../../../_lib/rolling-instruments.js';
 import { fetchKline1m, pickMinuteBar } from './kline.js';
 
 const MAX_BYTES = 512 * 1024;
@@ -56,6 +57,33 @@ const snapshotPathForSymbol = symbol => {
 };
 
 const instrumentMetaForSymbol = symbol => INSTRUMENT_META[normalizeSymbol(symbol)] || null;
+
+const applyDbInstrumentMeta = async (payload, env, symbol) => {
+  if (!payload || !env?.DB) return payload;
+  try {
+    const row = await findRollingInstrumentBySymbol(env.DB, symbol);
+    if (!row) return payload;
+    const next = {
+      ...payload,
+      instrument: {
+        ...(payload.instrument || {}),
+        instrument_name: row.name || payload.instrument?.instrument_name,
+        exchange: row.exchange || payload.instrument?.exchange,
+        symbol: row.symbol || payload.instrument?.symbol || symbol,
+      },
+    };
+    if (row.start_date) {
+      next.transmission = {
+        ...(next.transmission || {}),
+        start_date: row.start_date,
+      };
+    }
+    return next;
+  } catch {
+    return payload;
+  }
+};
+
 
 const applyInstrumentMeta = (payload, symbol) => {
   const meta = instrumentMetaForSymbol(symbol);
@@ -182,6 +210,7 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
   let lkg;
   try {
     lkg = await loadLkg(request, env, symbol);
+    lkg = await applyDbInstrumentMeta(lkg, env, symbol);
   } catch {
     return json({ error: 'rolling signal snapshot unavailable', symbol }, 503);
   }
@@ -245,13 +274,15 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
         };
         payload.trade_date = tradeDate;
         payload.storage = 'd1';
-        if (lkg.transmission?.start_date) {
-          payload.transmission = {
-            ...payload.transmission,
+        // Prefer admin-managed start_date from D1 rolling_instruments.
+        const withDb = await applyDbInstrumentMeta(payload, env, symbol);
+        if (!withDb.transmission?.start_date && lkg.transmission?.start_date) {
+          withDb.transmission = {
+            ...withDb.transmission,
             start_date: lkg.transmission.start_date,
           };
         }
-        return json(payload);
+        return json(withDb);
       }
     } catch {
       return json(asLkg(lkg, 'D1信号读取失败，返回静态快照'));

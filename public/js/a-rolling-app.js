@@ -20,7 +20,8 @@
   const FORMAL_BUY_ORDER = ['2h', '2.5h', '3h', '3.5h', '4h', '4.5h', '5h', '5.5h', '6h', '6.5h', '7h', '7.5h', '8h'];
   const FORMAL_SELL_ORDER = ['10m', '15m', '30m', '60m', '90m', '120m', '150m', '180m', '210m', '240m'];
   const MAX_FORMAL_PER_SIDE = 4;
-  const A_INSTRUMENTS = [
+  // Fallback static seeds (used only if public watchlist API fails).
+  const A_INSTRUMENTS_FALLBACK = [
     { name: '上海电力', exchange: 'SSE', symbol: '600021' },
     { name: '创新医疗', exchange: 'SZSE', symbol: '002173' },
     { name: '三安光电', exchange: 'SSE', symbol: '600703' },
@@ -33,18 +34,23 @@
     { name: '国民技术', exchange: 'SZSE', symbol: '300077' },
     { name: '华天科技', exchange: 'SZSE', symbol: '002185' },
   ];
-  const HK_INSTRUMENTS = [
+  const HK_INSTRUMENTS_FALLBACK = [
     { name: '中国宏桥', exchange: 'HKEX', symbol: '01378' },
     { name: '澜起科技', exchange: 'HKEX', symbol: '06809' },
   ];
-  const US_INSTRUMENTS = [
+  const US_INSTRUMENTS_FALLBACK = [
     { name: '特斯拉', exchange: 'NASDAQ', symbol: 'TSLA' },
   ];
+  let A_INSTRUMENTS = A_INSTRUMENTS_FALLBACK.slice();
+  let HK_INSTRUMENTS = HK_INSTRUMENTS_FALLBACK.slice();
+  let US_INSTRUMENTS = US_INSTRUMENTS_FALLBACK.slice();
   // Futures instruments are added only when explicitly named by the user.
-  const FUTURES_INSTRUMENTS = [
+  const FUTURES_INSTRUMENTS_FALLBACK = [
     { name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F', querySymbol: 'hf_XAG' },
   ];
-  const DISPLAY_META = new Map(
+  let FUTURES_INSTRUMENTS = FUTURES_INSTRUMENTS_FALLBACK.slice();
+
+  let DISPLAY_META = new Map(
     FUTURES_INSTRUMENTS.flatMap((item) => [
       [item.symbol, item],
       [String(item.querySymbol || '').toUpperCase(), item],
@@ -104,13 +110,60 @@
   const marketTimeZone = market === 'us' ? 'America/New_York' : 'Asia/Shanghai';
   // Futures has day/night sessions per product; use free-running poll (no CN_A/HK/US gate).
   const calendarMarket = market === 'us' ? 'US' : market === 'hk' ? 'HK' : market === 'futures' ? null : 'CN_A';
-  const INSTRUMENTS = market === 'us'
+  let INSTRUMENTS = market === 'us'
     ? US_INSTRUMENTS
     : market === 'hk'
       ? HK_INSTRUMENTS
       : market === 'futures'
         ? FUTURES_INSTRUMENTS
         : A_INSTRUMENTS;
+
+  async function loadRollingWatchlist() {
+    try {
+      const marketKey = market === 'a' ? 'a' : market;
+      const res = await fetch(`/api/public/v1/rolling-instruments?market=${encodeURIComponent(marketKey)}&t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data?.ok || !Array.isArray(data.items)) return false;
+      const mapped = data.items.map((item) => ({
+        name: item.name,
+        exchange: item.exchange,
+        symbol: item.symbol,
+        start_date: item.start_date,
+        quote_symbol: item.quote_symbol || null,
+      }));
+      if (!mapped.length) return false;
+      // normalize quote field for futures
+      const normalized = mapped.map((item) => ({
+        ...item,
+        querySymbol: item.quote_symbol || item.querySymbol || null,
+      }));
+      if (market === 'us') {
+        US_INSTRUMENTS = normalized;
+        INSTRUMENTS = US_INSTRUMENTS;
+      } else if (market === 'hk') {
+        HK_INSTRUMENTS = normalized;
+        INSTRUMENTS = HK_INSTRUMENTS;
+      } else if (market === 'futures') {
+        FUTURES_INSTRUMENTS = normalized;
+        INSTRUMENTS = FUTURES_INSTRUMENTS;
+        // refresh display meta aliases
+        DISPLAY_META.clear();
+        for (const item of FUTURES_INSTRUMENTS) {
+          DISPLAY_META.set(item.symbol, item);
+          if (item.querySymbol) DISPLAY_META.set(String(item.querySymbol).toUpperCase(), item);
+        }
+      } else {
+        A_INSTRUMENTS = normalized;
+        INSTRUMENTS = A_INSTRUMENTS;
+      }
+      return true;
+    } catch (err) {
+      console.warn('rolling watchlist load failed', err);
+      return false;
+    }
+  }
+
 
   const formatTime = (value, includeDate = true, includeSeconds = false) => {
     if (!value) return '—';
@@ -973,11 +1026,14 @@
     paintContinuousCountdown();
   });
 
-  setTimeout(() => { fetchAllSignals(); }, 400);
-  const initialQuoteLoad = setTimeout(() => {
-    fetchAllQuotes();
-    fetchContinuousQuotes();
-  }, 120);
+  // Load admin-managed watchlist first so boards/start dates stay in sync.
+  void loadRollingWatchlist().finally(() => {
+    setTimeout(() => { fetchAllSignals(); }, 200);
+    setTimeout(() => {
+      fetchAllQuotes();
+      fetchContinuousQuotes();
+    }, 120);
+  });
 
   if (calendarMarket && window.EtfLivePoll?.startMarketPoll) {
     window.EtfLivePoll.startMarketPoll({
