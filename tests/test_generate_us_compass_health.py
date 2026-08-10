@@ -6,6 +6,7 @@ import json
 import math
 import statistics
 import subprocess
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -14,6 +15,16 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "generate_us_compass_health.py"
 VALIDATOR = ROOT / "scripts" / "validate_public_data_contracts.py"
+PYTHON = next(
+    (
+        path for path in (
+            ROOT / ".build-venv/bin/python",
+            Path("/usr/bin/python3"),
+            Path(sys.executable),
+        ) if path.exists()
+    ),
+    Path(sys.executable),
+)
 
 
 def load_module(path=SCRIPT, name="generate_us_compass_health"):
@@ -404,7 +415,7 @@ def test_full_payload_validates_and_cli_writes_atomically(tmp_path, fingerprint)
     learning_path.write_text(json.dumps(learning), encoding="utf-8")
     shadow_path.write_text(json.dumps(shadow_with(fingerprint)), encoding="utf-8")
     completed = subprocess.run([
-        str(ROOT / ".build-venv/bin/python"), str(SCRIPT), "--learning", str(learning_path),
+        str(PYTHON), str(SCRIPT), "--learning", str(learning_path),
         "--shadow", str(shadow_path), "--output", str(output),
         "--generated-at", "2026-03-01T00:00:00Z",
     ], cwd=ROOT, text=True, capture_output=True, check=True)
@@ -475,7 +486,7 @@ def test_build_rejects_invalid_generated_at(fingerprint):
 def test_default_cli_fails_with_staging_blocker_and_writes_no_output(tmp_path):
     output = tmp_path / "health.json"
     completed = subprocess.run(
-        [str(ROOT / ".build-venv/bin/python"), str(SCRIPT), "--output", str(output)],
+        [str(PYTHON), str(SCRIPT), "--output", str(output)],
         cwd=ROOT, text=True, capture_output=True)
     assert completed.returncode != 0
     message = completed.stdout + completed.stderr
@@ -490,7 +501,7 @@ def test_explicit_cli_read_error_is_concise_and_writes_no_output(tmp_path, finge
     output = tmp_path / "health.json"
     shadow_path.write_text(json.dumps(shadow_with(fingerprint)), encoding="utf-8")
     completed = subprocess.run([
-        str(ROOT / ".build-venv/bin/python"), str(SCRIPT),
+        str(PYTHON), str(SCRIPT),
         "--learning", str(missing), "--shadow", str(shadow_path), "--output", str(output),
     ], cwd=ROOT, text=True, capture_output=True)
     message = completed.stdout + completed.stderr
