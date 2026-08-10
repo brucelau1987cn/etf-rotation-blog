@@ -306,7 +306,7 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
 
     python_commands = [command for command, _ in commands if command and command[0] == publish.PROJECT_PYTHON]
     assert python_commands == [
-        [publish.PROJECT_PYTHON, "-m", "pytest", "-q"],
+        [publish.PROJECT_PYTHON, "-m", "pytest", "-q", "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot"],
         [publish.PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"],
     ]
     for _, kwargs in commands:

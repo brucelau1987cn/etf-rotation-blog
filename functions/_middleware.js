@@ -1,5 +1,5 @@
-// 全站订阅鉴权中间件：未登录（无有效订阅 cookie）访问任何页面 → 302 /login/
-// 静态资源与登录/管理 API 放行。
+// 全站订阅鉴权中间件：未登录（无有效订阅 cookie）访问受保护页面 → 302 /login/
+// 首页 /、静态资源、登录/管理 API 放行。
 import { isSubscribed, isAdmin } from './_lib/subscription-auth.js';
 
 // 放行清单（无需订阅即可访问）
@@ -7,6 +7,8 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/api/', // 全部 API 由各端点自行鉴权（admin API 校验管理员、订阅 API 校验订阅）
 ];
+// 精确公开路径（首页公开，子路由仍需登录）
+const PUBLIC_EXACT = new Set(['/', '/index.html']);
 // 静态资源扩展名（CSS/JS/图片/字体等）
 const STATIC_RE = /\.(css|js|mjs|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|eot|map|txt)$/i;
 // 管理后台路径（页面放行渲染登录表单，API 由 API 层校验 admin）
@@ -20,6 +22,9 @@ export async function onRequest(context) {
   // 静态资源直接放行（页面 CSS/JS/图 不被拦）
   if (STATIC_RE.test(pathname)) return next();
 
+  // 首页公开（数据为构建时内嵌，不依赖受保护 /data/）
+  if (PUBLIC_EXACT.has(pathname)) return next();
+
   // 公共路径放行
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return next();
 
@@ -31,6 +36,5 @@ export async function onRequest(context) {
   if (await isAdmin(request, env)) return next(); // 管理员 cookie 同样解锁全站
 
   // 未登录 → 跳登录页（带原路径，登录后跳回）
-  const nextUrl = pathname === '/' ? '/' : pathname;
-  return Response.redirect(`${url.origin}/login/?next=${encodeURIComponent(nextUrl)}`, 302);
+  return Response.redirect(`${url.origin}/login/?next=${encodeURIComponent(pathname)}`, 302);
 }
