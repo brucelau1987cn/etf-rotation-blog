@@ -10,9 +10,9 @@ Writes /tmp/low_chip_main_force.json (one row per stock, latest trade date).
 from __future__ import annotations
 
 import json
-import urllib.parse
-import urllib.request
 from pathlib import Path
+
+import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
@@ -28,17 +28,17 @@ def fetch(codes: list[str]) -> list[dict]:
     """Fetch latest main-force row per stock."""
     if not codes:
         return []
-    quoted = ",".join(f'"{c}"' for c in codes)
-    filt = f"(SECURITY_CODE in ({urllib.parse.quote(quoted)}))"
+    quoted = ",".join(f'%22{c}%22' for c in codes)  # pre-encoded double quotes
+    filt = f"(SECURITY_CODE in ({quoted}))"
     params = (
         "reportName=RPT_DMSK_TS_STOCKEVALUATE"
         f"&filter={filt}&columns=ALL&source=WEB&client=WEB"
         "&sortColumns=TRADE_DATE&sortTypes=-1&pageSize=100"
     )
     url = f"https://datacenter-web.eastmoney.com/api/data/v1/get?{params}"
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        data = json.loads(resp.read())
+    resp = requests.get(url, headers=HEADERS, timeout=20)
+    resp.raise_for_status()
+    data = resp.json()
     rows = (data.get("result") or {}).get("data") or []
     # keep the latest (first after sort desc) per code
     seen: dict[str, dict] = {}

@@ -66,13 +66,6 @@ def main() -> int:
         json.dumps(d, ensure_ascii=False), encoding="utf-8")
     print(f"  quality rows: {len(d.get('datas') or [])}", flush=True)
 
-    # /tmp/low_chip_shareholder_metrics.json — share holder count / 90% concentration / top10
-    q = "、".join(bare_codes) + " 最新股东户数、总户数较上期变动、总户数较上期增长率、最新户均持股数量、收盘价、集中度90、前十大流通股东持股比例合计、公告日期、主力控盘比例"
-    d = iwc(q, limit=max(20, len(bare_codes) * 3))
-    Path("/tmp/low_chip_shareholder_metrics.json").write_text(
-        json.dumps(d, ensure_ascii=False), encoding="utf-8")
-    print(f"  shareholder metrics rows: {len(d.get('datas') or [])}", flush=True)
-
     # /tmp/low_chip_financial_test_annual.json — annual financials (20251231)
     q = "、".join(bare_codes) + " 净资产收益率[20251231]、加权净资产收益率[20251231]、销售净利率[20251231]、经营活动产生的现金流量净额[20251231]、归属于母公司所有者的净利润[20251231]、销售毛利率[20251231]、资产负债率[20251231]"
     d = iwc(q, limit=max(20, len(bare_codes) * 3))

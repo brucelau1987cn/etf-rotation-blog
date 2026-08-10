@@ -34,6 +34,13 @@ const shrinkControlLabel = (label: string | null) => {
   const map: Record<string, string> = { '轻度控盘': '轻度', '中度控盘': '中度', '高度控盘': '完全', '不控盘': '不控', '无控盘': '不控' };
   return map[label] || label;
 };
+const chipFocusClass = (focus: string | null) => {
+  if (!focus) return '';
+  if (focus === '非常集中' || focus === '较集中') return 'is-concentrating';
+  if (focus === '分散') return 'is-dispersing';
+  return '';
+};
+const reportPeriodLabel = (rp: string | null) => rp || '—';
 
 const CHAR_INITIAL: Record<string, string> = {
   上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
@@ -196,14 +203,15 @@ const rows = intersectionRows.map((row) => {
                   <span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i>
                 </button>
                 <div class="chip-shr-head" aria-hidden="true">
-                  <span>股东人数</span><span>股东变化</span><span>主力控盘</span><span>90%筹码集中度</span><span>十大流通股东</span>
+                  <span>股东人数</span><span>股东变化</span><span>筹码集中度</span><span>主力控盘</span><span>十大流通股东</span><span>报告期</span>
                 </div>
                 <div class="chip-shr-body">
                   <span><strong>{fmtInt(row.shareholderMetrics.shareholder_count)}</strong></span>
                   <span><strong class:list={[row.shareholderMetrics.shareholder_change_pct <= 0 ? 'is-concentrating' : 'is-dispersing']}>{fmtMetric(row.shareholderMetrics.shareholder_change_pct, 2, '%')}</strong></span>
+                  <span><strong class:list={[chipFocusClass(row.shareholderMetrics.chip_focus)]}>{row.shareholderMetrics.chip_focus || '—'}</strong></span>
                   <span><strong>{row.shareholderMetrics.main_force || '—'}{row.shareholderMetrics.main_force && row.shareholderMetrics.main_force_label ? '（' + shrinkControlLabel(row.shareholderMetrics.main_force_label) + '）' : ''}</strong></span>
-                  <span><strong>{fmtMetric(row.shareholderMetrics.concentration90, 1, '%')}</strong></span>
-                  <span><strong>{fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%')}</strong></span>
+                  <span><strong>{row.shareholderMetrics.top10_float_ratio ? fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%') : '—'}</strong></span>
+                  <span><strong>{reportPeriodLabel(row.shareholderMetrics.report_period)}</strong></span>
                 </div>
               </div>
             </div>
@@ -298,6 +306,12 @@ const rows = intersectionRows.map((row) => {
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;');
       }
+      function chipFocusClass(focus) {
+        if (!focus) return '';
+        if (focus === '非常集中' || focus === '较集中') return 'is-concentrating';
+        if (focus === '分散') return 'is-dispersing';
+        return '';
+      }
 
       function buildRows(data) {
         var periods = data.periods || {};
@@ -386,13 +400,14 @@ const rows = intersectionRows.map((row) => {
             '</div>' +
             '<div class="chip-row-shareholders" aria-label="' + esc(row.name) + '股东与筹码指标">' +
               '<button type="button" class="chip-shr-toggle" aria-expanded="false"><span>股东与筹码指标</span><i class="chip-shr-chev" aria-hidden="true">▾</i></button>' +
-              '<div class="chip-shr-head" aria-hidden="true"><span>股东人数</span><span>股东变化</span><span>主力控盘</span><span>90%筹码集中度</span><span>十大流通股东</span></div>' +
+              '<div class="chip-shr-head" aria-hidden="true"><span>股东人数</span><span>股东变化</span><span>筹码集中度</span><span>主力控盘</span><span>十大流通股东</span><span>报告期</span></div>' +
               '<div class="chip-shr-body">' +
                 '<span><strong>' + fmtInt(sm.shareholder_count) + '</strong></span>' +
                 '<span><strong class="' + changeClass + '">' + fmtMetric(changePct, 2, '%') + '</strong></span>' +
+                '<span><strong class="' + chipFocusClass(sm.chip_focus) + '">' + (sm.chip_focus || '—') + '</strong></span>' +
                 '<span><strong>' + (sm.main_force || '—') + (sm.main_force && sm.main_force_label ? '（' + shrinkLabel(sm.main_force_label) + '）' : '') + '</strong></span>' +
-                '<span><strong>' + fmtMetric(sm.concentration90, 1, '%') + '</strong></span>' +
                 '<span><strong>' + fmtMetric(sm.top10_float_ratio, 1, '%') + '</strong></span>' +
+                '<span><strong>' + (sm.report_period || '—') + '</strong></span>' +
               '</div>' +
             '</div>' +
           '</div>'
@@ -510,12 +525,42 @@ const rows = intersectionRows.map((row) => {
         if (dateSelect) dateSelect.disabled = true;
         if (historyPrev) historyPrev.disabled = true;
         if (historyNext) historyNext.disabled = true;
-        fetch('/data/low-chip-history/' + day + '.json?bust=' + Date.now(), { cache: 'no-store' })
+        fetch('/api/public/v1/low-chip-metrics?date=' + day + '&bust=' + Date.now(), { cache: 'no-store' })
           .then(function(r) {
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.json();
           })
-          .then(function(data) {
+          .then(function(resp) {
+            // transform D1 rows into the snapshot shape buildRows() expects
+            var data = { data_as_of: day, intersection: [], enrichments: {}, periods: { week: [], month: [], quarter: [] } };
+            if (resp.results) {
+              resp.results.forEach(function(row) {
+                var code = row.stock_code;
+                data.intersection.push(code);
+                data.enrichments[code] = {
+                  name: row.stock_name || '',
+                  industry: row.industry || '待补充',
+                  sector: row.sector || '待补充',
+                  financials: row.financials ? JSON.parse(row.financials) : {},
+                  theme_concepts: row.theme_concepts ? JSON.parse(row.theme_concepts) : [],
+                  quality_shareholder: !!row.quality_shareholder,
+                  shareholder_metrics: {
+                    shareholder_count: row.shareholder_count,
+                    shareholder_change_pct: row.shareholder_change_pct,
+                    chip_focus: row.chip_focus,
+                    main_force: row.main_force,
+                    main_force_label: row.main_force_label,
+                    top10_float_ratio: row.top10_float_ratio,
+                    report_period: row.report_period,
+                    price: row.price,
+                  }
+                };
+                var base = { symbol: code, name: row.stock_name || '', price: row.price, change_percent: row.change_percent };
+                if (row.week_profit != null) data.periods.week.push(Object.assign({}, base, { value: row.week_profit }));
+                if (row.month_profit != null) data.periods.month.push(Object.assign({}, base, { value: row.month_profit }));
+                if (row.quarter_profit != null) data.periods.quarter.push(Object.assign({}, base, { value: row.quarter_profit }));
+              });
+            }
             cache[day] = data;
             loading = false;
             paint(data);
@@ -655,7 +700,7 @@ const rows = intersectionRows.map((row) => {
   .chip-up{background:#fdecec}.chip-down{background:#e7f5f0}
   .chip-row-shareholders{width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
   .chip-shr-toggle{display:none}
-  .chip-shr-head,.chip-shr-body{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.15fr 1fr;gap:.45rem;width:100%}
+  .chip-shr-head,.chip-shr-body{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.15fr 1fr 1fr;gap:.45rem;width:100%}
   .chip-shr-head span{color:#8b98a9;font-size:.62rem;font-weight:750;letter-spacing:.03em;padding:0 .45rem;white-space:nowrap}
   .chip-shr-body span{display:flex;align-items:center;min-width:0;padding:.3rem .45rem 0;border-top:0}
   .chip-shr-body strong{color:#14243b;font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
