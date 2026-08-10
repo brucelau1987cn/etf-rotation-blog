@@ -1,0 +1,69 @@
+---
+interface Props {
+  archive: any;
+  latest: any;
+}
+
+const { latest } = Astro.props;
+const isV2 = Boolean(latest?.health_summary);
+const formatDate = (value: string) => value || '—';
+const formatScore = (value: unknown) => (Number.isFinite(Number(value)) ? Number(value).toFixed(2) : '—');
+const formatTrend = (value: unknown) => (Number.isFinite(Number(value)) ? Number(value).toFixed(1) : '—');
+const exposure = latest?.risk_budget?.current_exposure_pct ?? 0;
+const top10 = (latest?.top10 || []).slice(0, 10);
+---
+
+<section class="research-hero panel">
+  <div>
+    <span class="eyebrow">US ETF COMPASS · FORWARD LEARNING</span>
+    <h1>美股ETF罗盘 · 模型学习</h1>
+    <p>持续记录前向样本、T+1 / T+5 / T+20 横截面验证、四组合收益归因与问财外部证据。页面用于模型审计与实验观察。</p>
+    <span class="research-only-badge">仅研究用途 · research-only</span>
+  </div>
+  <div class="hero-status">
+    <span>最新周报</span>
+    <strong>{formatDate(latest.trade_date)}</strong>
+    <small>{latest.verdict || '样本积累中'} · {latest.week_key || '—'}</small>
+    <small>前向快照 {latest.snapshot_count || 0}期 · 风险预算 {Number.isFinite(exposure) ? exposure : 0}% · {latest.risk_budget?.regime || '—'}</small>
+    {isV2 ? (
+      <small>健康度 {latest.health_summary?.status || '—'} · 数据质量 {latest.data_quality?.status || '—'}</small>
+    ) : (
+      <small>v1 归档 · 无健康摘要字段</small>
+    )}
+    <small class:list={[latest.production_change_allowed === false ? 'prod-locked' : '']}>
+      {latest.production_change_allowed === false ? '生产变更未授权 · production_change_allowed=false' : '生产变更未授权'}
+    </small>
+  </div>
+</section>
+
+<section class="section-head" style="margin-top:.8rem">
+  <div><span class="section-kicker">CURRENT RESEARCH SET</span><h2>风险预算与 Top10</h2></div>
+  <p>仅用于观察主题集中度</p>
+</section>
+<section class="top10-grid">
+  {top10.map((item: any) => (
+    <article class="top10-row">
+      <strong>{item.symbol}</strong>
+      <span>{item.theme} · {item.state}</span>
+      <b>{formatTrend(item.trend_score)}</b>
+    </article>
+  ))}
+</section>
+
+<style>
+  .research-only-badge {
+    display: inline-flex;
+    margin-top: .7rem;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    color: #ffd9a0;
+    border: 1px solid rgba(255, 255, 255, .22);
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+  }
+  .prod-locked {
+    color: #ffb3b3;
+  }
+</style>

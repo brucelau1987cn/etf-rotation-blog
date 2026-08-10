@@ -1,0 +1,42 @@
+---
+interface Props {
+  reports: any[];
+}
+
+const { reports } = Astro.props;
+const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
+---
+
+<div class="section-head">
+  <div><span class="section-kicker">WEEKLY ARCHIVE</span><h2>历史周报</h2></div>
+  <p>每个自然周保留一份最新冻结版本</p>
+</div>
+<section class="archive-list">
+  {reports.map((report: any, index: number) => {
+    const isV2entry = report.schema_version === 'us-compass-research-v2' || Boolean(report.health_summary);
+    return (
+      <details class="archive-item panel" open={index === 0}>
+        <summary>
+          <strong>{report.week_key}</strong>
+          <span>交易日 {report.trade_date} · {report.verdict}</span>
+          <b>{report.snapshot_count}期</b>
+        </summary>
+        <div class="archive-body">
+          {isV2entry ? (
+            <>
+              <div><span>健康度</span><b>{report.health_summary?.status || '—'}</b></div>
+              <div><span>Walk Forward</span><b>{report.walk_forward_summary?.status || '—'}</b></div>
+              <div><span>Fusion收益</span><b>{formatPct(report.portfolios?.fusion?.total_return_pct)}</b></div>
+            </>
+          ) : (
+            <>
+              <div><span>T+1 RankIC</span><b>{formatPct(report.metrics?.t1?.rank_ic_pct)}</b></div>
+              <div><span>T+5 RankIC</span><b>{formatPct(report.metrics?.t5?.rank_ic_pct)}</b></div>
+              <div><span>Fusion收益</span><b>{formatPct(report.portfolios?.fusion?.total_return_pct)}</b></div>
+            </>
+          )}
+        </div>
+      </details>
+    );
+  })}
+</section>

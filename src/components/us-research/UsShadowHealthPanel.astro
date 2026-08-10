@@ -1,0 +1,114 @@
+---
+interface Props {
+  latest: any;
+}
+
+const { latest } = Astro.props;
+const isV2 = Boolean(latest?.health_summary);
+const portfolioLabels: Record<string, string> = { benchmark: 'Benchmark', timing: 'Timing', rotation: 'Rotation', fusion: 'Fusion' };
+const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
+const formatEquity = (value: unknown) => (Number.isFinite(Number(value)) ? `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—');
+const formatRate = (value: unknown) => (Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '—');
+const shadow = latest?.shadow_health_summary;
+const cost = latest?.cost_sensitivity_summary;
+---
+
+<div class="section-head">
+  <div><span class="section-kicker">SHADOW ATTRIBUTION</span><h2>四组合收益与回撤</h2></div>
+  <p>{latest.execution_basis?.signal} · {latest.execution_basis?.execution} · 单边成本 {latest.execution_basis?.one_way_cost_pct}%</p>
+</div>
+<section class="analysis-grid">
+  <article class="panel table-wrap">
+    <table class="research-table">
+      <thead>
+        <tr><th>组合</th><th>总收益</th><th>最大回撤</th><th>期末权益</th></tr>
+      </thead>
+      <tbody>
+        {Object.entries(latest.portfolios || {}).map(([key, row]: any) => (
+          <tr>
+            <td><strong>{portfolioLabels[key] || key}</strong></td>
+            <td class:list={[Number(row.total_return_pct) >= 0 ? 'positive' : 'negative']}>{formatPct(row.total_return_pct)}</td>
+            <td class="negative">{formatPct(row.max_drawdown_pct)}</td>
+            <td>{formatEquity(row.equity)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </article>
+  <article class="analysis-card panel">
+    <h3>归因拆解</h3>
+    <div class="attribution-list">
+      <div class="attribution-row"><span>择时贡献</span><b>{formatPct(latest.attribution?.timing_pp, 'pp')}</b></div>
+      <div class="attribution-row"><span>轮动贡献</span><b>{formatPct(latest.attribution?.rotation_pp, 'pp')}</b></div>
+      <div class="attribution-row"><span>融合交互</span><b>{formatPct(latest.attribution?.interaction_pp, 'pp')}</b></div>
+      <div class="attribution-row"><span>Fusion 相对基准</span><b>{formatPct(latest.attribution?.fusion_vs_benchmark_pp, 'pp')}</b></div>
+    </div>
+  </article>
+</section>
+
+{isV2 && shadow ? (
+  <section class="analysis-card panel shadow-health-box">
+    <div class="section-head" style="margin-top:0">
+      <div><span class="section-kicker">SHADOW HEALTH</span><h2 style="font-size:1.1rem">影子组合健康</h2></div>
+      <strong class:list={[shadow.status]}>{shadow.status}</strong>
+    </div>
+    <p class="shadow-health-meta">
+      观察 {shadow.observations ?? 0} 期 · 收益 {formatPct(shadow.return)} · 最大回撤 {formatPct(shadow.max_drawdown)} · 评分 {shadow.score != null ? shadow.score.toFixed(2) : '—'}
+    </p>
+    <div class="shadow-health-portfolios">
+      {Object.entries(shadow.portfolios || {}).map(([key, row]: any) => (
+        <article class="shadow-portfolio-card">
+          <span>{portfolioLabels[key] || key}</span>
+          <b>{formatPct(row.total_return)}</b>
+          <small>回撤 {formatPct(row.max_drawdown)} · 波动 {formatPct(row.annualized_volatility)} · 正周期 {formatRate(row.positive_period_rate)} · 超额 {formatPct(row.excess_return_vs_benchmark)}</small>
+        </article>
+      ))}
+    </div>
+    {shadow.reasons?.length ? (
+      <ul class="walk-forward-reasons">
+        {shadow.reasons.map((r: string) => <li>{r}</li>)}
+      </ul>
+    ) : null}
+  </section>
+) : null}
+
+{isV2 && cost ? (
+  <section class="panel table-wrap cost-box">
+    <div class="section-head" style="margin-top:0">
+      <div><span class="section-kicker">COST SENSITIVITY</span><h2 style="font-size:1.1rem">成本敏感性</h2></div>
+      <strong>{cost.status}</strong>
+    </div>
+    <table class="research-table">
+      <thead>
+        <tr><th>单边成本</th><th>年化收益</th><th>最大回撤</th></tr>
+      </thead>
+      <tbody>
+        {(cost.scenarios || []).map((s: any) => (
+          <tr>
+            <td><strong>{Number.isFinite(Number(s.one_way_cost)) ? `${(Number(s.one_way_cost) * 100).toFixed(2)}%` : '—'}</strong></td>
+            <td>{formatPct(s.annualized_return)}</td>
+            <td class="negative">{formatPct(s.max_drawdown)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {cost.reasons?.length ? (
+      <ul class="walk-forward-reasons" style="padding-left:1rem;margin:.6rem 0 0">
+        {cost.reasons.map((r: string) => <li>{r}</li>)}
+      </ul>
+    ) : null}
+  </section>
+) : null}
+
+<style>
+  .shadow-health-box { margin-top: .8rem; }
+  .shadow-health-meta { margin: .3rem 0 .8rem; color: var(--research-muted); font-size: .75rem; }
+  .shadow-health-portfolios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .shadow-portfolio-card { padding: .7rem .75rem; border-radius: 11px; background: #f6f8fb; }
+  .shadow-portfolio-card span { display: block; color: var(--research-muted); font-size: .68rem; font-weight: 850; }
+  .shadow-portfolio-card b { display: block; margin: .25rem 0; font-size: .95rem; }
+  .shadow-portfolio-card small { color: #7b8a9d; font-size: .66rem; line-height: 1.5; }
+  .cost-box { padding: 1rem; margin-top: .8rem; }
+  .walk-forward-reasons { margin: .5rem 0 0; padding: 0 0 0 1rem; font-size: .73rem; color: var(--research-muted); }
+  @media(max-width:560px) { .shadow-health-portfolios { grid-template-columns: 1fr; } }
+</style>

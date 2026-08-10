@@ -1,0 +1,111 @@
+---
+interface Props {
+  latest: any;
+  metricRows: any[];
+}
+
+const { latest, metricRows } = Astro.props;
+const isV2 = Boolean(latest?.health_summary);
+const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
+const formatPlainPct = (value: unknown) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}%` : '—';
+
+// Build SVG sparkline path for a horizon series (server-side, no client JS)
+function buildSparkline(series: any[]): string | null {
+  if (!series || series.length < 2) return null;
+  const values = series.map((s: any) => Number(s.value)).filter(n => Number.isFinite(n));
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 120;
+  const h = 28;
+  const pad = 2;
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - 2 * pad);
+    const y = pad + (1 - (v - min) / range) * (h - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return `M${points.join(' L')}`;
+}
+
+const walkForward = latest?.walk_forward_summary;
+const hasWalkForward = isV2 && walkForward;
+const horizons = isV2 && latest?.health_summary ? (latest as any).horizons : null;
+---
+
+<div class="section-head">
+  <div><span class="section-kicker">FORWARD METRICS</span><h2>T+1 / T+5 / T+20 指标</h2></div>
+  <p>RankIC 与偏离度均来自持久化前向样本</p>
+</div>
+<section class="panel table-wrap">
+  <table class="research-table">
+    <thead>
+      <tr>
+        <th>周期</th>
+        <th>成熟样本</th>
+        <th>RankIC</th>
+        <th>正值率</th>
+        <th>偏离度</th>
+        <th>相对随机33.33%</th>
+        {isV2 ? <th>时序</th> : null}
+      </tr>
+    </thead>
+    <tbody>
+      {metricRows.map((row: any) => (
+        <tr>
+          <td><strong>{row.key}</strong></td>
+          <td>{row.observations}</td>
+          <td class:list={[Number(row.rank_ic_pct) >= 0 ? 'positive' : 'negative']}>{formatPct(row.rank_ic_pct)}</td>
+          <td>{formatPlainPct(row.positive_rate_pct)}</td>
+          <td>{formatPlainPct(row.deviation_pct)}</td>
+          <td class:list={[Number(row.deviation_vs_random_pp) >= 0 ? 'positive' : 'negative']}>{formatPct(row.deviation_vs_random_pp, 'pp')}</td>
+          {isV2 ? (
+            <td>
+              {(() => {
+                const key = row.key.replace('T+', 't').toLowerCase();
+                const series = horizons?.[key]?.series;
+                const path = series ? buildSparkline(series) : null;
+                return path ? (
+                  <svg width="120" height="28" viewBox="0 0 120 28" class="sparkline">
+                    <path d={path} fill="none" stroke="var(--research-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                ) : <span class="sparkline-na">—</span>;
+              })()}
+            </td>
+          ) : null}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</section>
+
+{hasWalkForward ? (
+  <section class="panel walk-forward-box">
+    <div class="walk-forward-header">
+      <span class="section-kicker">WALK FORWARD</span>
+      <strong>{walkForward.status}</strong>
+    </div>
+    <div class="walk-forward-stats">
+      <span>窗口 {walkForward.windows} · 已评估 {walkForward.evaluated_windows} · 正分率 {walkForward.positive_slice_rate != null ? formatPlainPct(walkForward.positive_slice_rate) : '—'}</span>
+      {walkForward.score != null ? <span>评分 {walkForward.score.toFixed(2)}</span> : null}
+    </div>
+    {walkForward.reasons?.length ? (
+      <ul class="walk-forward-reasons">
+        {walkForward.reasons.map((r: string) => <li>{r}</li>)}
+      </ul>
+    ) : null}
+  </section>
+) : (
+  <div class="section-head"><p style="color:var(--research-muted);font-size:.75rem">历史详细时序不可用 · 仅展示当前聚合指标</p></div>
+)}
+
+<style>
+  .sparkline { vertical-align: middle; }
+  .sparkline-na { color: var(--research-muted); font-size: .7rem; }
+  .walk-forward-box { padding: 1rem; margin-top: .8rem; }
+  .walk-forward-header { display: flex; justify-content: space-between; align-items: center; }
+  .walk-forward-header strong { font-size: 1.1rem; }
+  .walk-forward-stats { display: flex; gap: 1rem; margin-top: .5rem; color: var(--research-muted); font-size: .75rem; }
+  .walk-forward-reasons { margin: .5rem 0 0; padding: 0 0 0 1rem; font-size: .73rem; color: var(--research-muted); }
+  .walk-forward-reasons li { margin-bottom: .25rem; }
+</style>

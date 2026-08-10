@@ -14,6 +14,14 @@ SCRIPT = ROOT / "scripts" / "publish_us_compass_research.py"
 PAGE = ROOT / "src" / "pages" / "us-compass" / "research.astro"
 SUBNAV = ROOT / "src" / "components" / "UsSubnav.astro"
 DATA = ROOT / "public" / "data" / "us-compass-research.json"
+COMPONENT_DIR = ROOT / "src" / "components" / "us-research"
+COMPONENT_NAMES = [
+    "UsResearchHero.astro",
+    "UsResearchHealthStrip.astro",
+    "UsRankIcPanel.astro",
+    "UsShadowHealthPanel.astro",
+    "UsResearchArchive.astro",
+]
 
 
 def load_module():
@@ -543,12 +551,131 @@ def test_research_page_and_navigation_contract():
     assert PAGE.exists()
     page = PAGE.read_text(encoding="utf-8")
     nav = SUBNAV.read_text(encoding="utf-8")
-    for marker in ("模型学习", "T+1 / T+5 / T+20", "四组合收益与回撤", "问财验证", "历史周报", "样本积累中"):
+    for marker in ("模型学习", "问财验证", "样本积累中"):
         assert marker in page
     assert "public/data/us-compass-research.json" in page
-    assert "active=\"research\"" in page
+    assert 'active="research"' in page
     assert "'/us-compass/research/'" in nav
     assert nav.index("历史成绩") < nav.index("模型学习")
+    for name in COMPONENT_NAMES:
+        assert name.replace(".astro", "") in page, f"page should import {name}"
+
+
+def test_research_components_all_exist():
+    for name in COMPONENT_NAMES:
+        file = COMPONENT_DIR / name
+        assert file.exists(), f"missing component: {name}"
+        content = file.read_text(encoding="utf-8")
+        assert content.startswith("---"), f"{name} should have frontmatter"
+        assert "interface Props" in content, f"{name} should declare Props interface"
+
+
+def test_research_hero_component_markers():
+    hero = COMPONENT_DIR / "UsResearchHero.astro"
+    content = hero.read_text(encoding="utf-8")
+    assert "research-only-badge" in content, "hero should have research-only badge"
+    assert "仅研究用途" in content, "hero should have Chinese research-only badge"
+    assert "production_change_allowed" in content, "hero should reference production_change_allowed"
+    assert "health_summary" in content, "hero should check for health_summary (v2 detection)"
+    assert "data_quality" in content, "hero should reference data_quality"
+    assert "FORWARD LEARNING" in content, "hero should show forward learning label"
+    assert "top10-grid" in content, "hero should have top10 grid"
+    assert "risk_budget" in content, "hero should reference risk budget"
+
+
+def test_research_health_strip_component_markers():
+    strip = COMPONENT_DIR / "UsResearchHealthStrip.astro"
+    content = strip.read_text(encoding="utf-8")
+    assert "summary-strip" in content, "strip should have summary-strip class"
+    assert "health_summary" in content, "strip should detect v2 via health_summary"
+    assert "snapshot_count" in content, "strip should handle v1 snapshot_count"
+    assert "T+5成熟样本" in content, "strip should show T5 observations in v1"
+    assert "data_quality" in content, "strip should reference data_quality in v2"
+    assert "sample_maturity" in content, "strip should reference sample_maturity in v2"
+    assert "shadow_health_summary" in content, "strip should reference shadow_health in v2"
+
+
+def test_rank_ic_panel_component_markers():
+    panel = COMPONENT_DIR / "UsRankIcPanel.astro"
+    content = panel.read_text(encoding="utf-8")
+    assert "FORWARD METRICS" in content, "panel should have forward metrics header"
+    assert "RankIC" in content, "panel should show RankIC label"
+    assert "walk_forward_summary" in content, "panel should reference walk_forward"
+    assert "sparkline" in content, "panel should have SVG sparkline support"
+    assert "历史详细时序不可用" in content, "panel should show v1 fallback note"
+    assert "buildSparkline" in content, "panel should have sparkline builder function"
+
+
+def test_research_health_strip_component_v1_vs_v2():
+    """Verify component has both v1 and v2 render paths."""
+    strip = COMPONENT_DIR / "UsResearchHealthStrip.astro"
+    content = strip.read_text(encoding="utf-8")
+    # v1 path markers
+    assert "前向快照" in content
+    assert "风险预算" in content
+    assert "研究结论" in content
+    # v2 path markers
+    assert "整体健康度" in content
+    assert "样本成熟度" in content
+    assert "影子组合健康" in content
+
+
+def test_shadow_health_panel_component_markers():
+    panel = COMPONENT_DIR / "UsShadowHealthPanel.astro"
+    content = panel.read_text(encoding="utf-8")
+    assert "SHADOW ATTRIBUTION" in content, "panel should have shadow attribution header"
+    assert "四组合收益与回撤" in content, "panel should show portfolio returns"
+    assert "归因拆解" in content, "panel should have attribution breakdown"
+    assert "attribution" in content, "panel should reference attribution"
+    assert "shadow_health_summary" in content, "panel should reference shadow health"
+    assert "cost_sensitivity_summary" in content, "panel should reference cost sensitivity"
+    assert "SHADOW HEALTH" in content, "panel should have shadow health section"
+    assert "COST SENSITIVITY" in content, "panel should have cost sensitivity section"
+    assert "cost_sensitivity" in content, "panel should have cost sensitivity scenarios"
+
+
+def test_research_archive_component_markers():
+    archive = COMPONENT_DIR / "UsResearchArchive.astro"
+    content = archive.read_text(encoding="utf-8")
+    assert "WEEKLY ARCHIVE" in content, "archive should have weekly archive header"
+    assert "历史周报" in content, "archive should show Chinese header"
+    assert "archive-list" in content, "archive should have archive-list class"
+    assert "health_summary" in content, "archive should detect v2 via health_summary"
+    assert "walk_forward_summary" in content, "archive should reference walk_forward in v2 entries"
+    assert "T+1 RankIC" in content, "archive should show T1 RankIC in v1 entries"
+    assert "T+5 RankIC" in content, "archive should show T5 RankIC in v1 entries"
+    assert "Fusion收益" in content, "archive should show fusion return"
+
+
+def test_component_no_undefined_or_nan_in_templates():
+    """Verify components don't use unsafe patterns that could produce NaN/undefined/Infinity."""
+    for name in COMPONENT_NAMES:
+        file = COMPONENT_DIR / name
+        content = file.read_text(encoding="utf-8")
+        # Should not use dangerous patterns without guard
+        assert "Number.isFinite" in content or "Number(value).toFixed" not in content, \
+            f"{name} should guard toFixed calls with Number.isFinite"
+
+
+def test_build_output_clean():
+    """After build, verify no NaN/undefined/Infinity in rendered output."""
+    built = ROOT / "dist" / "us-compass" / "research" / "index.html"
+    if not built.exists():
+        pytest.skip("build output not found; run 'npm run build' first")
+    html = built.read_text(encoding="utf-8")
+    assert "undefined" not in html, "rendered output contains 'undefined'"
+    assert "NaN" not in html, "rendered output contains 'NaN'"
+    assert "Infinity" not in html, "rendered output contains 'Infinity'"
+
+
+def test_production_change_allowed_wording():
+    """Verify production_change_allowed wording in hero component."""
+    hero = COMPONENT_DIR / "UsResearchHero.astro"
+    content = hero.read_text(encoding="utf-8")
+    assert "production_change_allowed=false" in content, \
+        "hero should show production_change_allowed=false label"
+    assert "生产变更未授权" in content, \
+        "hero should show Chinese production change not authorized label"
 
 
 def test_public_research_archive_contract():

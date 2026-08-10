@@ -1,0 +1,60 @@
+---
+interface Props {
+  latest: any;
+}
+
+const { latest } = Astro.props;
+const isV2 = Boolean(latest?.health_summary);
+const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
+const formatScore = (value: unknown) => (Number.isFinite(Number(value)) ? Number(value).toFixed(2) : '—');
+---
+
+<section class="summary-strip" aria-label="模型学习摘要">
+  {isV2 ? (
+    <>
+      <article class="summary-card panel">
+        <span>整体健康度</span>
+        <strong>{latest.health_summary?.status || '—'}</strong>
+        <small>评分 {formatScore(latest.health_summary?.score)} · {latest.health_summary?.reasons?.[0] || '—'}</small>
+      </article>
+      <article class="summary-card panel">
+        <span>数据质量</span>
+        <strong>{latest.data_quality?.status || '—'}</strong>
+        <small>指纹一致 {latest.data_quality?.fingerprint_consistent === true ? '✓' : '✗'} · 生产变更 {latest.data_quality?.production_change_allowed === false ? '禁止' : '允许'}</small>
+      </article>
+      <article class="summary-card panel">
+        <span>样本成熟度</span>
+        <strong>{latest.sample_maturity?.status || '—'}</strong>
+        <small>{latest.sample_maturity?.observations ?? 0} / {latest.sample_maturity?.minimum_observations ?? 20} 期 · {latest.sample_maturity?.mature ? '已达' : '未达'}</small>
+      </article>
+      <article class="summary-card panel">
+        <span>影子组合健康</span>
+        <strong>{latest.shadow_health_summary?.status || '—'}</strong>
+        <small>观察 {latest.shadow_health_summary?.observations ?? 0} 期 · 评分 {formatScore(latest.shadow_health_summary?.score)}</small>
+      </article>
+    </>
+  ) : (
+    <>
+      <article class="summary-card panel">
+        <span>前向快照</span>
+        <strong>{latest.snapshot_count || 0}期</strong>
+        <small>逐交易日冻结，最长保留520期</small>
+      </article>
+      <article class="summary-card panel">
+        <span>T+5成熟样本</span>
+        <strong>{latest.metrics?.t5?.observations || 0}</strong>
+        <small>20个后进入月度实验评估门槛</small>
+      </article>
+      <article class="summary-card panel">
+        <span>当前风险预算</span>
+        <strong>{latest.risk_budget?.current_exposure_pct ?? 0}%</strong>
+        <small>{latest.risk_budget?.regime || '—'} · {latest.risk_budget?.allocation || '—'}</small>
+      </article>
+      <article class="summary-card panel">
+        <span>研究结论</span>
+        <strong>{latest.verdict || '样本积累中'}</strong>
+        <small>生产权重与阈值保持人工授权</small>
+      </article>
+    </>
+  )}
+</section>
