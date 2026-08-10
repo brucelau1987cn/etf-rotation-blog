@@ -5,19 +5,20 @@ import Header from '../../components/Header.astro';
 import { SITE_TITLE } from '../../consts';
 
 const title = `期货管理 | ${SITE_TITLE}`;
-const description = '管理期货罗盘监控标的：查看名称、交易所，支持停用/启用、删除与新增。';
+const description = '管理期货罗盘监控标的：名称、交易所，支持停用/启用与删除。';
 ---
 <BaseHead title={title} description={description} />
-<body>
+<body class="fm-body">
   <Header />
   <main class="fm-main site-shell">
-    <header class="fm-heading">
+    <header class="page-heading">
       <div>
         <p class="page-kicker">FUTURES ADMIN</p>
         <h1>期货管理</h1>
-        <p>管理期货罗盘监控标的。列表显示名称和交易所；可停用/启用，或删除。</p>
+        <p>管理期货罗盘监控标的。列表只显示名称与交易所。</p>
       </div>
-      <div class="fm-links">
+      <div class="admin-identity">
+        <span class="role-badge" id="fm-role">管理员</span>
         <a href="/admin/">账号开通</a>
         <a href="/futures-compass/">期货罗盘</a>
       </div>
@@ -26,47 +27,83 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
     <section class="auth-required" id="fm-login" hidden>
       <div class="auth-icon">🔒</div>
       <h2>需要管理员权限</h2>
-      <p>请先登录管理员账号后再管理期货标的。</p>
+      <p>请先通过统一登录页验证管理员账号。</p>
       <a href="/login/?next=%2Fadmin%2Ffutures%2F">前往登录</a>
     </section>
 
     <section class="fm-panel" id="fm-panel" hidden>
-      <div class="fm-card">
-        <div class="fm-card-head">
-          <div>
-            <h2>当前标的</h2>
-            <p id="fm-count">共 0 个</p>
-          </div>
-          <button type="button" class="ghost-btn" id="fm-refresh">刷新</button>
-        </div>
-
-        <ul class="fm-list" id="fm-list"></ul>
-        <p class="fm-empty" id="fm-empty" hidden>暂无标的</p>
-        <p class="fm-msg" id="fm-msg" role="status"></p>
+      <div class="overview-grid">
+        <article class="stat-card active">
+          <span>监控中</span>
+          <strong id="stat-enabled">0</strong>
+          <small>进入罗盘抓取</small>
+        </article>
+        <article class="stat-card">
+          <span>已停用</span>
+          <strong id="stat-disabled">0</strong>
+          <small>保留配置不抓取</small>
+        </article>
+        <article class="stat-card">
+          <span>全部标的</span>
+          <strong id="stat-total">0</strong>
+          <small>当前名单总数</small>
+        </article>
       </div>
 
-      <div class="fm-card">
-        <div class="fm-card-head">
-          <div>
+      <div class="fm-layout">
+        <aside class="create-card">
+          <div class="section-heading">
+            <p class="section-kicker">NEW INSTRUMENT</p>
             <h2>新增标的</h2>
-            <p>只需填写名称；代码/交易所可选，系统会补全连续合约与 Edge 符号。</p>
           </div>
-        </div>
-        <form id="fm-form" class="fm-form" novalidate>
-          <label class="field">
-            <span>名称</span>
-            <input id="fm-name" placeholder="例如：焦煤" required />
-          </label>
-          <label class="field">
-            <span>交易所</span>
-            <input id="fm-exchange" placeholder="例如：大商所" />
-          </label>
-          <label class="field">
-            <span>代码（可选）</span>
-            <input id="fm-code" placeholder="例如：JM" maxlength="4" />
-          </label>
-          <button class="primary-btn" type="submit">添加</button>
-        </form>
+          <form id="fm-form" class="create-form" novalidate>
+            <label class="field">
+              <span>名称</span>
+              <input id="fm-name" placeholder="例如：焦煤" required />
+            </label>
+            <label class="field">
+              <span>交易所</span>
+              <input id="fm-exchange" placeholder="例如：大商所" />
+            </label>
+            <label class="field">
+              <span>代码（可选）</span>
+              <input id="fm-code" placeholder="例如：JM" maxlength="4" />
+            </label>
+            <button class="primary-btn" type="submit" id="fm-submit">添加标的</button>
+            <p class="form-hint">名称必填。代码留空时会尝试按名称推断（如 焦煤→JM）。</p>
+          </form>
+          <p class="admin-msg" id="fm-msg" role="status"></p>
+        </aside>
+
+        <section class="list-card">
+          <div class="list-heading">
+            <div>
+              <p class="section-kicker">WATCHLIST</p>
+              <h2>当前标的</h2>
+            </div>
+            <div class="list-tools">
+              <button type="button" class="ghost-btn" id="fm-refresh">刷新</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table" id="fm-table">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>交易所</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="fm-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="fm-empty" hidden>
+            <span>📭</span>
+            <strong>暂无标的</strong>
+            <p>先在左侧添加一个期货品种</p>
+          </div>
+        </section>
       </div>
     </section>
   </main>
@@ -77,9 +114,8 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
       const $ = (id) => document.getElementById(id);
       const loginBox = $('fm-login');
       const panel = $('fm-panel');
-      const listEl = $('fm-list');
+      const tbody = $('fm-tbody');
       const emptyEl = $('fm-empty');
-      const countEl = $('fm-count');
       const msgEl = $('fm-msg');
 
       async function api(url, opts = {}) {
@@ -96,7 +132,7 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
       function setMsg(text, ok) {
         if (!msgEl) return;
         msgEl.textContent = text || '';
-        msgEl.className = 'fm-msg' + (text ? (ok ? ' ok' : ' error') : '');
+        msgEl.className = 'admin-msg' + (text ? (ok ? ' ok' : ' error') : '');
       }
 
       function guessCodeFromName(name) {
@@ -108,31 +144,54 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
         return map[name] || '';
       }
 
+      function updateStats(items) {
+        const rows = items || [];
+        const enabled = rows.filter((it) => it.enabled).length;
+        const disabled = rows.length - enabled;
+        $('stat-enabled').textContent = String(enabled);
+        $('stat-disabled').textContent = String(disabled);
+        $('stat-total').textContent = String(rows.length);
+      }
+
       function render(items) {
         const rows = items || [];
-        listEl.innerHTML = '';
-        countEl.textContent = `共 ${rows.length} 个`;
+        tbody.innerHTML = '';
         emptyEl.hidden = rows.length > 0;
+        updateStats(rows);
+
         for (const it of rows) {
-          const li = document.createElement('li');
-          li.className = 'fm-item' + (it.enabled ? '' : ' muted');
-          const statusText = it.enabled ? '监控中' : '已停用';
-          li.innerHTML = `
-            <div class="fm-meta">
-              <strong>${it.name || it.code}</strong>
-              <span>${it.exchange || '—'} · ${statusText}</span>
-            </div>
-            <div class="fm-actions">
-              <button type="button" class="toggle-btn">${it.enabled ? '停用' : '启用'}</button>
-              <button type="button" class="del-btn">删除</button>
-            </div>
+          const tr = document.createElement('tr');
+          if (!it.enabled) tr.className = 'row-muted';
+          tr.innerHTML = `
+            <td>
+              <div class="user-cell">
+                <div class="table-avatar">📈</div>
+                <div>
+                  <strong>${it.name || it.code}</strong>
+                  <small>${it.code || ''}</small>
+                </div>
+              </div>
+            </td>
+            <td>${it.exchange || '—'}</td>
+            <td>
+              <span class="status-tag ${it.enabled ? 'active' : 'revoked'}">${it.enabled ? '监控中' : '已停用'}</span>
+            </td>
+            <td class="actions-cell"></td>
           `;
-          li.querySelector('.toggle-btn').addEventListener('click', async () => {
+          const actions = tr.querySelector('.actions-cell');
+
+          const toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.className = 'text-btn';
+          toggleBtn.textContent = it.enabled ? '停用' : '启用';
+          toggleBtn.addEventListener('click', async () => {
             const next = it.enabled ? 0 : 1;
+            toggleBtn.disabled = true;
             const { status, data } = await api('/api/admin/futures-watchlist?action=toggle', {
               method: 'POST',
               body: JSON.stringify({ code: it.code, enabled: next }),
             });
+            toggleBtn.disabled = false;
             if (status === 200 && data.ok) {
               setMsg(`${it.name || it.code} 已${next ? '启用' : '停用'}`, true);
               render(data.items || []);
@@ -140,12 +199,19 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
               setMsg(data.error || '切换失败', false);
             }
           });
-          li.querySelector('.del-btn').addEventListener('click', async () => {
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'text-btn danger';
+          delBtn.textContent = '删除';
+          delBtn.addEventListener('click', async () => {
             if (!confirm(`确认删除「${it.name || it.code}」？删除后从名单移除。`)) return;
+            delBtn.disabled = true;
             const { status, data } = await api('/api/admin/futures-watchlist?action=delete', {
               method: 'POST',
               body: JSON.stringify({ code: it.code }),
             });
+            delBtn.disabled = false;
             if (status === 200 && data.ok) {
               setMsg(`已删除 ${it.name || it.code}`, true);
               render(data.items || []);
@@ -153,7 +219,9 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
               setMsg(data.error || '删除失败', false);
             }
           });
-          listEl.appendChild(li);
+
+          actions.append(toggleBtn, delBtn);
+          tbody.appendChild(tr);
         }
       }
 
@@ -161,7 +229,6 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
         const { status, data } = await api('/api/admin/futures-watchlist');
         if (status === 200 && data.ok) {
           render(data.items || []);
-          setMsg('', true);
           return true;
         }
         setMsg(data.error || '加载失败', false);
@@ -177,6 +244,8 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
         }
         loginBox.hidden = true;
         panel.hidden = false;
+        const role = me.data.role === 'super_admin' ? '超级管理员' : '管理员';
+        $('fm-role').textContent = role;
         await loadList();
       }
 
@@ -196,6 +265,8 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
           return;
         }
         const continuous = `${code}0`;
+        const submit = $('fm-submit');
+        submit.disabled = true;
         const body = {
           code,
           continuous,
@@ -211,6 +282,7 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
           method: 'POST',
           body: JSON.stringify(body),
         });
+        submit.disabled = false;
         if (status === 200 && data.ok) {
           setMsg(`已添加 ${name}`, true);
           $('fm-name').value = '';
@@ -226,52 +298,165 @@ const description = '管理期货罗盘监控标的：查看名称、交易所�
     })();
   </script>
 
-  <style>
+  <style is:global>
+    .fm-body {
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 420px at 12% -10%, rgba(37, 99, 235, .10), transparent 60%),
+        radial-gradient(900px 360px at 90% 0%, rgba(14, 165, 233, .08), transparent 55%),
+        #f6f8fc;
+    }
     .fm-main { padding: 2.2rem 0 4rem; }
-    .fm-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1.1rem; }
-    .page-kicker { margin: 0 0 .35rem; color: #64748b; font-size: .72rem; font-weight: 800; letter-spacing: .08em; }
-    .fm-heading h1 { margin: 0; font-size: 1.7rem; }
-    .fm-heading p { margin: .4rem 0 0; color: #64748b; font-size: .9rem; }
-    .fm-links { display: flex; gap: .5rem; flex-wrap: wrap; }
-    .fm-links a { border-radius: 999px; padding: .45rem .8rem; font-size: .75rem; font-weight: 850; text-decoration: none; color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.35rem; }
+    .page-kicker, .section-kicker { margin: 0 0 .35rem; color: #2563eb; font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+    .page-heading h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+    .page-heading > div > p:last-child { margin: .45rem 0 0; color: #64748b; font-size: .88rem; }
+    .admin-identity { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+    .admin-identity a, .role-badge { border-radius: 999px; padding: .45rem .75rem; font-size: .75rem; font-weight: 850; text-decoration: none; }
+    .admin-identity a { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+    .role-badge { color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; }
 
-    .auth-required { max-width: 420px; margin: 2rem auto; padding: 2rem 1.4rem; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
-    .auth-required .auth-icon { font-size: 1.6rem; }
-    .auth-required a { display: inline-block; margin-top: .8rem; color: #1d4ed8; font-weight: 800; }
+    .auth-required { max-width: 440px; margin: 3rem auto; padding: 2rem; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; box-shadow: 0 16px 40px rgba(15, 23, 42, .05); }
+    .auth-icon { font-size: 1.6rem; }
+    .auth-required h2 { margin: .75rem 0 .4rem; }
+    .auth-required p { color: #64748b; }
+    .auth-required a { display: inline-block; margin-top: .5rem; padding: .6rem 1rem; color: #fff; background: #2563eb; border-radius: 999px; text-decoration: none; font-weight: 800; }
 
-    .fm-panel { display: grid; gap: .9rem; max-width: 720px; }
-    .fm-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 1.1rem 1.15rem 1.2rem; }
-    .fm-card-head { display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start; margin-bottom: .8rem; }
-    .fm-card-head h2 { margin: 0; font-size: 1.05rem; }
-    .fm-card-head p { margin: .3rem 0 0; color: #64748b; font-size: .78rem; }
+    .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: .9rem; }
+    .stat-card { display: grid; gap: .28rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, .03); }
+    .stat-card span, .stat-card small { color: #64748b; font-size: .72rem; font-weight: 700; }
+    .stat-card strong { color: #0f172a; font-size: 1.55rem; line-height: 1; }
+    .stat-card.active { background: #eff6ff; border-color: #bfdbfe; }
+    .stat-card.active strong { color: #1d4ed8; }
 
-    .fm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
-    .fm-item { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .85rem .95rem; border: 1px solid #eef2f7; border-radius: 12px; background: #fafcff; }
-    .fm-item.muted { opacity: .55; }
-    .fm-meta { display: grid; gap: .18rem; min-width: 0; }
-    .fm-meta strong { font-size: .98rem; color: #0f172a; }
-    .fm-meta span { color: #64748b; font-size: .82rem; }
-    .fm-actions { display: flex; gap: .4rem; flex-shrink: 0; }
-    .toggle-btn, .del-btn { border-radius: 999px; padding: .4rem .85rem; font-size: .78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
-    .toggle-btn { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; }
-    .toggle-btn:hover { background: #dbeafe; }
-    .del-btn { border: 1px solid #fecaca; background: #fff1f2; color: #b91c1c; }
-    .del-btn:hover { background: #ffe4e6; }
-    .fm-empty { margin: .4rem 0 0; color: #94a3b8; font-size: .85rem; }
-    .fm-msg { min-height: 1.1rem; margin: .7rem 0 0; font-size: .78rem; color: #64748b; }
-    .fm-msg.ok { color: #15803d; }
-    .fm-msg.error { color: #b91c1c; }
+    .fm-layout { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.65fr); gap: .9rem; align-items: start; }
+    .create-card, .list-card {
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid #e6ebf2;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .05);
+    }
+    .create-card { position: sticky; top: 5.3rem; padding: 1.25rem; }
+    .section-heading h2, .list-heading h2 { margin: 0; font-size: 1.1rem; }
+    .create-form { display: grid; gap: .8rem; margin-top: 1rem; }
+    .field { display: grid; gap: .38rem; }
+    .field > span { color: #334155; font-size: .75rem; font-weight: 800; }
+    .field input {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 42px;
+      padding: .62rem .75rem;
+      color: #0f172a;
+      background: #fff;
+      border: 1px solid #dbe2ea;
+      border-radius: 10px;
+      outline: none;
+      font: inherit;
+      font-size: .82rem;
+    }
+    .field input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+    .primary-btn {
+      min-height: 43px;
+      padding: .65rem 1rem;
+      color: #fff;
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      border: 0;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .primary-btn:hover { filter: brightness(1.05); }
+    .primary-btn:disabled { opacity: .6; cursor: wait; }
+    .form-hint { margin: -.2rem 0 0; color: #94a3b8; font-size: .68rem; line-height: 1.5; }
+    .admin-msg { margin: .75rem 0 0; font-size: .75rem; min-height: 1.1rem; color: #64748b; }
+    .admin-msg.ok { color: #15803d; }
+    .admin-msg.error { color: #b91c1c; }
 
-    .fm-form { display: grid; grid-template-columns: 1.2fr 1fr .7fr auto; gap: .65rem; align-items: end; }
-    .field { display: grid; gap: .28rem; font-size: .75rem; color: #64748b; font-weight: 700; }
-    .field input { height: 2.5rem; border: 1px solid #dbe3ee; border-radius: 10px; padding: 0 .75rem; font-size: .9rem; color: #0f172a; }
-    .primary-btn { height: 2.5rem; border: 0; border-radius: 10px; background: #1d4ed8; color: #fff; font-weight: 800; padding: 0 1rem; cursor: pointer; }
-    .ghost-btn { border: 1px solid #dbeafe; background: #eff6ff; color: #1d4ed8; border-radius: 999px; padding: .45rem .8rem; font-weight: 800; cursor: pointer; }
+    .list-card { min-width: 0; overflow: hidden; }
+    .list-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.15rem 1.2rem;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .list-tools { display: flex; gap: .45rem; }
+    .ghost-btn {
+      border: 1px solid #dbeafe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 999px;
+      padding: .45rem .8rem;
+      font-size: .75rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .table-wrap { overflow-x: auto; }
+    .admin-table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: .78rem; }
+    .admin-table th {
+      padding: .7rem .8rem;
+      color: #64748b;
+      background: #f8fafc;
+      font-size: .66rem;
+      letter-spacing: .03em;
+      text-align: left;
+    }
+    .admin-table td { padding: .8rem; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+    .admin-table tbody tr:hover { background: #fafcff; }
+    .row-muted { opacity: .58; }
+    .user-cell { display: flex; align-items: center; gap: .65rem; min-width: 140px; }
+    .table-avatar {
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      background: #eff6ff;
+      border-radius: 10px;
+    }
+    .user-cell > div { display: grid; gap: .15rem; }
+    .user-cell strong { font-size: .82rem; color: #0f172a; }
+    .user-cell small { color: #94a3b8; font-size: .68rem; }
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: .28rem .52rem;
+      font-size: .66rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .status-tag.active { color: #15803d; background: #dcfce7; }
+    .status-tag.revoked { color: #64748b; background: #f1f5f9; }
+    .actions-cell { display: flex; gap: .3rem; white-space: nowrap; }
+    .text-btn {
+      padding: .34rem .52rem;
+      color: #1d4ed8;
+      background: transparent;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: .68rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .text-btn:hover { background: #eff6ff; }
+    .text-btn.danger { color: #b91c1c; border-color: #fecaca; }
+    .text-btn.danger:hover { background: #fef2f2; }
+    .text-btn:disabled { opacity: .55; cursor: wait; }
+    .empty-state { padding: 3rem 1rem; text-align: center; color: #64748b; }
+    .empty-state span { display: block; font-size: 1.5rem; }
+    .empty-state strong { display: block; margin: .45rem 0 .2rem; color: #0f172a; }
 
-    @media (max-width: 760px) {
+    @media (max-width: 900px) {
+      .overview-grid { grid-template-columns: 1fr; }
+      .fm-layout { grid-template-columns: 1fr; }
+      .create-card { position: static; }
+    }
+    @media (max-width: 640px) {
       .fm-main { padding: 1.25rem 0 3rem; }
-      .fm-heading { flex-direction: column; }
-      .fm-form { grid-template-columns: 1fr; }
+      .page-heading { align-items: flex-start; flex-direction: column; }
+      .admin-table { min-width: 460px; }
     }
   </style>
 </body>
