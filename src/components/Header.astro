@@ -37,6 +37,7 @@ const isHome = Astro.url.pathname === '/';
             </div>
             <a href="/account/" class="user-item" role="menuitem"><span class="menu-icon">👤</span> 个人信息</a>
             <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden><span class="menu-icon">🛠</span> 账号开通</a>
+            <a href="/admin/futures/" class="user-item admin-only" id="user-futures-admin-link" role="menuitem" hidden><span class="menu-icon">📈</span> 期货管理</a>
             <button type="button" class="user-item" id="user-logout" role="menuitem"><span class="menu-icon">🚪</span> 退出登录</button>
           </div>
         </div>
@@ -56,6 +57,7 @@ const isHome = Astro.url.pathname === '/';
     const roleEl = document.getElementById('user-role');
     const subEl = document.getElementById('user-sub');
     const adminLink = document.getElementById('user-admin-link');
+    const futuresAdminLink = document.getElementById('user-futures-admin-link');
     const avatarEl = document.getElementById('user-avatar');
 
     // 若在登录页/管理页则不干扰页面内逻辑
@@ -75,6 +77,7 @@ const isHome = Astro.url.pathname === '/';
           subEl.textContent = '管理后台';
           avatarEl.textContent = '🛠';
           adminLink.hidden = false;
+          if (futuresAdminLink) futuresAdminLink.hidden = false;
         } else {
           // 有账号密码的订阅 = VIP 用户；纯密码订阅 = 订阅用户
           const roleName = d.vip ? 'VIP用户' : '订阅用户';
@@ -83,6 +86,7 @@ const isHome = Astro.url.pathname === '/';
           subEl.textContent = `${d.label || ''} · 订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/5`;
           avatarEl.textContent = d.vip ? '💎' : '👤';
           adminLink.hidden = true;
+          if (futuresAdminLink) futuresAdminLink.hidden = true;
         }
       })
       .catch(() => {});

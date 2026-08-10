@@ -1,0 +1,256 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+
+const title = `期货管理 | ${SITE_TITLE}`;
+const description = '管理期货罗盘监控标的：查看名称、交易所，支持删除与新增。';
+---
+<BaseHead title={title} description={description} />
+<body>
+  <Header />
+  <main class="fm-main site-shell">
+    <header class="fm-heading">
+      <div>
+        <p class="page-kicker">FUTURES ADMIN</p>
+        <h1>期货管理</h1>
+        <p>管理期货罗盘监控标的。列表只显示名称和交易所。</p>
+      </div>
+      <div class="fm-links">
+        <a href="/admin/">账号开通</a>
+        <a href="/futures-compass/">期货罗盘</a>
+      </div>
+    </header>
+
+    <section class="auth-required" id="fm-login" hidden>
+      <div class="auth-icon">🔒</div>
+      <h2>需要管理员权限</h2>
+      <p>请先登录管理员账号后再管理期货标的。</p>
+      <a href="/login/?next=%2Fadmin%2Ffutures%2F">前往登录</a>
+    </section>
+
+    <section class="fm-panel" id="fm-panel" hidden>
+      <div class="fm-card">
+        <div class="fm-card-head">
+          <div>
+            <h2>当前标的</h2>
+            <p id="fm-count">共 0 个</p>
+          </div>
+          <button type="button" class="ghost-btn" id="fm-refresh">刷新</button>
+        </div>
+
+        <ul class="fm-list" id="fm-list"></ul>
+        <p class="fm-empty" id="fm-empty" hidden>暂无标的</p>
+        <p class="fm-msg" id="fm-msg" role="status"></p>
+      </div>
+
+      <div class="fm-card">
+        <div class="fm-card-head">
+          <div>
+            <h2>新增标的</h2>
+            <p>只需填写名称；代码/交易所可选，系统会补全连续合约与 Edge 符号。</p>
+          </div>
+        </div>
+        <form id="fm-form" class="fm-form" novalidate>
+          <label class="field">
+            <span>名称</span>
+            <input id="fm-name" placeholder="例如：焦煤" required />
+          </label>
+          <label class="field">
+            <span>交易所</span>
+            <input id="fm-exchange" placeholder="例如：大商所" />
+          </label>
+          <label class="field">
+            <span>代码（可选）</span>
+            <input id="fm-code" placeholder="例如：JM" maxlength="4" />
+          </label>
+          <button class="primary-btn" type="submit">添加</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <Footer />
+
+  <script is:inline>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const loginBox = $('fm-login');
+      const panel = $('fm-panel');
+      const listEl = $('fm-list');
+      const emptyEl = $('fm-empty');
+      const countEl = $('fm-count');
+      const msgEl = $('fm-msg');
+
+      async function api(url, opts = {}) {
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+          ...opts,
+        });
+        let data = {};
+        try { data = await res.json(); } catch {}
+        return { status: res.status, data };
+      }
+
+      function setMsg(text, ok) {
+        if (!msgEl) return;
+        msgEl.textContent = text || '';
+        msgEl.className = 'fm-msg' + (text ? (ok ? ' ok' : ' error') : '');
+      }
+
+      function guessCodeFromName(name) {
+        const map = {
+          '碳酸锂': 'LC', '多晶硅': 'PS', '工业硅': 'SI', '黄金': 'AU', '白银': 'AG',
+          '沪铜': 'CU', '铜': 'CU', '沪铝': 'AL', '铝': 'AL', '原油': 'SC',
+          '生猪': 'LH', '猪肉': 'LH', '焦煤': 'JM', '焦炭': 'J',
+        };
+        return map[name] || '';
+      }
+
+      function render(items) {
+        const rows = items || [];
+        listEl.innerHTML = '';
+        countEl.textContent = `共 ${rows.length} 个`;
+        emptyEl.hidden = rows.length > 0;
+        for (const it of rows) {
+          const li = document.createElement('li');
+          li.className = 'fm-item' + (it.enabled ? '' : ' muted');
+          li.innerHTML = `
+            <div class="fm-meta">
+              <strong>${it.name || it.code}</strong>
+              <span>${it.exchange || '—'}</span>
+            </div>
+            <button type="button" class="del-btn">删除</button>
+          `;
+          li.querySelector('.del-btn').addEventListener('click', async () => {
+            if (!confirm(`确认删除「${it.name || it.code}」？`)) return;
+            const { status, data } = await api('/api/admin/futures-watchlist?action=delete', {
+              method: 'POST',
+              body: JSON.stringify({ code: it.code }),
+            });
+            if (status === 200 && data.ok) {
+              setMsg(`已删除 ${it.name || it.code}`, true);
+              render(data.items || []);
+            } else {
+              setMsg(data.error || '删除失败', false);
+            }
+          });
+          listEl.appendChild(li);
+        }
+      }
+
+      async function loadList() {
+        const { status, data } = await api('/api/admin/futures-watchlist');
+        if (status === 200 && data.ok) {
+          render(data.items || []);
+          setMsg('', true);
+          return true;
+        }
+        setMsg(data.error || '加载失败', false);
+        return false;
+      }
+
+      async function boot() {
+        const me = await api('/api/admin/me');
+        if (me.status !== 200 || !me.data?.ok) {
+          loginBox.hidden = false;
+          panel.hidden = true;
+          return;
+        }
+        loginBox.hidden = true;
+        panel.hidden = false;
+        await loadList();
+      }
+
+      $('fm-refresh')?.addEventListener('click', () => loadList());
+      $('fm-form')?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const name = $('fm-name').value.trim();
+        const exchange = $('fm-exchange').value.trim() || '未知交易所';
+        let code = $('fm-code').value.trim().toUpperCase();
+        if (!name) {
+          setMsg('请填写名称', false);
+          return;
+        }
+        if (!code) code = guessCodeFromName(name);
+        if (!code) {
+          setMsg('无法从名称推断代码，请填写代码（如 JM）', false);
+          return;
+        }
+        const continuous = `${code}0`;
+        const body = {
+          code,
+          continuous,
+          name,
+          exchange,
+          unit: '元/吨',
+          tick: 1,
+          edge_symbol: `nf_${continuous}`,
+          sort_order: 999,
+          enabled: 1,
+        };
+        const { status, data } = await api('/api/admin/futures-watchlist', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        if (status === 200 && data.ok) {
+          setMsg(`已添加 ${name}`, true);
+          $('fm-name').value = '';
+          $('fm-exchange').value = '';
+          $('fm-code').value = '';
+          render(data.items || []);
+        } else {
+          setMsg(data.error || '添加失败', false);
+        }
+      });
+
+      boot();
+    })();
+  </script>
+
+  <style>
+    .fm-main { padding: 2.2rem 0 4rem; }
+    .fm-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1.1rem; }
+    .page-kicker { margin: 0 0 .35rem; color: #64748b; font-size: .72rem; font-weight: 800; letter-spacing: .08em; }
+    .fm-heading h1 { margin: 0; font-size: 1.7rem; }
+    .fm-heading p { margin: .4rem 0 0; color: #64748b; font-size: .9rem; }
+    .fm-links { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .fm-links a { border-radius: 999px; padding: .45rem .8rem; font-size: .75rem; font-weight: 850; text-decoration: none; color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+
+    .auth-required { max-width: 420px; margin: 2rem auto; padding: 2rem 1.4rem; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
+    .auth-required .auth-icon { font-size: 1.6rem; }
+    .auth-required a { display: inline-block; margin-top: .8rem; color: #1d4ed8; font-weight: 800; }
+
+    .fm-panel { display: grid; gap: .9rem; max-width: 720px; }
+    .fm-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 1.1rem 1.15rem 1.2rem; }
+    .fm-card-head { display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start; margin-bottom: .8rem; }
+    .fm-card-head h2 { margin: 0; font-size: 1.05rem; }
+    .fm-card-head p { margin: .3rem 0 0; color: #64748b; font-size: .78rem; }
+
+    .fm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+    .fm-item { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .85rem .95rem; border: 1px solid #eef2f7; border-radius: 12px; background: #fafcff; }
+    .fm-item.muted { opacity: .55; }
+    .fm-meta { display: grid; gap: .18rem; min-width: 0; }
+    .fm-meta strong { font-size: .98rem; color: #0f172a; }
+    .fm-meta span { color: #64748b; font-size: .82rem; }
+    .del-btn { border: 1px solid #fecaca; background: #fff1f2; color: #b91c1c; border-radius: 999px; padding: .4rem .85rem; font-size: .78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .del-btn:hover { background: #ffe4e6; }
+    .fm-empty { margin: .4rem 0 0; color: #94a3b8; font-size: .85rem; }
+    .fm-msg { min-height: 1.1rem; margin: .7rem 0 0; font-size: .78rem; color: #64748b; }
+    .fm-msg.ok { color: #15803d; }
+    .fm-msg.error { color: #b91c1c; }
+
+    .fm-form { display: grid; grid-template-columns: 1.2fr 1fr .7fr auto; gap: .65rem; align-items: end; }
+    .field { display: grid; gap: .28rem; font-size: .75rem; color: #64748b; font-weight: 700; }
+    .field input { height: 2.5rem; border: 1px solid #dbe3ee; border-radius: 10px; padding: 0 .75rem; font-size: .9rem; color: #0f172a; }
+    .primary-btn { height: 2.5rem; border: 0; border-radius: 10px; background: #1d4ed8; color: #fff; font-weight: 800; padding: 0 1rem; cursor: pointer; }
+    .ghost-btn { border: 1px solid #dbeafe; background: #eff6ff; color: #1d4ed8; border-radius: 999px; padding: .45rem .8rem; font-weight: 800; cursor: pointer; }
+
+    @media (max-width: 760px) {
+      .fm-main { padding: 1.25rem 0 3rem; }
+      .fm-heading { flex-direction: column; }
+      .fm-form { grid-template-columns: 1fr; }
+    }
+  </style>
+</body>
