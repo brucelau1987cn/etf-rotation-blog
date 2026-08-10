@@ -280,10 +280,10 @@ def verify_production(
             audit = json.loads(bodies["public/data/model-lab/a-share-research-audit.json"])
             recommendations = json.loads(bodies["public/data/garden-recommendations.json"])
             marker = json.loads(bodies["public/data/a-share-nightly-deployment.json"])
-            lab_request = urllib.request.Request(f"{base}/lab/?deploy={stamp}", headers=headers)
+            lab_request = urllib.request.Request(f"{base}/research-framework/?deploy={stamp}", headers=headers)
             with urllib.request.urlopen(lab_request, timeout=20) as response:
                 if response.headers.get_content_type() != "text/html":
-                    raise RuntimeError("unexpected content type for /lab/")
+                    raise RuntimeError("unexpected content type for /research-framework/")
                 security_headers = {
                     "content-security-policy": response.headers.get("Content-Security-Policy", ""),
                     "strict-transport-security": response.headers.get("Strict-Transport-Security", ""),
@@ -305,7 +305,7 @@ def verify_production(
                 and recommendations.get("stage") == "22:00夜间最终版"
                 and marker.get("generation_id") == generation_id
                 and marker.get("trade_date") == trade_date
-                and "研究审计台" in lab_html
+                and "投资研究框架" in lab_html
             ):
                 return
             error = "production content hashes, generation marker, or batch identity differ from candidate"
