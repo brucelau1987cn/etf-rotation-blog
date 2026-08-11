@@ -48,12 +48,18 @@
   };
 
   // ── CME ──────────────────────────────────────────────
-  const renderCme = (d) => {
-    if (!d.ok) { setTag('cme-tag', '不可用', 'down'); setStatus('cme-status', `CME 反爬限制，数据暂不可用`); return; }
-    setTag('cme-tag', '已连接');
-    document.getElementById('cme-kpis').innerHTML = `<div class="inv-kpi" style="grid-column:span 2"><span>数据源状态</span><strong>${d.status} · ${(d.bodyLength || 0).toLocaleString()}B</strong></div>`;
-    setStatus('cme-status', `来源 URL：${d.url || ''}`);
-  };
+    const renderCme = (d) => {
+      if (!d.ok) { setTag('cme-tag', '不可用', 'down'); setStatus('cme-status', `CME 数据暂不可用`); return; }
+      const g = d.gold, s = d.silver;
+      setTag('cme-tag', `更新 ${d.date || ''}`);
+      document.getElementById('cme-kpis').innerHTML = [
+        `<div class="inv-kpi"><span>黄金 Registered</span><strong>${g.registered}<small>oz</small></strong></div>`,
+        `<div class="inv-kpi"><span>黄金 Eligible</span><strong>${g.eligible}<small>oz</small></strong></div>`,
+        `<div class="inv-kpi"><span>白银 Registered</span><strong>${s.registered}<small>oz</small></strong></div>`,
+        `<div class="inv-kpi"><span>白银 Eligible</span><strong>${s.eligible}<small>oz</small></strong></div>`,
+      ].join('');
+      setStatus('cme-status', `${d.note || ''} · 数据 ${d.date || ''}`);
+    };
 
   // ── FRED ─────────────────────────────────────────────
   const renderFred = (d) => {

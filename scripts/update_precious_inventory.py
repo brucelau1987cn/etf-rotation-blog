@@ -148,9 +148,68 @@ def fetch_real_yield():
     except Exception as e:
         return {'ok': False, 'source': 'fred', 'error': str(e)}
 
-# ─── 4. CME COMEX 库存（占位） ─────────────────────────
+# ─── 4. CME COMEX 库存 — 从 thevaultreport.com 解析 ──
 def fetch_cme():
-    return {'ok': False, 'source': 'cme', 'error': '待接入替代源'}
+    try:
+        url = 'https://thevaultreport.com/comex'
+        html = fetch(url, ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        # 解析黄金/白银 registered + total
+        # 黄金: 14.19M oz (金色 #D4A017, text-3xl) | Total 26.60M oz
+        # 白银: 99.70M oz (text-3xl) | Total 333.97M oz
+        gold_reg = 0
+        gold_total = 0
+        silver_reg = 0
+        silver_total = 0
+
+        # 找所有大数字
+        big_nums = re.findall(r'text-3xl font-black tabular-nums[^>]*>([\d.]+M oz)', html)
+        # 找所有 total 数字
+        totals = re.findall(r'Total</p>.*?<p[^>]*>([\d.]+M oz)', html, re.DOTALL)
+
+        if big_nums:
+            gold_reg = parse_moz(big_nums[0])  # 14.19M oz (gold)
+            silver_reg = parse_moz(big_nums[1]) if len(big_nums) > 1 else 0  # 99.70M oz (silver)
+        if len(totals) >= 2:
+            gold_total = parse_moz(totals[0])  # 26.60M
+            silver_total = parse_moz(totals[1])  # 333.97M
+        elif len(totals) == 1:
+            gold_total = parse_moz(totals[0])
+
+        gold_eligible = round(gold_total - gold_reg, 2) if gold_total > gold_reg else 0
+        silver_eligible = round(silver_total - silver_reg, 2) if silver_total > silver_reg else 0
+
+        # 更新日期
+        date_match = re.search(r'as of (\w+ \d+, 202\d)', html)
+        cme_date = date_match.group(1) if date_match else 'unknown'
+
+        if gold_reg > 0 or silver_reg > 0:
+            return {
+                'ok': True,
+                'source': 'cme',
+                'date': cme_date,
+                'gold': {
+                    'registered': f'{gold_reg}M oz',
+                    'eligible': f'{gold_eligible}M oz',
+                    'total': f'{gold_total}M oz',
+                    'registeredOz': gold_reg * 1_000_000,
+                    'totalOz': gold_total * 1_000_000,
+                },
+                'silver': {
+                    'registered': f'{silver_reg}M oz',
+                    'eligible': f'{silver_eligible}M oz',
+                    'total': f'{silver_total}M oz',
+                    'registeredOz': silver_reg * 1_000_000,
+                    'totalOz': silver_total * 1_000_000,
+                },
+                'note': 'Registered = 可交割（已注册仓单）；Eligible = 可注册（未注册仓单）',
+            }
+        return {'ok': False, 'source': 'cme', 'error': 'parse failed'}
+    except Exception as e:
+        return {'ok': False, 'source': 'cme', 'error': str(e)}
+
+def parse_moz(s):
+    s = s.strip().replace('M oz', '').replace('Moz', '')
+    return float(s)
 
 # ─── 5. Kitco 租赁利率（占位） ─────────────────────────
 def fetch_kitco():
