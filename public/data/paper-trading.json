@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-11T07:10:10.497950+00:00",
+  "updated_at": "2026-08-11T22:50:32.107091+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -189,7 +189,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 14515.471010382815,
+      "cash": 16455.439966530277,
       "positions": {
         "XLP": {
           "symbol": "XLP",
@@ -204,22 +204,7 @@
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
           "signal_level": 84.7,
-          "last_price": 84.94999694824219
-        },
-        "XLRE": {
-          "symbol": "XLRE",
-          "name": "Real Estate Select Sector",
-          "quantity": 44,
-          "entry_price": 44.97999954223633,
-          "entry_cost": 1.98956,
-          "entry_at": "2026-07-31T13:35:02.575750+00:00",
-          "target": 46.17,
-          "stop": 44.14,
-          "level_basis": null,
-          "signal_date": "2026-07-30",
-          "signal_kind": "plant",
-          "signal_level": 45.03,
-          "last_price": 44.400001525878906
+          "last_price": 84.69000244140625
         },
         "IBIT": {
           "symbol": "IBIT",
@@ -234,17 +219,17 @@
           "signal_date": "2026-08-04",
           "signal_kind": "plant",
           "signal_level": 36.37,
-          "last_price": 36.22999954223633
+          "last_price": 35.939998626708984
         }
       },
-      "equity": 20415.570982,
-      "realized_pnl": 437.7440324951172,
-      "unrealized_pnl": -22.17305,
-      "daily_return": 0.00372384,
-      "cumulative_return": 0.02077855,
-      "max_drawdown": 0.0,
+      "equity": 20380.009947,
+      "realized_pnl": 396.6034487841797,
+      "unrealized_pnl": -16.593502,
+      "daily_return": -0.00174186,
+      "cumulative_return": 0.0190005,
+      "max_drawdown": -0.00174186,
       "peak_equity": 20415.570982154055,
-      "cash_ratio": 0.711,
+      "cash_ratio": 0.80743042,
       "history": [
         {
           "date": "2026-08-04",
@@ -269,6 +254,14 @@
           "daily_return": 0.00372384,
           "cumulative_return": 0.02077855,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-08-11",
+          "equity": 20380.009947,
+          "cash": 16455.439967,
+          "daily_return": -0.00174186,
+          "cumulative_return": 0.0190005,
+          "max_drawdown": -0.00174186
         }
       ],
       "events": [
@@ -729,6 +722,26 @@
           "entry_cost": 2.009662,
           "target": 60.09,
           "stop": 56.42
+        },
+        {
+          "id": "US:XLRE:sell:1786460430:stop",
+          "timestamp": "2026-08-11T15:00:18.480908+00:00",
+          "market": "US",
+          "symbol": "XLRE",
+          "name": "Real Estate Select Sector",
+          "side": "sell",
+          "quantity": 44,
+          "price": 44.134998,
+          "cost": 1.97097,
+          "reason": "stop",
+          "signal_date": "2026-07-30",
+          "signal_kind": "plant",
+          "signal_level": 45.03,
+          "entry_at": "2026-07-31T13:35:02.575750+00:00",
+          "entry_price": 44.97999954223633,
+          "entry_cost": 1.98956,
+          "target": 46.17,
+          "stop": 44.14
         }
       ],
       "pending_signals": [],
