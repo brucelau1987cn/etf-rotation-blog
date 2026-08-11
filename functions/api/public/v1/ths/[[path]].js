@@ -220,7 +220,30 @@ export async function onRequestGet({ request }) {
       return jsonOk({ source: 'dict.hexin.cn', q, count: rows.length, list: rows }, TTL.search);
     }
 
-    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search', 404);
+    // ── stock-signal：主力意图信号（apigate.10jqka.com.cn，无鉴权；8/6 起数据源停更）──
+    if (sub === 'stock-signal') {
+      const code = p('code', '002026');
+      if (!CODE_RE.test(code)) return jsonErr('bad code', 400);
+      const url = `https://apigate.10jqka.com.cn/d/charge/eachtradedata/marketing/v1/stock_signal?stock_code=${encodeURIComponent(code)}&has_auth=false`;
+      const { status, text } = await proxyFetch(url);
+      if (status !== 200) return jsonErr(`upstream ${status}`, 502);
+      const body = jsonParse(text);
+      if (!body || body.status_code !== 0) return jsonErr('upstream error', 502);
+      const rows = body.data ?? [];
+      // 汇总统计（非 null 的意图分布 + 最近有效日）
+      const valid = rows.filter((r) => r.main_intention !== null);
+      const lastValid = valid.length ? valid[valid.length - 1] : null;
+      return jsonOk({
+        source: 'apigate.10jqka.com.cn',
+        code,
+        count: rows.length,
+        last_valid_date: lastValid?.trade_date ?? null,
+        last_main_intention: lastValid?.main_intention ?? null,
+        data: rows,
+      }, 300);
+    }
+
+    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search|stock-signal', 404);
   } catch (e) {
     return jsonErr(`internal: ${e && e.message || e}`, 500);
   }
