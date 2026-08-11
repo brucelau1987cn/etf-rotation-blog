@@ -243,7 +243,34 @@ export async function onRequestGet({ request }) {
       }, 300);
     }
 
-    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search|stock-signal', 404);
+    // ── mainflow：主力持仓成本/获利盘（l2.10jqka.com.cn，无鉴权，实时）──
+    if (sub === 'mainflow') {
+      const code = p('code', '002026');
+      const market = p('market', '33'); // 33=深 17=沪
+      if (!CODE_RE.test(code)) return jsonErr('bad code', 400);
+      if (!['17', '33'].includes(market)) return jsonErr('market must be 17(沪)/33(深)', 400);
+      const url = `https://l2.10jqka.com.cn/eachtradedata/capital/mainflow?marketcode=${market}&stock=${encodeURIComponent(code)}`;
+      const { status, text } = await proxyFetch(url);
+      if (status !== 200) return jsonErr(`upstream ${status}`, 502);
+      const body = jsonParse(text);
+      if (!body || body.code !== 0) return jsonErr('upstream error', 502);
+      const d = body.data ?? {};
+      // 派生指标：主力浮盈率、成本距现价
+      const cost = d.mainHoldCostAvgPrice;
+      const close = d.closePrice;
+      const profitPct = (close && cost) ? ((close - cost) / cost * 100) : null;
+      return jsonOk({
+        source: 'l2.10jqka.com.cn', code, market,
+        date: d.date,
+        main_cost: cost != null ? +cost.toFixed(3) : null,          // 主力持仓平均成本
+        main_profit_ratio: d.mainHoldCostProfitRatio != null ? +(d.mainHoldCostProfitRatio * 100).toFixed(2) : null, // 主力获利盘 %
+        close_price: close,
+        main_avg_profit_pct: profitPct != null ? +profitPct.toFixed(2) : null, // 主力平均浮盈 %
+        new40: d.new40,
+      }, 300);
+    }
+
+    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search|stock-signal|mainflow', 404);
   } catch (e) {
     return jsonErr(`internal: ${e && e.message || e}`, 500);
   }
