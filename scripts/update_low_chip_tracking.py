@@ -56,12 +56,23 @@ def load_history_dates() -> dict[str, list[str]]:
 
 
 def tencent_daily(symbol: str, start: str, end: str) -> list[dict]:
-    """Daily qfq bars from Tencent. Returns [{date, close, change_pct}]."""
+    """Daily qfq bars from Tencent. Returns [{date, close, change_pct}].
+
+    Pitfall (2026-08-11): Tencent fqkline multi-day range queries with a concrete
+    end=YYYY-MM-DD often drop the latest session bar (e.g. start=08-05 end=08-11
+    returns only through 08-10; even end=08-12 can still miss 08-11 for some
+    symbols). Reliable ways to include today:
+      - leave end empty: day,{start},,{count},qfq
+      - or request a larger open-ended window and clip client-side
+    We query with empty end, then clip to the requested [start, end] window.
+    """
     code = symbol.split(".")[0]
     ex = "sh" if symbol.endswith(".SH") else "sz"
+    # Empty end is required for latest-bar inclusion; count caps payload size.
+    # 640 keeps full history since first_seen for any reasonable tracking window.
     url = (
         f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
-        f"param={ex}{code},day,{start},{end},640,qfq"
+        f"param={ex}{code},day,{start},,640,qfq"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -73,6 +84,15 @@ def tencent_daily(symbol: str, start: str, end: str) -> list[dict]:
     for row in kl:
         # [date, open, close, high, low, volume]
         date, _, close, _, _, _ = row[:6]
+        if start and date < start:
+            # Keep prev_close so first in-window change_pct is still correct.
+            try:
+                prev_close = float(close)
+            except (TypeError, ValueError):
+                pass
+            continue
+        if end and date > end:
+            continue
         try:
             close_f = float(close)
         except (TypeError, ValueError):

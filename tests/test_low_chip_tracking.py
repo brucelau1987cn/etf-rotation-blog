@@ -64,4 +64,56 @@ def test_tracking_script_exists():
     assert "MAX_STORED_BARS = MAX_TRACK_BARS + 1" in text
     assert "target_bars = bars[:MAX_STORED_BARS]" in text
     assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
+    # Tencent multi-day range with concrete end=today often drops the latest bar;
+    # empty end in the fqkline param is the reliable form.
+    assert "day,{start},,640,qfq" in text or "day,{start},,640,qfq" in text.replace(" ", "")
+    assert "param={ex}{code},day,{start},,640,qfq" in text
+    assert "if end and date > end:" in text
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True
+
+
+def test_tencent_daily_includes_requested_end_day(monkeypatch):
+    """Regression: end=today must not drop today's bar (Tencent range quirk)."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "scripts" / "update_low_chip_tracking.py"
+    spec = importlib.util.spec_from_file_location("update_low_chip_tracking", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+
+    captured = {}
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+        def read(self):
+            return json.dumps({
+                "code": 0,
+                "data": {
+                    "sh600363": {
+                        "qfqday": [
+                            ["2026-08-10", "21.36", "20.52", "21.55", "20.52", "1"],
+                            ["2026-08-11", "19.27", "20.55", "21.10", "19.22", "1"],
+                            ["2026-08-12", "20.55", "20.60", "20.80", "20.40", "1"],
+                        ]
+                    }
+                }
+            }).encode()
+
+    def fake_urlopen(req, timeout=20):
+        captured["url"] = req.full_url
+        return FakeResp()
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    bars = mod.tencent_daily("600363.SH", "2026-08-10", "2026-08-11")
+    # empty end form: day,start,,640,qfq
+    assert ",day,2026-08-10,,640,qfq" in captured["url"]
+    dates = [b["date"] for b in bars]
+    assert dates == ["2026-08-10", "2026-08-11"]
+    assert bars[-1]["close"] == 20.55
