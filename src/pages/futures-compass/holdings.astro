@@ -7,7 +7,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <BaseHead title="金银持仓｜黄金白银ETF持仓报告 | ETF罗盘" description="黄金与白银ETF每日持仓变动（吨）：总持仓走势、增减持明细与净变化。" />
+  <BaseHead title="金银持仓｜黄金白银库存与利率 | ETF罗盘" description="黄金与白银ETF持仓、交易所库存（上期所/LBMA/COMEX）与实际/租赁利率全景：库存与利率是金银定价的核心观测。"/>
   <style is:global>
     main{width:var(--shell-width);padding:1rem 0 3rem}
     .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:1.15rem}
@@ -48,6 +48,40 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .holdings-net.down{color:var(--accent-dark)}
     .empty{text-align:center;padding:1.5rem;color:rgb(var(--gray));font-size:.78rem}
     .source-note{margin:1.5rem 0 0;color:rgb(var(--gray));font-size:.72rem;line-height:1.55;padding:1rem 0;border-top:1px solid var(--border)}
+    /* ─── 交易所库存 & 利率面板 ─── */
+    .section-title{display:flex;align-items:center;gap:.5rem;margin:2rem 0 .8rem;padding-top:.4rem}
+    .section-title h2{margin:0;font-size:1.15rem}
+    .section-title span{color:var(--accent-dark);font-size:.66rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-soft);padding:.18rem .5rem;border-radius:999px}
+    .inv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem}
+    .inv-panel{padding:1rem;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--box-shadow);border-top:5px solid #f59e0b}
+    .inv-panel.silver-top{border-top-color:#8a8f98}
+    .inv-panel.blue-top{border-top-color:#3b82f6}
+    .inv-panel.green-top{border-top-color:#10b981}
+    .inv-panel .panel-title p{font-size:.68rem}
+    .inv-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin:.7rem 0}
+    .inv-kpi{padding:.55rem .5rem;background:var(--warm-2);border-radius:9px}
+    .inv-kpi span{display:block;color:rgb(var(--gray));font-size:.6rem;font-weight:750}
+    .inv-kpi strong{display:block;margin-top:.1rem;font-size:.92rem;font-variant-numeric:tabular-nums}
+    .inv-kpi strong small{font-size:.6rem;color:rgb(var(--gray));font-weight:750;margin-left:2px}
+    .inv-kpi strong.up{color:var(--green)}
+    .inv-kpi strong.down{color:var(--accent-dark)}
+    .inv-note{color:rgb(var(--gray));font-size:.66rem;line-height:1.5;margin:.4rem 0 0}
+    .inv-status{color:rgb(var(--gray));font-size:.7rem;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)}
+    .rate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
+    .rate-panel{padding:1rem;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--box-shadow);border-top:5px solid #3b82f6}
+    .rate-panel.gold-border{border-top-color:#f59e0b}
+    .rate-big{display:flex;align-items:baseline;gap:.35rem;margin:.6rem 0 .1rem}
+    .rate-big strong{font-size:1.65rem;font-variant-numeric:tabular-nums;line-height:1}
+    .rate-big small{color:rgb(var(--gray));font-size:.72rem;font-weight:750}
+    .rate-change{font-size:.7rem;font-weight:850}
+    .rate-change.up{color:var(--green)}
+    .rate-change.down{color:var(--accent-dark)}
+    .rate-rows{display:grid;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-top:.5rem}
+    .rate-row{display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;font-size:.7rem;border-bottom:1px solid var(--border)}
+    .rate-row:last-child{border-bottom:0}
+    .rate-row span{color:rgb(var(--gray))}
+    .rate-row strong{font-variant-numeric:tabular-nums}
+    @media(max-width:960px){.inv-grid{grid-template-columns:1fr}}
     @media(max-width:820px){.holdings-grid{grid-template-columns:1fr}}
     @media(max-width:680px){
       .page-head{display:block}
@@ -63,11 +97,13 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     <FuturesSubnav active="holdings" />
     <div class="page-head">
       <div>
-        <small>Gold & silver ETF holdings</small>
+        <small>Gold &amp; silver holdings · inventory · rates</small>
         <h1>金银持仓</h1>
-        <p>黄金与白银ETF每日持仓变动（吨）。绿色=增持，红色=减持；净变化为当日变化差值。</p>
+        <p>黄金与白银ETF持仓、交易所库存与利率全景：库存是供需的锚，利率是持有成本——两者共同决定金银定价。</p>
       </div>
     </div>
+
+    <!-- ETF 持仓 -->
     <div class="holdings-grid" id="holdings-grid">
       <section class="holdings-panel gold" aria-label="黄金ETF持仓">
         <div class="panel-top">
@@ -90,9 +126,68 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
         <div class="holdings-list" id="silver-list"></div>
       </section>
     </div>
-    <p class="source-note">来源：金十App ETF持仓报告，经本站 Cloudflare Pages Function 只读代理与短时缓存。数据版权归原始提供方所有。</p>
+
+    <!-- 交易所库存 -->
+    <div class="section-title"><span>INVENTORY</span><h2>交易所库存</h2></div>
+    <div class="inv-grid" id="inv-grid">
+      <section class="inv-panel" aria-label="上期所仓单库存">
+        <div class="panel-top">
+          <div class="panel-title"><h2>上期所 SHFE</h2><p>仓单库存 · 日更</p></div>
+          <span class="asset-tag" id="shfe-tag">加载中…</span>
+        </div>
+        <div class="inv-kpis" id="shfe-kpis"></div>
+        <p class="inv-note">仓单 = 已注册标准仓单，是交割库中的实物库存。黄金1手=1kg，白银1手=15kg。</p>
+        <div class="inv-status" id="shfe-status">加载中…</div>
+      </section>
+      <section class="inv-panel silver-top" aria-label="伦敦金银库存">
+        <div class="panel-top">
+          <div class="panel-title"><h2>伦敦 LBMA</h2><p>London Vault · 月更</p></div>
+          <span class="asset-tag" id="lbma-tag">加载中…</span>
+        </div>
+        <div class="inv-kpis" id="lbma-kpis"></div>
+        <p class="inv-note">伦敦金库黄金/白银实物库存，全球批发市场定价基准。</p>
+        <div class="inv-status" id="lbma-status">加载中…</div>
+      </section>
+      <section class="inv-panel blue-top" aria-label="COMEX库存">
+        <div class="panel-top">
+          <div class="panel-title"><h2>COMEX CME</h2><p>Registered / Eligible · 日更</p></div>
+          <span class="asset-tag" id="cme-tag">加载中…</span>
+        </div>
+        <div class="inv-kpis" id="cme-kpis"></div>
+        <p class="inv-note">COMEX金库黄金/白银库存：Registered（可交割）+ Eligible（可注册）。</p>
+        <div class="inv-status" id="cme-status">加载中…</div>
+      </section>
+    </div>
+
+    <!-- 利率环境 -->
+    <div class="section-title"><span>RATES</span><h2>利率环境</h2></div>
+    <div class="rate-grid" id="rate-grid">
+      <section class="rate-panel" aria-label="实际利率">
+        <div class="panel-top">
+          <div class="panel-title"><h2>实际利率</h2><p>10年期TIPS收益率 · 日更</p></div>
+          <span class="asset-tag" id="fred-tag">加载中…</span>
+        </div>
+        <div class="rate-big" id="fred-big"></div>
+        <p class="inv-note">实际利率 = 名义利率 − 通胀预期。实际利率上升压制金银（持有成本上升），下降利多金银。</p>
+        <div class="rate-rows" id="fred-rows"></div>
+        <div class="inv-status" id="fred-status">加载中…</div>
+      </section>
+      <section class="rate-panel gold-border" aria-label="租赁利率">
+        <div class="panel-top">
+          <div class="panel-title"><h2>租赁利率</h2><p>黄金/白银 Lease Rate · 日更</p></div>
+          <span class="asset-tag" id="kitco-tag">加载中…</span>
+        </div>
+        <div class="rate-big" id="kitco-big"></div>
+        <p class="inv-note">租赁利率 = 借出实物金银的利率，反映市场实物供需紧张程度。利率飙升 = 实物紧缺。</p>
+        <div class="rate-rows" id="kitco-rows"></div>
+        <div class="inv-status" id="kitco-status">加载中…</div>
+      </section>
+    </div>
+
+    <p class="source-note">来源：金十App ETF持仓报告、上期所官网仓单日报、LBMA London Vault Data、美国财政部实际收益率曲线（TIPS 10年）、CME/KITCO 数据待接入。数据由本机脚本定时采集后静态发布，版权归原始提供方所有。</p>
   </main>
   <Footer />
   <script is:inline src="/js/jin10-holdings-app.js"></script>
+  <script is:inline src="/js/precious-inventory.js"></script>
 </body>
 </html>
