@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -14,6 +17,11 @@ if SPEC is None or SPEC.loader is None:
     raise RuntimeError("failed to load publish_paper_trading")
 publisher = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(publisher)
+
+requires_local_hermes = pytest.mark.skipif(
+    not os.access("/root/.hermes", os.R_OK | os.W_OK),
+    reason="requires local Hermes environment (/root/.hermes)",
+)
 
 
 def result(stdout: str = "", returncode: int = 0):
@@ -91,6 +99,7 @@ def test_paper_publication_owns_catalog_hash_with_snapshot():
     assert publisher.PUBLISH_FILES == ("public/data/paper-trading.json", "public/data/catalog.json")
 
 
+@requires_local_hermes
 def test_paper_publisher_directly_deploys_and_probes(monkeypatch):
     calls = []
 
@@ -106,6 +115,7 @@ def test_paper_publisher_directly_deploys_and_probes(monkeypatch):
     assert calls and calls[0][:4] == ["npx", "wrangler", "pages", "deploy"]
 
 
+@requires_local_hermes
 def test_paper_publisher_raises_without_deploy_evidence(monkeypatch):
     def fake_subprocess_run(cmd, cwd=None, env=None, text=None, capture_output=None):
         return SimpleNamespace(stdout="uploaded nothing", stderr="", returncode=0)

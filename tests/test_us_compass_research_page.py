@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,11 @@ COMPONENT_NAMES = [
     "UsShadowHealthPanel.astro",
     "UsResearchArchive.astro",
 ]
+
+requires_local_hermes = pytest.mark.skipif(
+    not os.access("/root/.hermes", os.R_OK | os.W_OK),
+    reason="requires local Hermes environment (/root/.hermes)",
+)
 
 
 def load_module():
@@ -702,6 +708,7 @@ def test_catalog_registers_research_archive():
     assert '"us-compass-research.json"' in catalog
 
 
+@requires_local_hermes
 def test_weekly_wrapper_publishes_research_archive():
     wrapper = Path("/root/.hermes/scripts/publish_us_compass_research.py")
     assert wrapper.exists()

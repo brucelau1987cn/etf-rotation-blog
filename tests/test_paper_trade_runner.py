@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -183,6 +184,10 @@ class PaperTradingTests(unittest.TestCase):
         self.assertEqual(public["accounts"]["US"]["public_pending_signals"][0]["source_updated_at"], "2026-07-27T18:30:00-04:00")
         self.assertEqual(state["accounts"]["A"]["pending_signals"], [])
 
+    @unittest.skipIf(
+        not os.access("/root/.hermes", os.R_OK | os.W_OK),
+        "requires local Hermes environment (/root/.hermes)",
+    )
     def test_sync_public_snapshot_reads_sources_and_only_rewrites_public_export(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
