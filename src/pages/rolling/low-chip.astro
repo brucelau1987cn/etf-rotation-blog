@@ -324,13 +324,15 @@ const rows = intersectionRows.map((row) => {
         var enrichments = data.enrichments || {};
         var intersection = data.intersection || [];
         return intersection.map(function(symbol) {
-          var base = weekMap[symbol] || monthMap[symbol] || quarterMap[symbol] || { symbol: symbol, name: symbol, price: null, change_percent: 0};
+          var base = weekMap[symbol] || monthMap[symbol] || quarterMap[symbol] || { symbol: symbol, name: '', price: null, change_percent: 0};
           var enr = enrichments[symbol] || {};
           var financials = enr.financials || {};
           var shareholderMetrics = enr.shareholder_metrics || {};
+          // Name resolution: periods > enrichments > never fall back to bare code as display name.
+          var resolvedName = base.name || enr.name || enr.stock_name || '';
           return {
             symbol: symbol,
-            name: base.name || symbol,
+            name: resolvedName || symbol,
             price: base.price,
             change_percent: base.change_percent,
             week: weekMap[symbol] ? weekMap[symbol].value : null,
@@ -537,8 +539,10 @@ const rows = intersectionRows.map((row) => {
               resp.results.forEach(function(row) {
                 var code = row.stock_code;
                 data.intersection.push(code);
+                var stockName = row.stock_name || '';
                 data.enrichments[code] = {
-                  name: row.stock_name || '',
+                  name: stockName,
+                  stock_name: stockName,
                   industry: row.industry || '待补充',
                   sector: row.sector || '待补充',
                   financials: row.financials ? JSON.parse(row.financials) : {},
@@ -555,7 +559,7 @@ const rows = intersectionRows.map((row) => {
                     price: row.price,
                   }
                 };
-                var base = { symbol: code, name: row.stock_name || '', price: row.price, change_percent: row.change_percent };
+                var base = { symbol: code, name: stockName, price: row.price, change_percent: row.change_percent };
                 if (row.week_profit != null) data.periods.week.push(Object.assign({}, base, { value: row.week_profit }));
                 if (row.month_profit != null) data.periods.month.push(Object.assign({}, base, { value: row.month_profit }));
                 if (row.quarter_profit != null) data.periods.quarter.push(Object.assign({}, base, { value: row.quarter_profit }));

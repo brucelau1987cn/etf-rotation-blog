@@ -59,13 +59,29 @@ def snapshot_metrics(payload: dict) -> list[dict]:
     week_map = _by_symbol(week_list)
     month_map = _by_symbol(month_list)
     quarter_map = _by_symbol(quarter_list)
+
+    def _period_name(code: str) -> str:
+        """Names live on period rows (week/month/quarter), not enrichments."""
+        for m in (week_map, month_map, quarter_map):
+            row = m.get(code) or {}
+            name = row.get("name") or row.get("stock_name")
+            if name:
+                return str(name).strip()
+        return ""
+
     metrics = []
     for code in codes:
         enr = enrichments.get(code)
         if not enr:
             continue
         sm = enr.get("shareholder_metrics") or {}
-        stock_name = enr.get("name") or enr.get("stock_name") or ""
+        # Prefer periods.name (always present in snapshots); enrichments rarely store name.
+        stock_name = (
+            _period_name(code)
+            or enr.get("name")
+            or enr.get("stock_name")
+            or ""
+        )
         w = week_map.get(code) or {}
         m = month_map.get(code) or {}
         q = quarter_map.get(code) or {}
