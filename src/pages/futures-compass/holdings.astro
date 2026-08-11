@@ -172,19 +172,19 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
         <div class="rate-rows" id="fred-rows"></div>
         <div class="inv-status" id="fred-status">加载中…</div>
       </section>
-      <section class="rate-panel gold-border" aria-label="租赁利率">
+      <section class="rate-panel gold-border" aria-label="隐含租赁利率">
         <div class="panel-top">
-          <div class="panel-title"><h2>租赁利率</h2><p>黄金/白银 Lease Rate · 日更</p></div>
+          <div class="panel-title"><h2>隐含租赁利率</h2><p>COMEX 期货曲线估算 · 非官方 lease</p></div>
           <span class="asset-tag" id="kitco-tag">加载中…</span>
         </div>
         <div class="rate-big" id="kitco-big"></div>
-        <p class="inv-note">租赁利率 = 借出实物金银的利率，反映市场实物供需紧张程度。利率飙升 = 实物紧缺。</p>
+        <p class="inv-note">隐含租赁利率 ≈ 美元利率 − 期货远期收益率。由 COMEX 金银期货 + 美债收益率自算，反映持有/借出成本的市场代理值；飙升通常对应实物偏紧或挤仓噪声。</p>
         <div class="rate-rows" id="kitco-rows"></div>
         <div class="inv-status" id="kitco-status">加载中…</div>
       </section>
     </div>
 
-    <p class="source-note">来源：金十App ETF持仓报告、上期所官网仓单日报、LBMA London Vault Data、美国财政部实际收益率曲线（TIPS 10年）、CME/KITCO 数据待接入。数据由本机脚本定时采集后静态发布，版权归原始提供方所有。</p>
+    <p class="source-note">来源：金十App ETF持仓报告、上期所官网仓单日报、LBMA London Vault Data、美国财政部实际/名义收益率曲线、COMEX（Yahoo 期货曲线）。隐含租赁利率为自算 proxy（公式 lease≈r_USD−(1/T)ln(F/S)），优先走 CF 在线接口并回退静态 JSON；不是 Kitco/LBMA 官方租赁报价。版权归原始提供方所有。</p>
   </main>
   <Footer />
   <script is:inline src="/js/jin10-holdings-app.js"></script>

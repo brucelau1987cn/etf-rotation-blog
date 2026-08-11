@@ -6,8 +6,8 @@
   1. SHFE 上期所仓单日报（黄金/白银仓单库存）
   2. LBMA 伦敦库存（黄金/白银 vault data）
   3. FRED 实际利率（10yr TIPS）→ 改用 Treasury 实际收益率曲线
-  4. CME COMEX 库存（待接入）
-  5. Kitco 租赁利率（待接入）
+  4. CME COMEX 库存（thevaultreport）
+  5. 隐含租赁利率（COMEX 期货 + 美债收益率自算；Kitco 官方 lease 已下线）
 """
 
 import json
@@ -17,6 +17,13 @@ import sys
 from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
 from urllib.error import URLError
+
+try:
+    from implied_lease_rate import fetch_implied_lease
+except ImportError:
+    # Allow `python3 scripts/update_precious_inventory.py` without package install.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from implied_lease_rate import fetch_implied_lease
 
 # UTC+8 北京时间
 CN_TZ = timezone(timedelta(hours=8))
@@ -211,9 +218,17 @@ def parse_moz(s):
     s = s.strip().replace('M oz', '').replace('Moz', '')
     return float(s)
 
-# ─── 5. Kitco 租赁利率（占位） ─────────────────────────
-def fetch_kitco():
-    return {'ok': False, 'source': 'kitco', 'error': '待接入替代源'}
+# ─── 5. 隐含租赁利率（COMEX 期货 + 美债） ──────────────
+def fetch_lease():
+    try:
+        return fetch_implied_lease()
+    except Exception as e:
+        return {
+            'ok': False,
+            'source': 'implied_lease',
+            'method': 'comex_forward_proxy',
+            'error': str(e),
+        }
 
 # ─── 主流程 ────────────────────────────────────────────
 def main():
@@ -225,7 +240,13 @@ def main():
     fred = fetch_real_yield()
     print(f'  FRED: {"OK" if fred.get("ok") else "FAIL"}', flush=True)
     cme = fetch_cme()
-    kitco = fetch_kitco()
+    print(f'  CME: {"OK" if cme.get("ok") else "FAIL"}', flush=True)
+    lease = fetch_lease()
+    print(f'  LEASE: {"OK" if lease.get("ok") else "FAIL"}', flush=True)
+    # Keep kitco key as alias so older clients still resolve the lease panel.
+    kitco_alias = dict(lease)
+    kitco_alias['legacy_key'] = 'kitco'
+    kitco_alias['alias_of'] = 'implied_lease'
 
     output = {
         'status': 'ok',
@@ -235,7 +256,8 @@ def main():
             'lbma': lbma,
             'fred': fred,
             'cme': cme,
-            'kitco': kitco,
+            'implied_lease': lease,
+            'kitco': kitco_alias,  # backward-compatible alias
         },
     }
 
@@ -245,12 +267,16 @@ def main():
     out_path = os.path.join(project_dir, 'public', 'data', 'precious-inventory.json')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
+        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
     print(f'  Written to {out_path}', flush=True)
 
     # 输出摘要
-    ok_count = sum(1 for v in [shfe, lbma, fred] if v.get('ok'))
-    print(f'  Result: {ok_count}/3 OK (SHFE+LBMA+FRED)', flush=True)
+    ok_count = sum(1 for v in [shfe, lbma, fred, cme, lease] if v.get('ok'))
+    g1 = (lease.get('gold') or {}).get('rate_1m')
+    s1 = (lease.get('silver') or {}).get('rate_1m')
+    print(f'  Result: {ok_count}/5 OK (SHFE+LBMA+FRED+CME+LEASE)', flush=True)
+    if lease.get('ok'):
+        print(f'  Lease 1M gold={g1} silver={s1}', flush=True)
 
 if __name__ == '__main__':
     main()

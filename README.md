@@ -42,6 +42,8 @@
 - `/futures-compass/`：期货看板与简报（akshare 数据源，显示名与数据源名可不同：铜/铝/猪肉 → 沪铜/沪铝/生猪）
 - `/futures-compass/jin10/`：宏观数据（金十日历；原 `/calendar/` 301 到此）
 - `/futures-compass/holdings/`：金银 ETF 日频持仓（含 `change=0` 日）
+- 同页库存/利率：`/data/precious-inventory.json`（SHFE / LBMA / CME / TIPS 实际利率 / **隐含租赁利率**）
+- 隐含租赁利率在线接口：`GET /api/public/v1/implied-lease-rate`（COMEX 期货 + 美债自算，edge 缓存 10 分钟；前端优先 API，失败回退静态 JSON）
 
 ### 其他
 - `/paper/`：公开模拟交易快照
