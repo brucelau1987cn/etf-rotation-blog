@@ -105,33 +105,51 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN financials TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN theme_concepts TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN quality_shareholder INTEGER').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN closing_profit REAL').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN average_cost REAL').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
     let inserted = 0;
-    for (const m of metrics) {
-      if (!m.trade_date || !m.stock_code) continue;
-      const result = await env.DB.prepare(`
-        INSERT OR REPLACE INTO stock_metrics
-          (trade_date, stock_code, stock_name, shareholder_count,
-           shareholder_change_pct, main_force, main_force_label,
-           chip_focus, report_period, top10_float_ratio, price, announcement_date,
-           week_profit, month_profit, quarter_profit, change_percent,
-           industry, sector, financials, theme_concepts, quality_shareholder)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        m.trade_date, m.stock_code || null, m.stock_name || null,
-        m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
-        m.main_force ?? null, m.main_force_label || null,
-        m.chip_focus || null, m.report_period || null,
-        m.top10_float_ratio ?? null, m.price ?? null,
-        m.announcement_date || null,
-        m.week_profit ?? null, m.month_profit ?? null, m.quarter_profit ?? null,
-        m.change_percent ?? null,
-        m.industry || null, m.sector || null,
-        m.financials ? JSON.stringify(m.financials) : null,
-        m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
-        m.quality_shareholder ? 1 : 0,
-      ).run();
-      const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
-      if (changes > 0) inserted++;
+    // 批量写入：D1 prepared statement 参数上限 ~100 → 每条 INSERT 4 行（96 参数），
+    // 每 100 条语句用 DB.batch 原子提交（400 行/请求）。
+    const ROWS_PER_STMT = 4;
+    const STMTS_PER_BATCH = 100;
+    const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
+      'shareholder_change_pct', 'main_force', 'main_force_label',
+      'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
+      'week_profit', 'month_profit', 'quarter_profit', 'change_percent',
+      'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder',
+      'closing_profit', 'average_cost', 'conc70'];
+    const rowValues = (m) => [
+      m.trade_date, m.stock_code || null, m.stock_name || null,
+      m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
+      m.main_force ?? null, m.main_force_label || null,
+      m.chip_focus || null, m.report_period || null,
+      m.top10_float_ratio ?? null, m.price ?? null,
+      m.announcement_date || null,
+      m.week_profit ?? null, m.month_profit ?? null, m.quarter_profit ?? null,
+      m.change_percent ?? null,
+      m.industry || null, m.sector || null,
+      m.financials ? JSON.stringify(m.financials) : null,
+      m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
+      m.quality_shareholder ? 1 : 0,
+      m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
+    ];
+    const valid = metrics.filter((m) => m.trade_date && m.stock_code);
+    const stmts = [];
+    for (let i = 0; i < valid.length; i += ROWS_PER_STMT) {
+      const chunk = valid.slice(i, i + ROWS_PER_STMT);
+      const placeholders = chunk.map(() => `(${cols.map(() => '?').join(',')})`).join(',');
+      stmts.push(env.DB.prepare(
+        `INSERT OR REPLACE INTO stock_metrics (${cols.join(',')}) VALUES ${placeholders}`
+      ).bind(...chunk.flatMap(rowValues)));
+    }
+    for (let i = 0; i < stmts.length; i += STMTS_PER_BATCH) {
+      const part = stmts.slice(i, i + STMTS_PER_BATCH);
+      const results = await env.DB.batch(part);
+      for (const r of results) {
+        const changes = Number(r?.meta?.changes ?? r?.changes ?? 0);
+        if (changes > 0) inserted += changes;
+      }
     }
     return json({ ok: true, inserted, total: metrics.length });
   }
