@@ -53,13 +53,8 @@ def post_json(endpoint: str, payload: dict) -> dict:
 
 def list_dates() -> list[str]:
     d = ths_get(f"{THS_BASE}/selection/v1/date/list/all?chip_type=1")
-    items = d.get("data", {}).get("list", [])
-    dates = []
-    for it in items:
-        key = it.get("date") or it.get("select_date") or it.get("trade_date")
-        if key:
-            dates.append(str(key))
-    return sorted(set(dates))
+    dates = d.get("data", {}).get("date") or []
+    return sorted(set(str(x) for x in dates))
 
 
 def fetch_day(date: str) -> list[dict]:
