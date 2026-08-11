@@ -376,7 +376,17 @@ def fetch_etf_profit_ratios() -> dict:
             daily = [seen[k] for k in sorted(seen.keys())]
             if not daily:
                 raise RuntimeError('no kline')
-            price = daily[-1]['close']
+            # 基准价解耦：同花顺美股 K 线最新一根有结算延迟（如 8/11 close=401.89 vs 腾讯 400.96）
+            # → 现价用腾讯官方收盘价，K 线只管筹码分布形状
+            try:
+                tq = urllib.request.urlopen(urllib.request.Request(
+                    f'https://qt.gtimg.cn/q=us{symbol}',
+                    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}), timeout=15).read().decode('gbk', 'ignore')
+                # 腾讯格式: v_usGLD="200~名称~代码~现价~昨收~开~...  (split('~')[3] = 现价)
+                m = re.search(r'"\d+~[^~]*~[^~]*~([\d.]+)~', tq)
+                price = float(m.group(1)) if m else float(daily[-1]['close'])
+            except Exception:
+                price = float(daily[-1]['close'])
             week = _agg(daily, 'week')
             month = _agg(daily, 'month')
             day_p = _chip_profit(daily, price, 103)
