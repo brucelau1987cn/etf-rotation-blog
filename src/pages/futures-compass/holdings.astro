@@ -87,6 +87,14 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .rate-row:last-child{border-bottom:0}
     .rate-row span{color:rgb(var(--gray))}
     .rate-row strong{font-variant-numeric:tabular-nums}
+    /* 隐含租赁利率：左黄金 / 右白银 两栏 */
+    .rate-lease-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;margin-top:.5rem}
+    .rate-lease-col{border:1px solid var(--border);border-radius:11px;overflow:hidden}
+    .rate-lease-col.gold{border-top:4px solid #f59e0b}
+    .rate-lease-col.silver{border-top:4px solid #8a8f98}
+    .rate-lease-col-title{padding:.35rem .6rem;background:var(--warm-2);font-size:.66rem;font-weight:850;color:rgb(var(--gray-dark));border-bottom:1px solid var(--border)}
+    .rate-lease-col .rate-row{padding:.4rem .6rem}
+    @media(max-width:680px){.rate-lease-cols{grid-template-columns:1fr}}
     @media(max-width:960px){.inv-grid{grid-template-columns:1fr}}
     @media(max-width:820px){.holdings-grid{grid-template-columns:1fr}}
     @media(max-width:680px){

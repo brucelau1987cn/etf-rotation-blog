@@ -108,18 +108,21 @@
     document.getElementById('kitco-big').innerHTML = `
       <strong>${fmtPct(headline)}</strong>
       <small>黄金 1M 隐含</small>`;
-    const rows = [
-      ['黄金 1M', tenorRate(g, '1M')],
-      ['黄金 3M', tenorRate(g, '3M')],
-      ['黄金 6M', tenorRate(g, '6M')],
-      ['黄金 1Y', tenorRate(g, '1Y')],
-      ['白银 1M', tenorRate(s, '1M')],
-      ['白银 3M', tenorRate(s, '3M')],
-      ['白银 6M', tenorRate(s, '6M')],
-      ['白银 1Y', tenorRate(s, '1Y')],
-    ];
-    document.getElementById('kitco-rows').innerHTML = rows.map(([label, val]) => `
-      <div class="rate-row"><span>${label}</span><strong>${fmtPct(val)}</strong></div>`).join('');
+    // 左黄金 / 右白银 两栏（1M/3M/6M/1Y）
+    const col = (metal, title, cls) => `
+      <div class="rate-lease-col ${cls}">
+        <div class="rate-lease-col-title">${title}</div>
+        ${metal.tenors && metal.tenors.length
+          ? metal.tenors.map((t) => `
+            <div class="rate-row"><span>${t.tenor} · ${t.days_to_expiry}天</span><strong>${fmtPct(t.rate)}</strong></div>`).join('')
+          : ['1M','3M','6M','1Y'].map((label, i) => `
+            <div class="rate-row"><span>${label}</span><strong>${fmtPct([metal.rate_1m, metal.rate_3m, metal.rate_6m, metal.rate_1y][i])}</strong></div>`).join('')}
+      </div>`;
+    document.getElementById('kitco-rows').innerHTML = `
+      <div class="rate-lease-cols">
+        ${col(g, '黄金', 'gold')}
+        ${col(s, '白银', 'silver')}
+      </div>`;
     const method = d.method || 'comex_forward_proxy';
     setStatus(
       'kitco-status',
