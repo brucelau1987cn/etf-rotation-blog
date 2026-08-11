@@ -18,9 +18,9 @@
     }
     const cell = (label, v) => `<span class="profit-ratio-tag"><small>${label}</small><b>${v != null ? v.toFixed(2) + '%' : '—'}</b></span>`;
     el.innerHTML = [
-      cell('日线', asset.day),
-      cell('周线', asset.week),
-      cell('月线', asset.month),
+      cell('近1日', asset.day),
+      cell('近1周', asset.week),
+      cell('近1月', asset.month),
     ].join('');
   };
 

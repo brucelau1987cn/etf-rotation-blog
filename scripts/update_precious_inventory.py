@@ -273,44 +273,129 @@ def _run_iwencai(query: str, limit: int = 2, timeout: int = 45) -> list[dict]:
 
 
 def fetch_etf_profit_ratios() -> dict:
-    """日/周/月线收盘获利比例（iWenCai）→ {gold:{day,week,month}, silver:{...}}."""
-    out = {'ok': True, 'source': 'iwencai', 'as_of': datetime.now(CN_TZ).strftime('%Y-%m-%d'), 'assets': {}}
+    """日/周/月线收盘获利比例（THS 同花顺 K线自算，三角分布+固定窗口无衰减）
+    模型（以同花顺 App 三档标答校准，2026-08-12）：
+      - 日线：最近 103 个交易日，无衰减累积，三角分布峰值=收盘价
+      - 周线：最近 60 周（日K按 ISO 周聚合）
+      - 月线：全历史（日K按自然月聚合）
+    获利比 = 现价下方筹码占比。GLD 自算 vs App：日 44.6/40.85、周 74.6/70.40、月 92.7/91.32。
+    """
+    import urllib.request
+    import datetime as _dt
+
+    def _fetch_kline(code: str, period: str) -> list[dict]:
+        url = f'https://d.10jqka.com.cn/v6/line/{code}/01/{period}.js'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            txt = r.read().decode('utf-8', 'replace')
+        m = re.search(r'\((.*)\)\s*$', txt, re.S)
+        if not m:
+            return []
+        d = json.loads(m.group(1))
+        recs = []
+        for rec in (d.get('data') or '').split(';'):
+            f = rec.split('~')[0].split(',')
+            if len(f) >= 6 and f[0].isdigit():
+                recs.append({'date': f[0], 'open': float(f[1]), 'high': float(f[2]), 'low': float(f[3]),
+                             'close': float(f[4]), 'vol': float(f[5])})
+        return recs
+
+    def _agg(recs, freq):
+        out, cur = [], None
+        for r in recs:
+            dt = _dt.datetime.strptime(r['date'], '%Y%m%d')
+            key = dt.isocalendar()[:2] if freq == 'week' else (dt.year, dt.month)
+            if cur is None or cur['key'] != key:
+                if cur:
+                    out.append(cur['rec'])
+                cur = {'key': key, 'rec': dict(r)}
+            else:
+                cur['rec']['high'] = max(cur['rec']['high'], r['high'])
+                cur['rec']['low'] = min(cur['rec']['low'], r['low'])
+                cur['rec']['close'] = r['close']
+                cur['rec']['vol'] += r['vol']
+        if cur:
+            out.append(cur['rec'])
+        return out
+
+    def _chip_profit(recs, price, window=None):
+        """固定窗口无衰减 + 三角分布（峰值收盘价）→ 获利盘%"""
+        if window:
+            recs = recs[-window:]
+        if not recs:
+            return None
+        lo = min(r['low'] for r in recs)
+        hi = max(r['high'] for r in recs)
+        span = hi - lo
+        step = 0.01 if span <= 50 else (0.2 if span <= 100 else (0.5 if span <= 300 else 1.0))
+        buckets = {}
+        p = lo
+        while p <= hi + 1e-9:
+            buckets[p] = 0.0
+            p = round(p + step, 6)
+        keys = sorted(buckets.keys())
+        for r in recs:
+            vol = r['vol']
+            lo_r, hi_r = r['low'], r['high']
+            if hi_r <= lo_r:
+                hi_r = lo_r + step
+            mid = r['close']
+            if not (lo_r <= mid <= hi_r):
+                mid = (lo_r + hi_r) / 2
+            ta = 0.0
+            for pk in keys:
+                if pk < lo_r or pk > hi_r:
+                    continue
+                w = (pk - lo_r) / (mid - lo_r) if pk <= mid and mid > lo_r else ((hi_r - pk) / (hi_r - mid) if pk > mid and hi_r > mid else 1.0)
+                w = max(0.0, w)
+                buckets[pk] += vol * w
+                ta += vol * w
+            if ta > 0:
+                sc = vol / ta
+                for pk in keys:
+                    if lo_r <= pk <= hi_r:
+                        buckets[pk] *= sc
+        total = sum(buckets.values())
+        if total <= 0:
+            return None
+        return sum(v for p, v in buckets.items() if p <= price) / total * 100
+
+    out = {'ok': True, 'source': 'ths-kline', 'as_of': datetime.now(CN_TZ).strftime('%Y-%m-%d'), 'assets': {}}
     for key, symbol in ETF_PROFIT_SYMBOLS.items():
-        # 美股精确代码（GLD.P / SLV.P）避免 GLD 被解析为 A 股拼音（广联达）
-        rows = _run_iwencai(f'{symbol}.P 收盘获利，周线收盘获利，月线收盘获利')
-        row = None
-        for r in rows:
-            code = str(r.get('基金代码') or r.get('股票代码') or '')
-            if code.startswith(symbol):
-                row = r
-                break
-        if not row:
+        try:
+            recs_all = []
+            for year in range(2016, 2027):
+                period = str(year) if year < 2026 else 'last'
+                try:
+                    recs_all += _fetch_kline(f'169_{symbol}', period)
+                except Exception:
+                    pass
+            seen = {}
+            for r in recs_all:
+                seen[r['date']] = r
+            daily = [seen[k] for k in sorted(seen.keys())]
+            if not daily:
+                raise RuntimeError('no kline')
+            price = daily[-1]['close']
+            week = _agg(daily, 'week')
+            month = _agg(daily, 'month')
+            day_p = _chip_profit(daily, price, 103)
+            week_p = _chip_profit(week, price, 60)
+            month_p = _chip_profit(month, price, None)
+            out['assets'][key] = {
+                'ok': day_p is not None,
+                'symbol': f'169_{symbol}',
+                'name': ETF_PROFIT_LABELS[key],
+                'price': price,
+                'change_percent': None,
+                'day': round(day_p, 2) if day_p is not None else None,
+                'week': round(week_p, 2) if week_p is not None else None,
+                'month': round(month_p, 2) if month_p is not None else None,
+            }
+            print(f'  THS[{key}] day={out["assets"][key]["day"]} week={out["assets"][key]["week"]} month={out["assets"][key]["month"]} (price={price})', flush=True)
+        except Exception as e:
             out['ok'] = False
-            out['assets'][key] = {'ok': False, 'error': 'no iwencai row'}
-            continue
-        day = week = month = None
-        for k, v in row.items():
-            if '收盘获利[' in k and '周线' not in k and '月线' not in k:
-                try: day = round(float(v), 2)
-                except (TypeError, ValueError): pass
-            elif '周线收盘获利' in k:
-                try: week = round(float(v), 2)
-                except (TypeError, ValueError): pass
-            elif '月线收盘获利' in k:
-                try: month = round(float(v), 2)
-                except (TypeError, ValueError): pass
-        out['assets'][key] = {
-            'ok': day is not None or week is not None or month is not None,
-            'symbol': row.get('股票代码') or row.get('基金代码') or symbol,
-            'name': ETF_PROFIT_LABELS[key],
-            'price': row.get('最新收盘价') or row.get('美股@最新价'),
-            'change_percent': row.get('最新涨跌幅') or row.get('美股@涨跌幅'),
-            'day': day,
-            'week': week,
-            'month': month,
-        }
-        if not out['assets'][key]['ok']:
-            out['ok'] = False
+            out['assets'][key] = {'ok': False, 'error': f'ths: {e}'}
     return out
 
 # ─── 主流程 ────────────────────────────────────────────
