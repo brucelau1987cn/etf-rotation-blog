@@ -270,7 +270,45 @@ export async function onRequestGet({ request }) {
       }, 300);
     }
 
-    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search|stock-signal|mainflow', 404);
+    // ── capital-tab：分时资金聚合（龙虎榜+两融+大宗交易，eq.10jqka，无鉴权）──
+    if (sub === 'capital-tab') {
+      const code = p('code', '002026');
+      if (!CODE_RE.test(code)) return jsonErr('bad code', 400);
+      const url = `https://eq.10jqka.com.cn/fenshiCapitalTab/Public/data/${encodeURIComponent(code)}/lhb_0,rzlx_1,dzjy_0.txt`;
+      const { status, text } = await proxyFetch(url);
+      if (status !== 200) return jsonErr(`upstream ${status}`, 502);
+      const body = jsonParse(text);
+      if (!body || body.status_code !== 0) return jsonErr('upstream error', 502);
+      // 精简：龙虎榜摘要 + 两融摘要 + 大宗
+      const lhb = body.lhb ?? {};
+      const rzlx = body.rzlx ?? {};
+      const dzjy = body.dzjy ?? {};
+      return jsonOk({
+        source: 'eq.10jqka.com.cn', code,
+        lhb: {
+          date: lhb.date ?? null,
+          recent_record_count: lhb.recent_record_count ?? null,
+          net_inflow: lhb.net_inflow ?? null,
+          sale_top: (lhb.sale_yyb?.list ?? []).slice(0, 3).map((x) => ({ name: x.name, buy: x.buy_turnover, sale: x.sale_turnover })),
+          buy_top: (lhb.buy_yyb?.list ?? []).slice(0, 3).map((x) => ({ name: x.name, buy: x.buy_turnover, sale: x.sale_turnover })),
+        },
+        rzlx: {
+          date: rzlx.date ?? null,
+          recent_net_inflow: rzlx.recent_net_inflow ?? null,
+          net_3d: rzlx.net_inflow_list?.day_3 ?? null,
+          net_5d: rzlx.net_inflow_list?.day_5 ?? null,
+          net_20d: rzlx.net_inflow_list?.day_20 ?? null,
+          net_60d: rzlx.net_inflow_list?.day_60 ?? null,
+          chart: rzlx.chart ?? [],
+        },
+        dzjy: {
+          list: dzjy.list ?? [],
+          last_day: dzjy.last_day ?? null,
+        },
+      }, 300);
+    }
+
+    return jsonErr('unknown route: ping|kline|today|chip-list|chip-selection|search|stock-signal|mainflow|capital-tab', 404);
   } catch (e) {
     return jsonErr(`internal: ${e && e.message || e}`, 500);
   }
