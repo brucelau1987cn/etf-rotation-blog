@@ -21,6 +21,12 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .panel-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem}
     .panel-title h2{margin:0;font-size:1.25rem}
     .panel-title p{margin:.15rem 0 0;color:rgb(var(--gray));font-size:.74rem}
+    .profit-ratio-tags{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .profit-ratio-tag{padding:.2rem .45rem;border-radius:8px;background:var(--warm-2);border:1px solid var(--border);font-size:.6rem;font-weight:800;color:rgb(var(--gray-dark));white-space:nowrap;display:inline-flex;align-items:baseline;gap:.2rem}
+    .profit-ratio-tag b{font-size:.68rem;font-variant-numeric:tabular-nums}
+    .profit-ratio-tag small{color:rgb(var(--gray));font-weight:750}
+    .holdings-toggle{margin:.5rem 0 0;width:100%;padding:.45rem;border:1px dashed var(--border);border-radius:9px;background:var(--warm-2);color:rgb(var(--gray-dark));font-size:.7rem;font-weight:800;cursor:pointer}
+    .holdings-toggle:hover{border-color:var(--accent);color:var(--accent-dark)}
     .asset-tag{padding:.22rem .55rem;border-radius:999px;font-size:.68rem;font-weight:850;background:var(--warm-2);color:rgb(var(--gray-dark));border:1px solid var(--border);white-space:nowrap}
     .asset-tag.up{background:var(--green-soft);color:var(--green);border-color:transparent}
     .asset-tag.down{background:var(--accent-soft);color:var(--accent-dark);border-color:transparent}
@@ -108,6 +114,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
       <section class="holdings-panel gold" aria-label="黄金ETF持仓">
         <div class="panel-top">
           <div class="panel-title"><h2>黄金ETF</h2><p>近2周持仓变动</p></div>
+          <div class="profit-ratio-tags" id="gold-profit-tags" aria-label="黄金ETF获利比"></div>
           <span class="asset-tag" id="gold-tag">加载中…</span>
         </div>
         <div class="latest-grid" id="gold-latest"></div>
@@ -118,6 +125,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
       <section class="holdings-panel silver" aria-label="白银ETF持仓">
         <div class="panel-top">
           <div class="panel-title"><h2>白银ETF</h2><p>近2周持仓变动</p></div>
+          <div class="profit-ratio-tags" id="silver-profit-tags" aria-label="白银ETF获利比"></div>
           <span class="asset-tag" id="silver-tag">加载中…</span>
         </div>
         <div class="latest-grid" id="silver-latest"></div>

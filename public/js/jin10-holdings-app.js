@@ -1,10 +1,45 @@
 (() => {
   const ETF_API = '/api/public/v1/jin10-etf-reports';
+  const INVENTORY_API = '/data/precious-inventory.json';
   const LIMIT = 15;
+  const COLLAPSE_AFTER = 5; // 明细超过5天折叠，默认隐藏可展开
   const panels = [
-    { attr: 1, tag: 'gold-tag', latest: 'gold-latest', status: 'gold-status', list: 'gold-list', chart: 'gold-chart', name: '黄金ETF' },
-    { attr: 2, tag: 'silver-tag', latest: 'silver-latest', status: 'silver-status', list: 'silver-list', chart: 'silver-chart', name: '白银ETF' },
+    { attr: 1, tag: 'gold-tag', latest: 'gold-latest', status: 'gold-status', list: 'gold-list', chart: 'gold-chart', profitTags: 'gold-profit-tags', name: '黄金ETF' },
+    { attr: 2, tag: 'silver-tag', latest: 'silver-latest', status: 'silver-status', list: 'silver-list', chart: 'silver-chart', profitTags: 'silver-profit-tags', name: '白银ETF' },
   ];
+
+  // 日/周/月线获利比（来自 precious-inventory.json 的 etf_profit.assets）
+  const renderProfitTags = (panel, asset) => {
+    const el = document.getElementById(panel.profitTags);
+    if (!el) return;
+    if (!asset || !asset.ok) {
+      el.innerHTML = '<span class="profit-ratio-tag"><small>获利比 —</small></span>';
+      return;
+    }
+    const cell = (label, v) => `<span class="profit-ratio-tag"><small>${label}</small><b>${v != null ? v.toFixed(2) + '%' : '—'}</b></span>`;
+    el.innerHTML = [
+      cell('日线', asset.day),
+      cell('周线', asset.week),
+      cell('月线', asset.month),
+    ].join('');
+  };
+
+  const loadProfitTags = async () => {
+    try {
+      const resp = await fetch(`${INVENTORY_API}?bust=${Date.now()}`, { cache: 'no-store' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const d = await resp.json();
+      const assets = (d.data && d.data.etf_profit && d.data.etf_profit.assets) || {};
+      const gold = assets.gold || {};
+      const silver = assets.silver || {};
+      // gold panel ← assets.gold (518880 黄金ETF华安); silver panel ← assets.silver (161226 国投白银LOF)
+      renderProfitTags(panels[0], gold);
+      renderProfitTags(panels[1], silver);
+    } catch (e) {
+      panels.forEach((p) => renderProfitTags(p, null));
+      console.warn('etf profit ratio load failed:', e);
+    }
+  };
 
   const maxAbs = (rows) => Math.max(0.01, ...rows.map((r) => Math.abs(r.change || 0)));
 
@@ -68,7 +103,7 @@
       return;
     }
     const max = maxAbs(rows);
-    listEl.innerHTML = `<div class="holdings-header"><span>日期</span><span>变化（吨）</span><span>净变化</span></div>${rows.map((r) => {
+    const rowHtml = (r) => {
       const change = r.change || 0;
       const inc = change > 0 ? change : 0;
       const dec = change < 0 ? Math.abs(change) : 0;
@@ -83,7 +118,28 @@
         </div>
         <div class="holdings-net ${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}t</div>
       </div>`;
-    }).join('')}`;
+    };
+    const collapsed = rows.length > COLLAPSE_AFTER;
+    const visible = collapsed ? rows.slice(0, COLLAPSE_AFTER) : rows;
+    const hidden = collapsed ? rows.slice(COLLAPSE_AFTER) : [];
+    const hiddenRowsEl = hidden.length
+      ? `<div class="holdings-rows-more" style="display:none">${hidden.map(rowHtml).join('')}</div>`
+      : '';
+    const toggleBtn = collapsed
+      ? `<button type="button" class="holdings-toggle" data-expanded="0" aria-expanded="false">展开全部 ${rows.length} 天明细（默认隐藏）</button>`
+      : '';
+    listEl.innerHTML = `<div class="holdings-header"><span>日期</span><span>变化（吨）</span><span>净变化</span></div>${visible.map(rowHtml).join('')}${hiddenRowsEl}${toggleBtn}`;
+    const btn = listEl.querySelector('.holdings-toggle');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const expanded = btn.dataset.expanded === '1';
+        const more = listEl.querySelector('.holdings-rows-more');
+        if (more) more.style.display = expanded ? 'none' : 'block';
+        btn.dataset.expanded = expanded ? '0' : '1';
+        btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        btn.textContent = expanded ? `展开全部 ${rows.length} 天明细（默认隐藏）` : '收起明细';
+      });
+    }
   };
 
   const load = async (panel) => {
@@ -101,4 +157,5 @@
   };
 
   panels.forEach(load);
+  loadProfitTags();
 })();

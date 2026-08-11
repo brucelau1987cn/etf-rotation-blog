@@ -230,6 +230,86 @@ def fetch_lease():
             'error': str(e),
         }
 
+# ─── 6. 黄金/白银 ETF 日/周/月线获利比（iWenCai） ──────
+# A股对应标的：黄金ETF华安 518880.SH、国投白银LOF 161226.SZ
+ETF_PROFIT_SYMBOLS = {
+    'gold': '518880',
+    'silver': '161226',
+}
+ETF_PROFIT_LABELS = {
+    'gold': '黄金ETF',
+    'silver': '白银ETF',
+}
+IWENCAI_QUERY = '/root/.hermes/scripts/iwencai-market-query'
+
+
+def _run_iwencai(query: str, limit: int = 2, timeout: int = 45) -> list[dict]:
+    import subprocess
+    import time
+    last_err = ''
+    for attempt in range(3):
+        r = subprocess.run(
+            [IWENCAI_QUERY, '-q', query, '--limit', str(limit), '--timeout', str(timeout)],
+            capture_output=True, text=True, check=False,
+        )
+        if r.returncode != 0:
+            last_err = f'exit {r.returncode}: {r.stderr[:120]}'
+            time.sleep(2 * (attempt + 1))
+            continue
+        try:
+            d = json.loads(r.stdout)
+        except json.JSONDecodeError as e:
+            last_err = f'json: {e}'
+            time.sleep(2 * (attempt + 1))
+            continue
+        if not d.get('success'):
+            last_err = f"api: {d.get('error') or d.get('msg') or 'unknown'}"
+            time.sleep(2 * (attempt + 1))
+            continue
+        return d.get('datas') or []
+    print(f'  [iwencai retry exhausted] {query}: {last_err}', flush=True)
+    return []
+
+
+def fetch_etf_profit_ratios() -> dict:
+    """日/周/月线收盘获利比例（iWenCai）→ {gold:{day,week,month}, silver:{...}}."""
+    out = {'ok': True, 'source': 'iwencai', 'as_of': datetime.now(CN_TZ).strftime('%Y-%m-%d'), 'assets': {}}
+    for key, symbol in ETF_PROFIT_SYMBOLS.items():
+        rows = _run_iwencai(f'{symbol} 收盘获利，周线收盘获利，月线收盘获利')
+        row = None
+        for r in rows:
+            if str(r.get('基金代码') or '').startswith(symbol):
+                row = r
+                break
+        if not row:
+            out['ok'] = False
+            out['assets'][key] = {'ok': False, 'error': 'no iwencai row'}
+            continue
+        day = week = month = None
+        for k, v in row.items():
+            if '收盘获利[' in k and '周线' not in k and '月线' not in k:
+                try: day = round(float(v), 2)
+                except (TypeError, ValueError): pass
+            elif '周线收盘获利' in k:
+                try: week = round(float(v), 2)
+                except (TypeError, ValueError): pass
+            elif '月线收盘获利' in k:
+                try: month = round(float(v), 2)
+                except (TypeError, ValueError): pass
+        out['assets'][key] = {
+            'ok': day is not None or week is not None or month is not None,
+            'symbol': row.get('基金代码') or symbol,
+            'name': row.get('基金扩位简称') or row.get('基金简称') or ETF_PROFIT_LABELS[key],
+            'price': row.get('最新收盘价'),
+            'change_percent': row.get('最新涨跌幅'),
+            'day': day,
+            'week': week,
+            'month': month,
+        }
+        if not out['assets'][key]['ok']:
+            out['ok'] = False
+    return out
+
 # ─── 主流程 ────────────────────────────────────────────
 def main():
     print('[precious-inventory] fetching...', flush=True)
@@ -243,6 +323,9 @@ def main():
     print(f'  CME: {"OK" if cme.get("ok") else "FAIL"}', flush=True)
     lease = fetch_lease()
     print(f'  LEASE: {"OK" if lease.get("ok") else "FAIL"}', flush=True)
+    etf_profit = fetch_etf_profit_ratios()
+    for k, v in etf_profit.get('assets', {}).items():
+        print(f'  ETF_PROFIT[{k}]: {"OK" if v.get("ok") else "FAIL"} day={v.get("day")} week={v.get("week")} month={v.get("month")}', flush=True)
     # Keep kitco key as alias so older clients still resolve the lease panel.
     kitco_alias = dict(lease)
     kitco_alias['legacy_key'] = 'kitco'
@@ -258,6 +341,7 @@ def main():
             'cme': cme,
             'implied_lease': lease,
             'kitco': kitco_alias,  # backward-compatible alias
+            'etf_profit': etf_profit,  # 日/周/月线获利比
         },
     }
 
