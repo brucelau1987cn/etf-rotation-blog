@@ -32,7 +32,7 @@
       const assets = (d.data && d.data.etf_profit && d.data.etf_profit.assets) || {};
       const gold = assets.gold || {};
       const silver = assets.silver || {};
-      // gold panel ← assets.gold (518880 黄金ETF华安); silver panel ← assets.silver (161226 国投白银LOF)
+      // gold panel ← assets.gold (GLD); silver panel ← assets.silver (SLV)
       renderProfitTags(panels[0], gold);
       renderProfitTags(panels[1], silver);
     } catch (e) {

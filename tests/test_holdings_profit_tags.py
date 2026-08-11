@@ -33,8 +33,8 @@ def test_app_js_renders_profit_tags_and_collapse():
 def test_update_script_fetches_etf_profit():
     text = INVENTORY_SCRIPT.read_text(encoding="utf-8")
     assert "fetch_etf_profit_ratios" in text
-    assert "518880" in text  # 黄金ETF华安
-    assert "161226" in text  # 国投白银LOF
+    assert "GLD" in text  # 黄金以 GLD 为主
+    assert "SLV" in text  # 白银以 SLV 为主
     assert "etf_profit" in text
 
 

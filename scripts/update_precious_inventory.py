@@ -231,14 +231,15 @@ def fetch_lease():
         }
 
 # ─── 6. 黄金/白银 ETF 日/周/月线获利比（iWenCai） ──────
-# A股对应标的：黄金ETF华安 518880.SH、国投白银LOF 161226.SZ
+# 标的：黄金以 GLD（SPDR Gold Shares）为主，白银以 SLV（iShares Silver Trust）为主。
+# iWenCai 美股代码 GLD.P / SLV.P，目前仅提供日线「美股@收盘获利」；周/月线美股无字段 → None。
 ETF_PROFIT_SYMBOLS = {
-    'gold': '518880',
-    'silver': '161226',
+    'gold': 'GLD',
+    'silver': 'SLV',
 }
 ETF_PROFIT_LABELS = {
-    'gold': '黄金ETF',
-    'silver': '白银ETF',
+    'gold': 'GLD黄金ETF',
+    'silver': 'SLV白银ETF',
 }
 IWENCAI_QUERY = '/root/.hermes/scripts/iwencai-market-query'
 
@@ -275,10 +276,12 @@ def fetch_etf_profit_ratios() -> dict:
     """日/周/月线收盘获利比例（iWenCai）→ {gold:{day,week,month}, silver:{...}}."""
     out = {'ok': True, 'source': 'iwencai', 'as_of': datetime.now(CN_TZ).strftime('%Y-%m-%d'), 'assets': {}}
     for key, symbol in ETF_PROFIT_SYMBOLS.items():
-        rows = _run_iwencai(f'{symbol} 收盘获利，周线收盘获利，月线收盘获利')
+        # 美股精确代码（GLD.P / SLV.P）避免 GLD 被解析为 A 股拼音（广联达）
+        rows = _run_iwencai(f'{symbol}.P 收盘获利，周线收盘获利，月线收盘获利')
         row = None
         for r in rows:
-            if str(r.get('基金代码') or '').startswith(symbol):
+            code = str(r.get('基金代码') or r.get('股票代码') or '')
+            if code.startswith(symbol):
                 row = r
                 break
         if not row:
@@ -298,10 +301,10 @@ def fetch_etf_profit_ratios() -> dict:
                 except (TypeError, ValueError): pass
         out['assets'][key] = {
             'ok': day is not None or week is not None or month is not None,
-            'symbol': row.get('基金代码') or symbol,
-            'name': row.get('基金扩位简称') or row.get('基金简称') or ETF_PROFIT_LABELS[key],
-            'price': row.get('最新收盘价'),
-            'change_percent': row.get('最新涨跌幅'),
+            'symbol': row.get('股票代码') or row.get('基金代码') or symbol,
+            'name': ETF_PROFIT_LABELS[key],
+            'price': row.get('最新收盘价') or row.get('美股@最新价'),
+            'change_percent': row.get('最新涨跌幅') or row.get('美股@涨跌幅'),
             'day': day,
             'week': week,
             'month': month,
