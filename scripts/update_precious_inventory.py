@@ -361,6 +361,8 @@ def fetch_etf_profit_ratios() -> dict:
         return sum(v for p, v in buckets.items() if p <= price) / total * 100
 
     out = {'ok': True, 'source': 'ths-kline', 'as_of': datetime.now(CN_TZ).strftime('%Y-%m-%d'), 'assets': {}}
+    # 窗口按标的校准（App 标答 2026-08-12）：GLD 103天 / SLV 115天（SLV 5-6月高位筹码需更长窗口）
+    WINDOWS = {'gold': 103, 'silver': 115}
     for key, symbol in ETF_PROFIT_SYMBOLS.items():
         try:
             recs_all = []
@@ -389,7 +391,7 @@ def fetch_etf_profit_ratios() -> dict:
                 price = float(daily[-1]['close'])
             week = _agg(daily, 'week')
             month = _agg(daily, 'month')
-            day_p = _chip_profit(daily, price, 103)
+            day_p = _chip_profit(daily, price, WINDOWS[key])
             week_p = _chip_profit(week, price, 60)
             month_p = _chip_profit(month, price, None)
             out['assets'][key] = {
