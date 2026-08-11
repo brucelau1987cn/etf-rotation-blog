@@ -600,8 +600,8 @@ def test_production_verification_binds_full_public_hash_set(monkeypatch):
 
     def fake_urlopen(request, timeout=20):
         path = request.full_url.split("?", 1)[0].split("example.invalid/", 1)[1]
-        if path == "lab/":
-            return Response("研究审计台".encode(), "text/html")
+        if path == "research-framework/":
+            return Response("投资研究框架".encode(), "text/html")
         return Response(bodies["public/" + path], "application/json")
 
     monkeypatch.setenv("ETF_PUBLIC_BASE_URL", "https://example.invalid")
