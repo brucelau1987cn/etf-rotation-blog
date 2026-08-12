@@ -82,11 +82,46 @@
     })() : '';
     const safeStar = Math.max(0, Math.min(5, Math.trunc(Number(item.star) || 0)));
     const stars = safeStar ? '★'.repeat(safeStar) : '—';
+    // Polymarket 概率匹配：美国 CPI 类事件
+    const PM_KEYWORDS = [
+      { re: /未季调核心CPI年率|核心CPI年率/i, q: 'core-cpi-yoy' },
+      { re: /季调后核心CPI月率|核心CPI月率/i, q: 'core-cpi-mom' },
+      { re: /未季调CPI年率|CPI年率/i, q: 'cpi-yoy' },
+      { re: /季调后CPI月率|CPI月率/i, q: 'cpi-mom' },
+    ];
+    const pmMatch = item.country === '美国' ? PM_KEYWORDS.find((k) => k.re.test(item.title)) : null;
+    const pmProb = pmMatch
+      ? `<div class="pm-prob" data-slug="${pmMatch.q}"><span class="pm-label">Poly</span><span class="pm-value">…</span></div>`
+      : '';
     return `<article class="calendar-item" data-type="${escapeHtml(item.type)}">
       <div class="calendar-time">${escapeHtml(itemTime(item.time))}<small>${escapeHtml(itemDate(item.time))}</small></div>
-      <div><div class="calendar-title"><span class="type-tag">${typeLabel}</span>${escapeHtml(item.title)}</div><div class="calendar-meta">${escapeHtml(item.country || '全球')}${item.time_status ? ` · ${escapeHtml(item.time_status)}` : ''}</div>${values}${impact}</div>
+      <div><div class="calendar-title"><span class="type-tag">${typeLabel}</span>${escapeHtml(item.title)}</div><div class="calendar-meta">${escapeHtml(item.country || '全球')}${item.time_status ? ` · ${escapeHtml(item.time_status)}` : ''}</div>${pmProb}${values}${impact}</div>
       <div class="stars" aria-label="重要性${escapeHtml(item.star || 0)}星">${stars}</div>
     </article>`;
+  };
+
+  // 加载 Polymarket 概率并填入 .pm-prob（通过自家端点代理 gamma-api）
+  const loadPolymarket = async () => {
+    const el = list.querySelector('.pm-prob:not([data-loaded])');
+    if (!el) return;
+    el.setAttribute('data-loaded', '1');
+    const slug = el.getAttribute('data-slug');
+    try {
+      const resp = await fetch(`/api/public/v1/polymarket-prob?q=${slug}`, { credentials: 'omit' });
+      if (!resp.ok) { el.querySelector('.pm-value').textContent = 'N/A'; return; }
+      const d = await resp.json();
+      const v = el.querySelector('.pm-value');
+      if (d.ok && d.top) {
+        const q = d.top.question.replace(/^Will (?:annual |monthly |Core CPI )?inflation be /i, '').replace(/\?$/, '');
+        v.textContent = `${q}: ${d.top.yes_prob}%`;
+        v.title = `${d.event} · ${d.top.question}\nYes 概率 ${d.top.yes_prob}% · No ${d.top.no_prob}%`;
+      } else {
+        v.textContent = 'N/A';
+      }
+    } catch (e) {
+      el.querySelector('.pm-value').textContent = 'N/A';
+    }
+    loadPolymarket(); // 继续下一项
   };
 
   // 只显示中国和美国的信息，其余屏蔽。
@@ -105,6 +140,7 @@
     const label = activeFilter === 'important' ? '重要总览' : activeFilter === 'important-data' ? '重要数据' : activeFilter === 'important-event' ? '重要事件' : '全部';
     list.innerHTML = items.length ? items.map(renderItem).join('') : `<div class="empty">当日暂无${label}</div>`;
     status.textContent = `${dateInput.value} · ${label} ${items.length} 项 · 北京时间`;
+    loadPolymarket();
   };
 
   const load = async () => {
