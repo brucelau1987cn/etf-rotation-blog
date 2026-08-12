@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
     const remember = body.remember === true;
     const ttlSec = remember ? 30 * 24 * 3600 : 12 * 3600;
     const exp = new Date(Date.now() + ttlSec * 1000).toISOString();
-    const token = await signToken({ role, exp }, env.ADMIN_SECRET || 'dev-admin-secret');
+    const token = await signToken({ role, exp, sub: `admin:${adminRow.id}` }, env.ADMIN_SECRET || 'dev-admin-secret');
     return new Response(
       JSON.stringify({ ok: true, kind: 'admin', role, expires_at: exp, remember }),
       {

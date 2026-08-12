@@ -70,6 +70,21 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
           </div>
           <button class="account-logout" id="account-logout">退出当前账号</button>
         </article>
+
+        <article class="security-card" id="change-pwd-card" hidden style="display:none">
+          <div>
+            <p class="section-kicker">CHANGE PASSWORD</p>
+            <h2>修改密码</h2>
+            <p>需要验证旧密码；新密码至少 6 位，不限大小写、数字与特殊字符。</p>
+          </div>
+          <div class="pwd-form">
+            <label>旧密码<input type="password" id="pwd-old" autocomplete="current-password" placeholder="当前密码" /></label>
+            <label>新密码<input type="password" id="pwd-new" autocomplete="new-password" placeholder="至少 6 位" /></label>
+            <label>确认新密码<input type="password" id="pwd-confirm" autocomplete="new-password" placeholder="再次输入" /></label>
+            <button class="account-logout" id="pwd-submit" type="button">保存新密码</button>
+            <p class="pwd-msg" id="pwd-msg"></p>
+          </div>
+        </article>
       </div>
     </section>
   </main>
@@ -160,6 +175,43 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
         fetch('/api/public/v1/logout', { method: 'POST', credentials: 'same-origin' })
           .finally(() => { location.href = '/login/'; });
       });
+
+      // ── 修改密码 ──
+      $('change-pwd-card').hidden = false;
+      $('change-pwd-card').style.display = 'grid';
+      const setMsg = (text, ok = false) => {
+        const el = $('pwd-msg');
+        el.textContent = text;
+        el.style.color = ok ? '#15803d' : '#dc2626';
+      };
+      $('pwd-submit').addEventListener('click', async () => {
+        const oldPwd = $('pwd-old').value;
+        const newPwd = $('pwd-new').value;
+        const confirmPwd = $('pwd-confirm').value;
+        if (!oldPwd) return setMsg('请输入旧密码');
+        if (newPwd.length < 6) return setMsg('新密码至少 6 位');
+        if (newPwd !== confirmPwd) return setMsg('两次输入的新密码不一致');
+        const btn = $('pwd-submit');
+        btn.disabled = true; btn.textContent = '保存中…';
+        try {
+          const resp = await fetch('/api/public/v1/account/change-password', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }),
+          });
+          const d = await resp.json();
+          if (!resp.ok || !d.ok) {
+            setMsg(d.error || '修改失败，请重试');
+            btn.disabled = false; btn.textContent = '保存新密码';
+            return;
+          }
+          setMsg('密码已更新。订阅账号需重新登录，即将跳转…', true);
+          setTimeout(() => { location.href = '/login/'; }, 1200);
+        } catch {
+          setMsg('网络错误，请重试');
+          btn.disabled = false; btn.textContent = '保存新密码';
+        }
+      });
     })();
   </script>
 </body>
@@ -176,6 +228,11 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
   .account-loading.error { color: #dc2626; }
   .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; box-shadow: 0 0 0 5px #dbeafe; }
   .account-layout { display: grid; gap: 1rem; }
+  .pwd-form { display: grid; gap: .6rem; margin-top: .4rem; }
+  .pwd-form label { display: grid; gap: .28rem; color: #475569; font-size: .74rem; font-weight: 800; }
+  .pwd-form input { min-height: 40px; padding: .55rem .7rem; border: 1px solid #dbe2ea; border-radius: 10px; font: inherit; font-size: .84rem; outline: none; }
+  .pwd-form input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+  .pwd-msg { margin: .2rem 0 0; font-size: .78rem; font-weight: 800; }
   .identity-card, .info-card, .device-card, .security-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; }
   .identity-card {
     display: flex; align-items: center; justify-content: space-between; gap: 2rem;
