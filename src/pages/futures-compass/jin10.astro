@@ -51,6 +51,15 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .pm-prob .pm-label{color:#93c5fd;font-size:.64rem;font-weight:900;letter-spacing:.05em}
     .pm-prob .pm-value{font-variant-numeric:tabular-nums}
     .pm-prob .pm-value[title]{cursor:help}
+    .calendar-star-switch{display:flex;align-items:center;gap:.5rem;margin-top:.55rem;padding:.35rem .6rem;background:var(--warm-2);border:1px solid var(--border);border-radius:9px;width:max-content}
+    .calendar-star-switch .switch-label{font-size:.74rem;font-weight:850;color:rgb(var(--black))}
+    .calendar-star-switch .switch-hint{font-size:.7rem;color:rgb(var(--gray))}
+    .calendar-star-switch .switch{position:relative;display:inline-block;width:34px;height:19px}
+    .calendar-star-switch .switch input{opacity:0;width:0;height:0}
+    .calendar-star-switch .slider{position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:999px;transition:.2s}
+    .calendar-star-switch .slider::before{content:"";position:absolute;height:15px;width:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}
+    .calendar-star-switch .switch input:checked + .slider{background:#2563eb}
+    .calendar-star-switch .switch input:checked + .slider::before{transform:translateX(15px)}
     .impact-row{display:inline-flex;flex-wrap:wrap;gap:.3rem;margin-top:.32rem}
     .impact-tag{display:inline-flex;padding:.2rem .5rem;border-radius:6px;font-size:.65rem;font-weight:900;line-height:1.4}
     .impact-tag.impact-bearish{background:var(--green-soft);color:var(--green)}
@@ -85,8 +94,9 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
         <div class="date-field"><label for="calendar-date">查询日期</label><input id="calendar-date" type="date" /></div>
         <div class="calendar-actions"><button id="calendar-prev" type="button">前一天</button><button id="calendar-today" type="button">今天</button><button id="calendar-refresh" class="primary" type="button">刷新</button></div>
       </div>
-      <div class="calendar-tabs" aria-label="日历分类"><button class="active" data-calendar-filter="important" type="button">重要总览</button><button data-calendar-filter="important-data" type="button">重要数据</button><button data-calendar-filter="important-event" type="button">重要事件</button><button data-calendar-filter="all" type="button">全部</button></div>
-      <div class="summary" aria-label="日历统计"><div class="summary-card"><span>全部</span><strong id="calendar-count">—</strong></div><div class="summary-card"><span>宏观数据</span><strong id="calendar-data-count">—</strong></div><div class="summary-card"><span>事件总数</span><strong id="calendar-event-count">—</strong></div><div class="summary-card"><span>三星以上</span><strong id="calendar-important-count">—</strong></div></div>
+      <div class="calendar-tabs" aria-label="日历分类"><button data-calendar-filter="important" type="button">重要总览</button><button class="active" data-calendar-filter="star4" type="button">四星以上</button><button data-calendar-filter="important-data" type="button">重要数据</button><button data-calendar-filter="important-event" type="button">重要事件</button><button data-calendar-filter="all" type="button">全部</button></div>
+      <div class="calendar-star-switch"><span class="switch-label">四星以上开关</span><label class="switch"><input id="star4-toggle" type="checkbox" checked /><span class="slider"></span></label><span class="switch-hint" id="star4-hint">只看四星以上</span></div>
+      <div class="summary" aria-label="日历统计"><div class="summary-card"><span>全部</span><strong id="calendar-count">—</strong></div><div class="summary-card"><span>宏观数据</span><strong id="calendar-data-count">—</strong></div><div class="summary-card"><span>事件总数</span><strong id="calendar-event-count">—</strong></div><div class="summary-card"><span>三星以上</span><strong id="calendar-important-count">—</strong></div><div class="summary-card"><span>四星以上</span><strong id="calendar-star4-count">—</strong></div></div>
       <div class="calendar-status" id="calendar-status" role="status" aria-live="polite">正在加载宏观数据…</div>
       <div class="calendar-list" id="calendar-list"></div>
       <p class="source-note">来源：金十财经日历，经本站 Cloudflare Pages Function 只读代理与短时缓存。数据版权归原始提供方所有；<a href="https://rili.jin10.com/" target="_blank" rel="noopener noreferrer">查看金十原始日历</a>。</p>

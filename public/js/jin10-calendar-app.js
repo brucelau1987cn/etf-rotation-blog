@@ -11,9 +11,13 @@
   const dataCount = document.getElementById('calendar-data-count');
   const eventCount = document.getElementById('calendar-event-count');
   const importantCount = document.getElementById('calendar-important-count');
+  const star4Count = document.getElementById('calendar-star4-count');
+  const star4Toggle = document.getElementById('star4-toggle');
+  const star4Hint = document.getElementById('star4-hint');
   const filterButtons = [...document.querySelectorAll('[data-calendar-filter]')];
   let currentItems = [];
-  let activeFilter = 'important';
+  // 四星以上开关默认打开 → 默认只看四星以上
+  let activeFilter = 'star4';
   if (!dateInput || !list || !status) return;
 
   const beijingDate = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
@@ -130,6 +134,7 @@
   const filteredItems = () => currentItems.filter((item) => {
     if (!isCnUs(item)) return false;
     if (activeFilter === 'important') return ['data', 'event'].includes(item.type) && Number(item.star) >= 3;
+    if (activeFilter === 'star4') return ['data', 'event'].includes(item.type) && Number(item.star) >= 4;
     if (activeFilter === 'important-data') return item.type === 'data' && Number(item.star) >= 3;
     if (activeFilter === 'important-event') return item.type === 'event' && Number(item.star) >= 3;
     return true;
@@ -137,7 +142,7 @@
 
   const renderList = () => {
     const items = filteredItems();
-    const label = activeFilter === 'important' ? '重要总览' : activeFilter === 'important-data' ? '重要数据' : activeFilter === 'important-event' ? '重要事件' : '全部';
+    const label = activeFilter === 'important' ? '重要总览' : activeFilter === 'star4' ? '四星以上' : activeFilter === 'important-data' ? '重要数据' : activeFilter === 'important-event' ? '重要事件' : '全部';
     list.innerHTML = items.length ? items.map(renderItem).join('') : `<div class="empty">当日暂无${label}</div>`;
     status.textContent = `${dateInput.value} · ${label} ${items.length} 项 · 北京时间`;
     loadPolymarket();
@@ -175,6 +180,7 @@
       dataCount.textContent = String(cnUsItems.filter((item) => item.type === 'data').length);
       eventCount.textContent = String(cnUsItems.filter((item) => item.type === 'event').length);
       importantCount.textContent = String(cnUsItems.filter((item) => Number(item.star) >= 3).length);
+      if (star4Count) star4Count.textContent = String(cnUsItems.filter((item) => ['data', 'event'].includes(item.type) && Number(item.star) >= 4).length);
       renderList();
       const nextUrl = new URL(location.href);
       nextUrl.searchParams.set('date', date);
@@ -197,7 +203,19 @@
   filterButtons.forEach((button) => button.addEventListener('click', () => {
     activeFilter = button.dataset.calendarFilter || 'important';
     filterButtons.forEach((item) => item.classList.toggle('active', item === button));
+    // 四星以上开关与 star4/important 按钮联动
+    if (star4Toggle) {
+      if (activeFilter === 'star4') { star4Toggle.checked = true; if (star4Hint) star4Hint.textContent = '只看四星以上'; }
+      else if (activeFilter === 'important') { star4Toggle.checked = false; if (star4Hint) star4Hint.textContent = '显示全部三星以上'; }
+    }
     renderList();
   }));
+  // 四星以上开关：默认打开（只看四星以上），关闭后显示全部三星以上
+  star4Toggle?.addEventListener('change', () => {
+    activeFilter = star4Toggle.checked ? 'star4' : 'important';
+    filterButtons.forEach((item) => item.classList.toggle('active', item.dataset.calendarFilter === activeFilter));
+    if (star4Hint) star4Hint.textContent = star4Toggle.checked ? '只看四星以上' : '显示全部三星以上';
+    renderList();
+  });
   load();
 })();
