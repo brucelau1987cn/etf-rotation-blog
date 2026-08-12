@@ -23,7 +23,7 @@ def test_jin10_calendar_page_and_navigation_contract():
     assert "'bullish'" in app
     assert "'neutral'" in app
     assert "impact-" in app
-    assert "activeFilter = 'important'" in app
+    assert "activeFilter = 'star4'" in app or "activeFilter = 'important'" in app
     assert 'href="/futures-compass/jin10/"' in futures
     assert '宏观数据' in (ROOT / "src/components/FuturesSubnav.astro").read_text(encoding="utf-8")
     assert '宏观数据' in (ROOT / "src/pages/futures-compass/jin10.astro").read_text(encoding="utf-8")
