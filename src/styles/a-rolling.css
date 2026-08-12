@@ -907,6 +907,22 @@
   border-radius: 4px;
 }
 
+/* 量价 12 态标签（红=偏强/突破，黄=分歧/存疑，绿=衰减/偏弱） */
+.a-rolling-main .vol-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.a-rolling-main .vol-tag-red { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; }
+.a-rolling-main .vol-tag-amber { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
+.a-rolling-main .vol-tag-green { color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; }
+
 .a-rolling-main .stock-price-tag {
   font-size: 0.74rem;
   font-weight: 700;
