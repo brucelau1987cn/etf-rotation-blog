@@ -268,6 +268,13 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
               loadList();
             }));
           }
+          actionsTd.append(makeButton('重置密码', 'text-btn', async () => {
+            if (!confirm(`确认重置「${it.label || '该用户'}」的密码？\n\n将生成新密码并踢出全部设备，旧凭据立即失效。`)) return;
+            const res = await api('/api/admin/subscriptions?action=reset-password', { method: 'POST', body: JSON.stringify({ id: it.id }) });
+            if (res && res.ok === false) { alert(`重置失败：${res.error || '未知错误'}`); return; }
+            alert(`已为「${res.label || it.label}」生成新凭据：\n\n${res.username ? '用户名：' + res.username + '\n' : ''}密码：${res.new_password}\n\n请立即保存并转交用户，此密码仅显示这一次。`);
+            loadList();
+          }));
           actionsTd.append(makeButton('删除', 'text-btn danger', async () => {
             const label = it.label || '该用户';
             if (!confirm(`确认删除授权「${label}」？\n\n删除后账号将永久移除、无法恢复，设备会话立即失效。`)) return;

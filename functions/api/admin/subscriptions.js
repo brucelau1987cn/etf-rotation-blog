@@ -99,6 +99,35 @@ export async function onRequest(context) {
     return Response.json({ ok: true });
   }
 
+  // 重置密码：单密码授权 → 新随机 passphrase；VIP 账号 → 新随机密码
+  // （同步清空设备会话，旧凭据立即失效，新凭据明文仅返回一次）
+  if (action === 'reset-password' && request.method === 'POST') {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ ok: false, error: '无效请求' }, { status: 400 });
+    }
+    const id = Number(body.id);
+    if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    const row = await env.DB.prepare('SELECT id, label, username FROM subscriptions WHERE id = ?').bind(id).first();
+    if (!row) return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
+    if (row.revoked) return Response.json({ ok: false, error: '订阅已停用，请先启用' }, { status: 400 });
+
+    const newPassword = randomPassphrase();
+    if (row.username) {
+      // VIP 账号：密码 hash = sha256(username:password)
+      const hash = await sha256Hex(`${row.username}:${newPassword}`);
+      await env.DB.prepare('UPDATE subscriptions SET password_hash = ? WHERE id = ?').bind(hash, id).run();
+    } else {
+      const hash = await sha256Hex(newPassword);
+      await env.DB.prepare('UPDATE subscriptions SET passphrase_hash = ? WHERE id = ?').bind(hash, id).run();
+    }
+    // 旧设备会话全部失效，需用新密码重新登录
+    await env.DB.prepare('DELETE FROM sub_sessions WHERE subscription_id = ?').bind(id).run();
+    return Response.json({ ok: true, username: row.username || null, new_password: newPassword, label: row.label });
+  }
+
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
       `SELECT id, label, username, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
