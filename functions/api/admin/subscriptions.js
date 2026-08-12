@@ -128,6 +128,28 @@ export async function onRequest(context) {
     return Response.json({ ok: true, username: row.username || null, new_password: newPassword, label: row.label });
   }
 
+  // 手动编辑到期时间（body: { id, expires_at: 'YYYY-MM-DD' }）
+  if (action === 'update-expiry' && request.method === 'POST') {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ ok: false, error: '无效请求' }, { status: 400 });
+    }
+    const id = Number(body.id);
+    if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    const raw = String(body.expires_at || '').trim();
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return Response.json({ ok: false, error: '日期格式应为 YYYY-MM-DD' }, { status: 400 });
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return Response.json({ ok: false, error: '日期不合法' }, { status: 400 });
+    const iso = `${m[1]}-${m[2]}-${m[3]}T00:00:00.000Z`;
+    const result = await env.DB.prepare('UPDATE subscriptions SET expires_at = ? WHERE id = ?').bind(iso, id).run();
+    const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
+    if (changes === 0) return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
+    return Response.json({ ok: true, expires_at: raw });
+  }
+
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
       `SELECT id, label, username, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
