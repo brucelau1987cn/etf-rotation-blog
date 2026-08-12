@@ -28,14 +28,14 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .holdings-toggle{margin:.5rem 0 0;width:100%;padding:.45rem;border:1px dashed var(--border);border-radius:9px;background:var(--warm-2);color:rgb(var(--gray-dark));font-size:.7rem;font-weight:800;cursor:pointer}
     .holdings-toggle:hover{border-color:var(--accent);color:var(--accent-dark)}
     .asset-tag{padding:.22rem .55rem;border-radius:999px;font-size:.68rem;font-weight:850;background:var(--warm-2);color:rgb(var(--gray-dark));border:1px solid var(--border);white-space:nowrap}
-    .asset-tag.up{background:var(--green-soft);color:var(--green);border-color:transparent}
-    .asset-tag.down{background:var(--accent-soft);color:var(--accent-dark);border-color:transparent}
+    .asset-tag.up{background:var(--accent-soft);color:var(--accent-dark);border-color:transparent}
+    .asset-tag.down{background:var(--green-soft);color:var(--green);border-color:transparent}
     .latest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem;margin:.75rem 0}
     .latest-cell{padding:.6rem .55rem;background:var(--warm-2);border-radius:9px;min-width:0}
     .latest-cell span{display:block;color:rgb(var(--gray));font-size:.62rem;font-weight:750}
     .latest-cell strong{display:block;margin-top:.15rem;font-size:.86rem;overflow:hidden;text-overflow:ellipsis}
-    .latest-cell strong.up{color:var(--green)}
-    .latest-cell strong.down{color:var(--accent-dark)}
+    .latest-cell strong.up{color:var(--accent-dark)}
+    .latest-cell strong.down{color:var(--green)}
     .holdings-status{margin:.4rem 0 .6rem;color:rgb(var(--gray));font-size:.74rem}
     .trust-chart{width:100%;height:100px;max-height:100px;margin:.5rem 0;border-radius:8px;background:var(--warm-2)}
     .holdings-list{display:grid;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden}
@@ -47,11 +47,11 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .holdings-bars{display:flex;gap:3px;align-items:center;min-height:22px;overflow:hidden}
     .holdings-bar{display:flex;align-items:center;min-width:4px;height:18px;border-radius:4px;padding:0 4px;box-sizing:border-box;transition:width .2s;flex-shrink:0}
     .holdings-bar span{font-size:.58rem;font-weight:850;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .holdings-bar.inc{background:var(--green);margin-right:2px}
-    .holdings-bar.dec{background:var(--accent)}
+    .holdings-bar.inc{background:var(--accent);margin-right:2px}
+    .holdings-bar.dec{background:var(--green)}
     .holdings-net{text-align:right;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .holdings-net.up{color:var(--green)}
-    .holdings-net.down{color:var(--accent-dark)}
+    .holdings-net.up{color:var(--accent-dark)}
+    .holdings-net.down{color:var(--green)}
     .empty{text-align:center;padding:1.5rem;color:rgb(var(--gray));font-size:.78rem}
     .source-note{margin:1.5rem 0 0;color:rgb(var(--gray));font-size:.72rem;line-height:1.55;padding:1rem 0;border-top:1px solid var(--border)}
     /* ─── 交易所库存 & 利率面板 ─── */
@@ -69,8 +69,8 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .inv-kpi span{display:block;color:rgb(var(--gray));font-size:.6rem;font-weight:750}
     .inv-kpi strong{display:block;margin-top:.1rem;font-size:.92rem;font-variant-numeric:tabular-nums}
     .inv-kpi strong small{font-size:.6rem;color:rgb(var(--gray));font-weight:750;margin-left:2px}
-    .inv-kpi strong.up{color:var(--green)}
-    .inv-kpi strong.down{color:var(--accent-dark)}
+    .inv-kpi strong.up{color:var(--accent-dark)}
+    .inv-kpi strong.down{color:var(--green)}
     .inv-note{color:rgb(var(--gray));font-size:.66rem;line-height:1.5;margin:.4rem 0 0}
     .inv-status{color:rgb(var(--gray));font-size:.7rem;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)}
     .rate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem}
@@ -80,8 +80,8 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     .rate-big strong{font-size:1.65rem;font-variant-numeric:tabular-nums;line-height:1}
     .rate-big small{color:rgb(var(--gray));font-size:.72rem;font-weight:750}
     .rate-change{font-size:.7rem;font-weight:850}
-    .rate-change.up{color:var(--green)}
-    .rate-change.down{color:var(--accent-dark)}
+    .rate-change.up{color:var(--accent-dark)}
+    .rate-change.down{color:var(--green)}
     .rate-rows{display:grid;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-top:.5rem}
     .rate-row{display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;font-size:.7rem;border-bottom:1px solid var(--border)}
     .rate-row:last-child{border-bottom:0}
