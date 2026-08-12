@@ -300,7 +300,8 @@ def fetch_etf_profit_ratios() -> dict:
                              'close': float(f[4]), 'vol': float(f[5])})
         return recs
 
-    def _agg(recs, freq):
+    def _agg(recs, freq, drop_incomplete=False):
+        """周=交易周（丢弃未完成周），月=自然月（含本月至今）"""
         out, cur = [], None
         for r in recs:
             dt = _dt.datetime.strptime(r['date'], '%Y%m%d')
@@ -316,6 +317,8 @@ def fetch_etf_profit_ratios() -> dict:
                 cur['rec']['vol'] += r['vol']
         if cur:
             out.append(cur['rec'])
+        if drop_incomplete and out:
+            out = out[:-1]  # 丢弃未完成周期
         return out
 
     def _chip_profit(recs, price, window=None):
@@ -389,8 +392,8 @@ def fetch_etf_profit_ratios() -> dict:
                 price = float(m.group(1)) if m else float(daily[-1]['close'])
             except Exception:
                 price = float(daily[-1]['close'])
-            week = _agg(daily, 'week')
-            month = _agg(daily, 'month')
+            week = _agg(daily, 'week', drop_incomplete=True)
+            month = _agg(daily, 'month', drop_incomplete=False)
             day_p = _chip_profit(daily, price, WINDOWS[key])
             week_p = _chip_profit(week, price, 60)
             month_p = _chip_profit(month, price, None)
