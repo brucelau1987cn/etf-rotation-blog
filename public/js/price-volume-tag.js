@@ -43,16 +43,24 @@
         if (!tag.ok) continue;
         const board = boardMap.get(raw);
         if (!board) continue;
+        // 插入到「筹码指标」标题行的右侧（chip-panel-title 内）
+        const chipPanel = board.querySelector('[data-role="chip"]');
+        const titleEl = chipPanel ? chipPanel.querySelector('.chip-panel-title') : null;
         const nameEl = board.querySelector('[data-role="inst-name"]');
-        if (!nameEl) continue;
-        const parent = nameEl.parentElement;
+        const anchor = titleEl || nameEl;
+        if (!anchor) continue;
+        const parent = anchor.tagName === 'SPAN' ? anchor.parentElement : anchor;
         // 避免重复插入
         if (parent.querySelector('.vol-tag')) continue;
         const pill = document.createElement('span');
         pill.className = `vol-tag vol-tag-${tag.cls || 'amber'}`;
         pill.textContent = tag.name;
         pill.title = `价 ${tag.pct_chg > 0 ? '+' : ''}${tag.pct_chg?.toFixed(2) || ''}% · 量比 ${tag.vol_ratio ?? '—'}`;
-        parent.insertBefore(pill, nameEl.nextSibling);
+        if (titleEl) {
+          titleEl.appendChild(pill);
+        } else {
+          parent.insertBefore(pill, nameEl.nextSibling);
+        }
       }
     } catch (e) {
       console.warn('vol-tag error:', e);
