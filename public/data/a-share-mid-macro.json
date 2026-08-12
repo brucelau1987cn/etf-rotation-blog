@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-12 14:53:20 CST",
+  "generated_at": "2026-08-12 22:18:58 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 1.11,
+          "value": 1.01,
           "unit": "%",
-          "display": "1.11%",
+          "display": "1.01%",
           "as_of": "2026-08-12",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +1.43% · 汇率与溢折价会扰动",
+          "detail": "20日 +1.34% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 37.5,
+          "value": 62.5,
           "unit": "%",
-          "display": "37.50%",
+          "display": "62.50%",
           "as_of": "2026-08-12",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -397,12 +397,12 @@
           "detail": "样本 8只 · 只作确认项",
           "change": null,
           "change_label": "较上期",
-          "tone": "neutral"
+          "tone": "warning"
         }
       ],
       "state": "中性",
-      "score": 0.0,
-      "headline": "海外映射ETF 5日+1.11%",
+      "score": 0.25,
+      "headline": "海外映射ETF 5日+1.01%",
       "as_of": "2026-08-12"
     },
     {
@@ -527,13 +527,13 @@
         "511010": {
           "ret5": 0.06,
           "ret20": 0.19,
-          "last": 141.09,
+          "last": 141.08,
           "date": "2026-08-12"
         },
         "511110": {
           "ret5": 0.1,
           "ret20": 0.19,
-          "last": 103.07,
+          "last": 103.075,
           "date": "2026-08-12"
         },
         "510300": {
@@ -549,10 +549,11 @@
       "key": "overseas_deleveraging",
       "label": "海外风险映射压力",
       "state": "中性",
-      "score": 0.0,
-      "headline": "海外映射ETF 5日+1.11%",
+      "score": 0.25,
+      "headline": "海外映射ETF 5日+1.01%",
       "reasons": [
-        "海外映射ETF 5日+1.11%"
+        "海外映射ETF 5日+1.01%",
+        "海外相关池弱化占比62%（确认项）"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -565,11 +566,11 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 1.11,
-        "proxy_ret20_avg": 1.43,
+        "proxy_ret5_avg": 1.01,
+        "proxy_ret20_avg": 1.34,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.375
+        "overseas_weak_share": 0.625
       },
       "details": {
         "159941": {
@@ -585,15 +586,15 @@
           "date": "2026-08-12"
         },
         "159502": {
-          "ret5": 3.45,
-          "ret20": -1.37,
-          "last": 1.589,
+          "ret5": 3.12,
+          "ret20": -1.68,
+          "last": 1.584,
           "date": "2026-08-12"
         },
         "513520": {
-          "ret5": 1.0,
-          "ret20": -0.72,
-          "last": 2.333,
+          "ret5": 0.95,
+          "ret20": -0.77,
+          "last": 2.332,
           "date": "2026-08-12"
         }
       },
@@ -712,22 +713,22 @@
     "headwind_level": 0,
     "headwind_count": 0,
     "watch_count": 0,
-    "score_total": 1.0,
+    "score_total": 1.25,
     "label": "中性",
     "allow_chase": true,
     "allow_new_offense": true,
-    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_position": "权益10%-30%；防御/现金70%-90%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "极弱",
+    "base_market_state": "防御",
     "base_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
     "constrained_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
-    "position": "权益0%-10%；防御/现金90%-100%",
+    "position": "权益10%-30%；防御/现金70%-90%",
     "equity_constraint": "中观中性：按关键位正常执行",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
