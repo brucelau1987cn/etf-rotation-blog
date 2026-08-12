@@ -264,6 +264,14 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
           } else {
             const dash = document.createElement('span'); dash.className = 'muted'; dash.textContent = '—'; actionsTd.append(dash);
           }
+          actionsTd.append(makeButton('删除', 'text-btn danger', async () => {
+            const label = it.label || '该用户';
+            if (!confirm(`确认删除授权「${label}」？\n\n删除后账号将永久移除、无法恢复，设备会话立即失效。`)) return;
+            if (!confirm(`再次确认：永久删除「${label}」？此操作不可撤销。`)) return;
+            const res = await api('/api/admin/subscriptions?action=delete', { method: 'POST', body: JSON.stringify({ id: it.id }) });
+            if (res && res.ok === false) { alert(`删除失败：${res.error || '未知错误'}`); return; }
+            loadList();
+          }));
 
           tr.append(userTd, levelTd, statusTd, expiryTd, deviceTd, actionsTd);
           tbody.append(tr);

@@ -66,6 +66,23 @@ export async function onRequest(context) {
     return Response.json({ ok: true });
   }
 
+  // 删除订阅（物理删除，不可恢复；设备会话一并清除）
+  if (action === 'delete' && request.method === 'POST') {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ ok: false, error: '无效请求' }, { status: 400 });
+    }
+    const id = Number(body.id);
+    if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    await env.DB.prepare('DELETE FROM sub_sessions WHERE subscription_id = ?').bind(id).run();
+    const result = await env.DB.prepare('DELETE FROM subscriptions WHERE id = ?').bind(id).run();
+    const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
+    if (changes === 0) return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
+    return Response.json({ ok: true });
+  }
+
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
       `SELECT id, label, username, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
