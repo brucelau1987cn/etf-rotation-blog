@@ -139,7 +139,7 @@ const description = '查看当前账号等级、授权有效期与绑定设备�
             renderRows([
               ['账号等级', role, 'value-blue'],
               ['登录方式', '用户名 + 密码'],
-              ['会话到期', formatTime(d.expires_at)],
+              ['会话到期', d.expires_at && d.expires_at >= '2099-01-01' ? '长期有效（无期限）' : formatTime(d.expires_at)],
               ['管理权限', d.role === 'super_admin' ? '全部权限' : '账号开通与订阅管理'],
             ]);
             $('device-card').hidden = true;

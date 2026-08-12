@@ -31,8 +31,11 @@ export async function onRequestPost(context) {
   if (adminRow && adminRow.password_hash === hash) {
     const role = adminRow.role === 'admin' ? 'admin' : 'super_admin';
     const remember = body.remember === true;
-    const ttlSec = remember ? 30 * 24 * 3600 : 12 * 3600;
-    const exp = new Date(Date.now() + ttlSec * 1000).toISOString();
+    // 管理员无期限限制：remember 登录会话长期有效（2099），不勾选则 12 小时
+    const ttlSec = remember ? 365 * 24 * 3600 : 12 * 3600;
+    const exp = remember
+      ? '2099-12-31T00:00:00.000Z'
+      : new Date(Date.now() + ttlSec * 1000).toISOString();
     const token = await signToken({ role, exp, sub: `admin:${adminRow.id}` }, env.ADMIN_SECRET || 'dev-admin-secret');
     return new Response(
       JSON.stringify({ ok: true, kind: 'admin', role, expires_at: exp, remember }),

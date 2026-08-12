@@ -3,7 +3,7 @@
 // body: { old_password, new_password }  → 新密码最少 6 位，不限字符类型
 import {
   readCookie, verifyToken, SUB_COOKIE, ADMIN_COOKIE, sha256Hex,
-} from '../../../_lib/subscription-auth.js';
+} from '../../../../_lib/subscription-auth.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
