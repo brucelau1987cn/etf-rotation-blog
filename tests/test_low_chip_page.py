@@ -95,16 +95,26 @@ def test_low_chip_history_archive_and_query_ui():
         assert snap["data_as_of"] == day
         assert "intersection" in snap
     for marker in (
-        'id="chip-history-date"',
+        'id="chip-history-calendar-btn"',
+        'id="chip-history-calendar"',
+        'id="chip-calendar-grid"',
+        'id="chip-calendar-month-prev"',
+        'id="chip-calendar-month-next"',
+        'class="chip-calendar-count"',
+        'data-calendar-date={item.date}',
+        'data-calendar-count={item.intersection_count}',
+        'aria-label="选择历史筛选日期"',
         'id="chip-history-prev"',
         'id="chip-history-next"',
         "历史日期",
         "low-chip-history-index.json",
         "/api/public/v1/low-chip-metrics?date=",  # D1-backed history query
         "loadDate",
+        "renderCalendar",
         "historyIndex",
     ):
         assert marker in page
+    assert 'id="chip-history-date"' not in page
 
 
 def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():

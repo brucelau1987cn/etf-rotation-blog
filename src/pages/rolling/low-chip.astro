@@ -123,15 +123,28 @@ const rows = intersectionRows.map((row) => {
             <p class="eyebrow">三个周期同时满足</p>
             <h2 id="chip-title">周线、月线、季线均低于3%</h2>
             <div class="chip-history" id="chip-history" aria-label="历史日期查询">
-              <label class="chip-history-label" for="chip-history-date">历史日期</label>
+              <span class="chip-history-label">历史日期</span>
               <button type="button" class="chip-history-btn" id="chip-history-prev" aria-label="更早日期">‹</button>
-              <select id="chip-history-date" class="chip-history-select" aria-label="选择历史筛选日期">
-                {historyItems.map((item, index) => (
-                  <option value={item.date} selected={item.date === lowChipData.data_as_of}>
-                    {item.date}{index === 0 ? ' · 最新' : ''} · {item.intersection_count}只
-                  </option>
-                ))}
-              </select>
+              <div class="chip-calendar-wrap">
+                <button type="button" class="chip-history-calendar-btn" id="chip-history-calendar-btn" aria-label="选择历史筛选日期" aria-haspopup="dialog" aria-expanded="false">
+                  <span id="chip-history-calendar-value">{lowChipData.data_as_of}</span><i aria-hidden="true">▾</i>
+                </button>
+                <div class="chip-history-calendar" id="chip-history-calendar" role="dialog" aria-label="历史快照月历" hidden>
+                  <div class="chip-calendar-head">
+                    <button type="button" id="chip-calendar-month-prev" aria-label="上个月">‹</button>
+                    <strong id="chip-calendar-month-title"></strong>
+                    <button type="button" id="chip-calendar-month-next" aria-label="下个月">›</button>
+                  </div>
+                  <div class="chip-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+                  <div class="chip-calendar-grid" id="chip-calendar-grid"></div>
+                  <div class="chip-calendar-legend"><i></i> 有筛选快照；数字为当日标的数</div>
+                </div>
+                <div class="chip-calendar-data" hidden>
+                  {historyItems.map((item) => (
+                    <span data-calendar-date={item.date} data-calendar-count={item.intersection_count} class="chip-calendar-count">{item.intersection_count}</span>
+                  ))}
+                </div>
+              </div>
               <button type="button" class="chip-history-btn" id="chip-history-next" aria-label="更新日期">›</button>
               <span class="chip-history-status" id="chip-history-status">最新快照</span>
             </div>
@@ -251,7 +264,13 @@ const rows = intersectionRows.map((row) => {
       var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
       var filterReset = document.getElementById('chip-filter-reset');
       var filterMeta = document.getElementById('chip-filter-meta');
-      var dateSelect = document.getElementById('chip-history-date');
+      var calendarBtn = document.getElementById('chip-history-calendar-btn');
+      var calendarValue = document.getElementById('chip-history-calendar-value');
+      var calendarPanel = document.getElementById('chip-history-calendar');
+      var calendarGrid = document.getElementById('chip-calendar-grid');
+      var calendarTitle = document.getElementById('chip-calendar-month-title');
+      var calendarMonthPrev = document.getElementById('chip-calendar-month-prev');
+      var calendarMonthNext = document.getElementById('chip-calendar-month-next');
       var historyPrev = document.getElementById('chip-history-prev');
       var historyNext = document.getElementById('chip-history-next');
       var historyStatus = document.getElementById('chip-history-status');
@@ -266,6 +285,8 @@ const rows = intersectionRows.map((row) => {
       var activeFilters = new Set();
       var currentDate = String((initialData && initialData.data_as_of) || '');
       var dates = (historyIndex && historyIndex.dates) || [];
+      var historyItemsByDate = Object.fromEntries(((historyIndex && historyIndex.items) || []).map(function(item) { return [item.date, item]; }));
+      var calendarMonth = (currentDate || dates[0] || new Date().toISOString().slice(0, 10)).slice(0, 7);
       var cache = {};
       if (initialData && initialData.data_as_of) cache[initialData.data_as_of] = initialData;
       var loading = false;
@@ -489,19 +510,83 @@ const rows = intersectionRows.map((row) => {
         historyStatus.classList.toggle('is-error', !!isError);
       }
 
+      function monthShift(month, delta) {
+        var parts = month.split('-').map(Number);
+        var d = new Date(parts[0], parts[1] - 1 + delta, 1);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      }
+
+      function renderCalendar() {
+        if (!calendarGrid || !calendarTitle) return;
+        var parts = calendarMonth.split('-').map(Number);
+        var year = parts[0];
+        var month = parts[1];
+        var first = new Date(year, month - 1, 1);
+        var daysInMonth = new Date(year, month, 0).getDate();
+        var leading = (first.getDay() + 6) % 7;
+        calendarTitle.textContent = year + '年' + month + '月';
+        calendarGrid.replaceChildren();
+        for (var blank = 0; blank < leading; blank++) {
+          var spacer = document.createElement('span');
+          spacer.className = 'chip-calendar-day is-empty';
+          calendarGrid.appendChild(spacer);
+        }
+        for (var day = 1; day <= daysInMonth; day++) {
+          var date = calendarMonth + '-' + String(day).padStart(2, '0');
+          var item = historyItemsByDate[date];
+          var cell = document.createElement(item ? 'button' : 'span');
+          cell.className = 'chip-calendar-day' + (item ? ' has-snapshot' : '') + (date === currentDate ? ' is-selected' : '');
+          if (item) {
+            cell.type = 'button';
+            cell.dataset.date = date;
+            cell.setAttribute('aria-label', date + '，' + item.intersection_count + '只');
+            cell.innerHTML = '<b>' + day + '</b><small>' + item.intersection_count + '只</small>';
+            cell.addEventListener('click', function() {
+              closeCalendar();
+              loadDate(this.dataset.date);
+            });
+          } else {
+            cell.innerHTML = '<b>' + day + '</b>';
+          }
+          calendarGrid.appendChild(cell);
+        }
+        var availableMonths = dates.map(function(d) { return d.slice(0, 7); });
+        if (calendarMonthPrev) calendarMonthPrev.disabled = !availableMonths.some(function(m) { return m < calendarMonth; });
+        if (calendarMonthNext) calendarMonthNext.disabled = !availableMonths.some(function(m) { return m > calendarMonth; });
+      }
+
+      function closeCalendar() {
+        if (!calendarPanel || !calendarBtn) return;
+        calendarPanel.hidden = true;
+        calendarBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleCalendar() {
+        if (!calendarPanel || !calendarBtn) return;
+        var willOpen = calendarPanel.hidden;
+        calendarPanel.hidden = !willOpen;
+        calendarBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        if (willOpen) {
+          calendarMonth = currentDate.slice(0, 7);
+          renderCalendar();
+        }
+      }
+
       function updateMeta(data) {
         var day = data.data_as_of || currentDate;
         var count = (data.intersection || []).length;
         if (asOfEl) asOfEl.textContent = day;
         if (countEl) countEl.textContent = count + '只';
         if (dataNote) dataNote.textContent = '筛选日期：' + day + ' · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股';
-        if (dateSelect) dateSelect.value = day;
+        if (calendarValue) calendarValue.textContent = day;
+        calendarMonth = day.slice(0, 7);
         var latest = dates[0] || day;
         setStatus(day === latest ? '最新快照' : ('历史 · ' + day), false);
         var idx = dates.indexOf(day);
         if (historyPrev) historyPrev.disabled = idx < 0 || idx >= dates.length - 1 || loading;
         if (historyNext) historyNext.disabled = idx <= 0 || loading;
-        if (dateSelect) dateSelect.disabled = loading;
+        if (calendarBtn) calendarBtn.disabled = loading;
+        if (calendarPanel && !calendarPanel.hidden) renderCalendar();
       }
 
       function paint(data) {
@@ -525,7 +610,8 @@ const rows = intersectionRows.map((row) => {
         }
         loading = true;
         setStatus('加载中…', false);
-        if (dateSelect) dateSelect.disabled = true;
+        if (calendarBtn) calendarBtn.disabled = true;
+        closeCalendar();
         if (historyPrev) historyPrev.disabled = true;
         if (historyNext) historyNext.disabled = true;
         fetch('/api/public/v1/low-chip-metrics?date=' + day + '&bust=' + Date.now(), { cache: 'no-store' })
@@ -573,7 +659,8 @@ const rows = intersectionRows.map((row) => {
           .catch(function(err) {
             loading = false;
             setStatus('加载失败', true);
-            if (dateSelect) { dateSelect.disabled = false; dateSelect.value = currentDate; }
+            if (calendarBtn) calendarBtn.disabled = false;
+            if (calendarValue) calendarValue.textContent = currentDate;
             updateMeta(cache[currentDate] || { data_as_of: currentDate, intersection: [] });
             console.error(err);
           });
@@ -601,7 +688,12 @@ const rows = intersectionRows.map((row) => {
         page = 1;
         renderPager();
       });
-      if (dateSelect) dateSelect.addEventListener('change', function() { loadDate(dateSelect.value); });
+      if (calendarBtn) calendarBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleCalendar(); });
+      if (calendarPanel) calendarPanel.addEventListener('click', function(event) { event.stopPropagation(); });
+      if (calendarMonthPrev) calendarMonthPrev.addEventListener('click', function() { calendarMonth = monthShift(calendarMonth, -1); renderCalendar(); });
+      if (calendarMonthNext) calendarMonthNext.addEventListener('click', function() { calendarMonth = monthShift(calendarMonth, 1); renderCalendar(); });
+      document.addEventListener('click', closeCalendar);
+      document.addEventListener('keydown', function(event) { if (event.key === 'Escape') closeCalendar(); });
       if (historyPrev) historyPrev.addEventListener('click', function() {
         var idx = dates.indexOf(currentDate);
         if (idx >= 0 && idx < dates.length - 1) loadDate(dates[idx + 1]);
@@ -650,7 +742,29 @@ const rows = intersectionRows.map((row) => {
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
   .chip-history{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}
   .chip-history-label{color:#64748b;font-size:.78rem;font-weight:800}
-  .chip-history-select{min-width:210px;height:2rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;padding:0 .55rem;font-size:.86rem;font-weight:700}
+  .chip-calendar-wrap{position:relative}
+  .chip-history-calendar-btn{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-width:190px;height:2rem;padding:0 .7rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:.86rem;font-weight:750;cursor:pointer}
+  .chip-history-calendar-btn i{color:#64748b;font-size:.7rem;font-style:normal}
+  .chip-history-calendar-btn:focus-visible{outline:0;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+  .chip-history-calendar-btn:disabled{opacity:.5;cursor:not-allowed}
+  .chip-history-calendar{position:absolute;z-index:30;top:calc(100% + .45rem);left:0;width:310px;padding:.8rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 16px 42px rgba(15,23,42,.18)}
+  .chip-history-calendar[hidden]{display:none!important}
+  .chip-calendar-head{display:grid;grid-template-columns:2rem 1fr 2rem;align-items:center;margin-bottom:.55rem}
+  .chip-calendar-head strong{text-align:center;color:#14243b;font-size:.9rem}
+  .chip-calendar-head button{width:2rem;height:2rem;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#334155;font-size:1rem;cursor:pointer}
+  .chip-calendar-head button:disabled{opacity:.28;cursor:default}
+  .chip-calendar-weekdays,.chip-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem}
+  .chip-calendar-weekdays{margin-bottom:.25rem;color:#94a3b8;font-size:.64rem;font-weight:800;text-align:center}
+  .chip-calendar-day{display:flex;min-width:0;height:2.45rem;flex-direction:column;align-items:center;justify-content:center;border:1px solid transparent;border-radius:8px;background:transparent;color:#94a3b8;font:inherit}
+  button.chip-calendar-day{cursor:pointer}
+  .chip-calendar-day b{font-size:.76rem;line-height:1}
+  .chip-calendar-day small{margin-top:.22rem;font-size:.57rem;line-height:1}
+  .chip-calendar-day.has-snapshot{border-color:#fde68a;background:#fffbeb;color:#92400e}
+  .chip-calendar-day.has-snapshot:hover{border-color:#f59e0b;background:#fef3c7}
+  .chip-calendar-day.is-selected{border-color:#2563eb;background:#2563eb;color:#fff;box-shadow:0 3px 9px rgba(37,99,235,.2)}
+  .chip-calendar-day.is-empty{visibility:hidden}
+  .chip-calendar-legend{display:flex;align-items:center;gap:.35rem;margin-top:.65rem;padding-top:.6rem;border-top:1px solid #eef2f7;color:#64748b;font-size:.62rem;font-weight:650}
+  .chip-calendar-legend i{width:.55rem;height:.55rem;border:1px solid #f59e0b;border-radius:3px;background:#fffbeb}
   .chip-history-btn{width:2rem;height:2rem;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a;font-size:1rem;line-height:1;cursor:pointer}
   .chip-history-btn:disabled{opacity:.45;cursor:not-allowed}
   .chip-history-status{color:#64748b;font-size:.78rem;font-weight:700}
@@ -717,5 +831,5 @@ const rows = intersectionRows.map((row) => {
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history-select{min-width:0;flex:1}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 </style>
