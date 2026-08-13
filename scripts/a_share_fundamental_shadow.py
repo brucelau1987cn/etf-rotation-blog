@@ -196,8 +196,41 @@ def _query_rows(result: Any) -> list[list[str]]:
     return rows
 
 
+def finalize_trade_batch(
+    raw_items: list[dict[str, Any]], *, observation_sessions: int,
+) -> list[dict[str, Any]]:
+    latest_dates = {
+        str(item["valuation_rows"][-1][0]) for item in raw_items if item.get("valuation_rows")
+    }
+    if len(latest_dates) != 1:
+        raise ValueError(f"batch latest trade date must be consistent: {sorted(latest_dates)}")
+    metrics: list[dict[str, Any]] = []
+    for item in raw_items:
+        valuation = item["valuation_rows"]
+        latest = valuation[-1]
+        price_rows = [{"date": str(row[0]), "close": finite_or_none(row[2])} for row in valuation]
+        returns = compute_incremental_returns(price_rows[-2:], last_stored_date=str(valuation[-2][0]))
+        timeline = attach_share_timeline(price_rows, item["share_rows"])
+        latest_timeline = timeline[-1]
+        if latest_timeline["total_share"] is None:
+            raise ValueError(f"{item['stock_code']} has no reliable share observation")
+        eligible_shares = [row for row in item["share_rows"] if str(row["date"]) <= str(latest[0])]
+        share_observed_date = max(str(row["date"]) for row in eligible_shares)
+        metric = normalize_baostock_row(
+            latest, total_share=latest_timeline["total_share"],
+            share_observed_date=share_observed_date, name=item.get("stock_name"),
+            observation_sessions=observation_sessions,
+        )
+        metric["pct_change"] = returns[-1]["pct_change"]
+        shadow = metric.pop("fundamental_shadow")
+        metric["fundamental_shadow_status"] = shadow["status"]
+        metric["fundamental_shadow_sessions"] = shadow["observation_sessions"]
+        metrics.append(metric)
+    return metrics
+
+
 def _fetch_symbol_with_session(
-    bs: Any, item: dict[str, str], observation_sessions: int,
+    bs: Any, item: dict[str, str], _observation_sessions: int,
 ) -> tuple[str, str, dict[str, Any] | None, str | None]:
     code = item["code"]
     bs_code = f"{'sh' if item['market'] == 'SH' else 'sz'}.{code}"
@@ -208,8 +241,9 @@ def _fetch_symbol_with_session(
         ))
         if not valuation:
             return code, "empty", None, None
-        latest = valuation[-1]
-        year = int(str(latest[0])[:4])
+        if len(valuation) < 2:
+            return code, "failed", None, "fewer than two valuation bars"
+        year = int(str(valuation[-1][0])[:4])
         shares: list[dict[str, Any]] = []
         for report_year in range(max(2007, year - 6), year + 1):
             for quarter in range(1, 5):
@@ -222,19 +256,14 @@ def _fetch_symbol_with_session(
                     record = dict(zip(result.fields, row))
                     share = finite_or_none(record.get("totalShare"))
                     observed = str(record.get("pubDate") or "")
-                    if share is not None and share > 0 and observed and observed <= str(latest[0]):
+                    if share is not None and share > 0 and observed and observed <= str(valuation[-1][0]):
                         shares.append({"date": observed, "total_share": share})
         if not shares:
             return code, "failed", None, "no reliable share observation"
-        share = max(shares, key=lambda row: row["date"])
-        metric = normalize_baostock_row(
-            latest, total_share=share["total_share"], share_observed_date=share["date"],
-            name=item.get("name"), observation_sessions=observation_sessions,
-        )
-        shadow = metric.pop("fundamental_shadow")
-        metric["fundamental_shadow_status"] = shadow["status"]
-        metric["fundamental_shadow_sessions"] = shadow["observation_sessions"]
-        return code, "succeeded", metric, None
+        return code, "succeeded", {
+            "stock_code": code, "stock_name": item.get("name"),
+            "valuation_rows": valuation[-2:], "share_rows": shares,
+        }, None
     except Exception as exc:
         return code, "failed", None, f"{type(exc).__name__}: {exc}"
 
@@ -300,9 +329,11 @@ def post_metrics(endpoint: str, token: str, metrics: list[dict[str, Any]]) -> in
         })
         with urllib.request.urlopen(request, timeout=120) as response:
             payload = json.loads(response.read().decode("utf-8"))
-        if payload.get("ok") is not True:
-            raise RuntimeError("D1 metric write failed")
-        inserted += int(payload.get("inserted") or 0)
+        expected = len(metrics[start:start + 250])
+        confirmed = int(payload.get("inserted") or 0)
+        if payload.get("ok") is not True or confirmed != expected:
+            raise RuntimeError(f"D1 metric write incomplete: {confirmed}/{expected}")
+        inserted += confirmed
     return inserted
 
 
@@ -316,25 +347,29 @@ def run(
     universe = load_universe(pool_path)
     if not universe:
         raise RuntimeError("fundamental shadow universe is empty")
-    today = date.today().isoformat()
-    sessions = observation_sessions(state_path, today)
     chunks = partition_items(universe, workers=worker_count)
     if worker_count == 1:
-        results = _fetch_partition(chunks[0], sessions)
+        results = _fetch_partition(chunks[0], 0)
     else:
         context = mp.get_context("spawn")
         with context.Pool(worker_count) as pool:
-            partitions = pool.starmap(_fetch_partition, [(chunk, sessions) for chunk in chunks])
+            partitions = pool.starmap(_fetch_partition, [(chunk, 0) for chunk in chunks])
         results = [row for partition in partitions for row in partition]
-    metrics = [row for _, status, row, _ in results if status == "succeeded" and row is not None]
+    raw_items = [row for _, status, row, _ in results if status == "succeeded" and row is not None]
     empty = sum(status == "empty" for _, status, _, _ in results)
     failures = {code: error for code, status, _, error in results if status == "failed"}
+    batch_dates = {str(item["valuation_rows"][-1][0]) for item in raw_items}
+    if len(batch_dates) != 1:
+        raise RuntimeError(f"STAGING BLOCKER inconsistent latest trade dates: {sorted(batch_dates)}")
+    trade_date = next(iter(batch_dates))
+    sessions = observation_sessions(state_path, trade_date)
+    metrics = finalize_trade_batch(raw_items, observation_sessions=sessions)
     coverage = build_coverage(
         expected=len(universe), succeeded=len(metrics), empty=empty,
         failed_symbols=list(failures),
     )
     payload: dict[str, Any] = {
-        "schema_version": 1, "mode": "shadow_research_only", "trade_date": today,
+        "schema_version": 1, "mode": "shadow_research_only", "trade_date": trade_date,
         "production_weights_changed": False, "formal_signal_logic_changed": False,
         "production_role": "audit_only", "observation_sessions": sessions,
         "coverage": coverage, "failures": failures,
@@ -351,7 +386,7 @@ def run(
     previous_dates = []
     if state_path.exists():
         previous_dates = json.loads(state_path.read_text(encoding="utf-8")).get("observation_dates") or []
-    state = {"schema_version": 1, "observation_dates": sorted(set(previous_dates) | {today})[-20:]}
+    state = {"schema_version": 1, "observation_dates": sorted(set(previous_dates) | {trade_date})[-20:]}
     atomic_write(state_path, state)
     atomic_write(output_path, payload)
     return payload

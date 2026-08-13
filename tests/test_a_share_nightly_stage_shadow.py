@@ -22,3 +22,8 @@ def test_cache_chain_includes_fundamental_shadow_after_cache():
     env = module.stage_environment('fundamental-shadow')
     assert env['LOW_CHIP_SYNC_TOKEN']
     assert module.stage_environment('cache') is None
+
+
+def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
+    wrapper = Path('/root/.hermes/scripts/run_a_share_nightly_chain.sh').read_text(encoding='utf-8')
+    assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper

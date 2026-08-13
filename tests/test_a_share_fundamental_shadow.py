@@ -5,7 +5,8 @@ import pytest
 from scripts.a_share_fundamental_shadow import (
     build_coverage, build_shadow_metric, compute_incremental_returns,
     attach_share_timeline, validate_baostock_workers, normalize_baostock_row,
-    load_universe, partition_items, should_relogin,
+    load_universe, partition_items, should_relogin, finalize_trade_batch,
+    observation_sessions,
 )
 
 
@@ -143,3 +144,34 @@ def test_baostock_work_is_partitioned_into_at_most_four_persistent_sessions():
 def test_only_session_expiry_triggers_a_bounded_relogin():
     assert should_relogin("RuntimeError: 用户未登录") is True
     assert should_relogin("no reliable share observation") is False
+
+
+def test_real_batch_uses_consistent_market_trade_date_and_preceding_bar_returns():
+    raw = [{
+        "stock_code": "600021", "stock_name": "上海电力",
+        "valuation_rows": [
+            ["2026-08-12", "sh.600021", "14.00", "12", "1", "0.8", "9"],
+            ["2026-08-13", "sh.600021", "15.40", "13", "1.1", "0.9", "10"],
+        ],
+        "share_rows": [{"date": "2026-08-13", "total_share": 1_000_000_000}],
+    }]
+    metrics = finalize_trade_batch(raw, observation_sessions=1)
+    assert metrics[0]["trade_date"] == "20260813"
+    assert metrics[0]["pct_change"] == 10.0
+    assert metrics[0]["total_share"] == 1_000_000_000
+
+
+def test_real_batch_rejects_mixed_latest_trade_dates():
+    raw = [
+        {"stock_code": "A", "stock_name": "A", "valuation_rows": [["2026-08-13", "sh.600000", "10", "", "", "", ""]], "share_rows": [{"date": "2026-08-01", "total_share": 1}]},
+        {"stock_code": "B", "stock_name": "B", "valuation_rows": [["2026-08-12", "sh.600001", "10", "", "", "", ""]], "share_rows": [{"date": "2026-08-01", "total_share": 1}]},
+    ]
+    with pytest.raises(ValueError, match="latest trade date"):
+        finalize_trade_batch(raw, observation_sessions=1)
+
+
+def test_observation_sessions_are_idempotent_for_same_market_trade_date(tmp_path):
+    state = tmp_path / "state.json"
+    state.write_text('{"observation_dates":["2026-08-13"]}')
+    assert observation_sessions(state, "2026-08-13") == 1
+    assert observation_sessions(state, "2026-08-14") == 2

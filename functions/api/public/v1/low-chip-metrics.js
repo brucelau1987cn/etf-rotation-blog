@@ -154,7 +154,9 @@ export async function onRequest(context) {
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
     ];
-    const valid = metrics.filter((m) => m.trade_date && m.stock_code);
+    const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
+    if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
+    const valid = metrics;
     const stmts = [];
     for (let i = 0; i < valid.length; i += ROWS_PER_STMT) {
       const chunk = valid.slice(i, i + ROWS_PER_STMT);

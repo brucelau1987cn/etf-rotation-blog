@@ -24,7 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
-TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or "42TcgHQjub15gVGy2EQ-FHXoTlAaMH1IEpCcM2kZALE"
+TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
 
 
