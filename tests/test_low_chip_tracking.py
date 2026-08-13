@@ -87,6 +87,9 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "中位涨幅" in tracking
     assert "第{rec.daily.length}/10日" in tracking
     assert "tc-progress-bar" in tracking
+    assert 'role="progressbar"' in tracking
+    assert "tracking_complete" in tracking
+    assert 'id="tc-filter-empty"' in tracking
     assert "剩余天数" in tracking
 
 

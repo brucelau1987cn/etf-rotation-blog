@@ -39,8 +39,8 @@ const stocks = Object.entries(trackingData.stocks || {})
     };
   })
   .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
-const activeStocks = stocks.filter((s) => s.daily.length < 10);
-const historyStocks = stocks.filter((s) => s.daily.length >= 10);
+const activeStocks = stocks.filter((s) => !s.tracking_complete);
+const historyStocks = stocks.filter((s) => Boolean(s.tracking_complete));
 const validChanges = activeStocks.map((s) => s.totalChange).filter((v): v is number => v != null && Number.isFinite(v));
 const risingCount = validChanges.filter((v) => v > 0).length;
 const risingRatio = validChanges.length ? (risingCount / validChanges.length) * 100 : 0;
@@ -94,9 +94,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
     <div class="tc-summary">
       <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(risingRatio, 1)}%</strong><span>上涨占比 · {risingCount}/{validChanges.length}</span></div>
-      <div class="tc-summary-stat"><strong class:list={[medianChange >= 0 ? 'tc-up' : 'tc-down']}>{medianChange >= 0 ? '+' : ''}{fmt(medianChange, 1)}%</strong><span>中位涨幅</span></div>
-      <div class="tc-summary-stat"><strong class:list={[strongestChange >= 0 ? 'tc-up' : 'tc-down']}>{strongestChange >= 0 ? '+' : ''}{fmt(strongestChange, 1)}%</strong><span>最强涨幅</span></div>
+      <div class="tc-summary-stat"><strong>{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 · {risingCount}/{validChanges.length}</span></div>
+      <div class="tc-summary-stat"><strong class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
+      <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>最强涨幅</span></div>
     </div>
 
     <div class="tc-toolbar">
@@ -133,7 +133,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.daily.length >= 10 ? 'history' : 'active'}>
+          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -145,7 +145,14 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                 <span class="tc-badge tc-progress-label">第{rec.daily.length}/10日</span>
               </div>
             </div>
-            <div class="tc-progress" aria-label={`10日追踪进度 ${rec.daily.length}/10`}>
+            <div
+              class="tc-progress"
+              role="progressbar"
+              aria-label={`10日追踪进度 ${rec.daily.length}/10`}
+              aria-valuemin="0"
+              aria-valuemax="10"
+              aria-valuenow={Math.min(rec.daily.length, 10)}
+            >
               <span class="tc-progress-bar" style={`width:${Math.min(rec.daily.length, 10) * 10}%`}></span>
             </div>
 
@@ -238,6 +245,10 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           </article>
         );
       })}
+      <div class="tc-empty" id="tc-filter-empty" hidden>
+        <strong>没有匹配标的</strong>
+        <span>调整状态、搜索词或“包含科创板”后再试。</span>
+      </div>
     </section>
 
     <footer class="data-note">
@@ -255,6 +266,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var searchInput = document.getElementById('tc-search-input');
       var starToggle = document.getElementById('tc-star-toggle');
       var filterCount = document.getElementById('tc-filter-count');
+      var filterEmpty = document.getElementById('tc-filter-empty');
       var viewActive = document.getElementById('tc-view-active');
       var viewHistory = document.getElementById('tc-view-history');
       if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory) return;
@@ -277,6 +289,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           if (show) visible += 1;
         });
         if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
+        if (filterEmpty) filterEmpty.hidden = visible > 0;
         viewActive.classList.toggle('is-active', currentView === 'active');
         viewActive.setAttribute('aria-pressed', currentView === 'active' ? 'true' : 'false');
         viewHistory.classList.toggle('is-active', currentView === 'history');
@@ -401,7 +414,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-table tbody tr:hover { background: #f8fafc; }
   .tc-date { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; }
 
-  .tc-empty { border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
+  .tc-empty { grid-column: 1 / -1; border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 760px) {
