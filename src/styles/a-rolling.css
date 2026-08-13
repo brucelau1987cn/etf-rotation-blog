@@ -605,11 +605,38 @@
   border-color: #94a3b8;
 }
 
+.a-rolling-main .matrix-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .a-rolling-main .section-head-title h2 {
   font-size: 1.2rem;
   font-weight: 800;
   margin: 0;
   color: #0f172a;
+}
+
+.a-rolling-main .price-volume-asof {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.16rem 0.48rem;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  background: #fff7f7;
+  color: #b45353;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.a-rolling-main .price-volume-asof strong {
+  color: #dc2626;
+  font-weight: 800;
 }
 
 .a-rolling-main .legend-list {

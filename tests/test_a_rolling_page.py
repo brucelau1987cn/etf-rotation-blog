@@ -6,6 +6,7 @@ PAGE = ROOT / "src" / "pages" / "rolling.astro"
 MATRIX = ROOT / "src" / "components" / "ARollingEnergyMatrix.astro"
 ALERTS = ROOT / "src" / "components" / "ARollingAiAlerts.astro"
 APP = ROOT / "public" / "js" / "a-rolling-app.js"
+PRICE_VOLUME_APP = ROOT / "public" / "js" / "price-volume-tag.js"
 STATS = ROOT / "src" / "components" / "ARollingStatsStrip.astro"
 STYLES = ROOT / "src" / "styles" / "a-rolling.css"
 HK_PAGE = ROOT / "src" / "pages" / "rolling" / "hk.astro"
@@ -59,6 +60,20 @@ def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
     assert "max-height: none" in styles
     assert ".a-rolling-main .board-pager" in styles
     assert ".a-rolling-main .board-search-input" in styles
+
+
+def test_price_volume_asof_badge_sits_beside_matrix_title_and_uses_latest_kline_date():
+    matrix = MATRIX.read_text(encoding="utf-8")
+    price_volume_app = PRICE_VOLUME_APP.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    assert 'class="matrix-title-row"' in matrix
+    assert 'id="price-volume-asof"' in matrix
+    assert "量价12态" in matrix
+    assert "截至 --/-- 收盘" in matrix
+    assert "updateAsOfBadge" in price_volume_app
+    assert "tag?.date" in price_volume_app
+    assert ".a-rolling-main .price-volume-asof" in styles
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

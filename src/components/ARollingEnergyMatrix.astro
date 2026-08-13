@@ -183,7 +183,12 @@ const nameInitials = (name: string) => {
 <section class="matrix-section card" aria-labelledby="matrix-title">
   <div class="matrix-top">
     <div class="section-head-title">
-      <h2 id="matrix-title">多标的双向能量传导</h2>
+      <div class="matrix-title-row">
+        <h2 id="matrix-title">多标的双向能量传导</h2>
+        <span class="price-volume-asof" id="price-volume-asof" aria-live="polite">
+          <strong>量价12态</strong><span>· 截至 --/-- 收盘</span>
+        </span>
+      </div>
       <p class="matrix-sub">
         多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。列按触发时间从左到右排列；后出现的多方信号排在更早空方信号右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 3 只；可用代码、名称或首字母检索。
       </p>

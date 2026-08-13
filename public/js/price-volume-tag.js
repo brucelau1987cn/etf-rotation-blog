@@ -7,6 +7,27 @@
   const EXCH_MAP = { SSE: '17', SZSE: '33' };
   let loaded = false;
 
+  function normalizeAsOfDate(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.length < 8) return null;
+    return {
+      key: digits.slice(0, 8),
+      label: `${digits.slice(4, 6)}/${digits.slice(6, 8)}`,
+    };
+  }
+
+  function updateAsOfBadge(tags) {
+    const badge = document.getElementById('price-volume-asof');
+    if (!badge) return;
+    const latest = Object.values(tags || {})
+      .map((tag) => normalizeAsOfDate(tag?.date))
+      .filter(Boolean)
+      .sort((a, b) => b.key.localeCompare(a.key))[0];
+    if (!latest) return;
+    const detail = badge.querySelector('span');
+    if (detail) detail.textContent = `· 截至 ${latest.label} 收盘`;
+  }
+
   async function loadTags() {
     if (loaded) return;
     loaded = true;
@@ -38,6 +59,7 @@
       if (!resp.ok) return;
       const data = await resp.json();
       if (!data.ok || !data.tags) return;
+      updateAsOfBadge(data.tags);
 
       for (const [raw, tag] of Object.entries(data.tags)) {
         if (!tag.ok) continue;
