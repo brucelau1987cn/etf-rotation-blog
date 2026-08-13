@@ -24,7 +24,7 @@ import sys
 import time
 import urllib.request
 
-TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or "42TcgHQjub15gVGy2EQ-FHXoTlAaMH1IEpCcM2kZALE"
+TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 LOW_CHIP_ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
 ETF_HIST_ENDPOINT = "https://etf.peekabo.cc/api/public/v1/etf-profit-history"
 THS_BASE = "https://dq.10jqka.com.cn/fuyao/chip_shape_stock_selection"

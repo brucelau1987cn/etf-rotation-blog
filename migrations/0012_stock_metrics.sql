@@ -1,4 +1,4 @@
--- Stock metrics for low-chip screen: 股东人数, 股东变化, 主力控盘, 90%筹码集中度, 十大流通股东
+-- Stock metrics for low-chip screen: 股东人数, 股东变化, 主力控盘, 筹码与估值影子指标
 -- One row per (trade_date, stock_code). INSERT OR REPLACE for daily rollover.
 CREATE TABLE IF NOT EXISTS stock_metrics (
   trade_date TEXT NOT NULL,
@@ -12,6 +12,14 @@ CREATE TABLE IF NOT EXISTS stock_metrics (
   top10_float_ratio REAL,          -- 十大流通股东占比（%）
   price REAL,                      -- 当日收盘价
   announcement_date TEXT,          -- 股东数据公告日期（YYYYMMDD）
+  pe_ttm REAL,
+  pb REAL,
+  ps_ttm REAL,
+  pcf_ttm REAL,
+  total_share REAL,
+  total_mv REAL,
+  fundamental_shadow_status TEXT,
+  fundamental_shadow_sessions INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (trade_date, stock_code)
 );

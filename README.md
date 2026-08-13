@@ -128,6 +128,19 @@ GET /api/public/v1/rolling-signals?symbol=
 - 响应：`{ status: "ok", source, count, quotes: { [code]: { price, change_percent, ... } } }`
 - 客户端适配：`src/lib/normalizeQuotePayload.mjs` + `/js/normalize-quote-payload.js`（`window.EtfQuote`）
 
+## A股估值影子指标
+
+```bash
+python3 scripts/a_share_fundamental_shadow.py --workers 4        # 只读探针/本地审计
+python3 scripts/a_share_fundamental_shadow.py --workers 4 --write # 64/64门禁通过后写D1
+```
+
+- 数据源：BaoStock 未复权日线估值字段 + 季报已披露 `totalShare`；`total_mv=close×total_share`。
+- 覆盖契约：`expected/succeeded/empty/failed/coverage/publishable`；任何 empty/failed 返回 `STAGING BLOCKER`，D1保持不变。
+- 运行边界：最多4个独立进程；每进程独立持久BaoStock会话，会话失效仅做一次有界重登录。
+- 时间边界：首个可靠股本披露日前 `total_share/total_mv=null`；增量收益率必须携带前一交易日K线。
+- 影子观察：第1—9个交易日 `IMMATURE`，第10—19日 `ACCUMULATING`，第20日起 `OBSERVED`；全程 `audit_only`，正式权重、信号和动作保持不变。
+
 ## 统一历史K线接口
 
 - `GET /api/public/v1/market-data/bars?symbol=600021&period=day&adjustment=qfq&limit=100`

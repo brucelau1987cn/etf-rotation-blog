@@ -48,6 +48,14 @@ export async function onRequest(context) {
         financials TEXT,
         theme_concepts TEXT,
         quality_shareholder INTEGER,
+        pe_ttm REAL,
+        pb REAL,
+        ps_ttm REAL,
+        pcf_ttm REAL,
+        total_share REAL,
+        total_mv REAL,
+        fundamental_shadow_status TEXT,
+        fundamental_shadow_sessions INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
@@ -87,6 +95,7 @@ export async function onRequest(context) {
     try { body = await request.json(); } catch {
       return json({ ok: false, error: 'invalid JSON' }, 400);
     }
+    const preserveExisting = body?.preserve_existing === true;
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
       return json({ ok: false, error: 'metrics array required' }, 400);
@@ -108,17 +117,25 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN closing_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN average_cost REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
+    for (const [column, type] of [
+      ['pe_ttm', 'REAL'], ['pb', 'REAL'], ['ps_ttm', 'REAL'], ['pcf_ttm', 'REAL'],
+      ['total_share', 'REAL'], ['total_mv', 'REAL'], ['fundamental_shadow_status', 'TEXT'],
+      ['fundamental_shadow_sessions', 'INTEGER'],
+    ]) {
+      try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} ${type}`).run(); } catch (e) {}
+    }
     let inserted = 0;
-    // 批量写入：D1 prepared statement 参数上限 ~100 → 每条 INSERT 4 行（96 参数），
-    // 每 100 条语句用 DB.batch 原子提交（400 行/请求）。
-    const ROWS_PER_STMT = 4;
+    // 批量写入：D1 prepared statement 参数上限约100；32列×3行=96参数。
+    const ROWS_PER_STMT = 3;
     const STMTS_PER_BATCH = 100;
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
       'shareholder_change_pct', 'main_force', 'main_force_label',
       'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
       'week_profit', 'month_profit', 'quarter_profit', 'change_percent',
       'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder',
-      'closing_profit', 'average_cost', 'conc70'];
+      'closing_profit', 'average_cost', 'conc70',
+      'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
+      'fundamental_shadow_status', 'fundamental_shadow_sessions'];
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -133,14 +150,22 @@ export async function onRequest(context) {
       m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
       m.quality_shareholder ? 1 : 0,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
+      m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
+      m.total_share ?? null, m.total_mv ?? null,
+      m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
     ];
     const valid = metrics.filter((m) => m.trade_date && m.stock_code);
     const stmts = [];
     for (let i = 0; i < valid.length; i += ROWS_PER_STMT) {
       const chunk = valid.slice(i, i + ROWS_PER_STMT);
       const placeholders = chunk.map(() => `(${cols.map(() => '?').join(',')})`).join(',');
+      const insertPrefix = preserveExisting ? 'INSERT INTO' : 'INSERT OR REPLACE INTO';
+      const conflict = preserveExisting ? ` ON CONFLICT (trade_date, stock_code) DO UPDATE SET ${[
+        'stock_name', 'price', 'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
+        'fundamental_shadow_status', 'fundamental_shadow_sessions',
+      ].map((column) => `${column}=excluded.${column}`).join(',')}` : '';
       stmts.push(env.DB.prepare(
-        `INSERT OR REPLACE INTO stock_metrics (${cols.join(',')}) VALUES ${placeholders}`
+        `${insertPrefix} stock_metrics (${cols.join(',')}) VALUES ${placeholders}${conflict}`
       ).bind(...chunk.flatMap(rowValues)));
     }
     for (let i = 0; i < stmts.length; i += STMTS_PER_BATCH) {
