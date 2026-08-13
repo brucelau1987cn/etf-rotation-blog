@@ -69,6 +69,7 @@ def test_breakout_shadow_labels_volatility_adjusted_price_and_relative_volume():
     assert result["relative_volume_10d"] == 2.6
     assert result["volatility_adjusted_move"] >= 2.0
     assert result["relative_spy"] > 0.04
+    assert not any(key.startswith("_") for key in result)
 
 
 def test_breakout_shadow_returns_unavailable_for_incomplete_bars():
@@ -146,6 +147,16 @@ def test_breakout_shadow_extreme_finite_history_returns_unavailable():
     ]
     result = mod.breakout_shadow_metric("QQQ", bars, spy_return=0.0)
     assert result["status"] == "UNAVAILABLE"
+
+
+def test_breakout_shadow_extreme_finite_volume_returns_unavailable_without_private_fields():
+    bars = [
+        {"trade_date": f"2026-01-{day:02d}", "adj_close": 100 + (day % 2), "volume": 1e308}
+        for day in range(1, 22)
+    ]
+    result = mod.breakout_shadow_metric("QQQ", bars, spy_return=0.0)
+    assert result["status"] == "UNAVAILABLE"
+    assert not any(key.startswith("_") for key in result)
 
 
 def test_breakout_report_uses_unrounded_spy_return_at_relative_threshold(tmp_path):

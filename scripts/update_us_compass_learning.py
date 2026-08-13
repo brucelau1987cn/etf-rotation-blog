@@ -91,6 +91,7 @@ def exposure_for(regime: str) -> float:
 
 def breakout_shadow_metric(
     symbol: str, bars: list[dict[str, Any]], *, spy_return: float, expected_trade_date: str | None = None,
+    include_internal: bool = False,
 ) -> dict[str, Any]:
     """Calculate a research-only ETF breakout label from completed daily bars."""
     if not math.isfinite(spy_return):
@@ -116,7 +117,10 @@ def breakout_shadow_metric(
             volumes.append(volume)
     except (TypeError, ValueError):
         return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
-    average_volume = statistics.fmean(volumes[-11:-1])
+    try:
+        average_volume = statistics.fmean(volumes[-11:-1])
+    except (ArithmeticError, statistics.StatisticsError):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
     if average_volume <= 0:
         return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
     try:
@@ -149,17 +153,20 @@ def breakout_shadow_metric(
         and adjusted_move >= BREAKOUT_MIN_VOLATILITY_MOVE
         and relative_spy >= BREAKOUT_MIN_RELATIVE_SPY
     )
-    return {
+    result = {
         "symbol": symbol,
         "status": "BREAKOUT" if triggered else "NORMAL",
         "trade_date": ordered[-1].get("trade_date"),
         "daily_return": round(daily_return, 6),
-        "_daily_return_raw": daily_return,
+
         "relative_volume_10d": round(relative_volume, 6),
         "volatility20": round(volatility, 6),
         "volatility_adjusted_move": round(adjusted_move, 6) if adjusted_move is not None else None,
         "relative_spy": round(relative_spy, 8),
     }
+    if include_internal:
+        result["_daily_return_raw"] = daily_return
+    return result
 
 
 def build_breakout_shadow_report(
@@ -177,7 +184,9 @@ def build_breakout_shadow_report(
         ).fetchall()
         bars_by_symbol[symbol] = [dict(row) for row in reversed(rows)]
     spy_bars = bars_by_symbol.get("SPY", [])
-    spy_metric = breakout_shadow_metric("SPY", spy_bars, spy_return=0.0, expected_trade_date=model_date)
+    spy_metric = breakout_shadow_metric(
+        "SPY", spy_bars, spy_return=0.0, expected_trade_date=model_date, include_internal=True,
+    )
     if spy_metric.get("status") == "UNAVAILABLE":
         return {
             "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
