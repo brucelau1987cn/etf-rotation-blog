@@ -51,10 +51,27 @@ def main() -> int:
     for code in codes:
         q = f"{code.split('.')[0]} 最新价、最新涨跌幅、所属申万行业、所属概念、前十大流通股东、第一大流通股东名称、持股数量、持股市值、占总股本比、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
         d = iwc(q)
+        matched = None
         for r in d.get("datas") or []:
-            if str(r.get("股票代码", "")).upper().startswith(code.split(".")[0]):
-                rows.append(r)
+            row_code = str(r.get("股票代码", "")).upper().split(".")[0]
+            if row_code == code.split(".")[0]:
+                matched = r
                 break
+        # Batch-style shareholder fields can return an incomplete row set.
+        # Retry the industry/quote identity query per symbol before fail-closed validation.
+        if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
+            fallback = iwc(f"{code.split('.')[0]} 所属申万行业、所属同花顺行业、最新价、最新涨跌幅", limit=5)
+            for r in fallback.get("datas") or []:
+                row_code = str(r.get("股票代码", "")).upper().split(".")[0]
+                if row_code == code.split(".")[0]:
+                    if matched is None:
+                        matched = r
+                    elif not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
+                        matched["所属申万行业"] = r.get("所属申万行业")
+                        matched["所属同花顺行业"] = r.get("所属同花顺行业")
+                    break
+        if matched is not None:
+            rows.append(matched)
     Path("/tmp/low_chip_individual.json").write_text(
         json.dumps(rows, ensure_ascii=False), encoding="utf-8")
     print(f"  individual rows: {len(rows)}", flush=True)
