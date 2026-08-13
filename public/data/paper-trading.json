@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-12T22:50:07.958340+00:00",
+  "updated_at": "2026-08-13T07:10:21.133924+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -113,37 +113,45 @@
           "daily_return": 0.0,
           "cumulative_return": 0.0,
           "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-08-13",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
         }
       ],
       "events": [],
       "pending_signals": [
         {
-          "symbol": "513500",
-          "name": "标普500ETF博时",
-          "support": 2.658,
-          "target": 2.774,
-          "stop": 2.565,
-          "signal_date": "2026-08-12",
+          "symbol": "513030",
+          "name": "德国ETF华安",
+          "support": 1.864,
+          "target": 1.976,
+          "stop": 1.819,
+          "signal_date": "2026-08-13",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
-          "symbol": "513030",
-          "name": "德国ETF华安",
-          "support": 1.834,
-          "target": 1.936,
-          "stop": 1.811,
-          "signal_date": "2026-08-12",
+          "symbol": "512200",
+          "name": "房地产ETF南方",
+          "support": 1.231,
+          "target": 1.311,
+          "stop": 1.183,
+          "signal_date": "2026-08-13",
           "kind": "ready_plant",
           "status": "候场"
         },
         {
           "symbol": "518880",
           "name": "黄金ETF华安",
-          "support": 8.814,
-          "target": 9.204,
-          "stop": 8.529,
-          "signal_date": "2026-08-12",
+          "support": 8.904,
+          "target": 9.302,
+          "stop": 8.566,
+          "signal_date": "2026-08-13",
           "kind": "ready_plant",
           "status": "候场"
         }
@@ -152,6 +160,14 @@
         "symbol": "510300",
         "cumulative_return": null,
         "excess_return": null
+      },
+      "decision_review": {
+        "scope": "all_events",
+        "total": 0,
+        "by_tag": [],
+        "unavailable_reasons": [
+          "胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"
+        ]
       },
       "public_pending_signals": [
         {
@@ -291,7 +307,8 @@
           "quantity": 22,
           "price": 87.860001,
           "cost": 1.96646,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:IHF:buy:1785245400:plant",
@@ -303,7 +320,8 @@
           "quantity": 35,
           "price": 56.622002,
           "cost": 1.990885,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:EFA:buy:1785245725:plant",
@@ -315,7 +333,8 @@
           "quantity": 19,
           "price": 103.324997,
           "cost": 1.981587,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:IHF:sell:1785264918:target",
@@ -327,7 +346,8 @@
           "quantity": 35,
           "price": 58.130001,
           "cost": 2.017275,
-          "reason": "target"
+          "reason": "target",
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:COPX:buy:1785331852:plant",
@@ -339,7 +359,8 @@
           "quantity": 26,
           "price": 76.120003,
           "cost": 1.98956,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:XLU:buy:1785334868:plant",
@@ -351,7 +372,8 @@
           "quantity": 43,
           "price": 45.455101,
           "cost": 1.977285,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:IYT:sell:1785341741:stop",
@@ -363,7 +385,8 @@
           "quantity": 22,
           "price": 85.245003,
           "cost": 1.937695,
-          "reason": "stop"
+          "reason": "stop",
+          "decision_tag": "止损退出"
         },
         {
           "id": "US:IBIT:buy:1785343500:plant",
@@ -375,7 +398,8 @@
           "quantity": 55,
           "price": 36.029999,
           "cost": 1.990825,
-          "reason": "plant"
+          "reason": "plant",
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:IGV:buy:1785418832:plant",
@@ -390,7 +414,8 @@
           "reason": "plant",
           "signal_date": "2026-07-29",
           "signal_kind": "plant",
-          "signal_level": 92.27
+          "signal_level": 92.27,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:EFA:sell:1785419729:target",
@@ -408,7 +433,8 @@
           "entry_price": 103.32499694824219,
           "entry_cost": 1.981587,
           "target": 105.33,
-          "stop": 102.02
+          "stop": 102.02,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:COPX:sell:1785438327:target",
@@ -426,7 +452,8 @@
           "entry_price": 76.12000274658203,
           "entry_cost": 1.98956,
           "target": 79.39,
-          "stop": 72.69
+          "stop": 72.69,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:XLP:buy:1785504914:plant",
@@ -441,7 +468,8 @@
           "reason": "plant",
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
-          "signal_level": 84.7
+          "signal_level": 84.7,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:XLV:buy:1785504917:plant",
@@ -456,7 +484,8 @@
           "reason": "plant",
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
-          "signal_level": 161.98
+          "signal_level": 161.98,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:XLRE:buy:1785504914:plant",
@@ -471,7 +500,8 @@
           "reason": "plant",
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
-          "signal_level": 45.03
+          "signal_level": 45.03,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:VNQ:buy:1785505808:plant",
@@ -486,7 +516,8 @@
           "reason": "plant",
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
-          "signal_level": 98.87
+          "signal_level": 98.87,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:RSP:buy:1785507008:plant",
@@ -501,7 +532,8 @@
           "reason": "plant",
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
-          "signal_level": 214.05
+          "signal_level": 214.05,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:IBIT:sell:1785763852:exit",
@@ -519,7 +551,8 @@
           "entry_price": 36.029998779296875,
           "entry_cost": 1.990825,
           "target": 37.12,
-          "stop": 34.83
+          "stop": 34.83,
+          "decision_tag": "风险降仓"
         },
         {
           "id": "US:IGV:sell:1785763853:target",
@@ -539,7 +572,8 @@
           "entry_price": 92.19000244140625,
           "entry_cost": 1.967995,
           "target": 96.1,
-          "stop": 87.4
+          "stop": 87.4,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:ETHA:buy:1785763849:plant",
@@ -554,7 +588,8 @@
           "reason": "plant",
           "signal_date": "2026-07-31",
           "signal_kind": "plant",
-          "signal_level": 14.03
+          "signal_level": 14.03,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:OIH:buy:1785763801:plant",
@@ -569,7 +604,8 @@
           "reason": "plant",
           "signal_date": "2026-07-31",
           "signal_kind": "plant",
-          "signal_level": 378.63
+          "signal_level": 378.63,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:XLU:sell:1785764168:stop",
@@ -587,7 +623,8 @@
           "entry_price": 45.455101013183594,
           "entry_cost": 1.977285,
           "target": 46.54,
-          "stop": 44.16
+          "stop": 44.16,
+          "decision_tag": "止损退出"
         },
         {
           "id": "US:RSP:sell:1785855652:target",
@@ -607,7 +644,8 @@
           "entry_price": 213.98500061035156,
           "entry_cost": 1.962933,
           "target": 218.33,
-          "stop": 211.45
+          "stop": 211.45,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:IBIT:buy:1785936644:plant",
@@ -622,7 +660,8 @@
           "reason": "plant",
           "signal_date": "2026-08-04",
           "signal_kind": "plant",
-          "signal_level": 36.37
+          "signal_level": 36.37,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:XLE:buy:1785940564:plant",
@@ -637,7 +676,8 @@
           "reason": "plant",
           "signal_date": "2026-08-04",
           "signal_kind": "plant",
-          "signal_level": 57.77
+          "signal_level": 57.77,
+          "decision_tag": "计划内首仓"
         },
         {
           "id": "US:ETHA:sell:1786109741:target",
@@ -657,7 +697,8 @@
           "entry_price": 13.875,
           "entry_cost": 1.999,
           "target": 14.56,
-          "stop": 13.42
+          "stop": 13.42,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:VNQ:sell:1786369849:stop",
@@ -677,7 +718,8 @@
           "entry_price": 98.79010009765625,
           "entry_cost": 1.987901,
           "target": 101.36,
-          "stop": 97.0
+          "stop": 97.0,
+          "decision_tag": "止损退出"
         },
         {
           "id": "US:OIH:sell:1786370146:target",
@@ -697,7 +739,8 @@
           "entry_price": 378.4909973144531,
           "entry_cost": 1.946227,
           "target": 400.93,
-          "stop": 363.32
+          "stop": 363.32,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:XLV:sell:1786370454:target",
@@ -717,7 +760,8 @@
           "entry_price": 161.5749969482422,
           "entry_cost": 1.96945,
           "target": 167.06,
-          "stop": 158.8
+          "stop": 158.8,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:XLE:sell:1786386057:target",
@@ -737,7 +781,8 @@
           "entry_price": 57.69499969482422,
           "entry_cost": 2.009662,
           "target": 60.09,
-          "stop": 56.42
+          "stop": 56.42,
+          "decision_tag": "止盈退出"
         },
         {
           "id": "US:XLRE:sell:1786460430:stop",
@@ -757,7 +802,8 @@
           "entry_price": 44.97999954223633,
           "entry_cost": 1.98956,
           "target": 46.17,
-          "stop": 44.14
+          "stop": 44.14,
+          "decision_tag": "止损退出"
         }
       ],
       "pending_signals": [],
@@ -765,6 +811,35 @@
         "symbol": "SPY",
         "cumulative_return": null,
         "excess_return": null
+      },
+      "decision_review": {
+        "scope": "all_events",
+        "total": 30,
+        "by_tag": [
+          {
+            "tag": "计划内首仓",
+            "count": 16,
+            "closed_pnl": null
+          },
+          {
+            "tag": "止盈退出",
+            "count": 9,
+            "closed_pnl": 590.685522
+          },
+          {
+            "tag": "止损退出",
+            "count": 4,
+            "closed_pnl": -146.103818
+          },
+          {
+            "tag": "风险降仓",
+            "count": 1,
+            "closed_pnl": -35.315963
+          }
+        ],
+        "unavailable_reasons": [
+          "胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"
+        ]
       },
       "public_pending_signals": [
         {
