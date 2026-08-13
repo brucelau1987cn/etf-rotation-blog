@@ -111,9 +111,15 @@ async function sendBaoStockRequest(writer, reader, type, body) {
   return parseBaoStockResponseBytes(await readBaoStockFrame(reader));
 }
 
+export function baoStockSecCode(symbol) {
+  return /^(sh|sz)\.\d{6}$/i.test(symbol)
+    ? symbol.toLowerCase()
+    : (symbol.startsWith('6') ? `sh.${symbol}` : `sz.${symbol}`);
+}
+
 async function fetchKlineFromBaoStock(symbol, adjust = '', connectOverride = null) {
   const connectFn = connectOverride || (await import('cloudflare:sockets')).connect;
-  const secCode = symbol.startsWith('6') ? `sh.${symbol}` : `sz.${symbol}`;
+  const secCode = baoStockSecCode(symbol);
   const adjustFlag = { '': '3', qfq: '2', hfq: '1' }[adjust];
   if (!adjustFlag) throw new Error('invalid baostock adjust');
   const socket = connectFn({ hostname: 'public-api.baostock.com', port: 10030 });

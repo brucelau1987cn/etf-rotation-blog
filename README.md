@@ -131,8 +131,8 @@ GET /api/public/v1/rolling-signals?symbol=
 ## 统一历史K线接口
 
 - `GET /api/public/v1/market-data/bars?symbol=600021&period=day&adjustment=qfq&limit=100`
-- 数据源：A股日/周/月优先 Pages BaoStock；全球及分钟周期使用 Yahoo Finance；`source=tradingview` 当前明确返回 `503 UNAVAILABLE`，等待 Cloudflare 边缘 WebSocket 独立探针通过后再接入。
-- 支持 `period=1m|5m|15m|30m|1h|day|week|month`、`adjustment=none|qfq|hfq`，返回统一 `items[{timestamp,open,high,low,close,volume}]`。
+- 数据源：A股日/周/月优先 Pages BaoStock；`adjustment=none` 时 BaoStock 故障可回退 Yahoo；全球及分钟周期使用 Yahoo Finance；`source=tradingview` 当前明确返回 `503 UNAVAILABLE`，等待 Cloudflare 边缘 WebSocket 独立探针通过后再接入。
+- 周期支持 `period=1m|5m|15m|30m|1h|day|week|month`。BaoStock 支持 `adjustment=none|qfq|hfq`；Yahoo 仅支持 `adjustment=none`。返回统一 `items[{timestamp,open,high,low,close,volume}]`。
 - `source=auto|baostock|yahoo|tradingview` 可用于确定性诊断；失败返回 `503`、`code=UNAVAILABLE`，不静默估算。
 - 可见性轮询：`/js/etf-live-poll.js`（`window.EtfLivePoll`）
 - 源仓：[`brucelau1987cn/edge-quote-api`](https://github.com/brucelau1987cn/edge-quote-api)  
