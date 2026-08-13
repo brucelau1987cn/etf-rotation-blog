@@ -84,20 +84,21 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     <RollingSubnav active="low-chip" />
     <LowChipModeNav active="tracking" trackingCount={activeStocks.length} />
 
-    <div class="tc-header">
-      <div>
+    <section class="tc-overview" aria-labelledby="tc-title">
+      <div class="tc-header">
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
-        <h1>低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，固定记录加入后的前 10 个交易日；加入当日作为基准，隔日起算第 1 日。完成 10 日窗口后停止更新并自动进入历史区。当前追踪 {activeStocks.length} 只，历史 {historyStocks.length} 只。</p>
+        <h1 id="tc-title">低筹码追踪</h1>
+        <p class="tc-desc">从股票首次进入低筹码筛选日起追踪，记录加入后 10 个交易日的股价与获利盘表现。加入当日作为基准，隔日起算第 1 日；完成窗口后自动进入历史区。</p>
+        <p class="tc-overview-meta">当前追踪 <strong>{activeStocks.length}</strong> 只 · 历史 <strong>{historyStocks.length}</strong> 只</p>
       </div>
-    </div>
 
-    <div class="tc-summary">
-      <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
-      <div class="tc-summary-stat"><strong>{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 · {risingCount}/{validChanges.length}</span></div>
-      <div class="tc-summary-stat"><strong class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
-      <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>最强涨幅</span></div>
-    </div>
+      <div class="tc-summary" aria-label="追踪概览">
+        <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
+        <div class="tc-summary-stat"><strong>{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 <small>{risingCount}/{validChanges.length}</small></span></div>
+        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
+        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>最高涨幅</span></div>
+      </div>
+    </section>
 
     <div class="tc-toolbar">
       <span class="tc-toolbar-label">状态</span>
@@ -337,10 +338,13 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 </body>
 
 <style>
-  .tc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin: 1.2rem 0 1rem; }
-  .tc-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin-bottom: .35rem; }
-  .tc-header h1 { font-size: 1.6rem; margin: 0 0 .45rem; }
-  .tc-desc { color: rgb(var(--gray-mid)); font-size: .85rem; max-width: 56rem; line-height: 1.55; margin: 0; }
+  .tc-overview { display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,.72fr); align-items:center; gap:1.5rem; margin:1rem 0; padding:1.35rem; border:1px solid #dbe3ec; border-radius:14px; background:#fff; }
+  .tc-header { min-width: 0; }
+  .tc-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .35rem; }
+  .tc-header h1 { font-size: 2rem; margin: 0 0 .45rem; }
+  .tc-desc { color: #526176; font-size: .85rem; max-width: 42rem; line-height: 1.7; margin: 0; }
+  .tc-overview-meta { margin:.65rem 0 0; color:#64748b; font-size:.76rem; font-weight:700; }
+  .tc-overview-meta strong { color:#14243b; font-size:.84rem; }
 
   /* 排序工具栏 */
   .tc-toolbar { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
@@ -360,11 +364,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-star-switch input:focus-visible + .tc-star-track { outline: 2px solid #2563eb; outline-offset: 2px; }
   .tc-filter-count { margin-left: auto; font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; }
 
-  /* 顶部统计条 */
-  .tc-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
-  .tc-summary-stat { border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(180deg, #fff, #f8fafc); padding: .65rem .8rem; text-align: center; }
-  .tc-summary-stat strong { display: block; font-size: 1.25rem; line-height: 1.1; }
-  .tc-summary-stat span { font-size: .68rem; color: rgb(var(--gray-mid)); }
+  /* Hero 右侧概览 */
+  .tc-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin:0; }
+  .tc-summary-stat { min-height:4.65rem; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; border:1px solid #e2e8f0; border-radius:10px; background:#f8fafc; padding:.72rem .9rem; text-align:left; }
+  .tc-summary-stat strong { display:block; font-size:1.3rem; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .tc-summary-stat span { margin-top:.22rem; font-size:.7rem; color:#64748b; font-weight:700; }
+  .tc-summary-stat small { margin-left:.2rem; font-size:.62rem; color:#94a3b8; }
 
   .tc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: .9rem; }
   .tc-card { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.05rem; background: #fff; transition: box-shadow .15s ease, transform .15s ease; }
@@ -417,8 +422,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-empty { grid-column: 1 / -1; border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
   .data-note { margin-top: 1.2rem; }
+  @media (max-width: 900px) {
+    .tc-overview { grid-template-columns:1fr; gap:1rem; }
+  }
   @media (max-width: 760px) {
-    .tc-header { margin-top: .9rem; }
+    .tc-overview { padding:1rem; }
+    .tc-header { margin-top: 0; }
     .tc-toolbar { flex-wrap: wrap; }
     .tc-toolbar-divider { display: none; }
     .tc-search-wrap { width: 100%; order: 5; }
