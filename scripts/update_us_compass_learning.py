@@ -115,7 +115,7 @@ def breakout_shadow_metric(
                 raise ValueError
             closes.append(close)
             volumes.append(volume)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
     try:
         average_volume = statistics.fmean(volumes[-11:-1])

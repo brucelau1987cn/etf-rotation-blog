@@ -159,6 +159,20 @@ def test_breakout_shadow_extreme_finite_volume_returns_unavailable_without_priva
     assert not any(key.startswith("_") for key in result)
 
 
+def test_breakout_shadow_oversized_integer_inputs_return_unavailable():
+    huge = 10**10000
+    base = [
+        {"trade_date": f"2026-01-{day:02d}", "adj_close": 100 + (day % 2), "volume": 100}
+        for day in range(1, 22)
+    ]
+    for field in ("adj_close", "volume"):
+        bars = [dict(row) for row in base]
+        bars[-1][field] = huge
+        result = mod.breakout_shadow_metric("QQQ", bars, spy_return=0.0)
+        assert result["status"] == "UNAVAILABLE"
+        assert not any(key.startswith("_") for key in result)
+
+
 def test_breakout_report_uses_unrounded_spy_return_at_relative_threshold(tmp_path):
     db = sqlite3.connect(tmp_path / "bars.db")
     db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, adj_close REAL, close REAL, volume REAL, source TEXT, is_final INTEGER)")
