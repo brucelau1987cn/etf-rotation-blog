@@ -84,6 +84,18 @@ def test_breakout_shadow_returns_unavailable_for_incomplete_bars():
     }
 
 
+def test_breakout_shadow_returns_unavailable_for_zero_historical_volatility():
+    bars = [
+        {"trade_date": f"2026-01-{day:02d}", "adj_close": 100, "volume": 100}
+        for day in range(1, 21)
+    ]
+    bars.append({"trade_date": "2026-01-21", "adj_close": 105, "volume": 300})
+    result = mod.breakout_shadow_metric("QQQ", bars, spy_return=0.0)
+    assert result == {
+        "symbol": "QQQ", "status": "UNAVAILABLE", "reason": "historical volatility is unavailable",
+    }
+
+
 def test_breakout_shadow_rejects_stale_latest_bar():
     bars = [
         {"trade_date": f"2026-01-{day:02d}", "adj_close": 100 + day, "volume": 100}
@@ -125,6 +137,31 @@ def test_breakout_shadow_never_emits_non_finite_numbers():
     result = mod.breakout_shadow_metric("QQQ", bars, spy_return=float("nan"))
     assert result["status"] == "UNAVAILABLE"
     assert all(not isinstance(value, float) or math.isfinite(value) for value in result.values())
+
+
+def test_breakout_shadow_extreme_finite_history_returns_unavailable():
+    bars = [
+        {"trade_date": f"2026-01-{day:02d}", "adj_close": 1e-308 if day % 2 else 1e308, "volume": 1.0}
+        for day in range(1, 22)
+    ]
+    result = mod.breakout_shadow_metric("QQQ", bars, spy_return=0.0)
+    assert result["status"] == "UNAVAILABLE"
+
+
+def test_breakout_report_uses_unrounded_spy_return_at_relative_threshold(tmp_path):
+    db = sqlite3.connect(tmp_path / "bars.db")
+    db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, adj_close REAL, close REAL, volume REAL, source TEXT, is_final INTEGER)")
+    rows = []
+    for symbol, final_close in (("SPY", 100.000049), ("QQQ", 101.000025)):
+        for day in range(1, 21):
+            rows.append((symbol, f"2026-01-{day:02d}", 100 + (day % 2) * 0.01, 100, 100, "yahoo", 1))
+        rows.append((symbol, "2026-01-21", final_close, final_close, 300, "yahoo", 1))
+    db.executemany("INSERT INTO daily_bars VALUES(?,?,?,?,?,?,?)", rows)
+    db.commit()
+    report = mod.build_breakout_shadow_report(db, model_date="2026-01-21", pool_rows=[{"symbol": "SPY"}, {"symbol": "QQQ"}])
+    qqq = next(row for row in report["metrics"] if row["symbol"] == "QQQ")
+    assert qqq["relative_spy"] < 0.01
+    assert qqq["status"] == "NORMAL"
 
 
 def test_breakout_shadow_report_is_research_only_and_reads_requested_model_date(tmp_path):
@@ -257,6 +294,8 @@ def test_main_soft_fails_breakout_research_when_bar_database_is_invalid(tmp_path
     pool_path = tmp_path / "pool.json"
     learning_path = tmp_path / "learning.json"
     shadow_path = tmp_path / "shadow.json"
+    old_history = [{"model_date": "2025-12-31", "hits": [{"symbol": "OLD"}]}]
+    shadow_path.write_text(json.dumps({"breakout_history": old_history}), encoding="utf-8")
     bar_path = tmp_path / "bars.db"
     bar_path.write_text("not a sqlite database", encoding="utf-8")
     pool_path.write_text(json.dumps({
@@ -275,3 +314,24 @@ def test_main_soft_fails_breakout_research_when_bar_database_is_invalid(tmp_path
     shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
     assert shadow["breakout_research"]["status"] == "UNAVAILABLE"
     assert shadow["breakout_research"]["reason"].endswith("DatabaseError")
+    assert shadow["breakout_history"] == old_history
+
+
+def test_main_preserves_breakout_history_when_bar_database_is_missing(tmp_path, monkeypatch):
+    pool_path = tmp_path / "pool.json"
+    learning_path = tmp_path / "learning.json"
+    shadow_path = tmp_path / "shadow.json"
+    old_history = [{"model_date": "2025-12-31", "hits": [{"symbol": "OLD"}]}]
+    shadow_path.write_text(json.dumps({"breakout_history": old_history}), encoding="utf-8")
+    pool_path.write_text(json.dumps({
+        "model_date": "2026-01-01", "model_version": "v1", "market_regime": {"state": "震荡"},
+        "rows": [{"symbol": "SPY", "theme": "大盘", "trend_score": 80, "trading_risk_score": 10,
+                  "trade_state": "可持有", "adjusted_close": 100, "day_open": 100, "price": 100}],
+    }), encoding="utf-8")
+    monkeypatch.setattr(mod, "POOL", pool_path)
+    monkeypatch.setattr(mod, "OUT", learning_path)
+    monkeypatch.setattr(mod, "SHADOW", shadow_path)
+    monkeypatch.setattr(mod, "BAR_DB", tmp_path / "missing.db")
+    mod.main()
+    shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
+    assert shadow["breakout_history"] == old_history

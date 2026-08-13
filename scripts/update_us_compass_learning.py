@@ -119,13 +119,23 @@ def breakout_shadow_metric(
     average_volume = statistics.fmean(volumes[-11:-1])
     if average_volume <= 0:
         return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
-    historical_returns = [closes[index] / closes[index - 1] - 1 for index in range(1, 20)]
+    try:
+        historical_returns = [closes[index] / closes[index - 1] - 1 for index in range(1, 20)]
+    except OverflowError:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
+    if not all(math.isfinite(value) for value in historical_returns):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
     try:
         daily_return = closes[-1] / closes[-2] - 1
     except OverflowError:
         return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
-    volatility = statistics.stdev(historical_returns) if len(historical_returns) >= 2 else 0.0
-    adjusted_move = daily_return / volatility if volatility > 0 else None
+    try:
+        volatility = statistics.stdev(historical_returns) if len(historical_returns) >= 2 else 0.0
+    except (ArithmeticError, AttributeError, statistics.StatisticsError):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
+    if not math.isfinite(volatility) or volatility <= 0:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "historical volatility is unavailable"}
+    adjusted_move = daily_return / volatility
     relative_volume = volumes[-1] / average_volume
     relative_spy = daily_return - spy_return
     if not all(math.isfinite(value) for value in (daily_return, volatility, relative_volume, relative_spy)):
@@ -144,10 +154,11 @@ def breakout_shadow_metric(
         "status": "BREAKOUT" if triggered else "NORMAL",
         "trade_date": ordered[-1].get("trade_date"),
         "daily_return": round(daily_return, 6),
+        "_daily_return_raw": daily_return,
         "relative_volume_10d": round(relative_volume, 6),
         "volatility20": round(volatility, 6),
         "volatility_adjusted_move": round(adjusted_move, 6) if adjusted_move is not None else None,
-        "relative_spy": round(relative_spy, 6),
+        "relative_spy": round(relative_spy, 8),
     }
 
 
@@ -175,7 +186,7 @@ def build_breakout_shadow_report(
             "coverage": {"requested": len(symbols), "evaluated": 0, "unavailable": len(symbols)},
             "hits": [], "metrics": [],
         }
-    spy_return = float(spy_metric["daily_return"])
+    spy_return = float(spy_metric["_daily_return_raw"])
     metrics = [
         breakout_shadow_metric(symbol, bars_by_symbol[symbol], spy_return=spy_return, expected_trade_date=model_date)
         for symbol in symbols
@@ -183,6 +194,7 @@ def build_breakout_shadow_report(
     themes = {str(row.get("symbol")): row.get("theme") for row in pool_rows}
     for metric in metrics:
         metric["theme"] = themes.get(metric["symbol"])
+        metric.pop("_daily_return_raw", None)
     hits = sorted(
         (metric for metric in metrics if metric["status"] == "BREAKOUT"),
         key=lambda metric: (metric.get("volatility_adjusted_move") or 0, metric.get("relative_volume_10d") or 0),
@@ -379,6 +391,8 @@ def main() -> None:
     shadow = shadow_portfolios(snapshots)
     shadow["updated_at"] = payload["updated_at"]
     shadow["model_fingerprint"] = copy.deepcopy(fingerprint)
+    if isinstance(previous_shadow.get("breakout_history"), list):
+        shadow["breakout_history"] = copy.deepcopy(previous_shadow["breakout_history"])
     if BAR_DB.exists():
         try:
             with sqlite3.connect(BAR_DB) as db:
