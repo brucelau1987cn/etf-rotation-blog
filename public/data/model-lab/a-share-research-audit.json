@@ -2,13 +2,13 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-08-13T14:37:13.030529+08:00",
+  "generated_at": "2026-08-13T22:34:23.339223+08:00",
   "dataset": {
     "algorithm": "sha256",
-    "value": "c19c3c589e2e5de0a2dff4107c1d313e066277ee93d8853a990d78c502c1a28d",
+    "value": "6cee291406aebaebe529e73cc55de39beb30388bfe0d0108aa9a37483df0a460",
     "record_count": 401,
     "pool_row_count": 91,
-    "as_of": "2026-08-12",
+    "as_of": "2026-08-13",
     "components": {
       "historical_direction_records": {
         "algorithm": "sha256",
@@ -38,9 +38,9 @@
       },
       "current_action_pool": {
         "algorithm": "sha256",
-        "value": "f3818ca0b23508da4909fba269ccd34d5bb92cf8c169d80e9bb15063437b5cb4",
+        "value": "aaee64b5ea3af42e937af4171e126fc28fc5011970106e50fe1770c2f5b0c3e2",
         "row_count": 91,
-        "as_of": "2026-08-12",
+        "as_of": "2026-08-13",
         "canonical_scope": "complete_action_pool_rows",
         "volatile_fields_excluded": [
           "generated_at",
@@ -182,7 +182,7 @@
   },
   "execution_audit": {
     "row_count": 91,
-    "latest_trade_date": "2026-08-12",
+    "latest_trade_date": "2026-08-13",
     "blockers": {
       "invalid_levels": {
         "status": "known",
@@ -233,21 +233,24 @@
       }
     },
     "gate_failure_counts": {
-      "dual_momentum": 44,
+      "dual_momentum": 47,
       "ma20_above_ma60": 57,
-      "ma_rising": 35,
-      "momentum": 61,
-      "price_above_ma": 11
+      "ma_rising": 32,
+      "momentum": 64,
+      "price_above_ma": 15,
+      "short_ok": 2
     },
     "gate_unknown_counts": {},
     "risk_flag_counts": {
-      "收盘偏弱": 15,
-      "跌破20日线": 11
+      "收盘偏弱": 68,
+      "破位加速": 2,
+      "缩量冲高": 1,
+      "跌破20日线": 15
     },
     "trade_state_counts": {
-      "回踩候选": 5,
-      "观察": 41,
-      "退出": 45
+      "回踩候选": 13,
+      "观察": 23,
+      "退出": 55
     },
     "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
   },
