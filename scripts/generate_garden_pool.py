@@ -6,7 +6,7 @@ The canonical universe lives in data/etf-universe.json: 91 formal + 30 research-
 Output:
 - public/data/etf-garden-pool.json
 
-K线 / 行情来自 stock-api package v2.7.3，结构与 etf-momentum-latest.json 保持一致，
+K线 / 行情来自 stock-api package v2.7.3，结构与 etf-screening-report.json 保持一致，
 方便 momentum.astro 切换 DATA_URL。
 """
 from __future__ import annotations

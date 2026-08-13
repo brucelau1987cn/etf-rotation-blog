@@ -581,7 +581,6 @@ def main() -> int:
         "excluded_sample": excluded,
         "all_rows": rows,
     }
-    write_json(PUBLIC_DATA / "etf-momentum-latest.json", payload)
     write_json(PUBLIC_DATA / "etf-rotation-pool.json", {"generated_at": generated_at, "source_page": SOURCE_PAGE, "kline_source": payload["kline_source"], "items": core})
     write_json(PUBLIC_DATA / "etf-screening-report.json", payload)
     blog_path = write_blog(payload)
