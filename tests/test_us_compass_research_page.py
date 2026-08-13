@@ -754,12 +754,24 @@ def test_production_change_allowed_wording():
 
 def test_public_research_archive_contract():
     payload = json.loads(DATA.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "us-compass-research-v1"
+    assert payload["schema_version"] == "us-compass-research-v2"
     assert isinstance(payload["reports"], list) and payload["reports"]
     latest = payload["reports"][0]
     assert latest["production_change_allowed"] is False
     assert latest["iwencai"]["source"] == "同花顺问财"
     assert latest["execution_basis"]["one_way_cost_pct"] == 0.1
+
+
+def test_signal_validation_unavailable_reason_uses_declared_horizons():
+    module = load_module()
+    learning, _, _ = fixtures()
+    fingerprint = copy.deepcopy(learning["model_fingerprint"])
+    fingerprint["horizons"] = [1, 5]
+    validation = module.build_signal_validation(learning, fingerprint)
+    by_horizon = {row["horizon"]: row for row in validation["horizons"]}
+    assert by_horizon["t20"]["unavailable_reasons"] == [
+        "20D UNAVAILABLE：当前模型指纹仅声明1D、5D周期"
+    ]
 
 
 def test_weekly_publisher_deploys_research_archive():

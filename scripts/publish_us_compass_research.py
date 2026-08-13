@@ -215,6 +215,7 @@ def build_signal_validation(learning: dict[str, Any], fingerprint: dict[str, Any
     """Project persisted forward outcomes into a read-only, horizon-level audit."""
     snapshots = learning.get("snapshots") or []
     declared = set(fingerprint.get("horizons") or [])
+    declared_labels = "、".join(f"{days}D" for days in sorted(declared))
     rows = []
     thresholds = {1: 20, 5: 20, 20: 12}
     for days, label in ((1, "D1"), (5, "5D"), (20, "20D"), (60, "60D")):
@@ -224,7 +225,7 @@ def build_signal_validation(learning: dict[str, Any], fingerprint: dict[str, Any
                 "label": label, "horizon": horizon, "status": "UNAVAILABLE", "observations": 0,
                 "mean_return": None, "benchmark_return": None, "excess_return": None,
                 "mfe": None, "mae": None,
-                "unavailable_reasons": [f"{label} UNAVAILABLE：当前模型指纹仅声明1D、5D、20D周期"],
+                "unavailable_reasons": [f"{label} UNAVAILABLE：当前模型指纹仅声明{declared_labels}周期"],
             })
             continue
         outcomes = []

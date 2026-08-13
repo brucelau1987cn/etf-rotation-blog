@@ -176,6 +176,18 @@ class PaperTradingTests(unittest.TestCase):
             "unavailable_reasons": ["胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"],
         }
 
+    def test_decision_review_degrades_malformed_closed_pnl_to_unavailable(self):
+        state = paper.new_state("2026-07-11T00:00:00+00:00")
+        account = state["accounts"]["US"]
+        account["events"] = [{
+            "id": "bad", "side": "sell", "reason": "target", "symbol": "SPY",
+            "price": "bad", "quantity": 1, "entry_price": 100, "entry_cost": 1, "cost": 1,
+        }]
+        public = paper.public_view(state)["accounts"]["US"]
+        assert public["decision_review"]["by_tag"] == [
+            {"tag": "止盈退出", "count": 1, "closed_pnl": None}
+        ]
+
     def test_paper_page_displays_decision_reason_tags_and_review(self):
         page = (P.parents[1] / "src/pages/paper.astro").read_text(encoding="utf-8")
         for marker in ("操作原因复盘", "decision_review", "decision_tag", "标签仅用于执行复盘"):

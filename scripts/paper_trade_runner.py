@@ -283,6 +283,10 @@ def atomic_write(path,obj):
 DECISION_TAGS={"plant":"计划内首仓","target":"止盈退出","stop":"止损退出","harvest":"信号反转","exit":"风险降仓"}
 DECISION_REVIEW_UNAVAILABLE="胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"
 
+def finite_number(value):
+    if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value): return None
+    return float(value)
+
 def add_decision_review(account):
     by_tag={}; order=[]
     for event in account.get("events",[]):
@@ -291,8 +295,9 @@ def add_decision_review(account):
         if tag not in by_tag:
             by_tag[tag]={"tag":tag,"count":0,"closed_pnl":None}; order.append(tag)
         row=by_tag[tag]; row["count"]+=1
-        if event.get("side")=="sell" and all(event.get(key) is not None for key in ("price","quantity","entry_price")):
-            pnl=(float(event["price"])-float(event["entry_price"]))*float(event["quantity"])-float(event.get("entry_cost") or 0)-float(event.get("cost") or 0)
+        values={key:finite_number(event.get(key)) for key in ("price","quantity","entry_price","entry_cost","cost")}
+        if event.get("side")=="sell" and all(values[key] is not None for key in ("price","quantity","entry_price")):
+            pnl=(values["price"]-values["entry_price"])*values["quantity"]-(values["entry_cost"] or 0)-(values["cost"] or 0)
             row["closed_pnl"]=round((row["closed_pnl"] or 0)+pnl,6)
     account["decision_review"]={"scope":"all_events","total":len(account.get("events",[])),"by_tag":[by_tag[tag] for tag in order],"unavailable_reasons":[DECISION_REVIEW_UNAVAILABLE]}
 
