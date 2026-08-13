@@ -33,3 +33,9 @@ def test_a_compass_compacts_long_night_market_state():
     assert "14:30尾盘" in source
     assert "data-stage-label" in source
     assert "{data.stage}" in source
+
+
+def test_a_compass_removes_redundant_archive_navigation_panel():
+    source = COMPASS.read_text(encoding="utf-8")
+    assert 'class="links-panel card"' not in source
+    assert "完整过程、历史命中与策略验证保留独立归档。" not in source
