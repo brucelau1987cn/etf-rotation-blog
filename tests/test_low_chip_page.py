@@ -124,7 +124,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     page = PAGE.read_text(encoding="utf-8")
     data = DATA.read_text(encoding="utf-8")
     for marker in (
-        "数据来源：iWenCai",
+        "数据来源：同花顺",
         "筛选日期：{lowChipData.data_as_of}",
         "三个周期同时满足",
         'class="chip-row"',
