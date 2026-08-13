@@ -117,6 +117,7 @@ def test_low_chip_history_archive_and_query_ui():
     ):
         assert marker in page
     assert 'id="chip-history-date"' not in page
+    assert ".chip-section{margin-top:1rem;overflow:visible}" in page
 
 
 def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
