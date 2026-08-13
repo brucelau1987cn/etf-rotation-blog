@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-13 14:37:15 CST",
+  "generated_at": "2026-08-13 22:03:58 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": -0.57,
+          "value": -0.36,
           "unit": "pp",
-          "display": "-0.57pp",
+          "display": "-0.36pp",
           "as_of": "2026-08-13",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性-0.57pp",
+      "headline": "固收/权益5日相对中性-0.36pp",
       "as_of": "2026-08-13"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 1.87,
+          "value": 1.83,
           "unit": "%",
-          "display": "1.87%",
+          "display": "1.83%",
           "as_of": "2026-08-13",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +3.03% · 汇率与溢折价会扰动",
+          "detail": "20日 +2.99% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 62.5,
+          "value": 37.5,
           "unit": "%",
-          "display": "62.50%",
+          "display": "37.50%",
           "as_of": "2026-08-13",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -397,12 +397,12 @@
           "detail": "样本 8只 · 只作确认项",
           "change": null,
           "change_label": "较上期",
-          "tone": "warning"
+          "tone": "neutral"
         }
       ],
       "state": "中性",
-      "score": 0.25,
-      "headline": "海外映射ETF 5日+1.87%",
+      "score": 0.0,
+      "headline": "海外映射ETF 5日+1.83%",
       "as_of": "2026-08-13"
     },
     {
@@ -494,9 +494,9 @@
       "label": "固收相对权益强弱",
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性-0.57pp",
+      "headline": "固收/权益5日相对中性-0.36pp",
       "reasons": [
-        "固收/权益5日相对中性-0.57pp"
+        "固收/权益5日相对中性-0.36pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -511,34 +511,34 @@
       "metrics": {
         "bond_ret5": 0.09,
         "bond_ret20": 0.31,
-        "equity_ret5": 0.66,
-        "equity_ret20": -0.27,
-        "bond_vs_equity_5d_pp": -0.57,
-        "bond_vs_equity_20d_pp": 0.58
+        "equity_ret5": 0.45,
+        "equity_ret20": -0.48,
+        "bond_vs_equity_5d_pp": -0.36,
+        "bond_vs_equity_20d_pp": 0.79
       },
       "details": {
         "511260": {
           "ret5": 0.11,
           "ret20": 0.5,
-          "last": 135.6,
+          "last": 135.596,
           "date": "2026-08-13"
         },
         "511010": {
-          "ret5": 0.09,
-          "ret20": 0.25,
-          "last": 141.14,
+          "ret5": 0.08,
+          "ret20": 0.24,
+          "last": 141.13,
           "date": "2026-08-13"
         },
         "511110": {
           "ret5": 0.08,
-          "ret20": 0.18,
-          "last": 103.08,
+          "ret20": 0.19,
+          "last": 103.082,
           "date": "2026-08-13"
         },
         "510300": {
-          "ret5": 0.66,
-          "ret20": -0.27,
-          "last": 4.74,
+          "ret5": 0.45,
+          "ret20": -0.48,
+          "last": 4.73,
           "date": "2026-08-13"
         }
       },
@@ -548,11 +548,10 @@
       "key": "overseas_deleveraging",
       "label": "海外风险映射压力",
       "state": "中性",
-      "score": 0.25,
-      "headline": "海外映射ETF 5日+1.87%",
+      "score": 0.0,
+      "headline": "海外映射ETF 5日+1.83%",
       "reasons": [
-        "海外映射ETF 5日+1.87%",
-        "海外相关池弱化占比62%（确认项）"
+        "海外映射ETF 5日+1.83%"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -565,35 +564,35 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 1.87,
-        "proxy_ret20_avg": 3.03,
+        "proxy_ret5_avg": 1.83,
+        "proxy_ret20_avg": 2.99,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.625
+        "overseas_weak_share": 0.375
       },
       "details": {
         "159941": {
-          "ret5": 0.0,
-          "ret20": 3.73,
-          "last": 1.67,
+          "ret5": -0.6,
+          "ret20": 3.11,
+          "last": 1.66,
           "date": "2026-08-13"
         },
         "513500": {
-          "ret5": 0.37,
-          "ret20": 4.77,
-          "last": 2.7,
+          "ret5": 0.74,
+          "ret20": 5.16,
+          "last": 2.71,
           "date": "2026-08-13"
         },
         "159502": {
-          "ret5": 4.17,
-          "ret20": 0.69,
-          "last": 1.598,
+          "ret5": 4.43,
+          "ret20": 0.95,
+          "last": 1.602,
           "date": "2026-08-13"
         },
         "513520": {
-          "ret5": 2.94,
-          "ret20": 2.94,
-          "last": 2.347,
+          "ret5": 2.76,
+          "ret20": 2.76,
+          "last": 2.343,
           "date": "2026-08-13"
         }
       },
@@ -712,22 +711,22 @@
     "headwind_level": 0,
     "headwind_count": 0,
     "watch_count": 0,
-    "score_total": 0.75,
+    "score_total": 0.5,
     "label": "中性",
     "allow_chase": true,
     "allow_new_offense": true,
-    "base_position": "权益10%-30%；防御/现金70%-90%",
+    "base_position": "权益0%-10%；防御/现金90%-100%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "防御",
+    "base_market_state": "极弱",
     "base_equity_band": {
-      "low": 10,
-      "high": 30
+      "low": 0,
+      "high": 10
     },
     "constrained_equity_band": {
-      "low": 10,
-      "high": 30
+      "low": 0,
+      "high": 10
     },
-    "position": "权益10%-30%；防御/现金70%-90%",
+    "position": "权益0%-10%；防御/现金90%-100%",
     "equity_constraint": "中观中性：按关键位正常执行",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
