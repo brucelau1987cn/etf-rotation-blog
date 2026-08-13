@@ -11,6 +11,8 @@ import copy
 import importlib.util
 import json
 import os
+import math
+import sqlite3
 import statistics
 import tempfile
 from datetime import datetime, timezone
@@ -44,12 +46,18 @@ ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/us-etf-pool.json"
 OUT = ROOT / "public/data/us-compass-learning.json"
 SHADOW = ROOT / "public/data/us-compass-shadow.json"
+BAR_DB = ROOT / "data/local/us-etf-compass.db"
 HORIZONS = (1, 5, 20)
 INITIAL_CAPITAL = 20_000.0
 ONE_WAY_COST = 0.001
 EXECUTION_BASIS = "T close signal; T+1 open execution; next-open rebalance"
 EXPOSURE_MAPPING = {"偏强": 1.0, "震荡": 0.5, "防御": 0.0}
 DEFAULT_EXPOSURE = 0.5
+BREAKOUT_MIN_RETURN = 0.03
+BREAKOUT_MIN_RELATIVE_VOLUME = 2.0
+BREAKOUT_MIN_VOLATILITY_MOVE = 2.0
+BREAKOUT_MIN_RELATIVE_SPY = 0.01
+BREAKOUT_UNAVAILABLE_REASON = "requires at least 21 final daily bars with positive prices and 10-day volume history"
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -79,6 +87,144 @@ def percentile_ranks(values: list[float]) -> list[float]:
 
 def exposure_for(regime: str) -> float:
     return EXPOSURE_MAPPING.get(regime, DEFAULT_EXPOSURE)
+
+
+def breakout_shadow_metric(
+    symbol: str, bars: list[dict[str, Any]], *, spy_return: float, expected_trade_date: str | None = None,
+) -> dict[str, Any]:
+    """Calculate a research-only ETF breakout label from completed daily bars."""
+    if not math.isfinite(spy_return):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "SPY benchmark return must be finite"}
+    ordered = sorted(bars, key=lambda row: str(row.get("trade_date") or ""))
+    if len(ordered) < 21:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
+    if expected_trade_date and ordered[-1].get("trade_date") != expected_trade_date:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "latest final bar does not match model_date"}
+    closes: list[float] = []
+    volumes: list[float] = []
+    try:
+        for row in ordered[-21:]:
+            raw_close = row.get("adj_close") if row.get("adj_close") is not None else row.get("close")
+            raw_volume = row.get("volume")
+            if raw_close is None or raw_volume is None:
+                raise ValueError
+            close = float(raw_close)
+            volume = float(raw_volume)
+            if not math.isfinite(close) or close <= 0 or not math.isfinite(volume) or volume < 0:
+                raise ValueError
+            closes.append(close)
+            volumes.append(volume)
+    except (TypeError, ValueError):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
+    average_volume = statistics.fmean(volumes[-11:-1])
+    if average_volume <= 0:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": BREAKOUT_UNAVAILABLE_REASON}
+    historical_returns = [closes[index] / closes[index - 1] - 1 for index in range(1, 20)]
+    try:
+        daily_return = closes[-1] / closes[-2] - 1
+    except OverflowError:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
+    volatility = statistics.stdev(historical_returns) if len(historical_returns) >= 2 else 0.0
+    adjusted_move = daily_return / volatility if volatility > 0 else None
+    relative_volume = volumes[-1] / average_volume
+    relative_spy = daily_return - spy_return
+    if not all(math.isfinite(value) for value in (daily_return, volatility, relative_volume, relative_spy)):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
+    if adjusted_move is not None and not math.isfinite(adjusted_move):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived breakout metrics must be finite"}
+    triggered = (
+        daily_return >= BREAKOUT_MIN_RETURN
+        and relative_volume >= BREAKOUT_MIN_RELATIVE_VOLUME
+        and adjusted_move is not None
+        and adjusted_move >= BREAKOUT_MIN_VOLATILITY_MOVE
+        and relative_spy >= BREAKOUT_MIN_RELATIVE_SPY
+    )
+    return {
+        "symbol": symbol,
+        "status": "BREAKOUT" if triggered else "NORMAL",
+        "trade_date": ordered[-1].get("trade_date"),
+        "daily_return": round(daily_return, 6),
+        "relative_volume_10d": round(relative_volume, 6),
+        "volatility20": round(volatility, 6),
+        "volatility_adjusted_move": round(adjusted_move, 6) if adjusted_move is not None else None,
+        "relative_spy": round(relative_spy, 6),
+    }
+
+
+def build_breakout_shadow_report(
+    db: sqlite3.Connection, *, model_date: str, pool_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    db.row_factory = sqlite3.Row
+    symbols = [str(row.get("symbol") or "") for row in pool_rows if row.get("symbol")]
+    bars_by_symbol: dict[str, list[dict[str, Any]]] = {}
+    for symbol in symbols:
+        rows = db.execute(
+            """SELECT trade_date, close, adj_close, volume FROM daily_bars
+               WHERE symbol=? AND source='yahoo' AND is_final=1 AND trade_date<=?
+               ORDER BY trade_date DESC LIMIT 21""",
+            (symbol, model_date),
+        ).fetchall()
+        bars_by_symbol[symbol] = [dict(row) for row in reversed(rows)]
+    spy_bars = bars_by_symbol.get("SPY", [])
+    spy_metric = breakout_shadow_metric("SPY", spy_bars, spy_return=0.0, expected_trade_date=model_date)
+    if spy_metric.get("status") == "UNAVAILABLE":
+        return {
+            "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+            "model_date": model_date, "status": "UNAVAILABLE",
+            "reason": "SPY benchmark return is unavailable for model_date",
+            "coverage": {"requested": len(symbols), "evaluated": 0, "unavailable": len(symbols)},
+            "hits": [], "metrics": [],
+        }
+    spy_return = float(spy_metric["daily_return"])
+    metrics = [
+        breakout_shadow_metric(symbol, bars_by_symbol[symbol], spy_return=spy_return, expected_trade_date=model_date)
+        for symbol in symbols
+    ]
+    themes = {str(row.get("symbol")): row.get("theme") for row in pool_rows}
+    for metric in metrics:
+        metric["theme"] = themes.get(metric["symbol"])
+    hits = sorted(
+        (metric for metric in metrics if metric["status"] == "BREAKOUT"),
+        key=lambda metric: (metric.get("volatility_adjusted_move") or 0, metric.get("relative_volume_10d") or 0),
+        reverse=True,
+    )
+    unavailable = sum(metric["status"] == "UNAVAILABLE" for metric in metrics)
+    return {
+        "version": 1,
+        "mode": "shadow_research_only",
+        "production_change_allowed": False,
+        "model_date": model_date,
+        "basis": "completed Yahoo daily bars; current return / prior 19-return sample volatility; current volume / prior 10-day mean",
+        "thresholds": {
+            "daily_return": BREAKOUT_MIN_RETURN,
+            "relative_volume_10d": BREAKOUT_MIN_RELATIVE_VOLUME,
+            "volatility_adjusted_move": BREAKOUT_MIN_VOLATILITY_MOVE,
+            "relative_spy": BREAKOUT_MIN_RELATIVE_SPY,
+        },
+        "coverage": {"requested": len(symbols), "evaluated": len(symbols) - unavailable, "unavailable": unavailable},
+        "hits": hits,
+        "metrics": metrics,
+    }
+
+
+def append_breakout_history(history: Any, report: dict[str, Any]) -> list[dict[str, Any]]:
+    rows_by_date: dict[str, dict[str, Any]] = {}
+    if isinstance(history, list):
+        for row in history:
+            if not isinstance(row, dict):
+                continue
+            date = row.get("model_date")
+            if isinstance(date, str) and date:
+                rows_by_date[date] = row
+    model_date = report.get("model_date")
+    if not isinstance(model_date, str) or not model_date:
+        return [rows_by_date[key] for key in sorted(rows_by_date)][-520:]
+    rows_by_date[model_date] = {
+        "model_date": model_date,
+        "coverage": copy.deepcopy(report.get("coverage")),
+        "hits": copy.deepcopy(report.get("hits", [])),
+    }
+    return [rows_by_date[key] for key in sorted(rows_by_date)][-520:]
 
 
 def choose_top10(rows: list[dict[str, Any]]) -> list[str]:
@@ -229,9 +375,31 @@ def main() -> None:
         "model_fingerprint": copy.deepcopy(fingerprint),
         "note": "Forward-only self-evaluation. Cross-sectional deviation is monitored against the 1/3 random reference; AGRU is not active.",
     })
+    previous_shadow = read_json(SHADOW, {})
     shadow = shadow_portfolios(snapshots)
     shadow["updated_at"] = payload["updated_at"]
     shadow["model_fingerprint"] = copy.deepcopy(fingerprint)
+    if BAR_DB.exists():
+        try:
+            with sqlite3.connect(BAR_DB) as db:
+                shadow["breakout_research"] = build_breakout_shadow_report(
+                    db, model_date=str(current["date"]), pool_rows=pool.get("rows", []),
+                )
+        except (OSError, sqlite3.Error, ValueError, TypeError, ArithmeticError) as exc:
+            shadow["breakout_research"] = {
+                "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+                "model_date": current["date"], "status": "UNAVAILABLE",
+                "reason": f"US ETF breakout research unavailable: {type(exc).__name__}",
+            }
+        if shadow["breakout_research"].get("coverage") is not None:
+            shadow["breakout_history"] = append_breakout_history(
+                previous_shadow.get("breakout_history", []), shadow["breakout_research"],
+            )
+    else:
+        shadow["breakout_research"] = {
+            "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+            "model_date": current["date"], "status": "UNAVAILABLE", "reason": "US ETF daily-bar cache is unavailable",
+        }
     atomic_write(OUT, payload); atomic_write(SHADOW, shadow)
     print(json.dumps({"date": current["date"], "snapshots": len(snapshots), "top10": current["top10"], "exposure": current["exposure"], "metrics": payload["metrics"], "shadow_intervals": len(shadow["history"])}, ensure_ascii=False))
 
