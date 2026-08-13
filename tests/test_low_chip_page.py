@@ -111,6 +111,8 @@ def test_low_chip_history_archive_and_query_ui():
         "/api/public/v1/low-chip-metrics?date=",  # D1-backed history query
         "loadDate",
         "renderCalendar",
+        "item.intersection_count > 0 ? ' has-results' : ' is-zero'",
+        "有标的日期",
         "historyIndex",
     ):
         assert marker in page

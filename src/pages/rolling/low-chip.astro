@@ -137,7 +137,7 @@ const rows = intersectionRows.map((row) => {
                   </div>
                   <div class="chip-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
                   <div class="chip-calendar-grid" id="chip-calendar-grid"></div>
-                  <div class="chip-calendar-legend"><i></i> 有筛选快照；数字为当日标的数</div>
+                  <div class="chip-calendar-legend"><i></i> 有标的日期；数字为当日标的数</div>
                 </div>
                 <div class="chip-calendar-data" hidden>
                   {historyItems.map((item) => (
@@ -535,7 +535,7 @@ const rows = intersectionRows.map((row) => {
           var date = calendarMonth + '-' + String(day).padStart(2, '0');
           var item = historyItemsByDate[date];
           var cell = document.createElement(item ? 'button' : 'span');
-          cell.className = 'chip-calendar-day' + (item ? ' has-snapshot' : '') + (date === currentDate ? ' is-selected' : '');
+          cell.className = 'chip-calendar-day' + (item ? ' has-snapshot' + (item.intersection_count > 0 ? ' has-results' : ' is-zero') : '') + (date === currentDate ? ' is-selected' : '');
           if (item) {
             cell.type = 'button';
             cell.dataset.date = date;
@@ -759,8 +759,10 @@ const rows = intersectionRows.map((row) => {
   button.chip-calendar-day{cursor:pointer}
   .chip-calendar-day b{font-size:.76rem;line-height:1}
   .chip-calendar-day small{margin-top:.22rem;font-size:.57rem;line-height:1}
-  .chip-calendar-day.has-snapshot{border-color:#fde68a;background:#fffbeb;color:#92400e}
+  .chip-calendar-day.has-snapshot{border-color:#e2e8f0;background:#f8fafc;color:#64748b}
+  .chip-calendar-day.has-results{border-color:#fde68a;background:#fffbeb;color:#92400e}
   .chip-calendar-day.has-snapshot:hover{border-color:#f59e0b;background:#fef3c7}
+  .chip-calendar-day.is-zero small{color:#94a3b8}
   .chip-calendar-day.is-selected{border-color:#2563eb;background:#2563eb;color:#fff;box-shadow:0 3px 9px rgba(37,99,235,.2)}
   .chip-calendar-day.is-empty{visibility:hidden}
   .chip-calendar-legend{display:flex;align-items:center;gap:.35rem;margin-top:.65rem;padding-top:.6rem;border-top:1px solid #eef2f7;color:#64748b;font-size:.62rem;font-weight:650}
