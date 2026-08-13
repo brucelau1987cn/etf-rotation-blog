@@ -1,8 +1,8 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "fa747dade31911858dcf7597ecb21a82b4f471c6a1c0d2782c79a74dc4e5d34b",
+  "batch_id": "b2414ade3c7f7dcbb2f685f4dd7cebcb6232d3b4f05833aedc9e7bcac53535ec",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-08-13T07:10:21Z",
+  "generated_at": "2026-08-13T07:22:01Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
@@ -293,9 +293,9 @@
       "dataset_id": "us-compass-research",
       "role": "history",
       "market": "US",
-      "schema_version": "us-compass-research-v1",
-      "observation_date": "2026-08-07",
-      "generated_at": "2026-08-08T01:00:58.086675+00:00",
+      "schema_version": "us-compass-research-v2",
+      "observation_date": "2026-08-12",
+      "generated_at": "2026-08-13T07:22:01.907308+00:00",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -315,10 +315,40 @@
         "derived_research",
         "public_events"
       ],
-      "semantic_sha256": "acccd9bbe5effb3b897c66958467da0f71af3a32a569aba11e0a55b0824f0e83",
-      "sha256": "eede3ab284af7a4b7575688cf2e9379deeb44bca8c98f19a7135d6b4dbb94764",
-      "bytes": 9102,
+      "semantic_sha256": "cf1ae4d114b2a36ce0ae3e523648987d2f4fe10a7f53e72561f31a5eaf95013b",
+      "sha256": "d5db58f4eab91c0e2e68b6edf2de8c440eed832a434d9cbc59823ad6d051a229",
+      "bytes": 20193,
       "public_url": "/data/us-compass-research.json"
+    },
+    {
+      "dataset_id": "us-compass-health",
+      "role": "shadow",
+      "market": "US",
+      "schema_version": "us-compass-health-v1",
+      "observation_date": "2026-08-12",
+      "generated_at": "2026-08-13T07:22:01.740352Z",
+      "completeness": {
+        "status": "unknown",
+        "ratio": null,
+        "observed": null,
+        "expected": null,
+        "reason": "dataset does not publish a comparable observed/expected count"
+      },
+      "degradation": {
+        "status": "unknown",
+        "reasons": [
+          "dataset does not publish a comparable observed/expected count"
+        ]
+      },
+      "source_categories": [
+        "historical_market_data",
+        "model_output",
+        "derived_research"
+      ],
+      "semantic_sha256": "ed8c187a929c7f3906ca682e33b1f31e8a6a5366743e9a227282ac8ae5e98330",
+      "sha256": "d802696df757f4f082f05c5d0303a54c0435599ef91764fda69e3c356b966411",
+      "bytes": 24174,
+      "public_url": "/data/us-compass-health.json"
     },
     {
       "dataset_id": "paper-trading",
