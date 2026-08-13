@@ -1,4 +1,4 @@
-import { readCookie, setCookie, sha256Hex, signToken, verifyToken } from '../../../_lib/subscription-auth.js';
+import { readCookie, setCookie, signToken, verifyToken } from '../../../_lib/subscription-auth.js';
 
 const WINDOW_SECONDS = 120;
 const CLEANUP_SECONDS = 600;
@@ -22,6 +22,18 @@ const randomId = () => {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
+const hmacSha256Hex = async (secret, message) => {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
 async function existingIdentity(request, secret) {
   const token = readCookie(request.headers.get('Cookie'), COOKIE_NAME);
   const payload = await verifyToken(token, secret);
@@ -35,15 +47,15 @@ export async function onRequestPost({ request, env }) {
 
   const now = Math.floor(Date.now() / 1000);
   const ip = String(request.headers.get('CF-Connecting-IP') || 'unknown').slice(0, 80);
-  const ipKey = await sha256Hex(`${env.PRESENCE_SECRET}:ip:${ip}`);
+  const ipKey = await hmacSha256Hex(env.PRESENCE_SECRET, `presence-ip:${ip}`);
   let visitorId = await existingIdentity(request, env.PRESENCE_SECRET);
   let cookie = '';
 
   if (!visitorId) {
     visitorId = randomId();
-    const inserted = await env.DB.prepare(`INSERT INTO presence_sessions (visitor_id, last_seen, ip_key)
-      SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM presence_sessions WHERE ip_key = ? AND last_seen >= ?) < ?`)
-      .bind(visitorId, now, ipKey, ipKey, now - CLEANUP_SECONDS, MAX_NEW_IDENTITIES_PER_IP)
+    const inserted = await env.DB.prepare(`INSERT INTO presence_sessions (visitor_id, last_seen, ip_key, created_at)
+      SELECT ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM presence_sessions WHERE ip_key = ? AND created_at >= ?) < ?`)
+      .bind(visitorId, now, ipKey, now, ipKey, now - CLEANUP_SECONDS, MAX_NEW_IDENTITIES_PER_IP)
       .run();
     if (Number(inserted?.meta?.changes || 0) !== 1) {
       return json({ error: 'presence identity limit' }, 429);
@@ -51,10 +63,12 @@ export async function onRequestPost({ request, env }) {
     const token = await signToken({ visitor_id: visitorId, exp: now + COOKIE_MAX_AGE }, env.PRESENCE_SECRET);
     cookie = setCookie(COOKIE_NAME, token, { maxAge: COOKIE_MAX_AGE, path: '/', secure: true });
   } else {
-    await env.DB.prepare(`INSERT INTO presence_sessions (visitor_id, last_seen, ip_key) VALUES (?, ?, ?)
+    await env.DB.prepare(`INSERT INTO presence_sessions (visitor_id, last_seen, ip_key, created_at) VALUES (?, ?, ?, ?)
       ON CONFLICT(visitor_id) DO UPDATE SET last_seen = excluded.last_seen, ip_key = excluded.ip_key`)
-      .bind(visitorId, now, ipKey)
+      .bind(visitorId, now, ipKey, now)
       .run();
+    const token = await signToken({ visitor_id: visitorId, exp: now + COOKIE_MAX_AGE }, env.PRESENCE_SECRET);
+    cookie = setCookie(COOKIE_NAME, token, { maxAge: COOKIE_MAX_AGE, path: '/', secure: true });
   }
 
   // Run bounded cleanup occasionally; every 16th request avoids a DELETE on every heartbeat.
