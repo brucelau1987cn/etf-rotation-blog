@@ -46,10 +46,10 @@ BLS_RELEASES = {
         "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
     },
     "cpi": {
-        "observation_period": "2026-06",
-        "date": "2026-07-14",
-        "updated_at": "2026-07-14T08:30:00-04:00",
-        "next_release": {"time": "2026-08-12T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-07",
+        "date": "2026-08-12",
+        "updated_at": "2026-08-12T08:30:00-04:00",
+        "next_release": {"time": "2026-09-11T08:30", "star": None, "consensus": None},
     },
 }
 REAL_RETAIL_RELEASE = {
@@ -400,19 +400,19 @@ def apply_bls_release_metadata(official: dict[str, dict[str, Any]]) -> None:
         if not item or not isinstance(item, dict):
             continue
         for field, value in release.items():
-            if field == "next_release" or not item.get(field):
+            if not item.get(field):
                 item[field] = value
 
 
 def apply_real_retail_release_metadata(item: dict[str, Any]) -> None:
     for field, value in REAL_RETAIL_RELEASE.items():
-        if field == "next_release" or not item.get(field):
+        if not item.get(field):
             item[field] = value
 
 
 def apply_core_pce_release_metadata(item: dict[str, Any]) -> None:
     for field, value in CORE_PCE_RELEASE.items():
-        if field == "next_release" or not item.get(field):
+        if not item.get(field):
             item[field] = value
 
 
@@ -704,6 +704,20 @@ def attach_next_release(official: dict[str, dict[str, Any]]) -> dict[str, str]:
     return failures
 
 
+def flag_past_next_release(official: dict[str, dict[str, Any]], today: date) -> dict[str, str]:
+    """门禁：官方指标 next_release 已过期即记失败，禁止静默展示过期"下次更新". """
+    stale: dict[str, str] = {}
+    for key, item in official.items():
+        if not isinstance(item, dict):
+            continue
+        nr = item.get("next_release")
+        if isinstance(nr, dict) and nr.get("time"):
+            t = str(nr["time"])[:10]
+            if t < today.isoformat():
+                stale[f"next_release_past_{key}"] = f"{t} 已过期"
+    return stale
+
+
 def level(score: int) -> tuple[str, str]:
     if score >= 7: return "danger", "危险"
     if score >= 5: return "tight", "紧张"
@@ -953,6 +967,7 @@ def main() -> None:
         failures["fomc_calendar"] = str(exc)
         previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
         events = [event for event in previous.get("events", []) if event.get("end_date", "") >= now.date().isoformat()]
+    failures.update(flag_past_next_release(official, now.date()))
     payload = {
         "version": 2, "generated_at": now.isoformat(), "timezone": "America/New_York",
         "risk": {"key": risk_key, "label": risk_label, "score": score, "headline": " · ".join(notes[:2]) or "核心数据暂缺", "equity_constraint": "暂停新增伏击" if score >= 7 else "新增伏击减半" if score >= 5 else "禁止追高、按关键位执行" if score >= 3 else "允许正常伏击与持仓"},

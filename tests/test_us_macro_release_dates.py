@@ -20,10 +20,10 @@ def test_bls_release_dates_are_explicit_and_series_specific():
         "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
     }
     assert module.BLS_RELEASES["cpi"] == {
-        "observation_period": "2026-06",
-        "date": "2026-07-14",
-        "updated_at": "2026-07-14T08:30:00-04:00",
-        "next_release": {"time": "2026-08-12T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-07",
+        "date": "2026-08-12",
+        "updated_at": "2026-08-12T08:30:00-04:00",
+        "next_release": {"time": "2026-09-11T08:30", "star": None, "consensus": None},
     }
 
 
@@ -39,7 +39,39 @@ def test_apply_bls_release_metadata_separates_observation_from_update_date():
     # 数据源已有的 observation_period 保留，next_release 由官方日程补齐
     assert official["unemployment"]["observation_period"] == "2026-07"
     assert official["core_cpi"]["observation_period"] == "2026-06"
-    assert official["core_cpi"]["next_release"]["time"] == "2026-08-12T08:30"
+    assert official["core_cpi"]["next_release"]["time"] == "2026-09-11T08:30"
+
+
+def test_apply_bls_release_metadata_preserves_fred_next_release():
+    # attach_next_release() 从 FRED 抓到的最新日期不能被过期硬编码覆盖（回归：双次 apply 覆盖 bug）
+    official = {
+        "core_cpi": {
+            "value": 336.9,
+            "date": "2026-07-01",
+            "observation_period": "2026-07",
+            "next_release": {"time": "2026-09-11", "star": None, "consensus": None},
+        },
+    }
+
+    module.apply_bls_release_metadata(official)
+
+    assert official["core_cpi"]["next_release"]["time"] == "2026-09-11"
+
+
+def test_flag_past_next_release_catches_stale_hardcode():
+    from datetime import date as _date
+
+    official = {
+        "core_cpi": {"next_release": {"time": "2026-08-12", "star": None}},
+        "core_pce": {"next_release": {"time": "2026-08-26", "star": None}},
+        "no_next": {"value": 1.0},
+    }
+
+    stale = module.flag_past_next_release(official, _date(2026, 8, 14))
+
+    assert "next_release_past_core_cpi" in stale
+    assert "next_release_past_core_pce" not in stale
+    assert "next_release_past_no_next" not in stale
 
 
 def test_payroll_card_formats_level_change_in_thousands():
