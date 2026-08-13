@@ -1,0 +1,73 @@
+---
+interface Props {
+  active: 'screen' | 'tracking';
+  trackingCount?: number;
+}
+
+const { active, trackingCount = 0 } = Astro.props;
+---
+<nav class="low-chip-mode-nav" aria-label="低筹码功能切换">
+  <span class="low-chip-mode-label">查看</span>
+  <a
+    href="/rolling/low-chip/"
+    class:list={['low-chip-mode-link', active === 'screen' && 'is-active']}
+    aria-current={active === 'screen' ? 'page' : undefined}
+  >
+    <span>当日筛选</span>
+    <small>周/月/季交集</small>
+  </a>
+  <a
+    href="/rolling/low-chip/tracking/"
+    class:list={['low-chip-mode-link', active === 'tracking' && 'is-active']}
+    aria-current={active === 'tracking' ? 'page' : undefined}
+  >
+    <span>10日追踪</span>
+    <small>{trackingCount > 0 ? `${trackingCount}只进行中` : '加入后表现'}</small>
+  </a>
+</nav>
+
+<style>
+  .low-chip-mode-nav {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    width: 100%;
+    margin: .65rem 0 .2rem;
+    padding: .38rem .45rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .low-chip-mode-label {
+    margin-right: .15rem;
+    color: rgb(var(--gray-mid));
+    font-size: .68rem;
+    font-weight: 800;
+  }
+  .low-chip-mode-link {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 2rem;
+    padding: .36rem .68rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: rgb(var(--gray-mid));
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .low-chip-mode-link span { font-size: .82rem; font-weight: 850; }
+  .low-chip-mode-link small { font-size: .62rem; font-weight: 700; opacity: .78; }
+  .low-chip-mode-link:hover { color: rgb(var(--gray-dark)); background: rgba(255,255,255,.62); }
+  .low-chip-mode-link.is-active {
+    color: #fff;
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+    box-shadow: 0 1px 3px rgba(29, 78, 216, .18);
+  }
+  @media (max-width: 520px) {
+    .low-chip-mode-nav { overflow-x: auto; padding-inline: 0; }
+    .low-chip-mode-link { flex: 1 0 auto; }
+    .low-chip-mode-link small { display: none; }
+  }
+</style>

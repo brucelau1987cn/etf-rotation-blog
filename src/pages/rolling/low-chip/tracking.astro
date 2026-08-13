@@ -2,6 +2,7 @@
 import BaseHead from '../../../components/BaseHead.astro';
 import Footer from '../../../components/Footer.astro';
 import Header from '../../../components/Header.astro';
+import LowChipModeNav from '../../../components/LowChipModeNav.astro';
 import RollingSubnav from '../../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../../consts';
 import trackingData from '../../../../public/data/low-chip-tracking.json';
@@ -22,9 +23,17 @@ const stocks = Object.entries(trackingData.stocks || {})
     const minClose = closes.length ? Math.min(...closes) : null;
     const firstProfit = profits.length ? profits[0] : null;
     const lastProfit = profits.length ? profits[profits.length - 1] : null;
+    let peak = firstClose;
+    let maxDrawdown = 0;
+    for (const close of closes) {
+      if (peak == null || close > peak) peak = close;
+      if (peak > 0) maxDrawdown = Math.min(maxDrawdown, ((close - peak) / peak) * 100);
+    }
+    const maxGain = firstClose != null && maxClose != null ? ((maxClose - firstClose) / firstClose) * 100 : null;
     return {
       symbol, ...rec, daily,
       firstClose, lastClose, maxClose, minClose, firstProfit, lastProfit,
+      maxGain, maxDrawdown,
       totalChange: firstClose != null && lastClose != null ? ((lastClose - firstClose) / firstClose) * 100 : null,
       profitChange: firstProfit != null && lastProfit != null ? lastProfit - firstProfit : null,
     };
@@ -32,6 +41,16 @@ const stocks = Object.entries(trackingData.stocks || {})
   .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
 const activeStocks = stocks.filter((s) => s.daily.length < 10);
 const historyStocks = stocks.filter((s) => s.daily.length >= 10);
+const validChanges = activeStocks.map((s) => s.totalChange).filter((v): v is number => v != null && Number.isFinite(v));
+const risingCount = validChanges.filter((v) => v > 0).length;
+const risingRatio = validChanges.length ? (risingCount / validChanges.length) * 100 : 0;
+const sortedChanges = [...validChanges].sort((a, b) => a - b);
+const medianChange = sortedChanges.length
+  ? (sortedChanges.length % 2
+    ? sortedChanges[(sortedChanges.length - 1) / 2]
+    : (sortedChanges[sortedChanges.length / 2 - 1] + sortedChanges[sortedChanges.length / 2]) / 2)
+  : 0;
+const strongestChange = validChanges.length ? Math.max(...validChanges) : 0;
 
 // ── SVG 图表辅助 ─────────────────────────────────────────────
 // 返回 { points, areaPoints, lastX, lastY, min, max }，空则 null
@@ -61,37 +80,43 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 <BaseHead title={title} description={description} />
 <body>
   <Header />
-  <RollingSubnav active="low-chip" />
-
   <main class="site-shell">
+    <RollingSubnav active="low-chip" />
+    <LowChipModeNav active="tracking" trackingCount={activeStocks.length} />
+
     <div class="tc-header">
       <div>
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1>低筹码追踪</h1>
         <p class="tc-desc">从股票首次进入低筹码筛选日（加入日）起，固定记录加入后的前 10 个交易日；加入当日作为基准，隔日起算第 1 日。完成 10 日窗口后停止更新并自动进入历史区。当前追踪 {activeStocks.length} 只，历史 {historyStocks.length} 只。</p>
       </div>
-      <a class="tc-back" href="/rolling/low-chip/">← 返回低筹码筛选</a>
     </div>
 
     <div class="tc-summary">
       <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) >= 0).length)}</strong><span>加入以来上涨</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(stocks.filter((s) => (s.totalChange ?? 0) < 0).length)}</strong><span>加入以来下跌</span></div>
-      <div class="tc-summary-stat"><strong>{fmt(stocks.length ? Math.max(...stocks.map((s) => s.totalChange ?? -999)) : 0, 1)}%</strong><span>最强涨幅</span></div>
+      <div class="tc-summary-stat"><strong>{fmt(risingRatio, 1)}%</strong><span>上涨占比 · {risingCount}/{validChanges.length}</span></div>
+      <div class="tc-summary-stat"><strong class:list={[medianChange >= 0 ? 'tc-up' : 'tc-down']}>{medianChange >= 0 ? '+' : ''}{fmt(medianChange, 1)}%</strong><span>中位涨幅</span></div>
+      <div class="tc-summary-stat"><strong class:list={[strongestChange >= 0 ? 'tc-up' : 'tc-down']}>{strongestChange >= 0 ? '+' : ''}{fmt(strongestChange, 1)}%</strong><span>最强涨幅</span></div>
     </div>
 
     <div class="tc-toolbar">
-      <span class="tc-toolbar-label">排序</span>
-      <button type="button" class="tc-sort-btn is-active" id="tc-sort-days" aria-pressed="true">加入日</button>
-      <button type="button" class="tc-sort-btn" id="tc-sort-change" aria-pressed="false">涨幅</button>
-      <span class="tc-toolbar-divider" aria-hidden="true"></span>
+      <span class="tc-toolbar-label">状态</span>
       <button type="button" class="tc-sort-btn is-active" id="tc-view-active" aria-pressed="true">追踪中 {activeStocks.length}</button>
-      <button type="button" class="tc-sort-btn" id="tc-view-history" aria-pressed="false">已完成历史 {historyStocks.length}</button>
+      <button type="button" class="tc-sort-btn" id="tc-view-history" aria-pressed="false">已完成 {historyStocks.length}</button>
+      <span class="tc-toolbar-divider" aria-hidden="true"></span>
+      <span class="tc-toolbar-label">排序</span>
+      <button type="button" class="tc-sort-btn is-active is-sort" id="tc-sort-days" aria-pressed="true">加入日</button>
+      <button type="button" class="tc-sort-btn is-sort" id="tc-sort-change" aria-pressed="false">涨幅</button>
+      <span class="tc-toolbar-divider" aria-hidden="true"></span>
+      <label class="tc-search-wrap" for="tc-search-input">
+        <span>搜索</span>
+        <input id="tc-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称" />
+      </label>
       <span class="tc-toolbar-divider" aria-hidden="true"></span>
       <label class="tc-star-switch" for="tc-star-toggle">
         <input type="checkbox" id="tc-star-toggle" checked />
         <span class="tc-star-track" aria-hidden="true"><span></span></span>
-        <span>科创板</span>
+        <span>包含科创板</span>
       </label>
       <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
@@ -117,8 +142,11 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
               </div>
               <div class="tc-badges">
                 <span class="tc-badge tc-badge-join" title={`首次进入低筹码筛选 ${rec.first_seen}`}>加入 {rec.first_seen}</span>
-                <span class="tc-badge">{rec.daily.length}天</span>
+                <span class="tc-badge tc-progress-label">第{rec.daily.length}/10日</span>
               </div>
+            </div>
+            <div class="tc-progress" aria-label={`10日追踪进度 ${rec.daily.length}/10`}>
+              <span class="tc-progress-bar" style={`width:${Math.min(rec.daily.length, 10) * 10}%`}></span>
             </div>
 
             <div class="tc-change-row">
@@ -170,22 +198,22 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
             <div class="tc-metrics">
               <div class="tc-metric">
-                <span class="tc-label">隔日收盘</span>
-                <strong>¥{fmt(rec.firstClose)}</strong>
+                <span class="tc-label">最高涨幅</span>
+                <strong class:list={[(rec.maxGain ?? 0) >= 0 ? 'tc-up' : 'tc-down']}>{(rec.maxGain ?? 0) >= 0 ? '+' : ''}{fmt(rec.maxGain)}%</strong>
               </div>
               <div class="tc-metric">
-                <span class="tc-label">最新收盘</span>
-                <strong>¥{fmt(rec.lastClose)}</strong>
-              </div>
-              <div class="tc-metric">
-                <span class="tc-label">2周最高/最低</span>
-                <strong>¥{fmt(rec.maxClose)} / ¥{fmt(rec.minClose)}</strong>
+                <span class="tc-label">最大回撤</span>
+                <strong class="tc-down">{fmt(rec.maxDrawdown)}%</strong>
               </div>
               <div class="tc-metric">
                 <span class="tc-label">获利盘变化</span>
                 <strong class:list={[(rec.profitChange ?? 0) >= 0 ? 'tc-up' : 'tc-down']}>
                   {(rec.profitChange ?? 0) >= 0 ? '+' : ''}{fmt(rec.profitChange)}pp
                 </strong>
+              </div>
+              <div class="tc-metric">
+                <span class="tc-label">剩余天数</span>
+                <strong>{Math.max(0, 10 - rec.daily.length)}天</strong>
               </div>
             </div>
 
@@ -224,6 +252,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var list = document.getElementById('tc-list');
       var sortDays = document.getElementById('tc-sort-days');
       var sortChange = document.getElementById('tc-sort-change');
+      var searchInput = document.getElementById('tc-search-input');
       var starToggle = document.getElementById('tc-star-toggle');
       var filterCount = document.getElementById('tc-filter-count');
       var viewActive = document.getElementById('tc-view-active');
@@ -233,12 +262,17 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var storageKey = 'low_chip_tracking_include_star';
       var viewStorageKey = 'low_chip_tracking_view';
       var currentView = localStorage.getItem(viewStorageKey) === 'history' ? 'history' : 'active';
+      var query = '';
       var saved = localStorage.getItem(storageKey);
       if (saved === '0') starToggle.checked = false;
+      function normalize(value) { return String(value || '').trim().toLowerCase().replace(/\s+/g, ''); }
       function applyFilter() {
         var visible = 0;
         items.forEach(function(el) {
-          var show = el.dataset.trackingStatus === currentView && (starToggle.checked || el.dataset.starMarket !== '1');
+          var name = normalize(el.querySelector('.tc-name')?.textContent);
+          var code = normalize(el.querySelector('.tc-code')?.textContent);
+          var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1;
+          var show = el.dataset.trackingStatus === currentView && searchMatched && (starToggle.checked || el.dataset.starMarket !== '1');
           el.hidden = !show;
           if (show) visible += 1;
         });
@@ -270,6 +304,10 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       }
       sortDays.addEventListener('click', sortByDays);
       sortChange.addEventListener('click', sortByChange);
+      if (searchInput) searchInput.addEventListener('input', function() {
+        query = normalize(searchInput.value);
+        applyFilter();
+      });
       starToggle.addEventListener('change', function() {
         localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
         applyFilter();
@@ -290,8 +328,6 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin-bottom: .35rem; }
   .tc-header h1 { font-size: 1.6rem; margin: 0 0 .45rem; }
   .tc-desc { color: rgb(var(--gray-mid)); font-size: .85rem; max-width: 56rem; line-height: 1.55; margin: 0; }
-  .tc-back { flex: 0 0 auto; font-size: .8rem; font-weight: 700; color: rgb(var(--gray-dark)); text-decoration: none; border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem; }
-  .tc-back:hover { border-color: rgb(var(--gray-mid)); }
 
   /* 排序工具栏 */
   .tc-toolbar { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
@@ -299,6 +335,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-sort-btn { height: 1.8rem; padding: 0 .6rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .15s ease; }
   .tc-sort-btn.is-active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
   .tc-toolbar-divider { width: 1px; height: 1.15rem; margin: 0 .2rem; background: var(--border); }
+  .tc-search-wrap { display: inline-flex; align-items: center; gap: .35rem; color: rgb(var(--gray-mid)); font-size: .68rem; font-weight: 750; }
+  .tc-search-wrap input { width: 9rem; height: 1.8rem; padding: 0 .55rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: rgb(var(--gray-dark)); font: inherit; outline: none; }
+  .tc-search-wrap input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, .1); }
   .tc-star-switch { display: inline-flex; align-items: center; gap: .38rem; cursor: pointer; font-size: .7rem; font-weight: 800; color: rgb(var(--gray-dark)); user-select: none; }
   .tc-star-switch input { position: absolute; opacity: 0; pointer-events: none; }
   .tc-star-track { position: relative; width: 2rem; height: 1.1rem; border-radius: 999px; background: #cbd5e1; transition: background .15s ease; }
@@ -325,8 +364,11 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; color: rgb(var(--gray-mid)); background: rgb(var(--gray-soft)); border-radius: 6px; padding: .1rem .35rem; }
   .tc-industry { font-size: .7rem; color: rgb(var(--gray-mid)); background: #f0f4ff; color: #3b5bd6; border-radius: 6px; padding: .12rem .4rem; }
   .tc-badges { display: flex; gap: .3rem; flex: 0 0 auto; }
-  .tc-badge { font-size: .88rem; font-weight: 800; color: rgb(var(--gray-mid)); background: rgb(var(--gray-soft)); border-radius: 999px; padding: .32rem .65rem; white-space: nowrap; }
+  .tc-badge { font-size: .76rem; font-weight: 800; color: rgb(var(--gray-mid)); background: rgb(var(--gray-soft)); border-radius: 999px; padding: .28rem .58rem; white-space: nowrap; }
   .tc-badge-join { background: #fffbeb; color: #b45309; }
+  .tc-progress-label { color: #1d4ed8; background: #eff6ff; }
+  .tc-progress { height: 3px; margin: -.18rem 0 .55rem; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+  .tc-progress-bar { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #60a5fa, #2563eb); }
 
   .tc-change-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; min-width: 0; }
   .tc-change { font-size: 1.05rem; font-weight: 900; white-space: nowrap; }
@@ -363,9 +405,17 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 760px) {
+    .tc-header { margin-top: .9rem; }
     .tc-toolbar { flex-wrap: wrap; }
-    .tc-filter-count { width: 100%; margin-left: 0; }
+    .tc-toolbar-divider { display: none; }
+    .tc-search-wrap { width: 100%; order: 5; }
+    .tc-search-wrap input { flex: 1; width: auto; }
+    .tc-filter-count { width: 100%; margin-left: 0; order: 6; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }
+    .tc-head { flex-direction: column; }
+    .tc-badges { width: 100%; }
+    .tc-change-row { flex-wrap: wrap; }
+    .tc-vol-tag-slot { margin-left: 0; }
     .tc-charts { grid-template-columns: 1fr; }
     .tc-metrics { grid-template-columns: repeat(2, 1fr); }
   }

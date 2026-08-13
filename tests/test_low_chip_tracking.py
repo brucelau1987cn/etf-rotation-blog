@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parent.parent
 TRACKING = ROOT / "public" / "data" / "low-chip-tracking.json"
 TRACKING_PAGE = ROOT / "src" / "pages" / "rolling" / "low-chip" / "tracking.astro"
 LOW_CHIP_PAGE = ROOT / "src" / "pages" / "rolling" / "low-chip.astro"
+MODE_NAV = ROOT / "src" / "components" / "LowChipModeNav.astro"
 SCRIPT = ROOT / "scripts" / "update_low_chip_tracking.py"
 
 
@@ -35,7 +36,9 @@ def test_tracking_page_and_entry_link():
         "股价走势",
         "获利盘指数",
         "每日明细",
-        "2周最高/最低",
+        "最高涨幅",
+        "最大回撤",
+        "剩余天数",
         "获利盘变化",
         "数据来源：腾讯日线",
         "iWenCai 收盘获利比例",
@@ -46,7 +49,7 @@ def test_tracking_page_and_entry_link():
         "data-star-market",
         "low_chip_tracking_include_star",
         "追踪中",
-        "已完成历史",
+        "已完成",
         "data-tracking-status",
         "low_chip_tracking_view",
         "tc-vol-tag-slot",
@@ -58,8 +61,33 @@ def test_tracking_page_and_entry_link():
     assert "tc-vol-tag-slot" in price_volume_app
     assert "data-price-volume-symbol" in price_volume_app
     low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
-    assert "/rolling/low-chip/tracking/" in low_chip
-    assert "低筹码追踪" in low_chip
+    mode_nav = MODE_NAV.read_text(encoding="utf-8")
+    assert "LowChipModeNav" in low_chip
+    assert "/rolling/low-chip/tracking/" in mode_nav
+    assert "10日追踪" in mode_nav
+
+
+def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
+    low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
+    tracking = TRACKING_PAGE.read_text(encoding="utf-8")
+    mode_nav = MODE_NAV.read_text(encoding="utf-8")
+
+    assert "LowChipModeNav" in low_chip
+    assert 'active="screen"' in low_chip
+    assert "LowChipModeNav" in tracking
+    assert 'active="tracking"' in tracking
+    assert "当日筛选" in mode_nav
+    assert "10日追踪" in mode_nav
+    assert "aria-current={" in mode_nav
+    assert "chip-track-link" not in low_chip
+    assert "tc-back" not in tracking
+    assert 'id="tc-search-input"' in tracking
+    assert "包含科创板" in tracking
+    assert "上涨占比" in tracking
+    assert "中位涨幅" in tracking
+    assert "第{rec.daily.length}/10日" in tracking
+    assert "tc-progress-bar" in tracking
+    assert "剩余天数" in tracking
 
 
 def test_tracking_script_exists():
