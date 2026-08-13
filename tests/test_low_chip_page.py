@@ -26,21 +26,24 @@ def test_low_chip_page_publishes_week_month_quarter_results():
     assert "收盘获利比例低于3%" in page
     assert "70%筹码集中度" not in page
     assert "周线" in page and "月线" in page and "季线" in page
-    assert data["data_as_of"] == "2026-08-12"
+    assert data["data_as_of"] == "2026-08-13"
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
-    assert len(data["periods"]["week"]) == 3
-    assert len(data["periods"]["month"]) == 9
-    assert len(data["periods"]["quarter"]) == 39
+    assert len(data["periods"]["week"]) == 11
+    assert len(data["periods"]["month"]) == 31
+    assert len(data["periods"]["quarter"]) == 65
     # 新股（上市不足90天）被排除
     assert data["filters"]["exclude_new_listing"] is True
     assert data["filters"]["listing_min_days"] == 90
-    assert data["filters"]["listing_cutoff"] == "2026-05-14"
-    # 08-12 最新快照，排除新股（含 .BJ 新上市）
-    assert set(data["filters"]["excluded_new_listing"]) == {"920065.BJ", "920165.BJ"}
-    assert len(data["intersection_before_filters"]) == 1
-    assert len(data["intersection"]) == 1
-    assert data["intersection"] == ["600269.SH"]
+    assert data["filters"]["listing_cutoff"] == "2026-05-15"
+    assert set(data["filters"]["excluded_new_listing"]) == {
+        "001232.SZ", "301677.SZ", "301707.SZ", "603468.SH", "688828.SH",
+        "920038.BJ", "920065.BJ", "920079.BJ", "920138.BJ", "920165.BJ",
+        "920189.BJ", "920258.BJ",
+    }
+    assert len(data["intersection_before_filters"]) == 4
+    assert len(data["intersection"]) == 4
+    assert data["intersection"] == ["301632.SZ", "600269.SH", "605016.SH", "688708.SH"]
     assert all(not code.endswith(".BJ") for code in data["intersection"])
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"] == {
@@ -81,7 +84,8 @@ def test_low_chip_history_archive_and_query_ui():
     index = json.loads(HISTORY_INDEX.read_text(encoding="utf-8"))
     assert ARCHIVE_SCRIPT.exists()
     assert index["schema_version"] == "a-low-chip-history-index-v1"
-    assert index["latest"] == "2026-08-12"
+    assert index["latest"] == "2026-08-13"
+    assert "2026-08-13" in index["dates"]
     assert "2026-08-12" in index["dates"]
     assert "2026-08-10" in index["dates"]
     assert "2026-08-07" in index["dates"]
