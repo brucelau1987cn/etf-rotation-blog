@@ -6,9 +6,9 @@ interface Props {
 const { latest } = Astro.props;
 const isV2 = Boolean(latest?.health_summary);
 const portfolioLabels: Record<string, string> = { benchmark: 'Benchmark', timing: 'Timing', rotation: 'Rotation', fusion: 'Fusion' };
-const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
-const formatEquity = (value: unknown) => (Number.isFinite(Number(value)) ? `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—');
-const formatRate = (value: unknown) => (Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '—');
+const formatPct = (value: unknown, suffix = '%') => value != null && Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
+const formatEquity = (value: unknown) => (value != null && Number.isFinite(Number(value)) ? `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—');
+const formatRate = (value: unknown) => (value != null && Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '—');
 const shadow = latest?.shadow_health_summary;
 const cost = latest?.cost_sensitivity_summary;
 ---
@@ -53,14 +53,14 @@ const cost = latest?.cost_sensitivity_summary;
       <strong class:list={[shadow.status]}>{shadow.status}</strong>
     </div>
     <p class="shadow-health-meta">
-      观察 {shadow.observations ?? 0} 期 · 收益 {formatPct(shadow.return)} · 最大回撤 {formatPct(shadow.max_drawdown)} · 评分 {shadow.score != null ? shadow.score.toFixed(2) : '—'}
+      观察 {shadow.observations ?? 0} 期 · 收益 {formatRate(shadow.return)} · 最大回撤 {formatRate(shadow.max_drawdown)} · 评分 {shadow.score != null ? shadow.score.toFixed(2) : '—'}
     </p>
     <div class="shadow-health-portfolios">
       {Object.entries(shadow.portfolios || {}).map(([key, row]: any) => (
         <article class="shadow-portfolio-card">
           <span>{portfolioLabels[key] || key}</span>
-          <b>{formatPct(row.total_return)}</b>
-          <small>回撤 {formatPct(row.max_drawdown)} · 波动 {formatPct(row.annualized_volatility)} · 正周期 {formatRate(row.positive_period_rate)} · 超额 {formatPct(row.excess_return_vs_benchmark)}</small>
+          <b>{formatRate(row.total_return)}</b>
+          <small>回撤 {formatRate(row.max_drawdown)} · 波动 {formatRate(row.annualized_volatility)} · 正周期 {formatRate(row.positive_period_rate)} · 超额 {formatRate(row.excess_return_vs_benchmark)}</small>
         </article>
       ))}
     </div>
@@ -86,8 +86,8 @@ const cost = latest?.cost_sensitivity_summary;
         {(cost.scenarios || []).map((s: any) => (
           <tr>
             <td><strong>{Number.isFinite(Number(s.one_way_cost)) ? `${(Number(s.one_way_cost) * 100).toFixed(2)}%` : '—'}</strong></td>
-            <td>{formatPct(s.annualized_return)}</td>
-            <td class="negative">{formatPct(s.max_drawdown)}</td>
+            <td>{formatRate(s.annualized_return)}</td>
+            <td class="negative">{formatRate(s.max_drawdown)}</td>
           </tr>
         ))}
       </tbody>

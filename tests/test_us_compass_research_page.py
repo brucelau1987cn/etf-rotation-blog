@@ -22,6 +22,7 @@ COMPONENT_NAMES = [
     "UsRankIcPanel.astro",
     "UsShadowHealthPanel.astro",
     "UsResearchArchive.astro",
+    "UsSignalValidationPanel.astro",
 ]
 
 requires_local_hermes = pytest.mark.skipif(
@@ -196,6 +197,57 @@ def test_build_report_v2_preserves_legacy_fields_and_projects_health_summaries()
     assert report["data_quality"]["fingerprint_consistent"] is True
     assert report["data_quality"]["production_change_allowed"] is False
     assert report["production_change_allowed"] is False
+
+
+def test_build_report_projects_honest_signal_validation_horizons():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    learning["snapshots"] = [
+        {
+            "date": "2026-07-30", "top10": ["KWEB", "XLE"], "exposure": 0.5,
+            "outcomes": {
+                "t1": {"end_date": "2026-07-31", "sample_count": 2, "rank_ic": 0.2,
+                       "top10_equal_return": 0.03, "spy_return": 0.01},
+                "t5": {"end_date": "2026-08-06", "sample_count": 2, "rank_ic": 0.1,
+                       "top10_equal_return": 0.08, "spy_return": 0.02},
+            },
+        },
+        {"date": "2026-07-31", "top10": ["KWEB", "XLE"], "exposure": 0.5, "outcomes": {}},
+    ]
+    pool["model_date"] = "2026-07-31"
+    health = health_fixture(learning, pool)
+    report = module.build_report(learning, shadow, pool, health=health)
+
+    validation = report["signal_validation"]
+    assert validation["model_version"] == learning["model_fingerprint"]["model_version"]
+    assert validation["production_change_allowed"] is False
+    assert [row["label"] for row in validation["horizons"]] == ["D1", "5D", "20D", "60D"]
+    assert validation["horizons"][0] == {
+        "label": "D1", "horizon": "t1", "status": "ACCUMULATING", "observations": 1,
+        "mean_return": 0.03, "benchmark_return": 0.01, "excess_return": 0.02,
+        "mfe": None, "mae": None,
+        "unavailable_reasons": ["MFE/MAE UNAVAILABLE：持久化快照缺少信号窗口内逐日高低价路径"],
+    }
+    assert validation["horizons"][3]["status"] == "UNAVAILABLE"
+    assert validation["horizons"][3]["observations"] == 0
+    assert validation["horizons"][3]["unavailable_reasons"] == [
+        "60D UNAVAILABLE：当前模型指纹仅声明1D、5D、20D周期"
+    ]
+
+
+def test_signal_validation_uses_each_horizons_existing_maturity_gate():
+    module = load_module()
+    learning, _, _ = fixtures()
+    learning["snapshots"] = [
+        {"date": f"2026-07-{index + 1:02d}", "outcomes": {
+            "t20": {"top10_equal_return": 0.01, "spy_return": 0.005}
+        }}
+        for index in range(12)
+    ]
+    validation = module.build_signal_validation(learning, learning["model_fingerprint"])
+    by_horizon = {row["horizon"]: row for row in validation["horizons"]}
+    assert by_horizon["t20"]["observations"] == 12
+    assert by_horizon["t20"]["status"] == "EVALUATED"
 
 
 @pytest.mark.parametrize("location", ["learning", "shadow", "health"])
@@ -610,6 +662,22 @@ def test_rank_ic_panel_component_markers():
     assert "sparkline" in content, "panel should have SVG sparkline support"
     assert "历史详细时序不可用" in content, "panel should show v1 fallback note"
     assert "buildSparkline" in content, "panel should have sparkline builder function"
+
+
+def test_signal_validation_panel_keeps_unavailable_metrics_blank():
+    panel = COMPONENT_DIR / "UsSignalValidationPanel.astro"
+    content = panel.read_text(encoding="utf-8")
+    assert "value != null && Number.isFinite(Number(value))" in content
+    assert "MFE" in content and "MAE" in content and "UNAVAILABLE" in content
+
+
+def test_research_components_format_fractional_rates_and_nulls_honestly():
+    rank = (COMPONENT_DIR / "UsRankIcPanel.astro").read_text(encoding="utf-8")
+    shadow = (COMPONENT_DIR / "UsShadowHealthPanel.astro").read_text(encoding="utf-8")
+    assert "formatRate(walkForward.positive_slice_rate)" in rank
+    assert "value != null && Number.isFinite(Number(value))" in shadow
+    assert "formatRate(shadow.return)" in shadow
+    assert "formatRate(s.annualized_return)" in shadow
 
 
 def test_research_health_strip_component_v1_vs_v2():

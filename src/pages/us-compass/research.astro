@@ -10,6 +10,7 @@ import UsResearchHealthStrip from '../../components/us-research/UsResearchHealth
 import UsRankIcPanel from '../../components/us-research/UsRankIcPanel.astro';
 import UsShadowHealthPanel from '../../components/us-research/UsShadowHealthPanel.astro';
 import UsResearchArchive from '../../components/us-research/UsResearchArchive.astro';
+import UsSignalValidationPanel from '../../components/us-research/UsSignalValidationPanel.astro';
 
 const archive = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-compass-research.json'), 'utf8'));
 const reports = archive.reports || [];
@@ -44,6 +45,7 @@ const formatDate = (value: string) => value || '—';
     <UsResearchHero archive={archive} latest={latest} />
     <UsResearchHealthStrip latest={latest} />
     <UsRankIcPanel latest={latest} metricRows={metricRows} />
+    <UsSignalValidationPanel latest={latest} />
     <UsShadowHealthPanel latest={latest} />
 
     <div class="section-head"><div><span class="section-kicker">EXTERNAL VALIDATION</span><h2>问财验证</h2></div><p>外部证据补充，本地前向指标为主</p></div>

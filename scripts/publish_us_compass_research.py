@@ -7,6 +7,7 @@ import importlib.util
 import json
 import math
 import os
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -210,6 +211,55 @@ def _data_quality(health: dict[str, Any], pool: dict[str, Any]) -> dict[str, Any
     }
 
 
+def build_signal_validation(learning: dict[str, Any], fingerprint: dict[str, Any]) -> dict[str, Any]:
+    """Project persisted forward outcomes into a read-only, horizon-level audit."""
+    snapshots = learning.get("snapshots") or []
+    declared = set(fingerprint.get("horizons") or [])
+    rows = []
+    thresholds = {1: 20, 5: 20, 20: 12}
+    for days, label in ((1, "D1"), (5, "5D"), (20, "20D"), (60, "60D")):
+        horizon = f"t{days}"
+        if days not in declared:
+            rows.append({
+                "label": label, "horizon": horizon, "status": "UNAVAILABLE", "observations": 0,
+                "mean_return": None, "benchmark_return": None, "excess_return": None,
+                "mfe": None, "mae": None,
+                "unavailable_reasons": [f"{label} UNAVAILABLE：当前模型指纹仅声明1D、5D、20D周期"],
+            })
+            continue
+        outcomes = []
+        for snapshot in snapshots:
+            outcome = (snapshot.get("outcomes") or {}).get(horizon)
+            if not isinstance(outcome, dict):
+                continue
+            model_return = outcome.get("top10_equal_return")
+            benchmark_return = outcome.get("spy_return")
+            if (
+                isinstance(model_return, bool) or not isinstance(model_return, (int, float))
+                or isinstance(benchmark_return, bool) or not isinstance(benchmark_return, (int, float))
+                or not math.isfinite(model_return) or not math.isfinite(benchmark_return)
+            ):
+                continue
+            outcomes.append((float(model_return), float(benchmark_return)))
+        observations = len(outcomes)
+        model_mean = statistics.fmean(item[0] for item in outcomes) if outcomes else None
+        benchmark_mean = statistics.fmean(item[1] for item in outcomes) if outcomes else None
+        rows.append({
+            "label": label, "horizon": horizon,
+            "status": "EVALUATED" if observations >= thresholds[days] else "ACCUMULATING",
+            "observations": observations,
+            "mean_return": model_mean, "benchmark_return": benchmark_mean,
+            "excess_return": round(model_mean - benchmark_mean, 12) if model_mean is not None and benchmark_mean is not None else None,
+            "mfe": None, "mae": None,
+            "unavailable_reasons": ["MFE/MAE UNAVAILABLE：持久化快照缺少信号窗口内逐日高低价路径"],
+        })
+    return {
+        "model_version": fingerprint["model_version"],
+        "production_change_allowed": False,
+        "horizons": rows,
+    }
+
+
 def build_report(
     learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any],
     iwencai: dict[str, Any] | None = None, *, health: dict[str, Any] | None = None,
@@ -324,6 +374,7 @@ def build_report(
             ],
         },
         "data_quality": _data_quality(health, pool),
+        "signal_validation": build_signal_validation(learning, model_fingerprint),
         "verdict": "达到月度评估门槛" if t5_observations >= 20 else "样本积累中",
         "snapshot_count": len(snapshots),
         "metrics": metrics,

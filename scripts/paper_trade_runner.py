@@ -279,12 +279,30 @@ def atomic_write(path,obj):
         os.replace(tmp,path)
     finally:
         if os.path.exists(tmp): os.unlink(tmp)
+
+DECISION_TAGS={"plant":"计划内首仓","target":"止盈退出","stop":"止损退出","harvest":"信号反转","exit":"风险降仓"}
+DECISION_REVIEW_UNAVAILABLE="胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"
+
+def add_decision_review(account):
+    by_tag={}; order=[]
+    for event in account.get("events",[]):
+        tag=DECISION_TAGS.get(event.get("reason"),"账户规则")
+        event["decision_tag"]=tag
+        if tag not in by_tag:
+            by_tag[tag]={"tag":tag,"count":0,"closed_pnl":None}; order.append(tag)
+        row=by_tag[tag]; row["count"]+=1
+        if event.get("side")=="sell" and all(event.get(key) is not None for key in ("price","quantity","entry_price")):
+            pnl=(float(event["price"])-float(event["entry_price"]))*float(event["quantity"])-float(event.get("entry_cost") or 0)-float(event.get("cost") or 0)
+            row["closed_pnl"]=round((row["closed_pnl"] or 0)+pnl,6)
+    account["decision_review"]={"scope":"all_events","total":len(account.get("events",[])),"by_tag":[by_tag[tag] for tag in order],"unavailable_reasons":[DECISION_REVIEW_UNAVAILABLE]}
+
 def public_view(state):
     out=copy.deepcopy(state)
     for a in out["accounts"].values():
         a.pop("processed_event_ids",None)
         a.pop("armed_signals",None)
         a.pop("consumed_signal_ids",None)
+        add_decision_review(a)
     return out
 
 def project_public_pending(state, sources):

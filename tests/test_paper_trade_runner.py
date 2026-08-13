@@ -152,6 +152,35 @@ class PaperTradingTests(unittest.TestCase):
         self.assertNotIn("consumed_signal_ids", public)
         self.assertNotIn("armed_signals", public)
 
+    def test_public_export_adds_read_only_decision_reason_review(self):
+        state = paper.new_state("2026-07-11T00:00:00+00:00")
+        account = state["accounts"]["US"]
+        account["events"] = [
+            {"id": "b", "side": "buy", "reason": "plant", "symbol": "SPY", "price": 100, "quantity": 1},
+            {"id": "t", "side": "sell", "reason": "target", "symbol": "SPY", "price": 110, "quantity": 1,
+             "entry_price": 100, "entry_cost": 1, "cost": 1},
+            {"id": "s", "side": "sell", "reason": "stop", "symbol": "QQQ", "price": 90, "quantity": 1,
+             "entry_price": 100, "entry_cost": 1, "cost": 1},
+        ]
+
+        public = paper.public_view(state)["accounts"]["US"]
+
+        assert [event["decision_tag"] for event in public["events"]] == ["计划内首仓", "止盈退出", "止损退出"]
+        assert public["decision_review"] == {
+            "scope": "all_events", "total": 3,
+            "by_tag": [
+                {"tag": "计划内首仓", "count": 1, "closed_pnl": None},
+                {"tag": "止盈退出", "count": 1, "closed_pnl": 8.0},
+                {"tag": "止损退出", "count": 1, "closed_pnl": -12.0},
+            ],
+            "unavailable_reasons": ["胜率与标签收益率 UNAVAILABLE：当前事件未持久化逐笔资金占用和统一持有期"],
+        }
+
+    def test_paper_page_displays_decision_reason_tags_and_review(self):
+        page = (P.parents[1] / "src/pages/paper.astro").read_text(encoding="utf-8")
+        for marker in ("操作原因复盘", "decision_review", "decision_tag", "标签仅用于执行复盘"):
+            self.assertIn(marker, page)
+
     def test_public_pending_projection_tracks_current_sources_and_excludes_positions(self):
         state = paper.new_state("2026-07-28T00:00:00+00:00")
         state["accounts"]["A"]["positions"]["159920"] = {"symbol": "159920"}

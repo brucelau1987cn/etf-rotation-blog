@@ -1,0 +1,42 @@
+---
+interface Props {
+  latest: any;
+}
+
+const { latest } = Astro.props;
+const validation = latest?.signal_validation;
+const rows = validation?.horizons || [];
+const formatPct = (value: unknown) => value != null && Number.isFinite(Number(value))
+  ? `${Number(value) >= 0 ? '+' : ''}${(Number(value) * 100).toFixed(2)}%`
+  : '—';
+---
+
+<div class="section-head">
+  <div><span class="section-kicker">SIGNAL VALIDATION</span><h2>信号事后验证</h2></div>
+  <p>模型 {validation?.model_version || '历史版本'} · 只读研究层</p>
+</div>
+<section class="panel signal-validation-panel">
+  {rows.length ? (
+    <div class="signal-validation-grid">
+      {rows.map((row: any) => (
+        <article class:list={['signal-validation-card', row.status === 'UNAVAILABLE' && 'is-unavailable']}>
+          <header><strong>{row.label}</strong><span>{row.status}</span></header>
+          <div class="signal-validation-stats">
+            <div><small>成熟样本</small><b>{row.observations}</b></div>
+            <div><small>组合收益</small><b>{formatPct(row.mean_return)}</b></div>
+            <div><small>基准收益</small><b>{formatPct(row.benchmark_return)}</b></div>
+            <div><small>相对基准</small><b>{formatPct(row.excess_return)}</b></div>
+            <div><small>MFE</small><b>{formatPct(row.mfe)}</b></div>
+            <div><small>MAE</small><b>{formatPct(row.mae)}</b></div>
+          </div>
+          {(row.unavailable_reasons || []).map((reason: string) => <p>{reason}</p>)}
+        </article>
+      ))}
+    </div>
+  ) : <p class="signal-validation-empty">历史归档尚未包含统一信号验证；等待下一次研究发布。</p>}
+  <div class="signal-validation-boundary">production_change_allowed=false · 研究评级不会自动调整生产权重、仓位或交易动作。</div>
+</section>
+
+<style>
+  .signal-validation-panel{padding:1rem}.signal-validation-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem}.signal-validation-card{padding:.8rem;border:1px solid var(--research-line);border-radius:12px;background:#f8fafc}.signal-validation-card.is-unavailable{background:#f4f5f7}.signal-validation-card header{display:flex;justify-content:space-between;gap:.5rem;align-items:center}.signal-validation-card header strong{font-size:1rem}.signal-validation-card header span{color:var(--research-muted);font-size:.62rem;font-weight:900}.signal-validation-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin-top:.65rem}.signal-validation-stats div{padding:.45rem;border-radius:8px;background:#fff}.signal-validation-stats small{display:block;color:var(--research-muted);font-size:.62rem}.signal-validation-stats b{font-size:.75rem}.signal-validation-card p,.signal-validation-empty,.signal-validation-boundary{color:var(--research-muted);font-size:.68rem;line-height:1.5}.signal-validation-boundary{margin-top:.75rem;padding-top:.7rem;border-top:1px solid var(--research-line)}@media(max-width:900px){.signal-validation-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.signal-validation-grid{grid-template-columns:1fr}}
+</style>

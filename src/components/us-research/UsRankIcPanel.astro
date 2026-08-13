@@ -8,6 +8,7 @@ const { latest, metricRows } = Astro.props;
 const isV2 = Boolean(latest?.health_summary);
 const formatPct = (value: unknown, suffix = '%') => Number.isFinite(Number(value)) ? `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(2)}${suffix}` : '—';
 const formatPlainPct = (value: unknown) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}%` : '—';
+const formatRate = (value: unknown) => value != null && Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '—';
 
 // Build SVG sparkline path for a horizon series (server-side, no client JS)
 function buildSparkline(series: any[]): string | null {
@@ -86,7 +87,7 @@ const horizons = isV2 && latest?.health_summary ? (latest as any).horizons : nul
       <strong>{walkForward.status}</strong>
     </div>
     <div class="walk-forward-stats">
-      <span>窗口 {walkForward.windows} · 已评估 {walkForward.evaluated_windows} · 正分率 {walkForward.positive_slice_rate != null ? formatPlainPct(walkForward.positive_slice_rate) : '—'}</span>
+      <span>窗口 {walkForward.windows} · 已评估 {walkForward.evaluated_windows} · 正分率 {formatRate(walkForward.positive_slice_rate)}</span>
       {walkForward.score != null ? <span>评分 {walkForward.score.toFixed(2)}</span> : null}
     </div>
     {walkForward.reasons?.length ? (
