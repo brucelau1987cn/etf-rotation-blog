@@ -92,7 +92,7 @@ import FuturesSubnav from '../../components/FuturesSubnav.astro';
     <section aria-label="宏观数据查询">
       <div class="calendar-controls">
         <div class="date-field"><label for="calendar-date">查询日期</label><input id="calendar-date" type="date" /></div>
-        <div class="calendar-actions"><button id="calendar-prev" type="button">前一天</button><button id="calendar-today" type="button">今天</button><button id="calendar-refresh" class="primary" type="button">刷新</button></div>
+        <div class="calendar-actions"><button id="calendar-prev" type="button">前一天</button><button id="calendar-today" type="button">今天</button><button id="calendar-refresh" class="primary" type="button">刷新</button><button id="calendar-mcp" type="button">加载影响方向</button></div>
       </div>
       <div class="calendar-tabs" aria-label="日历分类"><button data-calendar-filter="important" type="button">重要总览</button><button class="active" data-calendar-filter="star4" type="button">四星以上</button><button data-calendar-filter="important-data" type="button">重要数据</button><button data-calendar-filter="important-event" type="button">重要事件</button><button data-calendar-filter="all" type="button">全部</button></div>
       <div class="calendar-star-switch"><span class="switch-label">四星以上开关</span><label class="switch"><input id="star4-toggle" type="checkbox" checked /><span class="slider"></span></label><span class="switch-hint" id="star4-hint">只看四星以上</span></div>

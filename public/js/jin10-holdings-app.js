@@ -26,7 +26,7 @@
 
   const loadProfitTags = async () => {
     try {
-      const resp = await fetch(`${INVENTORY_API}?bust=${Date.now()}`, { cache: 'no-store' });
+      const resp = await fetch(INVENTORY_API);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const d = await resp.json();
       const assets = (d.data && d.data.etf_profit && d.data.etf_profit.assets) || {};

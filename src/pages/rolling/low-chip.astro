@@ -614,7 +614,7 @@ const rows = intersectionRows.map((row) => {
         closeCalendar();
         if (historyPrev) historyPrev.disabled = true;
         if (historyNext) historyNext.disabled = true;
-        fetch('/api/public/v1/low-chip-metrics?date=' + day + '&bust=' + Date.now(), { cache: 'no-store' })
+        fetch('/api/public/v1/low-chip-metrics?date=' + day)
           .then(function(r) {
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.json();

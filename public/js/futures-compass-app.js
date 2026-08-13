@@ -223,7 +223,7 @@ function render(payload) {
 
 async function loadWatchlistSymbols() {
   try {
-    const res = await fetch(`${WATCHLIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(WATCHLIST_URL);
     if (!res.ok) return false;
     const data = await res.json();
     if (!data?.ok || !Array.isArray(data.items) || !data.items.length) return false;
@@ -258,7 +258,7 @@ async function loadWatchlistSymbols() {
 }
 
 async function loadSnapshot() {
-  const response = await fetch(`${SNAPSHOT_URL}?t=${Date.now()}`, { cache: 'no-store' });
+  const response = await fetch(SNAPSHOT_URL);
   if (!response.ok) throw new Error(`snapshot HTTP ${response.status}`);
   return response.json();
 }
@@ -274,7 +274,7 @@ async function overlayEdgeQuotes(snapshot) {
     return edgeKeyFor(item);
   }).filter(Boolean).join(',');
   if (!symbols) return snapshot;
-  const res = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
+  const res = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbols)}`);
   if (!res.ok) return snapshot;
   const normalized = adapter.normalizeQuotePayload(await res.json());
   if (!normalized.ok || !normalized.items.length) return snapshot;

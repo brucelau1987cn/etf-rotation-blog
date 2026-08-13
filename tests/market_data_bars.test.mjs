@@ -1,12 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { onRequestGet, aggregateDailyBars, normalizeAShareSymbol } from '../functions/api/public/v1/market-data/bars.js';
+import { onRequestGet, serveMarketDataBars, aggregateDailyBars, normalizeAShareSymbol } from '../functions/api/public/v1/market-data/bars.js';
 import { baoStockSecCode } from '../functions/api/public/v1/_baostock.js';
 
 const request = (url) => ({ request: new Request(`https://etf.peekabo.cc${url}`) });
 
+test('public market-data bars route is retired', async () => {
+  const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=auto&limit=1'));
+  assert.equal(response.status, 410);
+  const body = await response.json();
+  assert.equal(body.status, 'gone');
+});
+
 test('market-data bars validates source, symbol, period, adjustment and limit', async () => {
-  const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=bad&limit=0'));
+  const response = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=bad&limit=0'));
   assert.equal(response.status, 400);
   const body = await response.json();
   assert.equal(body.status, 'error');
@@ -24,7 +31,7 @@ test('market-data normalizes common A-share symbols without losing exchange iden
 
 test('market-data forwards explicit SSE identity to the BaoStock adapter', async () => {
   let received;
-  const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=sh.000001&period=day&source=baostock&limit=1'), {
+  const response = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=sh.000001&period=day&source=baostock&limit=1'), {
     fetchBaoStockImpl: async (symbol, exchange, period, adjustment) => {
       received = { symbol, exchange, period, adjustment };
       return [{ timestamp: 1, close: 1 }];
@@ -37,9 +44,9 @@ test('market-data forwards explicit SSE identity to the BaoStock adapter', async
 });
 
 test('market-data rejects unsupported source, period and adjustment combinations', async () => {
-  const baostockMinute = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=600021&period=1m&source=baostock'));
+  const baostockMinute = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=600021&period=1m&source=baostock'));
   assert.equal(baostockMinute.status, 400);
-  const yahooAdjusted = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=AAPL&period=day&source=yahoo&adjustment=qfq'));
+  const yahooAdjusted = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=AAPL&period=day&source=yahoo&adjustment=qfq'));
   assert.equal(yahooAdjusted.status, 400);
 });
 
@@ -50,7 +57,7 @@ test('market-data bars returns a normalized Yahoo daily series', async () => {
     return Response.json({ chart: { result: [{ meta: { exchangeTimezoneName: 'America/New_York' }, timestamp: [1704067200, 1704153600], indicators: { quote: [{ open: [1, 2], high: [2, 3], low: [0.5, 1.5], close: [1.5, 2.5], volume: [10, 20] }] } }] } });
   };
   try {
-    const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=AAPL&exchange=NASDAQ&period=day&source=yahoo&adjustment=none&limit=2'));
+    const response = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=AAPL&exchange=NASDAQ&period=day&source=yahoo&adjustment=none&limit=2'));
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.status, 'ok');
@@ -82,7 +89,7 @@ test('market-data auto A-share falls back to Yahoo when BaoStock is unavailable'
     return Response.json({ chart: { result: [{ timestamp: [1704067200], indicators: { quote: [{ open: [1], high: [2], low: [0.5], close: [1.5], volume: [10] }] } }] } });
   };
   try {
-    const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=auto&limit=1'), {
+    const response = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=auto&limit=1'), {
       fetchBaoStockImpl: async () => { throw new Error('baostock down'); },
       fetchYahooImpl: async () => ({ items: [{ timestamp: 1704067200000, close: 1.5 }], timezone: 'Asia/Shanghai' }),
     });
@@ -96,7 +103,7 @@ test('market-data auto A-share falls back to Yahoo when BaoStock is unavailable'
 });
 
 test('market-data bars reports unavailable TradingView explicitly', async () => {
-  const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=XAUUSD&exchange=OANDA&period=1h&source=tradingview&limit=3'));
+  const response = await serveMarketDataBars(request('/api/public/v1/market-data/bars?symbol=XAUUSD&exchange=OANDA&period=1h&source=tradingview&limit=3'));
   assert.equal(response.status, 503);
   const body = await response.json();
   assert.equal(body.status, 'error');

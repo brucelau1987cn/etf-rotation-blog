@@ -63,7 +63,7 @@
     if (calendarLoading || (!force && Date.now() - lastCalendarFetchAt < 5 * 60_000)) return;
     calendarLoading = true;
     try {
-      const res = await fetch(`${SESSION_URL}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(SESSION_URL);
       if (!res.ok) throw new Error(`calendar HTTP ${res.status}`);
       calendarSession = await res.json();
       lastCalendarFetchAt = Date.now();
@@ -122,7 +122,7 @@
       if (!normalizeQuotePayload || !aShareSymbolsParam) throw new Error('EtfQuote adapter missing');
       const codes = liveCards.map(c => c.dataset.code).filter(Boolean);
       if (!codes.length) return setStatus('无实时标的', 'error');
-      const edgeRes = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(aShareSymbolsParam(codes))}&t=${Date.now()}`, { cache: 'no-store' });
+      const edgeRes = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(aShareSymbolsParam(codes))}`);
       if (!edgeRes.ok) throw new Error(`Edge HTTP ${edgeRes.status}`);
       const normalized = normalizeQuotePayload(await edgeRes.json());
       const items = (normalized.items || []).filter(q => Number(q.price) > 0).map(q => ({

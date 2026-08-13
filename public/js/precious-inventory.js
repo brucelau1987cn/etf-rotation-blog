@@ -134,7 +134,7 @@
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     try {
-      const resp = await fetch(`${API_URL}?bust=${Date.now()}`, {
+      const resp = await fetch(API_URL, {
         signal: ctrl.signal,
         headers: { Accept: 'application/json' },
       });
@@ -151,7 +151,7 @@
   // ── 主加载 ───────────────────────────────────────────
   (async () => {
     try {
-      const resp = await fetch(`${DATA_URL}?bust=${Date.now()}`);
+      const resp = await fetch(DATA_URL);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const d = await resp.json();
       if (d.status !== 'ok') throw new Error(d.error || 'fetch failed');

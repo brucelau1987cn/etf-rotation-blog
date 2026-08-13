@@ -4,12 +4,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_jin10_calendar_page_and_navigation_contract():
-    page = (ROOT / "src/pages/calendar.astro").read_text(encoding="utf-8")
+    page = (ROOT / "src/pages/futures-compass/jin10.astro").read_text(encoding="utf-8")
     app = (ROOT / "public/js/jin10-calendar-app.js").read_text(encoding="utf-8")
     footer = (ROOT / "src/components/Footer.astro").read_text(encoding="utf-8")
     futures = (ROOT / "src/pages/futures-compass/index.astro").read_text(encoding="utf-8")
+    redirect = (ROOT / "functions/calendar.js").read_text(encoding="utf-8")
 
-    assert "财经日历" in page
+    assert not (ROOT / "src/pages/calendar.astro").exists()
+    assert "location: '/futures-compass/jin10/'" in redirect
+    assert "status: 301" in redirect
+    assert "宏观数据" in page
     assert 'id="calendar-date"' in page
     assert 'id="calendar-list"' in page
     assert 'data-calendar-filter="important"' in page
@@ -26,13 +30,22 @@ def test_jin10_calendar_page_and_navigation_contract():
     assert "activeFilter = 'star4'" in app or "activeFilter = 'important'" in app
     assert 'href="/futures-compass/jin10/"' in futures
     assert '宏观数据' in (ROOT / "src/components/FuturesSubnav.astro").read_text(encoding="utf-8")
-    assert '宏观数据' in (ROOT / "src/pages/futures-compass/jin10.astro").read_text(encoding="utf-8")
     assert "Veilx CDN" in footer
     assert "veilx.io/#/hello/3B2WSRN2" in footer
     assert "footer-links" not in footer
     assert "promo-cdn-copy ul" in footer
     assert ".impact-tag.impact-bullish" in page
     assert ".impact-tag.impact-neutral" in page
+
+
+def test_jin10_mcp_loads_only_on_user_click():
+    page = (ROOT / "src/pages/futures-compass/jin10.astro").read_text(encoding="utf-8")
+    app = (ROOT / "public/js/jin10-calendar-app.js").read_text(encoding="utf-8")
+    assert 'id="calendar-mcp"' in page
+    assert "loadMcpEnrichment" in app
+    assert "calendar-mcp" in app
+    assert "Promise.all([" not in app
+    assert "fetch(`${MCP_API}?t=${Date.now()}`" not in app
 
 
 def test_jin10_skill_is_committed_without_credentials():

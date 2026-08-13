@@ -26,7 +26,7 @@
     aLoading = true;
     try {
       const symbols = adapter.aShareSymbolsParam(aCodes);
-      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}`, { cache: 'default' });
       if (!res.ok) return;
       const normalized = adapter.normalizeQuotePayload(await res.json());
       if (!normalized.ok) return;
@@ -50,7 +50,7 @@
     if (usLoading || document.hidden || usSymbols.length === 0) return;
     usLoading = true;
     try {
-      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(usSymbols.join(','))}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(usSymbols.join(','))}`, { cache: 'default' });
       if (!res.ok) return;
       const normalized = adapter.normalizeQuotePayload(await res.json());
       if (!normalized.ok) return;

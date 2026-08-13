@@ -121,7 +121,7 @@
   async function loadRollingWatchlist() {
     try {
       const marketKey = market === 'a' ? 'a' : market;
-      const res = await fetch(`/api/public/v1/rolling-instruments?market=${encodeURIComponent(marketKey)}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/public/v1/rolling-instruments?market=${encodeURIComponent(marketKey)}`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!data?.ok || !Array.isArray(data.items)) return false;
@@ -908,7 +908,7 @@
     if (!indexSymbols.length) return;
     try {
       const symbols = indexSymbols.map(item => item.querySymbol).join(',');
-      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbols)}`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const payload = normalizeQuotePayload(await res.json());
       indexSymbols.forEach(meta => updateMarketIndexUI(meta, resolveIndexQuoteItem(payload, meta)));
@@ -928,7 +928,7 @@
     await fetchIndexQuoteBatch(batch);
   };
 
-  const QUOTE_INTERVAL_MS = 15000;
+  const QUOTE_INTERVAL_MS = 30000;
   // Day-locked signal board: poll gently. Same node never updates again today.
   const SIGNAL_INTERVAL_MS = 120000;
   let nextQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
@@ -995,10 +995,13 @@
   paintCountdown();
   document.addEventListener('visibilitychange', paintCountdown);
 
-  const fetchOneSignals = async (symbol) => {
-    const res = await fetch(`/api/public/v1/rolling-signals?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`, { cache: 'no-store' });
+  const fetchBatchSignals = async (symbols) => {
+    const list = [...new Set((symbols || []).map(item => String(item || '').trim()).filter(Boolean))];
+    if (!list.length) return [];
+    const res = await fetch(`/api/public/v1/rolling-signals?symbols=${encodeURIComponent(list.join(','))}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    const payload = await res.json();
+    return Array.isArray(payload?.boards) ? payload.boards : [];
   };
 
   const symbolParamFor = (meta) => {
@@ -1019,15 +1022,20 @@
     if (signalInFlight || document.hidden || signalPollingStopped) return;
     signalInFlight = true;
     try {
-      const payloads = await Promise.all(INSTRUMENTS.map(async (meta) => {
-        try {
-          const data = applyDisplayMeta(await fetchOneSignals(meta.symbol), meta.symbol);
-          updateBoard(meta.symbol, data);
-          return data;
-        } catch {
-          return null;
-        }
-      }));
+      let boards = [];
+      try {
+        boards = await fetchBatchSignals(INSTRUMENTS.map(meta => meta.symbol));
+      } catch {
+        boards = [];
+      }
+      const bySymbol = new Map(boards.map(item => [String(item?.instrument?.symbol || '').toUpperCase(), item]));
+      const payloads = INSTRUMENTS.map((meta) => {
+        const raw = bySymbol.get(String(meta.symbol || '').toUpperCase()) || null;
+        if (!raw) return null;
+        const data = applyDisplayMeta(raw, meta.symbol);
+        updateBoard(meta.symbol, data);
+        return data;
+      });
       const valid = payloads.filter(Boolean);
       updateHeroSummary(valid);
 
@@ -1068,7 +1076,7 @@
       if (uniqueParams.length) {
         try {
           const symbolsStr = uniqueParams.join(',');
-          const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbolsStr)}&t=${Date.now()}`, { cache: 'no-store' });
+          const res = await fetch(`/api/public/v1/quote?symbols=${encodeURIComponent(symbolsStr)}`);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const payload = normalizeQuotePayload(await res.json());
           INSTRUMENTS.forEach((meta) => {

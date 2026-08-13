@@ -22,13 +22,15 @@ def test_chip_refresh_script_reads_v2_endpoint_fields():
     assert 'latest["average_cost"]' in script
 
 
-def test_pages_sync_copies_chip_route_and_helper():
+def test_pages_sync_keeps_chip_as_thin_reexport():
     script = (ROOT / "scripts/sync_edge_quote.mjs").read_text()
     assert "chipRouteTarget" in script
     assert "chipHelperTarget" in script
     assert "baostockHelperTarget" in script
     assert "from './_chip.js'" in script
     assert "from './_baostock.js'" in script
+    assert "export { onRequestGet, parseSymbol } from './quote.js'" in script
+    assert "writeFileSync(chipRouteTarget, text)" not in script
 
 
 def load_updater():

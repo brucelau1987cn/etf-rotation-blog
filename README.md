@@ -52,6 +52,7 @@
 
 ## 核心能力
 
+- **实时在线人数**：全站页头通过服务端签名匿名身份与 D1 心跳展示最近 2 分钟的活跃浏览器数；同源新身份限流抑制刷量。
 - **多市场决策罗盘**：A股 / 港股 / 美股 / 商品期货统一导航与状态呈现。
 - **实时行情**：Edge Quote（腾讯 → 新浪 → 雪球等降级），批量报价 + 短缓存。
 - **A 股筹码 V2**：滚动卡片展示获利盘、90% 集中度、平均成本和同口径昨日变化；支持不复权 / QFQ / HFQ 与最近 90 日序列。
@@ -72,14 +73,14 @@
 Astro 静态页面 (dist/)
   ├─ Cloudflare Pages（主站 etf.peekabo.cc）
   ├─ Pages Functions
-  │    quote / kline / market-calendar
+  │    quote / kline / market-calendar / presence
   │    rolling-signals（D1 日板 + LKG）
   │    jin10-calendar / jin10-mcp-calendar
-  │    jin10-etf-reports / jin10-indicator-history
+  │    jin10-etf-reports
   │    TradingView webhook / auth / upload
   ├─ Cloudflare D1 (etf-compass-auth)
   │    rolling_signals · jin10_calendar_items · jin10_etf_holdings
-  │    market_calendar · auth/session
+  │    market_calendar · presence_sessions · auth/session
   ├─ Edge Quote：腾讯 → 新浪 → 雪球
   └─ JSON 契约：public/data + public/schemas + catalog
 ```
@@ -95,7 +96,7 @@ TradingView POST /api/v1/tradingview
        PK (trade_date, symbol, cycle_code, signal)
   → 当日同节点只锁首次；可选 WxPusher / Telegram
 
-GET /api/public/v1/rolling-signals?symbol=
+GET /api/public/v1/rolling-signals?symbol=  （单标） / ?symbols=a,b,c  （批量 boards[]）
   → 静态 LKG + 当日 D1 合并
   → storage=d1 表示走了日板
 ```
@@ -119,7 +120,6 @@ GET /api/public/v1/rolling-signals?symbol=
 - 页面：`/futures-compass/jin10/`（`/calendar/` → 301）
 - 直连：`GET /api/public/v1/jin10-calendar?date=YYYY-MM-DD`
 - MCP：`GET /api/public/v1/jin10-mcp-calendar`（当前自然周 + `affect_txt`）
-- 指标历史：`GET /api/public/v1/jin10-indicator-history?id=…`
 - 独立可复用代理：[`brucelau1987cn/jin10-mcp-proxy`](https://github.com/brucelau1987cn/jin10-mcp-proxy)
 
 ## 实时行情契约
@@ -143,7 +143,7 @@ python3 scripts/a_share_fundamental_shadow.py --workers 4 --write # 64/64门禁�
 
 ## 统一历史K线接口
 
-- `GET /api/public/v1/market-data/bars?symbol=600021&period=day&adjustment=qfq&limit=100`
+- `GET /api/public/v1/market-data/bars`、`/ths/*`、`/subscription/status`、`/jin10-indicator-history` 已下线（410 Gone）
 - 数据源：A股日/周/月优先 Pages BaoStock；`adjustment=none` 时 BaoStock 故障可回退 Yahoo；全球及分钟周期使用 Yahoo Finance；`source=tradingview` 当前明确返回 `503 UNAVAILABLE`，等待 Cloudflare 边缘 WebSocket 独立探针通过后再接入。
 - 周期支持 `period=1m|5m|15m|30m|1h|day|week|month`。BaoStock 支持 `adjustment=none|qfq|hfq`；Yahoo 仅支持 `adjustment=none`。返回统一 `items[{timestamp,open,high,low,close,volume}]`。
 - `source=auto|baostock|yahoo|tradingview` 可用于确定性诊断；失败返回 `503`、`code=UNAVAILABLE`，不静默估算。

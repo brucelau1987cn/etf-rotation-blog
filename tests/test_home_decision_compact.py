@@ -25,6 +25,20 @@ def test_home_page_compacts_long_decision_prose():
     assert "{aMainlineShort}" in source
 
 
+def test_home_page_reads_pool_summary_head_instead_of_full_pool_files():
+    source = HOME.read_text(encoding="utf-8")
+    assert "readJsonObjectHead" in source
+    assert "etf-garden-pool.json" in source
+    assert "us-etf-pool.json" in source
+    assert "JSON.parse(readFileSync(dataPath('etf-garden-pool.json')" not in source
+    assert "JSON.parse(readFileSync(dataPath('us-etf-pool.json')" not in source
+    live = (ROOT / "public" / "js" / "home-live-app.js").read_text(encoding="utf-8")
+    rolling = (ROOT / "public" / "js" / "a-rolling-app.js").read_text(encoding="utf-8")
+    assert "&t=${Date.now()}" not in live
+    assert "quote?symbols=" in live
+    assert "&t=${Date.now()}" not in rolling
+
+
 def test_a_compass_compacts_long_night_market_state():
     source = COMPASS.read_text(encoding="utf-8")
     assert "Night/intraday long prose" in source

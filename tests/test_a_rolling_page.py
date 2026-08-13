@@ -29,6 +29,21 @@ def test_primary_navigation_uses_rolling_compass_name():
     assert "滚动轮盘" not in footer
 
 
+def test_header_shows_live_online_count_beside_brand_subtitle():
+    header = HEADER.read_text(encoding="utf-8")
+    assert 'id="site-online-count"' in header
+    assert "online" in header
+    assert "/api/public/v1/presence" in header
+    assert "setInterval(sendPresenceHeartbeat, 60000)" in header
+    assert "color: #64748b" in header
+    assert "presenceInFlight" in header
+    assert "AbortSignal.timeout(6000)" in header
+    assert "try {" in header
+    assert "catch { return; }" in header
+    assert ".brand-copy { display: none; }" not in header
+    assert ".brand-copy strong, .brand-meta > small:first-child { display: none; }" in header
+
+
 def test_rolling_subnav_order_is_a_futures_hk_us():
     subnav = SUBNAV.read_text(encoding="utf-8")
     header = HEADER.read_text(encoding="utf-8")
@@ -121,6 +136,7 @@ def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     assert "个信号（含观察）" in app
     assert "index-refresh-countdown" in app
     assert "QUOTE_INTERVAL_MS" in app
+    assert "const QUOTE_INTERVAL_MS = 30000;" in app
     assert "formatTriggerPrice" in app
     assert "summary-signal-price" in app
     assert "信号点股价未入库" in app
@@ -237,6 +253,8 @@ def test_us_market_clock_labels_timezone_and_uses_following_open_session():
     assert "EDT" in poll
     assert "market === 'US' ? 'EDT ' : ''" in poll
     assert "trade_date > ?" in session
+    assert "&t=${Date.now()}" not in poll
+    assert "cache: 'no-store'" not in poll
 
 
 def test_futures_rolling_page_sits_between_a_and_hk():
@@ -274,6 +292,13 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert "'SI=F': { instrument_name: '白银现货', exchange: 'FUTURES', symbol: 'SI=F' }" in api
     assert "applyDisplayMeta" in app
     assert "instrument_name: meta.name" in app
-    assert "const data = applyDisplayMeta(await fetchOneSignals(meta.symbol), meta.symbol)" in app
+    assert "fetchBatchSignals" in app
+    assert "rolling-signals?symbols=" in app
+    assert "fetchOneSignals" not in app
+    assert "&t=${Date.now()}" not in app
+    vol = PRICE_VOLUME_APP.read_text(encoding="utf-8")
+    assert "&_=${Date.now()}" not in vol
+    compass = (ROOT / "public" / "js" / "a-compass-app.js").read_text(encoding="utf-8")
+    assert "&t=${Date.now()}" not in compass
     # Free-running poll for futures (no stock session gate).
     assert "market === 'futures' ? null" in app

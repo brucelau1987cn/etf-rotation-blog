@@ -1,16 +1,17 @@
 import { asLkg, projectUpstream, validatePublicPayload } from '../../../_lib/a-rolling.js';
 import {
-  loadRollingTimelineFromD1,
+  loadRollingTimelinesFromD1,
   normalizeSymbol as normalizeRollingSymbol,
   shanghaiTradeDate,
   updateRollingSignalPriceIfMissing,
 } from '../../../_lib/rolling-signals-d1.js';
-import { findRollingInstrumentBySymbol } from '../../../_lib/rolling-instruments.js';
+import { findRollingInstrumentBySymbol, seedRollingInstrumentsIfEmpty } from '../../../_lib/rolling-instruments.js';
 import { fetchKline1m, pickMinuteBar } from './kline.js';
 
 const MAX_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_STALE_AFTER_SECONDS = 900;
+const MAX_BATCH_SYMBOLS = 40;
 
 const INSTRUMENT_SNAPSHOTS = {
   '600021': '/data/a-rolling-signals.json',
@@ -45,9 +46,12 @@ const headers = state => ({
   'x-rolling-delivery': state,
 });
 
-const json = (payload, status = 200) => new Response(JSON.stringify(payload), {
+const json = (payload, status = 200, cacheControl = null) => new Response(JSON.stringify(payload), {
   status,
-  headers: headers(payload?.delivery?.state || 'error'),
+  headers: {
+    ...headers(payload?.delivery?.state || 'error'),
+    ...(cacheControl ? { 'cache-control': cacheControl } : {}),
+  },
 });
 
 const normalizeSymbol = value => normalizeRollingSymbol(value);
@@ -65,10 +69,10 @@ const snapshotPathForSymbol = symbol => {
 
 const instrumentMetaForSymbol = symbol => INSTRUMENT_META[normalizeSymbol(symbol)] || null;
 
-const applyDbInstrumentMeta = async (payload, env, symbol) => {
+const applyDbInstrumentMeta = async (payload, env, symbol, seed = true) => {
   if (!payload || !env?.DB) return payload;
   try {
-    const row = await findRollingInstrumentBySymbol(env.DB, symbol);
+    const row = await findRollingInstrumentBySymbol(env.DB, symbol, { seed });
     if (!row) return payload;
     const next = {
       ...payload,
@@ -209,56 +213,56 @@ const publicReason = error => {
   return '上游暂不可用或数据未通过校验';
 };
 
-export async function handleRollingSignals(request, env = {}, waitUntil = null) {
-  const requestUrl = new URL(request.url);
-  const symbol = normalizeSymbol(requestUrl.searchParams.get('symbol') || requestUrl.searchParams.get('code') || '600021');
-  const tradeDate = shanghaiTradeDate();
-
-  let lkg;
-  try {
-    lkg = await loadLkg(request, env, symbol);
-    lkg = await applyDbInstrumentMeta(lkg, env, symbol);
-  } catch {
-    return json({ error: 'rolling signal snapshot unavailable', symbol }, 503);
+const requestedSymbols = requestUrl => {
+  const raw = String(requestUrl.searchParams.get('symbols') || '').trim();
+  if (!raw) {
+    const single = normalizeSymbol(requestUrl.searchParams.get('symbol') || requestUrl.searchParams.get('code') || '');
+    return single ? [single] : [];
   }
+  const seen = new Set();
+  const out = [];
+  for (const part of raw.split(',')) {
+    const symbol = normalizeSymbol(part);
+    if (!symbol || seen.has(symbol)) continue;
+    seen.add(symbol);
+    out.push(symbol);
+    if (out.length >= MAX_BATCH_SYMBOLS) break;
+  }
+  return out;
+};
 
-  // Primary path: D1 day board. No KV quota involved.
+const queueMissingPriceBackfill = (waitUntil, env, symbol, d1Timeline) => {
+  if (typeof waitUntil !== 'function' || !env?.DB) return;
+  const missingPriceItems = (d1Timeline || []).filter(item => item.price == null && item.event_id);
+  if (!missingPriceItems.length) return;
+  waitUntil((async () => {
+    for (const item of missingPriceItems) {
+      try {
+        const atTime = item.triggered_at || item.received_at;
+        const klineRes = await fetchKline1m(symbol, { at: atTime });
+        const bar = klineRes?.bar || pickMinuteBar(klineRes?.bars, atTime);
+        if (bar?.close != null) {
+          await updateRollingSignalPriceIfMissing(env.DB, {
+            trade_date: shanghaiTradeDate(atTime),
+            symbol,
+            cycle_code: item.code,
+            signal: item.type,
+            event_id: item.event_id,
+            trigger_price: bar.close,
+            trigger_price_source: bar.source || 'kline-1m',
+          });
+        }
+      } catch (e) {
+        console.warn('background price backfill failed for', symbol, item.event_id, e);
+      }
+    }
+  })());
+};
+
+const assembleBoard = async ({ request, env, waitUntil, symbol, lkg, d1Timeline, tradeDate, seedInstrumentMeta = true }) => {
   if (env.DB) {
     try {
-      // Query all stored D1 signals for this symbol (not only today) so historical signal prices are preserved.
-      const d1Timeline = await loadRollingTimelineFromD1(env.DB, symbol, null);
-
-      // Self-healing: if any D1 row is missing price, attempt background 1m lookup and fill.
-      if (typeof waitUntil === 'function') {
-        const missingPriceItems = d1Timeline.filter(item => item.price == null && item.event_id);
-        if (missingPriceItems.length) {
-          waitUntil((async () => {
-            for (const item of missingPriceItems) {
-              try {
-                const atTime = item.triggered_at || item.received_at;
-                const klineRes = await fetchKline1m(symbol, { at: atTime });
-                const bar = klineRes?.bar || pickMinuteBar(klineRes?.bars, atTime);
-                if (bar?.close != null) {
-                  await updateRollingSignalPriceIfMissing(env.DB, {
-                    trade_date: shanghaiTradeDate(atTime),
-                    symbol,
-                    cycle_code: item.code,
-                    signal: item.type,
-                    event_id: item.event_id,
-                    trigger_price: bar.close,
-                    trigger_price_source: bar.source || 'kline-1m',
-                  });
-                }
-              } catch (e) {
-                console.warn('background price backfill failed for', symbol, item.event_id, e);
-              }
-            }
-          })());
-        }
-      }
-
-      // Merge with static LKG so authorized historical projections remain visible.
-      // Today's D1 rows win per type:code; older projections never shadow the live day board.
+      queueMissingPriceBackfill(waitUntil, env, symbol, d1Timeline);
       const staticTimeline = Array.isArray(lkg.timeline) ? lkg.timeline : [];
       const timeline = mergeTimelines(tradeDate, staticTimeline, d1Timeline);
       if (timeline.length) {
@@ -271,8 +275,7 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
           timeline,
           data_as_of: latestReceivedAt,
         }), symbol);
-        const todayD1 = d1Timeline.filter(item => shanghaiTradeDate(item.triggered_at || item.received_at) === tradeDate);
-        // Day-locked board: once written, keep presentation stable for the day.
+        const todayD1 = (d1Timeline || []).filter(item => shanghaiTradeDate(item.triggered_at || item.received_at) === tradeDate);
         payload.mode = todayD1.length ? 'live' : payload.mode;
         payload.freshness = todayD1.length ? 'fresh' : payload.freshness;
         payload.delivery = {
@@ -281,27 +284,26 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
         };
         payload.trade_date = tradeDate;
         payload.storage = 'd1';
-        // Prefer admin-managed start_date from D1 rolling_instruments.
-        const withDb = await applyDbInstrumentMeta(payload, env, symbol);
+        const withDb = await applyDbInstrumentMeta(payload, env, symbol, seedInstrumentMeta);
         if (!withDb.transmission?.start_date && lkg.transmission?.start_date) {
           withDb.transmission = {
             ...withDb.transmission,
             start_date: lkg.transmission.start_date,
           };
         }
-        return json(withDb);
+        return { status: 200, payload: withDb };
       }
     } catch {
-      return json(asLkg(lkg, 'D1信号读取失败，返回静态快照'));
+      return { status: 200, payload: asLkg(lkg, 'D1信号读取失败，返回静态快照') };
     }
   }
 
   if (symbol !== '600021') {
-    return json(asLkg(lkg, env.DB ? 'D1暂无该标的信号，返回静态快照' : 'DB未绑定，返回静态快照'));
+    return { status: 200, payload: asLkg(lkg, env.DB ? 'D1暂无该标的信号，返回静态快照' : 'DB未绑定，返回静态快照') };
   }
 
   const upstreamUrl = String(env.A_ROLLING_UPSTREAM_URL || '').trim();
-  if (!upstreamUrl) return json(asLkg(lkg, env.DB ? 'D1暂无信号且未配置只读上游' : 'DB未绑定且未配置只读上游'));
+  if (!upstreamUrl) return { status: 200, payload: asLkg(lkg, env.DB ? 'D1暂无信号且未配置只读上游' : 'DB未绑定且未配置只读上游') };
 
   try {
     const parsed = new URL(upstreamUrl);
@@ -314,10 +316,84 @@ export async function handleRollingSignals(request, env = {}, waitUntil = null) 
     const upstreamRes = await fetchWithTimeout(parsed, timeoutMs);
     if (!upstreamRes.ok) throw new Error(`upstream returned HTTP ${upstreamRes.status}`);
     const upstream = await readJsonResponse(upstreamRes);
-    return json(projectUpstream(upstream, new Date().toISOString(), staleAfterSeconds));
+    return { status: 200, payload: projectUpstream(upstream, new Date().toISOString(), staleAfterSeconds) };
   } catch (error) {
-    return json(asLkg(lkg, publicReason(error)));
+    return { status: 200, payload: asLkg(lkg, publicReason(error)) };
   }
+};
+
+const loadBoardForSymbol = async ({ request, env, waitUntil, symbol, tradeDate, d1Timeline, seedInstrumentMeta = true }) => {
+  let lkg;
+  try {
+    lkg = await loadLkg(request, env, symbol);
+    lkg = await applyDbInstrumentMeta(lkg, env, symbol, seedInstrumentMeta);
+  } catch {
+    return { status: 503, payload: { error: 'rolling signal snapshot unavailable', symbol } };
+  }
+  return assembleBoard({ request, env, waitUntil, symbol, lkg, d1Timeline: d1Timeline || [], tradeDate, seedInstrumentMeta });
+};
+
+export async function handleRollingSignals(request, env = {}, waitUntil = null) {
+  const requestUrl = new URL(request.url);
+  const symbols = requestedSymbols(requestUrl);
+  const tradeDate = shanghaiTradeDate();
+  const batch = symbols.length > 1 || Boolean(String(requestUrl.searchParams.get('symbols') || '').trim());
+  const targets = symbols.length ? symbols : ['600021'];
+
+  let timelines = new Map(targets.map(symbol => [symbol, []]));
+  if (env.DB) {
+    try {
+      timelines = await loadRollingTimelinesFromD1(env.DB, targets, null);
+    } catch {
+      timelines = new Map(targets.map(symbol => [symbol, []]));
+    }
+  }
+
+  if (!batch) {
+    const result = await loadBoardForSymbol({
+      request,
+      env,
+      waitUntil,
+      symbol: targets[0],
+      tradeDate,
+      d1Timeline: timelines.get(targets[0]) || [],
+    });
+    return json(result.payload, result.status);
+  }
+
+  if (env.DB) {
+    try {
+      await seedRollingInstrumentsIfEmpty(env.DB);
+    } catch {
+      // Instrument metadata is optional; boards still serve LKG/D1 signal data.
+    }
+  }
+
+  const results = await Promise.all(targets.map(symbol => loadBoardForSymbol({
+    request,
+    env,
+    waitUntil,
+    symbol,
+    tradeDate,
+    d1Timeline: timelines.get(symbol) || [],
+    seedInstrumentMeta: false,
+  })));
+  const boards = [];
+  const errors = [];
+  results.forEach((result, index) => {
+    if (result.status === 200) boards.push(result.payload);
+    else errors.push({ symbol: targets[index], error: result.payload?.error || 'rolling signal snapshot unavailable' });
+  });
+  const status = boards.length ? 200 : 503;
+
+  return json({
+    ok: errors.length === 0,
+    schema_version: 'a-rolling-energy-batch-v1',
+    trade_date: tradeDate,
+    count: boards.length,
+    boards,
+    errors,
+  }, status, errors.length ? 'no-store' : null);
 }
 
 export async function onRequestGet({ request, env, waitUntil }) {

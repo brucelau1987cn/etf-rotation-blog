@@ -51,7 +51,7 @@
   async function getCalendar(market, force = false) {
     const cached = calendarCache.get(market);
     if (!force && cached && Date.now() - cached.fetchedAt < 5 * 60_000) return cached.data;
-    const response = await fetch(`/api/public/v1/market-session?market=${encodeURIComponent(market)}&t=${Date.now()}`, { cache: 'no-store' });
+    const response = await fetch(`/api/public/v1/market-session?market=${encodeURIComponent(market)}`);
     if (!response.ok) throw new Error(`market calendar HTTP ${response.status}`);
     const data = await response.json();
     calendarCache.set(market, { data, fetchedAt: Date.now() });

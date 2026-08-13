@@ -37,7 +37,7 @@ if (!text.includes('export default')) {
 mkdirSync(dirname(target), { recursive: true });
 mkdirSync(dirname(chipRouteTarget), { recursive: true });
 writeFileSync(target, text);
-writeFileSync(chipRouteTarget, text);
+writeFileSync(chipRouteTarget, "/** Thin Pages route: /api/public/v1/chip shares quote.js (path-dispatched chip handler). */\nexport { onRequestGet, parseSymbol } from './quote.js';\n");
 copyFileSync(chipSource, chipHelperTarget);
 copyFileSync(baostockSource, baostockHelperTarget);
 console.log(`synced quote/chip handlers:\n  ${source}\n  -> ${target}\n  -> ${chipRouteTarget}\n  ${chipSource}\n  -> ${chipHelperTarget}\n  ${baostockSource}\n  -> ${baostockHelperTarget}`);

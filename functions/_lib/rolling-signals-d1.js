@@ -179,17 +179,35 @@ export const updateRollingSignalPriceIfMissing = async (db, {
   return { updated: changes > 0, row };
 };
 
-export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) => {
-  if (!db?.prepare) return [];
+const mapTimelineRow = item => ({
+  type: item.signal,
+  code: String(item.cycle_code),
+  label: String(item.label || item.cycle_code),
+  triggered_at: item.trigger_time_utc || item.received_at,
+  received_at: item.received_at || item.trigger_time_utc,
+  event_id: item.event_id || null,
+  price: normalizeTriggerPrice(item.trigger_price),
+  price_source: item.trigger_price_source || null,
+});
+
+export const loadRollingTimelinesFromD1 = async (db, symbols = [], tradeDate = null) => {
+  const keys = [...new Set((symbols || []).map(normalizeSymbol).filter(Boolean))];
+  const grouped = new Map(keys.map(key => [key, []]));
+  if (!db?.prepare || !keys.length) return grouped;
   await ensureRollingSignalsTable(db);
-  const key = normalizeSymbol(symbol);
-  const aliases = [key];
-  if (/^\d{5}$/.test(key) && key.startsWith('0')) {
-    aliases.push(key.slice(1));
+  const aliases = [];
+  const aliasToKey = new Map();
+  for (const key of keys) {
+    const list = [key];
+    if (/^\d{5}$/.test(key) && key.startsWith('0')) list.push(key.slice(1));
+    for (const alias of list) {
+      if (aliasToKey.has(alias)) continue;
+      aliasToKey.set(alias, key);
+      aliases.push(alias);
+    }
   }
   const placeholders = aliases.map(() => '?').join(', ');
   const params = tradeDate ? [...aliases, tradeDate] : aliases;
-
   const { results } = tradeDate
     ? await db.prepare(`
         SELECT symbol, cycle_code, signal, trigger_time_utc, received_at, event_id, label, trigger_price, trigger_price_source
@@ -204,14 +222,16 @@ export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) =>
         ORDER BY received_at ASC, trigger_time_utc ASC
       `).bind(...params).all();
 
-  return (results || []).map(item => ({
-    type: item.signal,
-    code: String(item.cycle_code),
-    label: String(item.label || item.cycle_code),
-    triggered_at: item.trigger_time_utc || item.received_at,
-    received_at: item.received_at || item.trigger_time_utc,
-    event_id: item.event_id || null,
-    price: normalizeTriggerPrice(item.trigger_price),
-    price_source: item.trigger_price_source || null,
-  }));
+  for (const item of results || []) {
+    const key = aliasToKey.get(normalizeSymbol(item.symbol)) || normalizeSymbol(item.symbol);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(mapTimelineRow(item));
+  }
+  return grouped;
+};
+
+export const loadRollingTimelineFromD1 = async (db, symbol, tradeDate = null) => {
+  const key = normalizeSymbol(symbol);
+  const grouped = await loadRollingTimelinesFromD1(db, [key], tradeDate);
+  return grouped.get(key) || [];
 };

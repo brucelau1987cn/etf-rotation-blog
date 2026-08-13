@@ -186,7 +186,7 @@ async function loadLive() {
     for (let i = 0; i < codes.length; i += chunkSize) {
       const chunk = codes.slice(i, i + chunkSize);
       const symbols = adapter.aShareSymbolsParam(chunk);
-      const res = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbols)}&t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`${EDGE_QUOTE_URL}?symbols=${encodeURIComponent(symbols)}`);
       if (!res.ok) throw new Error(`Edge HTTP ${res.status}`);
       const normalized = adapter.normalizeQuotePayload(await res.json());
       if (!normalized.ok || !normalized.items.length) continue;
@@ -225,7 +225,7 @@ async function load() {
   $('refresh-btn').textContent = '刷新中…';
   $('status-line').textContent = '正在读取 ETF罗盘 91 池基准快照…';
   try {
-    payload = await fetch(`${DATA_URL}?t=${Date.now()}`).then(r => {
+    payload = await fetch(DATA_URL).then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     });

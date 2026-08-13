@@ -66,7 +66,7 @@
     if (!uniqueSymbols.length) return;
 
     try {
-      const resp = await fetch(`/api/public/v1/price-volume-tag?s=${uniqueSymbols.join(',')}&_=${Date.now()}`, { credentials: 'omit' });
+      const resp = await fetch(`/api/public/v1/price-volume-tag?s=${uniqueSymbols.join(',')}`, { credentials: 'omit' });
       if (!resp.ok) return;
       const data = await resp.json();
       if (!data.ok || !data.tags) return;

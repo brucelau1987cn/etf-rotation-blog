@@ -9,7 +9,10 @@ const isHome = Astro.url.pathname === '/';
   <nav class="site-shell" aria-label="主导航">
     <a class:list={['brand', { active: isHome }]} href="/" aria-label={`${SITE_TITLE}首页`} aria-current={isHome ? 'page' : undefined}>
       <span class="mark">ETF</span>
-      <span class="brand-copy"><strong>{SITE_TITLE}</strong><small>伏击 · 兑现 · 复盘</small></span>
+      <span class="brand-copy">
+        <strong>{SITE_TITLE}</strong>
+        <span class="brand-meta"><small>伏击 · 兑现 · 复盘</small><small class="online-count" id="site-online-count" aria-live="polite">— online</small></span>
+      </span>
     </a>
     <div class="nav-actions">
       <div class="nav-scroll">
@@ -61,6 +64,30 @@ const isHome = Astro.url.pathname === '/';
     const futuresAdminLink = document.getElementById('user-futures-admin-link');
     const rollingAdminLink = document.getElementById('user-rolling-admin-link');
     const avatarEl = document.getElementById('user-avatar');
+    const onlineCountEl = document.getElementById('site-online-count');
+
+    let presenceInFlight = false;
+    const sendPresenceHeartbeat = async () => {
+      if (document.visibilityState === 'hidden' || presenceInFlight) return;
+      presenceInFlight = true;
+      try {
+        const response = await fetch('/api/public/v1/presence', {
+          method: 'POST',
+          credentials: 'same-origin',
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const count = Number(data.online);
+        if (onlineCountEl && Number.isFinite(count)) onlineCountEl.textContent = `${count} online`;
+      } catch { return; }
+      finally { presenceInFlight = false; }
+    };
+    void sendPresenceHeartbeat();
+    setInterval(sendPresenceHeartbeat, 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') sendPresenceHeartbeat();
+    });
 
     // 若在登录页/管理页则不干扰页面内逻辑
     const isAuthPage = ['/login/', '/admin/'].some((p) => location.pathname.startsWith(p));
@@ -129,7 +156,9 @@ const isHome = Astro.url.pathname === '/';
   .mark { display: inline-flex; align-items: center; justify-content: center; width: 2.35rem; height: 2.35rem; border-radius: 11px; background: rgb(var(--black)); color: white; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.04em; }
   .brand-copy { display: grid; line-height: 1.15; }
   .brand-copy strong { font-size: 0.96rem; }
-  .brand-copy small { margin-top: 0.2rem; color: rgb(var(--gray)); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; }
+  .brand-meta { display: flex; align-items: baseline; gap: 0.65rem; margin-top: 0.2rem; }
+  .brand-copy small { color: rgb(var(--gray)); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+  .brand-copy .online-count { color: #64748b; font-variant-numeric: tabular-nums; font-weight: 650; letter-spacing: 0; }
   .nav-actions { min-width: 0; display: flex; align-items: center; gap: 0.18rem; margin-left: auto; overflow: visible; }
   .nav-scroll { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .nav-scroll::-webkit-scrollbar { display: none; }
@@ -177,7 +206,10 @@ const isHome = Astro.url.pathname === '/';
   @media (max-width: 720px) {
     header { padding: 0.48rem 0; }
     nav.site-shell { gap: 0.28rem; }
-    .brand-copy { display: none; }
+    .brand-copy strong, .brand-meta > small:first-child { display: none; }
+    .brand-copy { display: block; line-height: 1; }
+    .brand-meta { margin-top: 0; gap: 0; }
+    .brand-copy .online-count { font-size: 0.62rem; }
     .mark { width: 2.1rem; height: 2.1rem; }
     .nav-scroll { padding-right: 0; -webkit-mask-image: none; mask-image: none; }
     .internal-links { gap: 0; }

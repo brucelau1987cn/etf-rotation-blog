@@ -7,6 +7,7 @@
   const refresh = document.getElementById('calendar-refresh');
   const previous = document.getElementById('calendar-prev');
   const today = document.getElementById('calendar-today');
+  const mcpButton = document.getElementById('calendar-mcp');
   const count = document.getElementById('calendar-count');
   const dataCount = document.getElementById('calendar-data-count');
   const eventCount = document.getElementById('calendar-event-count');
@@ -148,6 +149,40 @@
     loadPolymarket();
   };
 
+  const paintCounts = (items) => {
+    const cnUsItems = items.filter(isCnUs);
+    count.textContent = String(cnUsItems.length);
+    dataCount.textContent = String(cnUsItems.filter((item) => item.type === 'data').length);
+    eventCount.textContent = String(cnUsItems.filter((item) => item.type === 'event').length);
+    importantCount.textContent = String(cnUsItems.filter((item) => Number(item.star) >= 3).length);
+    if (star4Count) star4Count.textContent = String(cnUsItems.filter((item) => ['data', 'event'].includes(item.type) && Number(item.star) >= 4).length);
+  };
+
+  const loadMcpEnrichment = async () => {
+    if (!currentItems.length) return;
+    mcpButton?.setAttribute('disabled', '');
+    status.textContent = '正在加载影响方向…';
+    try {
+      const mcpController = new AbortController();
+      const mcpTimer = setTimeout(() => mcpController.abort(), 6000);
+      const mcpRes = await fetch(MCP_API, { cache: 'default', signal: mcpController.signal }).catch(() => null);
+      clearTimeout(mcpTimer);
+      if (mcpRes && mcpRes.ok) {
+        const mcpPayload = await mcpRes.json();
+        if (mcpPayload.status === 'ok' && Array.isArray(mcpPayload.items)) {
+          currentItems = mergeAffectTxt(currentItems, mcpPayload.items);
+          paintCounts(currentItems);
+          renderList();
+        }
+      }
+      status.textContent = `已加载 ${dateInput.value || beijingDate()}，共 ${currentItems.filter(isCnUs).length} 条`;
+    } catch (error) {
+      status.textContent = `影响方向加载失败：${error instanceof Error ? error.message : '网络异常'}`;
+    } finally {
+      mcpButton?.removeAttribute('disabled');
+    }
+  };
+
   const load = async () => {
     const date = dateInput.value || beijingDate();
     dateInput.value = date;
@@ -155,32 +190,11 @@
     status.textContent = `正在加载 ${date}…`;
     list.innerHTML = '';
     try {
-      // MCP affect_txt is a nice-to-have enrichment; never block the main calendar.
-      // Bound it with a 6s abort so a slow/hung MCP upstream degrades to direction-less rows.
-      const mcpController = new AbortController();
-      const mcpTimer = setTimeout(() => mcpController.abort(), 6000);
-      const [mainRes, mcpRes] = await Promise.all([
-        fetch(`${API}?date=${encodeURIComponent(date)}&t=${Date.now()}`, { cache: 'no-store' }),
-        fetch(`${MCP_API}?t=${Date.now()}`, { cache: 'no-store', signal: mcpController.signal }).catch(() => null),
-      ]);
-      clearTimeout(mcpTimer);
+      const mainRes = await fetch(`${API}?date=${encodeURIComponent(date)}`, { cache: 'default' });
       const payload = await mainRes.json();
       if (!mainRes.ok || payload.status !== 'ok') throw new Error(payload.error || '加载失败');
-      let items = Array.isArray(payload.items) ? payload.items : [];
-      if (mcpRes && mcpRes.ok) {
-        const mcpPayload = await mcpRes.json();
-        if (mcpPayload.status === 'ok' && Array.isArray(mcpPayload.items)) {
-          items = mergeAffectTxt(items, mcpPayload.items);
-        }
-      }
-      currentItems = items;
-      // 统计只基于中国+美国条目（与列表过滤一致）。
-      const cnUsItems = items.filter(isCnUs);
-      count.textContent = String(cnUsItems.length);
-      dataCount.textContent = String(cnUsItems.filter((item) => item.type === 'data').length);
-      eventCount.textContent = String(cnUsItems.filter((item) => item.type === 'event').length);
-      importantCount.textContent = String(cnUsItems.filter((item) => Number(item.star) >= 3).length);
-      if (star4Count) star4Count.textContent = String(cnUsItems.filter((item) => ['data', 'event'].includes(item.type) && Number(item.star) >= 4).length);
+      currentItems = Array.isArray(payload.items) ? payload.items : [];
+      paintCounts(currentItems);
       renderList();
       const nextUrl = new URL(location.href);
       nextUrl.searchParams.set('date', date);
@@ -197,6 +211,7 @@
   const initial = new URL(location.href).searchParams.get('date');
   dateInput.value = /^\d{4}-\d{2}-\d{2}$/.test(initial || '') ? initial : beijingDate();
   refresh?.addEventListener('click', load);
+  mcpButton?.addEventListener('click', loadMcpEnrichment);
   dateInput.addEventListener('change', load);
   previous?.addEventListener('click', () => { dateInput.value = changeDate(dateInput.value, -1); load(); });
   today?.addEventListener('click', () => { dateInput.value = beijingDate(); load(); });

@@ -120,7 +120,11 @@ async function fetchBaoStock(symbol, exchange, period, adjustment, limit) {
   }));
 }
 
-export async function onRequestGet({ request }, { fetchBaoStockImpl = fetchBaoStock, fetchYahooImpl = fetchYahoo } = {}) {
+export async function onRequestGet() {
+  return json({ status: 'gone', code: 'GONE', message: 'GET /api/public/v1/market-data/bars is retired; use /api/public/v1/kline' }, 410);
+}
+
+export async function serveMarketDataBars({ request }, { fetchBaoStockImpl = fetchBaoStock, fetchYahooImpl = fetchYahoo } = {}) {
   const url = new URL(request.url);
   const symbol = (url.searchParams.get('symbol') || '').trim();
   const exchange = (url.searchParams.get('exchange') || '').trim().toUpperCase();

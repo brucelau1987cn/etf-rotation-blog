@@ -20,9 +20,9 @@ metadata:
 仓库实现：
 
 - Pages Function：`functions/api/public/v1/jin10-calendar.js`
-- 网站页面：`src/pages/calendar.astro`
-- 浏览器逻辑：`public/js/jin10-calendar-app.js`
-- 线上路由：`/calendar/`
+- 网站页面：`src/pages/futures-compass/jin10.astro`
+- 浏览器逻辑：`public/js/jin10-calendar-app.js`（影响方向点「加载影响方向」再拉 MCP）
+- 线上路由：`/futures-compass/jin10/`（`/calendar/` 301）
 - 同源接口：`/api/public/v1/jin10-calendar`
 - D1迁移：`migrations/0005_jin10_calendar.sql`
 - D1同步映射：`functions/_lib/jin10-calendar-d1.js`
@@ -163,7 +163,8 @@ npx wrangler pages deploy dist --project-name etf-rotation-blog
 node --test tests/jin10_calendar_api.test.mjs
 python3 -m pytest -q tests/test_jin10_calendar_page.py
 curl -fsS 'https://etf.peekabo.cc/api/public/v1/jin10-calendar?date=2026-07-31'
-curl -fsS 'https://etf.peekabo.cc/calendar/?date=2026-07-31'
+curl -fsS -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://etf.peekabo.cc/calendar/?date=2026-07-31'
+curl -fsS 'https://etf.peekabo.cc/futures-compass/jin10/?date=2026-07-31'
 ```
 
 完成标准：

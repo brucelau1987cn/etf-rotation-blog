@@ -53,7 +53,7 @@ export async function seedRollingInstrumentsIfEmpty(db) {
   if (Number(row?.n || 0) > 0) return { seeded: false, count: Number(row.n) };
   for (const item of DEFAULT_ROLLING_INSTRUMENTS) {
     await db.prepare(`
-      INSERT INTO rolling_instruments
+      INSERT OR IGNORE INTO rolling_instruments
         (market, symbol, name, exchange, start_date, quote_symbol, sort_order, enabled)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1)
     `).bind(
@@ -169,8 +169,8 @@ export async function getRollingInstrument(db, market, symbol) {
 }
 
 /** Find by symbol across markets (public signal path). Prefer exact, then HK unpadded. */
-export async function findRollingInstrumentBySymbol(db, symbol) {
-  await seedRollingInstrumentsIfEmpty(db);
+export async function findRollingInstrumentBySymbol(db, symbol, { seed = true } = {}) {
+  if (seed) await seedRollingInstrumentsIfEmpty(db);
   const raw = String(symbol || '').trim().toUpperCase();
   if (!raw) return null;
   const candidates = [raw];

@@ -164,7 +164,7 @@
     usLiveLoading = true;
     try {
       if (!usLiveSymbols.length) throw new Error('无实时标的');
-      const response = await fetch(`${US_LIVE_BATCH_URL}&t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(US_LIVE_BATCH_URL);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = normalizeQuotePayload(await response.json());
       if (!payload.ok || !Array.isArray(payload.items) || !payload.items.length) throw new Error('行情格式异常');
@@ -194,7 +194,7 @@
     button.setAttribute('aria-busy', 'true');
     setUsLiveStatus(`正在更新 ${symbol}…`);
     try {
-      const response = await fetch(`${US_LIVE_URL}?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(`${US_LIVE_URL}?symbol=${encodeURIComponent(symbol)}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = normalizeQuotePayload(await response.json());
       if (!payload.ok || !Array.isArray(payload.items) || !payload.items.length) throw new Error('单股行情格式异常');
