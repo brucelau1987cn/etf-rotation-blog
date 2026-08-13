@@ -96,7 +96,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
         <div class="tc-summary-stat"><strong>{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 <small>{risingCount}/{validChanges.length}</small></span></div>
         <div class="tc-summary-stat"><strong class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
-        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>最高涨幅</span></div>
+        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>当前最大涨幅</span></div>
       </div>
     </section>
 
@@ -369,7 +369,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-summary-stat { min-height:4.65rem; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; border:1px solid #e2e8f0; border-radius:10px; background:#f8fafc; padding:.72rem .9rem; text-align:left; }
   .tc-summary-stat strong { display:block; font-size:1.3rem; line-height:1.1; font-variant-numeric:tabular-nums; }
   .tc-summary-stat span { margin-top:.22rem; font-size:.7rem; color:#64748b; font-weight:700; }
-  .tc-summary-stat small { margin-left:.2rem; font-size:.62rem; color:#94a3b8; }
+  .tc-summary-stat small { margin-left:.2rem; font-size:.68rem; color:#64748b; }
 
   .tc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: .9rem; }
   .tc-card { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.05rem; background: #fff; transition: box-shadow .15s ease, transform .15s ease; }

@@ -88,8 +88,9 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "第{rec.daily.length}/10日" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
-    assert "grid-template-columns:minmax(0,1fr) minmax(360px,.72fr)" in tracking
-    assert "tc-summary" in tracking
+    assert "@media (max-width: 900px)" in tracking
+    assert ".tc-summary" in tracking
+    assert "grid-template-columns:repeat(2" in tracking
     assert 'role="progressbar"' in tracking
     assert "tracking_complete" in tracking
     assert 'id="tc-filter-empty"' in tracking
