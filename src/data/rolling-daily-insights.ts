@@ -34,6 +34,68 @@ export type DailyInsightReport = {
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
   
 
+  '2026-08-13': {
+    tradeDate: '2026-08-13',
+    shortDate: '08/13',
+    title: '8月13日滚动信号收盘复盘',
+    subtitle: '当日D1入库15条8只：宏桥五节点空方簇、长鑫/德福/海光空方确认；创新医疗与澜起空方被收复，国民技术H多方未确认，白银多空交替后5m空方占优。',
+    cutoff: '2026-08-13 收市',
+    summary: '盘面结构偏空：8只标的中4只空方确认、2只空方收复、1只多空交替、1只多方观察未确认。中国宏桥15m至120m五节点空方簇收HK$22.70（-7.12%）全部确认；长鑫科技10m空方¥53.52、德福科技10m空方¥90.60分别收¥52.88与¥89.90确认；海光信息10m空方¥286.00与收盘完全贴平，属空方贴价确认。创新医疗15m空方¥22.05收¥22.08，澜起科技10m空方HK$284.60收HK$286.80，均被收复；国民技术H 2.5h多方HK$9.49收HK$9.295未确认。白银先有10m/15m空方，后5m多方，再出现5m空方，现货hf_XAG报$64.87，低于全部信号价，最新空方确认。',
+    buyRule: '确认多方只等国民技术H放量收复HK$9.49；创新医疗站稳¥22.05并突破¥22.91、澜起站稳HK$286.80并突破HK$301.00后观察修复；空方确认股须先收复各自信号价再谈买入。白银重新站上$65.55后才恢复多方。',
+    sellRule: '宏桥反弹HK$22.94—23.40、长鑫反弹¥53.52、德福反弹¥90.60、海光反弹¥286.00受阻时优先降仓；创新医疗跌回¥22.05、澜起跌回HK$284.60则空方重新生效；国民技术H失守HK$9.235退出观察；白银反弹$65.06—65.55受阻维持防守。',
+    discipline: '同标的近价同方向节点合并为信号簇，保留首次入库价格；多空交替按最新正式多方后的空方执行。贴价确认与贴价收复均需次日二次确认：海光若跌破¥285.36则空方延续，创新医疗若跌回¥22.05则收复失败。未确认多方不追高，空方簇不在急跌后追空。',
+    sources: '滚动罗盘D1首次入库信号（trade_date=2026-08-13，Cloudflare D1 REST）；iWenCai多key包装器A股收盘行情、均线、RSI、筹码与资金；腾讯港股01378/02701/06809收盘行情；新浪hf_XAG现货白银与DINIW美元指数。',
+    signals: [
+      {
+        name: '中国宏桥', symbol: '01378', market: '港股', direction: 'SELL', nodes: '15m / 30m / 60m / 90m / 120m', signalPrices: 'HK$23.40 / 23.24 / 23.14 / 23.36 / 22.94', close: 'HK$22.70', change: '-7.12%', validation: 'confirmed', validationLabel: '空方五节点簇确认',
+        verdict: '10:00至13:45形成15m—120m五节点空方簇，收盘HK$22.70低于全部信号价，空方强确认。日内开HK$24.10、高HK$24.16、低HK$22.60，成交5961万股，收近低位。',
+        support: 'HK$22.60当日低点；HK$22.70收盘', pressure: 'HK$22.94—23.40空方信号簇；HK$24.16当日高点', buyPlan: '仅在收复HK$23.40并放量站稳后观察修复。', sellPlan: '反弹HK$22.94—23.40受阻减仓；跌破HK$22.60继续防守。',
+        evidence: ['D1五个SELL节点首次入库', '收盘低于最高信号价2.99%、低于最低信号价1.05%', '日跌7.12%，收近当日低点', '成交量5961万股']
+      },
+      {
+        name: '长鑫科技', symbol: '688825', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥53.52', close: '¥52.88', change: '-1.20%', validation: 'confirmed', validationLabel: '空方10m确认',
+        verdict: '14:00 10m空方¥53.52点亮，收¥52.88低于信号价1.20%，完成确认。收盘低于MA10 ¥53.08但高于MA5 ¥52.12；主力净流出22.83亿元，换手10.34%，筹码获利59.6%。',
+        support: '¥52.73当日低点；MA5 ¥52.12', pressure: '¥53.52信号价；MA10 ¥53.08；¥55.92当日高点', buyPlan: '收复¥53.52并站稳后观察，突破¥55.92再确认。', sellPlan: '反弹¥53.08—53.52受阻减仓；跌破¥52.73继续降仓。',
+        evidence: ['10m SELL ¥53.52', '收盘低于信号价1.20%', '主力净流出22.83亿元', '量比0.979 / 换手10.34%', '平均成本¥52.20 / 集中度90为9.7%']
+      },
+      {
+        name: '德福科技', symbol: '301511', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥90.60', close: '¥89.90', change: '+0.04%', validation: 'confirmed', validationLabel: '空方10m确认',
+        verdict: '14:40 10m空方¥90.60点亮，收¥89.90低于信号价0.77%，虽全天微涨仍完成空方确认。盘中高¥98.58后大幅回落，收近低点¥89.69；RSI6 64.8，获利盘72.0%。',
+        support: '¥89.69当日低点；MA5 ¥89.06', pressure: '¥90.60信号价；¥98.58当日高点', buyPlan: '收复¥90.60并站稳后观察，突破¥98.58再确认。', sellPlan: '反弹¥90.60受阻减仓；跌破¥89.69继续防守。',
+        evidence: ['10m SELL ¥90.60', '收盘低于信号价0.77%', '盘中冲高¥98.58后回落', '换手10.98% / 量比0.848', '获利盘72.0% / 平均成本¥87.36']
+      },
+      {
+        name: '海光信息', symbol: '688041', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥286.00', close: '¥286.00', change: '-0.58%', validation: 'confirmed', validationLabel: '空方贴价确认',
+        verdict: '15:00 10m空方¥286.00点亮并与收盘完全贴平，按贴价规则记空方弱确认。收盘低于MA5 ¥289.37和MA20 ¥296.84、略高于MA10 ¥284.01；日低¥285.36。',
+        support: '¥285.36当日低点；MA10 ¥284.01', pressure: '¥286.00信号价；MA5 ¥289.37；¥296.99当日高点', buyPlan: '站稳¥286并收复MA5 ¥289.37后观察修复。', sellPlan: '反弹¥286—289.37受阻减仓；跌破¥285.36确认延续。',
+        evidence: ['10m SELL ¥286.00', '收盘与信号价完全贴平', '收盘低于MA5/MA20', '主力净流入3450万元但价格未收复', 'RSI6 43.6']
+      },
+      {
+        name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '15m', signalPrices: '¥22.05', close: '¥22.08', change: '-1.52%', validation: 'reclaimed', validationLabel: '空方15m贴价收复',
+        verdict: '09:45 15m空方¥22.05点亮，收¥22.08仅高0.14%，空方贴价收复。收盘站上MA5 ¥21.87、MA10 ¥21.12和MA20 ¥20.14，但主力净流出1.47亿元，次日仍需确认。',
+        support: '¥22.05信号价；¥21.75当日低点；MA5 ¥21.87', pressure: '¥22.91当日高点', buyPlan: '守住¥22.05并放量突破¥22.91后确认修复。', sellPlan: '跌回¥22.05下方视为收复失败；跌破¥21.75退出。',
+        evidence: ['15m SELL ¥22.05', '收盘高于信号价0.14%', '收盘站上MA5/10/20', '主力净流出1.47亿元', '换手22.72% / 获利盘57.5%']
+      },
+      {
+        name: '澜起科技', symbol: '06809', market: '港股', direction: 'SELL', nodes: '10m', signalPrices: 'HK$284.60', close: 'HK$286.80', change: '+1.34%', validation: 'reclaimed', validationLabel: '空方10m收复',
+        verdict: '15:25 10m空方HK$284.60点亮，收HK$286.80高于信号价0.77%，空方收复。日内高HK$301.00、低HK$284.00，尾盘仍靠近低位，修复强度有限。',
+        support: 'HK$284.00当日低点；HK$284.60信号价', pressure: 'HK$286.80收盘；HK$301.00当日高点', buyPlan: '站稳HK$286.80并突破HK$301后确认。', sellPlan: '跌回HK$284.60下方恢复空方；跌破HK$284退出。',
+        evidence: ['10m SELL HK$284.60', '收盘高于信号价0.77%', '日涨1.34%', '日内高低HK$301.00/HK$284.00']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F', market: 'COMEX/24H', direction: 'MIXED', nodes: '10m空 / 15m空 → 5m多 → 5m空', signalPrices: '$65.403 / 65.309 / 65.5471 / 65.0626', close: '现货$64.87', change: '-0.66%', validation: 'mixed', validationLabel: '多空交替·最新5m空方确认',
+        verdict: '凌晨10m/15m空方后，08:10出现5m多方$65.5471，10:35再现5m空方$65.0626；现货hf_XAG 18:31报$64.87，低于全部节点，最新空方占优且此前多方被收复。',
+        support: '$64.20当日低点；$64.87现价', pressure: '$65.06—65.55信号簇；$66.27当日高点', buyPlan: '重新站上$65.55并突破$66.27后才恢复多方。', sellPlan: '反弹$65.06—65.55受阻维持防守；跌破$64.20继续降仓。',
+        evidence: ['D1四条多空交替节点', 'hf_XAG $64.87，低于全部信号价', '现货日跌0.66%', 'DINIW 99.8779']
+      },
+      {
+        name: '国民技术H股', symbol: '02701', market: '港股', direction: 'BUY', nodes: '2.5h', signalPrices: 'HK$9.49', close: 'HK$9.295', change: '+1.25%', validation: 'watch', validationLabel: '多方2.5h未确认',
+        verdict: '12:16 2.5h多方HK$9.49点亮，收HK$9.295低于信号价2.05%，多方未确认。日内高HK$9.675、低HK$9.235，虽收涨1.25%但未守住信号价。',
+        support: 'HK$9.235当日低点；HK$9.295收盘', pressure: 'HK$9.49信号价；HK$9.675当日高点', buyPlan: '放量收复HK$9.49并突破HK$9.675后确认。', sellPlan: '失守HK$9.235退出观察；未收复信号价前不追。',
+        evidence: ['2.5h BUY HK$9.49', '收盘低于信号价2.05%', '日涨1.25%', '日内高低HK$9.675/HK$9.235']
+      }
+    ]
+  },
   '2026-08-12': {
     tradeDate: '2026-08-12',
     shortDate: '08/12',
@@ -514,7 +576,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-12', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-13', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-12', href: '/rolling/insights/2026-08-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-11', href: '/rolling/insights/2026-08-11/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-10', href: '/rolling/insights/2026-08-10/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-07', href: '/rolling/insights/2026-08-07/' },
