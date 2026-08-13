@@ -49,8 +49,14 @@ def test_tracking_page_and_entry_link():
         "已完成历史",
         "data-tracking-status",
         "low_chip_tracking_view",
+        "tc-vol-tag-slot",
+        "data-price-volume-symbol",
+        "/js/price-volume-tag.js",
     ):
         assert marker in page
+    price_volume_app = (ROOT / "public" / "js" / "price-volume-tag.js").read_text(encoding="utf-8")
+    assert "tc-vol-tag-slot" in price_volume_app
+    assert "data-price-volume-symbol" in price_volume_app
     low_chip = LOW_CHIP_PAGE.read_text(encoding="utf-8")
     assert "/rolling/low-chip/tracking/" in low_chip
     assert "低筹码追踪" in low_chip

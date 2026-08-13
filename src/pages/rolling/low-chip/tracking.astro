@@ -124,6 +124,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             <div class="tc-change-row">
               <span class:list={['tc-change', up ? 'tc-up' : 'tc-down']}>{up ? '▲' : '▼'} {fmt(rec.totalChange)}%</span>
               <span class="tc-change-sub">加入以来 · ¥{fmt(rec.firstClose)} → ¥{fmt(rec.lastClose)}</span>
+              <span
+                class="tc-vol-tag-slot vol-tag vol-tag-amber"
+                data-price-volume-symbol={`${rec.symbol.split('.')[0].startsWith('6') ? '17' : '33'}_${rec.symbol.split('.')[0]}`}
+                aria-label="量价12态"
+                hidden
+              ></span>
             </div>
 
             <div class="tc-charts">
@@ -212,6 +218,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     </footer>
   </main>
   <Footer />
+  <script is:inline src="/js/price-volume-tag.js"></script>
   <script>
     ;(function() {
       var list = document.getElementById('tc-list');
@@ -321,9 +328,14 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-badge { font-size: .88rem; font-weight: 800; color: rgb(var(--gray-mid)); background: rgb(var(--gray-soft)); border-radius: 999px; padding: .32rem .65rem; white-space: nowrap; }
   .tc-badge-join { background: #fffbeb; color: #b45309; }
 
-  .tc-change-row { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .7rem; }
-  .tc-change { font-size: 1.05rem; font-weight: 900; }
-  .tc-change-sub { font-size: .7rem; color: rgb(var(--gray-mid)); }
+  .tc-change-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; min-width: 0; }
+  .tc-change { font-size: 1.05rem; font-weight: 900; white-space: nowrap; }
+  .tc-change-sub { font-size: .7rem; color: rgb(var(--gray-mid)); min-width: 0; }
+  .tc-vol-tag-slot { margin-left: auto; flex: 0 0 auto; padding: .16rem .48rem; border-radius: 999px; font-size: .68rem; font-weight: 800; line-height: 1.25; white-space: nowrap; }
+  .tc-vol-tag-slot[hidden] { display: none !important; }
+  .tc-vol-tag-slot.vol-tag-red { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+  .tc-vol-tag-slot.vol-tag-amber { color: #a16207; background: #fffbeb; border: 1px solid #fde68a; }
+  .tc-vol-tag-slot.vol-tag-green { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
 
   .tc-charts { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; margin-bottom: .7rem; }
   .tc-chart-title { display: flex; justify-content: space-between; align-items: baseline; font-size: .7rem; color: rgb(var(--gray-mid)); margin-bottom: .25rem; }

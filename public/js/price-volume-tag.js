@@ -32,11 +32,13 @@
     if (loaded) return;
     loaded = true;
     const boards = document.querySelectorAll('.instrument-board');
-    if (!boards.length) return;
+    const trackingSlots = document.querySelectorAll('[data-price-volume-symbol]');
+    if (!boards.length && !trackingSlots.length) return;
 
     // 收集 symbols（A股：exchange→market code；期货：原样）
     const symbols = [];
     const boardMap = new Map(); // rawSymbol -> DOM element
+    const trackingMap = new Map(); // rawSymbol -> low-chip tracking slots
     boards.forEach((board) => {
       const sym = board.getAttribute('data-symbol');
       const exchange = board.getAttribute('data-exchange');
@@ -52,10 +54,19 @@
         boardMap.set(raw, board);
       }
     });
-    if (!symbols.length) return;
+    trackingSlots.forEach((slot) => {
+      const raw = slot.getAttribute('data-price-volume-symbol');
+      if (!raw) return;
+      symbols.push(raw);
+      const slots = trackingMap.get(raw) || [];
+      slots.push(slot);
+      trackingMap.set(raw, slots);
+    });
+    const uniqueSymbols = [...new Set(symbols)];
+    if (!uniqueSymbols.length) return;
 
     try {
-      const resp = await fetch(`/api/public/v1/price-volume-tag?s=${symbols.join(',')}&_=${Date.now()}`, { credentials: 'omit' });
+      const resp = await fetch(`/api/public/v1/price-volume-tag?s=${uniqueSymbols.join(',')}&_=${Date.now()}`, { credentials: 'omit' });
       if (!resp.ok) return;
       const data = await resp.json();
       if (!data.ok || !data.tags) return;
@@ -63,6 +74,14 @@
 
       for (const [raw, tag] of Object.entries(data.tags)) {
         if (!tag.ok) continue;
+        const tracking = trackingMap.get(raw) || [];
+        tracking.forEach((slot) => {
+          slot.className = `tc-vol-tag-slot vol-tag vol-tag-${tag.cls || 'amber'}`;
+          slot.textContent = tag.name;
+          slot.title = `量价12态 · ${tag.date || '最近收盘'} · 价 ${tag.pct_chg > 0 ? '+' : ''}${tag.pct_chg?.toFixed(2) || ''}% · 量比 ${tag.vol_ratio ?? '—'}`;
+          slot.hidden = false;
+        });
+
         const board = boardMap.get(raw);
         if (!board) continue;
         // 插入到「筹码指标」标题行的右侧（chip-panel-title 内）
