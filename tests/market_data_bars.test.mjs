@@ -43,6 +43,25 @@ test('market-data bars aggregates BaoStock daily rows into calendar weeks', () =
   assert.deepEqual(weekly[1], { date: '2026-08-11', open: 11, high: 14, low: 10, close: 13, volume: 500, amount: 5800, hsl: 5 });
 });
 
+test('market-data auto A-share falls back to Yahoo when BaoStock is unavailable', async () => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /query1\.finance\.yahoo\.com/);
+    return Response.json({ chart: { result: [{ timestamp: [1704067200], indicators: { quote: [{ open: [1], high: [2], low: [0.5], close: [1.5], volume: [10] }] } }] } });
+  };
+  try {
+    const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=600021&period=day&source=auto&limit=1'), {
+      fetchBaoStockImpl: async () => { throw new Error('baostock down'); },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.source, 'yahoo');
+    assert.equal(body.items[0].close, 1.5);
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
+
 test('market-data bars reports unavailable TradingView explicitly', async () => {
   const response = await onRequestGet(request('/api/public/v1/market-data/bars?symbol=XAUUSD&exchange=OANDA&period=1h&source=tradingview&limit=3'));
   assert.equal(response.status, 503);

@@ -93,7 +93,7 @@ async function fetchBaoStock(symbol, exchange, period, adjustment, limit) {
   }));
 }
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request }, { fetchBaoStockImpl = fetchBaoStock, fetchYahooImpl = fetchYahoo } = {}) {
   const url = new URL(request.url);
   const symbol = (url.searchParams.get('symbol') || '').trim();
   const exchange = (url.searchParams.get('exchange') || '').trim().toUpperCase();
@@ -110,15 +110,21 @@ export async function onRequestGet({ request }) {
     let actualSource = source;
     let items;
     if (source === 'baostock') {
-      items = await fetchBaoStock(symbol, exchange, period, adjustment, limit);
+      items = await fetchBaoStockImpl(symbol, exchange, period, adjustment, limit);
     } else if (source === 'yahoo') {
-      items = await fetchYahoo(symbol, exchange, period, adjustment, limit);
+      items = await fetchYahooImpl(symbol, exchange, period, adjustment, limit);
     } else if (/^\d{6}$/.test(symbol) && ['day', 'week', 'month'].includes(period)) {
       actualSource = 'baostock';
-      items = await fetchBaoStock(symbol, exchange, period, adjustment, limit);
+      try {
+        items = await fetchBaoStockImpl(symbol, exchange, period, adjustment, limit);
+      } catch {
+        actualSource = 'yahoo';
+        const yahooSymbol = `${symbol}.${symbol.startsWith('6') ? 'SS' : 'SZ'}`;
+        items = await fetchYahooImpl(yahooSymbol, exchange, period, adjustment, limit);
+      }
     } else {
       actualSource = 'yahoo';
-      items = await fetchYahoo(symbol, exchange, period, adjustment, limit);
+      items = await fetchYahooImpl(symbol, exchange, period, adjustment, limit);
     }
     return json({ status: 'ok', source: actualSource, symbol, exchange, period, adjustment, timezone: 'Asia/Shanghai', items });
   } catch (error) {
