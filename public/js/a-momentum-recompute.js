@@ -34,10 +34,9 @@
     const maRising = ma20 > ma20Prev;
     const shortOk = ret3 > -5;
     // slope20 is stored rounded (generator uses round(...,4)); a tiny positive
-    // log-price slope can collapse to 0.0 (e.g. 510050: +0.00001 -> 0.0).
-    // Treat rounded-zero slope as rising when ma20 > ma20_prev to stay
-    // consistent with the generator's unrounded dual-momentum decision.
-    const slopeOk = slope20 > 0 || (slope20 === 0 && maRising);
+    // log-price slope can collapse to +0.0 while a tiny negative becomes -0.0.
+    // Only +0.0 inherits the rising-MA fallback; -0.0 must remain non-rising.
+    const slopeOk = slope20 > 0 || (Object.is(slope20, 0) && maRising);
     const dualMomentum = ret5 > 0 && slopeOk && priceAboveMa;
     const momentum = priceAboveMa && maRising && shortOk && dualMomentum;
     const status = structuralStatuses.has(row.status) ? row.status : (momentum ? 'core' : 'watch');
