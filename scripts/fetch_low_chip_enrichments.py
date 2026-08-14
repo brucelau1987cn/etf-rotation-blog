@@ -60,8 +60,12 @@ def main() -> int:
         # Batch-style shareholder fields can return an incomplete row set.
         # Retry the industry/quote identity query per symbol before fail-closed validation.
         if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
-            fallback = iwc(f"{code.split('.')[0]} 所属申万行业、所属同花顺行业、最新价、最新涨跌幅", limit=5)
-            for r in fallback.get("datas") or []:
+            fallback = iwc(
+                f"{code.split('.')[0]} 所属申万行业、所属同花顺行业、股票简称、最新价、最新涨跌幅",
+                limit=10,
+            )
+            fallback_rows = fallback.get("datas") or []
+            for r in fallback_rows:
                 row_code = str(r.get("股票代码", "")).upper().split(".")[0]
                 if row_code == code.split(".")[0]:
                     if matched is None:
@@ -70,6 +74,11 @@ def main() -> int:
                         matched["所属申万行业"] = r.get("所属申万行业")
                         matched["所属同花顺行业"] = r.get("所属同花顺行业")
                     break
+            if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
+                raise SystemExit(
+                    f"missing industry after per-symbol fallback: {code}; "
+                    f"returned={len(fallback_rows)}"
+                )
         if matched is not None:
             rows.append(matched)
     Path("/tmp/low_chip_individual.json").write_text(
