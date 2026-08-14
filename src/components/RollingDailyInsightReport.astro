@@ -50,6 +50,7 @@ const markets = [...new Set(report.signals.map((item) => item.market))].join(' +
 </section>
 
 <section class="daily-detail-list" aria-label="逐标的操盘计划">
+  <div class="section-heading"><div><small>逐标的计划</small><h2>信号价位与执行方案</h2></div></div>
   {report.signals.map((item, index) => (
     <article class="daily-detail-item" id={`signal-${item.symbol.replace(/[^a-zA-Z0-9]/g, '-')}`}>
       <header>

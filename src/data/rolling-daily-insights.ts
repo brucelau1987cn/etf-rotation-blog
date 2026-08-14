@@ -34,6 +34,75 @@ export type DailyInsightReport = {
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
   
 
+  '2026-08-14': {
+    tradeDate: '2026-08-14',
+    shortDate: '08/14',
+    title: '8月14日滚动信号收盘复盘',
+    subtitle: '当日D1入库18条9只：A股六只均为空方，海光双节点分化，其余五只被收复；国民技术H空方贴价收复，特斯拉多方确认，白银空方簇后反转。',
+    cutoff: '2026-08-14 收市（白银截至18:31）',
+    summary: '整体不是单边空头日：9只标的中，特斯拉5h/5.5h多方收盘确认；上海电力、东方明珠、三安光电、创新医疗、华天科技和国民技术H共6只空方被收复，其中上海电力与国民技术H仅为贴价收复；海光信息收在两档空方价之间，信号簇分化；白银先形成5m/30m/60m空方簇，午后5m多方反转，18:31现货报$64.66，已收复全部空方价。A股收复多但量能普遍不强，且六只A股合计主力资金仍净流出，次日必须以站稳信号价而非一次收盘判断修复。',
+    buyRule: '优先观察特斯拉守住$339.53后的延续；A股只做收复后的二次确认：上海电力站稳¥14.16并收复MA5 ¥14.50，东方明珠站稳¥8.18并突破¥8.26，三安光电站稳¥13.39并突破¥13.63，创新医疗守住¥21.07并收复MA5 ¥21.79，华天科技守住¥17.76并突破¥18.39。海光须先站回¥283.61；国民技术H须站稳HK$9.235并突破HK$9.535。白银以$64.40—64.33为反转确认带，跌回其下不追多。',
+    sellRule: '收复失败即执行：上海电力跌回¥14.08、东方明珠跌回¥8.14、三安光电跌回¥13.39、创新医疗跌回¥21.07、华天科技跌回¥17.76、国民技术H跌回HK$9.235时减仓；海光反弹¥283.61受阻或跌破¥278.91继续防守；特斯拉失守$338.37视为多方失败；白银跌回$64.26并失守$63.78，恢复空方执行。',
+    discipline: '同标的同方向近价节点合并为信号簇，保留D1首次入库价格。A股Webhook未携带真实bar触发时间，triggered_at按接收时刻解释。贴价收复不等于趋势反转，必须等次日量价确认；海光处于簇内分化，不把单一节点包装成已确认；白银5m BUY不是正式长周期多方节点，只作为空方簇被价格收复的反转观察。空方信号被收复后不追涨，等待回踩不破；多方确认后也不在高开急冲时加仓。',
+    sources: '滚动罗盘D1首次入库信号（trade_date=2026-08-14，Cloudflare D1 REST）；iWenCai多key包装器A股收盘行情、均线、RSI、筹码与资金；腾讯港股02701收盘行情；Yahoo Finance TSLA与SI=F日线；新浪hf_XAG现货白银18:31行情。',
+    signals: [
+      {
+        name: '特斯拉', symbol: 'TSLA', market: '美股', direction: 'BUY', nodes: '5h / 5.5h', signalPrices: '$338.37 / 339.53', close: '$339.96', change: '+3.80%', validation: 'confirmed', validationLabel: '多方双节点确认',
+        verdict: '美东8月13日盘中先后点亮5h与5.5h多方，收盘$339.96高于两档信号价；日内高$341.64、低$325.24，收近高位，多方完成收盘确认。',
+        support: '$339.53与$338.37多方信号带；$325.24当日低点', pressure: '$341.64当日高点', buyPlan: '回踩$339.53—338.37不破可观察承接，突破$341.64再确认延续。', sellPlan: '跌破$338.37减仓；失守$325.24判定本轮多方失败。',
+        evidence: ['D1 5h BUY $338.37、5.5h BUY $339.53首次入库', 'Yahoo收盘$339.96，高于两档信号价', '日涨3.80%，收近当日高点', '成交量3458万股']
+      },
+      {
+        name: '上海电力', symbol: '600021', market: 'A股', direction: 'SELL', nodes: '10m / 15m / 60m / 120m', signalPrices: '¥14.13 / 14.16 / 14.08 / 14.13', close: '¥14.16', change: '-2.55%', validation: 'reclaimed', validationLabel: '空方四节点簇贴价收复',
+        verdict: '09:40至11:30形成四节点空方簇，收盘¥14.16与最高信号价持平，仅属贴价收复。价格仍低于MA5/10/20，获利盘仅8.5%，修复质量偏弱。',
+        support: '¥14.16—14.08信号簇；¥14.05当日低点', pressure: 'MA5 ¥14.50；MA10 ¥14.68；MA20 ¥14.80', buyPlan: '站稳¥14.16并收复MA5 ¥14.50后再观察买点。', sellPlan: '跌回¥14.13并失守¥14.08减仓；跌破¥14.05继续防守。',
+        evidence: ['D1四个SELL节点首次入库', '收盘与最高信号价持平', '收盘低于MA5/10/20', '主力净流出329万元', '量比1.178 / RSI6 28.8 / 平均成本¥15.68']
+      },
+      {
+        name: '海光信息', symbol: '688041', market: 'A股', direction: 'SELL', nodes: '15m / 30m', signalPrices: '¥283.61 / 278.91', close: '¥280.99', change: '-1.75%', validation: 'mixed', validationLabel: '空方双节点簇分化',
+        verdict: '收盘¥280.99低于15m空方¥283.61、但高于30m空方¥278.91，双节点未形成一致确认。收盘低于MA5/10/20且主力净流出3.78亿元，结构仍偏弱。',
+        support: '¥278.91信号价；¥276.60当日低点', pressure: '¥283.61信号价；MA10 ¥284.41；MA20 ¥295.65', buyPlan: '先站回¥283.61，再收复MA10 ¥284.41后观察修复。', sellPlan: '反弹¥283.61—284.41受阻减仓；跌破¥278.91转为双节点确认。',
+        evidence: ['15m SELL ¥283.61、30m SELL ¥278.91', '收盘位于两档信号价之间', '收盘低于MA5/10/20', '主力净流出3.78亿元', '量比1.181 / 获利盘19.8%']
+      },
+      {
+        name: '东方明珠', symbol: '600637', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥8.14', close: '¥8.18', change: '-0.12%', validation: 'reclaimed', validationLabel: '空方10m收复',
+        verdict: '09:50 10m空方¥8.14点亮，收盘¥8.18高出0.49%，空方被收复；但收盘仍低于MA5/MA10，量比0.721，修复缺少放量确认。',
+        support: '¥8.14信号价；¥8.10当日低点；MA20 ¥8.05', pressure: '¥8.26当日高点；MA10 ¥8.26', buyPlan: '守住¥8.14并放量突破¥8.26后确认修复。', sellPlan: '跌回¥8.14下方视为收复失败；跌破¥8.10减仓。',
+        evidence: ['10m SELL ¥8.14', '收盘高于信号价0.49%', '量比0.721 / 换手0.785%', '主力净流出538万元', '平均成本¥8.67']
+      },
+      {
+        name: '三安光电', symbol: '600703', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥13.39', close: '¥13.58', change: '+0.52%', validation: 'reclaimed', validationLabel: '空方10m收复',
+        verdict: '10:10 10m空方¥13.39点亮，收盘¥13.58高出1.42%，并收在日内偏高位置，空方被收复；但量比0.639且主力净流出4667万元。',
+        support: '¥13.39信号价；¥13.25当日低点', pressure: '¥13.63当日高点；平均成本¥14.00', buyPlan: '守住¥13.39并放量突破¥13.63后观察，收复¥14.00再加强。', sellPlan: '跌回¥13.39下方减仓；失守¥13.25结束修复观察。',
+        evidence: ['10m SELL ¥13.39', '收盘高于信号价1.42%', '收盘高于MA10/MA20、略低于MA5', '量比0.639', '主力净流出4667万元']
+      },
+      {
+        name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '30m', signalPrices: '¥21.07', close: '¥21.29', change: '-3.58%', validation: 'reclaimed', validationLabel: '空方30m收复',
+        verdict: '10:30 30m空方¥21.07点亮，盘中最低¥20.83后收回¥21.29，空方被收复；但收盘低于MA5与平均成本，主力净流出8092万元，反抽质量一般。',
+        support: '¥21.07信号价；MA10 ¥21.30；¥20.83当日低点', pressure: 'MA5/平均成本¥21.79—21.77；¥22.25当日高点', buyPlan: '守住¥21.07并收复¥21.77—21.79后再观察，突破¥22.25确认。', sellPlan: '跌回¥21.07下方减仓；跌破¥20.83继续防守。',
+        evidence: ['30m SELL ¥21.07', '收盘高于信号价1.04%', '日跌3.58%、主力净流出8092万元', '换手13.94% / 量比0.669', '获利盘28.9%']
+      },
+      {
+        name: '华天科技', symbol: '002185', market: 'A股', direction: 'SELL', nodes: '10m / 15m', signalPrices: '¥17.76 / 17.76', close: '¥17.98', change: '+0.56%', validation: 'reclaimed', validationLabel: '空方同价双节点收复',
+        verdict: '11:00 10m与15m空方同时在¥17.76入库，收盘¥17.98高出1.24%，同价空方簇被收复。价格高于MA10/20、接近MA5，但主力净流出1.09亿元。',
+        support: '¥17.76信号价；平均成本¥17.80；¥17.60当日低点', pressure: 'MA5 ¥18.03；¥18.39当日高点', buyPlan: '守住¥17.76—17.80并突破MA5 ¥18.03后观察，突破¥18.39确认。', sellPlan: '跌回¥17.76下方减仓；跌破¥17.60判定收复失败。',
+        evidence: ['10m/15m SELL同价¥17.76', '收盘高于信号价1.24%', '收盘高于MA10/20', '主力净流出1.09亿元', '获利盘60.2% / 量比0.756']
+      },
+      {
+        name: '国民技术H股', symbol: '02701', market: '港股', direction: 'SELL', nodes: '10m', signalPrices: 'HK$9.235', close: 'HK$9.250', change: '-0.48%', validation: 'reclaimed', validationLabel: '空方10m贴价收复',
+        verdict: '13:25 10m空方HK$9.235点亮，收盘HK$9.250仅高0.16%，属于空方贴价收复而非强反转。日内高HK$9.535、低HK$9.015。',
+        support: 'HK$9.235信号价；HK$9.015当日低点', pressure: 'HK$9.535当日高点', buyPlan: '站稳HK$9.235并突破HK$9.535后确认修复。', sellPlan: '跌回HK$9.235下方减仓；跌破HK$9.015继续防守。',
+        evidence: ['10m SELL HK$9.235', '收盘仅高于信号价0.16%', '日跌0.48%', '成交329.64万股', '贴价收复需下一交易日确认']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F / hf_XAG', market: '期货', direction: 'MIXED', nodes: '5m SELL / 30m SELL / 60m SELL → 5m BUY', signalPrices: '$64.259 / 64.398 / 63.7796 → 64.3255', close: '$64.66（18:31现货）', change: '+0.34%', validation: 'mixed', validationLabel: '空方簇被收复·反转观察',
+        verdict: '凌晨形成5m/30m/60m空方簇，14:15再出现5m多方；18:31现货hf_XAG报$64.66，高于全部空方价与反转价，空方簇已被价格收复。但5m BUY不是正式长周期多方节点，只记反转观察。',
+        support: '$64.40—64.26信号密集区；$63.78空方低档；现货日低$63.48', pressure: '$64.90现货日高；SI=F日高约$65.07', buyPlan: '回踩$64.40—64.33不破可观察，突破$64.90后再确认多方延续。', sellPlan: '跌回$64.26下方减仓；失守$63.78恢复空方执行。',
+        evidence: ['D1三档SELL后出现5m BUY $64.3255', '18:31 hf_XAG $64.66高于全部空方价', '现货日内高$64.90、低$63.48', '现货较前收+0.34%', '短周期反转尚无正式长周期多方确认']
+      },
+    ],
+  },
+
   '2026-08-13': {
     tradeDate: '2026-08-13',
     shortDate: '08/13',
@@ -576,7 +645,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-13', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-14', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-13', href: '/rolling/insights/2026-08-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-12', href: '/rolling/insights/2026-08-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-11', href: '/rolling/insights/2026-08-11/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-10', href: '/rolling/insights/2026-08-10/' },

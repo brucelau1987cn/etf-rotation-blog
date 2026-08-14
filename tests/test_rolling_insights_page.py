@@ -16,11 +16,12 @@ def test_daily_rolling_reports_cover_latest_dates():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     component = (ROOT / "src/components/RollingDailyInsightReport.astro").read_text(encoding="utf-8")
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
-    hist = (ROOT / "src/pages/rolling/insights/2026-08-12.astro").read_text(encoding="utf-8")
+    hist = (ROOT / "src/pages/rolling/insights/2026-08-13.astro").read_text(encoding="utf-8")
     static_05 = (ROOT / "src/pages/rolling/insights/2026-08-05.astro").read_text(encoding="utf-8")
     static_06 = (ROOT / "src/pages/rolling/insights/2026-08-06.astro").read_text(encoding="utf-8")
     static_07 = (ROOT / "src/pages/rolling/insights/2026-08-07.astro").read_text(encoding="utf-8")
     for marker in (
+        "8月14日滚动信号收盘复盘",
         "8月13日滚动信号收盘复盘",
         "8月12日滚动信号收盘复盘",
         "8月11日滚动信号收盘复盘",
@@ -36,6 +37,7 @@ def test_daily_rolling_reports_cover_latest_dates():
         "什么时候买",
         "什么时候卖",
         "今日信号表",
+        "逐标的计划",
         "买入条件",
         "卖出纪律",
         'RollingSubnav active="insights"',
@@ -44,13 +46,19 @@ def test_daily_rolling_reports_cover_latest_dates():
         "长鑫科技",
         "德福科技",
         "海光信息",
+        "上海电力",
+        "东方明珠",
+        "三安光电",
+        "华天科技",
+        "特斯拉",
         "中国宏桥",
         "澜起科技",
         "国民技术H股",
     ):
         assert marker in page + component + data + hist + static_05 + static_06 + static_07
-    assert "2026-08-13" in data and "2026-08-12" in data and "2026-08-11" in data and "2026-08-10" in data and "2026-08-07" in data
-    assert "rollingDailyReports['2026-08-13']" in page
+    assert "2026-08-14" in data and "2026-08-13" in data and "2026-08-12" in data and "2026-08-11" in data and "2026-08-10" in data and "2026-08-07" in data
+    assert "rollingDailyReports['2026-08-14']" in page
+    assert "/rolling/insights/2026-08-13/" in data
     assert "/rolling/insights/2026-08-12/" in data
     assert "/rolling/insights/2026-08-11/" in data
     assert "/rolling/insights/2026-08-10/" in data
@@ -58,7 +66,7 @@ def test_daily_rolling_reports_cover_latest_dates():
     assert "/rolling/insights/2026-08-06/" in data
     assert "/rolling/insights/2026-08-05/" in data
     assert "/rolling/insights/2026-08-04/" in data
-    assert (ROOT / "src/pages/rolling/insights/2026-08-12.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-13.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-05.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-06.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-07.astro").exists()
@@ -94,6 +102,7 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
+    assert "2026-08-14" in catalog
     assert "2026-08-13" in catalog
     assert "2026-08-12" in catalog
     assert "2026-08-11" in catalog
@@ -107,5 +116,6 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "2026-07-30" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
-    assert "/rolling/insights/2026-08-13 /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-12 /rolling/insights/2026-08-12/ 301" in redirects
+    assert "/rolling/insights/2026-08-14 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-14/ /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-13 /rolling/insights/2026-08-13/ 301" in redirects
