@@ -1,34 +1,34 @@
 {
-  "date": "2026-08-13",
-  "updated_at": "2026-08-13T22:02:20+08:00",
-  "applies_to": "2026-08-13",
-  "data_as_of": "qfq终盘基线=2026-08-13收盘；收盘行情=2026-08-13 16:14 CST（Tencent生产edge-proxy）；指数：上证3926.96 -0.50%、深成14289.44 -0.87%、创业板3586.04 -0.45%、科创50 1717.75 -1.11%、沪深300 4663.95 -0.57%、中证500 7968.38 -0.96%；正式池上涨27、平1、下跌63，平均-0.63%",
+  "date": "2026-08-14",
+  "updated_at": "2026-08-14T08:33:15+08:00",
+  "applies_to": "2026-08-14",
+  "data_as_of": "qfq历史基线=2026-08-13收盘（正式池91/91）；A股指数收盘行情截至2026-08-13 16:14 CST；隔夜美股与大宗商品资讯截至2026-08-14 08:15 CST",
   "level_data_as_of": "2026-08-13",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-08-13+22:00+Bruce ETF Trend Radar v3",
-  "market_state": "22:00夜间最终版｜高开冲高后放量回落：上证-0.50%、深成-0.87%、创业板-0.45%、科创50-1.11%，三市成交约2.57万亿元、较昨日放量约4008亿元；公开收盘复盘统计全市场上涨1142家、下跌4317家。正式池91只中27涨、1平、63跌，平均-0.63%，科技由午间领涨转为收跌，医药逆势承接。日内三只plant均未触及旧伏击位，实际开仓0；收盘重选以513060恒生医疗替换518880黄金，513030德国与512200房地产保留。mid_macro=0中性但market_regime=极弱，canonical position为权益0%-10%。结论：明日仅在新伏击位止跌确认后小仓执行，不追反弹；未到位继续现金防守。",
+  "idempotency_key": "CN+2026-08-14+08:30+Bruce ETF Trend Radar v3",
+  "market_state": "08:30盘前版｜上一交易日A股冲高回落且负广度扩大：上证-0.50%、沪深300-0.57%、中证500-0.96%、科创50-1.11%，正式池27涨1平63跌、平均-0.63%。隔夜道指+0.13%、标普500+0.65%创新高、纳指+0.81%，存储芯片显著走强；但中概金龙-1.84%，黄金与原油ETF分别约-1.47%/-1.78%。央行1万亿元6个月买断式逆回购为等量续作。mid_macro=0中性，但market_regime=极弱、canonical position仍为权益0%-10%。结论：科技只观察外盘映射修复，不追高；513030/513060/512200仅在伏击位止跌确认后以2%初仓执行。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "收盘新增证据是放量下跌、负广度扩大与科技冲高回落：通信ETF由午间+2.86%收至+0.15%，科创50ETF-1.15%、半导体ETF-1.84%、半导体设备ETF-2.19%；医药成为逆势主线，恒生医疗ETF+0.52%并通过正式池资格。旧plant方向1正2负、均值-0.50%，但三只均未触及旧伏击位，实际收益为空。收盘重选为513030德国、513060恒生医疗、512200房地产。结论：极弱市场状态下，即使中观中性，也只按新关键位止跌后以2%初仓执行。",
-  "summary": "2026-08-13收盘：上证-0.50%、深成-0.87%、创业板-0.45%、科创50-1.11%，三市成交约2.57万亿元；全市场上涨1142家、下跌4317家。正式池27涨1平63跌、平均-0.63%。旧plant方向+1.61%/-2.44%/-0.67%，均值-0.50%，均未触发、实际开仓0。收盘重选以513060恒生医疗替换518880黄金，新plant为513030/513060/512200。结论：权益0%-10%，只等伏击位止跌，不追涨。",
+  "mainline": "盘前主线采用“外盘存储科技修复映射+国内医药承接+房地产止跌验证”：513030德国ETF趋势B、动量排名1；513060恒生医疗ETF趋势B、动量排名4；512200房地产ETF趋势C、动量排名7。A股昨日科技冲高回落与中概偏弱构成反证。结论：准备信号不等于开仓，触发必须同时满足回踩伏击位、止跌和不跌破失效线。",
+  "summary": "2026-08-14盘前：A股基线偏弱，隔夜美股科技与存储走强，央行万亿元买断式逆回购等量对冲；正式plant维持513030德国、513060恒生医疗、512200房地产。mid_macro=0中性但极弱市场状态约束权益0%-10%。结论：只在1.892/0.555/1.200附近止跌后各以2%初仓执行，跌破1.828/0.543/1.184取消候场。",
   "data_quality": {
-    "generated_at": "2026-08-13 22:02:20 CST",
+    "generated_at": "2026-08-14 08:33:15 CST",
     "model_version": "Bruce ETF Trend Radar v3",
-    "qfq_basis": "2026-08-13收盘（21:50冻结快照，91/91 qfq覆盖）",
+    "qfq_basis": "2026-08-13收盘（91/91 qfq覆盖）",
     "latest_trade_date": "2026-08-13",
     "quote_date": "2026-08-13",
     "pool_count": 91,
     "qfq_coverage": 91,
-    "return_basis_disclosure": "qfq前复权；关键位基线=2026-08-13收盘MA20/ATR14；收盘OHLC与涨跌幅来自Tencent生产edge-proxy，截至2026-08-13 16:14 CST。旧plant方向收益按2026-08-12收盘至2026-08-13收盘计算；三只均未触发，方向收益不等于持仓收益。"
+    "return_basis_disclosure": "qfq前复权；关键位使用2026-08-13收盘MA20/ATR14与OHLC，盘前无当日完整K线；隔夜资产涨跌仅用于风险映射，不替代A股触发价与实际持仓收益。"
   },
   "source_audit": {
-    "calendar": "d1_exchange_calendar（22:00 gate确认2026-08-13为交易日）",
-    "qfq_pool": "21:50 prepare冻结的etf-garden-pool.json：正式池91/91有效、qfq 91/91，evaluation_date与latest_trade_date均为2026-08-13",
-    "quotes": "Tencent生产edge-proxy：六大指数、日内plant及科技/医药观察ETF，收盘时间2026-08-13 16:14 CST",
-    "assessment": "影子层shadow_research_only、production_weights_changed=false、轮动宇宙89；正式池27涨1平63跌，平均-0.63%；公开收盘复盘的指数点位与edge-proxy一致",
-    "fallback": "D1交易日历与公开行情正常；资讯经iWenCai多Key包装器检索。空rows不解释为零资金，未获得可靠ETF资金字段时不填零值",
-    "iwencai_news": "多Key包装器检索“A股 2026年8月13日 收盘 复盘 科技 房地产”；采用同花顺15:30收盘复盘并以Tencent收盘点位交叉核对，补充医药逆势、科技/房地产/贵金属回落及全市场涨跌家数"
+    "calendar": "D1公共交易日历确认2026-08-14为交易日",
+    "qfq_pool": "正式池91只，evaluation_date=2026-08-14，latest_trade_date=2026-08-13，qfq覆盖91/91",
+    "quotes": "Tencent生产edge-proxy：A股指数截至2026-08-13 16:14 CST；隔夜SPY/QQQ/SOXX/GLD/USO截至美股收盘",
+    "assessment": "上一交易日正式池27涨1平63跌、平均-0.63%；隔夜SPY约+0.70%、QQQ约+1.16%、SOXX约+0.76%、GLD约-1.47%、USO约-1.78%",
+    "fallback": "交易日采用D1公共日历；资讯与行情经多Key包装器和生产edge-proxy交叉核对。资金字段未获得可靠全量结果时标记缺失，空rows不解释为零资金",
+    "iwencai_news": "多Key包装器检索2026年8月14日美股收盘、A股盘前科技/半导体、军工/有色/黄金/原油及央行流动性；采用08:14时窗内公开报道，并以生产edge-proxy交叉核对主要资产方向"
   },
   "harvest": [],
   "plant": [
@@ -57,11 +57,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-13",
+      "selected_from_pool_date": "2026-08-14",
       "selection_score": 85.3,
       "selection_rank": 1,
       "candidate_since": "2026-08-10",
-      "last_qualified_date": "2026-08-13",
+      "last_qualified_date": "2026-08-14",
       "qualified_reason": [
         "趋势B",
         "信号得分71.0",
@@ -97,11 +97,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-13",
+      "selected_from_pool_date": "2026-08-14",
       "selection_score": 78.12,
       "selection_rank": 2,
       "candidate_since": "2026-08-13",
-      "last_qualified_date": "2026-08-13",
+      "last_qualified_date": "2026-08-14",
       "qualified_reason": [
         "趋势B",
         "信号得分65.2",
@@ -137,11 +137,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-13",
+      "selected_from_pool_date": "2026-08-14",
       "selection_score": 67.98,
       "selection_rank": 3,
       "candidate_since": "2026-08-12",
-      "last_qualified_date": "2026-08-13",
+      "last_qualified_date": "2026-08-14",
       "qualified_reason": [
         "趋势C",
         "信号得分57.1",
@@ -255,8 +255,8 @@
   "intraday_0830": {
     "stage": "08:30盘前版",
     "status": "complete",
-    "quote_date": "2026-08-12",
-    "quote_as_of": "2026-08-13 08:30 CST",
+    "quote_date": "2026-08-13",
+    "quote_as_of": "2026-08-14 08:30 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -269,13 +269,19 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "盘前：qfq基线=2026-08-12收盘；隔夜美股CPI温和（7月CPI环比+0.1%符合预期，9月加息概率降至约40%），AI/半导体/存储/光通信大涨（SK海力士+9%/SMCI+19%/Lumentum+13%/费半+2.5%）；中概金龙-2.4%（腾讯ADR-5.44%）；金价企稳4400美元；A股昨日科技超跌反弹+房地产接力（512200房地产ETF+4.18%即日新高），超4000只个股飘红；plant三只候场未触发"
+    "breadth": "盘前基线：上一交易日正式池27涨1平63跌、平均-0.63%；隔夜美股科技偏强但中概偏弱，央行等量续作稳定流动性，开盘后需观察科技修复是否扩散",
+    "premarket_summary": "plant为513030德国、513060恒生医疗、512200房地产；准备信号是正式池资格延续，触发要求伏击位止跌，失效线分别1.828、0.543、1.184；开盘追涨不执行",
+    "triggered_actions": [
+      "513030德国ETF：准备回踩1.892附近止跌确认，跌破1.828取消候场，初始2%",
+      "513060恒生医疗ETF：准备回踩0.555附近止跌确认，跌破0.543取消候场，初始2%",
+      "512200房地产ETF：准备回踩1.200附近止跌确认，跌破1.184取消候场，初始2%"
+    ]
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "complete",
-    "quote_date": "2026-08-13",
-    "quote_as_of": "2026-08-13 11:41 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-14",
+    "quote_as_of": "待2026-08-14 11:30后更新",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -288,30 +294,13 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "指数全红但个股广度数据源未返回可靠午间全量统计；不以空rows代替零值。科技成长显著强于权重：科创50+1.90%、创业板+1.61%、上证+0.42%、沪深300+0.49%",
-    "morning_session_summary": "隔夜科技映射兑现，通信/半导体/科创方向领涨；昨日强势房地产回吐，黄金与德国映射横盘；三只plant均未到伏击位",
-    "triggered_actions": [
-      "513030德国ETF：0.00%，最低1.896高于伏击1.864，未触发，继续候场",
-      "512200房地产ETF：-1.65%，最低1.242高于伏击1.231，未触发，下午须到位止跌而非抢跑",
-      "518880黄金ETF：-0.09%，最低9.075高于伏击8.904，未触发，继续候场",
-      "515880通信ETF：+2.86%且成交21.26亿元，强势确认但不升级plant、不追高",
-      "588000科创50ETF：+1.85%且成交40.46亿元，强势确认但不升级plant"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actually_triggered": 0,
-      "direction_positive": 1,
-      "direction_negative": 2,
-      "executable": 0,
-      "mean_return_pct": -0.58,
-      "return_basis": "08:30三只plant按昨收至11:30最新价的方向收益简单平均；未触发不等于开仓收益"
-    }
+    "breadth": "待2026-08-14 11:30后更新：不以空rows代替零值"
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "status": "complete",
-    "quote_date": "2026-08-13",
-    "quote_as_of": "2026-08-13 14:31 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-14",
+    "quote_as_of": "待2026-08-14 14:30后更新",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -324,31 +313,13 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "14:30全A上涨1689家、下跌3416家，成交约2.18万亿元；指数均较11:30回落，午后由普涨转为负广度",
-    "tail_session_summary": "科技成长冲高回落，通信涨幅收窄、半导体回平、半导体设备转跌；三只plant仍未到伏击位，尾盘无立即可执行项",
-    "triggered_actions": [
-      "513030德国ETF：+0.99%，最低1.896高于伏击1.864；14:50前仅回踩1.864并止跌时2%初仓，跌破1.819失效，否则不动",
-      "512200房地产ETF：-2.05%，最低1.242高于伏击1.231；14:50前仅到1.231附近止跌时2%初仓，跌破1.183失效，否则不抢跑",
-      "518880黄金ETF：-0.79%，最低9.026高于伏击8.904；14:50前仅回踩8.904并止跌时2%初仓，跌破8.566失效，否则不动",
-      "515880通信ETF：+1.35%，较11:30的+2.86%明显收窄；观察不追高，不升级plant",
-      "588000科创50ETF：+0.44%，较11:30的+1.85%明显收窄；观察不追高"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actually_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "mean_return_pct": -0.62,
-      "return_basis": "三只plant按2026-08-12收盘至2026-08-13 14:31最新价的方向收益简单平均；未触发不等于开仓收益"
-    }
+    "breadth": "待2026-08-14 14:30后更新：不以空rows代替零值"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "complete",
-    "quote_date": "2026-08-13",
-    "quote_as_of": "2026-08-13 16:14 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-14",
+    "quote_as_of": "待2026-08-14 22:00后更新",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -359,40 +330,12 @@
       "exit": 0,
       "hold": 0,
       "upgrade_candidate": 0,
-      "clear": 0,
-      "cash_sweep_missed": 0
+      "clear": 0
     },
-    "breadth": "三市成交约2.57万亿元、较昨日放量约4008亿元；全市场上涨1142家、下跌4317家。正式池91只中27涨、1平、63跌，平均-0.63%",
-    "close_summary": "高开冲高后放量回落，科技午后转弱、医药逆势承接；旧plant均未触发，收盘正式池重选引入恒生医疗并移出黄金",
-    "triggered_actions": [
-      "513030德国ETF：收涨1.61%，最低1.896高于旧伏击1.864，未触发；收盘重选保留，新伏击1.892、失效1.828",
-      "512200房地产ETF：收跌2.44%，最低1.237高于旧伏击1.231，未触发；收盘重选保留，新伏击1.200、失效1.184",
-      "518880黄金ETF：收跌0.67%，最低9.016高于旧伏击8.904，未触发；收盘动量排名降至14，移出plant转历史候场",
-      "513060恒生医疗ETF：收涨0.52%，医药逆势承接；收盘正式池重选新入plant，伏击0.555、失效0.543",
-      "科技观察：通信ETF+0.15%、科创50ETF-1.15%、半导体ETF-1.84%、半导体设备ETF-2.19%，午间强势未延续，不升级plant"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actually_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "mean_return_pct": -0.5,
-      "return_basis": "14:30前的三只plant按2026-08-12收盘至2026-08-13收盘方向收益简单平均；均未触发，不计实际持仓收益"
-    },
-    "candidate_swap": {
-      "from": [
-        "518880"
-      ],
-      "to": [
-        "513060"
-      ],
-      "reason": "收盘qfq正式池重选：513060趋势B、信号65.18、动量排名4、风险低且医药逆势；518880动量排名降至14、风险升至中"
-    }
+    "breadth": "待2026-08-14 22:00后更新：不以空rows代替零值"
   },
   "mid_macro": {
-    "generated_at": "2026-08-13 22:35:33 CST",
+    "generated_at": "2026-08-14 08:35:16 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
@@ -405,14 +348,14 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.0,
-        "headline": "固收/权益5日相对中性-0.36pp"
+        "headline": "固收/权益5日相对中性-0.33pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.0,
-        "headline": "海外映射ETF 5日+1.83%"
+        "headline": "海外映射ETF 5日+1.89%"
       },
       {
         "key": "margin_financing",
@@ -429,7 +372,7 @@
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-08-13",
+    "evaluation_date": "2026-08-14",
     "evaluated_count": 91,
     "eligible_count": 9,
     "selected_count": 3,
@@ -458,7 +401,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-08-13",
+    "selected_from_pool_date": "2026-08-14",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
