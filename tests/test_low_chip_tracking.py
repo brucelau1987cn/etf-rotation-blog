@@ -121,6 +121,7 @@ def test_tracking_page_has_batched_live_quote_layer():
         'data-live-symbol={rec.symbol}',
         'data-live-change',
         'class="tc-live-summary-row"',
+        '.tc-change { font-size: .92rem;',
         'data-live-summary',
         'data-live-badge',
         'data-live-table-body',
