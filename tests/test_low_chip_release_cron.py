@@ -82,3 +82,11 @@ def test_verify_history_index_checks_every_published_date(tmp_path):
         ('2026-08-13', 4, 'test-token'),
         ('2026-08-07', 0, 'test-token'),
     ]
+
+
+def test_d1_history_gate_runs_before_build_and_release():
+    source = SCRIPT.read_text(encoding='utf-8')
+    gate = source.index("token = sync_d1_metrics(summary['trade_date'], summary['final'])")
+    build = source.index("run(['npm', 'run', 'build']")
+    release = source.index('release = run([sys.executable, \'-c\', release_code]')
+    assert gate < build < release
