@@ -93,6 +93,7 @@ test('authenticated admin can query low-chip historical metrics', async () => {
   assert.equal(payload.count, 1);
   assert.equal(payload.results[0].stock_code, '600000');
   assert.equal(calls.some((call) => call.sql.includes('WHERE trade_date = ?') && call.args[0] === '20260814'), true);
+  assert.equal(calls.some((call) => call.sql.includes('week_profit IS NOT NULL') && call.sql.includes('month_profit IS NOT NULL') && call.sql.includes('quarter_profit IS NOT NULL')), true);
   assert.equal('week_profit' in payload.results[0], false);
   assert.equal('month_profit' in payload.results[0], false);
   assert.equal('quarter_profit' in payload.results[0], false);

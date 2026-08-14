@@ -24,6 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'quality_shareholder',
 ];
+const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
 function clientMetric(row) {
   return Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
@@ -94,12 +95,12 @@ export async function onRequest(context) {
     let results;
     if (code) {
       const r = await env.DB.prepare(
-        'SELECT * FROM stock_metrics WHERE trade_date = ? AND stock_code = ?'
+        `SELECT * FROM stock_metrics WHERE trade_date = ? AND stock_code = ? AND ${LOW_CHIP_MEMBERSHIP_SQL}`
       ).bind(tradeDate, code).all();
       results = (r.results || []).map(clientMetric);
     } else {
       const r = await env.DB.prepare(
-        'SELECT * FROM stock_metrics WHERE trade_date = ? ORDER BY main_force DESC'
+        `SELECT * FROM stock_metrics WHERE trade_date = ? AND ${LOW_CHIP_MEMBERSHIP_SQL} ORDER BY main_force DESC`
       ).bind(tradeDate).all();
       results = (r.results || []).map(clientMetric);
     }
