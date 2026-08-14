@@ -143,20 +143,25 @@ export async function issueSubscriptionCookie(env, subId, sid, expiresAt) {
   return setCookie(SUB_COOKIE, token, { maxAge, path: '/' });
 }
 
+// 解析管理员身份；普通管理员必须携带 admin:<id>，用于数据归属隔离。
+export async function getAdminIdentity(request, env) {
+  const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);
+  if (!token) return null;
+  const payload = await verifyToken(token, env.ADMIN_SECRET || 'dev-admin-secret');
+  if (!payload || !['admin', 'super_admin'].includes(payload.role) || !payload.exp) return null;
+  if (Date.parse(payload.exp) <= Date.now()) return null;
+  const match = String(payload.sub || '').match(/^admin:(\d+)$/);
+  const adminId = match ? Number(match[1]) : (payload.role === 'super_admin' ? 1 : null);
+  return { role: payload.role, adminId };
+}
+
 // 管理员登录态检查（super_admin 或 admin 都算管理员）
 export async function isAdmin(request, env) {
-  const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);
-  if (!token) return false;
-  const payload = await verifyToken(token, env.ADMIN_SECRET || 'dev-admin-secret');
-  if (!payload || !['admin', 'super_admin'].includes(payload.role) || !payload.exp) return false;
-  return Date.parse(payload.exp) > Date.now();
+  return !!(await getAdminIdentity(request, env));
 }
 
 // 超级管理员检查（仅 brucelau1987）
 export async function isSuperAdmin(request, env) {
-  const token = readCookie(request.headers.get('Cookie'), ADMIN_COOKIE);
-  if (!token) return false;
-  const payload = await verifyToken(token, env.ADMIN_SECRET || 'dev-admin-secret');
-  if (!payload || payload.role !== 'super_admin' || !payload.exp) return false;
-  return Date.parse(payload.exp) > Date.now();
+  const identity = await getAdminIdentity(request, env);
+  return identity?.role === 'super_admin';
 }

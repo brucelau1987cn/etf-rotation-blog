@@ -3,7 +3,7 @@
 // POST → 创建（body: { label, days }）→ 生成随机密码，返回明文一次
 // POST ?action=revoke      body: { id }   撤销订阅
 // POST ?action=unbind      body: { id }   解绑该订阅全部设备
-import { isAdmin, sha256Hex } from '../../_lib/subscription-auth.js';
+import { getAdminIdentity, sha256Hex } from '../../_lib/subscription-auth.js';
 
 function randomPassphrase(len = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -27,12 +27,27 @@ function fmtDate(iso) {
   return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 10);
 }
 
+async function canAccessSubscription(env, admin, id) {
+  const stmt = admin.role === 'super_admin'
+    ? env.DB.prepare('SELECT id FROM subscriptions WHERE id = ?').bind(id)
+    : env.DB.prepare('SELECT id FROM subscriptions WHERE id = ? AND created_by_admin_id = ?').bind(id, admin.adminId);
+  return !!(await stmt.first());
+}
+
+function subscriptionNotFound() {
+  return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  if (!(await isAdmin(request, env))) {
+  const admin = await getAdminIdentity(request, env);
+  if (!admin) {
     return Response.json({ ok: false, error: '未登录或会话过期' }, { status: 401 });
+  }
+  if (admin.role === 'admin' && !admin.adminId) {
+    return Response.json({ ok: false, error: '请重新登录以刷新管理员权限' }, { status: 401 });
   }
 
   const action = url.searchParams.get('action');
@@ -47,6 +62,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     await env.DB.prepare('UPDATE subscriptions SET revoked = 1 WHERE id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM sub_sessions WHERE subscription_id = ?').bind(id).run();
     return Response.json({ ok: true });
@@ -62,6 +78,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     await env.DB.prepare('DELETE FROM sub_sessions WHERE subscription_id = ?').bind(id).run();
     return Response.json({ ok: true });
   }
@@ -76,6 +93,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     await env.DB.prepare('DELETE FROM sub_sessions WHERE subscription_id = ?').bind(id).run();
     const result = await env.DB.prepare('DELETE FROM subscriptions WHERE id = ?').bind(id).run();
     const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
@@ -93,6 +111,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     const result = await env.DB.prepare('UPDATE subscriptions SET revoked = 0 WHERE id = ?').bind(id).run();
     const changes = Number(result?.meta?.changes ?? result?.changes ?? 0);
     if (changes === 0) return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
@@ -110,6 +129,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     const row = await env.DB.prepare('SELECT id, label, username FROM subscriptions WHERE id = ?').bind(id).first();
     if (!row) return Response.json({ ok: false, error: '订阅不存在' }, { status: 404 });
     if (row.revoked) return Response.json({ ok: false, error: '订阅已停用，请先启用' }, { status: 400 });
@@ -138,6 +158,7 @@ export async function onRequest(context) {
     }
     const id = Number(body.id);
     if (!id) return Response.json({ ok: false, error: '缺少 id' }, { status: 400 });
+    if (!(await canAccessSubscription(env, admin, id))) return subscriptionNotFound();
     const raw = String(body.expires_at || '').trim();
     const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!m) return Response.json({ ok: false, error: '日期格式应为 YYYY-MM-DD' }, { status: 400 });
@@ -151,9 +172,10 @@ export async function onRequest(context) {
   }
 
   if (request.method === 'GET') {
-    const rows = await env.DB.prepare(
-      `SELECT id, label, username, expires_at, revoked, created_at FROM subscriptions ORDER BY revoked ASC, expires_at ASC`,
-    ).all();
+    const select = `SELECT id, label, username, expires_at, revoked, created_at, created_by_admin_id FROM subscriptions`;
+    const rows = admin.role === 'super_admin'
+      ? await env.DB.prepare(`${select} ORDER BY revoked ASC, expires_at ASC`).all()
+      : await env.DB.prepare(`${select} WHERE created_by_admin_id = ? ORDER BY revoked ASC, expires_at ASC`).bind(admin.adminId).all();
     const items = (rows.results || []).map((r) => ({ ...r, expires_at: fmtDate(r.expires_at) }));
     // 每订阅设备数
     for (const it of items) {
@@ -192,8 +214,8 @@ export async function onRequest(context) {
 
     try {
       await env.DB.prepare(
-        'INSERT INTO subscriptions (passphrase_hash, label, expires_at, username, password_hash) VALUES (?, ?, ?, ?, ?)',
-      ).bind(hash, label, expiresAt, username || null, accountHash).run();
+        'INSERT INTO subscriptions (passphrase_hash, label, expires_at, username, password_hash, created_by_admin_id) VALUES (?, ?, ?, ?, ?, ?)',
+      ).bind(hash, label, expiresAt, username || null, accountHash, admin.adminId).run();
     } catch (e) {
       if (String(e?.message || '').includes('UNIQUE')) {
         return Response.json({ ok: false, error: '用户名已存在' }, { status: 409 });
