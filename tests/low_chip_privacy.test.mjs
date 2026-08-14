@@ -97,3 +97,25 @@ test('authenticated admin can query low-chip historical metrics', async () => {
   assert.equal('month_profit' in payload.results[0], false);
   assert.equal('quarter_profit' in payload.results[0], false);
 });
+
+test('sync bearer can verify low-chip historical metrics after publication', async () => {
+  const db = {
+    prepare() {
+      return {
+        bind() { return this; },
+        async run() { return { meta: { changes: 0 } }; },
+        async all() { return { results: [{ trade_date: '20260814', stock_code: '600221', stock_name: '海航控股' }] }; },
+      };
+    },
+  };
+  const response = await lowChipMetrics({
+    request: new Request('https://etf.peekabo.cc/api/public/v1/low-chip-metrics?date=2026-08-14', {
+      headers: { Authorization: 'Bearer sync-secret' },
+    }),
+    env: { DB: db, LOW_CHIP_SYNC_TOKEN: 'sync-secret' },
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.trade_date, '20260814');
+  assert.equal(payload.count, 1);
+});

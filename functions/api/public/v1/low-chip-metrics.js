@@ -78,7 +78,10 @@ export async function onRequest(context) {
   };
 
   if (method === 'GET') {
-    if (!(await isSubscribed(request, env)) && !(await isAdmin(request, env))) {
+    const syncToken = String(env.LOW_CHIP_SYNC_TOKEN || '').trim();
+    const serviceAuthenticated = syncToken
+      && String(request.headers.get('authorization') || '') === `Bearer ${syncToken}`;
+    if (!serviceAuthenticated && !(await isSubscribed(request, env)) && !(await isAdmin(request, env))) {
       return json({ ok: false, error: '需要登录' }, 401);
     }
     const rawTradeDate = String(url.searchParams.get('date') || '');
