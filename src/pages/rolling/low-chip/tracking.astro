@@ -32,6 +32,8 @@ const stocks = Object.entries(trackingData.stocks || {})
     const maxGain = firstClose != null && maxClose != null ? ((maxClose - firstClose) / firstClose) * 100 : null;
     return {
       symbol, ...rec, daily,
+      joinClose: (rec.daily || [])[0]?.close ?? null,
+      latestStoredDate: (rec.daily || []).at(-1)?.date ?? '',
       firstClose, lastClose, maxClose, minClose, firstProfit, lastProfit,
       maxGain, maxDrawdown,
       totalChange: firstClose != null && lastClose != null ? ((lastClose - firstClose) / firstClose) * 100 : null,
@@ -94,9 +96,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
       <div class="tc-summary" aria-label="追踪概览">
         <div class="tc-summary-stat"><strong>{activeStocks.length}</strong><span>追踪中</span></div>
-        <div class="tc-summary-stat"><strong>{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 <small>{risingCount}/{validChanges.length}</small></span></div>
-        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
-        <div class="tc-summary-stat"><strong class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>当前最大涨幅</span></div>
+        <div class="tc-summary-stat"><strong id="tc-summary-rising">{validChanges.length ? `${fmt(risingRatio, 1)}%` : '—'}</strong><span>上涨占比 <small id="tc-summary-rising-count">{risingCount}/{validChanges.length}</small></span></div>
+        <div class="tc-summary-stat"><strong id="tc-summary-median" class:list={[validChanges.length && (medianChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${medianChange >= 0 ? '+' : ''}${fmt(medianChange, 1)}%` : '—'}</strong><span>中位涨幅</span></div>
+        <div class="tc-summary-stat"><strong id="tc-summary-strongest" class:list={[validChanges.length && (strongestChange >= 0 ? 'tc-up' : 'tc-down')]}>{validChanges.length ? `${strongestChange >= 0 ? '+' : ''}${fmt(strongestChange, 1)}%` : '—'}</strong><span>当前最大涨幅 <small id="tc-summary-mode" aria-live="polite">收盘统计</small></span></div>
       </div>
     </section>
 
@@ -134,7 +136,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
+          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -158,8 +160,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             </div>
 
             <div class="tc-change-row">
-              <span class:list={['tc-change', up ? 'tc-up' : 'tc-down']}>{up ? '▲' : '▼'} {fmt(rec.totalChange)}%</span>
-              <span class="tc-change-sub">加入以来 · ¥{fmt(rec.firstClose)} → ¥{fmt(rec.lastClose)}</span>
+              <span class:list={['tc-change', up ? 'tc-up' : 'tc-down']} data-live-change>{up ? '▲' : '▼'} {fmt(rec.totalChange)}%</span>
+              <span class="tc-live-badge" data-live-badge hidden>盘中</span>
               <span
                 class="tc-vol-tag-slot vol-tag vol-tag-amber"
                 data-price-volume-symbol={`${rec.symbol.split('.')[0].startsWith('6') ? '17' : '33'}_${rec.symbol.split('.')[0]}`}
@@ -167,23 +169,27 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                 hidden
               ></span>
             </div>
+            <div class="tc-live-summary-row">
+              <span class="tc-change-sub" data-live-summary>加入以来 · ¥{fmt(rec.firstClose)} → ¥{fmt(rec.lastClose)}</span>
+            </div>
 
             <div class="tc-charts">
-              <div class="tc-chart">
+              <div class="tc-chart tc-price-chart" data-price-closes={JSON.stringify(rec.daily.map((d) => d.close).filter((v) => v != null))} data-chart-anchor={rec.joinClose == null ? '' : rec.joinClose}>
                 <div class="tc-chart-title">
                   <span>股价走势</span>
                   <em>最高 ¥{fmt(rec.maxClose)} / 最低 ¥{fmt(rec.minClose)}</em>
                 </div>
-                {cGeom && (
-                  <svg viewBox="0 0 220 56" width="100%" height="56" preserveAspectRatio="none" aria-hidden="true">
-                    {[0.25, 0.5, 0.75].map((f) => (
-                      <line x1="0" x2="220" y1={(56 * f).toFixed(1)} y2={(56 * f).toFixed(1)} stroke={GRID} stroke-width="1" />
-                    ))}
-                    <path d={cGeom.area} fill={up ? `${UP}1a` : `${DOWN}1a`} />
-                    <polyline points={cGeom.points} fill="none" stroke={up ? UP : DOWN} stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
-                    <circle cx={cGeom.lastX} cy={cGeom.lastY} r="2.6" fill={up ? UP : DOWN} stroke="#fff" stroke-width="1.2" />
-                  </svg>
-                )}
+                <svg viewBox="0 0 220 56" width="100%" height="56" preserveAspectRatio="none" aria-hidden="true">
+                  {[0.25, 0.5, 0.75].map((f) => (
+                    <line x1="0" x2="220" y1={(56 * f).toFixed(1)} y2={(56 * f).toFixed(1)} stroke={GRID} stroke-width="1" />
+                  ))}
+                  <path class="tc-price-area" d={cGeom?.area || ''} fill={up ? `${UP}1a` : `${DOWN}1a`} />
+                  <polyline class="tc-price-line" points={cGeom?.points || ''} fill="none" stroke={up ? UP : DOWN} stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
+                  <circle class="tc-price-point" cx={cGeom?.lastX || 0} cy={cGeom?.lastY || 0} r="2.6" fill={up ? UP : DOWN} stroke="#fff" stroke-width="1.2" />
+                  <line class="tc-live-connector" x1="0" y1="0" x2="0" y2="0" stroke={up ? UP : DOWN} stroke-width="1.8" stroke-dasharray="4 3" hidden />
+                  <circle class="tc-live-point" cx="0" cy="0" r="3" fill="#fff" stroke={up ? UP : DOWN} stroke-width="1.8" hidden />
+                  <text class="tc-live-label" x="0" y="0" fill={up ? UP : DOWN} font-size="8" font-weight="800" text-anchor="end" hidden>今</text>
+                </svg>
               </div>
               <div class="tc-chart">
                 <div class="tc-chart-title">
@@ -225,13 +231,13 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
               </div>
             </div>
 
-            <details class="tc-table-details">
+            <details class="tc-table-details" data-settled-days={rec.daily.length}>
               <summary>每日明细（{rec.daily.length} 天）</summary>
               <table class="tc-table">
                 <thead>
                   <tr><th>日期</th><th>收盘价</th><th>涨跌幅</th><th>获利盘 %</th></tr>
                 </thead>
-                <tbody>
+                <tbody data-live-table-body>
                   {(rec.daily || []).map((day: any) => (
                     <tr>
                       <td class="tc-date">{day.date}</td>
@@ -258,7 +264,10 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     </footer>
   </main>
   <Footer />
+  <script is:inline src="/js/normalize-quote-payload.js"></script>
+  <script is:inline src="/js/etf-live-poll.js"></script>
   <script is:inline src="/js/price-volume-tag.js"></script>
+  <script is:inline src="/js/low-chip-tracking-live.js"></script>
   <script>
     ;(function() {
       var list = document.getElementById('tc-list');
@@ -318,6 +327,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       }
       sortDays.addEventListener('click', sortByDays);
       sortChange.addEventListener('click', sortByChange);
+      document.addEventListener('low-chip-quotes-updated', function() {
+        if (sortChange.classList.contains('is-active')) sortByChange();
+      });
       if (searchInput) searchInput.addEventListener('input', function() {
         query = normalize(searchInput.value);
         applyFilter();
@@ -390,12 +402,17 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
   .tc-change-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; min-width: 0; }
   .tc-change { font-size: 1.05rem; font-weight: 900; white-space: nowrap; }
-  .tc-change-sub { font-size: .7rem; color: rgb(var(--gray-mid)); min-width: 0; }
+  .tc-live-summary-row { min-height:1.1rem; margin:-.38rem 0 .68rem; padding-left:.02rem; }
+  .tc-change-sub { display:block; font-size:.7rem; color:rgb(var(--gray-mid)); line-height:1.45; white-space:normal; overflow-wrap:normal; }
   .tc-vol-tag-slot { margin-left: auto; flex: 0 0 auto; padding: .16rem .48rem; border-radius: 999px; font-size: .68rem; font-weight: 800; line-height: 1.25; white-space: nowrap; }
   .tc-vol-tag-slot[hidden] { display: none !important; }
   .tc-vol-tag-slot.vol-tag-red { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
   .tc-vol-tag-slot.vol-tag-amber { color: #a16207; background: #fffbeb; border: 1px solid #fde68a; }
   .tc-vol-tag-slot.vol-tag-green { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
+  .tc-live-badge { flex:0 0 auto; border:1px solid #bfdbfe; border-radius:999px; padding:.14rem .42rem; background:#eff6ff; color:#1d4ed8; font-size:.65rem; font-weight:850; white-space:nowrap; }
+  .tc-live-badge[hidden] { display:none !important; }
+  .tc-live-row { background:#eff6ff; }
+  .tc-live-row td:first-child { color:#1d4ed8; font-weight:800; }
 
   .tc-charts { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; margin-bottom: .7rem; }
   .tc-chart-title { display: flex; justify-content: space-between; align-items: baseline; font-size: .7rem; color: rgb(var(--gray-mid)); margin-bottom: .25rem; }

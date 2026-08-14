@@ -113,6 +113,62 @@ def test_tracking_script_exists():
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True
 
 
+def test_tracking_page_has_batched_live_quote_layer():
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+    live_app = (ROOT / "public" / "js" / "low-chip-tracking-live.js").read_text(encoding="utf-8")
+
+    for marker in (
+        'data-live-symbol={rec.symbol}',
+        'data-live-change',
+        'class="tc-live-summary-row"',
+        'data-live-summary',
+        'data-live-badge',
+        'data-live-table-body',
+        'data-price-closes',
+        'data-chart-anchor',
+        'data-latest-date={rec.latestStoredDate || \'\'}',
+        'data-settled-days',
+        'tc-live-connector',
+        'id="tc-summary-rising"',
+        'id="tc-summary-median"',
+        'id="tc-summary-strongest"',
+        'id="tc-summary-mode"',
+        'aria-live="polite"',
+        '/js/normalize-quote-payload.js',
+        '/js/etf-live-poll.js',
+        '/js/low-chip-tracking-live.js',
+    ):
+        assert marker in page
+
+    assert "/api/public/v1/quote?symbols=" in live_app
+    assert "Promise.all" not in live_app
+    assert "30000" in live_app
+    assert "EtfQuote.normalizeQuotePayload" in live_app
+    assert "EtfQuote.findQuoteItem" in live_app
+    assert "EtfLivePoll.startMarketPoll" in live_app
+    assert "intervalMs: POLL_MS" in live_app
+    assert "price > 0" in live_app
+    assert "Intl.DateTimeFormat('en-CA'" in live_app
+    assert "text.replace(' ', 'T') + '+08:00'" in live_app
+    assert "currentPhase.label !== '今日休市'" in live_app
+    assert "document.createElement('td')" in live_app
+    assert "low-chip-quotes-updated" in live_app
+    assert "部分实时" in live_app
+    assert "今日盘中" in live_app
+    assert "收盘待结算" in live_app
+    assert "获利盘待收盘" in live_app
+    assert "第1日待结算" in live_app
+    assert "quote_time" in live_app
+    # A newly joined stock has zero formal post-join closes on day 1; it still receives
+    # a live price, while its join-to-live change begins at 0% until settlement.
+    assert "Number.isFinite(firstClose) ? firstClose : price" in live_app
+    # SVG elements need the hidden attribute removed explicitly; SVGElement.hidden does
+    # not reflect to the attribute consistently across browsers.
+    assert "connector.removeAttribute('hidden')" in live_app
+    assert "livePoint.removeAttribute('hidden')" in live_app
+    assert "label.removeAttribute('hidden')" in live_app
+
+
 def test_tencent_daily_includes_requested_end_day(monkeypatch):
     """Regression: end=today must not drop today's bar (Tencent range quirk)."""
     import importlib.util
