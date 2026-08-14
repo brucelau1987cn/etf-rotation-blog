@@ -59,3 +59,26 @@ def test_verify_d1_api_uses_bearer_and_requires_expected_rows():
     assert result['count'] == 10
     assert captured['authorization'] == 'Bearer test-token'
     assert 'date=2026-08-14' in captured['url']
+
+
+def test_verify_history_index_checks_every_published_date(tmp_path):
+    module = load_module()
+    index = tmp_path / 'index.json'
+    index.write_text(json.dumps({'items': [
+        {'date': '2026-08-14', 'intersection_count': 10},
+        {'date': '2026-08-13', 'intersection_count': 4},
+        {'date': '2026-08-07', 'intersection_count': 0},
+    ]}), encoding='utf-8')
+    calls = []
+
+    def verifier(day, count, token):
+        calls.append((day, count, token))
+        return {'ok': True, 'trade_date': day.replace('-', ''), 'count': count, 'results': [{}] * count}
+
+    result = module.verify_history_index('test-token', index_file=index, verifier=verifier)
+    assert result == {'dates': 3, 'rows': 14}
+    assert calls == [
+        ('2026-08-14', 10, 'test-token'),
+        ('2026-08-13', 4, 'test-token'),
+        ('2026-08-07', 0, 'test-token'),
+    ]
