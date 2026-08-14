@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-14 15:18:09 CST",
+  "generated_at": "2026-08-14 22:05:05 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -40,17 +40,17 @@
         {
           "key": "m2_yoy",
           "title": "M2同比",
-          "value": 8.0,
+          "value": 7.7,
           "unit": "%",
-          "display": "8.00%",
-          "as_of": "2026-06-01",
+          "display": "7.70%",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
-          "detail": "前值 8.6% · 广义流动性",
-          "change": -0.6,
+          "detail": "前值 8.0% · 广义流动性",
+          "change": -0.3,
           "change_label": "较上期",
-          "tone": "positive"
+          "tone": "neutral"
         },
         {
           "key": "m1_yoy",
@@ -58,36 +58,36 @@
           "value": 4.0,
           "unit": "%",
           "display": "4.00%",
-          "as_of": "2026-06-01",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
-          "detail": "前值 5.5% · 资金活化程度",
-          "change": -1.5,
+          "detail": "前值 4.0% · 资金活化程度",
+          "change": 0.0,
           "change_label": "较上期",
           "tone": "neutral"
         },
         {
           "key": "m1_m2_gap",
           "title": "M1-M2剪刀差",
-          "value": -4.0,
+          "value": -3.7,
           "unit": "pp",
-          "display": "-4.00pp",
-          "as_of": "2026-06-01",
+          "display": "-3.70pp",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
           "detail": "差值回升通常对应企业资金活化改善",
-          "change": -0.9,
+          "change": 0.3,
           "change_label": "较上期",
           "tone": "neutral"
         },
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 0.55,
+          "value": 0.56,
           "unit": "pp",
-          "display": "0.55pp",
+          "display": "0.56pp",
           "as_of": "2026-08-14",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性+0.55pp",
+      "headline": "固收/权益5日相对中性+0.56pp",
       "as_of": "2026-08-14"
     },
     {
@@ -133,25 +133,25 @@
         {
           "key": "rmb_loan",
           "title": "新增人民币贷款",
-          "value": 17650.0,
+          "value": -5896.0,
           "unit": "亿元",
-          "display": "17650亿元",
-          "as_of": "2026-06-01",
+          "display": "-5896亿元",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
-          "detail": "上月 4965亿元 · 当月新增",
-          "change": 12685.0,
+          "detail": "上月 17650亿元 · 当月新增",
+          "change": -23546.0,
           "change_label": "较上期",
           "tone": "neutral"
         },
         {
           "key": "loan_yoy",
           "title": "新增贷款同比",
-          "value": -25.21186441,
+          "value": -37.24394786,
           "unit": "%",
-          "display": "-25.21%",
-          "as_of": "2026-06-01",
+          "display": "-37.24%",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
@@ -163,23 +163,23 @@
         {
           "key": "loan_ytd",
           "title": "年内贷款累计",
-          "value": 107605.0,
+          "value": 101709.0,
           "unit": "亿元",
-          "display": "107605亿元",
-          "as_of": "2026-06-01",
+          "display": "101709亿元",
+          "as_of": "2026-07-01",
           "frequency": "月频",
           "source": "人民银行金融统计",
           "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
-          "detail": "累计同比 -15.5%",
+          "detail": "累计同比 -17.4%",
           "change": null,
           "change_label": "较上期",
           "tone": "warning"
         }
       ],
       "state": "已更新",
-      "headline": "新增人民币贷款 17650亿元",
+      "headline": "新增人民币贷款 -5896亿元",
       "score": null,
-      "as_of": "2026-06-01"
+      "as_of": "2026-07-01"
     },
     {
       "key": "growth_cycle",
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 37.5,
+          "value": 25.0,
           "unit": "%",
-          "display": "37.50%",
+          "display": "25.00%",
           "as_of": "2026-08-14",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -494,9 +494,9 @@
       "label": "固收相对权益强弱",
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性+0.55pp",
+      "headline": "固收/权益5日相对中性+0.56pp",
       "reasons": [
-        "固收/权益5日相对中性+0.55pp"
+        "固收/权益5日相对中性+0.56pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -509,18 +509,18 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": 0.11,
+        "bond_ret5": 0.12,
         "bond_ret20": 0.35,
         "equity_ret5": -0.44,
         "equity_ret20": 3.07,
-        "bond_vs_equity_5d_pp": 0.55,
+        "bond_vs_equity_5d_pp": 0.56,
         "bond_vs_equity_20d_pp": -2.72
       },
       "details": {
         "511260": {
-          "ret5": 0.17,
+          "ret5": 0.18,
           "ret20": 0.58,
-          "last": 135.75,
+          "last": 135.752,
           "date": "2026-08-14"
         },
         "511010": {
@@ -532,7 +532,7 @@
         "511110": {
           "ret5": 0.1,
           "ret20": 0.21,
-          "last": 103.12,
+          "last": 103.121,
           "date": "2026-08-14"
         },
         "510300": {
@@ -568,7 +568,7 @@
         "proxy_ret20_avg": 8.39,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.375
+        "overseas_weak_share": 0.25
       },
       "details": {
         "159941": {
@@ -715,18 +715,18 @@
     "label": "中性",
     "allow_chase": true,
     "allow_new_offense": true,
-    "base_position": "权益0%-10%；防御/现金90%-100%",
+    "base_position": "权益10%-30%；防御/现金70%-90%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "极弱",
+    "base_market_state": "防御",
     "base_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
     "constrained_equity_band": {
-      "low": 0,
-      "high": 10
+      "low": 10,
+      "high": 30
     },
-    "position": "权益0%-10%；防御/现金90%-100%",
+    "position": "权益10%-30%；防御/现金70%-90%",
     "equity_constraint": "中观中性：按关键位正常执行",
     "execution_rules": [
       "关键位触发仍由价格/资金决定",
