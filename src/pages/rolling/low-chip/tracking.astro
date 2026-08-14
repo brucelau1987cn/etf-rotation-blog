@@ -7,8 +7,8 @@ import RollingSubnav from '../../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../../consts';
 import trackingData from '../../../../public/data/low-chip-tracking.json';
 
-const title = `低筹码追踪｜加入以来股价与获利盘 | ${SITE_TITLE}`;
-const description = '低筹码股加入以来每日股价走势与收盘获利盘指数统计。';
+const title = `低筹码追踪｜加入以来表现 | ${SITE_TITLE}`;
+const description = '内部模型观察标的加入以来每日走势与跟踪指标统计。';
 
 const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
 
@@ -72,11 +72,6 @@ function chartGeom(values: number[], W: number, H: number, PAD = 4) {
     lastX: last[0], lastY: last[1], min, max,
   };
 }
-// 获利盘 3% 阈值线 y 坐标（低筹码筛选线）
-function threshY(v: number, geom: { min: number; max: number }, H: number, PAD = 4) {
-  const range = geom.max - geom.min || 1;
-  return (H - PAD - ((v - geom.min) / range) * (H - PAD * 2)).toFixed(1);
-}
 const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 ---
 <BaseHead title={title} description={description} />
@@ -90,7 +85,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div class="tc-header">
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1 id="tc-title">低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入低筹码筛选日起追踪，记录加入后 10 个交易日的股价与获利盘表现。加入当日作为基准，隔日起算第 1 日；完成窗口后自动进入历史区。</p>
+        <p class="tc-desc">从股票首次进入内部模型观察列表起追踪，记录加入后 10 个交易日的市场表现。加入当日作为基准，隔日起算第 1 日；完成窗口后自动进入历史区。</p>
         <p class="tc-overview-meta">当前追踪 <strong>{activeStocks.length}</strong> 只 · 历史 <strong>{historyStocks.length}</strong> 只</p>
       </div>
 
@@ -128,7 +123,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       {stocks.length === 0 && (
         <div class="tc-empty">
           <strong>暂无追踪数据</strong>
-          <span>每日流水线生成低筹码快照后自动开始记录。</span>
+          <span>每日流水线生成模型观察快照后自动开始记录。</span>
         </div>
       )}
       {stocks.map((rec) => {
@@ -144,7 +139,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                 {rec.industry && <span class="tc-industry">{rec.industry.split('--').pop()}</span>}
               </div>
               <div class="tc-badges">
-                <span class="tc-badge tc-badge-join" title={`首次进入低筹码筛选 ${rec.first_seen}`}>加入 {rec.first_seen}</span>
+                <span class="tc-badge tc-badge-join" title={`首次进入观察列表 ${rec.first_seen}`}>加入 {rec.first_seen}</span>
                 <span class="tc-badge tc-progress-label">第{rec.daily.length}/10日</span>
               </div>
             </div>
@@ -201,7 +196,6 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                     {[0.25, 0.5, 0.75].map((f) => (
                       <line x1="0" x2="220" y1={(56 * f).toFixed(1)} y2={(56 * f).toFixed(1)} stroke={GRID} stroke-width="1" />
                     ))}
-                    <line x1="4" x2="216" y1={threshY(3, pGeom, 56)} y2={threshY(3, pGeom, 56)} stroke={PROFIT} stroke-width="1" stroke-dasharray="3 3" opacity="0.55" />
                     <path d={pGeom.area} fill={`${PROFIT}1a`} />
                     <polyline points={pGeom.points} fill="none" stroke={PROFIT} stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
                     <circle cx={pGeom.lastX} cy={pGeom.lastY} r="2.6" fill={PROFIT} stroke="#fff" stroke-width="1.2" />
@@ -259,8 +253,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     </section>
 
     <footer class="data-note">
-      <strong>数据来源：腾讯日线（前复权）+ iWenCai 收盘获利比例</strong>
-      <span>获利盘指数 = 当日收盘获利盘占比（iWenCai 收盘获利字段，支持历史日期回查）；股价为前复权收盘价；虚线为 3% 低筹码筛选阈值。</span>
+      <strong>数据来源：腾讯日线（前复权）+ 同花顺市场数据</strong>
+      <span>展示加入观察列表后的价格与市场指标变化，模型规则及参数保持私密。</span>
     </footer>
   </main>
   <Footer />

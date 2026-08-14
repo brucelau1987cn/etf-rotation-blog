@@ -13,8 +13,8 @@ const { active, trackingCount = 0 } = Astro.props;
     class:list={['low-chip-mode-link', active === 'screen' && 'is-active']}
     aria-current={active === 'screen' ? 'page' : undefined}
   >
-    <span>当日筛选</span>
-    <small>周/月/季交集</small>
+    <span>当日观察</span>
+    <small>模型结果</small>
   </a>
   <a
     href="/rolling/low-chip/tracking/"

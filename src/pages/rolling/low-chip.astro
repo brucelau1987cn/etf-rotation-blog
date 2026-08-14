@@ -9,9 +9,13 @@ import lowChipData from '../../../public/data/a-low-chip-stocks.json';
 import lowChipHistoryIndex from '../../../public/data/low-chip-history-index.json';
 const historyDates = lowChipHistoryIndex.dates || [];
 const historyItems = lowChipHistoryIndex.items || [];
+const clientHistoryIndex = {
+  dates: historyDates,
+  items: historyItems.map((item) => ({ date: item.date, intersection_count: item.intersection_count })),
+};
 
-const title = `低筹码股｜周月季收盘获利筛选 | ${SITE_TITLE}`;
-const description = 'A股收盘获利比例低于3%的周线、月线、季线筛选结果。';
+const title = `低筹码股 | ${SITE_TITLE}`;
+const description = 'A股低筹码内部模型观察列表。';
 const periodSections = [
   { key: 'week', label: '周线', rows: lowChipData.periods.week },
   { key: 'month', label: '月线', rows: lowChipData.periods.month },
@@ -21,12 +25,7 @@ const allRows = periodSections.flatMap((period) => period.rows);
 const intersectionRows = allRows.filter((row, index, rows) =>
   lowChipData.intersection.includes(row.symbol) && rows.findIndex((item) => item.symbol === row.symbol) === index
 );
-const valuesBySymbol = Object.fromEntries(
-  lowChipData.intersection.map((symbol) => [
-    symbol,
-    Object.fromEntries(periodSections.map((period) => [period.key, period.rows.find((row) => row.symbol === symbol)?.value])),
-  ])
-);
+
 const fmt = (value: number, digits = 2) => Number(value).toFixed(digits);
 const fmtInt = (value: number) => Math.round(Number(value)).toLocaleString('zh-CN');
 const fmtMetric = (value: number | null, digits = 2, suffix = '') => value == null ? '—' : Number(value).toFixed(digits) + suffix;
@@ -76,10 +75,10 @@ const rows = intersectionRows.map((row) => {
     : (enr.theme_concept ? String(enr.theme_concept).split(/[、,，]/).map((s) => s.trim()).filter(Boolean).slice(0, 3) : []);
   const themeText = themes.join('、');
   return {
-    ...row,
-    week: fmt(valuesBySymbol[row.symbol].week, 1),
-    month: fmt(valuesBySymbol[row.symbol].month, 1),
-    quarter: fmt(valuesBySymbol[row.symbol].quarter, 1),
+    symbol: row.symbol,
+    name: row.name,
+    price: row.price,
+    change_percent: row.change_percent,
     nameInitials: nameInitials(row.name),
     industry: enr.industry || '待补充',
     sector,
@@ -94,6 +93,7 @@ const rows = intersectionRows.map((row) => {
     shareholderMetrics: enr.shareholder_metrics || {},
   };
 });
+const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -106,9 +106,9 @@ const rows = intersectionRows.map((row) => {
 
       <header class="low-chip-hero">
         <div>
-          <p class="eyebrow">A股滚动 · 低筹码筛选</p>
+          <p class="eyebrow">A股滚动 · 模型观察</p>
           <h1>低筹码股</h1>
-          <p>筛选条件：沪深A股、非ST、非退市，收盘获利比例低于3%；剔除北交所、上市不足90天的新股（无完整周/月/季线周期）及未来3个月存在限售股解禁的标的。</p>
+          <p>基于内部模型生成的授权观察列表，具体规则与参数保持私密。</p>
         </div>
         <dl>
           <div><dt>筛选日期</dt><dd id="chip-as-of">{lowChipData.data_as_of}</dd></div>
@@ -120,8 +120,8 @@ const rows = intersectionRows.map((row) => {
       <section class="chip-section" aria-labelledby="chip-title">
         <div class="chip-toolbar">
           <div class="chip-toolbar-left">
-            <p class="eyebrow">三个周期同时满足</p>
-            <h2 id="chip-title">周线、月线、季线均低于3%</h2>
+            <p class="eyebrow">授权用户专属</p>
+            <h2 id="chip-title">内部模型观察列表</h2>
             <div class="chip-history" id="chip-history" aria-label="历史日期查询">
               <span class="chip-history-label">历史日期</span>
               <button type="button" class="chip-history-btn" id="chip-history-prev" aria-label="更早日期">‹</button>
@@ -163,15 +163,6 @@ const rows = intersectionRows.map((row) => {
           </div>
         </div>
 
-        <div class="chip-financial-filters" id="chip-financial-filters" aria-label="财务条件筛选">
-          <button type="button" class="chip-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
-          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
-          <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
-          <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
-          <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 10%</button>
-          <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
-          <span class="chip-filter-meta" id="chip-filter-meta">未启用财务筛选</span>
-        </div>
 
         <div class="chip-list" id="chip-list">
           {rows.map((row, index) => (
@@ -201,10 +192,7 @@ const rows = intersectionRows.map((row) => {
                     <span class="chip-institutional" title={`机构股东：${row.institutionalShareholderNames.join('、')}`}>机构股东 ●</span>
                   ) : null}
                 </div>
-                <div class="chip-row-metrics" aria-label="三周期收盘获利比例与查询日期">
-                  <span class="chip-metric"><em class="chip-val">{row.week}%</em><small>周线</small></span>
-                  <span class="chip-metric"><em class="chip-val">{row.month}%</em><small>月线</small></span>
-                  <span class="chip-metric"><em class="chip-val">{row.quarter}%</em><small>季线</small></span>
+                <div class="chip-row-metrics" aria-label="观察日期">
                   <span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">{asOfLabel || lowChipData.data_as_of}</em><small>日期</small></span>
                 </div>
                 <div class="chip-row-footer">
@@ -233,7 +221,7 @@ const rows = intersectionRows.map((row) => {
           {rows.length === 0 && (
             <div class="chip-row chip-row-empty">
               <strong>今日无符合标的</strong>
-              <span>三周期（周线/月线/季线）收盘获利比例均低于3%的标的存在，且已剔除新股（上市不足90天）与解禁风险；市场整体获利盘偏高时会出现空集。</span>
+              <span>内部模型当前未生成观察标的。</span>
             </div>
           )}
           <div class="chip-row chip-row-empty" id="chip-search-empty" hidden>
@@ -245,13 +233,13 @@ const rows = intersectionRows.map((row) => {
 
       <footer class="data-note">
         <strong>数据来源：同花顺</strong>
-        <span id="chip-data-note">筛选日期：{lowChipData.data_as_of} · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股</span>
-        <p>已剔除北交所与未来3个月存在限售股解禁的标的。股东分级：优质股东为社保、养老、国家大基金、国新及主权资金等长期资本；机构股东覆盖公募、保险、阳光私募、QFII/外资、香港中央结算及产业资本。标记属于股东结构观察项。行业后括号为近期概念贴合（同花顺所属概念，排除行业重复与沪深股通等宽泛标签）。</p>
+        <span id="chip-data-note">观察日期：{lowChipData.data_as_of} · 范围：沪深A股</span>
+        <p>模型规则与参数属于内部研究信息，仅展示观察结果与公开市场数据。</p>
       </footer>
     </main>
     <Footer />
 
-    <script is:inline define:vars={{ initialData: lowChipData, historyIndex: lowChipHistoryIndex, pageSize: PAGE_SIZE }}>
+    <script is:inline define:vars={{ initialData: initialClientData, historyIndex: clientHistoryIndex, pageSize: PAGE_SIZE }}>
     (function() {
       var list = document.getElementById('chip-list');
       var pager = document.getElementById('chip-pager');
@@ -261,9 +249,7 @@ const rows = intersectionRows.map((row) => {
       var nextBtn = document.getElementById('chip-page-next');
       var searchInput = document.getElementById('chip-search-input');
       var empty = document.getElementById('chip-search-empty');
-      var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
-      var filterReset = document.getElementById('chip-filter-reset');
-      var filterMeta = document.getElementById('chip-filter-meta');
+
       var calendarBtn = document.getElementById('chip-history-calendar-btn');
       var calendarValue = document.getElementById('chip-history-calendar-value');
       var calendarPanel = document.getElementById('chip-history-calendar');
@@ -282,7 +268,7 @@ const rows = intersectionRows.map((row) => {
       var PAGE_SIZE = Math.max(1, Number(pageSize || pager.dataset.pageSize || 6));
       var page = 1;
       var query = '';
-      var activeFilters = new Set();
+
       var currentDate = String((initialData && initialData.data_as_of) || '');
       var dates = (historyIndex && historyIndex.dates) || [];
       var historyItemsByDate = Object.fromEntries(((historyIndex && historyIndex.items) || []).map(function(item) { return [item.date, item]; }));
@@ -336,44 +322,10 @@ const rows = intersectionRows.map((row) => {
       }
 
       function buildRows(data) {
-        var periods = data.periods || {};
-        var week = periods.week || [];
-        var month = periods.month || [];
-        var quarter = periods.quarter || [];
-        var weekMap = Object.fromEntries(week.map(function(r) { return [r.symbol, r]; }));
-        var monthMap = Object.fromEntries(month.map(function(r) { return [r.symbol, r]; }));
-        var quarterMap = Object.fromEntries(quarter.map(function(r) { return [r.symbol, r]; }));
-        var enrichments = data.enrichments || {};
-        var intersection = data.intersection || [];
-        return intersection.map(function(symbol) {
-          var base = weekMap[symbol] || monthMap[symbol] || quarterMap[symbol] || { symbol: symbol, name: '', price: null, change_percent: 0};
-          var enr = enrichments[symbol] || {};
-          var financials = enr.financials || {};
-          var shareholderMetrics = enr.shareholder_metrics || {};
-          // Name resolution: periods > enrichments > never fall back to bare code as display name.
-          var resolvedName = base.name || enr.name || enr.stock_name || '';
-          return {
-            symbol: symbol,
-            name: resolvedName || symbol,
-            price: base.price,
-            change_percent: base.change_percent,
-            week: weekMap[symbol] ? weekMap[symbol].value : null,
-            month: monthMap[symbol] ? monthMap[symbol].value : null,
-            quarter: quarterMap[symbol] ? quarterMap[symbol].value : null,
-            industry: enr.industry || '待补充',
-            sector: enr.sector || '待补充',
-            themeConcept: Array.isArray(enr.theme_concepts) ? (enr.theme_concepts || []).filter(Boolean).slice(0, 3).join('、') : (enr.theme_concept || ''),
-            themeConcepts: Array.isArray(enr.theme_concepts)
-              ? (enr.theme_concepts || []).filter(Boolean).slice(0, 3)
-              : (enr.theme_concept ? String(enr.theme_concept).split(/[、,，]/).map(function(s){return s.trim();}).filter(Boolean).slice(0, 3) : []),
-            qualityShareholder: !!enr.quality_shareholder,
-            qualityShareholderNames: enr.quality_shareholder_names || [],
-            institutionalShareholder: !!enr.institutional_shareholder,
-            institutionalShareholderNames: enr.institutional_shareholder_names || [],
-            financials: financials,
-            shareholderMetrics: shareholderMetrics,
-            nameInitials: nameInitials(base.name || symbol)
-          };
+        return (Array.isArray(data.rows) ? data.rows : []).map(function(row) {
+          return Object.assign({}, row, {
+            nameInitials: row.nameInitials || nameInitials(row.name || row.symbol)
+          });
         });
       }
 
@@ -411,10 +363,7 @@ const rows = intersectionRows.map((row) => {
                 '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
-              '<div class="chip-row-metrics" aria-label="三周期收盘获利比例与查询日期">' +
-                '<span class="chip-metric"><em class="chip-val">' + fmt(row.week, 1) + '%</em><small>周线</small></span>' +
-                '<span class="chip-metric"><em class="chip-val">' + fmt(row.month, 1) + '%</em><small>月线</small></span>' +
-                '<span class="chip-metric"><em class="chip-val">' + fmt(row.quarter, 1) + '%</em><small>季线</small></span>' +
+              '<div class="chip-row-metrics" aria-label="观察日期">' +
                 '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
               '</div>' +
               '<div class="chip-row-footer">' +
@@ -428,10 +377,10 @@ const rows = intersectionRows.map((row) => {
               '<div class="chip-shr-body">' +
                 '<span><strong>' + fmtInt(sm.shareholder_count) + '</strong></span>' +
                 '<span><strong class="' + changeClass + '">' + fmtMetric(changePct, 2, '%') + '</strong></span>' +
-                '<span><strong class="' + chipFocusClass(sm.chip_focus) + '">' + (sm.chip_focus || '—') + '</strong></span>' +
-                '<span><strong>' + (sm.main_force || '—') + (sm.main_force && sm.main_force_label ? '（' + shrinkLabel(sm.main_force_label) + '）' : '') + '</strong></span>' +
+                '<span><strong class="' + chipFocusClass(sm.chip_focus) + '">' + esc(sm.chip_focus || '—') + '</strong></span>' +
+                '<span><strong>' + esc(sm.main_force || '—') + (sm.main_force && sm.main_force_label ? '（' + esc(shrinkLabel(sm.main_force_label)) + '）' : '') + '</strong></span>' +
                 '<span><strong>' + fmtMetric(sm.top10_float_ratio, 1, '%') + '</strong></span>' +
-                '<span><strong>' + (sm.report_period || '—') + '</strong></span>' +
+                '<span><strong>' + esc(sm.report_period || '—') + '</strong></span>' +
               '</div>' +
             '</div>' +
           '</div>'
@@ -461,11 +410,6 @@ const rows = intersectionRows.map((row) => {
           var industry = String(c.dataset.industry || '').toLowerCase();
           var searchMatched = !query || sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
           if (!searchMatched) return false;
-          if (activeFilters.has('roe') && Number(c.dataset.roe) < 30) return false;
-          if (activeFilters.has('net-margin') && Number(c.dataset.netMargin) < 25) return false;
-          if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || Number(c.dataset.cashProfit) < 20)) return false;
-          if (activeFilters.has('gross-margin') && Number(c.dataset.grossMargin) < 15) return false;
-          if (activeFilters.has('debt-ratio') && Number(c.dataset.debtRatio) > 10) return false;
           return true;
         });
       }
@@ -484,7 +428,7 @@ const rows = intersectionRows.map((row) => {
         var showPager = matched.length > PAGE_SIZE;
         pager.hidden = !showPager;
         meta.textContent = matched.length ? ('第 ' + page + '/' + totalPages + ' 页 · ' + matched.length + ' 只') : '无匹配';
-        if (filterMeta) filterMeta.textContent = activeFilters.size ? ('已启用 ' + activeFilters.size + ' 项 · ' + matched.length + ' 只') : '未启用财务筛选';
+
         nums.replaceChildren();
         if (showPager) {
           for (var i = 1; i <= totalPages; i++) {
@@ -574,10 +518,10 @@ const rows = intersectionRows.map((row) => {
 
       function updateMeta(data) {
         var day = data.data_as_of || currentDate;
-        var count = (data.intersection || []).length;
+        var count = (data.rows || []).length;
         if (asOfEl) asOfEl.textContent = day;
         if (countEl) countEl.textContent = count + '只';
-        if (dataNote) dataNote.textContent = '筛选日期：' + day + ' · 指标：收盘获利比例 · 阈值：低于3% · 范围：沪深A股';
+        if (dataNote) dataNote.textContent = '观察日期：' + day + ' · 范围：沪深A股';
         if (calendarValue) calendarValue.textContent = day;
         calendarMonth = day.slice(0, 7);
         var latest = dates[0] || day;
@@ -620,22 +564,28 @@ const rows = intersectionRows.map((row) => {
             return r.json();
           })
           .then(function(resp) {
-            // transform D1 rows into the snapshot shape buildRows() expects
-            var data = { data_as_of: day, intersection: [], enrichments: {}, periods: { week: [], month: [], quarter: [] } };
+            var data = { data_as_of: day, rows: [] };
             if (resp.results) {
               resp.results.forEach(function(row) {
                 var code = row.stock_code;
-                data.intersection.push(code);
                 var stockName = row.stock_name || '';
-                data.enrichments[code] = {
-                  name: stockName,
-                  stock_name: stockName,
+                var themes = row.theme_concepts ? JSON.parse(row.theme_concepts) : [];
+                data.rows.push({
+                  symbol: code,
+                  name: stockName || code,
+                  nameInitials: nameInitials(stockName || code),
+                  price: row.price,
+                  change_percent: row.change_percent,
                   industry: row.industry || '待补充',
                   sector: row.sector || '待补充',
+                  themeConcept: themes.slice(0, 3).join('、'),
+                  themeConcepts: themes.slice(0, 3),
                   financials: row.financials ? JSON.parse(row.financials) : {},
-                  theme_concepts: row.theme_concepts ? JSON.parse(row.theme_concepts) : [],
-                  quality_shareholder: !!row.quality_shareholder,
-                  shareholder_metrics: {
+                  qualityShareholder: !!row.quality_shareholder,
+                  qualityShareholderNames: [],
+                  institutionalShareholder: false,
+                  institutionalShareholderNames: [],
+                  shareholderMetrics: {
                     shareholder_count: row.shareholder_count,
                     shareholder_change_pct: row.shareholder_change_pct,
                     chip_focus: row.chip_focus,
@@ -645,11 +595,7 @@ const rows = intersectionRows.map((row) => {
                     report_period: row.report_period,
                     price: row.price,
                   }
-                };
-                var base = { symbol: code, name: stockName, price: row.price, change_percent: row.change_percent };
-                if (row.week_profit != null) data.periods.week.push(Object.assign({}, base, { value: row.week_profit }));
-                if (row.month_profit != null) data.periods.month.push(Object.assign({}, base, { value: row.month_profit }));
-                if (row.quarter_profit != null) data.periods.quarter.push(Object.assign({}, base, { value: row.quarter_profit }));
+                });
               });
             }
             cache[day] = data;
@@ -661,7 +607,7 @@ const rows = intersectionRows.map((row) => {
             setStatus('加载失败', true);
             if (calendarBtn) calendarBtn.disabled = false;
             if (calendarValue) calendarValue.textContent = currentDate;
-            updateMeta(cache[currentDate] || { data_as_of: currentDate, intersection: [] });
+            updateMeta(cache[currentDate] || { data_as_of: currentDate, rows: [] });
             console.error(err);
           });
       }
@@ -671,23 +617,7 @@ const rows = intersectionRows.map((row) => {
       if (searchInput) {
         searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; renderPager(); });
       }
-      filterButtons.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var key = btn.dataset.filter;
-          if (!key) return;
-          if (activeFilters.has(key)) activeFilters.delete(key); else activeFilters.add(key);
-          btn.classList.toggle('is-active', activeFilters.has(key));
-          btn.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
-          page = 1;
-          renderPager();
-        });
-      });
-      if (filterReset) filterReset.addEventListener('click', function() {
-        activeFilters.clear();
-        filterButtons.forEach(function(btn) { btn.classList.remove('is-active'); btn.setAttribute('aria-pressed', 'false'); });
-        page = 1;
-        renderPager();
-      });
+
       if (calendarBtn) calendarBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleCalendar(); });
       if (calendarPanel) calendarPanel.addEventListener('click', function(event) { event.stopPropagation(); });
       if (calendarMonthPrev) calendarMonthPrev.addEventListener('click', function() { calendarMonth = monthShift(calendarMonth, -1); renderCalendar(); });

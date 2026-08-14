@@ -1,3 +1,5 @@
+import { isSubscribed, isAdmin } from '../../../_lib/subscription-auth.js';
+
 /**
  * POST /api/public/v1/low-chip-metrics
  * Write stock metrics (股东人数/主力控盘 etc.) to D1.
@@ -14,6 +16,17 @@ function json(data, status = 200, cache = 'no-store') {
   return new Response(JSON.stringify(data), {
     status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cache },
   });
+}
+
+const CLIENT_METRIC_FIELDS = [
+  'trade_date', 'stock_code', 'stock_name', 'shareholder_count', 'shareholder_change_pct',
+  'main_force', 'main_force_label', 'concentration90', 'chip_focus', 'report_period',
+  'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
+  'financials', 'theme_concepts', 'quality_shareholder',
+];
+
+function clientMetric(row) {
+  return Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
 }
 
 export async function onRequest(context) {
@@ -65,21 +78,27 @@ export async function onRequest(context) {
   };
 
   if (method === 'GET') {
-    const tradeDate = url.searchParams.get('date');
+    if (!(await isSubscribed(request, env)) && !(await isAdmin(request, env))) {
+      return json({ ok: false, error: '需要登录' }, 401);
+    }
+    const rawTradeDate = String(url.searchParams.get('date') || '');
+    const tradeDate = /^\d{4}-\d{2}-\d{2}$/.test(rawTradeDate)
+      ? rawTradeDate.replace(/-/g, '')
+      : rawTradeDate;
     const code = url.searchParams.get('code');
-    if (!tradeDate) return json({ ok: false, error: 'date parameter required' }, 400);
+    if (!/^\d{8}$/.test(tradeDate)) return json({ ok: false, error: 'date parameter must be YYYY-MM-DD or YYYYMMDD' }, 400);
     await ensureTable();
     let results;
     if (code) {
       const r = await env.DB.prepare(
         'SELECT * FROM stock_metrics WHERE trade_date = ? AND stock_code = ?'
       ).bind(tradeDate, code).all();
-      results = r.results || [];
+      results = (r.results || []).map(clientMetric);
     } else {
       const r = await env.DB.prepare(
         'SELECT * FROM stock_metrics WHERE trade_date = ? ORDER BY main_force DESC'
       ).bind(tradeDate).all();
-      results = r.results || [];
+      results = (r.results || []).map(clientMetric);
     }
     return json({ ok: true, trade_date: tradeDate, count: results.length, results });
   }

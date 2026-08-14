@@ -41,9 +41,8 @@ def test_tracking_page_and_entry_link():
         "剩余天数",
         "获利盘变化",
         "数据来源：腾讯日线",
-        "iWenCai 收盘获利比例",
+        "同花顺市场数据",
         "chartGeom",
-        "threshY",
         "科创板",
         "tc-star-toggle",
         "data-star-market",
@@ -57,6 +56,9 @@ def test_tracking_page_and_entry_link():
         "/js/price-volume-tag.js",
     ):
         assert marker in page
+    assert "threshY" not in page
+    assert "3% 低筹码筛选阈值" not in page
+    assert "iWenCai 收盘获利比例" not in page
     price_volume_app = (ROOT / "public" / "js" / "price-volume-tag.js").read_text(encoding="utf-8")
     assert "tc-vol-tag-slot" in price_volume_app
     assert "data-price-volume-symbol" in price_volume_app
@@ -76,7 +78,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert 'active="screen"' in low_chip
     assert "LowChipModeNav" in tracking
     assert 'active="tracking"' in tracking
-    assert "当日筛选" in mode_nav
+    assert "当日观察" in mode_nav
     assert "10日追踪" in mode_nav
     assert "aria-current={" in mode_nav
     assert "chip-track-link" not in low_chip

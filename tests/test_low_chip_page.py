@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SUBNAV = ROOT / "src" / "components" / "RollingSubnav.astro"
 PAGE = ROOT / "src" / "pages" / "rolling" / "low-chip.astro"
+MODE_NAV = ROOT / "src" / "components" / "LowChipModeNav.astro"
 DATA = ROOT / "public" / "data" / "a-low-chip-stocks.json"
 HISTORY_INDEX = ROOT / "public" / "data" / "low-chip-history-index.json"
 HISTORY_DIR = ROOT / "public" / "data" / "low-chip-history"
@@ -18,14 +19,41 @@ def test_rolling_subnav_links_low_chip_after_a_share():
     assert "'/rolling/low-chip/'" in text
 
 
-def test_low_chip_page_publishes_week_month_quarter_results():
+def test_low_chip_page_hides_private_screening_strategy():
     page = PAGE.read_text(encoding="utf-8")
+    public_source = page + MODE_NAV.read_text(encoding="utf-8")
     data = json.loads(DATA.read_text(encoding="utf-8"))
 
     assert 'RollingSubnav active="low-chip"' in page
-    assert "收盘获利比例低于3%" in page
+    for private_copy in (
+        "收盘获利比例低于3%",
+        "周线、月线、季线均低于3%",
+        "三个周期同时满足",
+        "三周期（周线/月线/季线）",
+        "指标：收盘获利比例",
+        "阈值：低于3%",
+        "周月季收盘获利筛选",
+        "ROE ≥ 30%",
+        "净利率 ≥ 25%",
+        "现金流/净利润 ≥ 20%",
+        "毛利率 ≥ 15%",
+        "负债率 ≤ 10%",
+        "周/月/季交集",
+    ):
+        assert private_copy not in public_source
+    assert "内部模型观察列表" in page
+    assert "initialData: lowChipData" not in page
+    assert "initialData: initialClientData" in page
+    assert "historyIndex: lowChipHistoryIndex" not in page
+    assert "historyIndex: clientHistoryIndex" in page
+    for escaped_metric in (
+        "esc(sm.chip_focus || '—')",
+        "esc(sm.main_force || '—')",
+        "esc(shrinkLabel(sm.main_force_label))",
+        "esc(sm.report_period || '—')",
+    ):
+        assert escaped_metric in page
     assert "70%筹码集中度" not in page
-    assert "周线" in page and "月线" in page and "季线" in page
     assert len(data["data_as_of"]) == 10
     assert data["data_as_of"] == data["generated_at"][:10]
     assert data["threshold"] == 3
@@ -108,8 +136,8 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     data = DATA.read_text(encoding="utf-8")
     for marker in (
         "数据来源：同花顺",
-        "筛选日期：{lowChipData.data_as_of}",
-        "三个周期同时满足",
+        "观察日期：{lowChipData.data_as_of}",
+        "内部模型观察列表",
         'class="chip-row"',
         'class="chip-toolbar-right"',
         'id="chip-pager"',
@@ -127,14 +155,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         ".chip-quality,.chip-institutional",
         "themeConcept",
         "查询日期股价",
-        'data-filter="roe"',
-        'data-filter="net-margin"',
-        'data-filter="cash-profit"',
-        'data-filter="gross-margin"',
-        'data-filter="debt-ratio"',
-        "activeFilters.has('roe')",
-        "activeFilters.has('debt-ratio')",
-        "chip-filter-meta",
         "chip-row-top",
         "chip-row-shareholders",
         "chip-shr-head",
@@ -144,9 +164,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         "主力控盘",
         "筹码集中度",
         "十大流通股东",
-        "剔除北交所、上市不足90天的新股",
-        "上市不足90天的新股",
-        "收盘获利比例",
     ):
         assert marker in page
     toolbar_start = page.index('class="chip-toolbar-right"')

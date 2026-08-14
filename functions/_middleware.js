@@ -11,6 +11,42 @@ const PROTECTED_PREFIXES = [
 
 // 静态资源扩展名（CSS/JS/图片/字体等）
 const STATIC_RE = /\.(css|js|mjs|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|eot|map|txt|json|xml|webmanifest)$/i;
+const PRIVATE_LOW_CHIP_DATA = [
+  '/data/a-low-chip-stocks.json',
+  '/data/low-chip-history-index.json',
+  '/data/low-chip-history/',
+  '/data/low-chip-tracking.json',
+];
+
+function isPrivateLowChipData(pathname) {
+  return PRIVATE_LOW_CHIP_DATA.some((path) => pathname === path || (path.endsWith('/') && pathname.startsWith(path)));
+}
+
+function normalizePathname(pathname) {
+  let decoded = pathname;
+  let stabilized = false;
+  for (let depth = 0; depth < 8; depth += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) {
+        stabilized = true;
+        break;
+      }
+      decoded = next;
+    } catch {
+      return null;
+    }
+  }
+  if (!stabilized) return null;
+  decoded = decoded.replace(/\\/g, '/');
+  const segments = [];
+  for (const segment of decoded.split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') segments.pop();
+    else segments.push(segment);
+  }
+  return `/${segments.join('/')}`;
+}
 
 function isProtectedPath(pathname) {
   // exact /rolling or any /rolling/... page
@@ -20,7 +56,14 @@ function isProtectedPath(pathname) {
 export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
-  const { pathname } = url;
+  const pathname = normalizePathname(url.pathname);
+  if (!pathname) {
+    return Response.json({ ok: false, error: '无效路径' }, { status: 400 });
+  }
+
+  if (isPrivateLowChipData(pathname)) {
+    return Response.json({ ok: false, error: '资源不存在' }, { status: 404 });
+  }
 
   // 静态资源直接放行
   if (STATIC_RE.test(pathname)) return next();
