@@ -32,6 +32,7 @@ def test_cache_chain_includes_fundamental_shadow_after_cache():
     names = module.resolve_stages('precheck-cache')
     assert names == ['precheck', 'cache', 'fundamental-shadow']
     command = module.STAGES['fundamental-shadow']
+    assert command[0] == '/usr/bin/python3'
     assert command[-3:] == ['--workers', '4', '--write']
     env = module.stage_environment('fundamental-shadow')
     assert env['LOW_CHIP_SYNC_TOKEN']
