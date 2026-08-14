@@ -26,6 +26,17 @@ def test_tracking_data_contract():
         # 固定窗口：加入日基准 + 加入后的最多 10 个交易日
         assert len(dates) <= 11
         assert dates[0] == rec["first_seen"]
+        features = rec.get("entry_features")
+        assert isinstance(features, dict)
+        assert set(features) == {"quality_shareholder", "chip_focus", "main_force", "main_force_label"}
+
+    hengyunchang = stocks["688785.SH"]["entry_features"]
+    assert hengyunchang == {
+        "quality_shareholder": True,
+        "chip_focus": "非常集中",
+        "main_force": 37.41,
+        "main_force_label": "中度控盘",
+    }
 
 
 def test_tracking_page_and_entry_link():
@@ -54,6 +65,13 @@ def test_tracking_page_and_entry_link():
         "tc-vol-tag-slot",
         "data-price-volume-symbol",
         "/js/price-volume-tag.js",
+        "tc-model-tags",
+        "tc-feature-quality",
+        "筹码集中度",
+        "主力控盘",
+        "entry_features",
+        "is-concentrated",
+        "includes('集中')",
     ):
         assert marker in page
     assert "threshY" not in page

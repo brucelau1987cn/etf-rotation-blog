@@ -11,6 +11,7 @@ const title = `低筹码追踪｜加入以来表现 | ${SITE_TITLE}`;
 const description = '内部模型观察标的加入以来每日走势与跟踪指标统计。';
 
 const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
+const controlLevel = (label: string | null | undefined) => String(label || '').replace(/控盘/g, '') || '—';
 
 const stocks = Object.entries(trackingData.stocks || {})
   .map(([symbol, rec]) => {
@@ -152,6 +153,18 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
               aria-valuenow={Math.min(rec.daily.length, 10)}
             >
               <span class="tc-progress-bar" style={`width:${Math.min(rec.daily.length, 10) * 10}%`}></span>
+            </div>
+
+            <div class="tc-model-tags" aria-label="加入时模型标签">
+              {rec.entry_features?.quality_shareholder && (
+                <span class="tc-feature tc-feature-quality">优质股东 <b aria-hidden="true">✓</b></span>
+              )}
+              {rec.entry_features?.chip_focus && (
+                <span class:list={['tc-feature', 'tc-feature-focus', rec.entry_features.chip_focus.includes('集中') && 'is-concentrated']}><small>筹码集中度</small><strong>{rec.entry_features.chip_focus}</strong></span>
+              )}
+              {rec.entry_features?.main_force != null && (
+                <span class="tc-feature tc-feature-control"><small>主力控盘</small><strong>{fmt(rec.entry_features.main_force)}（{controlLevel(rec.entry_features.main_force_label)}）</strong></span>
+              )}
             </div>
 
             <div class="tc-change-row">
@@ -393,6 +406,16 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-progress-label { color: #1d4ed8; background: #eff6ff; }
   .tc-progress { height: 3px; margin: -.18rem 0 .55rem; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
   .tc-progress-bar { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #60a5fa, #2563eb); }
+  .tc-model-tags { display:flex; align-items:center; flex-wrap:wrap; gap:.35rem; min-height:1.65rem; margin:.05rem 0 .65rem; }
+  .tc-feature { display:inline-flex; align-items:center; gap:.28rem; min-height:1.55rem; padding:.2rem .48rem; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; font-size:.66rem; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .tc-feature small { color:#64748b; font-size:.61rem; font-weight:750; }
+  .tc-feature strong { color:#25364d; font-size:.67rem; font-variant-numeric:tabular-nums; }
+  .tc-feature-quality { border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
+  .tc-feature-quality b { display:inline-flex; align-items:center; justify-content:center; width:.88rem; height:.88rem; border-radius:50%; background:#dbeafe; font-size:.62rem; }
+  .tc-feature-focus { border-color:#e2e8f0; background:#f8fafc; }
+  .tc-feature-focus.is-concentrated { border-color:#bbf7d0; background:#f0fdf4; }
+  .tc-feature-focus.is-concentrated strong { color:#047857; }
+  .tc-feature-control { border-color:#dbe3ec; background:#f8fafc; }
 
   .tc-change-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; min-width: 0; }
   .tc-change { font-size: .92rem; font-weight: 850; white-space: nowrap; }

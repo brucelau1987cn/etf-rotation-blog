@@ -196,6 +196,21 @@ def main() -> int:
     for sym, r in stocks.items():
         r["name"] = r.get("name") or name_map.get(sym, "")
         r["industry"] = r.get("industry") or industry_map.get(sym, "")
+        entry_snapshot = HISTORY_DIR / f"{r['first_seen']}.json"
+        entry_enrichment = {}
+        entry_metrics = {}
+        try:
+            snapshot = json.loads(entry_snapshot.read_text(encoding="utf-8"))
+            entry_enrichment = (snapshot.get("enrichments") or {}).get(sym) or {}
+            entry_metrics = entry_enrichment.get("shareholder_metrics") or (snapshot.get("shareholder_metrics") or {}).get(sym) or {}
+        except Exception:
+            pass
+        r["entry_features"] = {
+            "quality_shareholder": bool(entry_enrichment.get("quality_shareholder")),
+            "chip_focus": entry_metrics.get("chip_focus") or "",
+            "main_force": entry_metrics.get("main_force"),
+            "main_force_label": entry_metrics.get("main_force_label") or "",
+        }
 
     DATA.write_text(json.dumps({"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"stocks": len(stocks), "total_bars": sum(len(r["daily"]) for r in stocks.values())}, ensure_ascii=False))
