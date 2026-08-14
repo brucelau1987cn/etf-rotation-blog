@@ -87,9 +87,11 @@ def snapshot_metrics(payload: dict) -> list[dict]:
         q = quarter_map.get(code) or {}
         # use the first available period record for price/change
         base = w or m or q or {}
+        compact_trade_date = "".join(ch for ch in str(data_as_of) if ch.isdigit())[:8]
+        compact_stock_code = str(code).split(".")[0].zfill(6)
         metrics.append({
-            "trade_date": data_as_of,
-            "stock_code": code,
+            "trade_date": compact_trade_date,
+            "stock_code": compact_stock_code,
             "stock_name": stock_name,
             "shareholder_count": sm.get("shareholder_count"),
             "shareholder_change_pct": sm.get("shareholder_change_pct"),
