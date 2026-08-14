@@ -1,12 +1,26 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
+
+import pytest
+
+
+NIGHTLY_STAGE = Path('/root/.hermes/scripts/run_a_share_nightly_stage.py')
+NIGHTLY_CHAIN = Path('/root/.hermes/scripts/run_a_share_nightly_chain.sh')
+LOCAL_HERMES_READABLE = (
+    os.environ.get('CI', '').lower() != 'true'
+    and all(os.access(path, os.R_OK) for path in (NIGHTLY_STAGE, NIGHTLY_CHAIN))
+)
+pytestmark = pytest.mark.skipif(
+    not LOCAL_HERMES_READABLE,
+    reason='requires readable local Hermes nightly scripts',
+)
 
 
 def load():
-    path = Path('/root/.hermes/scripts/run_a_share_nightly_stage.py')
-    spec = importlib.util.spec_from_file_location('nightly_stage', path)
+    spec = importlib.util.spec_from_file_location('nightly_stage', NIGHTLY_STAGE)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -25,5 +39,5 @@ def test_cache_chain_includes_fundamental_shadow_after_cache():
 
 
 def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
-    wrapper = Path('/root/.hermes/scripts/run_a_share_nightly_chain.sh').read_text(encoding='utf-8')
+    wrapper = NIGHTLY_CHAIN.read_text(encoding='utf-8')
     assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
