@@ -1,19 +1,19 @@
 {
   "status": "ok",
-  "fetched_at": "2026-08-13T19:24:29.670327+00:00",
+  "fetched_at": "2026-08-14T08:31:27.199566+00:00",
   "data": {
     "shfe": {
       "ok": true,
       "source": "shfe",
-      "date": "20260813",
-      "reportDate": "2026-08-13",
+      "date": "20260814",
+      "reportDate": "2026-08-14",
       "gold": {
         "kg": 113676,
         "tonnes": 113.676
       },
       "silver": {
-        "kg": 1313264,
-        "tonnes": 1313.264
+        "kg": 1334644,
+        "tonnes": 1334.644
       },
       "unit": "千克",
       "note": "仓单库存（已注册标准仓单）"
@@ -38,10 +38,14 @@
       "series": "DFII10",
       "title": "10年期TIPS实际收益率（%）",
       "latest": {
-        "date": "08/12/2026",
-        "value": 2.42
+        "date": "08/13/2026",
+        "value": 2.39
       },
       "recent": [
+        {
+          "date": "08/13/2026",
+          "value": 2.39
+        },
         {
           "date": "08/12/2026",
           "value": 2.42
@@ -157,23 +161,19 @@
         {
           "date": "07/02/2026",
           "value": 2.26
-        },
-        {
-          "date": "07/01/2026",
-          "value": 2.25
         }
       ],
-      "total": 154
+      "total": 155
     },
     "cme": {
       "ok": true,
       "source": "cme",
-      "date": "August 11, 2026",
+      "date": "August 12, 2026",
       "gold": {
-        "registered": "14.45M oz",
-        "eligible": "12.16M oz",
+        "registered": "14.44M oz",
+        "eligible": "12.17M oz",
         "total": "26.61M oz",
-        "registeredOz": 14450000.0,
+        "registeredOz": 14440000.0,
         "totalOz": 26610000.0
       },
       "silver": {
@@ -192,22 +192,22 @@
       "label": "隐含租赁利率（期货曲线估算）",
       "formula": "lease ≈ r_USD(T) − (1/T)*ln(F/S)",
       "as_of": "2026-08-14",
-      "fetched_at": "2026-08-13T19:24:27.911023+00:00",
+      "fetched_at": "2026-08-14T08:31:23.702800+00:00",
       "usd_curve": {
-        "date": "08/12/2026",
+        "date": "08/13/2026",
         "source": "us_treasury_yield_curve",
         "rates": {
-          "1M": 3.78,
+          "1M": 3.79,
           "3M": 3.87,
-          "6M": 3.97,
-          "1Y": 4.0
+          "6M": 3.94,
+          "1Y": 3.97
         }
       },
       "gold": {
         "front": {
           "symbol": "GCQ26.CMX",
           "name": "Gold Aug 26",
-          "price": 4361.4,
+          "price": 4347.4,
           "expiry": "2026-08-27"
         },
         "tenors": [
@@ -216,85 +216,85 @@
             "target_days": 30,
             "days_to_expiry": 74,
             "years": 0.2026,
-            "rate": 2.873,
-            "usd_rate": 3.845,
+            "rate": 1.481,
+            "usd_rate": 3.848,
             "usd_bucket": "1M",
-            "usd_bucket_rate": 3.78,
+            "usd_bucket_rate": 3.79,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCV26.CMX",
             "forward_name": "Gold Oct 26",
-            "forward_price": 4370.0,
+            "forward_price": 4368.3,
             "forward_expiry": "2026-10-27",
-            "fwd_over_spot": 1.001972
+            "fwd_over_spot": 1.004807
           },
           {
             "tenor": "3M",
             "target_days": 91,
             "days_to_expiry": 74,
             "years": 0.2026,
-            "rate": 2.873,
-            "usd_rate": 3.845,
+            "rate": 1.481,
+            "usd_rate": 3.848,
             "usd_bucket": "3M",
             "usd_bucket_rate": 3.87,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCV26.CMX",
             "forward_name": "Gold Oct 26",
-            "forward_price": 4370.0,
+            "forward_price": 4368.3,
             "forward_expiry": "2026-10-27",
-            "fwd_over_spot": 1.001972
+            "fwd_over_spot": 1.004807
           },
           {
             "tenor": "6M",
             "target_days": 182,
             "days_to_expiry": 197,
             "years": 0.5394,
-            "rate": 0.749,
-            "usd_rate": 3.972,
+            "rate": 0.248,
+            "usd_rate": 3.942,
             "usd_bucket": "6M",
-            "usd_bucket_rate": 3.97,
+            "usd_bucket_rate": 3.94,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCG27.CMX",
             "forward_name": "Gold Feb 27",
-            "forward_price": 4437.9,
+            "forward_price": 4434.9,
             "forward_expiry": "2027-02-27",
-            "fwd_over_spot": 1.01754
+            "fwd_over_spot": 1.020127
           },
           {
             "tenor": "1Y",
             "target_days": 365,
             "days_to_expiry": 378,
             "years": 1.0349,
-            "rate": -0.525,
-            "usd_rate": 4.0,
+            "rate": -0.866,
+            "usd_rate": 3.97,
             "usd_bucket": "1Y",
-            "usd_bucket_rate": 4.0,
+            "usd_bucket_rate": 3.97,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCQ27.CMX",
             "forward_name": "Gold Aug 27",
             "forward_price": 4570.5,
             "forward_expiry": "2027-08-27",
-            "fwd_over_spot": 1.047943
+            "fwd_over_spot": 1.051318
           }
         ],
-        "rate_1m": 2.873,
-        "rate_3m": 2.873,
-        "rate_6m": 0.749,
-        "rate_1y": -0.525,
+        "rate_1m": 1.481,
+        "rate_3m": 1.481,
+        "rate_6m": 0.248,
+        "rate_1y": -0.866,
         "contracts_used": 11
       },
       "silver": {
         "front": {
           "symbol": "SIU26.CMX",
           "name": "Silver Sep 26",
-          "price": 64.49,
+          "price": 64.71,
           "expiry": "2026-09-27"
         },
         "tenors": [
@@ -303,81 +303,81 @@
             "target_days": 30,
             "days_to_expiry": 135,
             "years": 0.3696,
-            "rate": 0.914,
-            "usd_rate": 3.918,
+            "rate": 0.58,
+            "usd_rate": 3.904,
             "usd_bucket": "1M",
-            "usd_bucket_rate": 3.78,
+            "usd_bucket_rate": 3.79,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIZ26.CMX",
             "forward_name": "Silver Dec 26",
-            "forward_price": 65.21,
+            "forward_price": 65.51,
             "forward_expiry": "2026-12-27",
-            "fwd_over_spot": 1.011165
+            "fwd_over_spot": 1.012363
           },
           {
             "tenor": "3M",
             "target_days": 91,
             "days_to_expiry": 135,
             "years": 0.3696,
-            "rate": 0.914,
-            "usd_rate": 3.918,
+            "rate": 0.58,
+            "usd_rate": 3.904,
             "usd_bucket": "3M",
             "usd_bucket_rate": 3.87,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIZ26.CMX",
             "forward_name": "Silver Dec 26",
-            "forward_price": 65.21,
+            "forward_price": 65.51,
             "forward_expiry": "2026-12-27",
-            "fwd_over_spot": 1.011165
+            "fwd_over_spot": 1.012363
           },
           {
             "tenor": "6M",
             "target_days": 182,
             "days_to_expiry": 225,
             "years": 0.616,
-            "rate": -0.173,
-            "usd_rate": 3.977,
+            "rate": 0.252,
+            "usd_rate": 3.947,
             "usd_bucket": "6M",
-            "usd_bucket_rate": 3.97,
+            "usd_bucket_rate": 3.94,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIH27.CMX",
             "forward_name": "Silver Mar 27",
-            "forward_price": 66.16,
+            "forward_price": 66.2,
             "forward_expiry": "2027-03-27",
-            "fwd_over_spot": 1.025895
+            "fwd_over_spot": 1.023026
           },
           {
             "tenor": "1Y",
             "target_days": 365,
             "days_to_expiry": 347,
             "years": 0.95,
-            "rate": -0.789,
-            "usd_rate": 3.997,
+            "rate": -0.461,
+            "usd_rate": 3.967,
             "usd_bucket": "1Y",
-            "usd_bucket_rate": 4.0,
+            "usd_bucket_rate": 3.97,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIN27.CMX",
             "forward_name": "Silver Jul 27",
             "forward_price": 67.49,
             "forward_expiry": "2027-07-27",
-            "fwd_over_spot": 1.046519
+            "fwd_over_spot": 1.042961
           }
         ],
-        "rate_1m": 0.914,
-        "rate_3m": 0.914,
-        "rate_6m": -0.173,
-        "rate_1y": -0.789,
+        "rate_1m": 0.58,
+        "rate_3m": 0.58,
+        "rate_6m": 0.252,
+        "rate_1y": -0.461,
         "contracts_used": 8
       },
-      "headline_rate": 2.873,
+      "headline_rate": 1.481,
       "headline_metal": "gold",
       "note": "基于 COMEX 期货曲线与美国国债收益率估算的隐含租赁/持有成本 proxy；不是 LBMA/Kitco 官方 lease 报价。含展期、保证金与便利收益噪声，白银波动更大。",
       "error": null
@@ -389,22 +389,22 @@
       "label": "隐含租赁利率（期货曲线估算）",
       "formula": "lease ≈ r_USD(T) − (1/T)*ln(F/S)",
       "as_of": "2026-08-14",
-      "fetched_at": "2026-08-13T19:24:27.911023+00:00",
+      "fetched_at": "2026-08-14T08:31:23.702800+00:00",
       "usd_curve": {
-        "date": "08/12/2026",
+        "date": "08/13/2026",
         "source": "us_treasury_yield_curve",
         "rates": {
-          "1M": 3.78,
+          "1M": 3.79,
           "3M": 3.87,
-          "6M": 3.97,
-          "1Y": 4.0
+          "6M": 3.94,
+          "1Y": 3.97
         }
       },
       "gold": {
         "front": {
           "symbol": "GCQ26.CMX",
           "name": "Gold Aug 26",
-          "price": 4361.4,
+          "price": 4347.4,
           "expiry": "2026-08-27"
         },
         "tenors": [
@@ -413,85 +413,85 @@
             "target_days": 30,
             "days_to_expiry": 74,
             "years": 0.2026,
-            "rate": 2.873,
-            "usd_rate": 3.845,
+            "rate": 1.481,
+            "usd_rate": 3.848,
             "usd_bucket": "1M",
-            "usd_bucket_rate": 3.78,
+            "usd_bucket_rate": 3.79,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCV26.CMX",
             "forward_name": "Gold Oct 26",
-            "forward_price": 4370.0,
+            "forward_price": 4368.3,
             "forward_expiry": "2026-10-27",
-            "fwd_over_spot": 1.001972
+            "fwd_over_spot": 1.004807
           },
           {
             "tenor": "3M",
             "target_days": 91,
             "days_to_expiry": 74,
             "years": 0.2026,
-            "rate": 2.873,
-            "usd_rate": 3.845,
+            "rate": 1.481,
+            "usd_rate": 3.848,
             "usd_bucket": "3M",
             "usd_bucket_rate": 3.87,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCV26.CMX",
             "forward_name": "Gold Oct 26",
-            "forward_price": 4370.0,
+            "forward_price": 4368.3,
             "forward_expiry": "2026-10-27",
-            "fwd_over_spot": 1.001972
+            "fwd_over_spot": 1.004807
           },
           {
             "tenor": "6M",
             "target_days": 182,
             "days_to_expiry": 197,
             "years": 0.5394,
-            "rate": 0.749,
-            "usd_rate": 3.972,
+            "rate": 0.248,
+            "usd_rate": 3.942,
             "usd_bucket": "6M",
-            "usd_bucket_rate": 3.97,
+            "usd_bucket_rate": 3.94,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCG27.CMX",
             "forward_name": "Gold Feb 27",
-            "forward_price": 4437.9,
+            "forward_price": 4434.9,
             "forward_expiry": "2027-02-27",
-            "fwd_over_spot": 1.01754
+            "fwd_over_spot": 1.020127
           },
           {
             "tenor": "1Y",
             "target_days": 365,
             "days_to_expiry": 378,
             "years": 1.0349,
-            "rate": -0.525,
-            "usd_rate": 4.0,
+            "rate": -0.866,
+            "usd_rate": 3.97,
             "usd_bucket": "1Y",
-            "usd_bucket_rate": 4.0,
+            "usd_bucket_rate": 3.97,
             "spot_symbol": "GCQ26.CMX",
             "spot_name": "Gold Aug 26",
-            "spot_price": 4361.4,
+            "spot_price": 4347.4,
             "forward_symbol": "GCQ27.CMX",
             "forward_name": "Gold Aug 27",
             "forward_price": 4570.5,
             "forward_expiry": "2027-08-27",
-            "fwd_over_spot": 1.047943
+            "fwd_over_spot": 1.051318
           }
         ],
-        "rate_1m": 2.873,
-        "rate_3m": 2.873,
-        "rate_6m": 0.749,
-        "rate_1y": -0.525,
+        "rate_1m": 1.481,
+        "rate_3m": 1.481,
+        "rate_6m": 0.248,
+        "rate_1y": -0.866,
         "contracts_used": 11
       },
       "silver": {
         "front": {
           "symbol": "SIU26.CMX",
           "name": "Silver Sep 26",
-          "price": 64.49,
+          "price": 64.71,
           "expiry": "2026-09-27"
         },
         "tenors": [
@@ -500,81 +500,81 @@
             "target_days": 30,
             "days_to_expiry": 135,
             "years": 0.3696,
-            "rate": 0.914,
-            "usd_rate": 3.918,
+            "rate": 0.58,
+            "usd_rate": 3.904,
             "usd_bucket": "1M",
-            "usd_bucket_rate": 3.78,
+            "usd_bucket_rate": 3.79,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIZ26.CMX",
             "forward_name": "Silver Dec 26",
-            "forward_price": 65.21,
+            "forward_price": 65.51,
             "forward_expiry": "2026-12-27",
-            "fwd_over_spot": 1.011165
+            "fwd_over_spot": 1.012363
           },
           {
             "tenor": "3M",
             "target_days": 91,
             "days_to_expiry": 135,
             "years": 0.3696,
-            "rate": 0.914,
-            "usd_rate": 3.918,
+            "rate": 0.58,
+            "usd_rate": 3.904,
             "usd_bucket": "3M",
             "usd_bucket_rate": 3.87,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIZ26.CMX",
             "forward_name": "Silver Dec 26",
-            "forward_price": 65.21,
+            "forward_price": 65.51,
             "forward_expiry": "2026-12-27",
-            "fwd_over_spot": 1.011165
+            "fwd_over_spot": 1.012363
           },
           {
             "tenor": "6M",
             "target_days": 182,
             "days_to_expiry": 225,
             "years": 0.616,
-            "rate": -0.173,
-            "usd_rate": 3.977,
+            "rate": 0.252,
+            "usd_rate": 3.947,
             "usd_bucket": "6M",
-            "usd_bucket_rate": 3.97,
+            "usd_bucket_rate": 3.94,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIH27.CMX",
             "forward_name": "Silver Mar 27",
-            "forward_price": 66.16,
+            "forward_price": 66.2,
             "forward_expiry": "2027-03-27",
-            "fwd_over_spot": 1.025895
+            "fwd_over_spot": 1.023026
           },
           {
             "tenor": "1Y",
             "target_days": 365,
             "days_to_expiry": 347,
             "years": 0.95,
-            "rate": -0.789,
-            "usd_rate": 3.997,
+            "rate": -0.461,
+            "usd_rate": 3.967,
             "usd_bucket": "1Y",
-            "usd_bucket_rate": 4.0,
+            "usd_bucket_rate": 3.97,
             "spot_symbol": "SIU26.CMX",
             "spot_name": "Silver Sep 26",
-            "spot_price": 64.49,
+            "spot_price": 64.71,
             "forward_symbol": "SIN27.CMX",
             "forward_name": "Silver Jul 27",
             "forward_price": 67.49,
             "forward_expiry": "2027-07-27",
-            "fwd_over_spot": 1.046519
+            "fwd_over_spot": 1.042961
           }
         ],
-        "rate_1m": 0.914,
-        "rate_3m": 0.914,
-        "rate_6m": -0.173,
-        "rate_1y": -0.789,
+        "rate_1m": 0.58,
+        "rate_3m": 0.58,
+        "rate_6m": 0.252,
+        "rate_1y": -0.461,
         "contracts_used": 8
       },
-      "headline_rate": 2.873,
+      "headline_rate": 1.481,
       "headline_metal": "gold",
       "note": "基于 COMEX 期货曲线与美国国债收益率估算的隐含租赁/持有成本 proxy；不是 LBMA/Kitco 官方 lease 报价。含展期、保证金与便利收益噪声，白银波动更大。",
       "error": null,
@@ -590,21 +590,21 @@
           "ok": true,
           "symbol": "169_GLD",
           "name": "GLD黄金ETF",
-          "price": 398.8,
+          "price": 398.96,
           "change_percent": null,
-          "day": 41.5,
-          "week": 73.8,
-          "month": 92.41
+          "day": 41.23,
+          "week": 74.01,
+          "month": 92.49
         },
         "silver": {
           "ok": true,
           "symbol": "169_SLV",
           "name": "SLV白银ETF",
-          "price": 58.08,
+          "price": 58.16,
           "change_percent": null,
-          "day": 28.98,
-          "week": 50.67,
-          "month": 73.25
+          "day": 29.1,
+          "week": 50.69,
+          "month": 73.35
         }
       }
     }
