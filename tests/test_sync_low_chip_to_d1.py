@@ -38,10 +38,11 @@ def test_snapshot_metrics_name_from_periods_not_enrichments():
     }
     rows = snapshot_metrics(payload)
     by_code = {r["stock_code"]: r for r in rows}
-    assert by_code["600269.SH"]["stock_name"] == "赣粤高速"
-    assert by_code["002992.SZ"]["stock_name"] == "宝明科技"
-    assert by_code["600269.SH"]["week_profit"] == 1.1
-    assert by_code["002992.SZ"]["month_profit"] == 0.5
+    assert by_code["600269"]["stock_name"] == "赣粤高速"
+    assert by_code["002992"]["stock_name"] == "宝明科技"
+    assert by_code["600269"]["week_profit"] == 1.1
+    assert by_code["002992"]["month_profit"] == 0.5
+    assert {row["trade_date"] for row in rows} == {"20260811"}
 
 
 def test_snapshot_metrics_prefers_period_over_enrichment_name():
