@@ -22,7 +22,7 @@ const contactPhone = '189188XX888';
         <ul class="login-points">
           <li>订阅密码一键解锁</li>
           <li>账号密码支持订阅用户与管理员</li>
-          <li>同一订阅最多绑定 5 台设备</li>
+          <li>同一订阅最多绑定 10 台设备</li>
         </ul>
         <div class="login-contact">
           <span class="login-contact-label">开通 / 续期</span>
@@ -123,7 +123,7 @@ const contactPhone = '189188XX888';
           if (res.ok && data.ok) {
             msgEl.textContent = data.kind === 'admin'
               ? `✔ 管理员登录成功（${data.role === 'super_admin' ? '超级管理员' : '管理员'}），进入管理后台…`
-              : `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/5 台设备` : ''}`;
+              : `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/${data.device_limit ?? 5} 台设备` : ''}`;
             msgEl.className = 'login-msg ok';
             setTimeout(() => {
               location.href = data.kind === 'admin' ? '/admin/' : next;

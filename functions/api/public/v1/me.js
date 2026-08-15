@@ -1,7 +1,7 @@
 // GET /api/public/v1/me — 当前登录身份（用户菜单用）
 // 返回 kind: 'subscriber' | 'admin' | 'anonymous'，附角色/到期/设备数
 import {
-  readCookie, verifyToken, SUB_COOKIE, ADMIN_COOKIE,
+  readCookie, verifyToken, SUB_COOKIE, ADMIN_COOKIE, MAX_DEVICES,
 } from '../../../_lib/subscription-auth.js';
 
 export async function onRequestGet(context) {
@@ -40,7 +40,7 @@ export async function onRequestGet(context) {
       }
       return Response.json({
         ok: true, kind: 'subscriber', label, vip: isVip, expires_at: p.exp,
-        device_count: deviceCount, device_limit: 5,
+        device_count: deviceCount, device_limit: MAX_DEVICES,
       });
     }
   }

@@ -1,6 +1,6 @@
 // POST /api/public/v1/subscription/login — 订阅密码登录（方式一）
 // Body: { passphrase, device_id? }
-// 校验订阅密码（sha256）→ 设备会话（每订阅最多 5 台）→ 签发 cookie
+// 校验订阅密码（sha256）→ 设备会话（每订阅最多 10 台）→ 签发 cookie
 import { sha256Hex, resolveDeviceId, acquireSession, issueSubscriptionCookie, MAX_DEVICES } from '../../../../_lib/subscription-auth.js';
 
 export async function onRequestPost(context) {
@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
   return new Response(
     JSON.stringify({
       ok: true, label: sub.label, expires_at: sub.expires_at,
-      device_count: sess.deviceCount, method: 'passphrase',
+      device_count: sess.deviceCount, device_limit: MAX_DEVICES, method: 'passphrase',
     }),
     {
       status: 200,

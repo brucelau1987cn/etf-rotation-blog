@@ -113,7 +113,7 @@ const isHome = Astro.url.pathname === '/';
           const roleName = d.vip ? 'VIP用户' : '订阅用户';
           nameEl.textContent = roleName;
           roleEl.textContent = roleName;
-          subEl.textContent = `${d.label || ''} · 订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/5`;
+          subEl.textContent = `${d.label || ''} · 订阅至 ${String(d.expires_at || '').slice(0, 10)} · 设备 ${d.device_count ?? 0}/${d.device_limit ?? 10}`;
           avatarEl.textContent = d.vip ? '💎' : '👤';
           adminLink.hidden = true;
           if (futuresAdminLink) futuresAdminLink.hidden = true;

@@ -71,7 +71,7 @@ export async function onRequestPost(context) {
     return new Response(
       JSON.stringify({
         ok: true, kind: 'subscriber', label: sub.label, expires_at: sub.expires_at,
-        device_count: sess.deviceCount,
+        device_count: sess.deviceCount, device_limit: MAX_DEVICES,
       }),
       {
         status: 200,

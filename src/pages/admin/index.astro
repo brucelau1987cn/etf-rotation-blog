@@ -259,8 +259,8 @@ const description = '创建和管理订阅用户、VIP账号、授权期限与�
 
           const deviceTd = document.createElement('td');
           const device = document.createElement('div'); device.className = 'device-cell';
-          const deviceText = document.createElement('span'); deviceText.textContent = `${it.device_count ?? 0} / ${it.device_limit ?? 5}`;
-          const meter = document.createElement('i'); const fill = document.createElement('b'); fill.style.width = `${Math.min(100, Number(it.device_count || 0) / Number(it.device_limit || 5) * 100)}%`; meter.append(fill);
+          const deviceText = document.createElement('span'); deviceText.textContent = `${it.device_count ?? 0} / ${it.device_limit ?? 10}`;
+          const meter = document.createElement('i'); const fill = document.createElement('b'); fill.style.width = `${Math.min(100, Number(it.device_count || 0) / Number(it.device_limit || 10) * 100)}%`; meter.append(fill);
           device.append(deviceText, meter); deviceTd.append(device);
 
           const actionsTd = document.createElement('td'); actionsTd.className = 'actions-cell';

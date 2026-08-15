@@ -3,7 +3,7 @@
 // POST → 创建（body: { label, days }）→ 生成随机密码，返回明文一次
 // POST ?action=revoke      body: { id }   撤销订阅
 // POST ?action=unbind      body: { id }   解绑该订阅全部设备
-import { getAdminIdentity, sha256Hex } from '../../_lib/subscription-auth.js';
+import { getAdminIdentity, sha256Hex, MAX_DEVICES } from '../../_lib/subscription-auth.js';
 
 function randomPassphrase(len = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -183,7 +183,7 @@ export async function onRequest(context) {
         `SELECT COUNT(*) AS n FROM sub_sessions WHERE subscription_id = ? AND expires_at > datetime('now')`,
       ).bind(it.id).first();
       it.device_count = Number(c?.n || 0);
-      it.device_limit = 5;
+      it.device_limit = MAX_DEVICES;
     }
     return Response.json({ ok: true, items });
   }

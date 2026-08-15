@@ -91,7 +91,7 @@ export async function isSubscribed(request, env) {
 }
 
 // ── 设备会话管理（订阅登录共用）────────────────────────────
-export const MAX_DEVICES = 5;
+export const MAX_DEVICES = 10;
 
 export function genSid() {
   const arr = new Uint8Array(16);
@@ -121,19 +121,44 @@ export async function acquireSession(env, subscriptionId, expiresAt, deviceId, u
     return { sid: existing.sid, isNew: false, deviceCount: null };
   }
 
+  const sid = genSid();
+  const inserted = await env.DB.prepare(
+    `INSERT INTO sub_sessions (subscription_id, device_id, device_ua, sid, expires_at, last_seen)
+     SELECT ?, ?, ?, ?, ?, datetime('now')
+     WHERE NOT EXISTS (
+       SELECT 1 FROM sub_sessions WHERE subscription_id = ? AND device_id = ?
+     )
+     AND (
+       SELECT COUNT(*) FROM sub_sessions
+       WHERE subscription_id = ? AND expires_at > datetime('now')
+     ) < ?`,
+  ).bind(
+    subscriptionId, deviceId, ua.slice(0, 200), sid, expiresAt,
+    subscriptionId, deviceId, subscriptionId, MAX_DEVICES,
+  ).run();
+  const changes = Number(inserted?.meta?.changes ?? inserted?.changes ?? 0);
+  if (changes > 0) {
+    const countRow = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM sub_sessions WHERE subscription_id = ? AND expires_at > datetime('now')`,
+    ).bind(subscriptionId).first();
+    return { sid, isNew: true, deviceCount: Number(countRow?.n || 0) };
+  }
+
+  // A concurrent request may have created this same device after the first lookup.
+  const concurrentExisting = await env.DB.prepare(
+    'SELECT sid FROM sub_sessions WHERE subscription_id = ? AND device_id = ? LIMIT 1',
+  ).bind(subscriptionId, deviceId).first();
+  if (concurrentExisting) {
+    await env.DB.prepare(
+      "UPDATE sub_sessions SET expires_at = ?, last_seen = datetime('now') WHERE sid = ?",
+    ).bind(expiresAt, concurrentExisting.sid).run();
+    return { sid: concurrentExisting.sid, isNew: false, deviceCount: null };
+  }
+
   const countRow = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM sub_sessions WHERE subscription_id = ? AND expires_at > datetime('now')`,
   ).bind(subscriptionId).first();
-  const deviceCount = Number(countRow?.n || 0);
-  if (deviceCount >= MAX_DEVICES) {
-    return { limitHit: true, deviceCount };
-  }
-
-  const sid = genSid();
-  await env.DB.prepare(
-    'INSERT INTO sub_sessions (subscription_id, device_id, device_ua, sid, expires_at, last_seen) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
-  ).bind(subscriptionId, deviceId, ua.slice(0, 200), sid, expiresAt).run();
-  return { sid, isNew: true, deviceCount: deviceCount + 1 };
+  return { limitHit: true, deviceCount: Number(countRow?.n || 0) };
 }
 
 // 签发订阅 cookie（exp 对齐订阅到期）
