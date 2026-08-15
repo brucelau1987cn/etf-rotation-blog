@@ -70,6 +70,15 @@ def test_recovery_scope_excludes_catalog_and_includes_synced_paper_projection():
     assert "public/data/paper-trading.json" in module.US_OWNED_FILES
 
 
+def test_close_publisher_regenerates_health_after_learning():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    learning = source.index('run("python3", "scripts/update_us_compass_learning.py")')
+    health = source.index('run("python3", "scripts/generate_us_compass_health.py")')
+    assert health > learning
+    assert "public/data/us-compass-health.json" in module.FILES
+    assert "public/data/us-compass-health.json" in module.US_OWNED_FILES
+
+
 def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):
     state = tmp_path / "publisher.json"
     monkeypatch.setattr(module, "STATE", state)

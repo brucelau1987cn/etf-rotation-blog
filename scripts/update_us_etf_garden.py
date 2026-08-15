@@ -35,6 +35,7 @@ FILES = [
     "public/data/us-macro-dashboard.json",
     "public/data/us-compass-learning.json",
     "public/data/us-compass-shadow.json",
+    "public/data/us-compass-health.json",
     "public/data/paper-trading.json",
     "public/data/catalog.json",
 ]
@@ -216,6 +217,7 @@ def main() -> None:
     run("python3", "scripts/update_us_etf_bar_cache.py", "--range", "3mo", "--workers", "8", "--mark-final")
     run("python3", "scripts/generate_us_etf_garden.py")
     run("python3", "scripts/update_us_compass_learning.py")
+    run("python3", "scripts/generate_us_compass_health.py")
     pool = json.loads(POOL.read_text(encoding="utf-8"))
     garden = json.loads(GARDEN.read_text(encoding="utf-8"))
     new = pool.get("model_date")
@@ -225,6 +227,11 @@ def main() -> None:
         raise RuntimeError(
             f"refusing to publish non-close snapshot stage={garden.get('stage')} "
             f"session_state={garden.get('session_state')}"
+        )
+    health = json.loads((REPO / "public/data/us-compass-health.json").read_text(encoding="utf-8"))
+    if health.get("model_date") != new:
+        raise RuntimeError(
+            f"health model_date must equal pool model_date pool={new} health={health.get('model_date')}"
         )
 
     write_state("validated", trade_date=new)

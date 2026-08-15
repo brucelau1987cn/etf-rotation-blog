@@ -780,6 +780,9 @@ def test_weekly_publisher_deploys_research_archive():
     assert '"https://etf.peekabo.cc/data/us-compass-research.json"' in publisher
     assert "generate_data_catalog.py" in publisher
     assert "release_pages" in publisher
+    assert '"public/data/us-compass-health.json"' in publisher
+    assert "scripts/generate_us_compass_health.py" in publisher
+    assert "using_production_inputs" in publisher
 
 
 def test_catalog_registers_research_archive():

@@ -473,7 +473,7 @@ def publish() -> str:
     run(["python3", "scripts/generate_data_catalog.py"])
     run(["python3", "scripts/validate_public_data_contracts.py"])
     run(["npm", "run", "build"])
-    run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json"])
+    run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
     staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0
     if staged:
         run(["git", "commit", "-m", f"data: publish US Compass research {read_json(OUT).get('latest_week')}"])
@@ -499,6 +499,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.publish and args.output != OUT:
         print("publish requires the default production output path", file=sys.stderr)
         return 2
+    using_production_inputs = (
+        args.learning == LEARNING and args.shadow == SHADOW and args.health == HEALTH
+    )
+    if using_production_inputs:
+        try:
+            run([
+                "python3", "scripts/generate_us_compass_health.py",
+                "--learning", str(args.learning),
+                "--shadow", str(args.shadow),
+                "--output", str(args.health),
+            ])
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or str(exc)).strip()
+            print(f"staging blocker: US Compass health regeneration failed: {detail}", file=sys.stderr)
+            return 2
     if not args.health.is_file():
         print(f"staging blocker: US Compass health input unavailable: {args.health}", file=sys.stderr)
         return 2
