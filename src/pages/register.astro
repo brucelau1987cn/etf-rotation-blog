@@ -14,7 +14,7 @@ const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
       <div class="invite-summary">
         <span class="invite-icon">💎</span>
         <p class="eyebrow">ETF 罗盘 · 专属邀请</p>
-        <h1 id="register-title">创建永久VIP账号</h1>
+        <h1 id="register-title">创建永久💎VIP账号</h1>
         <p>本邀请链接开放7天，最多注册18个账号。注册成功后账号永久有效，每个账号最多绑定10台设备。</p>
         <div class="benefits">
           <span>永久VIP</span><span>18人限额</span><span>10台设备</span>
@@ -32,7 +32,7 @@ const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
         <label>确认登录密码
           <input id="register-confirm" type="password" autocomplete="new-password" placeholder="再次输入密码" maxlength="128" required />
         </label>
-        <button id="register-submit" type="submit">注册永久VIP账号</button>
+        <button id="register-submit" type="submit">创建永久💎VIP账号</button>
         <p class="register-message" id="register-message" role="status"></p>
         <p class="login-note">已有账号？<a href="/login/">前往登录</a></p>
       </form>
@@ -95,7 +95,7 @@ const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
           setTimeout(() => { location.href = '/account/'; }, 600);
         } catch (error) {
           msg.textContent = error.message || '注册失败，请稍后重试'; msg.classList.add('error');
-          submit.disabled = false; submit.textContent = '注册永久VIP账号';
+          submit.disabled = false; submit.textContent = '创建永久💎VIP账号';
         }
       });
     })();
@@ -109,7 +109,7 @@ const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
   .invite-summary { padding: 2.3rem; color: #fff; background: linear-gradient(145deg,#0f172a,#172554 64%,#1d4ed8); }
   .invite-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; background: rgba(255,255,255,.13); font-size: 1.35rem; }
   .eyebrow { margin: 1.4rem 0 .45rem; color: #bfdbfe; font-size: .72rem; font-weight: 850; letter-spacing: .12em; }
-  .invite-summary h1 { margin: 0; font-size: clamp(1.7rem,4vw,2.35rem); }
+  .invite-summary h1 { margin: 0; color: #fff !important; font-size: clamp(1.7rem,4vw,2.35rem); font-weight: 900; letter-spacing: -.02em; text-shadow: 0 2px 18px rgba(96,165,250,.5); }
   .invite-summary > p:last-of-type { color: #cbd5e1; line-height: 1.75; }
   .benefits { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.4rem; }
   .benefits span { padding: .38rem .65rem; border: 1px solid rgba(191,219,254,.3); border-radius: 999px; color: #dbeafe; font-size: .72rem; font-weight: 800; }
@@ -121,8 +121,11 @@ const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
   .register-card label { display: grid; gap: .38rem; color: #334155; font-size: .78rem; font-weight: 800; }
   .register-card input { width: 100%; min-height: 46px; padding: 0 .85rem; border: 1px solid #cbd5e1; border-radius: 11px; font: inherit; box-sizing: border-box; }
   .register-card input:focus { outline: 3px solid #dbeafe; border-color: #2563eb; }
-  #register-submit { min-height: 48px; margin-top: .25rem; border: 0; border-radius: 12px; color: #fff; background: #0f172a; font-weight: 850; cursor: pointer; }
-  #register-submit:disabled { opacity: .55; cursor: not-allowed; }
+  #register-submit { min-height: 50px; margin-top: .25rem; border: 1px solid rgba(255,255,255,.35); border-radius: 12px; color: #fff; background: linear-gradient(135deg,#2563eb,#1d4ed8 55%,#4338ca); box-shadow: 0 10px 24px rgba(37,99,235,.3); font-weight: 900; letter-spacing: .01em; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+  #register-submit:not(:disabled):hover { filter: brightness(1.08); box-shadow: 0 13px 30px rgba(37,99,235,.4); transform: translateY(-1px); }
+  #register-submit:focus-visible { outline: 3px solid #1e3a8a; outline-offset: 3px; }
+  #register-submit:not(:disabled):active { transform: translateY(0); }
+  #register-submit:disabled { opacity: .55; cursor: not-allowed; filter: none; box-shadow: none; transform: none; }
   .register-message { min-height: 1.2em; margin: 0; text-align: center; font-size: .76rem; }
   .register-message.error { color: #b91c1c; } .register-message.ok { color: #15803d; font-weight: 800; }
   .login-note { margin: 0; text-align: center; color: #64748b; font-size: .74rem; } .login-note a { color: #2563eb; font-weight: 800; }

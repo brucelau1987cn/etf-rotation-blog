@@ -106,6 +106,12 @@ test('registration page collects account credentials and auto logs in', async ()
   const headers = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
   assert.match(headers, /\/register\/\*/);
   assert.match(headers, /Referrer-Policy:\s*no-referrer/);
+  assert.match(page, /创建永久💎VIP账号/);
+  assert.equal((page.match(/💎VIP/g) || []).length >= 2, true);
+  assert.match(page, /\.invite-summary h1\s*\{[^}]*color:\s*#fff\s*!important/s);
+  assert.match(page, /#register-submit\s*\{[^}]*linear-gradient/s);
+  assert.match(page, /#register-submit:focus-visible\s*\{[^}]*#1e3a8a/s);
+  assert.match(page, /#register-submit:not\(:disabled\):hover/);
   assert.match(page, /永久有效/);
   assert.match(page, /18/);
 });
