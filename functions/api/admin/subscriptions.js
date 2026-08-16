@@ -196,7 +196,10 @@ export async function onRequest(context) {
       return Response.json({ ok: false, error: '无效请求' }, { status: 400 });
     }
     const label = String(body.label || '').trim();
-    const days = Math.max(1, Math.min(3650, Number(body.days) || 30));
+    const requestedDays = Number(body.days) || 30;
+    const days = requestedDays === PERMANENT_DAYS
+      ? PERMANENT_DAYS
+      : Math.max(1, Math.min(3650, requestedDays));
     const username = String(body.username || '').trim();
     const passphrase = randomPassphrase();
     const hash = await sha256Hex(passphrase);

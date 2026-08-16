@@ -90,6 +90,46 @@ test('new subscription records the creating admin identity', async () => {
   assert.equal(insert.args.at(-1), 2);
 });
 
+test('permanent subscription bypasses finite-day clamping', async () => {
+  const db = new ScopeDb();
+  const response = await onRequest({
+    request: await adminRequest('super_admin', 1, 'POST', 'https://example.test/api/admin/subscriptions', {
+      label: 'permanent VIP',
+      username: 'long',
+      account_password: 'long-password',
+      days: 9999,
+    }),
+    env: { DB: db, ADMIN_SECRET: SECRET },
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.days, 9999);
+  assert.equal(payload.expires_at, '2099-12-31');
+  const insert = db.calls.find((call) => call.op === 'run' && /INSERT INTO subscriptions/.test(call.sql));
+  assert.equal(insert.args[2], '2099-12-31T00:00:00.000Z');
+});
+
+test('only the exact permanent sentinel bypasses finite-day clamping', async () => {
+  for (const requestedDays of [3651, 9998, 10000]) {
+    const db = new ScopeDb();
+    const response = await onRequest({
+      request: await adminRequest('super_admin', 1, 'POST', 'https://example.test/api/admin/subscriptions', {
+        label: `finite VIP ${requestedDays}`,
+        username: `finite-${requestedDays}`,
+        account_password: 'finite-password',
+        days: requestedDays,
+      }),
+      env: { DB: db, ADMIN_SECRET: SECRET },
+    });
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.days, 3650);
+    assert.notEqual(payload.expires_at, '2099-12-31');
+    const insert = db.calls.find((call) => call.op === 'run' && /INSERT INTO subscriptions/.test(call.sql));
+    assert.notEqual(insert.args[2], '2099-12-31T00:00:00.000Z');
+  }
+});
+
 test('ordinary admin cannot mutate a super-admin subscription by id', async () => {
   const db = new ScopeDb();
   const response = await onRequest({

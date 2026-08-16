@@ -37,6 +37,7 @@ def valid_item(code):
 
 def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     writes = []
+    monkeypatch.setattr(maintenance, "refresh_briefing", lambda: {"status": "ok"})
     monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {"status": "ok", "slot": slot})
     monkeypatch.setattr(maintenance, "fetch_daily_bars", lambda: {"rows": 6})
     monkeypatch.setattr(maintenance, "fetch_warehouse_receipts", lambda: {"rows": 3})
