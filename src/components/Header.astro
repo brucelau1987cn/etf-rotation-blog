@@ -11,7 +11,7 @@ const isHome = Astro.url.pathname === '/';
       <span class="mark">ETF</span>
       <span class="brand-copy">
         <strong>{SITE_TITLE}</strong>
-        <span class="brand-meta"><small>伏击 · 兑现 · 复盘</small><small class="online-count" id="site-online-count" aria-live="polite">— online</small></span>
+        <span class="brand-meta"><small>{isHome ? '每日ETF机会 · 仓位 · 风控' : '伏击 · 兑现 · 复盘'}</small><small class="online-count" id="site-online-count" aria-live="polite">— online</small></span>
       </span>
     </a>
     <div class="nav-actions">
@@ -159,6 +159,7 @@ const isHome = Astro.url.pathname === '/';
   .brand-meta { display: flex; align-items: baseline; gap: 0.65rem; margin-top: 0.2rem; }
   .brand-copy small { color: rgb(var(--gray)); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
   .brand-copy .online-count { color: #64748b; font-variant-numeric: tabular-nums; font-weight: 650; letter-spacing: 0; }
+  :global(body.home-page) .brand-copy .online-count { display: none; }
   .nav-actions { min-width: 0; display: flex; align-items: center; gap: 0.18rem; margin-left: auto; overflow: visible; }
   .nav-scroll { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .nav-scroll::-webkit-scrollbar { display: none; }

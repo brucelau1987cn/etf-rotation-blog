@@ -19,7 +19,9 @@ def test_home_page_compacts_long_decision_prose():
     ):
         assert marker in source
     assert "{garden.market_state}</h3>" not in source
-    assert "{garden.summary}</p>" in source  # full text still available inside details
+    assert "{garden.summary}</p>" not in source
+    assert "{aSummaryPublic}</p>" in source  # full public copy remains inside details
+    assert "{usSummaryPublic}</p>" in source
     assert "{aSummaryShort}" in source
     assert "{aMarketStateShort}" in source
     assert "{aMainlineShort}" in source

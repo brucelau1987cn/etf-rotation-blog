@@ -5,6 +5,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import QuoteLiveScripts from '../components/QuoteLiveScripts.astro';
+import { isTakeProfitSide, publicHomeCopy } from '../lib/homeCopy.mjs';
 import { SITE_TITLE } from '../consts';
 
 type AAction = { code:string; name:string; status:string; action:string; price?:number; support?:number; target?:number; stop?:number; action_level?:number; action_level_label?:string; distance_pct?:number; risk_level?:string; price_date?:string };
@@ -87,14 +88,10 @@ const usReadyCount = ['ready_harvest','ready_plant'].reduce((n,key)=>n+(us.flowe
 const macroIcon = macro.risk.key === 'danger' ? '🔴' : macro.risk.key === 'tight' ? '🟠' : macro.risk.key === 'slightly-tight' ? '🟡' : '🟢';
 const number = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(v >= 100 ? 2 : 3).replace(/0+$/,'').replace(/\.$/,'') : 'N/A';
 const distance = (v?:number) => typeof v === 'number' && Number.isFinite(v) ? `${v>0?'+':''}${v.toFixed(1)}%` : 'N/A';
-const aTone = (status:string) => status.includes('兑现') || status.includes('止盈') || status.includes('撤退') ? 'sell' : 'buy';
+const aTone = (status:string) => isTakeProfitSide(status) || status.includes('撤退') ? 'sell' : 'buy';
 const usLabel = (item:UsAction) => item.signal || item.trade_state;
-const usTone = (item:UsAction) => {
-  const label = usLabel(item);
-  return label.includes('兑现') || label.includes('止盈') || label.includes('撤退') || label.includes('退出') ? 'sell' : 'buy';
-};
-const actionLevel = (item:AAction) => item.action_level ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? item.target : item.support);
-const actionLevelLabel = (item:AAction) => item.action_level_label ?? (item.status?.includes('兑现') || item.status?.includes('止盈') ? '兑现位' : '伏击位');
+const usTone = (item:UsAction) => isTakeProfitSide(usLabel(item)) || usLabel(item).includes('撤退') || usLabel(item).includes('退出') ? 'sell' : 'buy';
+const actionLevel = (item:AAction) => item.action_level ?? (isTakeProfitSide(item.status) ? item.target : item.support);
 // Decision date = trade plan day. Quote date = latest action snapshot (intraday/close),
 // not the qfq key-level baseline (level_data_as_of), which often lags one session.
 const aQuoteDates = [...garden.harvest, ...garden.plant]
@@ -102,8 +99,19 @@ const aQuoteDates = [...garden.harvest, ...garden.plant]
   .filter((value): value is string => Boolean(value));
 const aQuoteDate = aQuoteDates.sort().at(-1) || garden.date || garden.level_data_as_of || '待更新';
 const aUpdatedShort = (garden.updated_at || '').replace('T', ' ').replace(' CST', '').slice(0, 16) || '待更新';
+const usUpdatedShort = (us.updated_at || '').replace('T', ' ').replace(' CST', '').slice(0, 16) || us.date || '待更新';
 const aStage = (garden as any).stage || '';
-const aLevelBaseline = garden.level_data_as_of || '';
+const actionStateLabel = (raw: string) => publicHomeCopy(raw)
+  .replace('止盈观察', '接近止盈条件')
+  .replace('观察', '等待价格确认');
+const actionLevelLabel = (item:AAction) => publicHomeCopy(
+  item.action_level_label
+  ?? (isTakeProfitSide(item.status) ? '止盈参考价' : '计划关注价'),
+);
+const aHeroTakeaway = garden.harvest.length
+  ? `A股有${garden.harvest.length}项止盈观察，${garden.plant.length}只候选等待价格确认。`
+  : `A股当前没有止盈动作，${garden.plant.length}只候选等待价格确认。`;
+const usHeroTakeaway = `${us.market_regime.state}，参考权益${us.market_regime.equity_allocation}，当前${usFormalCount}项正式动作。`;
 
 const clipText = (raw: string, max = 48) => {
   const text = String(raw || '').replace(/\s+/g, ' ').trim();
@@ -117,7 +125,7 @@ const firstClauses = (raw: string, maxClauses = 2) => String(raw || '')
   .slice(0, maxClauses)
   .join('；');
 const extractActionLine = (raw: string) => {
-  const text = String(raw || '').trim().replace(/['"`]+/g, '');
+  const text = publicHomeCopy(raw).trim().replace(/['"`]+/g, '');
   if (!text) return '';
   const stripStage = (value: string) => value
     .replace(/^(08:30|11:30|14:30|22:00)夜间?(最终版|最终收盘)?[：:]?/, '')
@@ -139,7 +147,7 @@ const extractActionLine = (raw: string) => {
   return firstClauses(stripStage(parts[parts.length - 1] || text), 1);
 };
 const compactHomeMarketState = (raw: string) => {
-  const text = String(raw || '').trim().replace(/['"`]+/g, '');
+  const text = publicHomeCopy(raw).trim().replace(/['"`]+/g, '');
   if (!text) return '待更新';
   if (text.length <= 28) return text;
   const stageMatch = text.match(/^(08:30|11:30|14:30|22:00)/);
@@ -147,6 +155,8 @@ const compactHomeMarketState = (raw: string) => {
     ? `${stageMatch[1]}${text.includes('夜间') ? '夜间' : ''}`
     : (aStage || '').replace(/最终版|最终收盘/g, '').trim();
   const action = extractActionLine(text)
+    .replace(/交易计划全天0触发、0执行[^；。]*/g, '当前没有触发交易信号')
+    .replace(/Plan1/gi, '交易计划')
     .replace(/相对14:30尾盘，?/, '')
     .replace(/已买入头寸按(失效|防守)线持有[；,]?/g, '')
     .replace(/517520黄金股保留底仓[^；]*/g, '')
@@ -158,7 +168,7 @@ const compactHomeMarketState = (raw: string) => {
   return clipText([stage, shortAction].filter(Boolean).join('｜'), 28);
 };
 const compactHomeSummary = (raw: string) => {
-  const text = String(raw || '').trim();
+  const text = publicHomeCopy(raw).trim();
   if (!text) return '等待更新';
   if (text.length <= 56) return text;
   const action = extractActionLine(text)
@@ -177,7 +187,7 @@ const compactHomeSummary = (raw: string) => {
   return clipText(`${bits.join('；')}。`, 48);
 };
 const compactHomeMainline = (raw: string) => {
-  const text = String(raw || '').trim();
+  const text = publicHomeCopy(raw).trim();
   if (!text) return '—';
   if (text.length <= 28) return text;
   const themes = Array.from(
@@ -198,35 +208,44 @@ const compactHomeMainline = (raw: string) => {
   if (uniq.length) return clipText(`${uniq.join('/')}｜${cleanAction}`, 28);
   return clipText(cleanAction || text, 28);
 };
-const compactHomePosition = (raw: string) => String(raw || '').split(/[；;]/).map((item) => item.trim()).filter(Boolean)[0] || '—';
-const compactHomeConstraint = (raw: string) => String(raw || '')
+const compactHomePosition = (raw: string) => publicHomeCopy(raw).split(/[；;]/).map((item) => item.trim()).filter(Boolean)[0] || '—';
+const compactHomeConstraint = (raw: string) => publicHomeCopy(raw)
   .replace(/^中观[^：:]*[：:]?/, '')
   .replace(/[，,]/g, '｜')
   .replace('只回踩不追高', '只回踩')
   .trim() || '按关键位正常执行';
 const compactHomeActionCopy = (raw: string) => {
-  const text = String(raw || '').trim();
+  const text = publicHomeCopy(raw).trim();
   if (!text) return '—';
   if (text.length <= 40) return text;
   return clipText(firstClauses(text, 1), 40);
 };
-const aMarketStateShort = compactHomeMarketState(garden.market_state);
-const aSummaryShort = compactHomeSummary(garden.summary);
-const aMainlineShort = compactHomeMainline(garden.mainline);
+const aMarketStatePublic = publicHomeCopy(garden.market_state);
+const aSummaryPublic = publicHomeCopy(garden.summary);
+const aMainlinePublic = publicHomeCopy(garden.mainline);
+const aMidConstraintPublic = publicHomeCopy(aMidConstraint);
+const usSummaryPublic = publicHomeCopy(us.summary);
+const aMarketStateShort = compactHomeMarketState(aMarketStatePublic);
+const aSummaryShort = compactHomeSummary(aSummaryPublic);
+const aMainlineShort = compactHomeMainline(aMainlinePublic);
 const aPositionShort = compactHomePosition(garden.position);
-const aMidConstraintShort = compactHomeConstraint(aMidConstraint);
-const usSummaryShort = compactHomeSummary(us.summary);
+const aMidConstraintShort = compactHomeConstraint(aMidConstraintPublic);
+const usSummaryShort = compactHomeSummary(usSummaryPublic);
 ---
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={SITE_TITLE} description="ETF罗盘双市场今日仪表盘：集中展示A股与美股市场结论、仓位建议、趋势风控、宏观风险和优先动作。" />
+    <BaseHead title={SITE_TITLE} description="ETF罗盘最新ETF行动清单：集中展示A股与美股的市场结论、仓位参考、趋势条件和优先关注标的。" />
     <style>
       main{width: var(--shell-width);padding:1rem 0 3rem}
       .dashboard-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;padding:.7rem 0 1rem;border-bottom:1px solid var(--border)}
       .dashboard-head h1{margin:.25rem 0;font-size:clamp(1.8rem,4.5vw,2.75rem)}
       .dashboard-head p{margin:0;color:rgb(var(--gray));max-width:620px;line-height:1.55}
-      .dates{display:grid;grid-template-columns:repeat(2,auto);gap:.32rem}
+      .takeaway{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.85rem}
+      .takeaway-item{padding:.7rem .8rem;border:1px solid var(--border);border-radius:12px;background:#fff}
+      .takeaway-item strong{display:block;font-size:.7rem;color:rgb(var(--gray));margin-bottom:.2rem}
+      .takeaway-item span{display:block;font-size:.84rem;font-weight:800;line-height:1.45}
+      .dates{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.32rem;max-width:390px}
       .dates span{padding:.34rem .55rem;border:1px solid var(--border);border-radius:9px;background:#fff;font-size:.7rem;white-space:nowrap;color:rgb(var(--gray))}
       .markets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem;margin-top:.9rem;isolation:isolate}
       .market{padding:1rem;overflow:hidden;display:flex;flex-direction:column}
@@ -276,14 +295,17 @@ const usSummaryShort = compactHomeSummary(us.summary);
       .level strong{display:block;margin-top:.08rem;font-size:.74rem;overflow:hidden;text-overflow:ellipsis}
       .action-copy{margin:.5rem 0 0;color:rgb(var(--gray));font-size:.74rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
       .market-links{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)}
-      .market-links a{flex:1 1 30%;text-align:center;padding:.5rem .55rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);font-size:.72rem;font-weight:850;text-decoration:none;white-space:nowrap}
-      @media(max-width:960px){.markets{grid-template-columns:1fr}.dashboard-head{align-items:flex-start}.dates{grid-template-columns:1fr}}
+      .market-links a{flex:1 1 30%;min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-align:center;padding:.5rem .55rem;border:1px solid var(--border);border-radius:9px;background:var(--warm-2);color:rgb(var(--gray-dark));font-size:.72rem;font-weight:850;text-decoration:none;white-space:nowrap}
+      .market-links a.primary{color:#fff;background:var(--accent-dark);border-color:var(--accent-dark)}
+      @media(max-width:960px){.markets{grid-template-columns:1fr}.dashboard-head{align-items:flex-start}.dates{justify-content:flex-start}}
       @media(max-width:620px){
         main{width: var(--shell-width);padding-top:.55rem}
         .dashboard-head{display:block}
         .dashboard-head p{font-size:.82rem}
-        .dates{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.65rem}
-        .dates span{white-space:normal}
+        .takeaway{gap:.38rem;margin-top:.65rem}
+        .takeaway-item{padding:.55rem .6rem}
+        .dates{margin-top:.55rem;gap:.25rem}
+        .dates span{padding:.28rem .45rem;font-size:.66rem;white-space:normal}
         .market{padding:.8rem}
         .metrics{grid-template-columns:1fr 1fr}
         .levels{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -292,51 +314,52 @@ const usSummaryShort = compactHomeSummary(us.summary);
       }
     </style>
   </head>
-  <body>
+  <body class="home-page">
     <Header />
-    <main>
+    <main id="main-content" tabindex="-1">
       <header class="dashboard-head">
         <div>
-          <span class="pill">今日双市场</span>
-          <h1>双市场今日仪表盘</h1>
-          <p>先看状态与仓位，再看优先动作。颜色规则：🔴低吸 / 🟢兑现；行情：🔴上涨 / 🟢下跌。</p>
+          <span class="pill">最新双市场</span>
+          <h1>最新ETF行动清单</h1>
+          <p>一眼看清A股与美股最近交易日关注什么、等待什么、如何控制仓位。</p>
+          <div class="takeaway" aria-label="最新重点">
+            <div class="takeaway-item"><strong>最新重点 · A股</strong><span>{aHeroTakeaway}</span></div>
+            <div class="takeaway-item"><strong>最新重点 · 美股</strong><span>{usHeroTakeaway}</span></div>
+          </div>
         </div>
         <div class="dates">
           <span id="home-live-status">双市场日历连接中</span>
-          <span>A股计划 {garden.date}</span>
-          <span>A股行情 {aQuoteDate}</span>
           <span>A股更新 {aUpdatedShort}</span>
-          <span>美股行情 {us.date}</span>
-          <span>美股更新 {us.updated_at.replace('T',' ').slice(0,16)}</span>
+          <span>美股更新 {usUpdatedShort}</span>
         </div>
       </header>
 
-      <section class="markets" aria-label="双市场今日仪表盘">
+      <section class="markets" aria-label="最新ETF行动清单">
         <article class="market a card">
           <div class="market-top">
-            <div class="market-title"><span class="pill pill-red">🇨🇳 A股</span><h2>今日决策</h2></div>
-            <div class="market-date"><strong>行情 {aQuoteDate}</strong>{aStage || `更新 ${aUpdatedShort}`}</div>
+            <div class="market-title"><span class="pill pill-red">🇨🇳 A股</span><h2>最新行动</h2></div>
+            <div class="market-date"><strong>行情 {aQuoteDate}</strong>更新于 {aUpdatedShort.slice(11)}</div>
           </div>
           <div class="verdict">
             <div class="verdict-head">
-              <h3 title={garden.market_state}>{aMarketStateShort}</h3>
-              <span class="allocation" title={`仓位 ${garden.position}`}>仓位 {aPositionShort}</span>
+              <h3 title={aMarketStatePublic}>{aMarketStateShort}</h3>
+              <span class="allocation" title={`仓位 ${publicHomeCopy(garden.position)}`}>仓位 {aPositionShort}</span>
             </div>
-            <p class="verdict-copy" title={garden.summary}>{aSummaryShort}</p>
+            <p class="verdict-copy" title={aSummaryPublic}>{aSummaryShort}</p>
             <details>
               <summary>展开完整结论</summary>
-              <p class="verdict-full">{garden.summary}</p>
+              <p class="verdict-full">{aSummaryPublic}</p>
             </details>
           </div>
           <div class="metrics">
-            <div class="metric"><span>兑现侧</span><strong>{garden.harvest.length}只</strong></div>
-            <div class="metric"><span>伏击侧</span><strong>{garden.plant.length}只</strong></div>
-            <div class="metric"><span>趋势通过</span><strong>{aPool.summary.momentum_pass_count}/{aPool.summary.universe_count}</strong></div>
-            <div class="metric"><span>中观约束</span><strong>{aMidLabel}</strong></div>
-            <div class="metric wide"><span>当前主线</span><strong title={garden.mainline}>{aMainlineShort}</strong></div>
-            <div class="metric wide"><span>中观闸门</span><strong title={aMidConstraint}>{aMidConstraintShort}</strong></div>
+            <div class="metric"><span>接近止盈条件</span><strong>{garden.harvest.length}只</strong></div>
+            <div class="metric"><span>等待价格确认</span><strong>{garden.plant.length}只</strong></div>
+            <div class="metric"><span>趋势达标</span><strong>{aPool.summary.momentum_pass_count}/{aPool.summary.universe_count}只</strong></div>
+            <div class="metric"><span>行业环境</span><strong>{aMidLabel}</strong></div>
+            <div class="metric wide"><span>当前主线</span><strong title={aMainlinePublic}>{aMainlineShort}</strong></div>
+            <div class="metric wide"><span>行业风险条件</span><strong title={aMidConstraintPublic}>{aMidConstraintShort}</strong></div>
           </div>
-          <div class="actions-head"><h3>优先动作</h3><small>Top 3 · {aQuoteDate} 行情</small></div>
+          <div class="actions-head"><h3>优先关注</h3><small>{aActions.length}项 · {aQuoteDate} 行情</small></div>
           <div class="action-list">
             {aActions.map(item => (
               <div class={`action ${aTone(item.status)}`} data-code={item.code}>
@@ -345,48 +368,48 @@ const usSummaryShort = compactHomeSummary(us.summary);
                     <strong>{item.code} · {item.name}</strong>
                     <small>风险 {item.risk_level||'N/A'} · 行情 {item.price_date||aQuoteDate}</small>
                   </div>
-                  <span class="state">{item.status}</span>
+                  <span class="state">{actionStateLabel(item.status)}</span>
                 </div>
                 <div class="levels">
                   <div class="level"><span>现价</span><strong id={`home-live-price-${item.code}`}>{number(item.price)}</strong><span id={`home-live-change-${item.code}`} style="font-size:0.65rem; font-weight:700;"></span></div>
                   <div class="level active"><span>{actionLevelLabel(item)}</span><strong>{number(actionLevel(item))}</strong></div>
-                  <div class="level"><span>防守线</span><strong>{number(item.stop)}</strong></div>
-                  <div class="level"><span>距动作位</span><strong>{distance(item.distance_pct)}</strong></div>
+                  <div class="level"><span>风险退出价</span><strong>{number(item.stop)}</strong></div>
+                  <div class="level"><span>距关注价</span><strong>{distance(item.distance_pct)}</strong></div>
                 </div>
-                <p class="action-copy" title={item.action}>{compactHomeActionCopy(item.action)}</p>
+                <p class="action-copy" title={publicHomeCopy(item.action)}>{compactHomeActionCopy(item.action)}</p>
               </div>
             ))}
           </div>
           <nav class="market-links" aria-label="A股功能">
-            <a href="/a-compass/">今日动作</a>
-            <a href="/a-momentum/">趋势风控</a>
-            <a href="/a-macro/">宏观雷达</a>
-            <a href="/blog/">盘后复盘</a>
+            <a class="primary" href="/a-compass/">查看最新行动清单</a>
+            <a href="/a-momentum/">查看趋势依据</a>
+            <a href="/a-macro/">查看宏观环境</a>
+            <a href="/blog/">查看盘后复盘</a>
           </nav>
         </article>
 
         <article class="market us card">
           <div class="market-top">
-            <div class="market-title"><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股</span><h2>今日决策</h2></div>
+            <div class="market-title"><span class="pill" style="background:#eaf3ff;color:#174ea6">🇺🇸 美股</span><h2>最新行动</h2></div>
             <div class="market-date"><strong>行情 {us.date}</strong>{macroIcon} {macro.risk.label}</div>
           </div>
           <div class="verdict">
             <div class="verdict-head"><h3>{us.market_regime.state}</h3><span class="allocation" title={`权益 ${us.market_regime.equity_allocation}`}>权益 {us.market_regime.equity_allocation}</span></div>
-            <p class="verdict-copy" title={us.summary}>{usSummaryShort}</p>
+            <p class="verdict-copy" title={usSummaryPublic}>{usSummaryShort}</p>
             <details>
               <summary>展开完整结论</summary>
-              <p class="verdict-full">{us.summary}</p>
+              <p class="verdict-full">{usSummaryPublic}</p>
             </details>
           </div>
           <div class="metrics">
-            <div class="metric"><span>正式动作</span><strong>{usFormalCount}项</strong></div>
-            <div class="metric"><span>候场观察</span><strong>{usReadyCount}项</strong></div>
-            <div class="metric"><span>趋势通过</span><strong>{usPool.summary.momentum_pass}/{usPool.summary.universe}</strong></div>
-            <div class="metric"><span>宏观闸门</span><strong>{macro.risk.label}</strong></div>
-            <div class="metric wide"><span>风险预算</span><strong>{macro.risk.equity_constraint}</strong></div>
-            <div class="metric wide"><span>宏观信号</span><strong>{macro.risk.headline}</strong></div>
+            <div class="metric"><span>最新需处理</span><strong>{usFormalCount}项</strong></div>
+            <div class="metric"><span>等待价格确认</span><strong>{usReadyCount}项</strong></div>
+            <div class="metric"><span>趋势达标</span><strong>{usPool.summary.momentum_pass}/{usPool.summary.universe}只</strong></div>
+            <div class="metric"><span>宏观风险</span><strong>{macro.risk.label}</strong></div>
+            <div class="metric wide"><span>仓位结论</span><strong>{publicHomeCopy(macro.risk.equity_constraint)}</strong></div>
+            <div class="metric wide"><span>宏观信号</span><strong>{publicHomeCopy(macro.risk.headline)}</strong></div>
           </div>
-          <div class="actions-head"><h3>优先动作</h3><small>Top 3 · 风险优先</small></div>
+          <div class="actions-head"><h3>优先关注</h3><small>{usActions.length}项 · 风险优先</small></div>
           <div class="action-list">
             {usActions.map(item => (
               <div class={`action ${usTone(item)}`} data-us-home-symbol={item.symbol}>
@@ -395,22 +418,22 @@ const usSummaryShort = compactHomeSummary(us.summary);
                     <strong>{item.symbol} · {item.name}</strong>
                     <small>风险 {item.risk_level} · 行情 {item.trade_date}</small>
                   </div>
-                  <span class="state">{usLabel(item)}</span>
+                  <span class="state">{actionStateLabel(usLabel(item))}</span>
                 </div>
                 <div class="levels">
                   <div class="level"><span>现价</span><strong id={`home-us-live-price-${item.symbol}`}>${number(item.price)}</strong><span id={`home-us-live-change-${item.symbol}`} style="font-size:0.65rem; font-weight:700;"></span></div>
-                  <div class="level active"><span>{item.signal?.includes('兑现') ? '兑现位' : '伏击位'}</span><strong>${number(item.signal?.includes('兑现') ? item.target : item.support)}</strong></div>
-                  <div class="level"><span>防守线</span><strong>${number(item.stop)}</strong></div>
-                  <div class="level"><span>距动作位</span><strong>{distance(item.signal?.includes('兑现') ? item.target_gap : item.support_gap)}</strong></div>
+                  <div class="level active"><span>{isTakeProfitSide(usLabel(item)) ? '止盈参考价' : '计划关注价'}</span><strong>${number(isTakeProfitSide(usLabel(item)) ? item.target : item.support)}</strong></div>
+                  <div class="level"><span>风险退出价</span><strong>${number(item.stop)}</strong></div>
+                  <div class="level"><span>距关注价</span><strong>{distance(isTakeProfitSide(usLabel(item)) ? item.target_gap : item.support_gap)}</strong></div>
                 </div>
-                <p class="action-copy" title={item.trade_state}>{compactHomeActionCopy(item.trade_state)}</p>
+                <p class="action-copy" title={publicHomeCopy(item.trade_state)}>{compactHomeActionCopy(item.trade_state)}</p>
               </div>
             ))}
           </div>
           <nav class="market-links" aria-label="美股功能">
-            <a href="/us-compass/">今日动作</a>
-            <a href="/us-momentum/">趋势风控</a>
-            <a href="/us-macro/">宏观雷达</a>
+            <a class="primary" href="/us-compass/">查看最新行动清单</a>
+            <a href="/us-momentum/">查看趋势依据</a>
+            <a href="/us-macro/">查看宏观环境</a>
           </nav>
         </article>
       </section>
