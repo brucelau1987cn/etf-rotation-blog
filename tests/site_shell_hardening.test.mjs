@@ -12,6 +12,8 @@ test('CSP permits the Cloudflare Web Analytics script and beacon', () => {
   assert.match(headers, /connect-src[^\n]*https:\/\/cloudflareinsights\.com/);
 });
 
+const usCompass = await readFile(new URL('../src/pages/us-compass.astro', import.meta.url), 'utf8');
+
 const runA11y = (initialMainId = '') => {
   let onReady;
   let skipHref = '#main-content';
@@ -45,4 +47,10 @@ test('header authentication controls meet touch target sizing', () => {
   assert.match(header, /\.user-login-link\s*\{[^}]*min-height:\s*44px/s);
   assert.match(header, /\.user-trigger\s*\{[^}]*min-height:\s*44px/s);
   assert.match(header, /\.user-item\s*\{[^}]*min-height:\s*44px/s);
+});
+
+test('global US compass stylesheet uses plain market-clock selectors', () => {
+  assert.match(usCompass, /<style is:global>/);
+  assert.doesNotMatch(usCompass, /\.meta-line\s+:global\(\.market-clock\)/);
+  assert.match(usCompass, /\.meta-line\s+\.market-clock/);
 });
