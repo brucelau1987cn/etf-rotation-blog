@@ -47,6 +47,10 @@
 - 隐含租赁利率在线接口：`GET /api/public/v1/implied-lease-rate`（COMEX 期货 + 美债自算，edge 缓存 10 分钟；前端优先 API，失败回退静态 JSON）
 
 ### 其他
+- `/login/`：管理员、VIP账号与订阅密码统一登录
+- `/register/?code=...`：限时邀请码自助注册永久VIP账号；邀请码仅存哈希，名额通过D1原子批处理控制
+- `/account/`：会员身份、有效期、设备名额与密码管理
+- `/admin/`：管理员授权账号管理
 - `/paper/`：公开模拟交易快照
 - `/lab/`：只读研究与影子模型
 - `/research-framework/`：研究框架与证据层
@@ -78,10 +82,10 @@ Astro 静态页面 (dist/)
   │    rolling-signals（D1 日板 + LKG）
   │    jin10-calendar / jin10-mcp-calendar
   │    jin10-etf-reports
-  │    TradingView webhook / auth / upload
+  │    TradingView webhook / auth / invite registration
   ├─ Cloudflare D1 (etf-compass-auth)
   │    rolling_signals · jin10_calendar_items · jin10_etf_holdings
-  │    market_calendar · presence_sessions · auth/session
+  │    market_calendar · presence_sessions · auth/session · invite_codes
   ├─ Edge Quote：腾讯 → 新浪 → 雪球
   └─ JSON 契约：public/data + public/schemas + catalog
 ```

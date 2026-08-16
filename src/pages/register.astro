@@ -1,0 +1,130 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+const title = `邀请注册 | ${SITE_TITLE}`;
+const description = '使用专属邀请码注册ETF罗盘永久VIP账号。';
+---
+<BaseHead title={title} description={description} />
+<body class="register-body">
+  <Header />
+  <main class="register-main site-shell">
+    <section class="register-shell" aria-labelledby="register-title">
+      <div class="invite-summary">
+        <span class="invite-icon">💎</span>
+        <p class="eyebrow">ETF 罗盘 · 专属邀请</p>
+        <h1 id="register-title">创建永久VIP账号</h1>
+        <p>本邀请链接开放7天，最多注册18个账号。注册成功后账号永久有效，每个账号最多绑定10台设备。</p>
+        <div class="benefits">
+          <span>永久VIP</span><span>18人限额</span><span>10台设备</span>
+        </div>
+      </div>
+      <form class="register-card" id="register-form" novalidate>
+        <input id="invite-code" type="hidden" />
+        <div class="invite-loaded" id="invite-loaded"><i></i><span>正在读取邀请链接…</span></div>
+        <label>设置用户名
+          <input id="register-username" autocomplete="username" placeholder="3—32位字母、数字、下划线" maxlength="32" required />
+        </label>
+        <label>设置登录密码
+          <input id="register-password" type="password" autocomplete="new-password" placeholder="至少8个字符" maxlength="128" required />
+        </label>
+        <label>确认登录密码
+          <input id="register-confirm" type="password" autocomplete="new-password" placeholder="再次输入密码" maxlength="128" required />
+        </label>
+        <button id="register-submit" type="submit">注册永久VIP账号</button>
+        <p class="register-message" id="register-message" role="status"></p>
+        <p class="login-note">已有账号？<a href="/login/">前往登录</a></p>
+      </form>
+    </section>
+  </main>
+  <Footer />
+  <script is:inline>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const code = new URLSearchParams(location.search).get('code') || '';
+      if (code) history.replaceState(null, '', '/register/');
+      $('invite-code').value = code;
+      const loaded = $('invite-loaded');
+      const submit = $('register-submit');
+      if (code.length >= 8) {
+        loaded.querySelector('span').textContent = '专属邀请码已载入';
+        loaded.classList.add('ready');
+      } else {
+        loaded.querySelector('span').textContent = '邀请链接无效，请向邀请人获取完整链接';
+        loaded.classList.add('error');
+        submit.disabled = true;
+      }
+      function deviceId() {
+        const key = 'etf_device_id';
+        let value = localStorage.getItem(key);
+        if (!value) { value = crypto.randomUUID(); localStorage.setItem(key, value); }
+        return value;
+      }
+      $('register-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const username = $('register-username').value.trim();
+        const password = $('register-password').value;
+        const confirm = $('register-confirm').value;
+        const msg = $('register-message');
+        msg.className = 'register-message';
+        if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,31}$/.test(username)) {
+          msg.textContent = '用户名需为3—32位字母、数字、下划线或连字符'; msg.classList.add('error'); return;
+        }
+        if (password.length < 8) { msg.textContent = '密码至少8个字符'; msg.classList.add('error'); return; }
+        if (password !== confirm) { msg.textContent = '两次输入的密码不一致'; msg.classList.add('error'); return; }
+        submit.disabled = true; submit.textContent = '正在注册…';
+        try {
+          const registration = await fetch('/api/public/v1/register', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+            body: JSON.stringify({ code, username, password }),
+          });
+          const data = await registration.json();
+          if (!registration.ok || !data.ok) throw new Error(data.error || '注册失败');
+          msg.textContent = '注册成功，正在进入账户中心…'; msg.classList.add('ok');
+          const login = await fetch('/api/public/v1/login-account', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, device_id: deviceId(), remember: true }),
+          });
+          const loginData = await login.json();
+          if (!login.ok || !loginData.ok) {
+            msg.textContent = '账号已创建，请前往登录页登录';
+            setTimeout(() => { location.href = '/login/'; }, 1200);
+            return;
+          }
+          setTimeout(() => { location.href = '/account/'; }, 600);
+        } catch (error) {
+          msg.textContent = error.message || '注册失败，请稍后重试'; msg.classList.add('error');
+          submit.disabled = false; submit.textContent = '注册永久VIP账号';
+        }
+      });
+    })();
+  </script>
+</body>
+
+<style is:global>
+  .register-body { min-height: 100vh; background: radial-gradient(circle at 18% 8%, #eff6ff 0, transparent 34%), #f8fafc; }
+  .register-main { padding-top: 2.2rem; padding-bottom: 3rem; }
+  .register-shell { max-width: 880px; margin: 0 auto; display: grid; grid-template-columns: minmax(0,1fr) minmax(330px,.85fr); overflow: hidden; border: 1px solid #dbe3ee; border-radius: 24px; background: #fff; box-shadow: 0 20px 60px rgba(15,23,42,.09); }
+  .invite-summary { padding: 2.3rem; color: #fff; background: linear-gradient(145deg,#0f172a,#172554 64%,#1d4ed8); }
+  .invite-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; background: rgba(255,255,255,.13); font-size: 1.35rem; }
+  .eyebrow { margin: 1.4rem 0 .45rem; color: #bfdbfe; font-size: .72rem; font-weight: 850; letter-spacing: .12em; }
+  .invite-summary h1 { margin: 0; font-size: clamp(1.7rem,4vw,2.35rem); }
+  .invite-summary > p:last-of-type { color: #cbd5e1; line-height: 1.75; }
+  .benefits { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.4rem; }
+  .benefits span { padding: .38rem .65rem; border: 1px solid rgba(191,219,254,.3); border-radius: 999px; color: #dbeafe; font-size: .72rem; font-weight: 800; }
+  .register-card { display: grid; align-content: center; gap: .85rem; padding: 2rem; }
+  .invite-loaded { display: flex; align-items: center; gap: .5rem; padding: .65rem .75rem; border-radius: 11px; background: #f1f5f9; color: #64748b; font-size: .76rem; font-weight: 750; }
+  .invite-loaded i { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+  .invite-loaded.ready { color: #166534; background: #f0fdf4; } .invite-loaded.ready i { background: #22c55e; }
+  .invite-loaded.error { color: #b91c1c; background: #fef2f2; } .invite-loaded.error i { background: #ef4444; }
+  .register-card label { display: grid; gap: .38rem; color: #334155; font-size: .78rem; font-weight: 800; }
+  .register-card input { width: 100%; min-height: 46px; padding: 0 .85rem; border: 1px solid #cbd5e1; border-radius: 11px; font: inherit; box-sizing: border-box; }
+  .register-card input:focus { outline: 3px solid #dbeafe; border-color: #2563eb; }
+  #register-submit { min-height: 48px; margin-top: .25rem; border: 0; border-radius: 12px; color: #fff; background: #0f172a; font-weight: 850; cursor: pointer; }
+  #register-submit:disabled { opacity: .55; cursor: not-allowed; }
+  .register-message { min-height: 1.2em; margin: 0; text-align: center; font-size: .76rem; }
+  .register-message.error { color: #b91c1c; } .register-message.ok { color: #15803d; font-weight: 800; }
+  .login-note { margin: 0; text-align: center; color: #64748b; font-size: .74rem; } .login-note a { color: #2563eb; font-weight: 800; }
+  @media (max-width: 720px) { .register-main { padding: .8rem; } .register-shell { grid-template-columns: 1fr; border-radius: 18px; } .invite-summary { padding: 1.5rem; } .register-card { padding: 1.4rem; } }
+</style>
