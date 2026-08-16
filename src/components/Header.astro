@@ -168,14 +168,14 @@ const isHome = Astro.url.pathname === '/';
   .user-menu [hidden] { display: none !important; }
   .user-menu { flex: 0 0 auto; position: relative; margin-left: 0.18rem; }
   .user-login-link {
-    display: inline-flex; align-items: center; min-height: 40px;
+    display: inline-flex; align-items: center; min-height: 44px;
     padding: 0.5rem 0.78rem !important; font-weight: 800 !important;
     color: #fff !important; background: #1e3a8a; border-radius: 999px !important;
   }
   .user-login-link:hover { background: #2563eb !important; }
   .user-dropdown { position: relative; }
   .user-trigger {
-    min-height: 40px; display: inline-flex; align-items: center; gap: 0.38rem;
+    min-height: 44px; display: inline-flex; align-items: center; gap: 0.38rem;
     padding: 0.32rem 0.68rem 0.32rem 0.34rem; border: 1px solid var(--border);
     border-radius: 999px; background: #fff; cursor: pointer; font-weight: 800;
     color: rgb(var(--gray-dark)); font-size: 0.82rem;
@@ -193,7 +193,7 @@ const isHome = Astro.url.pathname === '/';
   .user-role { font-size: 0.85rem; font-weight: 850; color: rgb(var(--black)); }
   .user-sub { font-size: 0.72rem; color: rgb(var(--gray-mid)); }
   .user-item {
-    display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left;
+    display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; text-align: left;
     padding: 0.55rem 0.65rem !important; border-radius: 9px !important; font-size: 0.85rem !important;
     color: rgb(var(--gray-dark)) !important; background: none; border: none; cursor: pointer; font-weight: 700 !important;
   }
