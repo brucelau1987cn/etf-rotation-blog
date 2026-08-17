@@ -993,6 +993,7 @@
   };
 
   const QUOTE_INTERVAL_MS = 30000;
+  const TECHNICAL_ANALYSIS_INTERVAL_MS = 60_000;
   // Day-locked signal board: poll gently. Same node never updates again today.
   const SIGNAL_INTERVAL_MS = 120000;
   let nextQuoteAt = Date.now() + QUOTE_INTERVAL_MS;
@@ -1246,10 +1247,24 @@
     }
   };
 
+  const startHongKongTechnicalAnalysisPoll = () => {
+    if (market !== 'hk') return;
+    if (!window.EtfLivePoll?.startMarketPoll) {
+      console.warn('Hong Kong technical analysis poll unavailable: market calendar helper missing');
+      return;
+    }
+    window.EtfLivePoll.startMarketPoll({
+      market: 'HK',
+      intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS,
+      immediate: true,
+      tick: async () => { await fetchHongKongTechnicalAnalysis(); },
+    });
+  };
+
   // Load admin-managed watchlist first so boards/start dates stay in sync.
   void loadRollingWatchlist().finally(() => {
     setTimeout(() => { fetchAllSignals(); }, 200);
-    setTimeout(() => { fetchHongKongTechnicalAnalysis(); }, 260);
+    startHongKongTechnicalAnalysisPoll();
     setTimeout(() => {
       fetchAllQuotes();
       fetchContinuousQuotes();

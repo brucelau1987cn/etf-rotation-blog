@@ -140,6 +140,11 @@ def test_hk_tradingview_uses_a_clean_external_fallback_instead_of_permission_err
         assert label in app
     assert "/api/public/v1/technical-analysis?s=" in app
     assert "fetchHongKongTechnicalAnalysis" in app
+    assert "TECHNICAL_ANALYSIS_INTERVAL_MS = 60_000" in app
+    assert "market: 'HK'" in app
+    assert "intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS" in app
+    assert "tick: async () => { await fetchHongKongTechnicalAnalysis(); }" in app
+    assert "setTimeout(() => { fetchHongKongTechnicalAnalysis(); }, 260)" not in app
     assert "toTradingViewHongKongCode" in matrix
     assert "toTradingViewHongKongCode" in app
     assert "港股标准代码" not in matrix
