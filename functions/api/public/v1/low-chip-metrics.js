@@ -22,12 +22,16 @@ const CLIENT_METRIC_FIELDS = [
   'trade_date', 'stock_code', 'stock_name', 'shareholder_count', 'shareholder_change_pct',
   'main_force', 'main_force_label', 'concentration90', 'chip_focus', 'report_period',
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
-  'financials', 'theme_concepts', 'quality_shareholder',
+  'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
 function clientMetric(row) {
-  return Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
+  const metric = Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
+  if (typeof metric.shareholder_nature === 'string') {
+    try { metric.shareholder_nature = JSON.parse(metric.shareholder_nature); } catch (e) { metric.shareholder_nature = null; }
+  }
+  return metric;
 }
 
 export async function onRequest(context) {
@@ -62,6 +66,7 @@ export async function onRequest(context) {
         financials TEXT,
         theme_concepts TEXT,
         quality_shareholder INTEGER,
+        shareholder_nature TEXT,
         pe_ttm REAL,
         pb REAL,
         ps_ttm REAL,
@@ -137,6 +142,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN financials TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN theme_concepts TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN quality_shareholder INTEGER').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN shareholder_nature TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN closing_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN average_cost REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
@@ -155,7 +161,7 @@ export async function onRequest(context) {
       'shareholder_change_pct', 'main_force', 'main_force_label',
       'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
       'week_profit', 'month_profit', 'quarter_profit', 'change_percent',
-      'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder',
+      'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
       'closing_profit', 'average_cost', 'conc70',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
@@ -172,6 +178,7 @@ export async function onRequest(context) {
       m.financials ? JSON.stringify(m.financials) : null,
       m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
       m.quality_shareholder ? 1 : 0,
+      m.shareholder_nature ? JSON.stringify(m.shareholder_nature) : null,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,

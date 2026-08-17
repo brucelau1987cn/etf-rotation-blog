@@ -77,3 +77,9 @@ def test_missing_shareholder_evidence_has_no_valid_period():
     row = {"股票代码": "600269.SH", "所属申万行业": "交通运输"}
     assert fetch.has_top10_names(row) is False
     assert fetch.report_period_from_rows([row]) == ""
+
+
+def test_fetch_never_writes_synthetic_latest_shareholder_period():
+    source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
+    assert "period or 'latest'" not in source
+    assert "missing shareholder report period after per-symbol fallback" in source

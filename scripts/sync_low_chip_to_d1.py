@@ -111,6 +111,13 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "financials": enr.get("financials"),
             "theme_concepts": enr.get("theme_concepts") or enr.get("theme_concept"),
             "quality_shareholder": 1 if enr.get("quality_shareholder") else 0,
+            "shareholder_nature": {
+                "report_period": enr.get("shareholder_nature_report_period"),
+                "quality_shareholder": bool(enr.get("quality_shareholder")),
+                "quality_shareholder_names": enr.get("quality_shareholder_names") or [],
+                "institutional_shareholder": bool(enr.get("institutional_shareholder")),
+                "institutional_shareholder_names": enr.get("institutional_shareholder_names") or [],
+            },
         })
     return metrics
 

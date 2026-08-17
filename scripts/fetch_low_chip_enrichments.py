@@ -122,7 +122,11 @@ def main() -> int:
                     if name and name not in names:
                         names.append(name)
                 if names:
-                    detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period or 'latest'}]": ", ".join(names)}
+                    if not period:
+                        raise SystemExit(
+                            f"missing shareholder report period after per-symbol fallback: {code}"
+                        )
+                    detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
             if detail is None:
                 raise SystemExit(
                     f"missing top10 shareholder names after per-symbol fallback: {code}; "

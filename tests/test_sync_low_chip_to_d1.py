@@ -63,3 +63,23 @@ def test_snapshot_metrics_prefers_period_over_enrichment_name():
     }
     rows = snapshot_metrics(payload)
     assert rows[0]["stock_name"] == "奥海科技"
+
+
+def test_snapshot_metrics_carries_shareholder_nature_for_history_api():
+    payload = {
+        "data_as_of": "2026-08-11",
+        "intersection": ["600269.SH"],
+        "periods": {"week": [{"symbol": "600269.SH", "name": "赣粤高速", "value": 1.1}], "month": [], "quarter": []},
+        "enrichments": {"600269.SH": {
+            "shareholder_nature_report_period": "20260630",
+            "quality_shareholder": False,
+            "quality_shareholder_names": [],
+            "institutional_shareholder": True,
+            "institutional_shareholder_names": ["长城人寿保险股份有限公司", "香港中央结算有限公司"],
+            "shareholder_metrics": {},
+        }},
+    }
+    nature = snapshot_metrics(payload)[0]["shareholder_nature"]
+    assert nature["report_period"] == "20260630"
+    assert nature["institutional_shareholder"] is True
+    assert nature["institutional_shareholder_names"] == ["长城人寿保险股份有限公司", "香港中央结算有限公司"]
