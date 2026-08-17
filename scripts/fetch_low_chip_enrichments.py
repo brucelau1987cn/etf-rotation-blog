@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
 PROFILE_BATCH_SIZE = 5  # iWenCai batch size per /tmp/lc_p{n}.json
+SHAREHOLDER_PERIOD_RE = re.compile(r"^前十大流通股东名称(?:\(报告期\))?\[(\d{8})\]$")
 
 QUALITY_QUERY = " 前十大流通股东名称包含全国社保基金或基本养老保险基金或国家集成电路产业投资基金或国新投资或深圳市创新投资集团或科威特政府投资局或澳门金融管理局"
 
@@ -37,10 +39,9 @@ def report_period_from_rows(rows: list[dict]) -> str:
     periods = []
     for row in rows:
         for key in row:
-            if "[" in key and key.endswith("]"):
-                token = key.rsplit("[", 1)[1][:-1]
-                if token.isdigit() and len(token) == 8:
-                    periods.append(token)
+            match = SHAREHOLDER_PERIOD_RE.match(key)
+            if match:
+                periods.append(match.group(1))
     return max(periods) if periods else ""
 
 

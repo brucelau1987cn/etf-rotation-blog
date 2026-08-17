@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,19 +33,50 @@ def industry_text(value) -> str:
     return str(value or "")
 
 
-def shareholders_from_row(row: dict) -> list[str]:
+SHAREHOLDER_PERIOD_RE = re.compile(r"^前十大流通股东名称(?:\(报告期\))?\[(\d{8})\]$")
+
+
+def shareholder_period(key: str) -> str:
+    match = SHAREHOLDER_PERIOD_RE.match(key)
+    return match.group(1) if match else ""
+
+
+def latest_shareholder_field(row: dict):
+    candidates = [
+        (shareholder_period(key), key, value)
+        for key, value in row.items()
+        if value and shareholder_period(key)
+    ]
+    if candidates:
+        _, key, value = max(candidates, key=lambda item: item[0])
+        return key, value
     raw = row.get("前十大流通股东名称")
-    if not raw:
-        for key, value in row.items():
-            if key.startswith("前十大流通股东名称") and value:
-                raw = value
-                break
+    return ("前十大流通股东名称", raw) if raw else (None, None)
+
+
+def shareholders_from_row(row: dict) -> list[str]:
+    _, raw = latest_shareholder_field(row)
     if not raw:
         return []
     if isinstance(raw, list):
-        return [str(item).strip() for item in raw if str(item).strip()]
+        names = [str(item).strip() for item in raw if str(item).strip()]
+        return list(dict.fromkeys(names))
     text = str(raw).replace("||", ",").replace("，", ",")
-    return [item.strip() for item in text.split(",") if item.strip()]
+    return list(dict.fromkeys(item.strip() for item in text.split(",") if item.strip()))
+
+
+def merge_profile_rows(batch: dict | None, individual: dict | None) -> dict:
+    merged = dict(batch or {})
+    current = dict(individual or {})
+    if current:
+        merged.update({key: value for key, value in current.items() if value not in (None, "", [])})
+        current_key, current_value = latest_shareholder_field(current)
+        if current_key and current_value:
+            for key in list(merged):
+                if key == "前十大流通股东名称" or shareholder_period(key):
+                    merged.pop(key, None)
+            merged[current_key] = current_value
+    return merged
 
 
 def classify_shareholders(names: list[str]) -> tuple[list[str], list[str]]:
@@ -75,19 +107,8 @@ def main() -> None:
         for row in load(INDIVIDUAL):
             code = str(row.get("股票代码") or "")
             if code:
-                profile.setdefault(code, row)
+                profile[code] = merge_profile_rows(profile.get(code), row)
 
-    quality_names: dict[str, list[str]] = {}
-    if QUALITY.exists():
-        for row in load(QUALITY).get("datas", []):
-            code = str(row.get("股票代码") or "")
-            names = shareholders_from_row(row)
-            for key, value in row.items():
-                if (key.startswith("流通股东名称") or key.startswith("持股机构名称明细")) and value:
-                    names.extend(shareholders_from_row({"前十大流通股东名称": value}))
-            quality, _ = classify_shareholders(list(dict.fromkeys(names)))
-            if quality:
-                quality_names[code] = quality
 
     unlocks: dict[str, dict] = {}
     if UNLOCK.exists():
@@ -113,8 +134,7 @@ def main() -> None:
         levels = [item for item in industry.split("--") if item]
         sector = levels[-1] if levels else "待补充"
         shareholders = shareholders_from_row(row)
-        classified_quality, institutional = classify_shareholders(shareholders)
-        quality = list(dict.fromkeys(quality_names.get(code, []) + classified_quality))
+        quality, institutional = classify_shareholders(shareholders)
         unlock = unlocks.get(code)
         enrichments[code] = {
             "industry": industry or "待补充",
