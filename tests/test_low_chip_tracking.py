@@ -23,8 +23,8 @@ def test_tracking_data_contract():
         # daily 按日期升序
         dates = [d["date"] for d in rec["daily"]]
         assert dates == sorted(dates)
-        # 固定窗口：加入日基准 + 加入后的最多 10 个交易日
-        assert len(dates) <= 11
+        # 固定窗口：加入日基准 + 加入后的最多 15 个交易日
+        assert len(dates) <= 16
         assert dates[0] == rec["first_seen"]
         features = rec.get("entry_features")
         assert isinstance(features, dict)
@@ -84,7 +84,7 @@ def test_tracking_page_and_entry_link():
     mode_nav = MODE_NAV.read_text(encoding="utf-8")
     assert "LowChipModeNav" in low_chip
     assert "/rolling/low-chip/tracking/" in mode_nav
-    assert "10日追踪" in mode_nav
+    assert "15日追踪" in mode_nav
 
 
 def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
@@ -97,7 +97,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "LowChipModeNav" in tracking
     assert 'active="tracking"' in tracking
     assert "当日观察" in mode_nav
-    assert "10日追踪" in mode_nav
+    assert "15日追踪" in mode_nav
     assert "aria-current={" in mode_nav
     assert "chip-track-link" not in low_chip
     assert "tc-back" not in tracking
@@ -105,7 +105,9 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "包含科创板" in tracking
     assert "上涨占比" in tracking
     assert "中位涨幅" in tracking
-    assert "第{rec.daily.length}/10日" in tracking
+    assert "第{rec.daily.length}/15日" in tracking
+    assert 'aria-valuemax="15"' in tracking
+    assert "Math.max(0, 15 - rec.daily.length)" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
     assert "@media (max-width: 900px)" in tracking
@@ -122,6 +124,7 @@ def test_tracking_script_exists():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "tencent_daily" in text
     assert "iwencai_profit_ratio" in text
+    assert "MAX_TRACK_BARS = 15" in text
     assert "MAX_STORED_BARS = MAX_TRACK_BARS + 1" in text
     assert "target_bars = bars[:MAX_STORED_BARS]" in text
     assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
