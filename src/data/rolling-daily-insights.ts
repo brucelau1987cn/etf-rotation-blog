@@ -34,6 +34,51 @@ export type DailyInsightReport = {
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
   
 
+  '2026-08-17': {
+    tradeDate: '2026-08-17',
+    shortDate: '08/17',
+    title: '8月17日滚动信号收盘复盘',
+    subtitle: '当日D1入库9条5只：华天科技与德福科技多方贴价确认，东方明珠空方被收复，国民技术H多方三节点分化，白银多空交替后价格收复空方。',
+    cutoff: '2026-08-17 收市（白银截至18:32）',
+    summary: '5只信号标的不是单边共振：华天科技5.5h多方收在信号价，德福科技3h/3.5h同价多方也以¥101.00贴价收盘，均属确认但不宜追高；东方明珠15m空方¥8.04被¥8.18收盘收复；国民技术H的5.5h/6h/6.5h多方簇收在HK$9.61，守住两档、低于最高一档，仍是簇内分化；白银先5m多方后5m空方，18:32现货$65.61已重新站上两档信号价。A股两只多方均在日内高位附近触发且收盘贴价，次日必须等待回踩承接或突破确认，不能把贴价收盘等同于趋势已稳固。',
+    buyRule: '优先观察华天科技守住¥19.00并突破¥19.02、德福科技守住¥101.00并突破¥101.63；两者若高开急冲不追。东方明珠只有守住¥8.04、再收复MA5/MA10 ¥8.20—8.24才算修复加强。国民技术H需站稳HK$9.625并突破HK$9.65，才把三节点分化升级为完整确认。白银以$65.06为多方观察锚，突破$66.20—66.40后再确认延续。',
+    sellRule: '华天科技跌回¥19.00下方先降风险，失守MA5 ¥18.22视为本轮多方失败；德福科技跌破¥101.00减仓，失守当日低点¥94.60结束本轮确认。东方明珠跌回¥8.04下方恢复空方执行，跌破¥8.00继续防守。国民技术H跌破HK$9.59则多方簇失败，失守HK$9.21继续减仓。白银跌回$65.06下方转弱，失守最新空方价$64.75恢复空方执行。',
+    discipline: '同标的同方向近价节点合并为一个执行簇，但保留每个D1首次入库节点与价格。A股和港股Webhook未携带真实bar触发时间，triggered_at按接收时刻解释。贴价确认只代表收盘没有跌破信号锚，不代表次日可追涨；国民技术H按最高节点未站回处理为mixed；白银5m多空交替只记反转观察，不把短周期节点包装成正式长周期趋势。所有影子标签继续只读观察，不自动改变生产权重、仓位或信号展示。',
+    sources: '滚动罗盘D1首次入库信号（trade_date=2026-08-17，Cloudflare D1 REST）与公开API storage=d1/live交叉核对；iWenCai多key包装器A股收盘行情、均线、RSI、筹码与资金；腾讯港股02701收盘行情；Yahoo Finance SI=F日线；新浪hf_XAG现货白银18:32行情。',
+    signals: [
+      {
+        name: '华天科技', symbol: '002185', market: 'A股', direction: 'BUY', nodes: '5.5h', signalPrices: '¥19.00', close: '¥19.00', change: '+5.67%', validation: 'confirmed', validationLabel: '多方5.5h贴价确认',
+        verdict: '15:00的5.5h多方在¥19.00首次入库，收盘恰好¥19.00，属于贴价确认。日内高¥19.02，收盘站上MA5/10/20，但获利盘94.6%、换手11.80%，次日追高风险较高。',
+        support: '¥19.00信号价；MA5 ¥18.22；平均成本/日低¥17.90附近', pressure: '¥19.02当日高点', buyPlan: '回踩¥19.00不破并重新放量可观察，突破¥19.02后确认延续；高开急冲不追。', sellPlan: '跌回¥19.00下方先减仓；失守MA5 ¥18.22判定本轮多方失败。',
+        evidence: ['D1 5.5h BUY ¥19.00首次入库', '收盘与信号价完全一致', '日涨5.67%，收盘接近当日高点¥19.02', '主力净流入6.71亿元、量比1.368', '获利盘94.6% / RSI6 69.5 / 平均成本¥17.90']
+      },
+      {
+        name: '德福科技', symbol: '301511', market: 'A股', direction: 'BUY', nodes: '3h / 3.5h', signalPrices: '¥101.00 / 101.00', close: '¥101.00', change: '+6.29%', validation: 'confirmed', validationLabel: '多方同价双节点贴价确认',
+        verdict: '15:16连续入库3h与3.5h同价多方¥101.00，收盘也为¥101.00，双节点完成贴价确认。日内高¥101.63，RSI6 78.0且获利盘93.0%，确认有效但已接近短线过热区。',
+        support: '¥101.00同价信号锚；¥94.60当日低点；MA5 ¥92.35', pressure: '¥101.63当日高点', buyPlan: '只观察¥101.00回踩承接或放量突破¥101.63，不在高开急冲时追入。', sellPlan: '跌破¥101.00先减仓；失守¥94.60结束本轮多方确认。',
+        evidence: ['D1 3h/3.5h BUY均为¥101.00', '收盘与双节点信号价一致', '日涨6.29%，主力净流入2.39亿元', 'RSI6 78.0 / 获利盘93.0%', '量比0.879，突破仍缺放量确认']
+      },
+      {
+        name: '东方明珠', symbol: '600637', market: 'A股', direction: 'SELL', nodes: '15m', signalPrices: '¥8.04', close: '¥8.18', change: '0.00%', validation: 'reclaimed', validationLabel: '空方15m收复',
+        verdict: '09:45的15m空方在¥8.04入库，收盘¥8.18高出1.74%，空方被收复。收盘略低于MA5/MA10，主力净流出1070万元且获利盘28.4%，修复尚未转强。',
+        support: '¥8.04信号价；¥8.00当日低点；MA20 ¥8.08', pressure: 'MA5/MA10 ¥8.20—8.24；平均成本¥8.64', buyPlan: '守住¥8.04并突破¥8.20—8.24后再确认修复，不在均线下方追涨。', sellPlan: '跌回¥8.04下方恢复空方执行；跌破¥8.00继续减仓。',
+        evidence: ['D1 15m SELL ¥8.04首次入库', '收盘¥8.18，高于信号价1.74%', '收盘低于MA5 ¥8.20与MA10 ¥8.24', '主力净流出1070万元', '量比1.099 / 获利盘28.4% / 平均成本¥8.64']
+      },
+      {
+        name: '国民技术H股', symbol: '02701', market: '港股', direction: 'BUY', nodes: '5.5h / 6h / 6.5h', signalPrices: 'HK$9.625 / 9.59 / 9.61', close: 'HK$9.61', change: '+3.89%', validation: 'mixed', validationLabel: '多方三节点簇分化',
+        verdict: '15:15至16:16形成三节点多方簇，收盘HK$9.61站上HK$9.59、与HK$9.61持平，但仍低于最高节点HK$9.625。日内高HK$9.65，属于贴近确认区但尚未完整站稳。',
+        support: 'HK$9.61—9.59信号带；HK$9.21当日低点', pressure: 'HK$9.625最高信号价；HK$9.65当日高点', buyPlan: '站稳HK$9.625并突破HK$9.65后再确认完整多方簇；贴价区不追。', sellPlan: '跌破HK$9.59判定多方簇失败；失守HK$9.21继续防守。',
+        evidence: ['D1 5.5h/6h/6.5h三档BUY首次入库', '收盘高于一档、贴平一档，并低于HK$9.625最高节点', '日涨3.89%，日内高HK$9.65、低HK$9.21', '成交323.08万股', '收盘位置要求下一交易日再确认']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F / hf_XAG', market: '期货', direction: 'MIXED', nodes: '5m BUY → 5m SELL', signalPrices: '$65.0617 → 64.7508', close: '$65.61（18:32现货）', change: '+1.45%', validation: 'mixed', validationLabel: '多空交替·空方被收复',
+        verdict: '早盘先出现5m多方$65.0617，随后5m空方$64.7508；18:32现货hf_XAG报$65.61，重新站上两档信号价。价格已收复最新空方，但两档均为5m短周期，仍只记反转观察。',
+        support: '$65.06早盘多方价；$64.75最新空方价；现货日低$64.66', pressure: '$66.20现货日高；SI=F日高约$66.40', buyPlan: '守住$65.06并突破$66.20—66.40后再确认延续；短周期反转不追高。', sellPlan: '跌回$65.06下方转弱；失守$64.75恢复空方执行。',
+        evidence: ['D1 5m BUY $65.0617后出现5m SELL $64.7508', '18:32 hf_XAG $65.61高于两档信号价', '现货较前收+1.45%，日内高$66.20、低$64.66', 'Yahoo SI=F日线收约$65.66、日高约$66.40', '短周期多空交替尚无正式长周期节点确认']
+      },
+    ],
+  },
+
   '2026-08-14': {
     tradeDate: '2026-08-14',
     shortDate: '08/14',
@@ -645,7 +690,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-14', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-17', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-14', href: '/rolling/insights/2026-08-14/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-13', href: '/rolling/insights/2026-08-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-12', href: '/rolling/insights/2026-08-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-11', href: '/rolling/insights/2026-08-11/' },
