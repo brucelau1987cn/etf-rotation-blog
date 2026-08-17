@@ -105,11 +105,15 @@ const isHongKongInstrument = (symbol: string, exchange: string) => {
   return venue.includes('HK') || raw.endsWith('.HK');
 };
 
+const toTradingViewHongKongCode = (symbol: string) => {
+  const bare = String(symbol || '').trim().toUpperCase().replace(/\.HK$/, '');
+  return /^\d+$/.test(bare) ? String(Number(bare)) : '';
+};
+
 const toTradingViewHref = (symbol: string, exchange: string) => {
-  const raw = String(symbol || '').trim().toUpperCase();
-  const bare = raw.replace(/\.(SH|SZ|HK|US)$/, '');
-  if (isHongKongInstrument(symbol, exchange) && /^\d+$/.test(bare)) {
-    return `https://www.tradingview.com/symbols/HKEX-${String(Number(bare))}/technicals/`;
+  const hkCode = toTradingViewHongKongCode(symbol);
+  if (isHongKongInstrument(symbol, exchange) && hkCode) {
+    return `https://www.tradingview.com/symbols/HKEX-${hkCode}/technicals/`;
   }
   const tvSymbol = toTradingViewSymbol(symbol, exchange);
   return tvSymbol ? `https://www.tradingview.com/symbols/${tvSymbol.replace(':', '-')}/technicals/` : '';
@@ -272,6 +276,7 @@ const nameInitials = (name: string) => {
       const tradingViewSymbol = toTradingViewSymbol(inst.symbol, inst.exchange);
       const tradingViewHref = toTradingViewHref(inst.symbol, inst.exchange);
       const hongKongInstrument = isHongKongInstrument(inst.symbol, inst.exchange);
+      const tradingViewHongKongCode = toTradingViewHongKongCode(inst.symbol);
       return (
         <article
           class="instrument-board"
@@ -401,10 +406,15 @@ const nameInitials = (name: string) => {
             {tradingViewSymbol ? (
               <aside class:list={['technical-analysis-panel', hongKongInstrument && 'is-external-only']} data-role="technical-analysis" aria-label={`${inst.instrumentName} TradingView 技术分析`}>
                 {hongKongInstrument ? (
-                  <div class="technical-analysis-fallback">
+                  <div class="technical-analysis-fallback" data-tv-analysis-symbol={inst.symbol}>
                     <span class="technical-analysis-brand">TradingView</span>
                     <strong>{inst.instrumentName}技术分析</strong>
-                    <span class="technical-analysis-code">港股标准代码 {inst.symbol}</span>
+                    <span class="technical-analysis-code">TradingView 港股代码 {tradingViewHongKongCode}</span>
+                    <div class="technical-analysis-periods" aria-label={`${inst.instrumentName}多周期技术评级`}>
+                      <span data-period="4h"><b>4小时</b><em>查询中</em></span>
+                      <span data-period="1d"><b>1天</b><em>查询中</em></span>
+                      <span data-period="1W"><b>1周</b><em>查询中</em></span>
+                    </div>
                     <a href={tradingViewHref} target="_blank" rel="noopener noreferrer">前往 TradingView</a>
                   </div>
                 ) : (

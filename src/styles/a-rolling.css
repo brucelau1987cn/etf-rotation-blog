@@ -966,6 +966,45 @@
   font-variant-numeric: tabular-nums;
 }
 
+.a-rolling-main .technical-analysis-periods {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.a-rolling-main .technical-analysis-periods > span {
+  min-width: 0;
+  padding: 0.26rem 0.12rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+}
+
+.a-rolling-main .technical-analysis-periods b {
+  color: #64748b;
+  font-size: 0.59rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.a-rolling-main .technical-analysis-periods em {
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.a-rolling-main .technical-analysis-periods em.is-buy { color: #dc2626; }
+.a-rolling-main .technical-analysis-periods em.is-sell { color: #059669; }
+.a-rolling-main .technical-analysis-periods em.is-neutral { color: #d97706; }
+.a-rolling-main .technical-analysis-periods em.is-unavailable { color: #94a3b8; }
+
 .a-rolling-main .technical-analysis-fallback a {
   display: inline-flex;
   align-items: center;

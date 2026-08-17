@@ -133,13 +133,22 @@ def test_hk_tradingview_uses_a_clean_external_fallback_instead_of_permission_err
     assert "instruments.some((inst) => !isHongKongInstrument" in matrix
     assert "technical-analysis-fallback" in matrix
     assert "technical-analysis-fallback" in app
-    assert "港股标准代码" in matrix
-    assert "港股标准代码" in app
+    assert "TradingView 港股代码" in matrix
+    assert "TradingView 港股代码" in app
+    for label in ("4小时", "1天", "1周"):
+        assert label in matrix
+        assert label in app
+    assert "/api/public/v1/technical-analysis?s=" in app
+    assert "fetchHongKongTechnicalAnalysis" in app
+    assert "toTradingViewHongKongCode" in matrix
+    assert "toTradingViewHongKongCode" in app
+    assert "港股标准代码" not in matrix
+    assert "港股标准代码" not in app
     assert "前往 TradingView" in matrix
     assert "前往 TradingView" in app
     assert ".a-rolling-main .technical-analysis-fallback" in styles
     assert "HKEX:${String(Number(bare))}" in matrix
-    assert "HKEX-${String(Number(bare))}" in matrix
+    assert "HKEX-${hkCode}" in matrix
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

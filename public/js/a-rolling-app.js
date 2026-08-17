@@ -440,11 +440,15 @@
     return venue.includes('HK') || raw.endsWith('.HK');
   };
 
+  const toTradingViewHongKongCode = (symbol) => {
+    const bare = String(symbol || '').trim().toUpperCase().replace(/\.HK$/, '');
+    return /^\d+$/.test(bare) ? String(Number(bare)) : '';
+  };
+
   const toTradingViewHref = (symbol, exchange) => {
-    const raw = String(symbol || '').trim().toUpperCase();
-    const bare = raw.replace(/\.(SH|SZ|HK|US)$/, '');
-    if (isHongKongInstrument(symbol, exchange) && /^\d+$/.test(bare)) {
-      return `https://www.tradingview.com/symbols/HKEX-${String(Number(bare))}/technicals/`;
+    const hkCode = toTradingViewHongKongCode(symbol);
+    if (isHongKongInstrument(symbol, exchange) && hkCode) {
+      return `https://www.tradingview.com/symbols/HKEX-${hkCode}/technicals/`;
     }
     const tvSymbol = toTradingViewSymbol(symbol, exchange);
     return tvSymbol ? `https://www.tradingview.com/symbols/${tvSymbol.replace(':', '-')}/technicals/` : '';
@@ -477,12 +481,18 @@
     const tradingViewSymbol = toTradingViewSymbol(symbol, exchange);
     const tradingViewHref = toTradingViewHref(symbol, exchange);
     const hongKongInstrument = isHongKongInstrument(symbol, exchange);
+    const tradingViewHongKongCode = toTradingViewHongKongCode(symbol);
     const technicalAnalysis = tradingViewSymbol ? (hongKongInstrument ? `
       <aside class="technical-analysis-panel is-external-only" data-role="technical-analysis" aria-label="TradingView 技术分析">
-        <div class="technical-analysis-fallback">
+        <div class="technical-analysis-fallback" data-tv-analysis-symbol="${symbol}">
           <span class="technical-analysis-brand">TradingView</span>
           <strong data-role="technical-analysis-title">港股技术分析</strong>
-          <span class="technical-analysis-code" data-role="technical-analysis-code">港股标准代码</span>
+          <span class="technical-analysis-code" data-role="technical-analysis-code">TradingView 港股代码</span>
+          <div class="technical-analysis-periods" aria-label="多周期技术评级">
+            <span data-period="4h"><b>4小时</b><em>查询中</em></span>
+            <span data-period="1d"><b>1天</b><em>查询中</em></span>
+            <span data-period="1W"><b>1周</b><em>查询中</em></span>
+          </div>
           <a href="#" data-role="technical-analysis-link" target="_blank" rel="noopener noreferrer">前往 TradingView</a>
         </div>
       </aside>
@@ -539,7 +549,7 @@
     const technicalTitle = article.querySelector('[data-role="technical-analysis-title"]');
     if (technicalTitle) technicalTitle.textContent = `${name}技术分析`;
     const technicalCode = article.querySelector('[data-role="technical-analysis-code"]');
-    if (technicalCode) technicalCode.textContent = `港股标准代码 ${symbol}`;
+    if (technicalCode) technicalCode.textContent = `TradingView 港股代码 ${tradingViewHongKongCode}`;
     const technicalLink = article.querySelector('[data-role="technical-analysis-link"]');
     if (technicalLink && tradingViewHref) technicalLink.setAttribute('href', tradingViewHref);
     // insert before search-empty card if present
@@ -1193,9 +1203,53 @@
     paintContinuousCountdown();
   });
 
+  const TECHNICAL_ANALYSIS_LABELS = {
+    STRONG_BUY: ['强力买入', 'is-buy'],
+    BUY: ['买入', 'is-buy'],
+    NEUTRAL: ['中性', 'is-neutral'],
+    SELL: ['卖出', 'is-sell'],
+    STRONG_SELL: ['强力卖出', 'is-sell'],
+    UNAVAILABLE: ['暂无', 'is-unavailable'],
+  };
+
+  const fetchHongKongTechnicalAnalysis = async () => {
+    const cards = Array.from(document.querySelectorAll('.technical-analysis-fallback[data-tv-analysis-symbol]'));
+    if (!cards.length) return;
+    const symbols = [...new Set(cards.map((card) => String(card.dataset.tvAnalysisSymbol || '').trim()).filter(Boolean))];
+    if (!symbols.length) return;
+    try {
+      const response = await fetch(`/api/public/v1/technical-analysis?s=${encodeURIComponent(symbols.join(','))}`);
+      if (!response.ok) throw new Error(`technical analysis ${response.status}`);
+      const body = await response.json();
+      cards.forEach((card) => {
+        const rows = body?.results?.[String(card.dataset.tvAnalysisSymbol || '').padStart(5, '0')] || [];
+        const byPeriod = new Map(rows.map((row) => [row.period, row]));
+        card.querySelectorAll('.technical-analysis-periods [data-period]').forEach((slot) => {
+          const row = byPeriod.get(slot.dataset.period);
+          const state = row?.recommendation || 'UNAVAILABLE';
+          const [label, cls] = TECHNICAL_ANALYSIS_LABELS[state] || TECHNICAL_ANALYSIS_LABELS.UNAVAILABLE;
+          const value = slot.querySelector('em');
+          if (!value) return;
+          value.className = cls;
+          value.textContent = label;
+          value.title = Number.isFinite(row?.score) ? `TradingView 综合评分 ${row.score.toFixed(3)}` : 'TradingView 暂无评级';
+        });
+      });
+    } catch (error) {
+      cards.forEach((card) => {
+        card.querySelectorAll('.technical-analysis-periods em').forEach((value) => {
+          value.className = 'is-unavailable';
+          value.textContent = '暂不可用';
+        });
+      });
+      console.warn('Hong Kong technical analysis unavailable', error);
+    }
+  };
+
   // Load admin-managed watchlist first so boards/start dates stay in sync.
   void loadRollingWatchlist().finally(() => {
     setTimeout(() => { fetchAllSignals(); }, 200);
+    setTimeout(() => { fetchHongKongTechnicalAnalysis(); }, 260);
     setTimeout(() => {
       fetchAllQuotes();
       fetchContinuousQuotes();
