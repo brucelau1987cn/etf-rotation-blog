@@ -33,11 +33,6 @@ def test_low_chip_page_hides_private_screening_strategy():
         "指标：收盘获利比例",
         "阈值：低于3%",
         "周月季收盘获利筛选",
-        "ROE ≥ 30%",
-        "净利率 ≥ 25%",
-        "现金流/净利润 ≥ 20%",
-        "毛利率 ≥ 15%",
-        "负债率 ≤ 10%",
         "周/月/季交集",
     ):
         assert private_copy not in public_source
@@ -89,6 +84,39 @@ def test_low_chip_page_hides_private_screening_strategy():
     assert set(data["intersection_before_filters"]) == weekly_codes & monthly_codes & quarterly_codes
     assert set(data["intersection"]) <= set(data["intersection_before_filters"])
     assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
+
+
+def test_low_chip_financial_filter_controls_and_logic():
+    page = PAGE.read_text(encoding="utf-8")
+    for marker in (
+        'id="chip-financial-filters"',
+        'aria-label="财务条件筛选"',
+        'data-filter="roe"',
+        'data-filter="net-margin"',
+        'data-filter="cash-profit"',
+        'data-filter="gross-margin"',
+        'data-filter="debt-ratio"',
+        'id="chip-filter-reset"',
+        'id="chip-filter-meta"',
+        'ROE ≥ 30%',
+        '净利率 ≥ 25%',
+        '现金流/净利润 ≥ 20%',
+        '毛利率 ≥ 15%',
+        '负债率 ≤ 10%',
+        'var activeFilters = new Set()',
+        "activeFilters.has('roe')",
+        "activeFilters.has('net-margin')",
+        "activeFilters.has('cash-profit')",
+        "activeFilters.has('gross-margin')",
+        "activeFilters.has('debt-ratio')",
+        "filterButtons.forEach(function(btn)",
+        "activeFilters.clear()",
+    ):
+        assert marker in page
+    assert page.count('class="chip-filter-btn"') == 5
+    assert page.count('aria-pressed="false"') >= 5
+    for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
+        assert f"c.dataset.{metric} === ''" in page
 
 
 def test_low_chip_history_archive_and_query_ui():

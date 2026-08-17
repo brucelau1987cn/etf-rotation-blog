@@ -163,6 +163,15 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           </div>
         </div>
 
+        <div class="chip-financial-filters" id="chip-financial-filters" aria-label="财务条件筛选">
+          <button type="button" class="chip-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
+          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
+          <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+          <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
+          <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 10%</button>
+          <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
+          <span class="chip-filter-meta" id="chip-filter-meta">未启用财务筛选</span>
+        </div>
 
         <div class="chip-list" id="chip-list">
           {rows.map((row, index) => (
@@ -249,6 +258,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       var nextBtn = document.getElementById('chip-page-next');
       var searchInput = document.getElementById('chip-search-input');
       var empty = document.getElementById('chip-search-empty');
+      var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
+      var filterReset = document.getElementById('chip-filter-reset');
+      var filterMeta = document.getElementById('chip-filter-meta');
 
       var calendarBtn = document.getElementById('chip-history-calendar-btn');
       var calendarValue = document.getElementById('chip-history-calendar-value');
@@ -268,6 +280,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       var PAGE_SIZE = Math.max(1, Number(pageSize || pager.dataset.pageSize || 6));
       var page = 1;
       var query = '';
+      var activeFilters = new Set();
 
       var currentDate = String((initialData && initialData.data_as_of) || '');
       var dates = (historyIndex && historyIndex.dates) || [];
@@ -410,6 +423,11 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           var industry = String(c.dataset.industry || '').toLowerCase();
           var searchMatched = !query || sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
           if (!searchMatched) return false;
+          if (activeFilters.has('roe') && (c.dataset.roe === '' || !Number.isFinite(Number(c.dataset.roe)) || Number(c.dataset.roe) < 30)) return false;
+          if (activeFilters.has('net-margin') && (c.dataset.netMargin === '' || !Number.isFinite(Number(c.dataset.netMargin)) || Number(c.dataset.netMargin) < 25)) return false;
+          if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || !Number.isFinite(Number(c.dataset.cashProfit)) || Number(c.dataset.cashProfit) < 20)) return false;
+          if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
+          if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 10)) return false;
           return true;
         });
       }
@@ -428,6 +446,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         var showPager = matched.length > PAGE_SIZE;
         pager.hidden = !showPager;
         meta.textContent = matched.length ? ('第 ' + page + '/' + totalPages + ' 页 · ' + matched.length + ' 只') : '无匹配';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? ('已启用 ' + activeFilters.size + ' 项 · ' + matched.length + ' 只') : '未启用财务筛选';
 
         nums.replaceChildren();
         if (showPager) {
@@ -617,6 +636,26 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       if (searchInput) {
         searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; renderPager(); });
       }
+      filterButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var key = btn.dataset.filter;
+          if (!key) return;
+          if (activeFilters.has(key)) activeFilters.delete(key); else activeFilters.add(key);
+          btn.classList.toggle('is-active', activeFilters.has(key));
+          btn.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
+          page = 1;
+          renderPager();
+        });
+      });
+      if (filterReset) filterReset.addEventListener('click', function() {
+        activeFilters.clear();
+        filterButtons.forEach(function(btn) {
+          btn.classList.remove('is-active');
+          btn.setAttribute('aria-pressed', 'false');
+        });
+        page = 1;
+        renderPager();
+      });
 
       if (calendarBtn) calendarBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleCalendar(); });
       if (calendarPanel) calendarPanel.addEventListener('click', function(event) { event.stopPropagation(); });
