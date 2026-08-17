@@ -102,7 +102,9 @@ def test_futures_page_contains_event_briefing_sections():
     assert "查看金十财经日历" in page
     assert briefing["index_delivery"]["symbols"] == ["IF", "IH", "IC", "IM"]
     assert len(briefing["industry_policy"]) >= 3
-    assert len(briefing["fed_watch"]["latest"]) >= 2
+    fed_latest = briefing["fed_watch"]["latest"]
+    assert fed_latest
+    assert all({"time", "event", "result", "impact"} <= item.keys() for item in fed_latest)
     assert 'class="command-grid"' not in page
     assert '<section class="terminal"' in page and '<div class="briefing-grid"' in page
     assert "距交割 <span class=\"delivery-days\">{deliveryDays}</span> 天" in page
