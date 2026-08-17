@@ -33,10 +33,27 @@ def industry_text(value) -> str:
 
 
 def shareholders_from_row(row: dict) -> list[str]:
-    raw = row.get("前十大流通股东名称") or ""
+    raw = row.get("前十大流通股东名称")
+    if not raw:
+        for key, value in row.items():
+            if key.startswith("前十大流通股东名称") and value:
+                raw = value
+                break
+    if not raw:
+        return []
     if isinstance(raw, list):
         return [str(item).strip() for item in raw if str(item).strip()]
-    return [item.strip() for item in str(raw).split("||") if item.strip()]
+    text = str(raw).replace("||", ",").replace("，", ",")
+    return [item.strip() for item in text.split(",") if item.strip()]
+
+
+def classify_shareholders(names: list[str]) -> tuple[list[str], list[str]]:
+    quality = [name for name in names if any(term in name for term in QUALITY_TERMS)]
+    institutional = [
+        name for name in names
+        if name not in quality and any(term in name for term in INSTITUTIONAL_TERMS)
+    ]
+    return quality, institutional
 
 
 def main() -> None:
@@ -65,14 +82,12 @@ def main() -> None:
         for row in load(QUALITY).get("datas", []):
             code = str(row.get("股票代码") or "")
             names = shareholders_from_row(row)
-            single = str(row.get("流通股东名称(报告期)[20260331]") or row.get("持股机构名称明细[20260331]") or "").strip()
-            if single:
-                names.append(single)
-            for name in names:
-                if any(term in name for term in QUALITY_TERMS):
-                    quality_names.setdefault(code, [])
-                    if name not in quality_names[code]:
-                        quality_names[code].append(name)
+            for key, value in row.items():
+                if (key.startswith("流通股东名称") or key.startswith("持股机构名称明细")) and value:
+                    names.extend(shareholders_from_row({"前十大流通股东名称": value}))
+            quality, _ = classify_shareholders(list(dict.fromkeys(names)))
+            if quality:
+                quality_names[code] = quality
 
     unlocks: dict[str, dict] = {}
     if UNLOCK.exists():
@@ -97,9 +112,9 @@ def main() -> None:
         industry = industry_text(row.get("所属申万行业"))
         levels = [item for item in industry.split("--") if item]
         sector = levels[-1] if levels else "待补充"
-        quality = quality_names.get(code, [])
         shareholders = shareholders_from_row(row)
-        institutional = [name for name in shareholders if any(term in name for term in INSTITUTIONAL_TERMS)]
+        classified_quality, institutional = classify_shareholders(shareholders)
+        quality = list(dict.fromkeys(quality_names.get(code, []) + classified_quality))
         unlock = unlocks.get(code)
         enrichments[code] = {
             "industry": industry or "待补充",

@@ -26,6 +26,24 @@ def iwc(query, page=1, limit=50, timeout=90):
     return json.loads(r.stdout)
 
 
+def has_top10_names(row: dict | None) -> bool:
+    return bool(row and any(
+        key.startswith("前十大流通股东名称") and value
+        for key, value in row.items()
+    ))
+
+
+def report_period_from_rows(rows: list[dict]) -> str:
+    periods = []
+    for row in rows:
+        for key in row:
+            if "[" in key and key.endswith("]"):
+                token = key.rsplit("[", 1)[1][:-1]
+                if token.isdigit() and len(token) == 8:
+                    periods.append(token)
+    return max(periods) if periods else ""
+
+
 def main() -> int:
     payload = json.loads(DATA.read_text(encoding="utf-8"))
     codes = list(payload.get("intersection") or [])
@@ -49,7 +67,7 @@ def main() -> int:
     # /tmp/low_chip_individual.json — per-stock current shareholding row with industry/concept
     rows = []
     for code in codes:
-        q = f"{code.split('.')[0]} 最新价、最新涨跌幅、所属申万行业、所属概念、前十大流通股东、第一大流通股东名称、持股数量、持股市值、占总股本比、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
+        q = f"{code.split('.')[0]} 最新价、最新涨跌幅、所属申万行业、所属概念、最新完整报告期十大流通股东明细、前十大流通股东名称、股东名称、股东类型、持股比例、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
         d = iwc(q)
         matched = None
         for r in d.get("datas") or []:
@@ -79,6 +97,42 @@ def main() -> int:
                     f"missing industry after per-symbol fallback: {code}; "
                     f"returned={len(fallback_rows)}"
                 )
+        if not has_top10_names(matched):
+            holder_detail = iwc(
+                f"{code.split('.')[0]} 最新完整报告期十大流通股东明细、前十大流通股东名称、公告日期",
+                limit=30,
+            )
+            detail_rows = holder_detail.get("datas") or []
+            detail = next((
+                r for r in detail_rows
+                if str(r.get("股票代码") or "").upper().split(".")[0] == code.split(".")[0]
+                and has_top10_names(r)
+            ), None)
+            if detail is None:
+                period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
+                query = f"{code.split('.')[0]} 前十大流通股东名称" + (f"[{period}]" if period else "")
+                holder_names = iwc(query, limit=20)
+                name_rows = holder_names.get("datas") or []
+                names = []
+                for item in name_rows:
+                    if str(item.get("股票代码") or "").upper().split(".")[0] != code.split(".")[0]:
+                        continue
+                    name = str(item.get("流通股东名称") or "").strip()
+                    if name and name not in names:
+                        names.append(name)
+                if names:
+                    detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period or 'latest'}]": ", ".join(names)}
+            if detail is None:
+                raise SystemExit(
+                    f"missing top10 shareholder names after per-symbol fallback: {code}; "
+                    f"returned={len(detail_rows)}"
+                )
+            if matched is None:
+                matched = detail
+            else:
+                for key, value in detail.items():
+                    if key.startswith("前十大流通股东名称") and value:
+                        matched[key] = value
         if matched is not None:
             rows.append(matched)
     Path("/tmp/low_chip_individual.json").write_text(
