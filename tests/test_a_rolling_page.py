@@ -101,7 +101,7 @@ def test_each_rolling_board_reserves_a_compact_tradingview_analysis_panel():
     for marker in ("SSE:", "SZSE:", "HKEX:", "COMEX:SI1!", "NASDAQ"):
         assert marker in matrix
         assert marker in app
-    assert 'class="technical-analysis-panel"' in matrix
+    assert "technical-analysis-panel" in matrix
     assert "technical-analysis-mount" in matrix
     assert 'data-role="technical-analysis"' in matrix
     assert "toTradingViewSymbol" in app
@@ -120,6 +120,26 @@ def test_each_rolling_board_reserves_a_compact_tradingview_analysis_panel():
     assert "box-sizing: border-box" in styles
     assert ".a-rolling-main .hero-copy" in styles
     assert "max-width: 100%" in styles
+
+
+def test_hk_tradingview_uses_a_clean_external_fallback_instead_of_permission_error():
+    matrix = MATRIX.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    assert "isHongKongInstrument" in matrix
+    assert "isHongKongInstrument" in app
+    assert "needsTradingViewWidget" in matrix
+    assert "instruments.some((inst) => !isHongKongInstrument" in matrix
+    assert "technical-analysis-fallback" in matrix
+    assert "technical-analysis-fallback" in app
+    assert "港股标准代码" in matrix
+    assert "港股标准代码" in app
+    assert "前往 TradingView" in matrix
+    assert "前往 TradingView" in app
+    assert ".a-rolling-main .technical-analysis-fallback" in styles
+    assert "HKEX:${String(Number(bare))}" in matrix
+    assert "HKEX-${String(Number(bare))}" in matrix
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

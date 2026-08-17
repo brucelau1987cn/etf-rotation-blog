@@ -427,11 +427,27 @@
     if (!raw) return '';
     if (venue === 'SSE' || raw.endsWith('.SH') || /^6\d{5}$/.test(bare)) return `SSE:${bare}`;
     if (venue === 'SZSE' || raw.endsWith('.SZ') || /^(0|2|3)\d{5}$/.test(bare)) return `SZSE:${bare}`;
-    if (venue.includes('HK') || raw.endsWith('.HK')) return `HKEX:${String(Number(bare))}`;
+    if (venue.includes('HK') || raw.endsWith('.HK')) return /^\d+$/.test(bare) ? `HKEX:${String(Number(bare))}` : '';
     const futures = { 'SI=F': 'COMEX:SI1!', 'GC=F': 'COMEX:GC1!', 'CL=F': 'NYMEX:CL1!' };
     if (futures[raw]) return futures[raw];
     if (/^[A-Z][A-Z0-9.-]*$/.test(bare)) return `${venue || 'NASDAQ'}:${bare}`;
     return '';
+  };
+
+  const isHongKongInstrument = (symbol, exchange) => {
+    const raw = String(symbol || '').trim().toUpperCase();
+    const venue = String(exchange || '').trim().toUpperCase();
+    return venue.includes('HK') || raw.endsWith('.HK');
+  };
+
+  const toTradingViewHref = (symbol, exchange) => {
+    const raw = String(symbol || '').trim().toUpperCase();
+    const bare = raw.replace(/\.(SH|SZ|HK|US)$/, '');
+    if (isHongKongInstrument(symbol, exchange) && /^\d+$/.test(bare)) {
+      return `https://www.tradingview.com/symbols/HKEX-${String(Number(bare))}/technicals/`;
+    }
+    const tvSymbol = toTradingViewSymbol(symbol, exchange);
+    return tvSymbol ? `https://www.tradingview.com/symbols/${tvSymbol.replace(':', '-')}/technicals/` : '';
   };
 
   const ensureInstrumentBoard = (meta, index = 0) => {
@@ -459,11 +475,22 @@
     const exchange = meta.exchange || '';
     const startDate = meta.start_date || '';
     const tradingViewSymbol = toTradingViewSymbol(symbol, exchange);
-    const technicalAnalysis = tradingViewSymbol ? `
+    const tradingViewHref = toTradingViewHref(symbol, exchange);
+    const hongKongInstrument = isHongKongInstrument(symbol, exchange);
+    const technicalAnalysis = tradingViewSymbol ? (hongKongInstrument ? `
+      <aside class="technical-analysis-panel is-external-only" data-role="technical-analysis" aria-label="TradingView 技术分析">
+        <div class="technical-analysis-fallback">
+          <span class="technical-analysis-brand">TradingView</span>
+          <strong data-role="technical-analysis-title">港股技术分析</strong>
+          <span class="technical-analysis-code" data-role="technical-analysis-code">港股标准代码</span>
+          <a href="#" data-role="technical-analysis-link" target="_blank" rel="noopener noreferrer">前往 TradingView</a>
+        </div>
+      </aside>
+    ` : `
       <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label="TradingView 技术分析">
         <div class="technical-analysis-mount" data-tv-symbol="${tradingViewSymbol}" aria-busy="true"><span class="technical-analysis-loading">技术分析加载中…</span></div>
       </aside>
-    ` : '';
+    `) : '';
     const article = document.createElement('article');
     article.className = 'instrument-board';
     article.setAttribute('data-symbol', symbol);
@@ -509,6 +536,12 @@
         ${technicalAnalysis}
       </div>
     `;
+    const technicalTitle = article.querySelector('[data-role="technical-analysis-title"]');
+    if (technicalTitle) technicalTitle.textContent = `${name}技术分析`;
+    const technicalCode = article.querySelector('[data-role="technical-analysis-code"]');
+    if (technicalCode) technicalCode.textContent = `港股标准代码 ${symbol}`;
+    const technicalLink = article.querySelector('[data-role="technical-analysis-link"]');
+    if (technicalLink && tradingViewHref) technicalLink.setAttribute('href', tradingViewHref);
     // insert before search-empty card if present
     const emptyCard = list.querySelector('#board-search-empty, .board-search-empty');
     if (emptyCard) list.insertBefore(article, emptyCard);

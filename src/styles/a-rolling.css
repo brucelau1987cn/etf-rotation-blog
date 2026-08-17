@@ -932,6 +932,59 @@
   font-weight: 700;
 }
 
+.a-rolling-main .technical-analysis-fallback {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.65rem;
+  text-align: center;
+  background: linear-gradient(145deg, #f8fbff 0%, #fff 100%);
+}
+
+.a-rolling-main .technical-analysis-brand {
+  color: #2962ff;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+}
+
+.a-rolling-main .technical-analysis-fallback strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.a-rolling-main .technical-analysis-code {
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.a-rolling-main .technical-analysis-fallback a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  margin-top: 0.08rem;
+  padding: 0 0.72rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #2962ff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.a-rolling-main .technical-analysis-fallback a:hover {
+  background: #1d4ed8;
+}
+
 .a-rolling-main .technical-analysis-panel tv-technical-analysis,
 .a-rolling-main .technical-analysis-panel iframe {
   display: block;
