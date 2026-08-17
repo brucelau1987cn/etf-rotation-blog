@@ -81,6 +81,24 @@ const formatBadgePrice = (value?: number | null, exchange?: string) => {
     : `¥${price.toFixed(2)}`;
 };
 
+const toTradingViewSymbol = (symbol: string, exchange: string) => {
+  const raw = String(symbol || '').trim().toUpperCase();
+  const venue = String(exchange || '').trim().toUpperCase();
+  const bare = raw.replace(/\.(SH|SZ|HK|US)$/, '');
+  if (!raw) return '';
+  if (venue === 'SSE' || raw.endsWith('.SH') || /^6\d{5}$/.test(bare)) return `SSE:${bare}`;
+  if (venue === 'SZSE' || raw.endsWith('.SZ') || /^(0|2|3)\d{5}$/.test(bare)) return `SZSE:${bare}`;
+  if (venue.includes('HK') || raw.endsWith('.HK')) return `HKEX:${String(Number(bare))}`;
+  const futures: Record<string, string> = {
+    'SI=F': 'COMEX:SI1!',
+    'GC=F': 'COMEX:GC1!',
+    'CL=F': 'NYMEX:CL1!',
+  };
+  if (futures[raw]) return futures[raw];
+  if (/^[A-Z][A-Z0-9.-]*$/.test(bare)) return `${venue || 'NASDAQ'}:${bare}`;
+  return '';
+};
+
 const signalTimeMs = (item?: TimelineItem | null) => {
   const ms = new Date(item?.triggered_at || 0).getTime();
   return Number.isFinite(ms) ? ms : 0;
@@ -233,6 +251,7 @@ const nameInitials = (name: string) => {
       const { columns, buyObservation, sellObservation } = splitTimeline(inst.timeline || []);
       const startDateText = formatStartDate(inst.startDate);
       const initials = nameInitials(inst.instrumentName);
+      const tradingViewSymbol = toTradingViewSymbol(inst.symbol, inst.exchange);
       return (
         <article
           class="instrument-board"
@@ -358,6 +377,14 @@ const nameInitials = (name: string) => {
                 </div>
               </div>
             </div>
+
+            {tradingViewSymbol ? (
+              <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label={`${inst.instrumentName} TradingView 技术分析`}>
+                <div class="technical-analysis-mount" data-tv-symbol={tradingViewSymbol} aria-busy="true">
+                  <span class="technical-analysis-loading">技术分析加载中…</span>
+                </div>
+              </aside>
+            ) : null}
           </div>
         </article>
       );
@@ -368,3 +395,4 @@ const nameInitials = (name: string) => {
     </div>
   </div>
 </section>
+<script is:inline type="module" src="https://widgets.tradingview-widget.com/w/zh_CN/tv-technical-analysis.js"></script>

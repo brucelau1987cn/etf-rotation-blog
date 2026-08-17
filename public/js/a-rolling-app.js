@@ -420,6 +420,20 @@
     return raw;
   };
 
+  const toTradingViewSymbol = (symbol, exchange) => {
+    const raw = String(symbol || '').trim().toUpperCase();
+    const venue = String(exchange || '').trim().toUpperCase();
+    const bare = raw.replace(/\.(SH|SZ|HK|US)$/, '');
+    if (!raw) return '';
+    if (venue === 'SSE' || raw.endsWith('.SH') || /^6\d{5}$/.test(bare)) return `SSE:${bare}`;
+    if (venue === 'SZSE' || raw.endsWith('.SZ') || /^(0|2|3)\d{5}$/.test(bare)) return `SZSE:${bare}`;
+    if (venue.includes('HK') || raw.endsWith('.HK')) return `HKEX:${String(Number(bare))}`;
+    const futures = { 'SI=F': 'COMEX:SI1!', 'GC=F': 'COMEX:GC1!', 'CL=F': 'NYMEX:CL1!' };
+    if (futures[raw]) return futures[raw];
+    if (/^[A-Z][A-Z0-9.-]*$/.test(bare)) return `${venue || 'NASDAQ'}:${bare}`;
+    return '';
+  };
+
   const ensureInstrumentBoard = (meta, index = 0) => {
     const list = document.getElementById('rolling-board-list');
     if (!list || !meta?.symbol) return null;
@@ -444,6 +458,12 @@
     const name = meta.name || symbol;
     const exchange = meta.exchange || '';
     const startDate = meta.start_date || '';
+    const tradingViewSymbol = toTradingViewSymbol(symbol, exchange);
+    const technicalAnalysis = tradingViewSymbol ? `
+      <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label="TradingView 技术分析">
+        <div class="technical-analysis-mount" data-tv-symbol="${tradingViewSymbol}" aria-busy="true"><span class="technical-analysis-loading">技术分析加载中…</span></div>
+      </aside>
+    ` : '';
     const article = document.createElement('article');
     article.className = 'instrument-board';
     article.setAttribute('data-symbol', symbol);
@@ -486,6 +506,7 @@
             </div>
           </div>
         </div>
+        ${technicalAnalysis}
       </div>
     `;
     // insert before search-empty card if present
@@ -1196,6 +1217,40 @@
     setInterval(fetchContinuousQuotes, QUOTE_INTERVAL_MS);
   }
 
+  const initializeTechnicalAnalysis = (board) => {
+    const mount = board?.querySelector('.technical-analysis-mount[data-tv-symbol]');
+    if (!mount || mount.dataset.loaded === 'true') return;
+    const symbol = mount.dataset.tvSymbol;
+    if (!symbol) return;
+    if (!customElements.get('tv-technical-analysis')) {
+      if (mount.dataset.pending !== 'true') {
+        mount.dataset.pending = 'true';
+        customElements.whenDefined('tv-technical-analysis').then(() => {
+          delete mount.dataset.pending;
+          if (!board.hidden) initializeTechnicalAnalysis(board);
+        });
+      }
+      return;
+    }
+    const widget = document.createElement('tv-technical-analysis');
+    widget.setAttribute('symbol', symbol);
+    widget.setAttribute('style', 'width: 100%; height: 150px');
+    mount.dataset.loaded = 'true';
+    mount.setAttribute('aria-busy', 'false');
+    mount.replaceChildren(widget);
+  };
+
+  const disposeTechnicalAnalysis = (board) => {
+    const mount = board?.querySelector('.technical-analysis-mount[data-tv-symbol]');
+    if (!mount || mount.dataset.loaded !== 'true') return;
+    const loading = document.createElement('span');
+    loading.className = 'technical-analysis-loading';
+    loading.textContent = '技术分析加载中…';
+    delete mount.dataset.loaded;
+    mount.setAttribute('aria-busy', 'true');
+    mount.replaceChildren(loading);
+  };
+
   // Energy board: page by 3 instruments + code/name/initial search.
   const initBoardPager = () => {
     const list = document.getElementById('rolling-board-list');
@@ -1243,7 +1298,10 @@
       const visible = new Set(matched.slice(start, end));
 
       boards.forEach((board) => {
-        board.hidden = !visible.has(board);
+        const isVisible = visible.has(board);
+        board.hidden = !isVisible;
+        if (isVisible) initializeTechnicalAnalysis(board);
+        else disposeTechnicalAnalysis(board);
       });
       if (empty) empty.hidden = matched.length > 0;
 

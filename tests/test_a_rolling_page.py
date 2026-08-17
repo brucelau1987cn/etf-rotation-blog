@@ -91,6 +91,37 @@ def test_price_volume_asof_badge_sits_beside_matrix_title_and_uses_latest_kline_
     assert ".a-rolling-main .price-volume-asof" in styles
 
 
+def test_each_rolling_board_reserves_a_compact_tradingview_analysis_panel():
+    matrix = MATRIX.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    styles = STYLES.read_text(encoding="utf-8")
+
+    assert "widgets.tradingview-widget.com/w/zh_CN/tv-technical-analysis.js" in matrix
+    assert "toTradingViewSymbol" in matrix
+    for marker in ("SSE:", "SZSE:", "HKEX:", "COMEX:SI1!", "NASDAQ"):
+        assert marker in matrix
+        assert marker in app
+    assert 'class="technical-analysis-panel"' in matrix
+    assert "technical-analysis-mount" in matrix
+    assert 'data-role="technical-analysis"' in matrix
+    assert "toTradingViewSymbol" in app
+    assert "initializeTechnicalAnalysis" in app
+    assert "customElements.whenDefined('tv-technical-analysis')" in app
+    assert "disposeTechnicalAnalysis" in app
+    assert "if (isVisible) initializeTechnicalAnalysis(board)" in app
+    assert "else disposeTechnicalAnalysis(board)" in app
+    assert "technical-analysis-panel" in app
+    assert "document.createElement('tv-technical-analysis')" in app
+    assert ".a-rolling-main .technical-analysis-panel" in styles
+    assert "flex: 0 0 238px" in styles
+    assert "height: 150px" in styles
+    assert "@media (max-width: 900px)" in styles
+    assert "@media (max-width: 600px)" in styles
+    assert "box-sizing: border-box" in styles
+    assert ".a-rolling-main .hero-copy" in styles
+    assert "max-width: 100%" in styles
+
+
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():
     stats = STATS.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")

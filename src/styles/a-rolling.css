@@ -27,6 +27,12 @@
   flex-wrap: wrap;
 }
 
+.a-rolling-main .hero-copy {
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .a-rolling-main .hero-copy h1 {
   margin: 0.35rem 0 0.35rem;
   font-size: clamp(1.85rem, 5vw, 2.8rem);
@@ -49,6 +55,8 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -798,6 +806,9 @@
 }
 
 .a-rolling-main .instrument-board {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 0;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -892,6 +903,41 @@
   border-radius: 10px;
   background: #fff;
   padding-bottom: 2px;
+}
+
+.a-rolling-main .technical-analysis-panel {
+  flex: 0 0 238px;
+  width: 238px;
+  height: 150px;
+  min-width: 0;
+  margin-left: 0.4rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.a-rolling-main .technical-analysis-mount {
+  width: 100%;
+  height: 100%;
+}
+
+.a-rolling-main .technical-analysis-loading {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.a-rolling-main .technical-analysis-panel tv-technical-analysis,
+.a-rolling-main .technical-analysis-panel iframe {
+  display: block;
+  width: 100% !important;
+  height: 150px !important;
+  border: 0;
 }
 
 .a-rolling-main .signal-panel::-webkit-scrollbar {
@@ -1259,6 +1305,32 @@
 
   .a-rolling-main .summary-signal-label-text {
     font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .a-rolling-main .board-row {
+    flex-wrap: wrap;
+  }
+
+  .a-rolling-main .technical-analysis-panel {
+    flex: 1 0 100%;
+    width: 100%;
+    height: 260px;
+    margin: 0.4rem 0 0;
+  }
+
+  .a-rolling-main .technical-analysis-panel tv-technical-analysis,
+  .a-rolling-main .technical-analysis-panel iframe {
+    height: 260px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .a-rolling-main .signal-panel {
+    flex: 1 0 100%;
+    width: 100%;
+    margin: 0.4rem 0 0;
   }
 }
 
