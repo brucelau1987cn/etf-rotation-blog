@@ -1,35 +1,35 @@
 {
-  "date": "2026-08-14",
-  "updated_at": "2026-08-14T22:02:13+08:00",
-  "applies_to": "2026-08-14",
-  "data_as_of": "2026-08-14收盘qfq OHLC/ATR（91/91）+ Tencent公开收盘行情截至16:14 CST + 多Key资讯与资金查询截至22:02 CST",
+  "date": "2026-08-17",
+  "updated_at": "2026-08-17T08:31:44+08:00",
+  "applies_to": "2026-08-17",
+  "data_as_of": "2026-08-14收盘qfq OHLC/ATR（91/91）+ Tencent公开收盘行情 + 2026-08-15凌晨美股收盘与周末政策资讯截至2026-08-17 08:31 CST",
   "level_data_as_of": "2026-08-14",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-08-14+22:00+Bruce ETF Trend Radar v3",
-  "market_state": "22:00夜间最终版｜指数探底回升但仍是缩量分化：上证+0.01%、深证+0.45%、创业板+1.12%、科创50 0.00%；两市约2.16万亿元、较前日缩量约16%，全市场约2400涨2970跌。CPO/光通信主线集中增强，高位题材退潮；正式池收盘重基后market_regime升级为防御。结论：旧plant全天0触发、0执行，下一交易日改用跨境强势三只候场，禁止把收盘涨幅当作已实现收益。",
+  "idempotency_key": "CN+2026-08-17+08:30+Bruce ETF Trend Radar v3",
+  "market_state": "08:30盘前版｜上一交易日正式池51涨1平39跌、平均+0.10%，market_regime=防御；隔夜道指-0.20%、标普500-0.17%、纳指-0.28%、费半-0.31%，但存储与光通信逆势活跃，科技内部继续分化。结论：周一不把隔夜局部强势外推为全面风险偏好回归，三只跨境候选只等关键位回踩止跌。",
   "position": "权益10%-30%；防御/现金70%-90%",
   "position_base": "权益10%-30%；防御/现金70%-90%",
-  "mainline": "相对14:30，收盘点位与广度无新增反转，新增信息是盘后复盘确认63股涨停、10股跌停，CPO/光通信为单极主线且高位接力退潮；央行当日净投放3480亿元，资金面边际转松。收盘qfq重选把513030德国、513060恒生医疗、512200房地产全部移出plant，改为513500标普500、513520日经、159941纳指；三只新候选分别收涨2.47%、1.24%、2.16%，但只允许等待2.711、2.283、1.649附近回踩止跌。结论：不追跨境溢价，不追通信高位，按防御市况下的关键位分批执行。",
-  "summary": "2026-08-14夜间最终：旧plant 513030/513060/512200方向0正0平3负，全天均未触发伏击位，实际触发0、执行0、持仓收益不适用。正式池收盘重选为513500/513520/159941；mid_macro=0中性，market_regime=防御，canonical position放宽至权益10%-30%、防御/现金70%-90%，但三只均须回踩关键位确认，不按今日涨幅追入。结论：下周一只执行到位止跌，不追CPO与跨境ETF高开。",
+  "mainline": "周一盘前主线是“存储/光通信局部映射+国内流动性支持”，反证是美股宽基与费半收跌、博通和应用材料显著走弱、地缘风险推升油价。正式池仍为防御，选择器延续513500标普500、513520日经、159941纳指三只候场；对应伏击位2.711、2.283、1.649，远离关键位或QDII高溢价时不追。结论：准备信号不等于开仓，先看A股开盘广度与科技扩散，再按价位分批。",
+  "summary": "2026-08-17盘前：上一完整交易日91池51涨1平39跌、平均+0.10%；隔夜美股三大指数小跌，存储和光通信强于宽基，国内货币政策维持支持性。plant延续513500/513520/159941，mid_macro=0中性、market_regime=防御，canonical position为权益10%-30%、防御/现金70%-90%。结论：只在2.711/2.283/1.649附近止跌后各以2%试仓，高开与折溢价扩张不追。",
   "data_quality": {
-    "generated_at": "2026-08-14 22:02:13 CST",
+    "generated_at": "2026-08-17 08:31:44 CST",
     "model_version": "Bruce ETF Trend Radar v3",
-    "qfq_basis": "2026-08-14收盘（22:00 prepare冻结快照，91/91 qfq覆盖）",
+    "qfq_basis": "2026-08-14上一完整交易日收盘（91/91 qfq覆盖）",
     "latest_trade_date": "2026-08-14",
     "quote_date": "2026-08-14",
     "pool_count": 91,
     "qfq_coverage": 91,
-    "return_basis_disclosure": "qfq前复权；关键位基线=2026-08-14收盘MA20/ATR14；收盘OHLC与涨跌幅来自Tencent生产edge-proxy，截至2026-08-14 16:14 CST。旧plant方向收益按2026-08-13收盘至2026-08-14收盘计算；三只均未触发，方向收益不等于持仓收益。",
-    "quote_as_of": "2026-08-14 15:02 CST"
+    "return_basis_disclosure": "qfq前复权；关键位使用2026-08-14收盘MA20/ATR14，行情OHLC与涨跌幅使用Tencent上一完整交易日收盘快照。盘前没有新持仓，候选方向涨跌不等于实现收益。",
+    "quote_as_of": "2026-08-14 16:14 CST"
   },
   "source_audit": {
-    "calendar": "d1_exchange_calendar（22:00 gate确认2026-08-14为交易日）",
-    "qfq_pool": "22:00 prepare冻结的etf-garden-pool.json：正式池91/91有效、qfq 91/91，evaluation_date与latest_trade_date均为2026-08-14",
-    "quotes": "Tencent生产edge-proxy：六大指数、旧plant、新候选及科技观察ETF，收盘时间2026-08-14 16:14 CST",
-    "assessment": "影子层shadow_research_only、production_weights_changed=false、轮动宇宙89；正式池61涨1平43跌、平均+0.15%；同花顺收盘复盘指数点位与edge-proxy一致",
-    "fallback": "D1交易日历与公开行情正常；资讯及ETF资金经iWenCai多Key包装器检索。空rows不解释为零资金；仅披露成功返回的三只新候选资金字段",
-    "iwencai_news": "多Key包装器检索“A股 2026年8月14日 收盘 复盘 通信 半导体 医药 房地产”与“2026年8月14日 盘后 公告 政策 A股 下周”；采用同花顺15:30收盘复盘并以Tencent点位交叉核对，补充CPO集中、高位退潮、央行净投放3480亿元及下周一执行风险"
+    "calendar": "d1_exchange_calendar（08:30 gate确认2026-08-17为交易日）",
+    "qfq_pool": "generate_garden_pool Path A：evaluation_date=2026-08-17、latest_trade_date=2026-08-14，正式池91/91有效且qfq覆盖91/91",
+    "quotes": "Tencent公开行情交叉核对上一完整交易日ETF收盘；生产edge-proxy核对道指53732.41、纳指26729.16与资讯收盘数字一致",
+    "assessment": "正式池51涨1平39跌、平均+0.10%，market_regime=防御；美股宽基小跌而存储/光通信逆势，科技映射为局部而非全面扩散",
+    "fallback": "D1交易日历正常；行情、资讯经公开JSON、Tencent与iWenCai多Key包装器交叉验证。空rows不解释为零资金，盘前不预填未知资金字段",
+    "iwencai_news": "多Key包装器检索“美股2026年8月15日收盘科技中概A股周一开盘”、半导体/费半、黄金原油地缘、A股8月17日央行流动性；采用8月15日收盘复盘与8月17日政策晨报，并以Tencent指数点位交叉核对"
   },
   "harvest": [],
   "plant": [
@@ -58,11 +58,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-14",
+      "selected_from_pool_date": "2026-08-17",
       "selection_score": 87.99,
       "selection_rank": 1,
       "candidate_since": "2026-08-14",
-      "last_qualified_date": "2026-08-14",
+      "last_qualified_date": "2026-08-17",
       "qualified_reason": [
         "趋势B",
         "信号得分72.4",
@@ -98,11 +98,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-14",
+      "selected_from_pool_date": "2026-08-17",
       "selection_score": 84.37,
       "selection_rank": 2,
       "candidate_since": "2026-08-14",
-      "last_qualified_date": "2026-08-14",
+      "last_qualified_date": "2026-08-17",
       "qualified_reason": [
         "趋势B",
         "信号得分71.7",
@@ -138,11 +138,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-14",
+      "selected_from_pool_date": "2026-08-17",
       "selection_score": 82.75,
       "selection_rank": 3,
       "candidate_since": "2026-08-14",
-      "last_qualified_date": "2026-08-14",
+      "last_qualified_date": "2026-08-17",
       "qualified_reason": [
         "趋势B",
         "信号得分68.3",
@@ -266,8 +266,8 @@
   "intraday_0830": {
     "stage": "08:30盘前版",
     "status": "complete",
-    "quote_date": "2026-08-13",
-    "quote_as_of": "2026-08-14 08:30 CST",
+    "quote_date": "2026-08-14",
+    "quote_as_of": "2026-08-17 08:31:44 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -280,19 +280,18 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "盘前基线：上一交易日正式池27涨1平63跌、平均-0.63%；隔夜美股科技偏强但中概偏弱，央行等量续作稳定流动性，开盘后需观察科技修复是否扩散",
-    "premarket_summary": "plant为513030德国、513060恒生医疗、512200房地产；准备信号是正式池资格延续，触发要求伏击位止跌，失效线分别1.828、0.543、1.184；开盘追涨不执行",
+    "breadth": "上一完整交易日正式池51涨1平39跌、平均+0.10%；隔夜美股宽基与费半小跌，存储/光通信逆势，开盘后需验证A股科技扩散与总体广度",
+    "premarket_summary": "plant延续513500标普500、513520日经、159941纳指；准备信号为91池资格延续，触发要求分别在2.711、2.283、1.649附近止跌，失效线2.592、2.230、1.613；高开不追",
     "triggered_actions": [
-      "513030德国ETF：准备回踩1.892附近止跌确认，跌破1.828取消候场，初始2%",
-      "513060恒生医疗ETF：准备回踩0.555附近止跌确认，跌破0.543取消候场，初始2%",
-      "512200房地产ETF：准备回踩1.200附近止跌确认，跌破1.184取消候场，初始2%"
+      "513500标普500ETF：准备回踩2.711附近止跌确认，跌破2.592取消候场；首次2%，检查QDII折溢价",
+      "513520日经ETF：准备回踩2.283附近止跌确认，跌破2.230取消候场；首次2%，高开远离关键位则放弃",
+      "159941纳指ETF：准备回踩1.649附近止跌确认，跌破1.613取消候场；首次2%，隔夜纳指收跌时不抬价"
     ]
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "complete",
-    "quote_date": "2026-08-14",
-    "quote_as_of": "2026-08-14 11:42 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-17",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -305,35 +304,12 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "上证-0.21%、沪深300-0.12%、中证500-0.24%、科创50-0.57%，深证+0.08%、创业板+0.65%；正式池33涨4平54跌、平均-0.25%，CPO/通信集中走强但未形成全面扩散",
-    "morning_session_summary": "相对08:30，外盘科技修复只在通信/CPO兑现，医药、房地产与黄金偏弱；三只plant均未到伏击位，实际触发为0",
-    "triggered_actions": [
-      "513030德国ETF：🔴+1.59%，高2.010触及目标参考但低1.931仍未到1.892伏击位，主力净流出约0.57亿元；未开仓、不追高",
-      "513060恒生医疗ETF：🟢-1.91%，低0.563仍高于0.555伏击位，主力净流出约0.23亿元；未触发，跌破0.543取消",
-      "512200房地产ETF：🟢-1.53%，低1.212仍高于1.200伏击位，主力净流入约0.03亿元；未触发，等止跌确认",
-      "515880通信ETF：🔴+2.10%，成交约20.63亿元、主力净流入约3.66亿元；CPO集中强度确认但仍属watch，不升级plant",
-      "588000科创50ETF：🟢-0.50%，成交约32.92亿元、主力净流出约4.78亿元；科技宽基未确认扩散",
-      "518880黄金ETF：🟢-1.29%，成交约25.51亿元、主力净流出约1.12亿元；隔夜弱映射兑现，维持历史观察"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actual_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "realized_positions": 0,
-      "realized_return": "不适用（上午无候选触发、无新开仓）"
-    },
-    "position_change": "权益0%-10%；防御/现金90%-100%（相对08:30不变）",
-    "updated_at": "2026-08-14 11:43:25 CST",
-    "data_source": "Tencent公开行情与多Key行情包装器截至2026-08-14 11:42 CST；午评资讯截至11:30 CST；qfq关键位基线为2026-08-13收盘91/91"
+    "breadth": "待2026-08-17 11:30后更新：盘前不预填日内广度与资金数据"
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "status": "complete",
-    "quote_date": "2026-08-14",
-    "quote_as_of": "2026-08-14 15:02 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-17",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -346,35 +322,12 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "上证+0.01%、深证+0.45%、创业板+1.12%、科创50 0.00%；正式池61涨1平43跌、平均+0.15%；全市场成交2.16万亿较昨日缩量16%；赚钱效应44.69%",
-    "tail_session_summary": "下午指数全面企稳通信续强但未扩散，三只plant均未触伏击位；515880通信+3.60%全天高位收盘，但仍保持watch不升级plant",
-    "triggered_actions": [
-      "513030德国ETF：🟢-0.56%，低1.913距1.892伏击位约1.1%，主力净流出约0.66亿元；未触发，整日从高2.010回落至1.940，伏击位仍有效",
-      "513060恒生医疗ETF：🟢-2.08%，低0.560距0.555伏击位仅0.9%，成交约5.71亿元；未触发，如收盘跌破0.555则关注隔夜止跌确认",
-      "512200房地产ETF：🟢-1.21%，低1.212距1.200伏击位约1.0%，成交约1.37亿元；未触发，等明日止跌确认",
-      "515880通信ETF：🔴+3.60%，成交约35.20亿元，全天最高收盘；CPO/通信集中强度确认但mid_macro=0仍限制权益上限，保持watch不升级plant",
-      "588000科创50ETF：🔴+0.11%，成交约57.00亿元，主力净流出约4.78亿元；科技宽基未确认扩散，518880黄金ETF：🟢-1.06%弱映射持续",
-      "159915创业板ETF：🔴+1.14%，成交约47.14亿元；弹性映射确认但正式池角色为观察，不升级plant"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actual_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "realized_positions": 0,
-      "realized_return": "不适用（全天无候选触发、无新开仓）"
-    },
-    "position_change": "权益0%-10%；防御/现金90%-100%（相对11:30不变）",
-    "updated_at": "2026-08-14 15:09:27 CST",
-    "data_source": "Tencent公开行情与多Key行情包装器截至2026-08-14 15:02 CST；同花顺收盘快讯（15:03 CST）确认指数点位；qfq关键位基线为2026-08-13收盘91/91"
+    "breadth": "待2026-08-17 14:30后更新：盘前不预填日内广度与资金数据"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "complete",
-    "quote_date": "2026-08-14",
-    "quote_as_of": "2026-08-14 16:14 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-17",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -385,46 +338,12 @@
       "exit": 0,
       "hold": 0,
       "upgrade_candidate": 0,
-      "clear": 0,
-      "cash_sweep_missed": 0
+      "clear": 0
     },
-    "breadth": "两市成交约2.16万亿元、较前日缩量约4114亿元（约16%）；全市场约2400涨2970跌、63股涨停10股跌停。正式池61涨1平43跌，平均+0.15%",
-    "close_summary": "指数探底回升而个股仍偏弱，CPO/光通信单极走强、高位题材退潮；旧plant均未触发，收盘正式池重选为标普500、日经和纳指三只跨境候选",
-    "triggered_actions": [
-      "513030德国ETF：收跌0.56%，最低1.913高于旧伏击1.892，未触发；收盘动量排名降至6，移出plant转历史候场",
-      "513060恒生医疗ETF：收跌2.08%，最低0.560高于旧伏击0.555，未触发；收盘趋势降至D、动量排名43，移出plant",
-      "512200房地产ETF：收跌1.21%，最低1.212高于旧伏击1.200，未触发；收盘动量排名18，移出plant",
-      "513500标普500ETF：收涨2.47%、主力净买入约0.09亿元；收盘重选新入plant，下一窗口只等2.711附近回踩止跌",
-      "513520日经ETF：收涨1.24%、主力净买入约0.10亿元；收盘重选新入plant，下一窗口只等2.283附近回踩止跌",
-      "159941纳指ETF：收涨2.16%、主力净买入约0.97亿元；收盘重选新入plant，下一窗口只等1.649附近回踩止跌",
-      "515880通信ETF：收涨3.60%确认CPO集中主线，但趋势等级D且动量排名37，保持watch、不追高、不人工升级plant"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actually_triggered": 0,
-      "direction_positive": 0,
-      "direction_flat": 0,
-      "direction_negative": 3,
-      "executable": 0,
-      "mean_return_pct": -1.28,
-      "return_basis": "14:30前的三只plant按2026-08-13收盘至2026-08-14收盘方向收益简单平均；均未触发，不计实际持仓收益"
-    },
-    "candidate_swap": {
-      "from": [
-        "513030",
-        "513060",
-        "512200"
-      ],
-      "to": [
-        "513500",
-        "513520",
-        "159941"
-      ],
-      "reason": "收盘qfq正式池重选：新组合趋势均为B、风险低，动量排名1/3/5；旧组合动量降至6/43/18，其中恒生医疗趋势降至D"
-    }
+    "breadth": "待2026-08-17 22:00后更新：盘前不预填日内广度与资金数据"
   },
   "mid_macro": {
-    "generated_at": "2026-08-14 22:30:12 CST",
+    "generated_at": "2026-08-17 09:42:36 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
@@ -437,21 +356,21 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.0,
-        "headline": "固收/权益5日相对中性+0.56pp"
+        "headline": "固收/权益5日相对中性+0.49pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.0,
-        "headline": "海外映射ETF 5日+1.98%"
+        "headline": "海外映射ETF 5日+0.70%"
       },
       {
         "key": "margin_financing",
         "label": "市场资金与杠杆",
         "state": "中性",
         "score": 0.5,
-        "headline": "两融余额5日回升+1.31%"
+        "headline": "两融余额5日回升+0.97%"
       }
     ]
   },
@@ -461,7 +380,7 @@
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-08-14",
+    "evaluation_date": "2026-08-17",
     "evaluated_count": 91,
     "eligible_count": 20,
     "selected_count": 3,
@@ -490,7 +409,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-08-14",
+    "selected_from_pool_date": "2026-08-17",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
