@@ -69,7 +69,7 @@ def test_energy_page_renders_multi_market_rolling_shell_and_resilient_polling():
     assert "initBoardPager" in app
     assert 'id="board-search-input"' in matrix
     assert 'id="board-pager"' in matrix
-    assert 'data-page-size="3"' in matrix
+    assert 'data-page-size="4"' in matrix
     assert "data-initials" in matrix
     assert "上下滑动" not in matrix
     assert "max-height: none" in styles
@@ -150,6 +150,15 @@ def test_all_markets_share_edge_scanner_refresh_and_remove_external_brand_cta():
     assert "dataset.tone" in app
     assert "escapeHtml" in app
     assert 'data-tv-analysis-ticker="${safeTradingViewSymbol}"' in app
+
+
+def test_a_rolling_board_paginates_four_instruments_per_page():
+    matrix = MATRIX.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+
+    assert 'data-page-size="4"' in matrix
+    assert "每页 4 只" in matrix
+    assert "pager.dataset.pageSize || 4" in app
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

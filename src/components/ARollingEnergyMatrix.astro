@@ -208,7 +208,7 @@ const nameInitials = (name: string) => {
         </span>
       </div>
       <p class="matrix-sub">
-        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。列按触发时间从左到右排列；后出现的多方信号排在更早空方信号右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 3 只；可用代码、名称或首字母检索。
+        多方/空方各最多显示最新 4 个正式窗口（合计最多 8 个），超出后旧窗口自动隐藏。列按触发时间从左到右排列；后出现的多方信号排在更早空方信号右侧。右侧信号区可左右滑动，左侧标的固定。看板按页浏览，每页 4 只；可用代码、名称或首字母检索。
       </p>
     </div>
     <div class="matrix-controls">
@@ -233,7 +233,7 @@ const nameInitials = (name: string) => {
         placeholder="代码 / 名称 / 首字母，如 600、创新、cx"
       />
     </label>
-    <div class="board-pager" id="board-pager" data-page-size="3" hidden>
+    <div class="board-pager" id="board-pager" data-page-size="4" hidden>
       <button type="button" class="board-page-btn" id="board-page-prev" aria-label="上一页">上一页</button>
       <div class="board-page-nums" id="board-page-nums" role="navigation" aria-label="页码"></div>
       <button type="button" class="board-page-btn" id="board-page-next" aria-label="下一页">下一页</button>

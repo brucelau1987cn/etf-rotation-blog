@@ -1330,7 +1330,7 @@
     const empty = document.getElementById('board-search-empty');
     if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
 
-    const pageSize = Math.max(1, Number(pager.dataset.pageSize || 3));
+    const pageSize = Math.max(1, Number(pager.dataset.pageSize || 4));
     const boards = Array.from(list.querySelectorAll('.instrument-board'));
     if (!boards.length) return;
 
