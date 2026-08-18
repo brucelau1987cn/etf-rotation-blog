@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -66,6 +68,31 @@ class MidMacroConstraintTests(unittest.TestCase):
 
     def test_format_band(self) -> None:
         self.assertEqual(self.mod.format_band((0, 10)), "权益0%-10%；防御/现金90%-100%")
+
+    def test_apply_to_recommendations_advances_parent_updated_at(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            reco = Path(directory) / "garden.json"
+            reco.write_text(json.dumps({
+                "updated_at": "2026-08-18T22:00:00+08:00",
+                "position": "权益10%-30%；防御/现金70%-90%",
+                "plant": [],
+            }), encoding="utf-8")
+            original = getattr(self.mod, "RECO")
+            setattr(self.mod, "RECO", reco)
+            try:
+                self.mod.apply_to_recommendations({
+                    "base_position": "权益10%-30%；防御/现金70%-90%",
+                    "position": "权益10%-30%；防御/现金70%-90%",
+                    "headwind_level": 0,
+                    "label": "顺风",
+                    "equity_constraint": "维持",
+                    "allow_chase": True,
+                    "allow_new_offense": True,
+                }, [], "2026-08-18 22:35:00 CST")
+            finally:
+                setattr(self.mod, "RECO", original)
+            saved = json.loads(reco.read_text(encoding="utf-8"))
+            self.assertEqual(saved["updated_at"], "2026-08-18 22:35:00 CST")
 
     def test_constraint_records_uncompressed_base_source(self) -> None:
         factors = [

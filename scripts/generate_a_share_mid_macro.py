@@ -663,6 +663,7 @@ def apply_to_recommendations(constraint: dict[str, Any], factors: list[dict[str,
             for f in factors
         ],
     }
+    reco["updated_at"] = generated_at
 
     # Plant eligibility gate: mid-macro + trend quality.
     # Status vocabulary: 候场 / 伏击 (legacy 准备种花 / 种花 still accepted).

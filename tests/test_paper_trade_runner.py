@@ -247,9 +247,15 @@ class PaperTradingTests(unittest.TestCase):
                 "flower_signals": {"plant": [{"symbol": "IYT", "name": "IYT", "signal": "伏击触发"}]},
             }), encoding="utf-8")
 
-            paper.sync_public_snapshot(export, {"A": source_a, "US": source_us})
+            original_now_iso = getattr(paper, "now_iso")
+            setattr(paper, "now_iso", lambda _value=None: "2026-07-28T23:00:00+00:00")
+            try:
+                paper.sync_public_snapshot(export, {"A": source_a, "US": source_us})
+            finally:
+                setattr(paper, "now_iso", original_now_iso)
 
             saved = json.loads(export.read_text(encoding="utf-8"))
+            self.assertEqual(saved["updated_at"], "2026-07-28T23:00:00+00:00")
             self.assertEqual(saved["accounts"]["A"]["pending_signals"], [{"symbol": "OLD"}])
             self.assertEqual(saved["accounts"]["A"]["public_pending_signals"][0]["symbol"], "560080")
             self.assertEqual(saved["accounts"]["US"]["public_pending_signals"][0]["status"], "伏击")

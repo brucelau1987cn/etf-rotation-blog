@@ -345,7 +345,9 @@ def sync_public_snapshot(export=None, source_paths=None):
     export=export or EXPORT
     with public_write_lock():
         current=json.loads(export.read_text())
-        atomic_write(export,build_public_snapshot(current,source_paths))
+        snapshot=build_public_snapshot(current,source_paths)
+        snapshot["updated_at"]=now_iso()
+        atomic_write(export,snapshot)
 
 
 def self_test():
