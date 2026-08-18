@@ -325,6 +325,9 @@ const nameInitials = (name: string) => {
                       <span class="chip-metric-label">较昨日获利盘</span>
                       <strong class:list={['chip-metric-value', diff == null ? '' : diffUp ? 'chip-diff-up' : 'chip-diff-down']}>{diff == null ? '—' : (diffUp ? '+' : '') + diff.toFixed(1) + 'pp'}</strong>
                     </div>
+                    {chip.status === 'unavailable' ? (
+                      <small class="chip-unavailable-note" title={chip.unavailable_reason || ''}>UNAVAILABLE · 期货筹码口径待数据源</small>
+                    ) : null}
                   </div>
                 );
               })()

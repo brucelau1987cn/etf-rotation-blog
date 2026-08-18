@@ -8,6 +8,7 @@ import ARollingStatsStrip from '../../components/ARollingStatsStrip.astro';
 import ARollingEnergyMatrix from '../../components/ARollingEnergyMatrix.astro';
 import ARollingAiAlerts from '../../components/ARollingAiAlerts.astro';
 import { SITE_TITLE } from '../../consts';
+import futuresChipData from '../../../public/data/futures-rolling-chip.json';
 import '../../styles/a-rolling.css';
 
 // Futures rolling instruments are added only when explicitly named by the user.
@@ -80,7 +81,7 @@ const latestAction = '白银现货等待正式信号';
           indexMarket="futures"
         />
       </section>
-      <ARollingEnergyMatrix instruments={boardInstruments} formatTime={(value) => value || '—'} />
+      <ARollingEnergyMatrix instruments={boardInstruments} formatTime={(value) => value || '—'} chipData={futuresChipData} />
       <ARollingAiAlerts alerts={[]} />
     </main>
     <Footer />

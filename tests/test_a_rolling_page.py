@@ -336,6 +336,19 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert "白银现货" in futures
     assert "SI=F" in futures
     assert "白银现货已接入" in futures
+    assert "futures-rolling-chip.json" in futures
+    assert "chipData={futuresChipData}" in futures
+    assert "期货筹码口径待数据源" in matrix
+    assert ".a-rolling-main .chip-unavailable-note" in styles
+    futures_chip = json.loads((ROOT / "public/data/futures-rolling-chip.json").read_text(encoding="utf-8"))
+    assert futures_chip["schema_version"] == "futures-rolling-chip-v1"
+    silver_chip = futures_chip["chips"]["SI=F"]
+    assert silver_chip["status"] == "unavailable"
+    assert silver_chip["profit_ratio"] is None
+    assert silver_chip["concentration90"] is None
+    assert silver_chip["avg_cost"] is None
+    assert silver_chip["profit_ratio_change_pp"] is None
+    assert "不提供" in silver_chip["unavailable_reason"]
     assert "FUTURES_INSTRUMENTS" in app
     assert "querySymbol: 'hf_XAG'" in app
     assert "market === 'futures'" in app
