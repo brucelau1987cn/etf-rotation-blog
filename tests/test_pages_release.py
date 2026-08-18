@@ -1,3 +1,4 @@
+from email.message import Message
 from types import SimpleNamespace
 from pathlib import Path
 import io
@@ -125,6 +126,71 @@ def test_restore_tracked_public_files_skips_non_public_paths(tmp_path, monkeypat
     pages_release.restore_tracked_public_files()
 
     assert calls == []
+
+
+def test_url_probe_retries_transient_socket_failure(monkeypatch):
+    attempts = []
+
+    class Response:
+        status = 200
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, _limit):
+            return b"ok"
+
+    def fake_urlopen(*args, **kwargs):
+        attempts.append((args, kwargs))
+        if len(attempts) == 1:
+            raise OSError(99, "Cannot assign requested address")
+        return Response()
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    busts = iter((1, 2))
+    monkeypatch.setattr(pages_release.time, "time_ns", lambda: next(busts))
+    monkeypatch.setattr(pages_release, "URL_PROBE_ATTEMPTS", 2)
+    pages_release.probe_urls(["https://example.test/page/"])
+    assert len(attempts) == 2
+    assert attempts[0][0][0].full_url != attempts[1][0][0].full_url
+
+
+def test_url_probe_stops_after_retry_budget(monkeypatch):
+    attempts = []
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        attempts.append((args, kwargs))
+        raise OSError(99, "Cannot assign requested address")
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: sleeps.append(seconds))
+    busts = iter((1, 2, 3))
+    monkeypatch.setattr(pages_release.time, "time_ns", lambda: next(busts))
+    monkeypatch.setattr(pages_release, "URL_PROBE_ATTEMPTS", 3)
+    with pytest.raises(RuntimeError, match="after 3 attempts") as caught:
+        pages_release.probe_urls(["https://example.test/page/"])
+    assert isinstance(caught.value.__cause__, OSError)
+    assert len(attempts) == 3
+    assert sleeps == [pages_release.URL_PROBE_DELAY_SECONDS] * 2
+    assert len({call[0][0].full_url for call in attempts}) == 3
+
+
+def test_url_probe_does_not_retry_http_failure(monkeypatch):
+    attempts = []
+
+    def fake_urlopen(request, **kwargs):
+        attempts.append((request, kwargs))
+        raise pages_release.urllib.error.HTTPError(
+            request.full_url, 503, "Service Unavailable", Message(), None,
+        )
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    with pytest.raises(RuntimeError, match="HTTP 503"):
+        pages_release.probe_urls(["https://example.test/page/"])
+    assert len(attempts) == 1
 
 
 def test_json_probe_retries_during_pages_eventual_consistency(tmp_path, monkeypatch):

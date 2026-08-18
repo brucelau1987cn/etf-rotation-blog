@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -39,6 +40,8 @@ EXTERNAL_DIRTY = {
 }
 JSON_PROBE_ATTEMPTS = 65
 JSON_PROBE_DELAY_SECONDS = 5
+URL_PROBE_ATTEMPTS = 5
+URL_PROBE_DELAY_SECONDS = 2
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -139,17 +142,27 @@ def purge_custom_domain() -> None:
 
 
 def probe_urls(urls: Iterable[str]) -> None:
-    bust = int(time.time())
     for url in urls:
         separator = "&" if "?" in url else "?"
-        request = urllib.request.Request(
-            f"{url}{separator}bust={bust}",
-            headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
-        )
-        with urllib.request.urlopen(request, timeout=30) as response:
-            if response.status != 200:
-                raise RuntimeError(f"production probe failed: {url} HTTP {response.status}")
-            response.read(1024)
+        for attempt in range(URL_PROBE_ATTEMPTS):
+            request = urllib.request.Request(
+                f"{url}{separator}bust={time.time_ns()}",
+                headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    if response.status != 200:
+                        raise RuntimeError(f"production probe failed: {url} HTTP {response.status}")
+                    response.read(1024)
+                break
+            except urllib.error.HTTPError as exc:
+                raise RuntimeError(f"production probe failed: {url} HTTP {exc.code}") from exc
+            except OSError as exc:
+                if attempt >= URL_PROBE_ATTEMPTS - 1:
+                    raise RuntimeError(
+                        f"production probe connection failed after {URL_PROBE_ATTEMPTS} attempts: {url}: {exc}"
+                    ) from exc
+                time.sleep(URL_PROBE_DELAY_SECONDS)
 
 
 def probe_json_matches(matches: dict[str, Path]) -> None:
