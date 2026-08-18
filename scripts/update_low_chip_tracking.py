@@ -211,6 +211,7 @@ def main() -> int:
             "main_force": entry_metrics.get("main_force"),
             "main_force_label": entry_metrics.get("main_force_label") or "",
         }
+        r["entry_financials"] = dict(entry_enrichment.get("financials") or {})
 
     DATA.write_text(json.dumps({"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"stocks": len(stocks), "total_bars": sum(len(r["daily"]) for r in stocks.values())}, ensure_ascii=False))

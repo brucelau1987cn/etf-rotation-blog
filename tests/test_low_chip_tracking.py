@@ -29,6 +29,9 @@ def test_tracking_data_contract():
         features = rec.get("entry_features")
         assert isinstance(features, dict)
         assert set(features) == {"quality_shareholder", "chip_focus", "main_force", "main_force_label"}
+        financials = rec.get("entry_financials")
+        assert isinstance(financials, dict)
+        assert {"roe", "net_margin", "cash_profit_ratio", "gross_margin", "debt_ratio"} <= set(financials)
 
     hengyunchang = stocks["688785.SH"]["entry_features"]
     assert hengyunchang == {
@@ -72,6 +75,18 @@ def test_tracking_page_and_entry_link():
         "entry_features",
         "is-concentrated",
         "includes('集中')",
+        "ROE ≥ 30%",
+        "净利率 ≥ 25%",
+        "现金流/净利润 ≥ 20%",
+        "毛利率 ≥ 15%",
+        "负债率 ≤ 10%",
+        "未启用财务筛选",
+        "tc-filter-reset",
+        "data-roe",
+        "data-net-margin",
+        "data-cash-profit",
+        "data-gross-margin",
+        "data-debt-ratio",
     ):
         assert marker in page
     assert "threshY" not in page
@@ -108,6 +123,12 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "第{rec.daily.length}/20日" in tracking
     assert 'aria-valuemax="20"' in tracking
     assert "Math.max(0, 20 - rec.daily.length)" in tracking
+    assert "el.dataset.roe !== ''" in tracking
+    assert "el.dataset.netMargin !== ''" in tracking
+    assert "el.dataset.cashProfit !== ''" in tracking
+    assert "el.dataset.grossMargin !== ''" in tracking
+    assert "el.dataset.debtRatio !== ''" in tracking
+    assert "activeFilters.clear()" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
     assert "@media (max-width: 900px)" in tracking
@@ -156,7 +177,10 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
     history_dir.mkdir()
     snapshot = {
         "intersection": ["600000.SH"],
-        "enrichments": {"600000.SH": {"industry": "测试行业"}},
+        "enrichments": {"600000.SH": {
+            "industry": "测试行业",
+            "financials": {"roe": 31, "net_margin": 26, "cash_profit_ratio": 21, "gross_margin": 16, "debt_ratio": 9},
+        }},
         "periods": {"week": [{"symbol": "600000.SH", "name": "测试股票"}]},
     }
     (history_dir / "2026-01-01.json").write_text(json.dumps(snapshot), encoding="utf-8")
@@ -202,6 +226,7 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
     assert completed["daily"][0]["date"] == "2026-01-01"
     assert completed["daily"][-1]["date"] == "2026-01-21"
     assert completed["tracking_complete"] is True
+    assert completed["entry_financials"]["roe"] == 31
 
 
 def test_tracking_page_has_batched_live_quote_layer():

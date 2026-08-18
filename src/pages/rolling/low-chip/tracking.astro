@@ -120,6 +120,16 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
 
+    <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务条件筛选">
+      <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
+      <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
+      <button type="button" class="tc-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+      <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
+      <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 10%</button>
+      <button type="button" class="tc-filter-reset" id="tc-filter-reset">清除</button>
+      <span class="tc-filter-meta" id="tc-filter-meta">未启用财务筛选</span>
+    </div>
+
     <section class="tc-list" id="tc-list" aria-label="追踪股票列表">
       {stocks.length === 0 && (
         <div class="tc-empty">
@@ -132,7 +142,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
+          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -284,6 +294,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var starToggle = document.getElementById('tc-star-toggle');
       var filterCount = document.getElementById('tc-filter-count');
       var filterEmpty = document.getElementById('tc-filter-empty');
+      var filterButtons = Array.from(document.querySelectorAll('.tc-filter-btn'));
+      var filterReset = document.getElementById('tc-filter-reset');
+      var filterMeta = document.getElementById('tc-filter-meta');
       var viewActive = document.getElementById('tc-view-active');
       var viewHistory = document.getElementById('tc-view-history');
       if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory) return;
@@ -292,6 +305,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var viewStorageKey = 'low_chip_tracking_view';
       var currentView = localStorage.getItem(viewStorageKey) === 'history' ? 'history' : 'active';
       var query = '';
+      var activeFilters = new Set();
       var saved = localStorage.getItem(storageKey);
       if (saved === '0') starToggle.checked = false;
       function normalize(value) { return String(value || '').trim().toLowerCase().replace(/\s+/g, ''); }
@@ -301,11 +315,17 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           var name = normalize(el.querySelector('.tc-name')?.textContent);
           var code = normalize(el.querySelector('.tc-code')?.textContent);
           var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1;
-          var show = el.dataset.trackingStatus === currentView && searchMatched && (starToggle.checked || el.dataset.starMarket !== '1');
+          var financialMatched = (!activeFilters.has('roe') || (el.dataset.roe !== '' && Number.isFinite(Number(el.dataset.roe)) && Number(el.dataset.roe) >= 30))
+            && (!activeFilters.has('net-margin') || (el.dataset.netMargin !== '' && Number.isFinite(Number(el.dataset.netMargin)) && Number(el.dataset.netMargin) >= 25))
+            && (!activeFilters.has('cash-profit') || (el.dataset.cashProfit !== '' && Number.isFinite(Number(el.dataset.cashProfit)) && Number(el.dataset.cashProfit) >= 20))
+            && (!activeFilters.has('gross-margin') || (el.dataset.grossMargin !== '' && Number.isFinite(Number(el.dataset.grossMargin)) && Number(el.dataset.grossMargin) >= 15))
+            && (!activeFilters.has('debt-ratio') || (el.dataset.debtRatio !== '' && Number.isFinite(Number(el.dataset.debtRatio)) && Number(el.dataset.debtRatio) <= 10));
+          var show = el.dataset.trackingStatus === currentView && searchMatched && financialMatched && (starToggle.checked || el.dataset.starMarket !== '1');
           el.hidden = !show;
           if (show) visible += 1;
         });
         if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? '已启用 ' + activeFilters.size + ' 项 · ' + visible + ' 只' : '未启用财务筛选';
         if (filterEmpty) filterEmpty.hidden = visible > 0;
         viewActive.classList.toggle('is-active', currentView === 'active');
         viewActive.setAttribute('aria-pressed', currentView === 'active' ? 'true' : 'false');
@@ -345,6 +365,23 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
         applyFilter();
       });
+      filterButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          var key = button.dataset.filter;
+          if (activeFilters.has(key)) activeFilters.delete(key); else activeFilters.add(key);
+          button.classList.toggle('is-active', activeFilters.has(key));
+          button.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
+          applyFilter();
+        });
+      });
+      if (filterReset) filterReset.addEventListener('click', function() {
+        activeFilters.clear();
+        filterButtons.forEach(function(button) {
+          button.classList.remove('is-active');
+          button.setAttribute('aria-pressed', 'false');
+        });
+        applyFilter();
+      });
       viewActive.addEventListener('click', function() {
         currentView = 'active'; localStorage.setItem(viewStorageKey, currentView); applyFilter();
       });
@@ -382,6 +419,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-star-switch input:checked + .tc-star-track span { transform: translateX(.9rem); }
   .tc-star-switch input:focus-visible + .tc-star-track { outline: 2px solid #2563eb; outline-offset: 2px; }
   .tc-filter-count { margin-left: auto; font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; }
+  .tc-financial-filters { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:-.2rem 0 .8rem; padding:.65rem .8rem; border:1px solid #e2e8f0; border-radius:10px; background:#fafbfc; }
+  .tc-filter-btn,.tc-filter-reset { height:1.95rem; padding:0 .7rem; border:1px solid #fcd34d; border-radius:999px; background:#fffbeb; color:#b45309; font-size:.72rem; font-weight:750; cursor:pointer; transition:all .15s ease; }
+  .tc-filter-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+  .tc-filter-reset { border-color:#e2e8f0; color:#94a3b8; background:#fff; }
+  .tc-filter-reset:hover { border-color:#fca5a5; color:#dc2626; background:#fef2f2; }
+  .tc-filter-meta { margin-left:auto; color:#64748b; font-size:.72rem; font-weight:700; white-space:nowrap; }
 
   /* Hero 右侧概览 */
   .tc-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin:0; }
@@ -467,6 +510,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     .tc-search-wrap { width: 100%; order: 5; }
     .tc-search-wrap input { flex: 1; width: auto; }
     .tc-filter-count { width: 100%; margin-left: 0; order: 6; }
+    .tc-financial-filters { flex-wrap:nowrap; overflow-x:auto; }
+    .tc-filter-meta { margin-left:0; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }
     .tc-head { flex-direction: column; }
     .tc-badges { width: 100%; }
