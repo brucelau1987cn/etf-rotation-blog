@@ -52,18 +52,20 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     assert all(path == maintenance.PUBLIC_SNAPSHOT for path, _ in writes)
 
 
-def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
+def test_public_snapshot_validation_blocks_old_or_incomplete_payloads(monkeypatch):
     now = datetime(2026, 7, 28, 8, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    codes = ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM", "SA")
+    monkeypatch.setattr(data, "load_watchlist", lambda: [{"code": code} for code in codes])
     fresh = {
         "ok": True,
         "source": "fixture",
         "generated_at": "2026-07-28T08:20:00+08:00",
-        "count": 10,
-        "expected_count": 10,
+        "count": 11,
+        "expected_count": 11,
         "stale": False,
         "errors": [],
-        "summary": {"ranking": ["LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM"]},
-        "items": [valid_item(code) for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM")],
+        "summary": {"ranking": list(codes)},
+        "items": [valid_item(code) for code in codes],
     }
     assert data.validate_public_snapshot(fresh, now=now) == []
 
@@ -74,9 +76,9 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads():
     assert any("watchlist" in error for error in data.validate_public_snapshot(incomplete, now=now))
 
     shell = {
-        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 10,
-        "expected_count": 10, "stale": False, "errors": [], "summary": fresh["summary"],
-        "items": [{"code": code} for code in ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM")],
+        "ok": True, "source": "fixture", "generated_at": fresh["generated_at"], "count": 11,
+        "expected_count": 11, "stale": False, "errors": [], "summary": fresh["summary"],
+        "items": [{"code": code} for code in codes],
     }
     assert any("missing core fields" in error for error in data.validate_public_snapshot(shell, now=now))
 
