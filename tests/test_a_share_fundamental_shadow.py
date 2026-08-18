@@ -6,7 +6,7 @@ from scripts.a_share_fundamental_shadow import (
     build_coverage, build_shadow_metric, compute_incremental_returns,
     attach_share_timeline, validate_baostock_workers, normalize_baostock_row,
     load_universe, partition_items, should_relogin, finalize_trade_batch,
-    observation_sessions,
+    observation_sessions, retry_incomplete_or_stale_results,
 )
 
 
@@ -168,6 +168,64 @@ def test_real_batch_rejects_mixed_latest_trade_dates():
     ]
     with pytest.raises(ValueError, match="latest trade date"):
         finalize_trade_batch(raw, observation_sessions=1)
+
+
+def test_retry_incomplete_or_stale_results_uses_fresh_single_session(monkeypatch):
+    universe = [
+        {"code": code, "name": code, "market": "SH"}
+        for code in ("A", "B", "C", "D")
+    ]
+
+    def item(code, latest):
+        return {
+            "stock_code": code,
+            "valuation_rows": [
+                ["2026-08-14", f"sh.{code}", "10", "", "", "", ""],
+                [latest, f"sh.{code}", "11", "", "", "", ""],
+            ],
+            "share_rows": [],
+        }
+
+    results = [
+        ("A", "succeeded", item("A", "2026-08-17"), None),
+        ("B", "succeeded", item("B", "2026-08-17"), None),
+        ("C", "succeeded", item("C", "2023-02-02"), None),
+        ("D", "failed", None, "transient query failure"),
+    ]
+    calls = []
+
+    def retry(rows, sessions):
+        calls.append(([row["code"] for row in rows], sessions))
+        return [
+            (row["code"], "succeeded", item(row["code"], "2026-08-17"), None)
+            for row in rows
+        ]
+
+    monkeypatch.setattr("scripts.a_share_fundamental_shadow._fetch_partition", retry)
+    repaired = retry_incomplete_or_stale_results(universe, results)
+    assert calls == [(["C", "D"], 0)]
+    assert all(status == "succeeded" for _, status, _, _ in repaired)
+    assert {row["valuation_rows"][-1][0] for _, _, row, _ in repaired} == {"2026-08-17"}
+
+
+def test_retry_incomplete_results_recovers_total_worker_session_failure(monkeypatch):
+    universe = [{"code": "A", "name": "A", "market": "SH"}]
+    results: list[tuple[str, str, dict | None, str | None]] = [("A", "failed", None, "login failed")]
+    repaired_item = {
+        "stock_code": "A",
+        "valuation_rows": [
+            ["2026-08-14", "sh.A", "10", "", "", "", ""],
+            ["2026-08-17", "sh.A", "11", "", "", "", ""],
+        ],
+        "share_rows": [],
+    }
+    monkeypatch.setattr(
+        "scripts.a_share_fundamental_shadow._fetch_partition",
+        lambda rows, sessions: [("A", "succeeded", repaired_item, None)],
+    )
+    assert retry_incomplete_or_stale_results(universe, results) == [
+        ("A", "succeeded", repaired_item, None),
+    ]
 
 
 def test_observation_sessions_are_idempotent_for_same_market_trade_date(tmp_path):

@@ -9,6 +9,7 @@ import multiprocessing as mp
 import os
 import tempfile
 import urllib.request
+from collections import Counter
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -296,6 +297,38 @@ def _fetch_partition(
             pass
 
 
+def retry_incomplete_or_stale_results(
+    universe: list[dict[str, str]],
+    results: list[tuple[str, str, dict[str, Any] | None, str | None]],
+) -> list[tuple[str, str, dict[str, Any] | None, str | None]]:
+    """Retry transient failures and date outliers in one fresh BaoStock session."""
+    dates = [
+        str(row["valuation_rows"][-1][0])
+        for _, status, row, _ in results
+        if status == "succeeded" and row is not None and row.get("valuation_rows")
+    ]
+    if dates:
+        counts = Counter(dates)
+        largest = max(counts.values())
+        target_date = max(value for value, count in counts.items() if count == largest)
+        retry_codes = {
+            code
+            for code, status, row, _ in results
+            if status != "succeeded"
+            or row is None
+            or not row.get("valuation_rows")
+            or str(row["valuation_rows"][-1][0]) != target_date
+        }
+    else:
+        retry_codes = {code for code, status, _, _ in results if status != "succeeded"}
+    if not retry_codes:
+        return results
+    by_code = {item["code"]: item for item in universe}
+    retry_items = [by_code[code] for code in sorted(retry_codes) if code in by_code]
+    repaired = {row[0]: row for row in _fetch_partition(retry_items, 0)}
+    return [repaired.get(result[0], result) for result in results]
+
+
 def atomic_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", text=True)
@@ -355,6 +388,7 @@ def run(
         with context.Pool(worker_count) as pool:
             partitions = pool.starmap(_fetch_partition, [(chunk, 0) for chunk in chunks])
         results = [row for partition in partitions for row in partition]
+    results = retry_incomplete_or_stale_results(universe, results)
     raw_items = [row for _, status, row, _ in results if status == "succeeded" and row is not None]
     empty = sum(status == "empty" for _, status, _, _ in results)
     failures = {code: error for code, status, _, error in results if status == "failed"}
