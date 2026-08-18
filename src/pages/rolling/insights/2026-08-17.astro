@@ -1,0 +1,26 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+import '../../../styles/rolling-insights.css';
+
+const report = rollingDailyReports['2026-08-17'];
+const title = `${report.title} | ${SITE_TITLE}`;
+const description = '2026年8月17日滚动信号收盘复盘：华天科技与德福科技多方贴价确认，东方明珠空方收复，国民技术H三节点分化，白银多空交替后收复。';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="rolling-insights-main">
+      <RollingSubnav active="insights" />
+      <RollingDailyInsightReport report={report} />
+    </main>
+    <Footer />
+  </body>
+</html>
