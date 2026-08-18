@@ -1,17 +1,24 @@
 {
   "schema_version": "futures-rolling-chip-v1",
-  "data_as_of": "2026-08-18",
-  "generated_at": "2026-08-18T14:20:00+08:00",
-  "source": "UNAVAILABLE",
+  "data_as_of": "2026-08-17",
+  "generated_at": "2026-08-18T16:04:00+08:00",
+  "source": "iWenCai SLV.P",
   "chips": {
     "SI=F": {
       "name": "白银现货",
-      "profit_ratio": null,
-      "concentration90": null,
-      "avg_cost": null,
-      "profit_ratio_change_pp": null,
-      "status": "unavailable",
-      "unavailable_reason": "公开期货行情源不提供获利盘、90%集中度与平均成本原生字段"
+      "proxy_symbol": "SLV.P",
+      "proxy_name": "LBMA白银现货价格ETF",
+      "as_of": "2026-08-17",
+      "previous_as_of": "2026-08-14",
+      "currency": "USD",
+      "profit_ratio": 20.67,
+      "concentration90": 21.429,
+      "avg_cost": 67.419,
+      "profit_ratio_change_pp": 4.098,
+      "status": "proxy",
+      "trace_id_current": "bdaaa3cd5b56a0fe4309a9bba24e40685ecfc73c6d24de3f5025eb3022cf74b5",
+      "trace_id_previous": "bae8a656df702c9aa28145968eb9615f8ba0ddca4940c489a04ab10614cc2a6c",
+      "source_note": "iWenCai SLV.P 美股ETF筹码代理；用于辅助观察白银，不代表SI=F期货原生筹码"
     }
   }
 }

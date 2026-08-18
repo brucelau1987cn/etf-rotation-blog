@@ -338,17 +338,23 @@ def test_futures_rolling_page_sits_between_a_and_hk():
     assert "白银现货已接入" in futures
     assert "futures-rolling-chip.json" in futures
     assert "chipData={futuresChipData}" in futures
-    assert "期货筹码口径待数据源" in matrix
-    assert ".a-rolling-main .chip-unavailable-note" in styles
+    assert "SLV ETF筹码代理" in matrix
+    assert "chip.currency === 'USD' ? '$' : '¥'" in matrix
+    assert ".a-rolling-main .chip-proxy-note" in styles
     futures_chip = json.loads((ROOT / "public/data/futures-rolling-chip.json").read_text(encoding="utf-8"))
     assert futures_chip["schema_version"] == "futures-rolling-chip-v1"
+    assert futures_chip["source"] == "iWenCai SLV.P"
     silver_chip = futures_chip["chips"]["SI=F"]
-    assert silver_chip["status"] == "unavailable"
-    assert silver_chip["profit_ratio"] is None
-    assert silver_chip["concentration90"] is None
-    assert silver_chip["avg_cost"] is None
-    assert silver_chip["profit_ratio_change_pp"] is None
-    assert "不提供" in silver_chip["unavailable_reason"]
+    assert silver_chip["status"] == "proxy"
+    assert silver_chip["proxy_symbol"] == "SLV.P"
+    assert silver_chip["as_of"] == "2026-08-17"
+    assert silver_chip["previous_as_of"] == "2026-08-14"
+    assert silver_chip["currency"] == "USD"
+    assert silver_chip["profit_ratio"] == 20.67
+    assert silver_chip["concentration90"] == 21.429
+    assert silver_chip["avg_cost"] == 67.419
+    assert silver_chip["profit_ratio_change_pp"] == 4.098
+    assert "不代表SI=F期货原生筹码" in silver_chip["source_note"]
     assert "FUTURES_INSTRUMENTS" in app
     assert "querySymbol: 'hf_XAG'" in app
     assert "market === 'futures'" in app

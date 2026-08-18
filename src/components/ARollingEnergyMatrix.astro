@@ -306,6 +306,8 @@ const nameInitials = (name: string) => {
                 if (!chip) return null;
                 const diff = chip.profit_ratio_change_pp ?? null;
                 const diffUp = (diff ?? 0) >= 0;
+                const costPrefix = chip.currency === 'USD' ? '$' : '¥';
+                const chipAsOf = String(chip.as_of || '').slice(5).replace('-', '/');
                 return (
                   <div class="chip-panel" data-role="chip" data-symbol={inst.symbol}>
                     <div class="chip-panel-title">筹码指标</div>
@@ -319,7 +321,7 @@ const nameInitials = (name: string) => {
                     </div>
                     <div class="chip-metric">
                       <span class="chip-metric-label">平均成本</span>
-                      <strong class="chip-metric-value">{chip.avg_cost == null ? '—' : '¥' + chip.avg_cost.toFixed(2)}</strong>
+                      <strong class="chip-metric-value">{chip.avg_cost == null ? '—' : costPrefix + chip.avg_cost.toFixed(2)}</strong>
                     </div>
                     <div class="chip-metric">
                       <span class="chip-metric-label">较昨日获利盘</span>
@@ -327,6 +329,9 @@ const nameInitials = (name: string) => {
                     </div>
                     {chip.status === 'unavailable' ? (
                       <small class="chip-unavailable-note" title={chip.unavailable_reason || ''}>UNAVAILABLE · 期货筹码口径待数据源</small>
+                    ) : null}
+                    {chip.status === 'proxy' ? (
+                      <small class="chip-proxy-note" title={chip.source_note || ''}>SLV ETF筹码代理 · {chipAsOf || '—'}</small>
                     ) : null}
                   </div>
                 );
