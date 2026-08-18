@@ -95,3 +95,32 @@ def test_busy_path_writes_status_and_durable_json_log():
     assert 'write_status(payload)' in busy_block
     assert 'write_log(payload, args.stage)' in busy_block
     assert callable(module.write_log)
+
+
+def test_failed_report_with_empty_results_still_states_gate_conclusion():
+    module = load()
+    report = module.format_report({
+        'ok': False,
+        'finished_at': '2026-08-18T21:22:00+08:00',
+        'results': [None, 'bad'],
+    })
+    assert '未返回有效阶段结果' in report
+    assert report.strip().endswith('流水线已阻断，后续阶段停止执行。')
+
+
+def test_malformed_coverage_shape_does_not_crash_report():
+    module = load()
+    payload = {
+        'ok': True,
+        'finished_at': '2026-08-18T21:22:00+08:00',
+        'results': [{
+            'stage': 'fundamental-shadow',
+            'started_at': '2026-08-18T21:21:00+08:00',
+            'finished_at': '2026-08-18T21:22:00+08:00',
+            'ok': True,
+            'stdout_tail': '{"trade_date":"2026-08-18","coverage":"bad","d1_inserted":80}',
+        }],
+    }
+    report = module.format_report(payload)
+    assert '**基本面覆盖：** —/—（—）' in report
+    assert report.strip().endswith('可进入22:00内容生成阶段。')
