@@ -157,7 +157,7 @@ def test_a_rolling_board_paginates_four_instruments_per_page():
     app = APP.read_text(encoding="utf-8")
 
     assert 'data-page-size="4"' in matrix
-    assert "每页 4 只" in matrix
+    assert "每页4只" in matrix
     assert "pager.dataset.pageSize || 4" in app
 
 

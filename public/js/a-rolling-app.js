@@ -1318,7 +1318,7 @@
     setInterval(fetchContinuousQuotes, QUOTE_INTERVAL_MS);
   }
 
-  // Energy board: page by 3 instruments + code/name/initial search.
+  // Energy board: page by 4 instruments + code/name/initial search.
   const initBoardPager = () => {
     const list = document.getElementById('rolling-board-list');
     const pager = document.getElementById('board-pager');
