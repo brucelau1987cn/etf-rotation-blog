@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-18T22:31:42.282898+00:00",
+  "updated_at": "2026-08-18T22:50:15.087798+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -245,7 +245,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 16455.439966530277,
+      "cash": 12488.918636486942,
       "positions": {
         "XLP": {
           "symbol": "XLP",
@@ -260,7 +260,7 @@
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
           "signal_level": 84.7,
-          "last_price": 84.68000030517578
+          "last_price": 85.58000183105469
         },
         "IBIT": {
           "symbol": "IBIT",
@@ -275,17 +275,47 @@
           "signal_date": "2026-08-04",
           "signal_kind": "plant",
           "signal_level": 36.37,
-          "last_price": 36.41999816894531
+          "last_price": 36.599998474121094
+        },
+        "XHB": {
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "quantity": 18,
+          "entry_price": 107.33000183105469,
+          "entry_cost": 1.96597,
+          "entry_at": "2026-08-18T13:30:52.795776+00:00",
+          "target": 111.62,
+          "stop": 103.61,
+          "level_basis": null,
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 107.99,
+          "last_price": 105.94999694824219
+        },
+        "ETHA": {
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "quantity": 142,
+          "entry_price": 14.300000190734863,
+          "entry_cost": 2.0153,
+          "entry_at": "2026-08-18T13:30:52.795776+00:00",
+          "target": 14.82,
+          "stop": 13.85,
+          "level_basis": null,
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 14.31,
+          "last_price": 14.4399995803833
         }
       },
-      "equity": 20406.179873,
+      "equity": 20427.83848,
       "realized_pnl": 396.6034487841797,
-      "unrealized_pnl": 9.576424,
-      "daily_return": 0.00054032,
-      "cumulative_return": 0.02030899,
+      "unrealized_pnl": 31.235031,
+      "daily_return": 0.00106137,
+      "cumulative_return": 0.02139192,
       "max_drawdown": -0.00174186,
-      "peak_equity": 20415.570982154055,
-      "cash_ratio": 0.80639493,
+      "peak_equity": 20427.838480160648,
+      "cash_ratio": 0.6113676,
       "history": [
         {
           "date": "2026-08-04",
@@ -365,6 +395,14 @@
           "cash": 16455.439967,
           "daily_return": 0.00054032,
           "cumulative_return": 0.02030899,
+          "max_drawdown": -0.00174186
+        },
+        {
+          "date": "2026-08-18",
+          "equity": 20427.83848,
+          "cash": 12488.918636,
+          "daily_return": 0.00106137,
+          "cumulative_return": 0.02139192,
           "max_drawdown": -0.00174186
         }
       ],
@@ -876,6 +914,38 @@
           "target": 46.17,
           "stop": 44.14,
           "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:XHB:buy:1787059845:plant",
+          "timestamp": "2026-08-18T13:30:52.795776+00:00",
+          "market": "US",
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "side": "buy",
+          "quantity": 18,
+          "price": 107.330002,
+          "cost": 1.96597,
+          "reason": "plant",
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 107.99,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:ETHA:buy:1787059850:plant",
+          "timestamp": "2026-08-18T13:30:52.795776+00:00",
+          "market": "US",
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "side": "buy",
+          "quantity": 142,
+          "price": 14.3,
+          "cost": 2.0153,
+          "reason": "plant",
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 14.31,
+          "decision_tag": "计划内首仓"
         }
       ],
       "pending_signals": [],
@@ -886,11 +956,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 30,
+        "total": 32,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 16,
+            "count": 18,
             "closed_pnl": null
           },
           {
