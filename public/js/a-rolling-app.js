@@ -1249,14 +1249,17 @@
 
   const startHongKongTechnicalAnalysisPoll = () => {
     if (market !== 'hk') return;
+    // Ratings remain useful after the HK close, so hydrate once on every page load.
+    void fetchHongKongTechnicalAnalysis();
     if (!window.EtfLivePoll?.startMarketPoll) {
       console.warn('Hong Kong technical analysis poll unavailable: market calendar helper missing');
       return;
     }
+    // Further refreshes stay session-gated to avoid unnecessary closed-market polling.
     window.EtfLivePoll.startMarketPoll({
       market: 'HK',
       intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS,
-      immediate: true,
+      immediate: false,
       tick: async () => { await fetchHongKongTechnicalAnalysis(); },
     });
   };
