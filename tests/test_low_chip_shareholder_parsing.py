@@ -79,6 +79,21 @@ def test_missing_shareholder_evidence_has_no_valid_period():
     assert fetch.report_period_from_rows([row]) == ""
 
 
+def test_aggregate_top10_detail_accepts_current_name_shape_and_excludes_historical_exit():
+    rows = [
+        {"股票代码": "600269.SH", "名称": "历史退出股东", "持股变动类型": "新出"},
+        {"股票代码": "600269.SH", "名称": "长城人寿保险股份有限公司-自有资金",
+         "排名": 2.0, "公告日期": "20260811", "截止日期": "20260630"},
+        {"股票代码": "600269.SH", "名称": "香港中央结算有限公司",
+         "排名": 6.0, "公告日期": "20260811", "报告期[20260630]": "2026年中报"},
+    ]
+    detail = fetch.aggregate_top10_detail("600269.SH", rows, "20260630")
+    assert detail == {
+        "股票代码": "600269.SH",
+        "前十大流通股东名称(报告期)[20260630]": "长城人寿保险股份有限公司-自有资金, 香港中央结算有限公司",
+    }
+
+
 def test_fetch_never_writes_synthetic_latest_shareholder_period():
     source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
     assert "period or 'latest'" not in source

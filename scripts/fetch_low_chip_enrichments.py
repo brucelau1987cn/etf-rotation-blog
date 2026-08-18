@@ -42,7 +42,38 @@ def report_period_from_rows(rows: list[dict]) -> str:
             match = SHAREHOLDER_PERIOD_RE.match(key)
             if match:
                 periods.append(match.group(1))
+            key_period = re.search(r"(?:报告期|截止日期)\[(\d{8})\]", key)
+            if key_period:
+                periods.append(key_period.group(1))
+        for key in ("截止日期", "报告期"):
+            value = str(row.get(key) or "")
+            digits = re.sub(r"\D", "", value)
+            if len(digits) >= 8:
+                periods.append(digits[:8])
     return max(periods) if periods else ""
+
+
+def aggregate_top10_detail(code: str, rows: list[dict], fallback_period: str = "") -> dict | None:
+    """Build one current top-10 evidence row from iWenCai detail rows.
+
+    The detail engine currently returns one holder per row under `名称`, while
+    older responses used `流通股东名称`. Historical exits marked `新出` lack
+    current rank/announcement evidence and are deliberately excluded.
+    """
+    bare = code.split(".")[0]
+    selected = []
+    for row in rows:
+        if str(row.get("股票代码") or "").upper().split(".")[0] != bare:
+            continue
+        if row.get("排名") is None or not (row.get("公告日期") or any(str(k).startswith("公告日期[") for k in row)):
+            continue
+        name = str(row.get("流通股东名称") or row.get("股东名称") or row.get("名称") or "").strip()
+        if name and name not in selected:
+            selected.append(name)
+    period = report_period_from_rows(rows) or fallback_period
+    if not selected or not period:
+        return None
+    return {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(selected)}
 
 
 def main() -> int:
@@ -110,6 +141,10 @@ def main() -> int:
                 and has_top10_names(r)
             ), None)
             if detail is None:
+                detail = aggregate_top10_detail(
+                    code, detail_rows, report_period_from_rows([matched] if matched else [])
+                )
+            if detail is None:
                 period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
                 query = f"{code.split('.')[0]} 前十大流通股东名称" + (f"[{period}]" if period else "")
                 holder_names = iwc(query, limit=20)
@@ -118,7 +153,7 @@ def main() -> int:
                 for item in name_rows:
                     if str(item.get("股票代码") or "").upper().split(".")[0] != code.split(".")[0]:
                         continue
-                    name = str(item.get("流通股东名称") or "").strip()
+                    name = str(item.get("流通股东名称") or item.get("股东名称") or item.get("名称") or "").strip()
                     if name and name not in names:
                         names.append(name)
                 if names:
