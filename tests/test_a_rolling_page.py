@@ -145,6 +145,7 @@ def test_hk_tradingview_uses_a_clean_external_fallback_instead_of_permission_err
     assert "intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS" in app
     assert "tick: async () => { await fetchHongKongTechnicalAnalysis(); }" in app
     assert "void fetchHongKongTechnicalAnalysis();" in app
+    assert "singleFlight(fetchHongKongTechnicalAnalysisNow)" in app
     assert "immediate: false" in app[app.index("const startHongKongTechnicalAnalysisPoll"):app.index("// Load admin-managed watchlist")]
     assert "setTimeout(() => { fetchHongKongTechnicalAnalysis(); }, 260)" not in app
     assert "toTradingViewHongKongCode" in matrix

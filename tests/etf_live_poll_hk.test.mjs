@@ -74,3 +74,24 @@ test('Hong Kong market poll makes no analysis request after close', async () => 
   await harness.pulse();
   assert.equal(calls, 0);
 });
+
+test('singleFlight coalesces overlapping analysis requests and releases afterward', async () => {
+  const harness = createHarness('2026-08-17T02:00:00Z');
+  let calls = 0;
+  let release;
+  const pending = new Promise((resolve) => { release = resolve; });
+  const guarded = harness.poll.singleFlight(async () => {
+    calls += 1;
+    await pending;
+    return calls;
+  });
+  const first = guarded();
+  const overlapping = guarded();
+  assert.equal(first, overlapping);
+  assert.equal(calls, 0);
+  await harness.settle();
+  assert.equal(calls, 1);
+  release();
+  assert.equal(await first, 1);
+  assert.equal(await guarded(), 2);
+});

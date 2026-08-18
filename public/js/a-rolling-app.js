@@ -1213,7 +1213,7 @@
     UNAVAILABLE: ['暂无', 'is-unavailable'],
   };
 
-  const fetchHongKongTechnicalAnalysis = async () => {
+  const fetchHongKongTechnicalAnalysisNow = async () => {
     const cards = Array.from(document.querySelectorAll('.technical-analysis-fallback[data-tv-analysis-symbol]'));
     if (!cards.length) return;
     const symbols = [...new Set(cards.map((card) => String(card.dataset.tvAnalysisSymbol || '').trim()).filter(Boolean))];
@@ -1246,6 +1246,9 @@
       console.warn('Hong Kong technical analysis unavailable', error);
     }
   };
+  const fetchHongKongTechnicalAnalysis = window.EtfLivePoll?.singleFlight
+    ? window.EtfLivePoll.singleFlight(fetchHongKongTechnicalAnalysisNow)
+    : fetchHongKongTechnicalAnalysisNow;
 
   const startHongKongTechnicalAnalysisPoll = () => {
     if (market !== 'hk') return;

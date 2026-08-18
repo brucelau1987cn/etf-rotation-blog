@@ -14,6 +14,18 @@
   };
   const calendarCache = new Map();
 
+  function singleFlight(task) {
+    if (typeof task !== 'function') throw new Error('singleFlight requires a function');
+    let current = null;
+    return (...args) => {
+      if (current) return current;
+      current = Promise.resolve()
+        .then(() => task(...args))
+        .finally(() => { current = null; });
+      return current;
+    };
+  }
+
   const localParts = (timezone) => Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
@@ -199,5 +211,5 @@
     };
   }
 
-  global.EtfLivePoll = { startLivePoll, startMarketPoll, getCalendar, marketPhase };
+  global.EtfLivePoll = { startLivePoll, startMarketPoll, getCalendar, marketPhase, singleFlight };
 })(typeof window !== 'undefined' ? window : globalThis);
