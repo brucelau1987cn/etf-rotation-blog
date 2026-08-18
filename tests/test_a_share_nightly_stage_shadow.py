@@ -68,3 +68,30 @@ def test_nightly_report_formats_success_as_readable_markdown():
     assert '**D1写入：** 80 条' in report
     assert 'login success' not in report
     assert report.strip().endswith('可进入22:00内容生成阶段。')
+
+
+def test_nightly_report_degrades_safely_and_states_failed_gate():
+    module = load()
+    payload = {
+        'ok': False,
+        'finished_at': '2026-08-18T20:54:03+08:00',
+        'results': [
+            None,
+            {'stage': 'fundamental-shadow', 'started_at': None,
+             'finished_at': 'invalid', 'ok': False,
+             'stderr_tail': 'STAGING BLOCKER fundamental coverage 79/80'},
+        ],
+    }
+    report = module.format_report(payload)
+    assert '❌ **基本面影子** · 耗时未知' in report
+    assert 'STAGING BLOCKER fundamental coverage 79/80' in report
+    assert report.strip().endswith('流水线已阻断，后续阶段停止执行。')
+
+
+def test_busy_path_writes_status_and_durable_json_log():
+    module = load()
+    source = NIGHTLY_STAGE.read_text(encoding='utf-8')
+    busy_block = source[source.index('except RuntimeError as exc:'):source.index('return 75')]
+    assert 'write_status(payload)' in busy_block
+    assert 'write_log(payload, args.stage)' in busy_block
+    assert callable(module.write_log)
