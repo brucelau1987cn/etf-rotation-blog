@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib.util
 import json
 import math
@@ -261,6 +262,112 @@ def build_signal_validation(learning: dict[str, Any], fingerprint: dict[str, Any
     }
 
 
+def build_rotation_research_summary(shadow: dict[str, Any]) -> dict[str, Any]:
+    """Project the rotation sidecar without granting production authority."""
+    source = shadow.get("rotation_research")
+    if not isinstance(source, dict):
+        return {
+            "status": "UNAVAILABLE", "signal": None, "model_date": None,
+            "production_change_allowed": False, "production_weights_changed": False,
+            "coverage": {}, "observation_gate": {}, "selection": [],
+            "reason": "rotation shadow research is unavailable",
+        }
+    if (
+        source.get("mode") != "shadow_research_only"
+        or source.get("production_change_allowed") is not False
+        or source.get("production_weights_changed") is not False
+    ):
+        return {
+            "status": "UNAVAILABLE", "signal": None, "model_date": source.get("model_date"),
+            "production_change_allowed": False, "production_weights_changed": False,
+            "coverage": {}, "observation_gate": {}, "selection": [],
+            "reason": "rotation shadow isolation contract is invalid",
+        }
+    if source.get("status") == "UNAVAILABLE":
+        return {
+            "status": "UNAVAILABLE", "signal": None, "model_date": source.get("model_date"),
+            "production_change_allowed": False, "production_weights_changed": False,
+            "coverage": {}, "observation_gate": {}, "selection": [],
+            "reason": source.get("reason") or "rotation shadow research is unavailable",
+        }
+    gate_source = source.get("observation_gate")
+    coverage_source = source.get("coverage")
+    allowed_gate_statuses = {"ACCUMULATING", "MINIMUM_REACHED", "PREFERRED_REACHED"}
+    if not isinstance(coverage_source, dict) or not isinstance(gate_source, dict):
+        valid_contract = False
+    else:
+        coverage: dict[str, Any] = coverage_source
+        gate: dict[str, Any] = gate_source
+        valid_coverage = all(
+            isinstance(coverage.get(field), int)
+            and not isinstance(coverage.get(field), bool)
+            and coverage[field] >= 0
+            for field in ("requested", "evaluated", "unavailable")
+        )
+        if valid_coverage:
+            valid_coverage = coverage["evaluated"] + coverage["unavailable"] == coverage["requested"]
+        valid_gate = all(
+            isinstance(gate.get(field), int)
+            and not isinstance(gate.get(field), bool)
+            and gate[field] >= 0
+            for field in ("minimum_completed_days", "preferred_completed_days", "completed_days")
+        )
+        if valid_gate:
+            valid_gate = (
+                gate["minimum_completed_days"] > 0
+                and gate["preferred_completed_days"] >= gate["minimum_completed_days"]
+                and gate.get("status") in allowed_gate_statuses
+            )
+        valid_contract = valid_coverage and valid_gate
+    if not valid_contract:
+        return {
+            "status": "UNAVAILABLE", "signal": None, "model_date": source.get("model_date"),
+            "production_change_allowed": False, "production_weights_changed": False,
+            "coverage": {}, "observation_gate": {}, "selection": [],
+            "reason": "rotation shadow coverage or observation gate is invalid",
+        }
+    assert isinstance(coverage_source, dict) and isinstance(gate_source, dict)
+    coverage = coverage_source
+    gate = gate_source
+    selection_source = source.get("selection")
+    if not isinstance(selection_source, list):
+        return {
+            "status": "UNAVAILABLE", "signal": None, "model_date": source.get("model_date"),
+            "production_change_allowed": False, "production_weights_changed": False,
+            "coverage": {}, "observation_gate": copy.deepcopy(gate), "selection": [],
+            "reason": "rotation shadow selection must be a list",
+        }
+    selection = []
+    for item in selection_source[:10]:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("symbol"), str)
+            or not item["symbol"].strip()
+        ):
+            continue
+        row = {key: item.get(key) for key in ("symbol", "theme", "return_21d", "return_63d", "rotation_score")}
+        if row["theme"] is not None and not isinstance(row["theme"], str):
+            row["theme"] = None
+        for field in ("return_21d", "return_63d", "rotation_score"):
+            value = row[field]
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+            ):
+                row[field] = None
+        selection.append(row)
+    return {
+        "status": gate.get("status") or source.get("status") or "ACCUMULATING",
+        "signal": source.get("signal"),
+        "model_date": source.get("model_date"),
+        "production_change_allowed": False,
+        "production_weights_changed": False,
+        "coverage": copy.deepcopy(coverage),
+        "observation_gate": copy.deepcopy(gate),
+        "selection": selection,
+        "reason": source.get("reason"),
+    }
+
+
 def build_report(
     learning: dict[str, Any], shadow: dict[str, Any], pool: dict[str, Any],
     iwencai: dict[str, Any] | None = None, *, health: dict[str, Any] | None = None,
@@ -376,6 +483,7 @@ def build_report(
         },
         "data_quality": _data_quality(health, pool),
         "signal_validation": build_signal_validation(learning, model_fingerprint),
+        "rotation_research_summary": build_rotation_research_summary(shadow),
         "verdict": "达到月度评估门槛" if t5_observations >= 20 else "样本积累中",
         "snapshot_count": len(snapshots),
         "metrics": metrics,

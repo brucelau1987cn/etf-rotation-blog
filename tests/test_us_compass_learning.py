@@ -256,6 +256,128 @@ def test_append_breakout_history_drops_malformed_and_duplicate_dates():
     assert rows[0]["hits"] == [{"symbol": "NEW"}]
 
 
+def test_rotation_shadow_metric_uses_21_and_63_session_momentum():
+    bars = [
+        {"trade_date": f"2026-03-{index:02d}", "adj_close": 100 + index}
+        for index in range(1, 65)
+    ]
+    result = mod.rotation_shadow_metric("QQQ", bars, expected_trade_date="2026-03-64")
+    short_return = 164 / 143 - 1
+    long_return = 164 / 101 - 1
+    expected_score = (100 * short_return + 75 * long_return) / 175
+    assert result == {
+        "symbol": "QQQ",
+        "status": "ELIGIBLE",
+        "trade_date": "2026-03-64",
+        "return_21d": round(short_return, 8),
+        "return_63d": round(long_return, 8),
+        "rotation_score": round(expected_score, 8),
+    }
+
+
+def test_rotation_shadow_metric_fails_closed_for_stale_or_incomplete_bars():
+    incomplete = mod.rotation_shadow_metric(
+        "QQQ", [{"trade_date": "2026-01-01", "adj_close": 100}], expected_trade_date="2026-01-01",
+    )
+    assert incomplete["status"] == "UNAVAILABLE"
+    assert "64 final daily bars" in incomplete["reason"]
+    bars = [
+        {"trade_date": f"2026-03-{index:02d}", "adj_close": 100 + index}
+        for index in range(1, 65)
+    ]
+    stale = mod.rotation_shadow_metric("QQQ", bars, expected_trade_date="2026-04-01")
+    assert stale == {
+        "symbol": "QQQ", "status": "UNAVAILABLE", "reason": "latest final bar does not match model_date",
+    }
+
+
+def test_rotation_shadow_metric_requires_adjusted_close():
+    bars = [
+        {"trade_date": f"2026-03-{index:02d}", "close": 100 + index}
+        for index in range(1, 65)
+    ]
+    result = mod.rotation_shadow_metric("QQQ", bars, expected_trade_date="2026-03-64")
+    assert result == {
+        "symbol": "QQQ", "status": "UNAVAILABLE", "reason": mod.ROTATION_UNAVAILABLE_REASON,
+    }
+
+
+def test_rotation_shadow_report_deduplicates_themes_and_is_research_only(tmp_path):
+    db = sqlite3.connect(tmp_path / "bars.db")
+    db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, adj_close REAL, source TEXT, is_final INTEGER)")
+    rows = []
+    for symbol, slope in (("QQQ", 1.0), ("XLK", 0.8), ("XLE", 0.6), ("SGOV", 0.01)):
+        for index in range(1, 65):
+            rows.append((symbol, f"2026-03-{index:02d}", 100 + slope * index, "yahoo", 1))
+    db.executemany("INSERT INTO daily_bars VALUES(?,?,?,?,?)", rows)
+    db.commit()
+    report = mod.build_rotation_shadow_report(
+        db,
+        model_date="2026-03-64",
+        pool_rows=[
+            {"symbol": "QQQ", "theme": "科技"},
+            {"symbol": "XLK", "theme": "科技"},
+            {"symbol": "XLE", "theme": "能源"},
+            {"symbol": "SGOV", "theme": "现金"},
+        ],
+    )
+    assert report["mode"] == "shadow_research_only"
+    assert report["production_change_allowed"] is False
+    assert report["production_weights_changed"] is False
+    assert report["signal"] == "RISK_ON_OBSERVATION"
+    assert [row["symbol"] for row in report["selection"]] == ["QQQ", "XLE"]
+    assert report["coverage"] == {"requested": 4, "evaluated": 4, "unavailable": 0}
+    assert report["observation_gate"] == {
+        "minimum_completed_days": 10,
+        "preferred_completed_days": 20,
+        "completed_days": 0,
+        "status": "ACCUMULATING",
+    }
+
+
+def test_rotation_shadow_report_marks_zero_evaluated_coverage_unavailable(tmp_path):
+    db = sqlite3.connect(tmp_path / "bars.db")
+    db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, adj_close REAL, source TEXT, is_final INTEGER)")
+    report = mod.build_rotation_shadow_report(
+        db, model_date="2026-03-64", pool_rows=[{"symbol": "QQQ", "theme": "科技"}],
+    )
+    assert report["status"] == "UNAVAILABLE"
+    assert report["signal"] is None
+    assert report["reason"] == "no ETF has 64 valid final adjusted-close bars for model_date"
+    assert report["observation_gate"]["status"] == "UNAVAILABLE"
+
+
+def test_append_rotation_history_skips_unavailable_report():
+    old = [{"model_date": "2026-03-63", "selection": [{"symbol": "QQQ"}]}]
+    report = {
+        "model_date": "2026-03-64", "status": "UNAVAILABLE", "signal": None,
+        "coverage": {"requested": 1, "evaluated": 0, "unavailable": 1},
+        "selection": [], "observation_gate": {},
+    }
+    assert mod.append_rotation_history(old, report) == old
+    assert report["observation_gate"]["completed_days"] == 1
+    assert report["observation_gate"]["status"] == "UNAVAILABLE"
+
+
+def test_append_rotation_history_is_idempotent_and_updates_observation_gate():
+    report = {
+        "model_date": "2026-03-64",
+        "signal": "RISK_ON_OBSERVATION",
+        "coverage": {"requested": 2, "evaluated": 2, "unavailable": 0},
+        "selection": [{"symbol": "QQQ", "rotation_score": 0.2}],
+        "observation_gate": {},
+    }
+    history = mod.append_rotation_history(
+        [{"model_date": f"2026-01-{day:02d}", "selection": []} for day in range(1, 10)], report,
+    )
+    assert len(history) == 10
+    assert report["observation_gate"]["completed_days"] == 10
+    assert report["observation_gate"]["status"] == "MINIMUM_REACHED"
+    replaced = mod.append_rotation_history(history, {**report, "selection": []})
+    assert len(replaced) == 10
+    assert replaced[-1]["selection"] == []
+
+
 def test_main_writes_identical_model_fingerprint_to_learning_and_shadow(tmp_path, monkeypatch):
     pool_path = tmp_path / "pool.json"
     learning_path = tmp_path / "learning.json"
@@ -293,6 +415,41 @@ def test_main_writes_identical_model_fingerprint_to_learning_and_shadow(tmp_path
     assert not (tmp_path / "public" / "data").exists()
 
 
+def test_main_writes_rotation_research_and_history_with_valid_bar_cache(tmp_path, monkeypatch):
+    pool_path = tmp_path / "pool.json"
+    learning_path = tmp_path / "learning.json"
+    shadow_path = tmp_path / "shadow.json"
+    bar_path = tmp_path / "bars.db"
+    pool_path.write_text(json.dumps({
+        "model_date": "2026-03-64", "model_version": "v1", "market_regime": {"state": "震荡"},
+        "rows": [
+            {"symbol": "SPY", "theme": "大盘", "trend_score": 80, "trading_risk_score": 10,
+             "trade_state": "可持有", "adjusted_close": 164, "day_open": 164, "price": 164},
+            {"symbol": "QQQ", "theme": "科技", "trend_score": 90, "trading_risk_score": 10,
+             "trade_state": "可持有", "adjusted_close": 196, "day_open": 196, "price": 196},
+        ],
+    }), encoding="utf-8")
+    with sqlite3.connect(bar_path) as db:
+        db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, close REAL, adj_close REAL, volume REAL, source TEXT, is_final INTEGER)")
+        rows = []
+        for symbol, slope in (("SPY", 1.0), ("QQQ", 1.5)):
+            for index in range(1, 65):
+                close = 100 + slope * index
+                rows.append((symbol, f"2026-03-{index:02d}", close, close, 100, "yahoo", 1))
+        db.executemany("INSERT INTO daily_bars VALUES(?,?,?,?,?,?,?)", rows)
+    monkeypatch.setattr(mod, "POOL", pool_path)
+    monkeypatch.setattr(mod, "OUT", learning_path)
+    monkeypatch.setattr(mod, "SHADOW", shadow_path)
+    monkeypatch.setattr(mod, "BAR_DB", bar_path)
+    mod.main()
+    shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
+    assert shadow["rotation_research"]["model_date"] == "2026-03-64"
+    assert shadow["rotation_research"]["production_weights_changed"] is False
+    assert [row["symbol"] for row in shadow["rotation_research"]["selection"]] == ["QQQ", "SPY"]
+    assert shadow["rotation_history"][0]["model_date"] == "2026-03-64"
+    assert shadow["rotation_research"]["observation_gate"]["completed_days"] == 1
+
+
 def test_main_gives_learning_and_shadow_independent_nested_fingerprints(tmp_path, monkeypatch):
     pool_path = tmp_path / "pool.json"
     pool_path.write_text(json.dumps({
@@ -313,6 +470,42 @@ def test_main_gives_learning_and_shadow_independent_nested_fingerprints(tmp_path
     shadow_fp = written[1]["model_fingerprint"]
     learning_fp["exposure_mapping"]["values"]["偏强"] = 0.25
     assert shadow_fp["exposure_mapping"]["values"]["偏强"] == 1.0
+
+
+def test_main_keeps_breakout_result_when_rotation_builder_fails(tmp_path, monkeypatch):
+    pool_path = tmp_path / "pool.json"
+    learning_path = tmp_path / "learning.json"
+    shadow_path = tmp_path / "shadow.json"
+    bar_path = tmp_path / "bars.db"
+    pool_path.write_text(json.dumps({
+        "model_date": "2026-01-21", "model_version": "v1", "market_regime": {"state": "震荡"},
+        "rows": [
+            {"symbol": "SPY", "theme": "大盘", "trend_score": 80, "trading_risk_score": 10,
+             "trade_state": "可持有", "adjusted_close": 102, "day_open": 102, "price": 102},
+            {"symbol": "QQQ", "theme": "科技", "trend_score": 90, "trading_risk_score": 10,
+             "trade_state": "可持有", "adjusted_close": 108, "day_open": 108, "price": 108},
+        ],
+    }), encoding="utf-8")
+    with sqlite3.connect(bar_path) as db:
+        db.execute("CREATE TABLE daily_bars(symbol TEXT, trade_date TEXT, close REAL, adj_close REAL, volume REAL, source TEXT, is_final INTEGER)")
+        rows = []
+        for symbol, final_close in (("SPY", 102), ("QQQ", 108)):
+            for day in range(1, 21):
+                close = 100 + day % 2
+                rows.append((symbol, f"2026-01-{day:02d}", close, close, 100, "yahoo", 1))
+            rows.append((symbol, "2026-01-21", final_close, final_close, 260, "yahoo", 1))
+        db.executemany("INSERT INTO daily_bars VALUES(?,?,?,?,?,?,?)", rows)
+    monkeypatch.setattr(mod, "POOL", pool_path)
+    monkeypatch.setattr(mod, "OUT", learning_path)
+    monkeypatch.setattr(mod, "SHADOW", shadow_path)
+    monkeypatch.setattr(mod, "BAR_DB", bar_path)
+    monkeypatch.setattr(mod, "build_rotation_shadow_report", lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("rotation failed")))
+    mod.main()
+    shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
+    assert shadow["breakout_research"]["coverage"]["evaluated"] == 2
+    assert len(shadow["breakout_history"]) == 1
+    assert shadow["rotation_research"]["status"] == "UNAVAILABLE"
+    assert shadow["rotation_research"]["reason"].endswith("ValueError")
 
 
 def test_main_soft_fails_breakout_research_when_bar_database_is_invalid(tmp_path, monkeypatch):
@@ -342,12 +535,13 @@ def test_main_soft_fails_breakout_research_when_bar_database_is_invalid(tmp_path
     assert shadow["breakout_history"] == old_history
 
 
-def test_main_preserves_breakout_history_when_bar_database_is_missing(tmp_path, monkeypatch):
+def test_main_preserves_breakout_and_rotation_history_when_bar_database_is_missing(tmp_path, monkeypatch):
     pool_path = tmp_path / "pool.json"
     learning_path = tmp_path / "learning.json"
     shadow_path = tmp_path / "shadow.json"
     old_history = [{"model_date": "2025-12-31", "hits": [{"symbol": "OLD"}]}]
-    shadow_path.write_text(json.dumps({"breakout_history": old_history}), encoding="utf-8")
+    old_rotation = [{"model_date": "2025-12-31", "selection": [{"symbol": "QQQ"}]}]
+    shadow_path.write_text(json.dumps({"breakout_history": old_history, "rotation_history": old_rotation}), encoding="utf-8")
     pool_path.write_text(json.dumps({
         "model_date": "2026-01-01", "model_version": "v1", "market_regime": {"state": "震荡"},
         "rows": [{"symbol": "SPY", "theme": "大盘", "trend_score": 80, "trading_risk_score": 10,
@@ -360,3 +554,6 @@ def test_main_preserves_breakout_history_when_bar_database_is_missing(tmp_path, 
     mod.main()
     shadow = json.loads(shadow_path.read_text(encoding="utf-8"))
     assert shadow["breakout_history"] == old_history
+    assert shadow["rotation_history"] == old_rotation
+    assert shadow["rotation_research"]["status"] == "UNAVAILABLE"
+    assert shadow["rotation_research"]["production_change_allowed"] is False

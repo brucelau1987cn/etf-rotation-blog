@@ -58,6 +58,13 @@ BREAKOUT_MIN_RELATIVE_VOLUME = 2.0
 BREAKOUT_MIN_VOLATILITY_MOVE = 2.0
 BREAKOUT_MIN_RELATIVE_SPY = 0.01
 BREAKOUT_UNAVAILABLE_REASON = "requires at least 21 final daily bars with positive prices and 10-day volume history"
+ROTATION_SHORT_WINDOW = 21
+ROTATION_LONG_WINDOW = 63
+ROTATION_SHORT_WEIGHT = 100.0
+ROTATION_LONG_WEIGHT = 75.0
+ROTATION_MINIMUM_DAYS = 10
+ROTATION_PREFERRED_DAYS = 20
+ROTATION_UNAVAILABLE_REASON = "requires at least 64 final daily bars with positive adjusted prices"
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -248,6 +255,152 @@ def append_breakout_history(history: Any, report: dict[str, Any]) -> list[dict[s
     return [rows_by_date[key] for key in sorted(rows_by_date)][-520:]
 
 
+def rotation_shadow_metric(
+    symbol: str, bars: list[dict[str, Any]], *, expected_trade_date: str | None = None,
+) -> dict[str, Any]:
+    """Calculate the 21/63-session Fincept-inspired rotation score."""
+    ordered = sorted(bars, key=lambda row: str(row.get("trade_date") or ""))
+    if len(ordered) < ROTATION_LONG_WINDOW + 1:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": ROTATION_UNAVAILABLE_REASON}
+    ordered = ordered[-(ROTATION_LONG_WINDOW + 1):]
+    if expected_trade_date and ordered[-1].get("trade_date") != expected_trade_date:
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "latest final bar does not match model_date"}
+    try:
+        closes = []
+        for row in ordered:
+            raw_close = row.get("adj_close")
+            if raw_close is None:
+                raise ValueError
+            close = float(raw_close)
+            if not math.isfinite(close) or close <= 0:
+                raise ValueError
+            closes.append(close)
+        short_return = closes[-1] / closes[-(ROTATION_SHORT_WINDOW + 1)] - 1
+        long_return = closes[-1] / closes[0] - 1
+        score = (
+            ROTATION_SHORT_WEIGHT * short_return + ROTATION_LONG_WEIGHT * long_return
+        ) / (ROTATION_SHORT_WEIGHT + ROTATION_LONG_WEIGHT)
+    except (TypeError, ValueError, OverflowError, ArithmeticError):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": ROTATION_UNAVAILABLE_REASON}
+    if not all(math.isfinite(value) for value in (short_return, long_return, score)):
+        return {"symbol": symbol, "status": "UNAVAILABLE", "reason": "derived rotation metrics must be finite"}
+    return {
+        "symbol": symbol,
+        "status": "ELIGIBLE" if score > 0 else "DEFENSIVE",
+        "trade_date": ordered[-1].get("trade_date"),
+        "return_21d": round(short_return, 8),
+        "return_63d": round(long_return, 8),
+        "rotation_score": round(score, 8),
+    }
+
+
+def build_rotation_shadow_report(
+    db: sqlite3.Connection, *, model_date: str, pool_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a research-only multi-horizon ETF rotation ranking."""
+    db.row_factory = sqlite3.Row
+    symbols = list(dict.fromkeys(str(row.get("symbol") or "") for row in pool_rows if row.get("symbol")))
+    themes = {str(row.get("symbol")): str(row.get("theme") or row.get("asset_type") or row.get("symbol")) for row in pool_rows}
+    metrics = []
+    for symbol in symbols:
+        rows = db.execute(
+            """SELECT trade_date, adj_close FROM daily_bars
+               WHERE symbol=? AND source='yahoo' AND is_final=1 AND trade_date<=?
+               ORDER BY trade_date DESC LIMIT 64""",
+            (symbol, model_date),
+        ).fetchall()
+        metric = rotation_shadow_metric(
+            symbol, [dict(row) for row in reversed(rows)], expected_trade_date=model_date,
+        )
+        metric["theme"] = themes.get(symbol, symbol)
+        metrics.append(metric)
+    ranked = sorted(
+        (
+            metric for metric in metrics
+            if metric.get("status") == "ELIGIBLE" and metric.get("symbol") != "SGOV"
+        ),
+        key=lambda metric: float(metric.get("rotation_score") or 0),
+        reverse=True,
+    )
+    selection = []
+    selected_themes = set()
+    for metric in ranked:
+        theme = str(metric.get("theme") or metric["symbol"])
+        if theme in selected_themes:
+            continue
+        selection.append(copy.deepcopy(metric))
+        selected_themes.add(theme)
+        if len(selection) == 10:
+            break
+    unavailable = sum(metric.get("status") == "UNAVAILABLE" for metric in metrics)
+    evaluated = len(symbols) - unavailable
+    unavailable_reason = "no ETF has 64 valid final adjusted-close bars for model_date" if evaluated == 0 else None
+    return {
+        "version": 1,
+        "mode": "shadow_research_only",
+        "production_change_allowed": False,
+        "production_weights_changed": False,
+        "model_date": model_date,
+        "basis": "completed Yahoo adjusted closes; 21-session and 63-session momentum",
+        "parameters": {
+            "short_window": ROTATION_SHORT_WINDOW,
+            "long_window": ROTATION_LONG_WINDOW,
+            "short_weight": ROTATION_SHORT_WEIGHT,
+            "long_weight": ROTATION_LONG_WEIGHT,
+            "absolute_score_gate": 0.0,
+            "theme_deduplication": True,
+        },
+        "coverage": {
+            "requested": len(symbols), "evaluated": evaluated, "unavailable": unavailable,
+        },
+        "status": "UNAVAILABLE" if evaluated == 0 else "ACCUMULATING",
+        "reason": unavailable_reason,
+        "signal": None if evaluated == 0 else ("RISK_ON_OBSERVATION" if selection else "CASH_OBSERVATION"),
+        "selection": selection,
+        "metrics": metrics,
+        "observation_gate": {
+            "minimum_completed_days": ROTATION_MINIMUM_DAYS,
+            "preferred_completed_days": ROTATION_PREFERRED_DAYS,
+            "completed_days": 0,
+            "status": "UNAVAILABLE" if evaluated == 0 else "ACCUMULATING",
+        },
+    }
+
+
+def append_rotation_history(history: Any, report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Append one idempotent research row and update the observation gate."""
+    rows_by_date: dict[str, dict[str, Any]] = {}
+    if isinstance(history, list):
+        for row in history:
+            if not isinstance(row, dict):
+                continue
+            model_date = row.get("model_date")
+            if isinstance(model_date, str) and model_date:
+                rows_by_date[model_date] = copy.deepcopy(row)
+    model_date = report.get("model_date")
+    if report.get("status") != "UNAVAILABLE" and isinstance(model_date, str) and model_date:
+        rows_by_date[model_date] = {
+            "model_date": model_date,
+            "signal": report.get("signal"),
+            "coverage": copy.deepcopy(report.get("coverage")),
+            "selection": copy.deepcopy(report.get("selection", [])),
+        }
+    rows = [rows_by_date[key] for key in sorted(rows_by_date)][-520:]
+    gate = report.setdefault("observation_gate", {})
+    gate.update({
+        "minimum_completed_days": ROTATION_MINIMUM_DAYS,
+        "preferred_completed_days": ROTATION_PREFERRED_DAYS,
+        "completed_days": len(rows),
+        "status": (
+            "UNAVAILABLE" if report.get("status") == "UNAVAILABLE"
+            else "PREFERRED_REACHED" if len(rows) >= ROTATION_PREFERRED_DAYS
+            else "MINIMUM_REACHED" if len(rows) >= ROTATION_MINIMUM_DAYS
+            else "ACCUMULATING"
+        ),
+    })
+    return rows
+
+
 def choose_top10(rows: list[dict[str, Any]]) -> list[str]:
     selected: list[str] = []
     themes: set[str] = set()
@@ -402,26 +555,59 @@ def main() -> None:
     shadow["model_fingerprint"] = copy.deepcopy(fingerprint)
     if isinstance(previous_shadow.get("breakout_history"), list):
         shadow["breakout_history"] = copy.deepcopy(previous_shadow["breakout_history"])
+    if isinstance(previous_shadow.get("rotation_history"), list):
+        shadow["rotation_history"] = copy.deepcopy(previous_shadow["rotation_history"])
     if BAR_DB.exists():
         try:
             with sqlite3.connect(BAR_DB) as db:
-                shadow["breakout_research"] = build_breakout_shadow_report(
-                    db, model_date=str(current["date"]), pool_rows=pool.get("rows", []),
-                )
-        except (OSError, sqlite3.Error, ValueError, TypeError, ArithmeticError) as exc:
-            shadow["breakout_research"] = {
+                try:
+                    shadow["breakout_research"] = build_breakout_shadow_report(
+                        db, model_date=str(current["date"]), pool_rows=pool.get("rows", []),
+                    )
+                except (OSError, sqlite3.Error, ValueError, TypeError, ArithmeticError) as exc:
+                    shadow["breakout_research"] = {
+                        "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+                        "model_date": current["date"], "status": "UNAVAILABLE",
+                        "reason": f"US ETF breakout research unavailable: {type(exc).__name__}",
+                    }
+                try:
+                    shadow["rotation_research"] = build_rotation_shadow_report(
+                        db, model_date=str(current["date"]), pool_rows=pool.get("rows", []),
+                    )
+                except (OSError, sqlite3.Error, ValueError, TypeError, ArithmeticError) as exc:
+                    shadow["rotation_research"] = {
+                        "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+                        "production_weights_changed": False, "model_date": current["date"], "status": "UNAVAILABLE",
+                        "reason": f"US ETF rotation research unavailable: {type(exc).__name__}",
+                    }
+        except (OSError, sqlite3.Error) as exc:
+            shadow.setdefault("breakout_research", {
                 "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
                 "model_date": current["date"], "status": "UNAVAILABLE",
                 "reason": f"US ETF breakout research unavailable: {type(exc).__name__}",
-            }
+            })
+            shadow.setdefault("rotation_research", {
+                "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+                "production_weights_changed": False, "model_date": current["date"], "status": "UNAVAILABLE",
+                "reason": f"US ETF rotation research unavailable: {type(exc).__name__}",
+            })
         if shadow["breakout_research"].get("coverage") is not None:
             shadow["breakout_history"] = append_breakout_history(
                 previous_shadow.get("breakout_history", []), shadow["breakout_research"],
+            )
+        if shadow["rotation_research"].get("coverage") is not None:
+            shadow["rotation_history"] = append_rotation_history(
+                previous_shadow.get("rotation_history", []), shadow["rotation_research"],
             )
     else:
         shadow["breakout_research"] = {
             "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
             "model_date": current["date"], "status": "UNAVAILABLE", "reason": "US ETF daily-bar cache is unavailable",
+        }
+        shadow["rotation_research"] = {
+            "version": 1, "mode": "shadow_research_only", "production_change_allowed": False,
+            "production_weights_changed": False, "model_date": current["date"], "status": "UNAVAILABLE",
+            "reason": "US ETF daily-bar cache is unavailable",
         }
     atomic_write(OUT, payload); atomic_write(SHADOW, shadow)
     print(json.dumps({"date": current["date"], "snapshots": len(snapshots), "top10": current["top10"], "exposure": current["exposure"], "metrics": payload["metrics"], "shadow_intervals": len(shadow["history"])}, ensure_ascii=False))

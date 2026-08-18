@@ -23,6 +23,7 @@ COMPONENT_NAMES = [
     "UsShadowHealthPanel.astro",
     "UsResearchArchive.astro",
     "UsSignalValidationPanel.astro",
+    "UsRotationShadowPanel.astro",
 ]
 
 requires_local_hermes = pytest.mark.skipif(
@@ -197,6 +198,95 @@ def test_build_report_v2_preserves_legacy_fields_and_projects_health_summaries()
     assert report["data_quality"]["fingerprint_consistent"] is True
     assert report["data_quality"]["production_change_allowed"] is False
     assert report["production_change_allowed"] is False
+
+
+def test_build_report_projects_rotation_shadow_as_read_only_summary():
+    module = load_module()
+    learning, shadow, pool = fixtures()
+    health = health_fixture(learning, pool)
+    shadow["rotation_research"] = {
+        "model_date": "2026-07-31",
+        "mode": "shadow_research_only",
+        "production_change_allowed": False,
+        "production_weights_changed": False,
+        "signal": "RISK_ON_OBSERVATION",
+        "coverage": {"requested": 2, "evaluated": 2, "unavailable": 0},
+        "observation_gate": {
+            "minimum_completed_days": 10, "preferred_completed_days": 20,
+            "completed_days": 4, "status": "ACCUMULATING",
+        },
+        "selection": [
+            {"symbol": "KWEB", "theme": "中国资产", "return_21d": 0.08, "return_63d": 0.12, "rotation_score": 0.09714286},
+        ],
+    }
+    report = module.build_report(learning, shadow, pool, health=health)
+    assert report["rotation_research_summary"] == {
+        "status": "ACCUMULATING",
+        "signal": "RISK_ON_OBSERVATION",
+        "model_date": "2026-07-31",
+        "production_change_allowed": False,
+        "production_weights_changed": False,
+        "coverage": {"requested": 2, "evaluated": 2, "unavailable": 0},
+        "observation_gate": shadow["rotation_research"]["observation_gate"],
+        "selection": shadow["rotation_research"]["selection"],
+        "reason": None,
+    }
+
+
+def test_rotation_summary_fails_closed_on_malformed_selection():
+    module = load_module()
+    summary = module.build_rotation_research_summary({
+        "rotation_research": {
+            "mode": "shadow_research_only",
+            "production_change_allowed": False,
+            "production_weights_changed": False,
+            "coverage": {"requested": 1, "evaluated": 1, "unavailable": 0},
+            "observation_gate": {
+                "minimum_completed_days": 10, "preferred_completed_days": 20,
+                "completed_days": 1, "status": "ACCUMULATING",
+            },
+            "selection": {"symbol": "QQQ"},
+        },
+    })
+    assert summary["status"] == "UNAVAILABLE"
+    assert summary["selection"] == []
+    assert summary["reason"] == "rotation shadow selection must be a list"
+
+
+def test_rotation_summary_fails_closed_on_nonfinite_gate_and_coverage():
+    module = load_module()
+    summary = module.build_rotation_research_summary({
+        "rotation_research": {
+            "mode": "shadow_research_only", "production_change_allowed": False,
+            "production_weights_changed": False, "selection": [],
+            "coverage": {"requested": float("inf"), "evaluated": 1, "unavailable": 0},
+            "observation_gate": {
+                "minimum_completed_days": 10, "preferred_completed_days": 20,
+                "completed_days": float("nan"), "status": "ACCUMULATING",
+            },
+        },
+    })
+    assert summary["status"] == "UNAVAILABLE"
+    assert summary["coverage"] == {}
+    assert summary["observation_gate"] == {}
+    assert summary["reason"] == "rotation shadow coverage or observation gate is invalid"
+
+
+def test_rotation_summary_skips_items_with_non_string_identity():
+    module = load_module()
+    summary = module.build_rotation_research_summary({
+        "rotation_research": {
+            "mode": "shadow_research_only", "production_change_allowed": False,
+            "production_weights_changed": False,
+            "coverage": {"requested": 1, "evaluated": 1, "unavailable": 0},
+            "observation_gate": {
+                "minimum_completed_days": 10, "preferred_completed_days": 20,
+                "completed_days": 1, "status": "ACCUMULATING",
+            },
+            "selection": [{"symbol": {"unsafe": True}, "theme": ["bad"], "rotation_score": 0.1}],
+        },
+    })
+    assert summary["selection"] == []
 
 
 def test_build_report_projects_honest_signal_validation_horizons():
@@ -669,6 +759,15 @@ def test_signal_validation_panel_keeps_unavailable_metrics_blank():
     content = panel.read_text(encoding="utf-8")
     assert "value != null && Number.isFinite(Number(value))" in content
     assert "MFE" in content and "MAE" in content and "UNAVAILABLE" in content
+
+
+def test_rotation_shadow_panel_markers_and_null_safe_rates():
+    panel = COMPONENT_DIR / "UsRotationShadowPanel.astro"
+    content = panel.read_text(encoding="utf-8")
+    assert "ROTATION SHADOW" in content
+    assert "21日" in content and "63日" in content
+    assert "production_change_allowed" in content
+    assert "value != null && Number.isFinite(Number(value))" in content
 
 
 def test_research_components_format_fractional_rates_and_nulls_honestly():

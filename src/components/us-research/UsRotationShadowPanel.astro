@@ -1,0 +1,57 @@
+---
+interface Props { latest: any }
+const { latest } = Astro.props;
+const research = latest?.rotation_research_summary || {};
+const gate = research.observation_gate || {};
+const selection = Array.isArray(research.selection) ? research.selection : [];
+const formatRate = (value: unknown) => value != null && Number.isFinite(Number(value))
+  ? `${Number(value) >= 0 ? '+' : ''}${(Number(value) * 100).toFixed(1)}%`
+  : '—';
+const rateClass = (value: unknown) => value != null && Number.isFinite(Number(value))
+  ? (Number(value) >= 0 ? 'positive' : 'negative')
+  : '';
+const signalLabel = research.signal === 'RISK_ON_OBSERVATION' ? '风险资产观察' : research.signal === 'CASH_OBSERVATION' ? '现金观察' : '数据积累中';
+const isolated = research.production_change_allowed === false && research.production_weights_changed === false;
+---
+
+<div class="section-head">
+  <div><span class="section-kicker">ROTATION SHADOW</span><h2>1月 / 3月动量轮动影子层</h2></div>
+  <p>Fincept思路校准 · 观察10—20个交易日</p>
+</div>
+<section class="analysis-card panel rotation-shadow-panel" data-status={research.status || 'UNAVAILABLE'}>
+  <div class="rotation-shadow-summary">
+    <div><span>研究状态</span><strong>{research.status || 'UNAVAILABLE'}</strong></div>
+    <div><span>当前标签</span><strong>{signalLabel}</strong></div>
+    <div><span>观察进度</span><strong>{gate.completed_days ?? 0} / {gate.preferred_completed_days ?? 20}日</strong></div>
+    <div><span>生产隔离</span><strong>{isolated ? '权重保持不变' : '隔离契约异常'}</strong></div>
+  </div>
+  {selection.length ? (
+    <div class="table-wrap">
+      <table class="research-table">
+        <thead><tr><th>ETF</th><th>主题</th><th>21日</th><th>63日</th><th>综合分</th></tr></thead>
+        <tbody>{selection.map((item: any) => (
+          <tr>
+            <td><strong>{item.symbol}</strong></td>
+            <td>{item.theme || '—'}</td>
+            <td class={rateClass(item.return_21d)}>{formatRate(item.return_21d)}</td>
+            <td class={rateClass(item.return_63d)}>{formatRate(item.return_63d)}</td>
+            <td class={rateClass(item.rotation_score)}>{formatRate(item.rotation_score)}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  ) : (
+    <p class="rotation-shadow-empty">{research.reason || '当前没有通过绝对动量门禁且主题去重后的候选。'}</p>
+  )}
+  <p class="method-note">研究口径：21个交易日与63个交易日调整收盘收益按100:75加权，综合分须大于0，同主题保留最高分ETF。该层保持 production_change_allowed=false，仅用于前向观察。</p>
+</section>
+
+<style>
+  .rotation-shadow-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-bottom:.8rem}
+  .rotation-shadow-summary div{padding:.65rem .7rem;border-radius:11px;background:#f6f8fb}
+  .rotation-shadow-summary span{display:block;color:var(--research-muted);font-size:.66rem}
+  .rotation-shadow-summary strong{display:block;margin-top:.25rem;color:#26364a;font-size:.82rem}
+  .rotation-shadow-empty{margin:0;padding:.8rem;border-radius:11px;background:#f6f8fb;color:var(--research-muted);font-size:.76rem}
+  @media(max-width:820px){.rotation-shadow-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:560px){.rotation-shadow-summary{grid-template-columns:1fr}}
+</style>

@@ -11,6 +11,7 @@ import UsRankIcPanel from '../../components/us-research/UsRankIcPanel.astro';
 import UsShadowHealthPanel from '../../components/us-research/UsShadowHealthPanel.astro';
 import UsResearchArchive from '../../components/us-research/UsResearchArchive.astro';
 import UsSignalValidationPanel from '../../components/us-research/UsSignalValidationPanel.astro';
+import UsRotationShadowPanel from '../../components/us-research/UsRotationShadowPanel.astro';
 
 const archive = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-compass-research.json'), 'utf8'));
 const reports = archive.reports || [];
@@ -47,6 +48,7 @@ const formatDate = (value: string) => value || '—';
     <UsRankIcPanel latest={latest} metricRows={metricRows} />
     <UsSignalValidationPanel latest={latest} />
     <UsShadowHealthPanel latest={latest} />
+    <UsRotationShadowPanel latest={latest} />
 
     <div class="section-head"><div><span class="section-kicker">EXTERNAL VALIDATION</span><h2>问财验证</h2></div><p>外部证据补充，本地前向指标为主</p></div>
     <section class="iwencai-note panel"><h3>{latest.iwencai?.status === 'ok' ? '外部验证已完成' : '外部验证暂不可用'}</h3><p>{latest.iwencai?.summary || '问财验证暂不可用'}</p><span class="source-tag">数据来源：同花顺问财</span></section>
