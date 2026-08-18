@@ -41,6 +41,39 @@ test('queries Hong Kong 4h/day/week analysis in one TradingView scan', async () 
   assert.equal(body.results['06809'][2].recommendation, 'UNAVAILABLE');
 });
 
+test('routes A-share, US, and futures tickers to their TradingView scanners', async () => {
+  const cases = [
+    { market: 'a', ticker: 'SSE:600021', scanner: 'china' },
+    { market: 'us', ticker: 'NASDAQ:TSLA', scanner: 'america' },
+    { market: 'futures', ticker: 'COMEX:SI1!', scanner: 'futures' },
+  ];
+  for (const item of cases) {
+    let call;
+    const fetchImpl = async (url, options) => {
+      call = { url, body: JSON.parse(options.body) };
+      return Response.json({ totalCount: 1, data: [{ s: item.ticker, d: [0.2, 0, -0.2] }] });
+    };
+    const request = new Request(`https://x/api/public/v1/technical-analysis?market=${item.market}&s=${encodeURIComponent(item.ticker)}`);
+    const response = await handleTechnicalAnalysis(request, fetchImpl);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(call.url, `https://scanner.tradingview.com/${item.scanner}/scan`);
+    assert.deepEqual(call.body.symbols.tickers, [item.ticker]);
+    assert.deepEqual(body.results[item.ticker].map((row) => row.recommendation), ['BUY', 'NEUTRAL', 'SELL']);
+    assert.match(response.headers.get('cache-control'), /max-age=60/);
+    assert.match(response.headers.get('cache-control'), /s-maxage=60/);
+  }
+});
+
+test('rejects cross-market ticker injection', async () => {
+  const response = await handleTechnicalAnalysis(
+    new Request('https://x/api/public/v1/technical-analysis?market=a&s=NASDAQ%3ATSLA'),
+    async () => { throw new Error('must not fetch'); },
+  );
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'invalid_symbols');
+});
+
 test('bounds and canonicalizes the in-isolate response cache', async () => {
   const fetchImpl = async (_url, options) => {
     const ticker = JSON.parse(options.body).symbols.tickers[0];

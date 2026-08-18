@@ -12,10 +12,8 @@ test('CSP permits the Cloudflare Web Analytics script and beacon', () => {
   assert.match(headers, /connect-src[^\n]*https:\/\/cloudflareinsights\.com/);
 });
 
-test('CSP permits the TradingView technical-analysis web component', () => {
-  assert.match(headers, /script-src[^\n]*https:\/\/widgets\.tradingview-widget\.com/);
-  assert.match(headers, /frame-src[^\n]*https:\/\/widgets\.tradingview-widget\.com/);
-  assert.match(headers, /connect-src[^\n]*https:\/\/widgets\.tradingview-widget\.com/);
+test('CSP keeps TradingView scanner traffic server-side at the Cloudflare edge', () => {
+  assert.doesNotMatch(headers, /widgets\.tradingview-widget\.com/);
 });
 
 const usCompass = await readFile(new URL('../src/pages/us-compass.astro', import.meta.url), 'utf8');

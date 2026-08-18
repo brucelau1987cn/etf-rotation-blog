@@ -91,30 +91,28 @@ def test_price_volume_asof_badge_sits_beside_matrix_title_and_uses_latest_kline_
     assert ".a-rolling-main .price-volume-asof" in styles
 
 
-def test_each_rolling_board_reserves_a_compact_tradingview_analysis_panel():
+def test_each_market_uses_the_compact_edge_tradingview_analysis_card():
     matrix = MATRIX.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
     styles = STYLES.read_text(encoding="utf-8")
 
-    assert "widgets.tradingview-widget.com/w/zh_CN/tv-technical-analysis.js" in matrix
     assert "toTradingViewSymbol" in matrix
     for marker in ("SSE:", "SZSE:", "HKEX:", "COMEX:SI1!", "NASDAQ"):
         assert marker in matrix
         assert marker in app
     assert "technical-analysis-panel" in matrix
-    assert "technical-analysis-mount" in matrix
+    assert "technical-analysis-fallback" in matrix
     assert 'data-role="technical-analysis"' in matrix
     assert "toTradingViewSymbol" in app
-    assert "initializeTechnicalAnalysis" in app
-    assert "customElements.whenDefined('tv-technical-analysis')" in app
-    assert "disposeTechnicalAnalysis" in app
-    assert "if (isVisible) initializeTechnicalAnalysis(board)" in app
-    assert "else disposeTechnicalAnalysis(board)" in app
+    assert "data-tv-analysis-ticker" in matrix
+    assert "data-tv-analysis-ticker" in app
+    assert "widgets.tradingview-widget.com" not in matrix
+    assert "technical-analysis-mount" not in matrix
+    assert "document.createElement('tv-technical-analysis')" not in app
     assert "technical-analysis-panel" in app
-    assert "document.createElement('tv-technical-analysis')" in app
     assert ".a-rolling-main .technical-analysis-panel" in styles
-    assert "flex: 0 0 238px" in styles
-    assert "height: 150px" in styles
+    assert "flex: 0 0 252px" in styles
+    assert "height: 136px" in styles
     assert "@media (max-width: 900px)" in styles
     assert "@media (max-width: 600px)" in styles
     assert "box-sizing: border-box" in styles
@@ -122,41 +120,34 @@ def test_each_rolling_board_reserves_a_compact_tradingview_analysis_panel():
     assert "max-width: 100%" in styles
 
 
-def test_hk_tradingview_uses_a_clean_external_fallback_instead_of_permission_error():
+def test_all_markets_share_edge_scanner_refresh_and_remove_external_brand_cta():
     matrix = MATRIX.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
     styles = STYLES.read_text(encoding="utf-8")
 
-    assert "isHongKongInstrument" in matrix
-    assert "isHongKongInstrument" in app
-    assert "needsTradingViewWidget" in matrix
-    assert "instruments.some((inst) => !isHongKongInstrument" in matrix
     assert "technical-analysis-fallback" in matrix
     assert "technical-analysis-fallback" in app
-    assert "TradingView 港股代码" in matrix
-    assert "TradingView 港股代码" in app
+    assert "technical-analysis-brand" not in matrix
+    assert "technical-analysis-brand" not in app
+    assert "前往 TradingView" not in matrix
+    assert "前往 TradingView" not in app
     for label in ("4小时", "1天", "1周"):
         assert label in matrix
         assert label in app
-    assert "/api/public/v1/technical-analysis?s=" in app
-    assert "fetchHongKongTechnicalAnalysis" in app
+    assert "/api/public/v1/technical-analysis?market=" in app
+    assert "fetchTechnicalAnalysis" in app
     assert "TECHNICAL_ANALYSIS_INTERVAL_MS = 60_000" in app
-    assert "market: 'HK'" in app
+    assert "a: 'CN_A'" in app
+    assert "hk: 'HK'" in app
+    assert "us: 'US'" in app
+    assert "startLivePoll" in app
     assert "intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS" in app
-    assert "tick: async () => { await fetchHongKongTechnicalAnalysis(); }" in app
-    assert "void fetchHongKongTechnicalAnalysis();" in app
-    assert "singleFlight(fetchHongKongTechnicalAnalysisNow)" in app
-    assert "immediate: false" in app[app.index("const startHongKongTechnicalAnalysisPoll"):app.index("// Load admin-managed watchlist")]
-    assert "setTimeout(() => { fetchHongKongTechnicalAnalysis(); }, 260)" not in app
-    assert "toTradingViewHongKongCode" in matrix
-    assert "toTradingViewHongKongCode" in app
-    assert "港股标准代码" not in matrix
-    assert "港股标准代码" not in app
-    assert "前往 TradingView" in matrix
-    assert "前往 TradingView" in app
+    assert "void fetchTechnicalAnalysis();" in app
+    assert "singleFlight(fetchTechnicalAnalysisNow)" in app
+    assert "immediate: false" in app[app.index("const startTechnicalAnalysisPoll"):app.index("// Load admin-managed watchlist")]
     assert ".a-rolling-main .technical-analysis-fallback" in styles
     assert "HKEX:${String(Number(bare))}" in matrix
-    assert "HKEX-${hkCode}" in matrix
+    assert "dataset.tone" in app
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

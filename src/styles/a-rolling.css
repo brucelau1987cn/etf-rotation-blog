@@ -923,94 +923,111 @@
 }
 
 .a-rolling-main .technical-analysis-panel {
-  flex: 0 0 238px;
-  width: 238px;
-  height: 150px;
+  flex: 0 0 252px;
+  width: 252px;
+  height: 136px;
   min-width: 0;
-  margin-left: 0.4rem;
+  margin-left: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.a-rolling-main .technical-analysis-mount {
-  width: 100%;
-  height: 100%;
-}
-
-.a-rolling-main .technical-analysis-loading {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #f7faff 0%, #ffffff 72%);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
 }
 
 .a-rolling-main .technical-analysis-fallback {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: stretch;
+  gap: 0.58rem;
+  padding: 0.72rem;
+}
+
+.a-rolling-main .technical-analysis-heading {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.28rem;
-  padding: 0.65rem;
-  text-align: center;
-  background: linear-gradient(145deg, #f8fbff 0%, #fff 100%);
+  align-items: flex-start;
+  gap: 0.16rem;
+  text-align: left;
 }
 
-.a-rolling-main .technical-analysis-brand {
-  color: #2962ff;
-  font-size: 0.66rem;
-  font-weight: 850;
-  letter-spacing: 0.04em;
-}
-
-.a-rolling-main .technical-analysis-fallback strong {
+.a-rolling-main .technical-analysis-heading strong {
+  max-width: 100%;
+  overflow: hidden;
   color: #0f172a;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
+  font-weight: 850;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .a-rolling-main .technical-analysis-code {
-  color: #475569;
-  font-size: 0.7rem;
-  font-weight: 750;
+  max-width: 100%;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .a-rolling-main .technical-analysis-periods {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.25rem;
+  gap: 0.34rem;
 }
 
 .a-rolling-main .technical-analysis-periods > span {
   min-width: 0;
-  padding: 0.26rem 0.12rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  background: #fff;
+  padding: 0.42rem 0.14rem;
+  border: 1px solid #dbe4ef;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.92);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.08rem;
+  justify-content: center;
+  gap: 0.16rem;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.a-rolling-main .technical-analysis-periods > span[data-tone="is-buy"] {
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.a-rolling-main .technical-analysis-periods > span[data-tone="is-sell"] {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.a-rolling-main .technical-analysis-periods > span[data-tone="is-neutral"] {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.a-rolling-main .technical-analysis-periods > span[data-tone="is-unavailable"] {
+  border-color: #e2e8f0;
+  background: #f8fafc;
 }
 
 .a-rolling-main .technical-analysis-periods b {
   color: #64748b;
-  font-size: 0.59rem;
+  font-size: 0.6rem;
   line-height: 1.1;
   white-space: nowrap;
 }
 
 .a-rolling-main .technical-analysis-periods em {
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-style: normal;
   font-weight: 850;
   line-height: 1.1;
@@ -1021,33 +1038,6 @@
 .a-rolling-main .technical-analysis-periods em.is-sell { color: #059669; }
 .a-rolling-main .technical-analysis-periods em.is-neutral { color: #d97706; }
 .a-rolling-main .technical-analysis-periods em.is-unavailable { color: #94a3b8; }
-
-.a-rolling-main .technical-analysis-fallback a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.75rem;
-  margin-top: 0.08rem;
-  padding: 0 0.72rem;
-  border-radius: 999px;
-  color: #fff;
-  background: #2962ff;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.a-rolling-main .technical-analysis-fallback a:hover {
-  background: #1d4ed8;
-}
-
-.a-rolling-main .technical-analysis-panel tv-technical-analysis,
-.a-rolling-main .technical-analysis-panel iframe {
-  display: block;
-  width: 100% !important;
-  height: 150px !important;
-  border: 0;
-}
 
 .a-rolling-main .signal-panel::-webkit-scrollbar {
   height: 10px;
@@ -1425,13 +1415,8 @@
   .a-rolling-main .technical-analysis-panel {
     flex: 1 0 100%;
     width: 100%;
-    height: 260px;
-    margin: 0.4rem 0 0;
-  }
-
-  .a-rolling-main .technical-analysis-panel tv-technical-analysis,
-  .a-rolling-main .technical-analysis-panel iframe {
-    height: 260px !important;
+    height: 136px;
+    margin: 0.5rem 0 0;
   }
 }
 

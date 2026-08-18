@@ -434,26 +434,6 @@
     return '';
   };
 
-  const isHongKongInstrument = (symbol, exchange) => {
-    const raw = String(symbol || '').trim().toUpperCase();
-    const venue = String(exchange || '').trim().toUpperCase();
-    return venue.includes('HK') || raw.endsWith('.HK');
-  };
-
-  const toTradingViewHongKongCode = (symbol) => {
-    const bare = String(symbol || '').trim().toUpperCase().replace(/\.HK$/, '');
-    return /^\d+$/.test(bare) ? String(Number(bare)) : '';
-  };
-
-  const toTradingViewHref = (symbol, exchange) => {
-    const hkCode = toTradingViewHongKongCode(symbol);
-    if (isHongKongInstrument(symbol, exchange) && hkCode) {
-      return `https://www.tradingview.com/symbols/HKEX-${hkCode}/technicals/`;
-    }
-    const tvSymbol = toTradingViewSymbol(symbol, exchange);
-    return tvSymbol ? `https://www.tradingview.com/symbols/${tvSymbol.replace(':', '-')}/technicals/` : '';
-  };
-
   const ensureInstrumentBoard = (meta, index = 0) => {
     const list = document.getElementById('rolling-board-list');
     if (!list || !meta?.symbol) return null;
@@ -479,28 +459,21 @@
     const exchange = meta.exchange || '';
     const startDate = meta.start_date || '';
     const tradingViewSymbol = toTradingViewSymbol(symbol, exchange);
-    const tradingViewHref = toTradingViewHref(symbol, exchange);
-    const hongKongInstrument = isHongKongInstrument(symbol, exchange);
-    const tradingViewHongKongCode = toTradingViewHongKongCode(symbol);
-    const technicalAnalysis = tradingViewSymbol ? (hongKongInstrument ? `
-      <aside class="technical-analysis-panel is-external-only" data-role="technical-analysis" aria-label="TradingView 技术分析">
-        <div class="technical-analysis-fallback" data-tv-analysis-symbol="${symbol}">
-          <span class="technical-analysis-brand">TradingView</span>
-          <strong data-role="technical-analysis-title">港股技术分析</strong>
-          <span class="technical-analysis-code" data-role="technical-analysis-code">TradingView 港股代码</span>
+    const technicalAnalysis = tradingViewSymbol ? `
+      <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label="TradingView 技术分析">
+        <div class="technical-analysis-fallback" data-tv-analysis-symbol="${symbol}" data-tv-analysis-ticker="${tradingViewSymbol}">
+          <div class="technical-analysis-heading">
+            <strong data-role="technical-analysis-title">技术分析</strong>
+            <span class="technical-analysis-code" data-role="technical-analysis-code">TradingView · ${tradingViewSymbol}</span>
+          </div>
           <div class="technical-analysis-periods" aria-label="多周期技术评级">
             <span data-period="4h"><b>4小时</b><em>查询中</em></span>
             <span data-period="1d"><b>1天</b><em>查询中</em></span>
             <span data-period="1W"><b>1周</b><em>查询中</em></span>
           </div>
-          <a href="#" data-role="technical-analysis-link" target="_blank" rel="noopener noreferrer">前往 TradingView</a>
         </div>
       </aside>
-    ` : `
-      <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label="TradingView 技术分析">
-        <div class="technical-analysis-mount" data-tv-symbol="${tradingViewSymbol}" aria-busy="true"><span class="technical-analysis-loading">技术分析加载中…</span></div>
-      </aside>
-    `) : '';
+    ` : '';
     const article = document.createElement('article');
     article.className = 'instrument-board';
     article.setAttribute('data-symbol', symbol);
@@ -548,10 +521,6 @@
     `;
     const technicalTitle = article.querySelector('[data-role="technical-analysis-title"]');
     if (technicalTitle) technicalTitle.textContent = `${name}技术分析`;
-    const technicalCode = article.querySelector('[data-role="technical-analysis-code"]');
-    if (technicalCode) technicalCode.textContent = `TradingView 港股代码 ${tradingViewHongKongCode}`;
-    const technicalLink = article.querySelector('[data-role="technical-analysis-link"]');
-    if (technicalLink && tradingViewHref) technicalLink.setAttribute('href', tradingViewHref);
     // insert before search-empty card if present
     const emptyCard = list.querySelector('#board-search-empty, .board-search-empty');
     if (emptyCard) list.insertBefore(article, emptyCard);
@@ -1213,17 +1182,19 @@
     UNAVAILABLE: ['暂无', 'is-unavailable'],
   };
 
-  const fetchHongKongTechnicalAnalysisNow = async () => {
-    const cards = Array.from(document.querySelectorAll('.technical-analysis-fallback[data-tv-analysis-symbol]'));
+  const TECHNICAL_ANALYSIS_CALENDAR_MARKETS = { a: 'CN_A', hk: 'HK', us: 'US' };
+
+  const fetchTechnicalAnalysisNow = async () => {
+    const cards = Array.from(document.querySelectorAll('.technical-analysis-fallback[data-tv-analysis-ticker]'));
     if (!cards.length) return;
-    const symbols = [...new Set(cards.map((card) => String(card.dataset.tvAnalysisSymbol || '').trim()).filter(Boolean))];
-    if (!symbols.length) return;
+    const tickers = [...new Set(cards.map((card) => String(card.dataset.tvAnalysisTicker || '').trim()).filter(Boolean))];
+    if (!tickers.length) return;
     try {
-      const response = await fetch(`/api/public/v1/technical-analysis?s=${encodeURIComponent(symbols.join(','))}`);
+      const response = await fetch(`/api/public/v1/technical-analysis?market=${encodeURIComponent(market)}&s=${encodeURIComponent(tickers.join(','))}`);
       if (!response.ok) throw new Error(`technical analysis ${response.status}`);
       const body = await response.json();
       cards.forEach((card) => {
-        const rows = body?.results?.[String(card.dataset.tvAnalysisSymbol || '').padStart(5, '0')] || [];
+        const rows = body?.results?.[String(card.dataset.tvAnalysisTicker || '').toUpperCase()] || [];
         const byPeriod = new Map(rows.map((row) => [row.period, row]));
         card.querySelectorAll('.technical-analysis-periods [data-period]').forEach((slot) => {
           const row = byPeriod.get(slot.dataset.period);
@@ -1231,6 +1202,7 @@
           const [label, cls] = TECHNICAL_ANALYSIS_LABELS[state] || TECHNICAL_ANALYSIS_LABELS.UNAVAILABLE;
           const value = slot.querySelector('em');
           if (!value) return;
+          slot.dataset.tone = cls;
           value.className = cls;
           value.textContent = label;
           value.title = Number.isFinite(row?.score) ? `TradingView 综合评分 ${row.score.toFixed(3)}` : 'TradingView 暂无评级';
@@ -1238,39 +1210,49 @@
       });
     } catch (error) {
       cards.forEach((card) => {
-        card.querySelectorAll('.technical-analysis-periods em').forEach((value) => {
-          value.className = 'is-unavailable';
-          value.textContent = '暂不可用';
+        card.querySelectorAll('.technical-analysis-periods [data-period]').forEach((slot) => {
+          const value = slot.querySelector('em');
+          slot.dataset.tone = 'is-unavailable';
+          if (value) {
+            value.className = 'is-unavailable';
+            value.textContent = '暂不可用';
+          }
         });
       });
-      console.warn('Hong Kong technical analysis unavailable', error);
+      console.warn('TradingView technical analysis unavailable', error);
     }
   };
-  const fetchHongKongTechnicalAnalysis = window.EtfLivePoll?.singleFlight
-    ? window.EtfLivePoll.singleFlight(fetchHongKongTechnicalAnalysisNow)
-    : fetchHongKongTechnicalAnalysisNow;
+  const fetchTechnicalAnalysis = window.EtfLivePoll?.singleFlight
+    ? window.EtfLivePoll.singleFlight(fetchTechnicalAnalysisNow)
+    : fetchTechnicalAnalysisNow;
 
-  const startHongKongTechnicalAnalysisPoll = () => {
-    if (market !== 'hk') return;
-    // Ratings remain useful after the HK close, so hydrate once on every page load.
-    void fetchHongKongTechnicalAnalysis();
-    if (!window.EtfLivePoll?.startMarketPoll) {
-      console.warn('Hong Kong technical analysis poll unavailable: market calendar helper missing');
+  const startTechnicalAnalysisPoll = () => {
+    // The latest close remains useful outside market hours, so hydrate every page once.
+    void fetchTechnicalAnalysis();
+    const helper = window.EtfLivePoll;
+    const gatedMarket = TECHNICAL_ANALYSIS_CALENDAR_MARKETS[market];
+    if (gatedMarket && helper?.startMarketPoll) {
+      helper.startMarketPoll({
+        market: gatedMarket,
+        intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS,
+        immediate: false,
+        tick: async () => { await fetchTechnicalAnalysis(); },
+      });
       return;
     }
-    // Further refreshes stay session-gated to avoid unnecessary closed-market polling.
-    window.EtfLivePoll.startMarketPoll({
-      market: 'HK',
-      intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS,
-      immediate: false,
-      tick: async () => { await fetchHongKongTechnicalAnalysis(); },
-    });
+    if (market === 'futures' && helper?.startLivePoll) {
+      helper.startLivePoll({
+        intervalMs: TECHNICAL_ANALYSIS_INTERVAL_MS,
+        immediate: false,
+        tick: async () => { await fetchTechnicalAnalysis(); },
+      });
+    }
   };
 
   // Load admin-managed watchlist first so boards/start dates stay in sync.
   void loadRollingWatchlist().finally(() => {
     setTimeout(() => { fetchAllSignals(); }, 200);
-    startHongKongTechnicalAnalysisPoll();
+    startTechnicalAnalysisPoll();
     setTimeout(() => {
       fetchAllQuotes();
       fetchContinuousQuotes();
@@ -1325,40 +1307,6 @@
     setInterval(fetchContinuousQuotes, QUOTE_INTERVAL_MS);
   }
 
-  const initializeTechnicalAnalysis = (board) => {
-    const mount = board?.querySelector('.technical-analysis-mount[data-tv-symbol]');
-    if (!mount || mount.dataset.loaded === 'true') return;
-    const symbol = mount.dataset.tvSymbol;
-    if (!symbol) return;
-    if (!customElements.get('tv-technical-analysis')) {
-      if (mount.dataset.pending !== 'true') {
-        mount.dataset.pending = 'true';
-        customElements.whenDefined('tv-technical-analysis').then(() => {
-          delete mount.dataset.pending;
-          if (!board.hidden) initializeTechnicalAnalysis(board);
-        });
-      }
-      return;
-    }
-    const widget = document.createElement('tv-technical-analysis');
-    widget.setAttribute('symbol', symbol);
-    widget.setAttribute('style', 'width: 100%; height: 150px');
-    mount.dataset.loaded = 'true';
-    mount.setAttribute('aria-busy', 'false');
-    mount.replaceChildren(widget);
-  };
-
-  const disposeTechnicalAnalysis = (board) => {
-    const mount = board?.querySelector('.technical-analysis-mount[data-tv-symbol]');
-    if (!mount || mount.dataset.loaded !== 'true') return;
-    const loading = document.createElement('span');
-    loading.className = 'technical-analysis-loading';
-    loading.textContent = '技术分析加载中…';
-    delete mount.dataset.loaded;
-    mount.setAttribute('aria-busy', 'true');
-    mount.replaceChildren(loading);
-  };
-
   // Energy board: page by 3 instruments + code/name/initial search.
   const initBoardPager = () => {
     const list = document.getElementById('rolling-board-list');
@@ -1406,10 +1354,7 @@
       const visible = new Set(matched.slice(start, end));
 
       boards.forEach((board) => {
-        const isVisible = visible.has(board);
-        board.hidden = !isVisible;
-        if (isVisible) initializeTechnicalAnalysis(board);
-        else disposeTechnicalAnalysis(board);
+        board.hidden = !visible.has(board);
       });
       if (empty) empty.hidden = matched.length > 0;
 

@@ -99,28 +99,6 @@ const toTradingViewSymbol = (symbol: string, exchange: string) => {
   return '';
 };
 
-const isHongKongInstrument = (symbol: string, exchange: string) => {
-  const raw = String(symbol || '').trim().toUpperCase();
-  const venue = String(exchange || '').trim().toUpperCase();
-  return venue.includes('HK') || raw.endsWith('.HK');
-};
-
-const toTradingViewHongKongCode = (symbol: string) => {
-  const bare = String(symbol || '').trim().toUpperCase().replace(/\.HK$/, '');
-  return /^\d+$/.test(bare) ? String(Number(bare)) : '';
-};
-
-const toTradingViewHref = (symbol: string, exchange: string) => {
-  const hkCode = toTradingViewHongKongCode(symbol);
-  if (isHongKongInstrument(symbol, exchange) && hkCode) {
-    return `https://www.tradingview.com/symbols/HKEX-${hkCode}/technicals/`;
-  }
-  const tvSymbol = toTradingViewSymbol(symbol, exchange);
-  return tvSymbol ? `https://www.tradingview.com/symbols/${tvSymbol.replace(':', '-')}/technicals/` : '';
-};
-
-const needsTradingViewWidget = instruments.some((inst) => !isHongKongInstrument(inst.symbol, inst.exchange));
-
 const signalTimeMs = (item?: TimelineItem | null) => {
   const ms = new Date(item?.triggered_at || 0).getTime();
   return Number.isFinite(ms) ? ms : 0;
@@ -274,9 +252,6 @@ const nameInitials = (name: string) => {
       const startDateText = formatStartDate(inst.startDate);
       const initials = nameInitials(inst.instrumentName);
       const tradingViewSymbol = toTradingViewSymbol(inst.symbol, inst.exchange);
-      const tradingViewHref = toTradingViewHref(inst.symbol, inst.exchange);
-      const hongKongInstrument = isHongKongInstrument(inst.symbol, inst.exchange);
-      const tradingViewHongKongCode = toTradingViewHongKongCode(inst.symbol);
       return (
         <article
           class="instrument-board"
@@ -412,24 +387,22 @@ const nameInitials = (name: string) => {
             </div>
 
             {tradingViewSymbol ? (
-              <aside class:list={['technical-analysis-panel', hongKongInstrument && 'is-external-only']} data-role="technical-analysis" aria-label={`${inst.instrumentName} TradingView 技术分析`}>
-                {hongKongInstrument ? (
-                  <div class="technical-analysis-fallback" data-tv-analysis-symbol={inst.symbol}>
-                    <span class="technical-analysis-brand">TradingView</span>
+              <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label={`${inst.instrumentName} TradingView 技术分析`}>
+                <div
+                  class="technical-analysis-fallback"
+                  data-tv-analysis-symbol={inst.symbol}
+                  data-tv-analysis-ticker={tradingViewSymbol}
+                >
+                  <div class="technical-analysis-heading">
                     <strong>{inst.instrumentName}技术分析</strong>
-                    <span class="technical-analysis-code">TradingView 港股代码 {tradingViewHongKongCode}</span>
-                    <div class="technical-analysis-periods" aria-label={`${inst.instrumentName}多周期技术评级`}>
-                      <span data-period="4h"><b>4小时</b><em>查询中</em></span>
-                      <span data-period="1d"><b>1天</b><em>查询中</em></span>
-                      <span data-period="1W"><b>1周</b><em>查询中</em></span>
-                    </div>
-                    <a href={tradingViewHref} target="_blank" rel="noopener noreferrer">前往 TradingView</a>
+                    <span class="technical-analysis-code">TradingView · {tradingViewSymbol}</span>
                   </div>
-                ) : (
-                  <div class="technical-analysis-mount" data-tv-symbol={tradingViewSymbol} aria-busy="true">
-                    <span class="technical-analysis-loading">技术分析加载中…</span>
+                  <div class="technical-analysis-periods" aria-label={`${inst.instrumentName}多周期技术评级`}>
+                    <span data-period="4h"><b>4小时</b><em>查询中</em></span>
+                    <span data-period="1d"><b>1天</b><em>查询中</em></span>
+                    <span data-period="1W"><b>1周</b><em>查询中</em></span>
                   </div>
-                )}
+                </div>
               </aside>
             ) : null}
           </div>
@@ -442,6 +415,3 @@ const nameInitials = (name: string) => {
     </div>
   </div>
 </section>
-{needsTradingViewWidget ? (
-  <script is:inline type="module" src="https://widgets.tradingview-widget.com/w/zh_CN/tv-technical-analysis.js"></script>
-) : null}
