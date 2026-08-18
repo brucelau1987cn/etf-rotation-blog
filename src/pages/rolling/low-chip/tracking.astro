@@ -86,7 +86,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <div class="tc-header">
         <p class="tc-eyebrow">A股滚动 · 低筹码追踪</p>
         <h1 id="tc-title">低筹码追踪</h1>
-        <p class="tc-desc">从股票首次进入内部模型观察列表起追踪，记录加入后 15 个交易日的市场表现。加入当日作为基准，隔日起算第 1 日；完成窗口后自动进入历史区。</p>
+        <p class="tc-desc">从股票首次进入内部模型观察列表起追踪，记录加入后 20 个交易日的市场表现。加入当日作为基准，隔日起算第 1 日；完成窗口后自动进入历史区。</p>
         <p class="tc-overview-meta">当前追踪 <strong>{activeStocks.length}</strong> 只 · 历史 <strong>{historyStocks.length}</strong> 只</p>
       </div>
 
@@ -141,18 +141,18 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
               </div>
               <div class="tc-badges">
                 <span class="tc-badge tc-badge-join" title={`首次进入观察列表 ${rec.first_seen}`}>加入 {rec.first_seen}</span>
-                <span class="tc-badge tc-progress-label">第{rec.daily.length}/15日</span>
+                <span class="tc-badge tc-progress-label">第{rec.daily.length}/20日</span>
               </div>
             </div>
             <div
               class="tc-progress"
               role="progressbar"
-              aria-label={`15日追踪进度 ${rec.daily.length}/15`}
+              aria-label={`20日追踪进度 ${rec.daily.length}/20`}
               aria-valuemin="0"
-              aria-valuemax="15"
-              aria-valuenow={Math.min(rec.daily.length, 15)}
+              aria-valuemax="20"
+              aria-valuenow={Math.min(rec.daily.length, 20)}
             >
-              <span class="tc-progress-bar" style={`width:${Math.min(rec.daily.length, 15) / 15 * 100}%`}></span>
+              <span class="tc-progress-bar" style={`width:${Math.min(rec.daily.length, 20) / 20 * 100}%`}></span>
             </div>
 
             <div class="tc-model-tags" aria-label="加入时模型标签">
@@ -234,7 +234,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
               </div>
               <div class="tc-metric">
                 <span class="tc-label">剩余天数</span>
-                <strong>{Math.max(0, 15 - rec.daily.length)}天</strong>
+                <strong>{Math.max(0, 20 - rec.daily.length)}天</strong>
               </div>
             </div>
 

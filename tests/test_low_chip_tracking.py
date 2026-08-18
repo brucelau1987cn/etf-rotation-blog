@@ -23,8 +23,8 @@ def test_tracking_data_contract():
         # daily 按日期升序
         dates = [d["date"] for d in rec["daily"]]
         assert dates == sorted(dates)
-        # 固定窗口：加入日基准 + 加入后的最多 15 个交易日
-        assert len(dates) <= 16
+        # 固定窗口：加入日基准 + 加入后的最多 20 个交易日
+        assert len(dates) <= 21
         assert dates[0] == rec["first_seen"]
         features = rec.get("entry_features")
         assert isinstance(features, dict)
@@ -84,7 +84,7 @@ def test_tracking_page_and_entry_link():
     mode_nav = MODE_NAV.read_text(encoding="utf-8")
     assert "LowChipModeNav" in low_chip
     assert "/rolling/low-chip/tracking/" in mode_nav
-    assert "15日追踪" in mode_nav
+    assert "20日追踪" in mode_nav
 
 
 def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
@@ -97,7 +97,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "LowChipModeNav" in tracking
     assert 'active="tracking"' in tracking
     assert "当日观察" in mode_nav
-    assert "15日追踪" in mode_nav
+    assert "20日追踪" in mode_nav
     assert "aria-current={" in mode_nav
     assert "chip-track-link" not in low_chip
     assert "tc-back" not in tracking
@@ -105,9 +105,9 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "包含科创板" in tracking
     assert "上涨占比" in tracking
     assert "中位涨幅" in tracking
-    assert "第{rec.daily.length}/15日" in tracking
-    assert 'aria-valuemax="15"' in tracking
-    assert "Math.max(0, 15 - rec.daily.length)" in tracking
+    assert "第{rec.daily.length}/20日" in tracking
+    assert 'aria-valuemax="20"' in tracking
+    assert "Math.max(0, 20 - rec.daily.length)" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
     assert "@media (max-width: 900px)" in tracking
@@ -124,9 +124,17 @@ def test_tracking_script_exists():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "tencent_daily" in text
     assert "iwencai_profit_ratio" in text
-    assert "MAX_TRACK_BARS = 15" in text
+    assert "MAX_TRACK_BARS = 20" in text
     assert "MAX_STORED_BARS = MAX_TRACK_BARS + 1" in text
     assert "target_bars = bars[:MAX_STORED_BARS]" in text
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tracking_window_contract", SCRIPT)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.MAX_TRACK_BARS == 20
+    assert mod.MAX_STORED_BARS == 21
     assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
     # Tencent multi-day range with concrete end=today often drops the latest bar;
     # empty end in the fqkline param is the reliable form.
@@ -134,6 +142,66 @@ def test_tracking_script_exists():
     assert "param={ex}{code},day,{start},,640,qfq" in text
     assert "if end and date > end:" in text
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True
+
+
+def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, monkeypatch):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("tracking_window_migration", SCRIPT)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    snapshot = {
+        "intersection": ["600000.SH"],
+        "enrichments": {"600000.SH": {"industry": "测试行业"}},
+        "periods": {"week": [{"symbol": "600000.SH", "name": "测试股票"}]},
+    }
+    (history_dir / "2026-01-01.json").write_text(json.dumps(snapshot), encoding="utf-8")
+
+    data_path = tmp_path / "tracking.json"
+    old_bars = [
+        {"date": f"2026-01-{day:02d}", "close": float(day), "change_pct": 0.0, "profit_ratio": 1.0}
+        for day in range(1, 17)
+    ]
+    data_path.write_text(json.dumps({
+        "schema_version": "low-chip-tracking-v1",
+        "generated_at": "2026-01-16T16:00:00+08:00",
+        "stocks": {"600000.SH": {
+            "name": "测试股票",
+            "first_seen": "2026-01-01",
+            "last_seen": "2026-01-01",
+            "industry": "测试行业",
+            "daily": old_bars,
+            "tracking_complete": True,
+        }},
+    }), encoding="utf-8")
+
+    monkeypatch.setattr(mod, "HISTORY_DIR", history_dir)
+    monkeypatch.setattr(mod, "DATA", data_path)
+    monkeypatch.setattr(mod, "iwencai_profit_ratio", lambda _symbol, _date: 1.0)
+
+    # A record completed under the old baseline+15 contract re-enters tracking.
+    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end: old_bars)
+    assert mod.main() == 0
+    migrated = json.loads(data_path.read_text(encoding="utf-8"))["stocks"]["600000.SH"]
+    assert len(migrated["daily"]) == 16
+    assert migrated["tracking_complete"] is False
+
+    # It completes only after the baseline plus 20 post-join bars are stored.
+    twenty_day_bars = old_bars + [
+        {"date": f"2026-01-{day:02d}", "close": float(day), "change_pct": 0.0}
+        for day in range(17, 22)
+    ]
+    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end: twenty_day_bars)
+    assert mod.main() == 0
+    completed = json.loads(data_path.read_text(encoding="utf-8"))["stocks"]["600000.SH"]
+    assert len(completed["daily"]) == 21
+    assert completed["daily"][0]["date"] == "2026-01-01"
+    assert completed["daily"][-1]["date"] == "2026-01-21"
+    assert completed["tracking_complete"] is True
 
 
 def test_tracking_page_has_batched_live_quote_layer():

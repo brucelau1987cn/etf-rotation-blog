@@ -21,7 +21,7 @@ const { active, trackingCount = 0 } = Astro.props;
     class:list={['low-chip-mode-link', active === 'tracking' && 'is-active']}
     aria-current={active === 'tracking' ? 'page' : undefined}
   >
-    <span>15日追踪</span>
+    <span>20日追踪</span>
     <small>{trackingCount > 0 ? `${trackingCount}只进行中` : '加入后表现'}</small>
   </a>
 </nav>
