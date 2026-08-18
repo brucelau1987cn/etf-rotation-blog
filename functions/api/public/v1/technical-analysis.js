@@ -61,7 +61,7 @@ function normalizeTicker(value, market) {
     return { key: tvCode.padStart(5, '0'), ticker: `HKEX:${tvCode}` };
   }
 
-  const match = raw.match(/^([A-Z]+):([A-Z0-9][A-Z0-9.!_=-]*)$/);
+  const match = raw.match(/^([A-Z]{2,10}):([A-Z0-9][A-Z0-9.!_=-]{0,31})$/);
   if (!match || !config.exchanges.has(match[1])) return null;
   const ticker = `${match[1]}:${match[2]}`;
   return { key: ticker, ticker };

@@ -148,6 +148,8 @@ def test_all_markets_share_edge_scanner_refresh_and_remove_external_brand_cta():
     assert ".a-rolling-main .technical-analysis-fallback" in styles
     assert "HKEX:${String(Number(bare))}" in matrix
     assert "dataset.tone" in app
+    assert "escapeHtml" in app
+    assert 'data-tv-analysis-ticker="${safeTradingViewSymbol}"' in app
 
 
 def test_a_rolling_summary_uses_tall_signal_tickers_and_polished_indices():

@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url';
 
 const apiUrl = pathToFileURL(new URL('functions/api/public/v1/technical-analysis.js', new URL('../', import.meta.url)).pathname).href;
 const { classifyRecommendation, handleTechnicalAnalysis, technicalAnalysisCacheSize } = await import(apiUrl);
+const instrumentsUrl = pathToFileURL(new URL('functions/_lib/rolling-instruments.js', new URL('../', import.meta.url)).pathname).href;
+const { normalizeRollingInstrument } = await import(instrumentsUrl);
 
 test('classifies TradingView recommendation scores at canonical thresholds', () => {
   assert.equal(classifyRecommendation(-0.75), 'STRONG_SELL');
@@ -72,6 +74,21 @@ test('rejects cross-market ticker injection', async () => {
   );
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, 'invalid_symbols');
+});
+
+test('rejects oversized scanner tickers and unsafe rolling metadata', async () => {
+  const oversized = `SSE:${'A'.repeat(80)}`;
+  const response = await handleTechnicalAnalysis(
+    new Request(`https://x/api/public/v1/technical-analysis?market=a&s=${oversized}`),
+    async () => { throw new Error('must not fetch'); },
+  );
+  assert.equal(response.status, 400);
+  assert.ok(normalizeRollingInstrument({
+    market: 'us', symbol: 'TSLA', name: '<img src=x onerror=alert(1)>', exchange: 'NASDAQ', start_date: '2026-08-18',
+  }).error);
+  assert.ok(normalizeRollingInstrument({
+    market: 'us', symbol: 'TSLA', name: '特斯拉', exchange: 'NASDAQ\"><img src=x>', start_date: '2026-08-18',
+  }).error);
 });
 
 test('bounds and canonicalizes the in-isolate response cache', async () => {

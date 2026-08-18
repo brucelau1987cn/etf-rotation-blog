@@ -434,6 +434,13 @@
     return '';
   };
 
+  const escapeHtml = (value) => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
   const ensureInstrumentBoard = (meta, index = 0) => {
     const list = document.getElementById('rolling-board-list');
     if (!list || !meta?.symbol) return null;
@@ -459,12 +466,16 @@
     const exchange = meta.exchange || '';
     const startDate = meta.start_date || '';
     const tradingViewSymbol = toTradingViewSymbol(symbol, exchange);
+    const safeName = escapeHtml(name);
+    const safeSymbol = escapeHtml(symbol);
+    const safeTradingViewSymbol = escapeHtml(tradingViewSymbol);
+    const safeStartDate = escapeHtml(formatStartDateText(startDate));
     const technicalAnalysis = tradingViewSymbol ? `
       <aside class="technical-analysis-panel" data-role="technical-analysis" aria-label="TradingView 技术分析">
-        <div class="technical-analysis-fallback" data-tv-analysis-symbol="${symbol}" data-tv-analysis-ticker="${tradingViewSymbol}">
+        <div class="technical-analysis-fallback" data-tv-analysis-symbol="${safeSymbol}" data-tv-analysis-ticker="${safeTradingViewSymbol}">
           <div class="technical-analysis-heading">
             <strong data-role="technical-analysis-title">技术分析</strong>
-            <span class="technical-analysis-code" data-role="technical-analysis-code">TradingView · ${tradingViewSymbol}</span>
+            <span class="technical-analysis-code" data-role="technical-analysis-code">TradingView · ${safeTradingViewSymbol}</span>
           </div>
           <div class="technical-analysis-periods" aria-label="多周期技术评级">
             <span data-period="4h"><b>4小时</b><em>查询中</em></span>
@@ -486,15 +497,15 @@
     article.innerHTML = `
       <div class="board-row">
         <div class="stock-panel">
-          <div class="stock-name-title" data-role="inst-name">${name}</div>
-          <div class="stock-code-tag" data-role="inst-symbol">${symbol}</div>
-          <div class="stock-price-tag" data-role="quote" data-symbol="${symbol}">加载行情...</div>
+          <div class="stock-name-title" data-role="inst-name">${safeName}</div>
+          <div class="stock-code-tag" data-role="inst-symbol">${safeSymbol}</div>
+          <div class="stock-price-tag" data-role="quote" data-symbol="${safeSymbol}">加载行情...</div>
           <div class="stock-signal-meta" data-role="signal-meta">
             <span class="start-date-label">起始日期</span>
-            <strong class="start-date-value" data-role="start-date">${formatStartDateText(startDate)}</strong>
+            <strong class="start-date-value" data-role="start-date">${safeStartDate}</strong>
           </div>
         </div>
-        <div class="signal-panel" data-role="signal-scroller" tabindex="0" aria-label="${name} 信号横向滚动区">
+        <div class="signal-panel" data-role="signal-scroller" tabindex="0" aria-label="${safeName} 信号横向滚动区">
           <div class="signal-canvas">
             <div class="axis-row sell-axis">
               <div class="axis-label sell-label">

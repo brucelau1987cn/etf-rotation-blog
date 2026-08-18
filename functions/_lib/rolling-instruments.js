@@ -8,6 +8,13 @@ export const ROLLING_MARKETS = [
   { key: 'us', label: '美股', path: '/rolling/us/' },
 ];
 
+const ROLLING_EXCHANGES = {
+  a: new Set(['SSE', 'SZSE', 'BSE']),
+  hk: new Set(['HKEX']),
+  us: new Set(['NASDAQ', 'NYSE', 'AMEX']),
+  futures: new Set(['FUTURES', 'COMEX', 'NYMEX', 'CME', 'CBOT']),
+};
+
 // Seed mirrors current production universe + start_date from LKG snapshots (2026-08-10).
 export const DEFAULT_ROLLING_INSTRUMENTS = [
   { market: 'a', symbol: '600021', name: '上海电力', exchange: 'SSE', start_date: '2026-07-28', sort_order: 10 },
@@ -87,17 +94,21 @@ export function normalizeRollingInstrument(input = {}, { forCreate = false } = {
   // HK pad 4-digit
   if (market === 'hk' && /^\d{4}$/.test(symbol)) symbol = symbol.padStart(5, '0');
   if (market === 'a' && !/^\d{6}$/.test(symbol)) return { error: 'A股代码须为 6 位数字' };
+  if (market === 'hk' && !/^\d{5}$/.test(symbol)) return { error: '港股代码须为 5 位数字' };
   if (market === 'us' && !/^[A-Z][A-Z0-9.\-]{0,9}$/.test(symbol)) return { error: '美股代码无效' };
+  if (market === 'futures' && !/^[A-Z0-9][A-Z0-9._=!:~-]{0,31}$/.test(symbol)) return { error: '期货代码无效' };
 
   const name = String(input.name || '').trim();
   if (!name) return { error: 'name 必填' };
+  if (name.length > 40 || /[<>"'&\x00-\x1f\x7f]/.test(name)) return { error: 'name 含不安全字符或过长' };
 
-  const exchange = String(input.exchange || '').trim() || (
+  const exchange = (String(input.exchange || '').trim() || (
     market === 'a' ? (symbol.startsWith('6') ? 'SSE' : 'SZSE')
       : market === 'hk' ? 'HKEX'
         : market === 'us' ? 'NASDAQ'
           : 'FUTURES'
-  );
+  )).toUpperCase();
+  if (!ROLLING_EXCHANGES[market].has(exchange)) return { error: 'exchange 与市场不匹配' };
 
   const start_date = String(input.start_date || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date)) {
@@ -105,6 +116,9 @@ export function normalizeRollingInstrument(input = {}, { forCreate = false } = {
   }
 
   const quote_symbol = String(input.quote_symbol || '').trim() || null;
+  if (quote_symbol && (quote_symbol.length > 40 || /[<>"'&\x00-\x1f\x7f]/.test(quote_symbol))) {
+    return { error: 'quote_symbol 含不安全字符或过长' };
+  }
   const sort_order = Number.isFinite(Number(input.sort_order))
     ? Math.trunc(Number(input.sort_order))
     : (forCreate ? 999 : 0);
