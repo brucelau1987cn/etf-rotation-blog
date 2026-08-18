@@ -75,6 +75,19 @@ def date_prefix(value: Any) -> str | None:
         return None
 
 
+def timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized = value.strip().replace(" UTC+08:00", "+08:00").replace(" CST", "+08:00")
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
 def require_date(errors: list[str], label: str, value: Any) -> str | None:
     parsed = date_prefix(value)
     if parsed is None:
@@ -196,6 +209,9 @@ def validate_public_pending(
         errors.append("paper-trading accounts must be an object")
         return
     sources = {"A": garden, "US": us}
+    paper_updated_at = timestamp(paper.get("updated_at"))
+    if paper_updated_at is None:
+        errors.append("paper-trading updated_at must be a timezone-aware timestamp")
     expected_projection = project_public_pending(paper, sources)
     for market, source in sources.items():
         account = accounts.get(market)
@@ -252,6 +268,12 @@ def validate_public_pending(
             for item in public_items
         ):
             errors.append(f"paper-trading {market} public pending source metadata mismatch")
+        if paper_updated_at is not None and any(
+            (source_time := timestamp(item.get("source_updated_at"))) is None
+            or source_time > paper_updated_at
+            for item in public_items if isinstance(item, dict)
+        ):
+            errors.append("paper-trading updated_at predates embedded source metadata")
         expected_items = expected_projection.get("accounts", {}).get(market, {}).get("public_pending_signals", [])
         if public_items != expected_items:
             errors.append(f"paper-trading {market} public pending content mismatch")
@@ -423,6 +445,14 @@ def validate_runtime_schema(
             )
 
     require_fields(errors, "a-share-mid-macro", a_mid, ("version", "generated_at", "market", "factors", "constraint"))
+    garden_updated_at = timestamp(garden.get("updated_at"))
+    mid_generated_at = timestamp(a_mid.get("generated_at"))
+    if garden_updated_at is None:
+        errors.append("garden-recommendations updated_at must be a timezone-aware timestamp")
+    if mid_generated_at is None:
+        errors.append("a-share-mid-macro generated_at must be a timezone-aware timestamp")
+    if garden_updated_at is not None and mid_generated_at is not None and garden_updated_at < mid_generated_at:
+        errors.append("garden-recommendations updated_at predates a-share-mid-macro generated_at")
     mid_factors = a_mid.get("factors")
     if a_mid.get("market") != "CN" or not isinstance(mid_factors, list) or len(mid_factors) != 3:
         errors.append("a-share-mid-macro requires market=CN and exactly 3 factors")

@@ -44,7 +44,7 @@ US_FLOWERS = flower_signals(US_ROWS, {})
 FIXTURES = {
     "garden-recommendations.json": {
         "date": "2026-07-14", "applies_to": "2026-07-14", "level_data_as_of": "2026-07-14",
-        "updated_at": "2026-07-14 22:00 CST", "stage": "22:00夜间最终版", "market_state": "防御",
+        "updated_at": "2026-07-14 22:06 CST", "stage": "22:00夜间最终版", "market_state": "防御",
         "position": "权益0%-10%", "summary": "测试", "plant": [{
             "code": "510300", "name": "沪深300ETF", "status": "候场", "action": "等待确认", "price_date": "2026-07-14",
             "risk_level": "低", "price": 4.0, "support": 3.9, "target": 4.3, "stop": 3.7, "level_status": "ready",
@@ -114,11 +114,11 @@ FIXTURES = {
         "market": {"spy": {"date": "2026-07-13"}}, "data_quality": {"failed": 0},
     },
     "paper-trading.json": {
-        "version": 1, "updated_at": "2026-07-14T14:00:00+00:00", "accounts": {
+        "version": 1, "updated_at": "2026-07-14T14:06:00+00:00", "accounts": {
             "A": {"market": "A", "positions": {}, "pending_signals": [], "public_pending_signals": [{
                 "symbol": "510300", "name": "沪深300ETF", "support": 3.9, "target": 4.3, "stop": 3.7,
                 "signal_date": "2026-07-14", "kind": "ready_plant", "status": "候场",
-                "source_date": "2026-07-14", "source_updated_at": "2026-07-14 22:00 CST",
+                "source_date": "2026-07-14", "source_updated_at": "2026-07-14 22:06 CST",
             }]},
             "US": {"market": "US", "positions": {}, "pending_signals": [], "public_pending_signals": [{
                 "symbol": "SPY", "name": "SPY", "support": 590.0, "target": 630.0, "stop": 570.0,
@@ -147,6 +147,25 @@ def test_consistent_cross_market_batches_pass(tmp_path):
     assert result.errors == []
     assert result.batches["a_share"]["date"] == "2026-07-14"
     assert result.batches["us"]["date"] == "2026-07-13"
+
+
+def test_a_share_content_timestamp_must_not_precede_mid_macro_generation(tmp_path):
+    def mutate(payloads):
+        payloads["garden-recommendations.json"]["updated_at"] = "2026-07-14 22:00 CST"
+        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]["source_updated_at"] = "2026-07-14 22:00 CST"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("updated_at predates a-share-mid-macro generated_at" in error for error in result.errors)
+
+
+def test_paper_snapshot_timestamp_must_cover_embedded_source_metadata(tmp_path):
+    def mutate(payloads):
+        payloads["paper-trading.json"]["updated_at"] = "2026-07-14T14:00:00+00:00"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("paper-trading updated_at predates embedded source metadata" in error for error in result.errors)
 
 
 def test_a_share_final_mixed_batch_is_blocked(tmp_path):

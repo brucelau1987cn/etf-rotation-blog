@@ -2,13 +2,13 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-08-17T14:35:01.411839+08:00",
+  "generated_at": "2026-08-18T11:45:00.213493+08:00",
   "dataset": {
     "algorithm": "sha256",
-    "value": "b443323442f19560683f52d1259b88d27522b7a9a11038daa8d187a3c69afa00",
+    "value": "891e5f14626cf358f160b873d9b909ed3566f4222247d775631518ec5234b505",
     "record_count": 401,
     "pool_row_count": 91,
-    "as_of": "2026-08-14",
+    "as_of": "2026-08-17",
     "components": {
       "historical_direction_records": {
         "algorithm": "sha256",
@@ -38,9 +38,9 @@
       },
       "current_action_pool": {
         "algorithm": "sha256",
-        "value": "62d56faa59532252d2d4a0815b06df88dd61bf79971b459c5e1c8371b81ef8c3",
+        "value": "880492ec453e73a7676232804c2ce6df9d2519bab7f89192e8497580f0d139ff",
         "row_count": 91,
-        "as_of": "2026-08-14",
+        "as_of": "2026-08-17",
         "canonical_scope": "complete_action_pool_rows",
         "volatile_fields_excluded": [
           "generated_at",
@@ -182,7 +182,7 @@
   },
   "execution_audit": {
     "row_count": 91,
-    "latest_trade_date": "2026-08-14",
+    "latest_trade_date": "2026-08-17",
     "blockers": {
       "invalid_levels": {
         "status": "known",
@@ -233,21 +233,23 @@
       }
     },
     "gate_failure_counts": {
-      "dual_momentum": 53,
+      "dual_momentum": 49,
       "ma20_above_ma60": 55,
-      "ma_rising": 23,
-      "momentum": 59,
-      "price_above_ma": 22
+      "ma_rising": 17,
+      "momentum": 56,
+      "price_above_ma": 15
     },
     "gate_unknown_counts": {},
     "risk_flag_counts": {
-      "收盘偏弱": 31,
-      "跌破20日线": 22
+      "收盘偏弱": 5,
+      "短线过热": 1,
+      "跌破20日线": 15,
+      "高位过热": 1
     },
     "trade_state_counts": {
-      "回踩候选": 3,
-      "观察": 48,
-      "退出": 40
+      "回踩候选": 1,
+      "观察": 65,
+      "退出": 25
     },
     "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
   },

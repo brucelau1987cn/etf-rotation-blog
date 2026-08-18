@@ -1,22 +1,24 @@
 {
   "version": 1,
-  "generated_at": "2026-08-14T19:10:31.422722-04:00",
+  "generated_at": "2026-08-18T00:10:40.166440-04:00",
   "timezone": "America/New_York",
-  "status": "ok",
+  "status": "degraded",
   "model_version": "US selector shadow v1.2",
   "price_source_policy": "Yahoo remains production price source; selector is research-only",
   "queries": [
     {
       "query": "美股 ETF 近5日涨幅前20",
-      "status": "ok",
+      "status": "degraded",
       "raw_count": 20,
-      "us_count": 20
+      "us_count": 0,
+      "reason": "rows returned but no valid US-listed symbols parsed"
     },
     {
       "query": "美股 ETF 近20日涨幅前20",
-      "status": "ok",
+      "status": "degraded",
       "raw_count": 20,
-      "us_count": 20
+      "us_count": 0,
+      "reason": "rows returned but no valid US-listed symbols parsed"
     },
     {
       "query": "美股 行业ETF 成交额活跃 近5日",
@@ -26,22 +28,13 @@
     }
   ],
   "summary": {
-    "candidate_count": 10,
+    "candidate_count": 9,
     "formal_overlap": 1,
-    "new_candidates": 9,
-    "raw_us_symbols": 41,
-    "leveraged_filtered": 31
+    "new_candidates": 8,
+    "raw_us_symbols": 10,
+    "leveraged_filtered": 1
   },
   "candidates": [
-    {
-      "symbol": "WZRD",
-      "name": "机会主义交易者ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 10
-    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -97,8 +90,8 @@
       "rank_no": 7
     },
     {
-      "symbol": "MSOS",
-      "name": "纯美国大麻ETF",
+      "symbol": "URNM",
+      "name": "全球铀矿开采指数ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -115,8 +108,8 @@
       "rank_no": 9
     },
     {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
+      "symbol": "MSOS",
+      "name": "纯美国大麻ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -125,15 +118,6 @@
     }
   ],
   "new_candidates": [
-    {
-      "symbol": "WZRD",
-      "name": "机会主义交易者ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 10
-    },
     {
       "symbol": "DRAM",
       "name": "Roundhill记忆ETF",
@@ -180,8 +164,8 @@
       "rank_no": 7
     },
     {
-      "symbol": "MSOS",
-      "name": "纯美国大麻ETF",
+      "symbol": "URNM",
+      "name": "全球铀矿开采指数ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -198,8 +182,8 @@
       "rank_no": 9
     },
     {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
+      "symbol": "MSOS",
+      "name": "纯美国大麻ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": false,
@@ -220,183 +204,12 @@
   ],
   "leveraged_noise": [
     {
-      "symbol": "NBIG",
-      "name": "2倍做多NBIS每日ETF",
+      "symbol": "BITX",
+      "name": "2x Bitcoin ETF",
       "in_formal_pool": false,
       "likely_etf": true,
       "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 1
-    },
-    {
-      "symbol": "NBIL",
-      "name": "2倍做多NBIS每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 2
-    },
-    {
-      "symbol": "NEBX",
-      "name": "2倍做多NBIS每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 3
-    },
-    {
-      "symbol": "NBIC",
-      "name": "NBIS每日2倍做多ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 4
-    },
-    {
-      "symbol": "SNDG",
-      "name": "2倍做多SNDK每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 5
-    },
-    {
-      "symbol": "SNDU",
-      "name": "2倍做多SNDK每日目标",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 6
-    },
-    {
-      "symbol": "SNXX",
-      "name": "2倍做多SNDK每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 7
-    },
-    {
-      "symbol": "SNDC",
-      "name": "每日2倍做多SNDK ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 8
-    },
-    {
-      "symbol": "PUL",
-      "name": "P每日2倍做多ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 9
-    },
-    {
-      "symbol": "AEHG",
-      "name": "每日2倍做多AEHR ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 11
-    },
-    {
-      "symbol": "UMAL",
-      "name": "每日2倍做多UMAC ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 12
-    },
-    {
-      "symbol": "SMCL",
-      "name": "Granite2倍做多SMCI",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 13
-    },
-    {
-      "symbol": "SMCC",
-      "name": "SMCI每日2倍做多ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 14
-    },
-    {
-      "symbol": "SMCX",
-      "name": "SMCI每日目标2倍做多",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 15
-    },
-    {
-      "symbol": "SKHA",
-      "name": "SK海力士每日2倍做多",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 16
-    },
-    {
-      "symbol": "HYNX",
-      "name": "2倍做多SKHY每日目标",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 17
-    },
-    {
-      "symbol": "SKUU",
-      "name": "SK海力士每日2倍做多",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 18
-    },
-    {
-      "symbol": "SKHU",
-      "name": "SK海力士2倍做多ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 19
-    },
-    {
-      "symbol": "SKHL",
-      "name": "SK海力士每日2倍做多",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近5日涨幅前20",
-      "rank_no": 20
-    },
-    {
-      "symbol": "UNX",
-      "name": "2倍做多U每日ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 ETF 近20日涨幅前20",
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
       "rank_no": 3
     }
   ],

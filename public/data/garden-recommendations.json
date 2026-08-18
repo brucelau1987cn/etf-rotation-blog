@@ -1,83 +1,43 @@
 {
-  "date": "2026-08-17",
-  "updated_at": "2026-08-17T22:03:10+08:00",
-  "applies_to": "2026-08-17",
-  "data_as_of": "2026-08-17收盘qfq正式池91/91、Tencent 16:14 CST收盘行情及iWenCai收盘广度/资金与晚间资讯检索",
+  "date": "2026-08-18",
+  "updated_at": "2026-08-18T12:06:43+08:00",
+  "applies_to": "2026-08-18",
+  "data_as_of": "2026-08-17收盘qfq正式池91/91；Tencent盘中行情截至2026-08-18 11:42 CST；iWenCai广度与资金截至11:30午间收盘",
   "level_data_as_of": "2026-08-17",
-  "stage": "22:00夜间最终版",
+  "stage": "11:30上午收盘修正版",
   "model_version": "Bruce ETF Trend Radar v3",
-  "idempotency_key": "CN+2026-08-17+22:00+Bruce ETF Trend Radar v3",
-  "market_state": "22:00夜间最终版｜收盘强度继续高于14:30：全A（沪深京）4335涨1064跌、成交2.4025万亿元；上证+1.41%、深成+2.44%、创业板+3.14%、科创50+4.14%。正式池74涨3平14跌、平均+1.39%，market_regime升至震荡。结论：全天旧plant 0触发0执行，下一交易日按收盘qfq重选候场，科技强势只作watch、不追收盘。",
+  "idempotency_key": "CN+2026-08-18+11:30+Bruce ETF Trend Radar v3",
+  "market_state": "11:30上午收盘修正版｜昨日强修复后上午转为普遍回撤：上证-0.39%、深成-1.09%、创业板-1.30%、科创50-0.71%；全A 1504涨、3935跌，正式池16涨5平70跌、平均-0.70%。结论：08:30三只候选均未触及伏击位，下午继续等关键位止跌，不把下跌方向误记为已开仓亏损。",
   "position": "权益30%-50%；防御/现金50%-70%",
   "position_base": "权益30%-50%；防御/现金50%-70%",
-  "mainline": "相对14:30，广度由4115涨1267跌扩展至4335涨1064跌，科创50由+3.25%升至+4.14%；通信、半导体、半导体设备分别收涨4.20%、5.11%、4.87%，确认科技扩散，但其MA20上行或support_gap门槛未全部满足，仍不人工升级plant。收盘选择器已将513500标普500、513520日经移出，保留159941纳指，并纳入513030德国与560710船舶。结论：只按1.651、1.919、0.896附近回踩止跌执行，禁止追涨。",
-  "summary": "2026-08-17夜间最终：旧plant 513500/513520/159941方向1正0平2负，简单平均-0.03%；三只全天均未触发伏击位，实际触发0、执行0、持仓收益不适用。收盘qfq已重选为159941纳指、513030德国、560710船舶；mid_macro=0中性，market_regime=震荡，canonical position为权益30%-50%、防御/现金50%-70%。结论：下一交易日仅回踩关键位止跌后各试2%，科技watch不追。",
+  "mainline": "上午从08:30的科技承接验证转为防守：半导体设备ETF收平，其余通信、半导体、科创和创业板承载均回落且主力资金净流出；油气、农业相对抗跌，但不人工替换正式plant。结论：513030德国、560710船舶、159941纳指维持候场，分别只在1.919、0.896、1.651附近止跌后试2%，午盘低点尚未到位。",
+  "summary": "2026-08-18上午收盘：正式池16涨5平70跌、平均-0.70%，市场由盘前的强修复预期转为普遍回撤；三只plant方向均为负，但最低价1.971、0.908、1.666均未触及1.919、0.896、1.651伏击位，因此实际触发0、可执行0、已实现收益UNAVAILABLE。mid_macro=0中性，canonical position仍为权益30%-50%、防御/现金50%-70%。结论：下午只等关键位止跌，不追反抽。",
   "data_quality": {
-    "generated_at": "2026-08-17 22:03:10 CST",
+    "generated_at": "2026-08-18 11:42:28 CST",
     "model_version": "Bruce ETF Trend Radar v3",
-    "qfq_basis": "2026-08-17收盘（prepare冻结快照，正式池91/91、qfq覆盖91/91）",
-    "latest_trade_date": "2026-08-17",
-    "quote_date": "2026-08-17",
+    "qfq_basis": "2026-08-17收盘（正式池91/91、qfq覆盖91/91）",
+    "latest_trade_date": "2026-08-18",
+    "quote_date": "2026-08-18",
     "pool_count": 91,
     "qfq_coverage": 91,
-    "return_basis_disclosure": "qfq前复权；关键位基线为2026-08-17收盘MA20/ATR14，收盘OHLC与涨跌幅来自Tencent公开行情截至16:14 CST。旧plant方向收益按2026-08-14收盘至2026-08-17收盘计算；均未触发，方向收益不等于持仓收益。",
-    "quote_as_of": "2026-08-17 16:14 CST"
+    "return_basis_disclosure": "qfq前复权；关键位仍基于2026-08-17收盘MA20/ATR14，盘中OHLC与方向涨跌来自Tencent截至2026-08-18 11:42 CST。三只候选均未触发、未建仓，方向收益不等于实际持仓收益，已实现收益记为UNAVAILABLE。",
+    "quote_as_of": "2026-08-18 11:42 CST"
   },
   "source_audit": {
-    "calendar": "d1_exchange_calendar（22:00 gate确认2026-08-17为交易日）",
-    "qfq_pool": "22:00 prepare冻结的正式池91/91有效、qfq 91/91，evaluation_date与latest_trade_date均为2026-08-17",
-    "quotes": "Tencent公开行情：六大指数、旧plant、新候选及科技观察ETF，收盘时间2026-08-17 16:14 CST",
-    "assessment": "影子层shadow_research_only、production_weights_changed=false、轮动宇宙89；正式池74涨3平14跌、平均+1.39%，market_regime=震荡",
-    "fallback": "D1交易日历与公开行情正常；ETF资金及资讯由iWenCai多Key包装器补充。空rows不解释为零资金，仅披露成功返回字段",
-    "iwencai_news": "多Key包装器检索A股2026年8月17日收盘科技、半导体、通信、成交额及晚间公告；收盘广度和ETF资金均以代码查询成功返回，新闻结果仅作主线解释并由Tencent价格交叉核对"
+    "calendar": "d1_exchange_calendar（11:30 gate确认2026-08-18为交易日，实际11:40启动）",
+    "qfq_pool": "正式池91/91有效、qfq 91/91；evaluation_date=2026-08-18，latest_trade_date=2026-08-17",
+    "quotes": "Tencent公开行情：六大指数、91只正式池及候选/观察ETF，截至2026-08-18 11:42 CST",
+    "assessment": "iWenCai 11:30全A口径1504涨、3935跌、成交额约1.649万亿元、56只涨停；正式池Tencent口径16涨5平70跌、平均-0.70%",
+    "fallback": "D1交易日历、Tencent行情与iWenCai多Key包装器均正常；未查询到的字段保持未知，空rows不解释为零资金",
+    "iwencai_news": "多Key包装器检索2026年8月18日午评、科技、船舶与半导体；资金查询覆盖3只plant和5只科技观察ETF，并以Tencent价格交叉核对"
   },
   "harvest": [],
   "plant": [
     {
       "status": "候场",
-      "code": "159941",
-      "name": "纳指ETF广发",
-      "priority": "高",
-      "trigger": "现价1.698，等待回踩1.651附近止跌确认；跌破1.620取消候场。",
-      "action": "现价1.698，等待回踩1.651附近止跌确认；跌破1.620取消候场。",
-      "signal_state": "当日正式池重选候场",
-      "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分70.4；动量排名7；距伏击位2.9%；风险低；动量通过",
-      "price": 1.698,
-      "support": 1.651,
-      "target": 1.745,
-      "stop": 1.62,
-      "action_level": 1.651,
-      "trigger_level": 1.651,
-      "action_level_label": "伏击位",
-      "distance_pct": -2.77,
-      "trend_level": "B",
-      "risk_level": "低",
-      "price_date": "2026-08-17",
-      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
-      "model_version": "A ETF Garden Levels v1",
-      "data_source": "tencent",
-      "level_status": "ready",
-      "selected_from_pool_date": "2026-08-17",
-      "selection_score": 85.16,
-      "selection_rank": 1,
-      "candidate_since": "2026-08-14",
-      "last_qualified_date": "2026-08-17",
-      "qualified_reason": [
-        "趋势B",
-        "信号得分70.4",
-        "动量排名7",
-        "距伏击位2.9%",
-        "风险低",
-        "动量通过"
-      ],
-      "selection_rule_version": "a-candidate-v1"
-    },
-    {
-      "status": "候场",
       "code": "513030",
       "name": "德国ETF华安",
-      "priority": "中",
+      "priority": "高",
       "trigger": "现价1.991，等待回踩1.919附近止跌确认；跌破1.849取消候场。",
       "action": "现价1.991，等待回踩1.919附近止跌确认；跌破1.849取消候场。",
       "signal_state": "当日正式池重选候场",
@@ -90,7 +50,7 @@
       "action_level": 1.919,
       "trigger_level": 1.919,
       "action_level_label": "伏击位",
-      "distance_pct": -3.62,
+      "distance_pct": -3.75,
       "trend_level": "B",
       "risk_level": "低",
       "price_date": "2026-08-17",
@@ -98,11 +58,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-17",
-      "selection_score": 85.02,
-      "selection_rank": 2,
+      "selected_from_pool_date": "2026-08-18",
+      "selection_score": 86.52,
+      "selection_rank": 1,
       "candidate_since": "2026-08-17",
-      "last_qualified_date": "2026-08-17",
+      "last_qualified_date": "2026-08-18",
       "qualified_reason": [
         "趋势B",
         "信号得分73.5",
@@ -130,7 +90,7 @@
       "action_level": 0.896,
       "trigger_level": 0.896,
       "action_level_label": "伏击位",
-      "distance_pct": -2.93,
+      "distance_pct": -3.01,
       "trend_level": "B",
       "risk_level": "低",
       "price_date": "2026-08-17",
@@ -138,16 +98,56 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-17",
-      "selection_score": 84.01,
-      "selection_rank": 3,
+      "selected_from_pool_date": "2026-08-18",
+      "selection_score": 85.51,
+      "selection_rank": 2,
       "candidate_since": "2026-08-17",
-      "last_qualified_date": "2026-08-17",
+      "last_qualified_date": "2026-08-18",
       "qualified_reason": [
         "趋势B",
         "信号得分71.0",
         "动量排名6",
         "距伏击位3.0%",
+        "风险低",
+        "动量通过"
+      ],
+      "selection_rule_version": "a-candidate-v1"
+    },
+    {
+      "status": "候场",
+      "code": "159941",
+      "name": "纳指ETF广发",
+      "priority": "中",
+      "trigger": "现价1.698，等待回踩1.651附近止跌确认；跌破1.620取消候场。",
+      "action": "现价1.698，等待回踩1.651附近止跌确认；跌破1.620取消候场。",
+      "signal_state": "当日正式池重选候场",
+      "eligibility": "ok",
+      "eligibility_reason": "趋势B；信号得分70.4；动量排名7；距伏击位2.9%；风险低；动量通过",
+      "price": 1.698,
+      "support": 1.651,
+      "target": 1.745,
+      "stop": 1.62,
+      "action_level": 1.651,
+      "trigger_level": 1.651,
+      "action_level_label": "伏击位",
+      "distance_pct": -2.85,
+      "trend_level": "B",
+      "risk_level": "低",
+      "price_date": "2026-08-17",
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready",
+      "selected_from_pool_date": "2026-08-18",
+      "selection_score": 85.16,
+      "selection_rank": 3,
+      "candidate_since": "2026-08-14",
+      "last_qualified_date": "2026-08-18",
+      "qualified_reason": [
+        "趋势B",
+        "信号得分70.4",
+        "动量排名7",
+        "距伏击位2.9%",
         "风险低",
         "动量通过"
       ],
@@ -158,27 +158,27 @@
     {
       "code": "515880",
       "name": "通信ETF国泰",
-      "note": "上午+2.03%、主力净流入约0.18亿元；通信强度确认，观察不追"
+      "note": "上午-1.25%、主力净流出约4.32亿元；通信承接转弱，继续观察不追"
     },
     {
       "code": "512480",
       "name": "半导体ETF国联安",
-      "note": "上午+3.71%、主力净流入约2.69亿元；半导体扩散确认，观察不追"
+      "note": "上午-0.88%、主力净流出约0.91亿元；半导体冲高回落，继续观察不追"
     },
     {
       "code": "588000",
       "name": "科创50ETF华夏",
-      "note": "上午+2.76%、主力净流入约15.39亿元；科创宽基确认，观察不追"
+      "note": "上午-0.74%、主力净流出约5.11亿元；科创宽基回撤，继续观察不追"
     },
     {
       "code": "561980",
       "name": "半导体设备ETF招商",
-      "note": "上午+3.90%、主力净流入约0.61亿元；设备链领涨，观察不追"
+      "note": "上午0.00%、主力净流出约0.03亿元；设备链相对抗跌但未扩散，不升级"
     },
     {
       "code": "159915",
       "name": "创业板ETF易方达",
-      "note": "上午+1.29%、主力净流入约3.27亿元；创业板弹性确认，观察不追"
+      "note": "上午-1.20%、主力净流出约1.76亿元；创业板承接偏弱，继续观察不追"
     },
     {
       "code": "515180",
@@ -266,8 +266,8 @@
   "intraday_0830": {
     "stage": "08:30盘前版",
     "status": "complete",
-    "quote_date": "2026-08-14",
-    "quote_as_of": "2026-08-17 08:31:44 CST",
+    "quote_date": "2026-08-17",
+    "quote_as_of": "2026-08-18 08:31:54 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -280,18 +280,19 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "上一完整交易日正式池51涨1平39跌、平均+0.10%；隔夜美股宽基与费半小跌，存储/光通信逆势，开盘后需验证A股科技扩散与总体广度",
-    "premarket_summary": "plant延续513500标普500、513520日经、159941纳指；准备信号为91池资格延续，触发要求分别在2.711、2.283、1.649附近止跌，失效线2.592、2.230、1.613；高开不追",
+    "breadth": "上一完整交易日正式池74涨3平14跌、平均+1.39%；隔夜美股宽基普跌但费半+1.64%，开盘需验证科技承接和全市场广度",
+    "premarket_summary": "plant为513030德国、560710船舶、159941纳指；准备信号来自91池资格，触发要求分别在1.919、0.896、1.651附近止跌，失效线1.849、0.882、1.620；高开不追",
     "triggered_actions": [
-      "513500标普500ETF：准备回踩2.711附近止跌确认，跌破2.592取消候场；首次2%，检查QDII折溢价",
-      "513520日经ETF：准备回踩2.283附近止跌确认，跌破2.230取消候场；首次2%，高开远离关键位则放弃",
-      "159941纳指ETF：准备回踩1.649附近止跌确认，跌破1.613取消候场；首次2%，隔夜纳指收跌时不抬价"
+      "513030德国ETF：准备回踩1.919附近止跌确认，跌破1.849取消候场；首次2%，高开远离关键位则放弃",
+      "560710船舶ETF：准备回踩0.896附近止跌确认，跌破0.882取消候场；首次2%，地缘催化不构成追价许可",
+      "159941纳指ETF：准备回踩1.651附近止跌确认，跌破1.620取消候场；首次2%，核对QDII折溢价"
     ]
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
     "status": "complete",
-    "quote_date": "2026-08-17",
+    "quote_date": "2026-08-18",
+    "quote_as_of": "2026-08-18 11:42 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -304,19 +305,8 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "全A（沪深京）3853涨1504跌、上午成交1.5069万亿元；上证+0.84%、深成+1.26%、创业板+1.33%、科创50+3.04%，科技扩散而跨境plant走弱",
-    "quote_as_of": "2026-08-17 11:42:42 CST",
-    "morning_session_summary": "相对08:30的新变化是科技从隔夜局部映射扩展至A股通信、半导体设备与科创宽基；三只跨境候选全部方向为负且未到伏击位，准备3、实际触发0、可执行0",
-    "triggered_actions": [
-      "513500标普500ETF：🟢-1.48%，低点2.732仍高于伏击位2.711，主力净流出约0.26亿元；继续候场",
-      "513520日经ETF：🟢-0.13%，低点2.363仍高于伏击位2.283，主力净流出约0.09亿元；继续候场",
-      "159941纳指ETF：🟢-0.41%，低点1.688仍高于伏击位1.649，主力净流出约0.38亿元；继续候场",
-      "515880通信ETF：🔴+2.03%、主力净流入约0.18亿元；盘前局部强势获得A股确认，但不升级plant",
-      "512480半导体ETF：🔴+3.71%、主力净流入约2.69亿元；扩散确认但不追涨",
-      "588000科创50ETF：🔴+2.76%、主力净流入约15.39亿元；宽基承接确认，仍留watch",
-      "561980半导体设备ETF：🔴+3.90%、主力净流入约0.61亿元；设备链领涨，仍留watch",
-      "159915创业板ETF：🔴+1.29%、主力净流入约3.27亿元；弹性确认，仍留watch"
-    ],
+    "breadth": "全A 1504涨、3935跌，正式池16涨5平70跌、平均-0.70%；上证-0.39%、深成-1.09%、创业板-1.30%、科创50-0.71%，上午广度由昨日强修复转为普遍回撤",
+    "morning_session_summary": "3只plant方向均为负但未进入伏击区：德国低1.971、船舶低0.908、纳指低1.666；实际触发0、可执行0，下午继续等待关键位止跌",
     "scorecard": {
       "prepared": 3,
       "actual_triggered": 0,
@@ -324,17 +314,18 @@
       "direction_flat": 0,
       "direction_negative": 3,
       "executable": 0,
-      "realized_return": "UNAVAILABLE（无实际触发/持仓）"
+      "realized_return": "UNAVAILABLE（未建仓）"
     },
-    "position_change": "canonical position维持权益10%-30%；防御/现金70%-90%；上午不因科技watch上涨而追高",
-    "updated_at": "2026-08-17 11:42:42 CST",
-    "data_source": "Tencent公开行情与iWenCai多Key市场查询截至2026-08-17 11:41 CST；关键位基于2026-08-14 qfq 91/91"
+    "triggered_actions": [
+      "513030德国ETF：上午-0.55%、低点1.971、主力净流出约0.03亿元；未触及1.919伏击位，下午仅回踩止跌后试2%，跌破1.849取消",
+      "560710船舶ETF：上午-1.52%、低点0.908、主力净流出约0.01亿元；未触及0.896伏击位，下午仅止跌后试2%，跌破0.882取消",
+      "159941纳指ETF：上午-1.77%、低点1.666、主力净流出约0.56亿元；未触及1.651伏击位，下午需止跌并核对折溢价，跌破1.620取消"
+    ]
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "status": "complete",
-    "quote_date": "2026-08-17",
-    "quote_as_of": "2026-08-17 14:32:12 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-18",
     "prepared": {
       "plant": 3,
       "harvest": 0,
@@ -348,36 +339,12 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "全A由11:30的3853涨1504跌扩散至14:30的4115涨1267跌；上证+0.84%升至+1.10%、深成+1.26%升至+1.95%、创业板+1.33%升至+2.48%、科创50+3.04%升至+3.25%",
-    "tail_session_summary": "午后科技与全市场广度继续扩散，14:30沪深成交2.0896万亿元；通信、半导体、科创宽基保持强势，但正式跨境plant仍全部未到原伏击位",
-    "triggered_actions": [
-      "513500标普500ETF：🟢-1.22%，低点2.732仍高于2.711；14:50前仅在2.705至2.720止跌时试2%，跌破2.592失效",
-      "513520日经ETF：🔴+0.63%，低点2.363远高于2.283；14:50前仅在2.275至2.290止跌时试2%，跌破2.230失效",
-      "159941纳指ETF：🟢-0.18%，低点1.688仍高于1.649；14:50前仅在1.645至1.655止跌时试2%，跌破1.613失效",
-      "515880通信ETF：🔴+3.48%、主力净流入约2.16亿元；强度延续但尾盘不追，跌回0.683下方降级",
-      "512480半导体ETF：🔴+4.09%、主力净流入约3.36亿元；扩散确认但只留watch，跌回1.076下方降级",
-      "588000科创50ETF：🔴+3.20%、主力净流入约21.89亿元；宽基承接延续但不升级plant，跌回1.811下方降级",
-      "561980半导体设备ETF：🔴+3.90%、主力净流入约0.59亿元；站稳0.740仍只作次日观察，跌回0.715下方降级",
-      "159915创业板ETF：🔴+2.47%、主力净流入约5.85亿元；弹性增强但不尾盘追价，跌回3.623下方降级"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actual_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "realized_return": "UNAVAILABLE（无实际触发/持仓）"
-    },
-    "position_change": "canonical position维持权益10%-30%；防御/现金70%-90%；尾盘不因科技watch强化而追高",
-    "updated_at": "2026-08-17 14:34:34 CST",
-    "data_source": "Tencent公开行情与iWenCai多Key市场查询截至2026-08-17 14:32 CST；关键位基于2026-08-14 qfq 91/91"
+    "breadth": "待2026-08-18 14:30后更新：尾盘广度、触发与最晚执行条件"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "complete",
-    "quote_date": "2026-08-17",
-    "quote_as_of": "2026-08-17 16:14 CST",
+    "status": "not_published",
+    "quote_date": "2026-08-18",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -391,42 +358,10 @@
       "clear": 0,
       "cash_sweep_missed": 0
     },
-    "breadth": "全A（沪深京）4335涨1064跌、成交2.4025万亿元；上证+1.41%、深成+2.44%、创业板+3.14%、科创50+4.14%。正式池74涨3平14跌、平均+1.39%",
-    "close_summary": "收盘广度和科技强度继续扩散，market_regime升至震荡；旧plant全部未触发，收盘正式池已重选为纳指、德国和船舶三只候选",
-    "triggered_actions": [
-      "513500标普500ETF：收跌1.08%，最低2.732高于旧伏击2.711，未触发；收盘动量排名26、趋势C，移出plant",
-      "513520日经ETF：收涨1.05%，最低2.363高于旧伏击2.283，未触发；收盘动量排名13，移出plant",
-      "159941纳指ETF：收跌0.06%，最低1.688高于旧伏击1.649，未触发；收盘重基后保留，下一窗口只等1.651附近止跌",
-      "513030德国ETF：收涨2.63%、主力净流入约0.02亿元；趋势B、动量排名2，新入plant，只等1.919附近止跌",
-      "560710船舶ETF：收涨2.56%、主力净流入约0.20亿元；趋势B、动量排名6，新入plant，只等0.896附近止跌",
-      "515880通信/512480半导体/561980半导体设备：分别收涨4.20%/5.11%/4.87%，科技扩散确认但不追、不人工升级plant"
-    ],
-    "scorecard": {
-      "prepared": 3,
-      "actually_triggered": 0,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "executable": 0,
-      "mean_return_pct": -0.03,
-      "return_basis": "14:30前旧plant按2026-08-14收盘至2026-08-17收盘方向收益简单平均；均未触发，不计实际持仓收益"
-    },
-    "candidate_swap": {
-      "from": [
-        "513500",
-        "513520",
-        "159941"
-      ],
-      "to": [
-        "159941",
-        "513030",
-        "560710"
-      ],
-      "reason": "收盘qfq正式池重选：纳指保留；德国/船舶趋势B、动量排名2/6且风险低，标普/日经动量降至26/13"
-    }
+    "breadth": "待2026-08-18 22:00后更新：收盘广度、全天触发与下一交易日重选"
   },
   "mid_macro": {
-    "generated_at": "2026-08-17 22:05:20 CST",
+    "generated_at": "2026-08-18 11:45:02 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
@@ -439,21 +374,21 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.0,
-        "headline": "固收/权益5日相对中性-0.76pp"
+        "headline": "固收/权益5日相对中性-0.52pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.0,
-        "headline": "海外映射ETF 5日+0.76%"
+        "headline": "海外映射ETF 5日+0.46%"
       },
       {
         "key": "margin_financing",
         "label": "市场资金与杠杆",
         "state": "中性",
-        "score": 0.5,
-        "headline": "两融余额5日回升+0.97%"
+        "score": 0.0,
+        "headline": "两融余额5日回升+1.10%"
       }
     ]
   },
@@ -463,28 +398,28 @@
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-08-17",
+    "evaluation_date": "2026-08-18",
     "evaluated_count": 91,
     "eligible_count": 25,
     "selected_count": 3,
     "selected_codes": [
-      "159941",
       "513030",
-      "560710"
-    ],
-    "previous_codes": [
-      "513500",
-      "513520",
+      "560710",
       "159941"
     ],
-    "unchanged_from_previous": false,
+    "previous_codes": [
+      "513030",
+      "560710",
+      "159941"
+    ],
+    "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
-      "159941",
       "513030",
-      "560710"
+      "560710",
+      "159941"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 0
@@ -492,7 +427,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-08-17",
+    "selected_from_pool_date": "2026-08-18",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
