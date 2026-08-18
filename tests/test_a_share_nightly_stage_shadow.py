@@ -42,3 +42,29 @@ def test_cache_chain_includes_fundamental_shadow_after_cache():
 def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
     wrapper = NIGHTLY_CHAIN.read_text(encoding='utf-8')
     assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
+
+
+def test_nightly_report_formats_success_as_readable_markdown():
+    module = load()
+    payload = {
+        'ok': True,
+        'finished_at': '2026-08-18T20:54:03+08:00',
+        'results': [
+            {'stage': 'precheck', 'started_at': '2026-08-18T20:50:51+08:00',
+             'finished_at': '2026-08-18T20:50:54+08:00', 'ok': True},
+            {'stage': 'cache', 'started_at': '2026-08-18T20:50:54+08:00',
+             'finished_at': '2026-08-18T20:52:06+08:00', 'ok': True},
+            {'stage': 'fundamental-shadow', 'started_at': '2026-08-18T20:52:06+08:00',
+             'finished_at': '2026-08-18T20:54:03+08:00', 'ok': True,
+             'stdout_tail': 'login success!\n' +
+                 '{"trade_date":"2026-08-18","coverage":{"expected":80,"succeeded":80,"empty":0,"failed":0,"coverage":1.0},"observation_sessions":4,"d1_inserted":80}\n'},
+        ],
+    }
+    report = module.format_report(payload)
+    assert '## 🌙 A股夜间流水线' in report
+    assert '✅ **环境预检** · 3秒' in report
+    assert '✅ **行情缓存** · 1分12秒' in report
+    assert '**基本面覆盖：** 80/80（100.0%）' in report
+    assert '**D1写入：** 80 条' in report
+    assert 'login success' not in report
+    assert report.strip().endswith('可进入22:00内容生成阶段。')
