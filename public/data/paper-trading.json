@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-19T22:31:41.400089+00:00",
+  "updated_at": "2026-08-19T22:50:19.031234+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -253,7 +253,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 12488.918636486942,
+      "cash": 11465.9131876189,
       "positions": {
         "XLP": {
           "symbol": "XLP",
@@ -268,22 +268,7 @@
           "signal_date": "2026-07-30",
           "signal_kind": "plant",
           "signal_level": 84.7,
-          "last_price": 85.58000183105469
-        },
-        "IBIT": {
-          "symbol": "IBIT",
-          "name": "iShares Bitcoin Trust ETF",
-          "quantity": 55,
-          "entry_price": 36.29499816894531,
-          "entry_cost": 1.998112,
-          "entry_at": "2026-08-05T13:30:44.120296+00:00",
-          "target": 37.38,
-          "stop": 35.07,
-          "level_basis": null,
-          "signal_date": "2026-08-04",
-          "signal_kind": "plant",
-          "signal_level": 36.37,
-          "last_price": 36.599998474121094
+          "last_price": 86.54000091552734
         },
         "XHB": {
           "symbol": "XHB",
@@ -298,32 +283,62 @@
           "signal_date": "2026-08-17",
           "signal_kind": "plant",
           "signal_level": 107.99,
-          "last_price": 105.94999694824219
+          "last_price": 108.2300033569336
         },
-        "ETHA": {
-          "symbol": "ETHA",
-          "name": "iShares Ethereum Trust ETF",
-          "quantity": 142,
-          "entry_price": 14.300000190734863,
-          "entry_cost": 2.0153,
-          "entry_at": "2026-08-18T13:30:52.795776+00:00",
-          "target": 14.82,
-          "stop": 13.85,
+        "SOXX": {
+          "symbol": "SOXX",
+          "name": "iShares Semiconductor ETF",
+          "quantity": 3,
+          "entry_price": 526.8519897460938,
+          "entry_cost": 1.790278,
+          "entry_at": "2026-08-19T13:40:59.795957+00:00",
+          "target": 557.95,
+          "stop": 495.97,
           "level_basis": null,
-          "signal_date": "2026-08-17",
+          "signal_date": "2026-08-18",
           "signal_kind": "plant",
-          "signal_level": 14.31,
-          "last_price": 14.4399995803833
+          "signal_level": 528.71,
+          "last_price": 519.6699829101562
+        },
+        "SMH": {
+          "symbol": "SMH",
+          "name": "VanEck Semiconductor ETF",
+          "quantity": 3,
+          "entry_price": 561.5599975585938,
+          "entry_cost": 1.84234,
+          "entry_at": "2026-08-19T13:51:00.023900+00:00",
+          "target": 592.94,
+          "stop": 538.88,
+          "level_basis": null,
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 565.15,
+          "last_price": 560.9199829101562
+        },
+        "SPMO": {
+          "symbol": "SPMO",
+          "name": "Invesco S&P 500 Momentum ETF",
+          "quantity": 13,
+          "entry_price": 147.96009826660156,
+          "entry_cost": 1.961741,
+          "entry_at": "2026-08-19T14:15:00.682072+00:00",
+          "target": 155.36,
+          "stop": 144.95,
+          "level_basis": null,
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 148.09,
+          "last_price": 148.35000610351562
         }
       },
-      "equity": 20427.83848,
-      "realized_pnl": 396.6034487841797,
-      "unrealized_pnl": 31.235031,
-      "daily_return": 0.00106137,
-      "cumulative_return": 0.02139192,
+      "equity": 20574.793246,
+      "realized_pnl": 537.0712599196777,
+      "unrealized_pnl": 37.721986,
+      "daily_return": 0.00719385,
+      "cumulative_return": 0.02873966,
       "max_drawdown": -0.00174186,
-      "peak_equity": 20427.838480160648,
-      "cash_ratio": 0.6113676,
+      "peak_equity": 20574.793245907473,
+      "cash_ratio": 0.55727963,
       "history": [
         {
           "date": "2026-08-04",
@@ -411,6 +426,14 @@
           "cash": 12488.918636,
           "daily_return": 0.00106137,
           "cumulative_return": 0.02139192,
+          "max_drawdown": -0.00174186
+        },
+        {
+          "date": "2026-08-19",
+          "equity": 20574.793246,
+          "cash": 11465.913188,
+          "daily_return": 0.00719385,
+          "cumulative_return": 0.02873966,
           "max_drawdown": -0.00174186
         }
       ],
@@ -954,6 +977,96 @@
           "signal_kind": "plant",
           "signal_level": 14.31,
           "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:SOXX:buy:1787146867:plant",
+          "timestamp": "2026-08-19T13:40:59.795957+00:00",
+          "market": "US",
+          "symbol": "SOXX",
+          "name": "iShares Semiconductor ETF",
+          "side": "buy",
+          "quantity": 3,
+          "price": 526.85199,
+          "cost": 1.790278,
+          "reason": "plant",
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 528.71,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:SMH:buy:1787147465:plant",
+          "timestamp": "2026-08-19T13:51:00.023900+00:00",
+          "market": "US",
+          "symbol": "SMH",
+          "name": "VanEck Semiconductor ETF",
+          "side": "buy",
+          "quantity": 3,
+          "price": 561.559998,
+          "cost": 1.84234,
+          "reason": "plant",
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 565.15,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:SPMO:buy:1787148906:plant",
+          "timestamp": "2026-08-19T14:15:00.682072+00:00",
+          "market": "US",
+          "symbol": "SPMO",
+          "name": "Invesco S&P 500 Momentum ETF",
+          "side": "buy",
+          "quantity": 13,
+          "price": 147.960098,
+          "cost": 1.961741,
+          "reason": "plant",
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 148.09,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:ETHA:sell:1787151602:target",
+          "timestamp": "2026-08-19T15:00:01.990395+00:00",
+          "market": "US",
+          "symbol": "ETHA",
+          "name": "iShares Ethereum Trust ETF",
+          "side": "sell",
+          "quantity": 142,
+          "price": 14.8989,
+          "cost": 2.057822,
+          "reason": "target",
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 14.31,
+          "entry_at": "2026-08-18T13:30:52.795776+00:00",
+          "entry_price": 14.300000190734863,
+          "entry_cost": 2.0153,
+          "target": 14.82,
+          "stop": 13.85,
+          "decision_tag": "止盈退出"
+        },
+        {
+          "id": "US:IBIT:sell:1787151905:target",
+          "timestamp": "2026-08-19T15:05:02.103942+00:00",
+          "market": "US",
+          "symbol": "IBIT",
+          "name": "iShares Bitcoin Trust ETF",
+          "side": "sell",
+          "quantity": 55,
+          "price": 37.450001,
+          "cost": 2.029875,
+          "reason": "target",
+          "signal_date": "2026-08-04",
+          "signal_kind": "plant",
+          "signal_level": 36.37,
+          "entry_at": "2026-08-05T13:30:44.120296+00:00",
+          "entry_price": 36.29499816894531,
+          "entry_cost": 1.998112,
+          "target": 37.38,
+          "stop": 35.07,
+          "decision_tag": "止盈退出"
         }
       ],
       "pending_signals": [],
@@ -964,17 +1077,17 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 32,
+        "total": 37,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 18,
+            "count": 21,
             "closed_pnl": null
           },
           {
             "tag": "止盈退出",
-            "count": 9,
-            "closed_pnl": 590.685522
+            "count": 11,
+            "closed_pnl": 731.153342
           },
           {
             "tag": "止损退出",
@@ -1010,18 +1123,6 @@
           "support": 112.19,
           "target": 116.97,
           "stop": 106.05,
-          "signal_date": "2026-08-19",
-          "kind": "plant",
-          "status": "伏击",
-          "source_date": "2026-08-19",
-          "source_updated_at": "2026-08-19T18:30:31.224398-04:00"
-        },
-        {
-          "symbol": "SPMO",
-          "name": "Invesco S&P 500 Momentum ETF",
-          "support": 148.01,
-          "target": 152.82,
-          "stop": 142.38,
           "signal_date": "2026-08-19",
           "kind": "plant",
           "status": "伏击",
