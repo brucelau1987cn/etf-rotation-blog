@@ -120,14 +120,16 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
 
-    <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务条件筛选">
+    <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
       <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
       <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
       <button type="button" class="tc-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
       <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
       <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 10%</button>
+      <button type="button" class="tc-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
+      <button type="button" class="tc-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
       <button type="button" class="tc-filter-reset" id="tc-filter-reset">清除</button>
-      <span class="tc-filter-meta" id="tc-filter-meta">未启用财务筛选</span>
+      <span class="tc-filter-meta" id="tc-filter-meta">未启用筛选</span>
     </div>
 
     <section class="tc-list" id="tc-list" aria-label="追踪股票列表">
@@ -142,7 +144,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
+          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-quality-shareholder={rec.entry_features?.quality_shareholder ? '1' : '0'} data-institutional-shareholder={rec.entry_features?.institutional_shareholder ? '1' : '0'} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -322,13 +324,15 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             && (!activeFilters.has('net-margin') || (el.dataset.netMargin !== '' && Number.isFinite(Number(el.dataset.netMargin)) && Number(el.dataset.netMargin) >= 25))
             && (!activeFilters.has('cash-profit') || (el.dataset.cashProfit !== '' && Number.isFinite(Number(el.dataset.cashProfit)) && Number(el.dataset.cashProfit) >= 20))
             && (!activeFilters.has('gross-margin') || (el.dataset.grossMargin !== '' && Number.isFinite(Number(el.dataset.grossMargin)) && Number(el.dataset.grossMargin) >= 15))
-            && (!activeFilters.has('debt-ratio') || (el.dataset.debtRatio !== '' && Number.isFinite(Number(el.dataset.debtRatio)) && Number(el.dataset.debtRatio) <= 10));
+            && (!activeFilters.has('debt-ratio') || (el.dataset.debtRatio !== '' && Number.isFinite(Number(el.dataset.debtRatio)) && Number(el.dataset.debtRatio) <= 10))
+            && (!activeFilters.has('quality-shareholder') || el.dataset.qualityShareholder === '1')
+            && (!activeFilters.has('institutional-shareholder') || el.dataset.institutionalShareholder === '1');
           var show = el.dataset.trackingStatus === currentView && searchMatched && financialMatched && (starToggle.checked || el.dataset.starMarket !== '1');
           el.hidden = !show;
           if (show) visible += 1;
         });
         if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
-        if (filterMeta) filterMeta.textContent = activeFilters.size ? '已启用 ' + activeFilters.size + ' 项 · ' + visible + ' 只' : '未启用财务筛选';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? '已启用 ' + activeFilters.size + ' 项 · ' + visible + ' 只' : '未启用筛选';
         if (filterEmpty) filterEmpty.hidden = visible > 0;
         viewActive.classList.toggle('is-active', currentView === 'active');
         viewActive.setAttribute('aria-pressed', currentView === 'active' ? 'true' : 'false');

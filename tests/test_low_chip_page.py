@@ -90,12 +90,16 @@ def test_low_chip_financial_filter_controls_and_logic():
     page = PAGE.read_text(encoding="utf-8")
     for marker in (
         'id="chip-financial-filters"',
-        'aria-label="财务条件筛选"',
+        'aria-label="财务与股东条件筛选"',
         'data-filter="roe"',
         'data-filter="net-margin"',
         'data-filter="cash-profit"',
         'data-filter="gross-margin"',
         'data-filter="debt-ratio"',
+        'data-filter="quality-shareholder"',
+        'data-filter="institutional-shareholder"',
+        'data-quality-shareholder=',
+        'data-institutional-shareholder=',
         'id="chip-filter-reset"',
         'id="chip-filter-meta"',
         'ROE ≥ 30%',
@@ -109,12 +113,14 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.has('cash-profit')",
         "activeFilters.has('gross-margin')",
         "activeFilters.has('debt-ratio')",
+        "activeFilters.has('quality-shareholder')",
+        "activeFilters.has('institutional-shareholder')",
         "filterButtons.forEach(function(btn)",
         "activeFilters.clear()",
     ):
         assert marker in page
-    assert page.count('class="chip-filter-btn"') == 5
-    assert page.count('aria-pressed="false"') >= 5
+    assert page.count('class="chip-filter-btn"') == 7
+    assert page.count('aria-pressed="false"') >= 7
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page
 
