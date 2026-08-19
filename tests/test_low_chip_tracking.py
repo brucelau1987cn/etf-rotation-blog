@@ -28,7 +28,19 @@ def test_tracking_data_contract():
         assert dates[0] == rec["first_seen"]
         features = rec.get("entry_features")
         assert isinstance(features, dict)
-        assert set(features) == {"quality_shareholder", "chip_focus", "main_force", "main_force_label"}
+        assert set(features) == {
+            "quality_shareholder",
+            "quality_shareholder_names",
+            "institutional_shareholder",
+            "institutional_shareholder_names",
+            "chip_focus",
+            "main_force",
+            "main_force_label",
+        }
+        assert isinstance(features["quality_shareholder"], bool)
+        assert isinstance(features["quality_shareholder_names"], list)
+        assert isinstance(features["institutional_shareholder"], bool)
+        assert isinstance(features["institutional_shareholder_names"], list)
         financials = rec.get("entry_financials")
         assert isinstance(financials, dict)
         assert {"roe", "net_margin", "cash_profit_ratio", "gross_margin", "debt_ratio"} <= set(financials)
@@ -36,6 +48,9 @@ def test_tracking_data_contract():
     hengyunchang = stocks["688785.SH"]["entry_features"]
     assert hengyunchang == {
         "quality_shareholder": True,
+        "quality_shareholder_names": ["全国社保基金六零二组合", "澳门金融管理局-自有资金", "科威特政府投资局-自有资金", "基本养老保险基金一六零五二组合"],
+        "institutional_shareholder": True,
+        "institutional_shareholder_names": ["中国建设银行股份有限公司-南方信息创新混合型证券投资基金", "中国银行股份有限公司-易方达供给改革灵活配置混合型证券投资基金", "中国银行-易方达积极成长证券投资基金", "太平人寿保险有限公司", "交通银行股份有限公司-易方达竞争优势企业混合型证券投资基金"],
         "chip_focus": "非常集中",
         "main_force": 37.41,
         "main_force_label": "中度控盘",
@@ -70,6 +85,9 @@ def test_tracking_page_and_entry_link():
         "/js/price-volume-tag.js",
         "tc-model-tags",
         "tc-feature-quality",
+        "tc-feature-institutional",
+        "quality_shareholder_names",
+        "institutional_shareholder_names",
         "筹码集中度",
         "主力控盘",
         "entry_features",

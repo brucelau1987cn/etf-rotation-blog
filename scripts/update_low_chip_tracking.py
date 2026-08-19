@@ -207,6 +207,9 @@ def main() -> int:
             pass
         r["entry_features"] = {
             "quality_shareholder": bool(entry_enrichment.get("quality_shareholder")),
+            "quality_shareholder_names": list(entry_enrichment.get("quality_shareholder_names") or []),
+            "institutional_shareholder": bool(entry_enrichment.get("institutional_shareholder")),
+            "institutional_shareholder_names": list(entry_enrichment.get("institutional_shareholder_names") or []),
             "chip_focus": entry_metrics.get("chip_focus") or "",
             "main_force": entry_metrics.get("main_force"),
             "main_force_label": entry_metrics.get("main_force_label") or "",

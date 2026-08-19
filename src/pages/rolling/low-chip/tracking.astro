@@ -167,7 +167,10 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
             <div class="tc-model-tags" aria-label="加入时模型标签">
               {rec.entry_features?.quality_shareholder && (
-                <span class="tc-feature tc-feature-quality">优质股东 <b aria-hidden="true">✓</b></span>
+                <span class="tc-feature tc-feature-quality" title={`加入时优质股东：${(rec.entry_features.quality_shareholder_names || []).join('、') || '已识别'}`}>优质股东 <b aria-hidden="true">✓</b></span>
+              )}
+              {rec.entry_features?.institutional_shareholder && (
+                <span class="tc-feature tc-feature-institutional" title={`加入时机构股东：${(rec.entry_features.institutional_shareholder_names || []).join('、') || '已识别'}`}>机构股东 <b aria-hidden="true">●</b></span>
               )}
               {rec.entry_features?.chip_focus && (
                 <span class:list={['tc-feature', 'tc-feature-focus', rec.entry_features.chip_focus.includes('集中') && 'is-concentrated']}><small>筹码集中度</small><strong>{rec.entry_features.chip_focus}</strong></span>
@@ -455,6 +458,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-feature strong { color:#25364d; font-size:.67rem; font-variant-numeric:tabular-nums; }
   .tc-feature-quality { border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
   .tc-feature-quality b { display:inline-flex; align-items:center; justify-content:center; width:.88rem; height:.88rem; border-radius:50%; background:#dbeafe; font-size:.62rem; }
+  .tc-feature-institutional { border-color:#ddd6fe; background:#f5f3ff; color:#6d28d9; }
+  .tc-feature-institutional b { color:#8b5cf6; font-size:.68rem; }
   .tc-feature-focus { border-color:#e2e8f0; background:#f8fafc; }
   .tc-feature-focus.is-concentrated { border-color:#bbf7d0; background:#f0fdf4; }
   .tc-feature-focus.is-concentrated strong { color:#047857; }
