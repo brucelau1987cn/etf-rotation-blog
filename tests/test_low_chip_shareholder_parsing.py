@@ -94,6 +94,19 @@ def test_aggregate_top10_detail_accepts_current_name_shape_and_excludes_historic
     }
 
 
+def test_select_latest_top10_report_row_uses_latest_explicit_period():
+    rows = [{
+        "股票代码": "603262.SH",
+        "前十大流通股东名称(报告期)[20250930]": "旧股东",
+        "前十大流通股东名称(报告期)[20251231]": "年报股东",
+        "前十大流通股东名称(报告期)[20260331]": "最新股东甲, 最新股东乙",
+    }]
+    assert fetch.select_latest_top10_report_row("603262.SH", rows) == {
+        "股票代码": "603262.SH",
+        "前十大流通股东名称(报告期)[20260331]": "最新股东甲, 最新股东乙",
+    }
+
+
 def test_fetch_never_writes_synthetic_latest_shareholder_period():
     source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
     assert "period or 'latest'" not in source

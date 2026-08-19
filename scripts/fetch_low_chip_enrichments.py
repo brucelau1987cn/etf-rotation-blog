@@ -76,6 +76,23 @@ def aggregate_top10_detail(code: str, rows: list[dict], fallback_period: str = "
     return {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(selected)}
 
 
+def select_latest_top10_report_row(code: str, rows: list[dict]) -> dict | None:
+    """Select the latest explicitly dated consolidated top-10 holder field."""
+    bare = code.split(".")[0]
+    candidates: list[tuple[str, str, object]] = []
+    for row in rows:
+        if str(row.get("股票代码") or "").upper().split(".")[0] != bare:
+            continue
+        for key, value in row.items():
+            match = SHAREHOLDER_PERIOD_RE.match(key)
+            if match and value:
+                candidates.append((match.group(1), key, value))
+    if not candidates:
+        return None
+    _, key, value = max(candidates, key=lambda item: item[0])
+    return {"股票代码": code, key: value}
+
+
 def main() -> int:
     payload = json.loads(DATA.read_text(encoding="utf-8"))
     codes = list(payload.get("intersection") or [])
@@ -143,6 +160,14 @@ def main() -> int:
             if detail is None:
                 detail = aggregate_top10_detail(
                     code, detail_rows, report_period_from_rows([matched] if matched else [])
+                )
+            if detail is None:
+                period_payload = iwc(
+                    f"{code.split('.')[0]} 前十大流通股东报告期、截止日期",
+                    limit=10,
+                )
+                detail = select_latest_top10_report_row(
+                    code, period_payload.get("datas") or []
                 )
             if detail is None:
                 period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
