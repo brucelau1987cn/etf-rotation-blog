@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-19 14:37:15 CST",
+  "generated_at": "2026-08-19 22:05:32 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 2.43,
+          "value": 2.21,
           "unit": "pp",
-          "display": "2.43pp",
+          "display": "2.21pp",
           "as_of": "2026-08-19",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "逆风",
       "score": 2.0,
-      "headline": "固收5日相对沪深300超额+2.43pp",
+      "headline": "固收5日相对沪深300超额+2.21pp",
       "as_of": "2026-08-19"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": -2.02,
+          "value": -1.62,
           "unit": "%",
-          "display": "-2.02%",
+          "display": "-1.62%",
           "as_of": "2026-08-19",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +2.97% · 汇率与溢折价会扰动",
+          "detail": "20日 +3.38% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "warning"
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 25.0,
+          "value": 37.5,
           "unit": "%",
-          "display": "25.00%",
+          "display": "37.50%",
           "as_of": "2026-08-19",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -402,7 +402,7 @@
       ],
       "state": "逆风",
       "score": 1.5,
-      "headline": "海外映射ETF 5日偏弱-2.02%",
+      "headline": "海外映射ETF 5日偏弱-1.62%",
       "as_of": "2026-08-19"
     },
     {
@@ -494,10 +494,10 @@
       "label": "固收相对权益强弱",
       "state": "逆风",
       "score": 2.0,
-      "headline": "固收5日相对沪深300超额+2.43pp",
+      "headline": "固收5日相对沪深300超额+2.21pp",
       "reasons": [
-        "固收5日相对沪深300超额+2.43pp",
-        "固收20日相对偏强+2.98pp"
+        "固收5日相对沪深300超额+2.21pp",
+        "固收20日相对偏强+2.76pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -510,18 +510,18 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": 0.16,
-        "bond_ret20": 0.36,
-        "equity_ret5": -2.27,
-        "equity_ret20": -2.62,
-        "bond_vs_equity_5d_pp": 2.43,
-        "bond_vs_equity_20d_pp": 2.98
+        "bond_ret5": 0.15,
+        "bond_ret20": 0.35,
+        "equity_ret5": -2.06,
+        "equity_ret20": -2.41,
+        "bond_vs_equity_5d_pp": 2.21,
+        "bond_vs_equity_20d_pp": 2.76
       },
       "details": {
         "511260": {
-          "ret5": 0.24,
-          "ret20": 0.57,
-          "last": 135.86,
+          "ret5": 0.21,
+          "ret20": 0.54,
+          "last": 135.82,
           "date": "2026-08-19"
         },
         "511010": {
@@ -531,15 +531,15 @@
           "date": "2026-08-19"
         },
         "511110": {
-          "ret5": 0.1,
+          "ret5": 0.11,
           "ret20": 0.24,
-          "last": 103.18,
+          "last": 103.185,
           "date": "2026-08-19"
         },
         "510300": {
-          "ret5": -2.27,
-          "ret20": -2.62,
-          "last": 4.64,
+          "ret5": -2.06,
+          "ret20": -2.41,
+          "last": 4.65,
           "date": "2026-08-19"
         }
       },
@@ -550,10 +550,10 @@
       "label": "海外风险映射压力",
       "state": "逆风",
       "score": 1.5,
-      "headline": "海外映射ETF 5日偏弱-2.02%",
+      "headline": "海外映射ETF 5日偏弱-1.62%",
       "reasons": [
-        "海外映射ETF 5日偏弱-2.02%",
-        "3只核心海外ETF 5日跌超2%"
+        "海外映射ETF 5日偏弱-1.62%",
+        "2只核心海外ETF 5日跌超2%"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -566,35 +566,35 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": -2.02,
-        "proxy_ret20_avg": 2.97,
-        "proxy_weak_count_5d": 3,
+        "proxy_ret5_avg": -1.62,
+        "proxy_ret20_avg": 3.38,
+        "proxy_weak_count_5d": 2,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.25
+        "overseas_weak_share": 0.375
       },
       "details": {
         "159941": {
-          "ret5": -2.28,
-          "ret20": 2.71,
-          "last": 1.63,
+          "ret5": -1.68,
+          "ret20": 3.34,
+          "last": 1.64,
           "date": "2026-08-19"
         },
         "513500": {
-          "ret5": -2.52,
-          "ret20": 4.24,
-          "last": 2.63,
+          "ret5": -2.15,
+          "ret20": 4.64,
+          "last": 2.64,
           "date": "2026-08-19"
         },
         "159502": {
-          "ret5": 0.25,
-          "ret20": 2.98,
-          "last": 1.588,
+          "ret5": 0.51,
+          "ret20": 3.24,
+          "last": 1.592,
           "date": "2026-08-19"
         },
         "513520": {
-          "ret5": -3.52,
-          "ret20": 1.95,
-          "last": 2.25,
+          "ret5": -3.17,
+          "ret20": 2.31,
+          "last": 2.258,
           "date": "2026-08-19"
         }
       },
@@ -716,12 +716,12 @@
     "label": "逆风",
     "allow_chase": false,
     "allow_new_offense": false,
-    "base_position": "权益10%-30%；防御/现金70%-90%",
+    "base_position": "权益0%-10%；防御/现金90%-100%",
     "base_position_source": "etf-garden-pool.market_regime",
-    "base_market_state": "防御",
+    "base_market_state": "极弱",
     "base_equity_band": {
-      "low": 10,
-      "high": 30
+      "low": 0,
+      "high": 10
     },
     "constrained_equity_band": {
       "low": 0,
