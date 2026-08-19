@@ -183,6 +183,30 @@ def test_tracking_script_exists():
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True
 
 
+def test_join_date_snapshot_evidence_fails_closed(tmp_path):
+    import importlib.util
+    import pytest
+
+    spec = importlib.util.spec_from_file_location("tracking_join_date_gate", SCRIPT)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    missing = tmp_path / "2026-08-01.json"
+    with pytest.raises(RuntimeError, match="missing or invalid join-date snapshot"):
+        mod.load_entry_enrichment(missing, "600000.SH")
+
+    corrupt = tmp_path / "2026-08-02.json"
+    corrupt.write_text("{broken", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="missing or invalid join-date snapshot"):
+        mod.load_entry_enrichment(corrupt, "600000.SH")
+
+    incomplete = tmp_path / "2026-08-03.json"
+    incomplete.write_text(json.dumps({"enrichments": {}}), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="missing join-date enrichment"):
+        mod.load_entry_enrichment(incomplete, "600000.SH")
+
+
 def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, monkeypatch):
     import importlib.util
 

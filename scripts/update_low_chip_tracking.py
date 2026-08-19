@@ -131,6 +131,22 @@ def iwencai_profit_ratio(symbol: str, date: str) -> float | None:
     return None
 
 
+def load_entry_enrichment(entry_snapshot: Path, symbol: str) -> tuple[dict, dict]:
+    """Load immutable join-date evidence; missing/corrupt evidence blocks refresh."""
+    try:
+        snapshot = json.loads(entry_snapshot.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"missing or invalid join-date snapshot for {symbol}: {entry_snapshot.name}") from exc
+    enrichments = snapshot.get("enrichments")
+    if not isinstance(enrichments, dict) or symbol not in enrichments:
+        raise RuntimeError(f"missing join-date enrichment for {symbol}: {entry_snapshot.name}")
+    entry_enrichment = enrichments[symbol]
+    if not isinstance(entry_enrichment, dict):
+        raise RuntimeError(f"invalid join-date enrichment for {symbol}: {entry_snapshot.name}")
+    entry_metrics = entry_enrichment.get("shareholder_metrics") or (snapshot.get("shareholder_metrics") or {}).get(symbol) or {}
+    return entry_enrichment, entry_metrics
+
+
 def load_existing() -> dict:
     if DATA.exists():
         try:
@@ -197,14 +213,7 @@ def main() -> int:
         r["name"] = r.get("name") or name_map.get(sym, "")
         r["industry"] = r.get("industry") or industry_map.get(sym, "")
         entry_snapshot = HISTORY_DIR / f"{r['first_seen']}.json"
-        entry_enrichment = {}
-        entry_metrics = {}
-        try:
-            snapshot = json.loads(entry_snapshot.read_text(encoding="utf-8"))
-            entry_enrichment = (snapshot.get("enrichments") or {}).get(sym) or {}
-            entry_metrics = entry_enrichment.get("shareholder_metrics") or (snapshot.get("shareholder_metrics") or {}).get(sym) or {}
-        except Exception:
-            pass
+        entry_enrichment, entry_metrics = load_entry_enrichment(entry_snapshot, sym)
         r["entry_features"] = {
             "quality_shareholder": bool(entry_enrichment.get("quality_shareholder")),
             "quality_shareholder_names": list(entry_enrichment.get("quality_shareholder_names") or []),
