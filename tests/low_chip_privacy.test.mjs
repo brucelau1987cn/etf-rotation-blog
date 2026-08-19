@@ -13,6 +13,7 @@ test('anonymous visitors cannot download private low-chip strategy datasets', as
     '/data/low-chip-history-index.json',
     '/data/low-chip-history/2026-08-14.json',
     '/data/low-chip-tracking.json',
+    '/data/model-lab/low-chip-fuyao-shadow.json',
     '/data/%61-low-chip-stocks.json',
     '/data/a-low-chip-stocks%2ejson',
     '/data/low-chip-history%2f2026-08-14.json',

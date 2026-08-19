@@ -16,6 +16,7 @@ const PRIVATE_LOW_CHIP_DATA = [
   '/data/low-chip-history-index.json',
   '/data/low-chip-history/',
   '/data/low-chip-tracking.json',
+  '/data/model-lab/low-chip-fuyao-shadow.json',
 ];
 
 function isPrivateLowChipData(pathname) {

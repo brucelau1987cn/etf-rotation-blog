@@ -90,3 +90,15 @@ def test_d1_history_gate_runs_before_build_and_release():
     build = source.index("run(['npm', 'run', 'build']")
     release = source.index('release = run([sys.executable, \'-c\', release_code]')
     assert gate < build < release
+
+
+def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate():
+    source = SCRIPT.read_text(encoding='utf-8')
+    financials = source.index("run([sys.executable, 'scripts/attach_low_chip_financials.py']")
+    shadow = source.index("run([sys.executable, 'scripts/audit_low_chip_fuyao.py', '--soft-fail']")
+    archive = source.index("run([sys.executable, 'scripts/archive_low_chip_snapshot.py']")
+    assert financials < shadow < archive
+    assert "public/data/model-lab/low-chip-fuyao-shadow.json" in source
+    assert "fuyao_shadow = json.loads(FUYAO_SHADOW.read_text(encoding='utf-8'))" in source
+    assert "'fuyao_shadow': fuyao_shadow.get('status')" in source
+    assert "(ROOT / 'dist/data/model-lab/low-chip-fuyao-shadow.json').write_bytes(FUYAO_SHADOW.read_bytes())" in source
