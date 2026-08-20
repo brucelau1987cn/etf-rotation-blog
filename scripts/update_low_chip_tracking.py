@@ -30,6 +30,8 @@ import datetime
 import json
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -55,8 +57,25 @@ def load_history_dates() -> dict[str, list[str]]:
     return seen
 
 
-def tencent_daily(symbol: str, start: str, end: str) -> list[dict]:
-    """Daily qfq bars from Tencent. Returns [{date, close, change_pct}].
+def _valid_tencent_row(row: object) -> bool:
+    if not isinstance(row, (list, tuple)) or len(row) < 6:
+        return False
+    try:
+        datetime.date.fromisoformat(str(row[0]))
+        return float(row[2]) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def tencent_daily(
+    symbol: str,
+    start: str,
+    end: str,
+    *,
+    opener=None,
+    sleeper=time.sleep,
+) -> list[dict]:
+    """Daily qfq bars from Tencent with bounded transient-error retries.
 
     Pitfall (2026-08-11): Tencent fqkline multi-day range queries with a concrete
     end=YYYY-MM-DD often drop the latest session bar (e.g. start=08-05 end=08-11
@@ -65,6 +84,10 @@ def tencent_daily(symbol: str, start: str, end: str) -> list[dict]:
       - leave end empty: day,{start},,{count},qfq
       - or request a larger open-ended window and clip client-side
     We query with empty end, then clip to the requested [start, end] window.
+
+    Tencent can also return HTTP 200 with a non-zero business code and
+    ``data: ""`` during backend/MySQL failures. Retry those responses instead of
+    treating the string as the normal data object.
     """
     code = symbol.split(".")[0]
     ex = "sh" if symbol.endswith(".SH") else "sz"
@@ -75,14 +98,48 @@ def tencent_daily(symbol: str, start: str, end: str) -> list[dict]:
         f"param={ex}{code},day,{start},,640,qfq"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=20) as r:
-        d = json.loads(r.read())
-    data = d.get("data", {}).get(f"{ex}{code}", {})
-    kl = data.get("qfqday") or data.get("day") or []
+    open_request = opener or urllib.request.urlopen
+    retry_delays = (1.0, 2.0, 5.0)
+    last_error = "unknown response"
+    payload = None
+    for attempt in range(len(retry_delays) + 1):
+        try:
+            with open_request(req, timeout=20) as response:
+                decoded = json.loads(response.read())
+            business_code = decoded.get("code") if isinstance(decoded, dict) else None
+            message = decoded.get("msg") if isinstance(decoded, dict) else "invalid JSON root"
+            raw_data = decoded.get("data") if isinstance(decoded, dict) else None
+            symbol_data = raw_data.get(f"{ex}{code}") if isinstance(raw_data, dict) else None
+            candidate_bars = None
+            if isinstance(symbol_data, dict):
+                candidate_bars = symbol_data.get("qfqday") or symbol_data.get("day")
+            valid_rows = [row for row in candidate_bars if _valid_tencent_row(row)] if isinstance(candidate_bars, list) else []
+            in_window_rows = [
+                row for row in valid_rows
+                if (not start or str(row[0]) >= start) and (not end or str(row[0]) <= end)
+            ]
+            valid_bars = bool(in_window_rows)
+            if business_code == 0 and valid_bars:
+                payload = symbol_data
+                break
+            last_error = (
+                f"code={business_code}, msg={message!s}, data_type={type(raw_data).__name__}, "
+                f"bars_type={type(candidate_bars).__name__}"
+            )
+        except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+        if attempt < len(retry_delays):
+            sleeper(retry_delays[attempt])
+    if payload is None:
+        raise RuntimeError(f"Tencent fqkline unavailable for {symbol} after 4 attempts: {last_error}")
+
+    kl = payload.get("qfqday") or payload.get("day") or []
     bars = []
     prev_close = None
     for row in kl:
         # [date, open, close, high, low, volume]
+        if not _valid_tencent_row(row):
+            continue
         date, _, close, _, _, _ = row[:6]
         if start and date < start:
             # Keep prev_close so first in-window change_pct is still correct.
@@ -171,8 +228,18 @@ def main() -> int:
         rec["last_seen"] = last
 
         # 固定追踪窗口：加入日基准 + 加入后的前 20 个交易日；完成后停止请求新数据
+        if len(rec.get("daily") or []) >= MAX_STORED_BARS:
+            rec["daily"] = sorted(rec["daily"], key=lambda x: x["date"])[:MAX_STORED_BARS]
+            rec["tracking_complete"] = True
+            continue
         bars = tencent_daily(symbol, rec["first_seen"], today)
         target_bars = bars[:MAX_STORED_BARS]
+        if not target_bars:
+            # 上游无有效数据，保留已有行，下次重试
+            rec["daily"] = sorted(rec.get("daily", []), key=lambda x: x["date"])[:MAX_STORED_BARS]
+            rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
+            print(f"  {symbol}: tencent returned no bars, preserving {len(rec['daily'])} existing rows", flush=True)
+            continue
         target_dates = {bar["date"] for bar in target_bars}
         rec["daily"] = [d for d in rec.get("daily", []) if d.get("date") in target_dates]
         have = {d["date"] for d in rec["daily"]}
