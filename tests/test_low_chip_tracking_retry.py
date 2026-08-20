@@ -1,6 +1,5 @@
 import importlib.util
 import json
-import sys
 import urllib.error
 from io import BytesIO
 from pathlib import Path
@@ -193,6 +192,146 @@ def test_tracking_main_preserves_existing_bars_when_tencent_returns_nothing(tmp_
     result = json.loads(module.DATA.read_text())
     existing = result["stocks"]["000012.SZ"]["daily"]
     assert len(existing) == 2, f"Expected 2 preserved rows, got {len(existing)}: {existing}"
+
+
+def test_tencent_row_rejects_non_finite_close():
+    module = load_module()
+    assert module._valid_tencent_row(["2026-08-20", "1", "Infinity", "1", "1", "1"]) is False
+    assert module._valid_tencent_row(["2026-08-20", "1", "NaN", "1", "1", "1"]) is False
+
+
+def test_load_existing_fails_closed_on_corrupt_tracking_file(tmp_path, monkeypatch):
+    module = load_module()
+    data_path = tmp_path / "tracking.json"
+    original = b'{"stocks":'
+    data_path.write_bytes(original)
+    monkeypatch.setattr(module, "DATA", data_path)
+
+    with pytest.raises(RuntimeError, match="invalid existing tracking data"):
+        module.load_existing()
+    assert data_path.read_bytes() == original
+
+
+def test_normalize_daily_replaces_non_finite_optional_metrics_with_none():
+    module = load_module()
+    rows = module.normalize_daily([
+        {"date": "2026-08-20", "close": 10.0, "change_pct": float("inf"), "profit_ratio": float("nan")},
+    ], "2026-08-20")
+    assert rows == [
+        {"date": "2026-08-20", "close": 10.0, "change_pct": None, "profit_ratio": None},
+    ]
+
+
+def test_tracking_main_preserves_dates_missing_from_partial_tencent_reply(tmp_path, monkeypatch):
+    module = load_module()
+    history = tmp_path / "history"
+    history.mkdir()
+    snapshot = {
+        "intersection": ["000012.SZ"],
+        "enrichments": {"000012.SZ": {"industry": "建材", "financials": {}}},
+        "periods": {"week": [{"symbol": "000012.SZ", "name": "南玻A"}]},
+    }
+    (history / "2026-01-01.json").write_text(json.dumps(snapshot), encoding="utf-8")
+    data_path = tmp_path / "tracking.json"
+    original = [
+        {"date": "2026-01-01", "close": 10.0, "change_pct": None, "profit_ratio": 1.0},
+        {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0, "profit_ratio": 1.1},
+    ]
+    data_path.write_text(json.dumps({"stocks": {"000012.SZ": {
+        "name": "南玻A", "first_seen": "2026-01-01", "last_seen": "2026-01-01",
+        "industry": "建材", "daily": original,
+    }}}), encoding="utf-8")
+    monkeypatch.setattr(module, "HISTORY_DIR", history)
+    monkeypatch.setattr(module, "DATA", data_path)
+    monkeypatch.setattr(module, "tencent_daily", lambda *_a, **_kw: [
+        {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
+    ])
+    monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+
+    assert module.main() == 0
+    result = json.loads(data_path.read_text(encoding="utf-8"))
+    assert [row["date"] for row in result["stocks"]["000012.SZ"]["daily"]] == ["2026-01-01", "2026-01-02"]
+
+
+def test_duplicate_daily_dates_do_not_mark_tracking_complete(tmp_path, monkeypatch):
+    module = load_module()
+    history = tmp_path / "history"
+    history.mkdir()
+    snapshot = {
+        "intersection": ["600000.SH"],
+        "enrichments": {"600000.SH": {"industry": "银行", "financials": {}}},
+        "periods": {"week": [{"symbol": "600000.SH", "name": "浦发银行"}]},
+    }
+    (history / "2026-01-01.json").write_text(json.dumps(snapshot), encoding="utf-8")
+    duplicate = {"date": "2026-01-01", "close": 10.0, "change_pct": None, "profit_ratio": 1.0}
+    data_path = tmp_path / "tracking.json"
+    data_path.write_text(json.dumps({"stocks": {"600000.SH": {
+        "name": "浦发银行", "first_seen": "2026-01-01", "last_seen": "2026-01-01",
+        "industry": "银行", "daily": [duplicate] * 21,
+    }}}), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(module, "HISTORY_DIR", history)
+    monkeypatch.setattr(module, "DATA", data_path)
+    monkeypatch.setattr(module, "tencent_daily", lambda *_a, **_kw: calls.append(True) or [
+        {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
+    ] * 21)
+    monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+
+    assert module.main() == 0
+    assert calls == [True]
+    result = json.loads(data_path.read_text(encoding="utf-8"))
+    assert len(result["stocks"]["600000.SH"]["daily"]) == 2
+    assert result["stocks"]["600000.SH"]["tracking_complete"] is False
+
+
+def test_atomic_write_fsyncs_file_and_parent_directory(tmp_path, monkeypatch):
+    module = load_module()
+    path = tmp_path / "tracking.json"
+    fsync_calls = []
+    real_fsync = module.os.fsync
+
+    def spy_fsync(fd):
+        fsync_calls.append(fd)
+        real_fsync(fd)
+
+    monkeypatch.setattr(module.os, "fsync", spy_fsync)
+    module.atomic_write_json(path, {"new": True})
+
+    assert json.loads(path.read_text(encoding="utf-8")) == {"new": True}
+    assert len(fsync_calls) == 2
+
+
+def test_atomic_write_serialization_failure_preserves_old_file(tmp_path):
+    module = load_module()
+    path = tmp_path / "tracking.json"
+    original = b'{"old":true}'
+    path.write_bytes(original)
+
+    with pytest.raises(ValueError, match="Out of range float values"):
+        module.atomic_write_json(path, {"bad": float("nan")})
+
+    assert path.read_bytes() == original
+    assert not list(tmp_path.glob(".tracking.json.*.tmp"))
+
+
+def test_atomic_json_write_uses_replace_and_leaves_valid_file(tmp_path, monkeypatch):
+    module = load_module()
+    path = tmp_path / "tracking.json"
+    path.write_text('{"old":true}', encoding="utf-8")
+    replacements = []
+    real_replace = module.os.replace
+
+    def spy_replace(source, destination):
+        replacements.append((Path(source), Path(destination)))
+        real_replace(source, destination)
+
+    monkeypatch.setattr(module.os, "replace", spy_replace)
+    module.atomic_write_json(path, {"new": True})
+
+    assert json.loads(path.read_text(encoding="utf-8")) == {"new": True}
+    assert len(replacements) == 1
+    assert replacements[0][1] == path
+    assert not replacements[0][0].exists()
 
 
 def test_tracking_main_skips_tencent_for_completed_21_bar_records(tmp_path, monkeypatch):

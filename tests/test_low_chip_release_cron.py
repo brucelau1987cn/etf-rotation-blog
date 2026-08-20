@@ -4,6 +4,8 @@ import subprocess
 from io import BytesIO
 from pathlib import Path
 
+import pytest
+
 
 SCRIPT = Path('/root/.hermes/scripts/update_low_chip_and_release.py')
 
@@ -84,12 +86,18 @@ def test_verify_history_index_checks_every_published_date(tmp_path):
     ]
 
 
-def test_d1_history_gate_runs_before_build_and_release():
+def test_full_build_and_local_commit_precede_remote_side_effects():
     source = SCRIPT.read_text(encoding='utf-8')
-    gate = source.index("token = sync_d1_metrics(summary['trade_date'], summary['final'])")
     build = source.index("run(['npm', 'run', 'build']")
+    commit = source.index("run(['git', 'commit'")
+    sync = source.index("token = sync_d1_metrics(summary['trade_date'], summary['final'])")
+    verify = source.index("d1 = verify_d1_api(summary['trade_date'], summary['final'], token)")
+    history = source.index('history = verify_history_index(token)')
+    push = source.index("run(['git', 'push'")
     release = source.index('release = run([sys.executable, \'-c\', release_code]')
-    assert gate < build < release
+    assert build < commit < sync < verify < history < push < release
+    assert 'surgical-json-release' not in source
+    assert "if 'US batch mismatch'" not in source
 
 
 def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate():
@@ -101,4 +109,178 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
     assert "public/data/model-lab/low-chip-fuyao-shadow.json" in source
     assert "fuyao_shadow = json.loads(FUYAO_SHADOW.read_text(encoding='utf-8'))" in source
     assert "'fuyao_shadow': fuyao_shadow.get('status')" in source
-    assert "(ROOT / 'dist/data/model-lab/low-chip-fuyao-shadow.json').write_bytes(FUYAO_SHADOW.read_bytes())" in source
+    assert "'public/data/model-lab/low-chip-fuyao-shadow.json'" in source
+    assert shadow < source.index("run(['npm', 'run', 'build']")
+
+
+def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeypatch):
+    module = load_module()
+    data_dir = tmp_path / 'data'
+    history_dir = data_dir / 'history'
+    history_dir.mkdir(parents=True)
+    paths = {
+        'DATA': data_dir / 'stocks.json',
+        'TRACKING': data_dir / 'tracking.json',
+        'FUYAO_SHADOW': data_dir / 'fuyao.json',
+        'INDEX': data_dir / 'index.json',
+    }
+    originals = {
+        'DATA': b'stocks-before',
+        'TRACKING': b'tracking-before',
+        'INDEX': b'index-before',
+    }
+    for name, path in paths.items():
+        monkeypatch.setattr(module, name, path)
+        if name in originals:
+            path.write_bytes(originals[name])
+    monkeypatch.setattr(module, 'HISTORY_DIR', history_dir)
+    (history_dir / 'old.json').write_bytes(b'history-before')
+
+    backup_dir = tmp_path / 'backup'
+    state = module.backup_generated_state(backup_dir)
+    for path in paths.values():
+        path.write_bytes(b'changed')
+    (history_dir / 'old.json').write_bytes(b'changed-history')
+    (history_dir / 'new.json').write_bytes(b'new-history')
+
+    module.restore_generated_state(backup_dir, state)
+
+    for name, original in originals.items():
+        assert paths[name].read_bytes() == original
+    assert not paths['FUYAO_SHADOW'].exists()
+    assert (history_dir / 'old.json').read_bytes() == b'history-before'
+    assert not (history_dir / 'new.json').exists()
+
+
+def test_history_restore_recovers_from_keyboard_interrupt(tmp_path, monkeypatch):
+    module = load_module()
+    history_dir = tmp_path / 'history'
+    history_dir.mkdir()
+    (history_dir / 'old.json').write_bytes(b'current-history')
+    backup_dir = tmp_path / 'backup'
+    (backup_dir / 'history').mkdir(parents=True)
+    (backup_dir / 'history' / 'old.json').write_bytes(b'backup-history')
+    monkeypatch.setattr(module, 'HISTORY_DIR', history_dir)
+    real_replace = module.os.replace
+
+    def interrupt_staged_swap(source, destination):
+        source_path = Path(source)
+        if source_path.name.startswith('.low-chip-history.restore-') and Path(destination) == history_dir:
+            raise KeyboardInterrupt('forced interruption')
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(module.os, 'replace', interrupt_staged_swap)
+    state = {'files': [], 'history_existed': True}
+    with pytest.raises(KeyboardInterrupt, match='forced interruption'):
+        module.restore_generated_state(backup_dir, state)
+
+    assert history_dir.is_dir()
+    assert (history_dir / 'old.json').read_bytes() == b'current-history'
+
+
+def test_rollback_candidate_resets_head_index_and_restores_files(monkeypatch, tmp_path):
+    module = load_module()
+    calls = []
+    state = {'sentinel': True}
+    def fake_run(args, timeout=900, env=None):
+        calls.append(args)
+        output = 'base-sha\n' if args == ['git', 'rev-parse', 'HEAD'] else ''
+        return subprocess.CompletedProcess(args, 0, output, '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'restore_generated_state', lambda path, got: calls.append(['restore', path, got]))
+    monkeypatch.setattr(module, 'staged', lambda: set())
+    monkeypatch.setattr(module, 'dirty', lambda: set(module.ALLOWED_DIRTY))
+
+    module.rollback_candidate('base-sha', None, tmp_path, state)
+
+    assert calls[0] == ['git', 'rev-parse', 'HEAD']
+    assert calls[1] == ['git', 'reset', '--mixed', 'base-sha']
+    assert calls[2] == ['restore', tmp_path, state]
+
+
+def test_rollback_refuses_to_overwrite_concurrent_head(monkeypatch, tmp_path):
+    module = load_module()
+    calls = []
+    monkeypatch.setattr(module, 'run', lambda args, timeout=900, env=None: calls.append(args) or subprocess.CompletedProcess(args, 0, 'concurrent-sha\n', ''))
+
+    with pytest.raises(RuntimeError, match='rollback refused: concurrent HEAD'):
+        module.rollback_candidate('base-sha', 'candidate-sha', tmp_path, {'sentinel': True})
+
+    assert ['git', 'reset', '--mixed', 'base-sha'] not in calls
+
+
+def test_main_restores_backup_after_precommit_failure(monkeypatch):
+    module = load_module()
+    restored = []
+    state = {'sentinel': True}
+
+    def fake_run(args, timeout=900, env=None):
+        if args[:3] == ['git', 'rev-parse', 'HEAD'] or args[:3] == ['git', 'rev-parse', 'origin/main']:
+            return subprocess.CompletedProcess(args, 0, 'same\n', '')
+        if args[:3] == ['git', 'status', '--porcelain']:
+            return subprocess.CompletedProcess(args, 0, '', '')
+        if 'scripts/build_low_chip_base.py' in args:
+            raise RuntimeError('forced precommit failure')
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'backup_generated_state', lambda _path: state)
+    monkeypatch.setattr(module, 'restore_generated_state', lambda path, got: restored.append((path, got)))
+
+    assert module.main() == 1
+    assert len(restored) == 1
+    assert restored[0][1] is state
+
+
+def test_push_success_flag_is_set_only_after_push_returns():
+    source = SCRIPT.read_text(encoding='utf-8')
+    push = source.index("run(['git', 'push'")
+    pushed = source.index('pushed = True', push)
+    release = source.index('release = run([sys.executable, \'-c\', release_code]')
+    rollback = source.index("if backup_state is not None and base_head is not None and not pushed")
+    assert push < pushed < release < rollback
+    assert "rollback_candidate(base_head, candidate_head, backup_dir, backup_state)" in source
+
+
+def test_release_rejects_uncommitted_generators_tests_and_generated_data():
+    module = load_module()
+    assert module.ALLOWED_DIRTY == {
+        'public/data/korea-tech-factor-shadow.json',
+        'public/data/us-selector-shadow.json',
+    }
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert 'foreign -= generated' not in source
+    assert 'if staged()' in source
+
+
+def test_wrapper_holds_shared_publish_lock_for_entire_main():
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert "PUBLISH_LOCK = Path('/root/.hermes/state/etf-paper-publish.lock')" in source
+    assert 'def publish_lock()' in source
+    assert 'with publish_lock():' in source
+    assert 'return run_pipeline()' in source
+
+
+def test_commit_gate_revalidates_head_dirty_and_exact_staged_set():
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert "if run(['git', 'rev-parse', 'HEAD']" in source
+    assert "precommit_changed = dirty() - ALLOWED_DIRTY" in source
+    assert "if staged() != changed" in source
+    assert "staged paths differ from release scope" in source
+
+
+def test_dist_and_candidate_identity_are_rechecked_before_release():
+    source = SCRIPT.read_text(encoding='utf-8')
+    canonical = source.index('run([sys.executable, \'-c\', canonicalize_dist]')
+    digest = source.index("built_dist_digest = tree_digest(ROOT / 'dist')")
+    assert canonical < digest
+    assert "if tree_digest(ROOT / 'dist') != built_dist_digest" in source
+    assert "candidate_head = run(['git', 'rev-parse', 'HEAD']" in source
+    assert "if run(['git', 'rev-parse', 'origin/main']" in source
+    assert "if dirty() - ALLOWED_DIRTY" in source
+
+
+def test_release_gate_runs_tracking_retry_regressions():
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert "'tests/test_low_chip_tracking_retry.py'" in source

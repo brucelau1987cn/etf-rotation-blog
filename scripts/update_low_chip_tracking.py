@@ -27,9 +27,13 @@ Output: public/data/low-chip-tracking.json
 from __future__ import annotations
 
 import datetime
+import http.client
 import json
+import math
+import os
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -62,7 +66,8 @@ def _valid_tencent_row(row: object) -> bool:
         return False
     try:
         datetime.date.fromisoformat(str(row[0]))
-        return float(row[2]) > 0
+        close = float(row[2])
+        return math.isfinite(close) and close > 0
     except (TypeError, ValueError):
         return False
 
@@ -126,7 +131,7 @@ def tencent_daily(
                 f"code={business_code}, msg={message!s}, data_type={type(raw_data).__name__}, "
                 f"bars_type={type(candidate_bars).__name__}"
             )
-        except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
+        except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, http.client.HTTPException, OSError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
         if attempt < len(retry_delays):
             sleeper(retry_delays[attempt])
@@ -205,12 +210,74 @@ def load_entry_enrichment(entry_snapshot: Path, symbol: str) -> tuple[dict, dict
 
 
 def load_existing() -> dict:
-    if DATA.exists():
+    if not DATA.exists():
+        return {"schema_version": "low-chip-tracking-v1", "generated_at": "", "stocks": {}}
+    try:
+        payload = json.loads(DATA.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"invalid existing tracking data: {DATA}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("stocks"), dict):
+        raise RuntimeError(f"invalid existing tracking data: {DATA}")
+    return payload
+
+
+def normalize_daily(rows: object, first_seen: str) -> list[dict]:
+    """Keep unique, finite, join-date-onward stored rows in chronological order."""
+    by_date: dict[str, dict] = {}
+    if not isinstance(rows, list):
+        return []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        date = str(row.get("date") or "")
         try:
-            return json.loads(DATA.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {"schema_version": "low-chip-tracking-v1", "generated_at": "", "stocks": {}}
+            datetime.date.fromisoformat(date)
+            close = float(row.get("close"))
+        except (TypeError, ValueError):
+            continue
+        if date < first_seen or not math.isfinite(close) or close <= 0:
+            continue
+        clean = dict(row)
+        for key in ("change_pct", "profit_ratio"):
+            value = clean.get(key)
+            if value is None:
+                continue
+            try:
+                if not math.isfinite(float(value)):
+                    clean[key] = None
+            except (TypeError, ValueError):
+                clean[key] = None
+        by_date[date] = clean
+    return [by_date[date] for date in sorted(by_date)]
+
+
+def atomic_write_json(path: Path, payload: dict) -> None:
+    """Durably replace a JSON file from a temporary sibling."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_path = Path(handle.name)
+            json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+        temp_path = None
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -226,6 +293,7 @@ def main() -> int:
         # 更新 first/last_seen（保留最早加入日）
         rec["first_seen"] = min(rec.get("first_seen") or first, first)
         rec["last_seen"] = last
+        rec["daily"] = normalize_daily(rec.get("daily"), rec["first_seen"])
 
         # 固定追踪窗口：加入日基准 + 加入后的前 20 个交易日；完成后停止请求新数据
         if len(rec.get("daily") or []) >= MAX_STORED_BARS:
@@ -240,8 +308,6 @@ def main() -> int:
             rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
             print(f"  {symbol}: tencent returned no bars, preserving {len(rec['daily'])} existing rows", flush=True)
             continue
-        target_dates = {bar["date"] for bar in target_bars}
-        rec["daily"] = [d for d in rec.get("daily", []) if d.get("date") in target_dates]
         have = {d["date"] for d in rec["daily"]}
         new_rows = []
         for bar in target_bars:
@@ -249,6 +315,7 @@ def main() -> int:
                 continue
             pr = iwencai_profit_ratio(symbol, bar["date"])
             new_rows.append({**bar, "profit_ratio": pr})
+            have.add(bar["date"])
             print(f"  {symbol} {bar['date']}: close={bar['close']} chg={bar['change_pct']} profit={pr}", flush=True)
         rec["daily"].extend(new_rows)
         rec["daily"].sort(key=lambda x: x["date"])
@@ -292,7 +359,7 @@ def main() -> int:
         }
         r["entry_financials"] = dict(entry_enrichment.get("financials") or {})
 
-    DATA.write_text(json.dumps({"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    atomic_write_json(DATA, {"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks})
     print(json.dumps({"stocks": len(stocks), "total_bars": sum(len(r["daily"]) for r in stocks.values())}, ensure_ascii=False))
     return 0
 
