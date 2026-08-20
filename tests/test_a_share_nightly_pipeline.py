@@ -291,6 +291,16 @@ def test_nightly_refresh_reselects_before_macro_and_validation(monkeypatch):
     assert publish.PAPER_TRADING_FILE in publish.PUBLIC_VERIFY_FILES
 
 
+def test_project_subprocess_env_keeps_project_node_runtime_available(monkeypatch):
+    monkeypatch.setenv("PATH", "/usr/local/sbin:/usr/bin:/bin")
+    monkeypatch.setenv("VIRTUAL_ENV", "/tmp/hermes-venv")
+
+    env = publish.project_subprocess_env()
+
+    assert env["PATH"].startswith("/root/.local/bin:/usr/bin:")
+    assert "VIRTUAL_ENV" not in env
+
+
 def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
     candidate_dir = tmp_path / "candidate"
     candidate_dir.mkdir()
@@ -311,7 +321,7 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
     ]
     for _, kwargs in commands:
         if "env" in kwargs:
-            assert kwargs["env"]["PATH"].startswith("/usr/bin:")
+            assert kwargs["env"]["PATH"].startswith("/root/.local/bin:/usr/bin:")
             assert "VIRTUAL_ENV" not in kwargs["env"]
 
 

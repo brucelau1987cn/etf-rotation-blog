@@ -33,13 +33,14 @@ CN = ZoneInfo("Asia/Shanghai")
 ALLOWED_STATIC = set(SNAPSHOT_FILES) | set(GENERATED_PUBLIC_FILES)
 PROJECT_PYTHON = "/usr/bin/python3"
 BUILD_PYTHON = ".build-venv/bin/python"
+PROJECT_NODE_BIN = "/root/.local/bin"
 
 
 def project_subprocess_env() -> dict[str, str]:
     """Keep project commands out of the Hermes gateway virtualenv."""
     env = dict(os.environ)
     env.pop("VIRTUAL_ENV", None)
-    env["PATH"] = "/usr/bin:" + env.get("PATH", "")
+    env["PATH"] = f"{PROJECT_NODE_BIN}:/usr/bin:" + env.get("PATH", "")
     return env
 
 
