@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import subprocess
+from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
 
@@ -225,6 +226,7 @@ def test_main_restores_backup_after_precommit_failure(monkeypatch):
         return subprocess.CompletedProcess(args, 0, '', '')
 
     monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'publish_lock', nullcontext)
     monkeypatch.setattr(module, 'backup_generated_state', lambda _path: state)
     monkeypatch.setattr(module, 'restore_generated_state', lambda path, got: restored.append((path, got)))
 
