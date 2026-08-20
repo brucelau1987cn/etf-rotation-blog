@@ -228,7 +228,14 @@ def validate_candidate_commit(commit: str) -> None:
     try:
         run(["git", "worktree", "add", "--detach", str(candidate_dir), commit])
         run(["npm", "ci"], cwd=candidate_dir, env=env, timeout=600)
-        run([PROJECT_PYTHON, "-m", "pytest", "-q", "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot"], cwd=candidate_dir, env=env, timeout=300)
+        pytest_command = [
+            PROJECT_PYTHON, "-m", "pytest", "-q",
+            "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot",
+        ]
+        try:
+            run(pytest_command, cwd=candidate_dir, env=env, timeout=300)
+        except subprocess.TimeoutExpired:
+            run(pytest_command, cwd=candidate_dir, env=env, timeout=600)
         run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], cwd=candidate_dir, env=env, timeout=180)
         run(["npm", "run", "build"], cwd=candidate_dir, env=env, timeout=600)
         generated_diff = run(

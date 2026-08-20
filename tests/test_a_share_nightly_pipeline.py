@@ -315,6 +315,66 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
             assert "VIRTUAL_ENV" not in kwargs["env"]
 
 
+def test_candidate_validation_retries_one_transient_pytest_timeout(tmp_path, monkeypatch):
+    candidate_dir = tmp_path / "candidate"
+    candidate_dir.mkdir()
+    pytest_attempts = []
+
+    def fake_run(command, **kwargs):
+        if command[:3] == [publish.PROJECT_PYTHON, "-m", "pytest"]:
+            pytest_attempts.append(kwargs.get("timeout"))
+            if len(pytest_attempts) == 1:
+                raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publish.tempfile, "mkdtemp", lambda **kwargs: str(candidate_dir))
+    monkeypatch.setattr(publish, "run", fake_run)
+
+    publish.validate_candidate_commit("a" * 40)
+
+    assert pytest_attempts == [300, 600]
+
+
+def test_candidate_validation_stops_after_second_pytest_timeout(tmp_path, monkeypatch):
+    candidate_dir = tmp_path / "candidate"
+    candidate_dir.mkdir()
+    pytest_attempts = []
+
+    def fake_run(command, **kwargs):
+        if command[:3] == [publish.PROJECT_PYTHON, "-m", "pytest"]:
+            pytest_attempts.append(kwargs["timeout"])
+            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publish.tempfile, "mkdtemp", lambda **kwargs: str(candidate_dir))
+    monkeypatch.setattr(publish, "run", fake_run)
+
+    with pytest.raises(subprocess.TimeoutExpired):
+        publish.validate_candidate_commit("a" * 40)
+
+    assert pytest_attempts == [300, 600]
+
+
+def test_candidate_validation_does_not_retry_non_timeout_failure(tmp_path, monkeypatch):
+    candidate_dir = tmp_path / "candidate"
+    candidate_dir.mkdir()
+    pytest_attempts = []
+
+    def fake_run(command, **kwargs):
+        if command[:3] == [publish.PROJECT_PYTHON, "-m", "pytest"]:
+            pytest_attempts.append(kwargs["timeout"])
+            raise RuntimeError("pytest assertion failure")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publish.tempfile, "mkdtemp", lambda **kwargs: str(candidate_dir))
+    monkeypatch.setattr(publish, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="pytest assertion failure"):
+        publish.validate_candidate_commit("a" * 40)
+
+    assert pytest_attempts == [300]
+
+
 def test_candidate_validation_rejects_rewritten_generated_artifacts(tmp_path, monkeypatch):
     candidate_dir = tmp_path / "candidate"
     candidate_dir.mkdir()
