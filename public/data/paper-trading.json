@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-20T22:31:57.522150+00:00",
+  "updated_at": "2026-08-20T22:50:35.827028+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -261,38 +261,8 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 11465.9131876189,
+      "cash": 11319.22592743433,
       "positions": {
-        "XLP": {
-          "symbol": "XLP",
-          "name": "Consumer Staples",
-          "quantity": 23,
-          "entry_price": 84.38999938964844,
-          "entry_cost": 1.970485,
-          "entry_at": "2026-07-31T13:35:02.575750+00:00",
-          "target": 87.46,
-          "stop": 82.81,
-          "level_basis": null,
-          "signal_date": "2026-07-30",
-          "signal_kind": "plant",
-          "signal_level": 84.7,
-          "last_price": 86.54000091552734
-        },
-        "XHB": {
-          "symbol": "XHB",
-          "name": "SPDR S&P Homebuilders",
-          "quantity": 18,
-          "entry_price": 107.33000183105469,
-          "entry_cost": 1.96597,
-          "entry_at": "2026-08-18T13:30:52.795776+00:00",
-          "target": 111.62,
-          "stop": 103.61,
-          "level_basis": null,
-          "signal_date": "2026-08-17",
-          "signal_kind": "plant",
-          "signal_level": 107.99,
-          "last_price": 108.2300033569336
-        },
         "SOXX": {
           "symbol": "SOXX",
           "name": "iShares Semiconductor ETF",
@@ -306,7 +276,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 528.71,
-          "last_price": 519.6699829101562
+          "last_price": 522.3499755859375
         },
         "SMH": {
           "symbol": "SMH",
@@ -321,7 +291,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 560.9199829101562
+          "last_price": 562.6500244140625
         },
         "SPMO": {
           "symbol": "SPMO",
@@ -336,17 +306,47 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 148.09,
-          "last_price": 148.35000610351562
+          "last_price": 148.30999755859375
+        },
+        "HACK": {
+          "symbol": "HACK",
+          "name": "Amplify Cybersecurity ETF",
+          "quantity": 18,
+          "entry_price": 111.7750015258789,
+          "entry_cost": 2.005975,
+          "entry_at": "2026-08-20T13:30:12.797528+00:00",
+          "target": 116.97,
+          "stop": 106.05,
+          "level_basis": null,
+          "signal_date": "2026-08-19",
+          "signal_kind": "plant",
+          "signal_level": 112.19,
+          "last_price": 109.7699966430664
+        },
+        "CIBR": {
+          "symbol": "CIBR",
+          "name": "First Trust Nasdaq Cybersecurity",
+          "quantity": 21,
+          "entry_price": 94.41200256347656,
+          "entry_cost": 1.991326,
+          "entry_at": "2026-08-20T13:35:12.975984+00:00",
+          "target": 99.31,
+          "stop": 90.51,
+          "level_basis": null,
+          "signal_date": "2026-08-19",
+          "signal_kind": "plant",
+          "signal_level": 95.11,
+          "last_price": 93.44999694824219
         }
       },
-      "equity": 20574.793246,
-      "realized_pnl": 537.0712599196777,
-      "unrealized_pnl": 37.721986,
-      "daily_return": 0.00719385,
-      "cumulative_return": 0.02873966,
-      "max_drawdown": -0.00174186,
+      "equity": 20440.565771,
+      "realized_pnl": 512.1369081130371,
+      "unrealized_pnl": -71.571137,
+      "daily_return": -0.00652388,
+      "cumulative_return": 0.02202829,
+      "max_drawdown": -0.00652388,
       "peak_equity": 20574.793245907473,
-      "cash_ratio": 0.55727963,
+      "cash_ratio": 0.55376285,
       "history": [
         {
           "date": "2026-08-04",
@@ -443,6 +443,14 @@
           "daily_return": 0.00719385,
           "cumulative_return": 0.02873966,
           "max_drawdown": -0.00174186
+        },
+        {
+          "date": "2026-08-20",
+          "equity": 20440.565771,
+          "cash": 11319.225927,
+          "daily_return": -0.00652388,
+          "cumulative_return": 0.02202829,
+          "max_drawdown": -0.00652388
         }
       ],
       "events": [
@@ -1075,6 +1083,80 @@
           "target": 37.38,
           "stop": 35.07,
           "decision_tag": "止盈退出"
+        },
+        {
+          "id": "US:XLP:sell:1787232625:harvest",
+          "timestamp": "2026-08-20T13:30:12.797528+00:00",
+          "market": "US",
+          "symbol": "XLP",
+          "name": "Consumer Staples",
+          "side": "sell",
+          "quantity": 23,
+          "price": 85.080002,
+          "cost": 1.97842,
+          "reason": "harvest",
+          "signal_date": "2026-07-30",
+          "signal_kind": "plant",
+          "signal_level": 84.7,
+          "entry_at": "2026-07-31T13:35:02.575750+00:00",
+          "entry_price": 84.38999938964844,
+          "entry_cost": 1.970485,
+          "target": 87.46,
+          "stop": 82.81,
+          "decision_tag": "信号反转"
+        },
+        {
+          "id": "US:XHB:sell:1787232623:harvest",
+          "timestamp": "2026-08-20T13:30:12.797528+00:00",
+          "market": "US",
+          "symbol": "XHB",
+          "name": "SPDR S&P Homebuilders",
+          "side": "sell",
+          "quantity": 18,
+          "price": 105.5,
+          "cost": 1.9495,
+          "reason": "harvest",
+          "signal_date": "2026-08-17",
+          "signal_kind": "plant",
+          "signal_level": 107.99,
+          "entry_at": "2026-08-18T13:30:52.795776+00:00",
+          "entry_price": 107.33000183105469,
+          "entry_cost": 1.96597,
+          "target": 111.62,
+          "stop": 103.61,
+          "decision_tag": "信号反转"
+        },
+        {
+          "id": "US:HACK:buy:1787232607:plant",
+          "timestamp": "2026-08-20T13:30:12.797528+00:00",
+          "market": "US",
+          "symbol": "HACK",
+          "name": "Amplify Cybersecurity ETF",
+          "side": "buy",
+          "quantity": 18,
+          "price": 111.775002,
+          "cost": 2.005975,
+          "reason": "plant",
+          "signal_date": "2026-08-19",
+          "signal_kind": "plant",
+          "signal_level": 112.19,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:CIBR:buy:1787232906:plant",
+          "timestamp": "2026-08-20T13:35:12.975984+00:00",
+          "market": "US",
+          "symbol": "CIBR",
+          "name": "First Trust Nasdaq Cybersecurity",
+          "side": "buy",
+          "quantity": 21,
+          "price": 94.412003,
+          "cost": 1.991326,
+          "reason": "plant",
+          "signal_date": "2026-08-19",
+          "signal_kind": "plant",
+          "signal_level": 95.11,
+          "decision_tag": "计划内首仓"
         }
       ],
       "pending_signals": [],
@@ -1085,11 +1167,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 37,
+        "total": 41,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 21,
+            "count": 23,
             "closed_pnl": null
           },
           {
@@ -1106,6 +1188,11 @@
             "tag": "风险降仓",
             "count": 1,
             "closed_pnl": -35.315963
+          },
+          {
+            "tag": "信号反转",
+            "count": 2,
+            "closed_pnl": -24.934348
           }
         ],
         "unavailable_reasons": [
