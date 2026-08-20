@@ -34,7 +34,57 @@ export type DailyInsightReport = {
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
   
 
-  '2026-08-19': {
+  '2026-08-20': {
+    tradeDate: '2026-08-20',
+    shortDate: '08/20',
+    title: '8月20日滚动信号收盘复盘',
+    subtitle: '当日D1入库6条5只：国民技术60m多空双触发（多方已确认），白银2h—4.5h多方簇后尾盘5m空方贴价确认，美股特斯拉3h—4.5h多方簇延续，其余标的窄幅震荡。',
+    cutoff: '2026-08-20 收市（股民15:00 / 白银22:00 / 美股04:00）',
+    summary: '今日股民11只标的共录得多方信号1条（国民技术60m多方）、空方信号1条（国民技术60m空方）。白银现货（SI=F）录得多方簇（2h—4.5h共5档）后尾盘触发5m空方观察，收盘贴价确认；特斯拉录得3h—4.5h多方簇共5档。整体盘面：股民权重分化，海光信息大跌5.16%，其余标的窄幅震荡；现货白银$66.89（-0.13%），黄金$4493.79（-0.64%），原油$86.676（+2.71%），美元指数98.58（-0.22%）。',
+    buyRule: '白银多方已结束，本轮空方5m观察触发；下一交易日关注是否跌破$66.00并触发10m正式空方。特斯拉多方延续，守$340可持。',
+    sellRule: '股民今日仅国民技术有60m空方信号（触发价$19.09，收盘$19.19，偏离-0.52%），其余标的无正式空方触发。海光信息大跌5.16%，但未触发滚动空方窗口，可作为波段观察。',
+    discipline: '白银5m空方为观察点，非正式卖出信号；需10m正式触发方可视为空方确认。国民技术60m空方触发价$19.09，止损参考收盘$19.19。',
+    sources: 'Cloudflare D1 REST rolling_signals（trade_date=2026-08-20，6条5只）与rolling_instruments启用清单；同花顺多key包装器11只A股收盘、均线、RSI、箔码与主力资金；腾讯港股02701/06809/01378收盘行情；新浪hf_XAG/hf_XAU/hf_CL/DINIW。',
+    signals: [
+      {
+        name: '国民技术', symbol: '300077', market: '股民', direction: 'BUY', nodes: '60m多方', signalPrices: 'ﾥ18.38', close: 'ﾥ19.19', change: '+4.41%',
+        validation: 'confirmed', validationLabel: '多方已确认',
+        verdict: '60m多方触发后价格持续上行，今日收盘ﾥ19.19，较信号价ﾥ18.38高4.41%。MACD Diff=-0.422，DEA=-0.81，MACD处于负值区但价格已站上MA5/MA20，短期偏多但RSI6=44偏中性。',
+        support: 'ﾥ19.00整数支撑；ﾥ18.38信号价强支撑', pressure: 'ﾥ19.75—20.00压力区', buyPlan: '回调ﾥ19.00企稳可加仓；目标ﾥ20.00。', sellPlan: '跌破ﾥ18.38止损；ﾥ20.00降近可减仓。',
+        evidence: ['信号价ﾥ18.38', '收盘ﾥ19.19', 'MA5=19.92/MA10=19.76/MA20=18.50', 'RSI6=44', '主力净流入-1612万']
+      },
+      {
+        name: '国民技术', symbol: '300077', market: '股民', direction: 'SELL', nodes: '60m空方', signalPrices: 'ﾥ19.09', close: 'ﾥ19.19', change: '+0.52%',
+        validation: 'reclaimed', validationLabel: '空方已收复',
+        verdict: '60m空方触发后价格反而上行，收盘ﾥ19.19高于信号价ﾥ19.09，信号已收复。该空方信号作为盘中预警有效，但未形成有效空头延续。',
+        support: 'ﾥ19.00整数支撑；ﾥ18.82信号前低', pressure: 'ﾥ19.75—20.10压力区', buyPlan: 'ﾥ19.00企稳可重新关注多方。', sellPlan: '若跌破ﾥ19.00并企稳可重新入场空方。',
+        evidence: ['信号价ﾥ19.09', '收盘ﾥ19.19', '偏离+0.52%', '最高ﾥ19.75']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F / hf_XAG', market: '期货', direction: 'BUY', nodes: '2h / 3h / 3.5h / 4h / 4.5h多方簇', signalPrices: '$65.889 → $66.042', close: '$66.479（收盘）', change: '+0.89%（相对信号价）',
+        validation: 'confirmed', validationLabel: '多方已确认',
+        verdict: '昨日16:00—19:00连续触发2h—4.5h共5档多方，今日亚盘延续高位震荡，尾盘5m空方触发前多方已实现较好收盘。5m空方触发价$66.479恰好为当日收盘价，贴价确认，多方本轮结束。',
+        support: '$65.70（4h信号价）', pressure: '$66.75—67.00压力区', buyPlan: '等待下一轮空方确认后重新入场。', sellPlan: '5m空方观察触发，跌破$66.00可期开10m正式空方。',
+        evidence: ['2h $65.889', '3h $65.889', '3.5h $66.042', '4h $65.706', '4.5h $66.042', '收盘$66.479', '现货银$66.89（-0.13%）']
+      },
+      {
+        name: '白银现货', symbol: 'SI=F / hf_XAG', market: '期货', direction: 'SELL', nodes: '5m空方观察', signalPrices: '$66.479', close: '$66.479（贴价）', change: '0.00%（贴价）',
+        validation: 'watch', validationLabel: '空方贴价微弱确认',
+        verdict: '5m空方触发价$66.479恰好等于收盘价，贴价确认信号强度弱。下一交易日若价格跌破$66.00则期开10m正式空方；若收复$66.75则空方失效转风险提示。',
+        support: '$66.00整数支撑', pressure: '$66.75—67.00压力区', buyPlan: '收复$66.75并站稳可重新关注多方。', sellPlan: '跌破$66.00期开10m正式空方；$66.479降近谨慎追空。',
+        evidence: ['5m空方触发价$66.479', '收盘$66.479', '贴价确认', '现货银$66.89（-0.13%）']
+      },
+      {
+        name: '特斯拉', symbol: 'TSLA', market: '美股', direction: 'BUY', nodes: '2.5h / 3h / 3.5h / 4h / 4.5h多方簇', signalPrices: '$347.76 → $351.19', close: '$348.19（昨收盘）', change: '—（昨日多方收盘基准）',
+        validation: 'confirmed', validationLabel: '多方已确认',
+        verdict: '昨日16:00—19:00连续触发2.5h—4.5h多方簇共5档，信号群完整且信号时间高度集中（均在北京时间16:00—19:00，对应美股盘中）。多方延续性良好，当前震荡整理中。',
+        support: '$340.00整数支撑', pressure: '$355.00—360.00压力区', buyPlan: '守住$340可持有；回调$345企稳可加仓。', sellPlan: '跌破$340止损。',
+        evidence: ['2.5h $351.19', '3h $351.19', '3.5h $351.19', '4h $351.19', '4.5h $347.76', '美股特斯拉收于$348.19（昨）']
+      },
+    ],
+  },
+
+    '2026-08-19': {
     tradeDate: '2026-08-19',
     shortDate: '08/19',
     title: '8月19日滚动信号收盘复盘',
@@ -843,7 +893,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-19', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-20', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-19', href: '/rolling/insights/2026-08-19/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-18', href: '/rolling/insights/2026-08-18/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-17', href: '/rolling/insights/2026-08-17/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-14', href: '/rolling/insights/2026-08-14/' },
