@@ -498,18 +498,26 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
         nums.replaceChildren();
         if (showPager) {
-          for (var i = 1; i <= totalPages; i++) {
-            (function(p) {
-              var btn = document.createElement('button');
-              btn.type = 'button';
-              btn.className = 'chip-page-num' + (i === page ? ' is-active' : '');
-              btn.textContent = String(i);
-              btn.setAttribute('aria-label', '第 ' + i + ' 页');
-              if (i === page) btn.setAttribute('aria-current', 'page');
-              btn.addEventListener('click', function() { page = p; renderPager(); });
-              nums.appendChild(btn);
-            })(i);
-          }
+          var pageItems = [1, 2, page - 1, page, page + 1, totalPages - 1, totalPages]
+            .filter(function(value) { return value >= 1 && value <= totalPages; })
+            .filter(function(value, index, values) { return values.indexOf(value) === index; })
+            .sort(function(a, b) { return a - b; });
+          pageItems.forEach(function(item, index) {
+            if (index > 0 && item - pageItems[index - 1] > 1) {
+              var dots = document.createElement('span');
+              dots.className = 'chip-page-ellipsis';
+              dots.textContent = '…';
+              nums.appendChild(dots);
+            }
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chip-page-num' + (item === page ? ' is-active' : '');
+            btn.textContent = String(item);
+            btn.setAttribute('aria-label', '第 ' + item + ' 页');
+            if (item === page) btn.setAttribute('aria-current', 'page');
+            btn.addEventListener('click', function() { page = item; renderPager(); });
+            nums.appendChild(btn);
+          });
         }
         prevBtn.disabled = page <= 1 || matched.length === 0;
         nextBtn.disabled = page >= totalPages || matched.length === 0;
@@ -770,10 +778,10 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   dt{color:#64748b;font-size:.72rem;font-weight:800}dd{margin:.2rem 0 0;font-size:1rem;font-weight:900}
 
   .chip-section{margin-top:1rem;overflow:visible}
-  .chip-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
+  .chip-toolbar{display:block;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
   .chip-toolbar h2{margin:0;font-size:1.15rem}
-  .chip-toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap}
-  .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
+  .chip-toolbar-right{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.75rem;margin-top:1rem}
+  .chip-search-wrap{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;grid-column:2}
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
   .chip-search-box{position:relative}
   .chip-search-suggestions{position:absolute;z-index:40;top:calc(100% + .35rem);right:0;width:280px;max-height:22rem;overflow:auto;padding:.3rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 14px 32px rgba(15,23,42,.16)}
@@ -783,8 +791,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-search-option strong{font-size:.82rem}
   .chip-search-option span,.chip-search-option small{color:#64748b;font-size:.7rem}
   .chip-search-option small{grid-column:1 / -1;color:#94a3b8}
-  .chip-history{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}
-  .chip-history-label{color:#64748b;font-size:.78rem;font-weight:800}
+  .chip-history{display:flex;align-items:center;flex-wrap:nowrap;gap:.45rem;margin-top:.7rem}
+  .chip-history-label{color:#64748b;font-size:.78rem;font-weight:800;white-space:nowrap}
+  .chip-history-status{white-space:nowrap}
   .chip-calendar-wrap{position:relative}
   .chip-history-calendar-btn{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-width:190px;height:2rem;padding:0 .7rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:.86rem;font-weight:750;cursor:pointer}
   .chip-history-calendar-btn i{color:#64748b;font-size:.7rem;font-style:normal}
@@ -825,6 +834,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-page-nums{display:inline-flex;align-items:center;gap:.25rem}
   .chip-page-num{display:inline-flex;align-items:center;justify-content:center;padding:0 .35rem}
   .chip-page-num.is-active{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}
+  .chip-page-ellipsis{display:inline-flex;align-items:center;justify-content:center;min-width:1rem;color:#64748b;font-size:.8rem}
   .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
   .chip-pager[hidden],.chip-row[hidden]{display:none!important}
   .chip-financial-filters{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.65rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
@@ -875,6 +885,5 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
-  @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
-</style>
+  @media(max-width:900px){.chip-toolbar-right{grid-template-columns:1fr;gap:.65rem}.chip-pager{grid-column:1;justify-self:start;order:1}.chip-search-wrap{grid-column:1;justify-content:flex-start;order:2}.chip-search-input{width:min(100%,20rem)}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-pager{order:1}.chip-search-wrap{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}</style>
