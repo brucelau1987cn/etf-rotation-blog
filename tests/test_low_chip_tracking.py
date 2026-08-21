@@ -346,7 +346,7 @@ def test_tracking_page_paginates_filtered_cards_by_twenty():
         'id="tc-page-prev"',
         'id="tc-page-next"',
         'id="tc-page-status"',
-        'var PAGE_SIZE = 20',
+        'var PAGE_SIZE = 12',
         'var currentPage = 1',
         'function renderPagination()',
         'Math.ceil(filteredItems.length / PAGE_SIZE)',

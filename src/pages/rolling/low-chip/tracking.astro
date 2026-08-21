@@ -120,6 +120,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
 
+    <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
+      <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
+      <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
+      <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
+    </nav>
+
     <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
       <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 30%</button>
       <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
@@ -280,12 +286,6 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       </div>
     </section>
 
-    <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
-      <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
-      <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
-      <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
-    </nav>
-
     <footer class="data-note">
       <strong>数据来源：腾讯日线（前复权）+ 同花顺市场数据</strong>
       <span>展示加入观察列表后的价格与市场指标变化，模型规则及参数保持私密。</span>
@@ -316,7 +316,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var pageStatus = document.getElementById('tc-page-status');
       if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory || !pagination || !pagePrev || !pageNext || !pageStatus) return;
       var items = Array.from(list.querySelectorAll('.tc-card'));
-      var PAGE_SIZE = 20;
+      var PAGE_SIZE = 12;
       var currentPage = 1;
       var filteredItems = [];
       var storageKey = 'low_chip_tracking_include_star';
@@ -545,12 +545,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
   .tc-empty { grid-column: 1 / -1; border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
-  .tc-pagination { display:flex; align-items:center; justify-content:center; gap:.75rem; margin:1rem 0 .2rem; }
+  .tc-pagination { display:inline-flex; align-items:center; gap:.5rem; }
   .tc-pagination[hidden] { display:none !important; }
-  .tc-page-btn { min-width:5rem; height:2rem; padding:0 .75rem; border:1px solid #cbd5e1; border-radius:999px; background:#fff; color:#334155; font-size:.72rem; font-weight:800; cursor:pointer; }
+  .tc-page-btn { min-width:4.5rem; height:1.9rem; padding:0 .6rem; border:1px solid #cbd5e1; border-radius:999px; background:#fff; color:#334155; font-size:.7rem; font-weight:800; cursor:pointer; }
   .tc-page-btn:hover:not(:disabled) { border-color:#2563eb; color:#1d4ed8; background:#eff6ff; }
   .tc-page-btn:disabled { opacity:.42; cursor:default; }
-  .tc-page-status { min-width:9.5rem; text-align:center; color:#64748b; font-size:.72rem; font-weight:750; }
+  .tc-page-status { min-width:8rem; text-align:center; color:#64748b; font-size:.7rem; font-weight:750; white-space:nowrap; }
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 900px) {
     .tc-overview { grid-template-columns:1fr; gap:1rem; }
@@ -563,6 +563,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     .tc-search-wrap { width: 100%; order: 5; }
     .tc-search-wrap input { flex: 1; width: auto; }
     .tc-filter-count { width: 100%; margin-left: 0; order: 6; }
+    .tc-pagination { order: 7; width: 100%; justify-content: center; margin-top: .5rem; }
     .tc-financial-filters { flex-wrap:nowrap; overflow-x:auto; }
     .tc-filter-meta { margin-left:0; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }
