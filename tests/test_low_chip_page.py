@@ -128,6 +128,15 @@ def test_low_chip_financial_filter_controls_and_logic():
     assert "Number(c.dataset.debtRatio) > 30" in page
 
 
+def test_low_chip_search_supports_guo_tou_zi_ben_initials():
+    page = PAGE.read_text(encoding="utf-8")
+    assert "国:'g'" in page
+    assert "投:'t'" in page
+    assert "资:'z'" in page
+    assert "本:'b'" in page
+    assert "var values = [c.dataset.symbol, c.dataset.name, c.dataset.initials, c.dataset.industry].map(normalize);" in page
+
+
 def test_low_chip_history_archive_and_query_ui():
     page = PAGE.read_text(encoding="utf-8")
     index = json.loads(HISTORY_INDEX.read_text(encoding="utf-8"))
