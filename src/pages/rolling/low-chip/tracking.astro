@@ -117,14 +117,13 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         <span class="tc-star-track" aria-hidden="true"><span></span></span>
         <span>包含科创板</span>
       </label>
+      <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
+        <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
+        <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
+        <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
+      </nav>
       <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
     </div>
-
-    <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
-      <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
-      <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
-      <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
-    </nav>
 
     <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
       <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
@@ -563,7 +562,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     .tc-search-wrap { width: 100%; order: 5; }
     .tc-search-wrap input { flex: 1; width: auto; }
     .tc-filter-count { width: 100%; margin-left: 0; order: 6; }
-    .tc-pagination { order: 7; width: 100%; justify-content: center; margin-top: .5rem; }
+    .tc-pagination { width: 100%; justify-content: center; margin-top: .5rem; }
     .tc-financial-filters { flex-wrap:nowrap; overflow-x:auto; }
     .tc-filter-meta { margin-left:0; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }

@@ -348,6 +348,8 @@ def test_tracking_page_paginates_filtered_cards_by_twenty():
         'id="tc-page-prev"',
         'id="tc-page-next"',
         'id="tc-page-status"',
+        '</label>\n      <nav class="tc-pagination" id="tc-pagination"',
+        '</nav>\n      <span class="tc-filter-count" id="tc-filter-count"',
         'var PAGE_SIZE = 12',
         'var currentPage = 1',
         'function renderPagination()',
