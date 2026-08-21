@@ -107,7 +107,9 @@ def test_select_latest_top10_report_row_uses_latest_explicit_period():
     }
 
 
-def test_fetch_never_writes_synthetic_latest_shareholder_period():
+def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed():
     source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
     assert "period or 'latest'" not in source
     assert "missing shareholder report period after per-symbol fallback" in source
+    assert "top10 shareholder names unavailable" in source
+    assert "missing top10 shareholder names after per-symbol fallback" not in source

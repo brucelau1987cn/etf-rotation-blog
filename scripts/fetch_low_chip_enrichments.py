@@ -188,13 +188,17 @@ def main() -> int:
                         )
                     detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
             if detail is None:
-                raise SystemExit(
-                    f"missing top10 shareholder names after per-symbol fallback: {code}; "
-                    f"returned={len(detail_rows)}"
+                # Some stocks have no currently published top-10 holder names.
+                # Shareholder badges are evidence-based and therefore fail closed;
+                # industry/concept enrichment remains valid and must continue.
+                print(
+                    f"  {code}: top10 shareholder names unavailable; "
+                    f"badges default to false (returned={len(detail_rows)})",
+                    flush=True,
                 )
             if matched is None:
                 matched = detail
-            else:
+            elif detail is not None:
                 for key, value in detail.items():
                     if key.startswith("前十大流通股东名称") and value:
                         matched[key] = value
