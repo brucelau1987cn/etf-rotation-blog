@@ -93,11 +93,11 @@ def test_tracking_page_and_entry_link():
         "entry_features",
         "is-concentrated",
         "includes('集中')",
-        "ROE ≥ 30%",
+        "ROE ≥ 15%",
         "净利率 ≥ 25%",
         "现金流/净利润 ≥ 20%",
         "毛利率 ≥ 15%",
-        "负债率 ≤ 10%",
+        "负债率 ≤ 30%",
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         "data-quality-shareholder",
@@ -152,6 +152,8 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "el.dataset.cashProfit !== ''" in tracking
     assert "el.dataset.grossMargin !== ''" in tracking
     assert "el.dataset.debtRatio !== ''" in tracking
+    assert "Number(el.dataset.roe) >= 15" in tracking
+    assert "Number(el.dataset.debtRatio) <= 30" in tracking
     assert "activeFilters.clear()" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
