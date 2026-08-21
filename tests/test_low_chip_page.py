@@ -224,7 +224,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     toolbar_end = page.index("</div>\n        </div>", toolbar_start)
     assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
-    assert page.index('id="chip-pager"') < page.index('id="chip-search-input"')
+    assert page.index('id="chip-search-input"') < page.index('id="chip-pager"')
     assert "今日无符合标的" in page
     assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()
