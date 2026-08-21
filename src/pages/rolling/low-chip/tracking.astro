@@ -4,6 +4,7 @@ import Footer from '../../../components/Footer.astro';
 import Header from '../../../components/Header.astro';
 import LowChipModeNav from '../../../components/LowChipModeNav.astro';
 import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { pinyin } from 'pinyin-pro';
 import { SITE_TITLE } from '../../../consts';
 import trackingData from '../../../../public/data/low-chip-tracking.json';
 
@@ -11,6 +12,7 @@ const title = `低筹码追踪｜加入以来表现 | ${SITE_TITLE}`;
 const description = '内部模型观察标的加入以来每日走势与跟踪指标统计。';
 
 const fmt = (v: number | null | undefined, digits = 2) => v == null ? '—' : Number(v).toFixed(digits);
+const nameInitials = (name: string | null | undefined) => pinyin(String(name || ''), { pattern: 'first', toneType: 'none', type: 'array' }).join('').toLowerCase();
 const controlLevel = (label: string | null | undefined) => String(label || '').replace(/控盘/g, '') || '—';
 
 const stocks = Object.entries(trackingData.stocks || {})
@@ -98,32 +100,44 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       </div>
     </section>
 
-    <div class="tc-toolbar">
-      <span class="tc-toolbar-label">状态</span>
-      <button type="button" class="tc-sort-btn is-active" id="tc-view-active" aria-pressed="true">追踪中 {activeStocks.length}</button>
-      <button type="button" class="tc-sort-btn" id="tc-view-history" aria-pressed="false">已完成 {historyStocks.length}</button>
-      <span class="tc-toolbar-divider" aria-hidden="true"></span>
-      <span class="tc-toolbar-label">排序</span>
-      <button type="button" class="tc-sort-btn is-active is-sort" id="tc-sort-days" aria-pressed="true">加入日</button>
-      <button type="button" class="tc-sort-btn is-sort" id="tc-sort-change" aria-pressed="false">涨幅</button>
-      <span class="tc-toolbar-divider" aria-hidden="true"></span>
-      <label class="tc-search-wrap" for="tc-search-input">
-        <span>搜索</span>
-        <input id="tc-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称" />
-      </label>
-      <span class="tc-toolbar-divider" aria-hidden="true"></span>
-      <label class="tc-star-switch" for="tc-star-toggle">
-        <input type="checkbox" id="tc-star-toggle" checked />
-        <span class="tc-star-track" aria-hidden="true"><span></span></span>
-        <span>包含科创板</span>
-      </label>
-      <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
-        <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
-        <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
-        <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
-      </nav>
-      <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
-    </div>
+    <section class="tc-list-tools" aria-labelledby="tc-list-title">
+      <div class="tc-list-top">
+        <h2 id="tc-list-title">追踪列表</h2>
+        <div class="tc-top-actions">
+          <div class="tc-search-wrap">
+            <span>检索</span>
+            <div class="tc-search-box">
+              <input id="tc-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" role="combobox" aria-autocomplete="list" aria-controls="tc-search-suggestions" aria-expanded="false" />
+              <div id="tc-search-suggestions" class="tc-search-suggestions" role="listbox" aria-label="匹配标的" hidden></div>
+            </div>
+          </div>
+          <div class="tc-view-switch" aria-label="追踪状态">
+            <span class="tc-toolbar-label">状态</span>
+            <button type="button" class="tc-sort-btn is-active" id="tc-view-active" aria-pressed="true">追踪中 {activeStocks.length}</button>
+            <button type="button" class="tc-sort-btn" id="tc-view-history" aria-pressed="false">已完成 {historyStocks.length}</button>
+          </div>
+        </div>
+      </div>
+      <div class="tc-toolbar">
+        <div class="tc-toolbar-left">
+          <span class="tc-toolbar-label">排序</span>
+          <button type="button" class="tc-sort-btn is-active is-sort" id="tc-sort-days" aria-pressed="true">加入日</button>
+          <button type="button" class="tc-sort-btn is-sort" id="tc-sort-change" aria-pressed="false">涨幅</button>
+          <span class="tc-toolbar-divider" aria-hidden="true"></span>
+          <label class="tc-star-switch" for="tc-star-toggle">
+            <input type="checkbox" id="tc-star-toggle" checked />
+            <span class="tc-star-track" aria-hidden="true"><span></span></span>
+            <span>包含科创板</span>
+          </label>
+          <span class="tc-filter-count" id="tc-filter-count">显示 {stocks.length} 只</span>
+        </div>
+        <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
+          <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
+          <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
+          <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
+        </nav>
+      </div>
+    </section>
 
     <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
       <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
@@ -149,7 +163,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-live-symbol={rec.symbol} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-quality-shareholder={rec.entry_features?.quality_shareholder ? '1' : '0'} data-institutional-shareholder={rec.entry_features?.institutional_shareholder ? '1' : '0'} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
+          <article class="tc-card" data-live-symbol={rec.symbol} data-name-initials={nameInitials(rec.name)} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-quality-shareholder={rec.entry_features?.quality_shareholder ? '1' : '0'} data-institutional-shareholder={rec.entry_features?.institutional_shareholder ? '1' : '0'} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -301,6 +315,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var sortDays = document.getElementById('tc-sort-days');
       var sortChange = document.getElementById('tc-sort-change');
       var searchInput = document.getElementById('tc-search-input');
+      var searchSuggestions = document.getElementById('tc-search-suggestions');
       var starToggle = document.getElementById('tc-star-toggle');
       var filterCount = document.getElementById('tc-filter-count');
       var filterEmpty = document.getElementById('tc-filter-empty');
@@ -322,10 +337,52 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var viewStorageKey = 'low_chip_tracking_view';
       var currentView = localStorage.getItem(viewStorageKey) === 'history' ? 'history' : 'active';
       var query = '';
+      var suggestionIndex = -1;
       var activeFilters = new Set();
       var saved = localStorage.getItem(storageKey);
       if (saved === '0') starToggle.checked = false;
       function normalize(value) { return String(value || '').trim().toLowerCase().replace(/\s+/g, ''); }
+      function esc(value) {
+        return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function closeSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        searchSuggestions.hidden = true;
+        searchInput.setAttribute('aria-expanded', 'false');
+        suggestionIndex = -1;
+      }
+      function renderSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        var matches = !query ? [] : items.filter(function(el) {
+          var name = normalize(el.querySelector('.tc-name')?.textContent);
+          var code = normalize(el.querySelector('.tc-code')?.textContent);
+          var initials = normalize(el.dataset.nameInitials);
+          return el.dataset.trackingStatus === currentView && (name.indexOf(query) !== -1 || code.indexOf(query) !== -1 || initials.indexOf(query) !== -1);
+        }).slice(0, 8);
+        searchSuggestions.replaceChildren();
+        suggestionIndex = -1;
+        if (!matches.length) { closeSuggestions(); return; }
+        matches.forEach(function(el) {
+          var name = el.querySelector('.tc-name')?.textContent || '';
+          var code = el.querySelector('.tc-code')?.textContent || '';
+          var option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'tc-search-option';
+          option.setAttribute('role', 'option');
+          option.innerHTML = '<strong>' + esc(name) + '</strong><span>' + esc(code) + '</span><small>' + esc(el.dataset.nameInitials) + '</small>';
+          option.addEventListener('mousedown', function(event) { event.preventDefault(); });
+          option.addEventListener('click', function() {
+            searchInput.value = code || name;
+            query = normalize(searchInput.value);
+            closeSuggestions();
+            applyFilter(true);
+            searchInput.focus();
+          });
+          searchSuggestions.appendChild(option);
+        });
+        searchSuggestions.hidden = false;
+        searchInput.setAttribute('aria-expanded', 'true');
+      }
       function renderPagination() {
         var totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
         currentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -342,7 +399,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         filteredItems = items.filter(function(el) {
           var name = normalize(el.querySelector('.tc-name')?.textContent);
           var code = normalize(el.querySelector('.tc-code')?.textContent);
-          var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1;
+          var initials = normalize(el.dataset.nameInitials);
+          var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1 || initials.indexOf(query) !== -1;
           var financialMatched = (!activeFilters.has('roe') || (el.dataset.roe !== '' && Number.isFinite(Number(el.dataset.roe)) && Number(el.dataset.roe) >= 15))
             && (!activeFilters.has('net-margin') || (el.dataset.netMargin !== '' && Number.isFinite(Number(el.dataset.netMargin)) && Number(el.dataset.netMargin) >= 15))
             && (!activeFilters.has('cash-profit') || (el.dataset.cashProfit !== '' && Number.isFinite(Number(el.dataset.cashProfit)) && Number(el.dataset.cashProfit) >= 20))
@@ -388,9 +446,32 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       document.addEventListener('low-chip-quotes-updated', function() {
         if (sortChange.classList.contains('is-active')) sortByChange();
       });
-      if (searchInput) searchInput.addEventListener('input', function() {
-        query = normalize(searchInput.value);
-        applyFilter(true);
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          query = normalize(searchInput.value);
+          applyFilter(true);
+          renderSuggestions();
+        });
+        searchInput.addEventListener('focus', renderSuggestions);
+        searchInput.addEventListener('keydown', function(event) {
+          var options = searchSuggestions ? Array.from(searchSuggestions.querySelectorAll('.tc-search-option')) : [];
+          if (event.key === 'Escape') { closeSuggestions(); return; }
+          if (!options.length || searchSuggestions.hidden) return;
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            suggestionIndex = (suggestionIndex + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+            options.forEach(function(option, index) {
+              option.classList.toggle('is-active', index === suggestionIndex);
+              option.setAttribute('aria-selected', index === suggestionIndex ? 'true' : 'false');
+            });
+          } else if (event.key === 'Enter' && suggestionIndex >= 0) {
+            event.preventDefault();
+            options[suggestionIndex].click();
+          }
+        });
+      }
+      document.addEventListener('click', function(event) {
+        if (searchSuggestions && !searchSuggestions.contains(event.target) && event.target !== searchInput) closeSuggestions();
       });
       starToggle.addEventListener('change', function() {
         localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
@@ -437,7 +518,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   </script>
 </body>
 
-<style>
+<style is:global>
   .tc-overview { display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,.72fr); align-items:center; gap:1.5rem; margin:1rem 0; padding:1.35rem; border:1px solid #dbe3ec; border-radius:14px; background:#fff; }
   .tc-header { min-width: 0; }
   .tc-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--gray-mid)); margin: 0 0 .35rem; }
@@ -446,15 +527,28 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-overview-meta { margin:.65rem 0 0; color:#64748b; font-size:.76rem; font-weight:700; }
   .tc-overview-meta strong { color:#14243b; font-size:.84rem; }
 
-  /* 排序工具栏 */
-  .tc-toolbar { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
-  .tc-toolbar-label { font-size: .7rem; color: rgb(var(--gray-mid)); font-weight: 700; margin-right: .15rem; }
-  .tc-sort-btn { height: 1.8rem; padding: 0 .6rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .15s ease; }
+  /* 列表工具栏 */
+  .tc-list-tools { margin-bottom:.8rem; overflow:visible; border:1px solid #dbe3ec; border-radius:14px; background:#fff; }
+  .tc-list-top { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:1rem; padding:1rem 1.2rem; border-left:4px solid #d97706; border-bottom:1px solid #e2e8f0; }
+  .tc-list-top h2 { margin:0; font-size:1.15rem; line-height:2.1rem; }
+  .tc-top-actions { display:flex; align-items:center; justify-content:flex-end; gap:.75rem; }
+  .tc-view-switch,.tc-search-wrap { display:inline-flex; align-items:center; gap:.4rem; height:2.1rem; }
+  .tc-toolbar { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.7rem 1.2rem; }
+  .tc-toolbar-left { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+  .tc-toolbar-label,.tc-search-wrap>span { display:inline-flex; align-items:center; height:2.1rem; font-size:.7rem; line-height:1; color:rgb(var(--gray-mid)); font-weight:750; white-space:nowrap; }
+  .tc-sort-btn { height: 2.1rem; padding: 0 .7rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .15s ease; }
   .tc-sort-btn.is-active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
   .tc-toolbar-divider { width: 1px; height: 1.15rem; margin: 0 .2rem; background: var(--border); }
-  .tc-search-wrap { display: inline-flex; align-items: center; gap: .35rem; color: rgb(var(--gray-mid)); font-size: .68rem; font-weight: 750; }
-  .tc-search-wrap input { width: 9rem; height: 1.8rem; padding: 0 .55rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: rgb(var(--gray-dark)); font: inherit; outline: none; }
-  .tc-search-wrap input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, .1); }
+  .tc-search-box { position:relative; }
+  .tc-search-wrap input { width: 180px; height: 2.1rem; padding: 0 .9rem; border: 1px solid #dbe3ec; border-radius: 999px; background: #fff; color: rgb(var(--gray-dark)); font-size:.82rem; font-weight:650; outline: none; }
+  .tc-search-wrap input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+  .tc-search-suggestions { position:absolute; z-index:40; top:calc(100% + .35rem); right:0; width:280px; max-height:22rem; overflow:auto; padding:.3rem; border:1px solid #dbe3ec; border-radius:12px; background:#fff; box-shadow:0 14px 32px rgba(15,23,42,.16); }
+  .tc-search-suggestions[hidden] { display:none!important; }
+  .tc-search-option { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.15rem .6rem; width:100%; padding:.55rem .65rem; border:0; border-radius:8px; background:#fff; color:#14243b; text-align:left; cursor:pointer; }
+  .tc-search-option:hover,.tc-search-option.is-active { background:#eff6ff; }
+  .tc-search-option strong { font-size:.82rem; }
+  .tc-search-option span,.tc-search-option small { color:#64748b; font-size:.7rem; }
+  .tc-search-option small { grid-column:1 / -1; color:#94a3b8; }
   .tc-star-switch { display: inline-flex; align-items: center; gap: .38rem; cursor: pointer; font-size: .7rem; font-weight: 800; color: rgb(var(--gray-dark)); user-select: none; }
   .tc-star-switch input { position: absolute; opacity: 0; pointer-events: none; }
   .tc-star-track { position: relative; width: 2rem; height: 1.1rem; border-radius: 999px; background: #cbd5e1; transition: background .15s ease; }
@@ -462,8 +556,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-star-switch input:checked + .tc-star-track { background: #7c3aed; }
   .tc-star-switch input:checked + .tc-star-track span { transform: translateX(.9rem); }
   .tc-star-switch input:focus-visible + .tc-star-track { outline: 2px solid #2563eb; outline-offset: 2px; }
-  .tc-filter-count { margin-left: auto; font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; }
-  .tc-financial-filters { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:-.2rem 0 .8rem; padding:.65rem .8rem; border:1px solid #e2e8f0; border-radius:10px; background:#fafbfc; }
+  .tc-filter-count { font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; white-space:nowrap; }
+  .tc-financial-filters { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:0 0 .8rem; padding:.65rem .8rem; border:1px solid #e2e8f0; border-radius:10px; background:#fafbfc; }
   .tc-filter-btn,.tc-filter-reset { height:1.95rem; padding:0 .7rem; border:1px solid #fcd34d; border-radius:999px; background:#fffbeb; color:#b45309; font-size:.72rem; font-weight:750; cursor:pointer; transition:all .15s ease; }
   .tc-filter-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .tc-filter-reset { border-color:#e2e8f0; color:#94a3b8; background:#fff; }
@@ -553,17 +647,26 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 900px) {
     .tc-overview { grid-template-columns:1fr; gap:1rem; }
-    .tc-toolbar { flex-wrap: wrap; }
+    .tc-list-top { grid-template-columns:1fr; }
+    .tc-top-actions { display:contents; }
+    .tc-search-wrap { grid-row:2; justify-self:start; }
+    .tc-view-switch { grid-row:3; justify-self:start; }
+    .tc-toolbar { align-items:flex-start; flex-direction:column; }
+    .tc-pagination { align-self:flex-end; }
   }
   @media (max-width: 760px) {
     .tc-overview { padding:1rem; }
     .tc-header { margin-top: 0; }
-    .tc-toolbar { flex-wrap: wrap; }
+    .tc-list-top { padding:1rem; }
+    .tc-search-wrap { width:100%; }
+    .tc-search-box { flex:1; }
+    .tc-search-wrap input { width:100%; }
+    .tc-search-suggestions { left:0; right:auto; width:min(92vw,280px); }
+    .tc-view-switch,.tc-toolbar-left { flex-wrap:wrap; }
+    .tc-toolbar { padding:.7rem 1rem; }
     .tc-toolbar-divider { display: none; }
-    .tc-search-wrap { width: 100%; order: 5; }
-    .tc-search-wrap input { flex: 1; width: auto; }
-    .tc-filter-count { width: 100%; margin-left: 0; order: 6; }
-    .tc-pagination { width: 100%; justify-content: center; margin-top: .5rem; }
+    .tc-filter-count { width:100%; }
+    .tc-pagination { width:100%; justify-content:center; margin-top:.15rem; }
     .tc-financial-filters { flex-wrap:nowrap; overflow-x:auto; }
     .tc-filter-meta { margin-left:0; }
     .tc-summary { grid-template-columns: repeat(2, 1fr); }
