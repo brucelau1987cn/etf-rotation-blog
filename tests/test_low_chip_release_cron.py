@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 from contextlib import nullcontext
 from io import BytesIO
@@ -9,6 +10,14 @@ import pytest
 
 
 SCRIPT = Path('/root/.hermes/scripts/update_low_chip_and_release.py')
+LOCAL_HERMES_READABLE = (
+    os.environ.get('CI', '').lower() != 'true'
+    and os.access(SCRIPT, os.R_OK)
+)
+pytestmark = pytest.mark.skipif(
+    not LOCAL_HERMES_READABLE,
+    reason='requires readable local Hermes release script',
+)
 
 
 def load_module():
