@@ -36,7 +36,9 @@ def test_low_chip_page_hides_private_screening_strategy():
         "周/月/季交集",
     ):
         assert private_copy not in public_source
-    assert "内部模型观察列表" in page
+    assert "观察列表" in page
+    assert "授权用户专属" not in page
+    assert "内部模型观察列表" not in page
     assert "initialData: lowChipData" not in page
     assert "initialData: initialClientData" in page
     assert "historyIndex: lowChipHistoryIndex" not in page
@@ -183,7 +185,7 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     for marker in (
         "数据来源：同花顺",
         "观察日期：{lowChipData.data_as_of}",
-        "内部模型观察列表",
+        "观察列表",
         'class="chip-row"',
         'class="chip-toolbar-right"',
         'id="chip-pager"',
@@ -225,6 +227,10 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
     assert toolbar_start < page.index('id="chip-pager"') < toolbar_end
     assert toolbar_start < page.index('id="chip-search-input"') < toolbar_end
     assert page.index('id="chip-search-input"') < page.index('id="chip-pager"')
+    assert 'class="chip-top-actions"' in page
+    assert '.chip-top-actions{display:flex;align-items:center;justify-content:flex-end' in page
+    assert '.chip-search-wrap{display:flex;align-items:center;justify-content:flex-start;gap:.5rem;height:2.1rem}' in page
+    assert '.chip-history{display:flex;align-items:center;flex-wrap:nowrap;gap:.45rem;margin:0;height:2.1rem}' in page
     assert "今日无符合标的" in page
     assert all(not code.endswith(".BJ") for code in json.loads(data)["intersection"])
     assert "gradient" not in page.lower()
