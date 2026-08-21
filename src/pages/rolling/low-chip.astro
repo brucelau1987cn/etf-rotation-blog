@@ -165,7 +165,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
         <div class="chip-financial-filters" id="chip-financial-filters" aria-label="财务与股东条件筛选">
           <button type="button" class="chip-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
-          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 25%</button>
+          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
@@ -428,7 +428,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           var searchMatched = !query || sym.indexOf(query) !== -1 || name.indexOf(query) !== -1 || initials.indexOf(query) !== -1 || initials.indexOf(query) === 0 || industry.indexOf(query) !== -1;
           if (!searchMatched) return false;
           if (activeFilters.has('roe') && (c.dataset.roe === '' || !Number.isFinite(Number(c.dataset.roe)) || Number(c.dataset.roe) < 15)) return false;
-          if (activeFilters.has('net-margin') && (c.dataset.netMargin === '' || !Number.isFinite(Number(c.dataset.netMargin)) || Number(c.dataset.netMargin) < 25)) return false;
+          if (activeFilters.has('net-margin') && (c.dataset.netMargin === '' || !Number.isFinite(Number(c.dataset.netMargin)) || Number(c.dataset.netMargin) < 15)) return false;
           if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || !Number.isFinite(Number(c.dataset.cashProfit)) || Number(c.dataset.cashProfit) < 20)) return false;
           if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
           if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 30)) return false;

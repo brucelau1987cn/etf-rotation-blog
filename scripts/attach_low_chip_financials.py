@@ -70,13 +70,13 @@ def main() -> None:
     payload["financial_filters"] = {
         "report_period": report_period,
         "roe_min": 15,
-        "net_margin_min": 25,
+        "net_margin_min": 15,
         "cash_profit_ratio_min": 20,
         "gross_margin_min": 15,
         "debt_ratio_max": 30,
         "labels": {
             "roe": "ROE ≥ 15%",
-            "net_margin": "净利率 ≥ 25%",
+            "net_margin": "净利率 ≥ 15%",
             "cash_profit_ratio": "现金流/净利润 ≥ 20%",
             "gross_margin": "毛利率 ≥ 15%",
             "debt_ratio": "负债率 ≤ 30%",

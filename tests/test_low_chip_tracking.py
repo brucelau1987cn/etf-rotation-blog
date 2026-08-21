@@ -94,7 +94,7 @@ def test_tracking_page_and_entry_link():
         "is-concentrated",
         "includes('集中')",
         "ROE ≥ 15%",
-        "净利率 ≥ 25%",
+        "净利率 ≥ 15%",
         "现金流/净利润 ≥ 20%",
         "毛利率 ≥ 15%",
         "负债率 ≤ 30%",
@@ -149,6 +149,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "Math.max(0, 20 - rec.daily.length)" in tracking
     assert "el.dataset.roe !== ''" in tracking
     assert "el.dataset.netMargin !== ''" in tracking
+    assert "Number(el.dataset.netMargin) >= 15" in tracking
     assert "el.dataset.cashProfit !== ''" in tracking
     assert "el.dataset.grossMargin !== ''" in tracking
     assert "el.dataset.debtRatio !== ''" in tracking

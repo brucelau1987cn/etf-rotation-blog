@@ -64,7 +64,7 @@ def test_low_chip_page_hides_private_screening_strategy():
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
     assert data["financial_filters"]["report_period"]
     assert data["financial_filters"]["roe_min"] == 15
-    assert data["financial_filters"]["net_margin_min"] == 25
+    assert data["financial_filters"]["net_margin_min"] == 15
     assert data["financial_filters"]["cash_profit_ratio_min"] == 20
     assert data["financial_filters"]["gross_margin_min"] == 15
     assert data["financial_filters"]["debt_ratio_max"] == 30
@@ -103,7 +103,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         'id="chip-filter-reset"',
         'id="chip-filter-meta"',
         'ROE ≥ 15%',
-        '净利率 ≥ 25%',
+        '净利率 ≥ 15%',
         '现金流/净利润 ≥ 20%',
         '毛利率 ≥ 15%',
         '负债率 ≤ 30%',
@@ -124,6 +124,7 @@ def test_low_chip_financial_filter_controls_and_logic():
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page
     assert "Number(c.dataset.roe) < 15" in page
+    assert "Number(c.dataset.netMargin) < 15" in page
     assert "Number(c.dataset.debtRatio) > 30" in page
 
 
