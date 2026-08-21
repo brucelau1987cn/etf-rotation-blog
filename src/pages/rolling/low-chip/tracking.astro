@@ -280,6 +280,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       </div>
     </section>
 
+    <nav class="tc-pagination" id="tc-pagination" aria-label="跟踪股票分页">
+      <button type="button" id="tc-page-prev" class="tc-page-btn">上一页</button>
+      <span id="tc-page-status" class="tc-page-status" aria-live="polite">第 1 / 1 页</span>
+      <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
+    </nav>
+
     <footer class="data-note">
       <strong>数据来源：腾讯日线（前复权）+ 同花顺市场数据</strong>
       <span>展示加入观察列表后的价格与市场指标变化，模型规则及参数保持私密。</span>
@@ -304,8 +310,15 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var filterMeta = document.getElementById('tc-filter-meta');
       var viewActive = document.getElementById('tc-view-active');
       var viewHistory = document.getElementById('tc-view-history');
-      if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory) return;
+      var pagination = document.getElementById('tc-pagination');
+      var pagePrev = document.getElementById('tc-page-prev');
+      var pageNext = document.getElementById('tc-page-next');
+      var pageStatus = document.getElementById('tc-page-status');
+      if (!list || !sortDays || !sortChange || !starToggle || !viewActive || !viewHistory || !pagination || !pagePrev || !pageNext || !pageStatus) return;
       var items = Array.from(list.querySelectorAll('.tc-card'));
+      var PAGE_SIZE = 20;
+      var currentPage = 1;
+      var filteredItems = [];
       var storageKey = 'low_chip_tracking_include_star';
       var viewStorageKey = 'low_chip_tracking_view';
       var currentView = localStorage.getItem(viewStorageKey) === 'history' ? 'history' : 'active';
@@ -314,9 +327,20 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       var saved = localStorage.getItem(storageKey);
       if (saved === '0') starToggle.checked = false;
       function normalize(value) { return String(value || '').trim().toLowerCase().replace(/\s+/g, ''); }
-      function applyFilter() {
-        var visible = 0;
-        items.forEach(function(el) {
+      function renderPagination() {
+        var totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+        currentPage = Math.min(Math.max(1, currentPage), totalPages);
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var visiblePage = new Set(filteredItems.slice(start, start + PAGE_SIZE));
+        items.forEach(function(el) { el.hidden = !visiblePage.has(el); });
+        pagePrev.disabled = currentPage <= 1;
+        pageNext.disabled = currentPage >= totalPages;
+        pageStatus.textContent = '第 ' + currentPage + ' / ' + totalPages + ' 页 · 共 ' + filteredItems.length + ' 只';
+        pagination.hidden = filteredItems.length === 0;
+        if (filterEmpty) filterEmpty.hidden = filteredItems.length > 0;
+      }
+      function applyFilter(resetPage) {
+        filteredItems = items.filter(function(el) {
           var name = normalize(el.querySelector('.tc-name')?.textContent);
           var code = normalize(el.querySelector('.tc-code')?.textContent);
           var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1;
@@ -327,17 +351,16 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             && (!activeFilters.has('debt-ratio') || (el.dataset.debtRatio !== '' && Number.isFinite(Number(el.dataset.debtRatio)) && Number(el.dataset.debtRatio) <= 10))
             && (!activeFilters.has('quality-shareholder') || el.dataset.qualityShareholder === '1')
             && (!activeFilters.has('institutional-shareholder') || el.dataset.institutionalShareholder === '1');
-          var show = el.dataset.trackingStatus === currentView && searchMatched && financialMatched && (starToggle.checked || el.dataset.starMarket !== '1');
-          el.hidden = !show;
-          if (show) visible += 1;
+          return el.dataset.trackingStatus === currentView && searchMatched && financialMatched && (starToggle.checked || el.dataset.starMarket !== '1');
         });
-        if (filterCount) filterCount.textContent = '显示 ' + visible + ' 只';
-        if (filterMeta) filterMeta.textContent = activeFilters.size ? '已启用 ' + activeFilters.size + ' 项 · ' + visible + ' 只' : '未启用筛选';
-        if (filterEmpty) filterEmpty.hidden = visible > 0;
+        if (resetPage) currentPage = 1;
+        if (filterCount) filterCount.textContent = '匹配 ' + filteredItems.length + ' 只';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? '已启用 ' + activeFilters.size + ' 项 · ' + filteredItems.length + ' 只' : '未启用筛选';
         viewActive.classList.toggle('is-active', currentView === 'active');
         viewActive.setAttribute('aria-pressed', currentView === 'active' ? 'true' : 'false');
         viewHistory.classList.toggle('is-active', currentView === 'history');
         viewHistory.setAttribute('aria-pressed', currentView === 'history' ? 'true' : 'false');
+        renderPagination();
       }
       function sortByDays() {
         items.sort(function(a, b) {
@@ -346,6 +369,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         items.forEach(function(el) { list.appendChild(el); });
         sortDays.classList.add('is-active'); sortDays.setAttribute('aria-pressed', 'true');
         sortChange.classList.remove('is-active'); sortChange.setAttribute('aria-pressed', 'false');
+        applyFilter(false);
       }
       function sortByChange() {
         items.sort(function(a, b) {
@@ -358,6 +382,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         items.forEach(function(el) { list.appendChild(el); });
         sortChange.classList.add('is-active'); sortChange.setAttribute('aria-pressed', 'true');
         sortDays.classList.remove('is-active'); sortDays.setAttribute('aria-pressed', 'false');
+        applyFilter(false);
       }
       sortDays.addEventListener('click', sortByDays);
       sortChange.addEventListener('click', sortByChange);
@@ -366,11 +391,11 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       });
       if (searchInput) searchInput.addEventListener('input', function() {
         query = normalize(searchInput.value);
-        applyFilter();
+        applyFilter(true);
       });
       starToggle.addEventListener('change', function() {
         localStorage.setItem(storageKey, starToggle.checked ? '1' : '0');
-        applyFilter();
+        applyFilter(true);
       });
       filterButtons.forEach(function(button) {
         button.addEventListener('click', function() {
@@ -378,7 +403,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           if (activeFilters.has(key)) activeFilters.delete(key); else activeFilters.add(key);
           button.classList.toggle('is-active', activeFilters.has(key));
           button.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
-          applyFilter();
+          applyFilter(true);
         });
       });
       if (filterReset) filterReset.addEventListener('click', function() {
@@ -387,15 +412,28 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           button.classList.remove('is-active');
           button.setAttribute('aria-pressed', 'false');
         });
-        applyFilter();
+        applyFilter(true);
       });
       viewActive.addEventListener('click', function() {
-        currentView = 'active'; localStorage.setItem(viewStorageKey, currentView); applyFilter();
+        currentView = 'active'; localStorage.setItem(viewStorageKey, currentView); applyFilter(true);
       });
       viewHistory.addEventListener('click', function() {
-        currentView = 'history'; localStorage.setItem(viewStorageKey, currentView); applyFilter();
+        currentView = 'history'; localStorage.setItem(viewStorageKey, currentView); applyFilter(true);
       });
-      applyFilter();
+      pagePrev.addEventListener('click', function() {
+        if (currentPage <= 1) return;
+        currentPage -= 1;
+        renderPagination();
+        list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      pageNext.addEventListener('click', function() {
+        var totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+        if (currentPage >= totalPages) return;
+        currentPage += 1;
+        renderPagination();
+        list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      applyFilter(true);
     })();
   </script>
 </body>
@@ -507,6 +545,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
   .tc-empty { grid-column: 1 / -1; border: 1px dashed var(--border); border-radius: 14px; padding: 2.5rem; text-align: center; color: rgb(var(--gray-mid)); }
   .tc-empty strong { display: block; font-size: 1rem; margin-bottom: .35rem; color: rgb(var(--gray-dark)); }
+  .tc-pagination { display:flex; align-items:center; justify-content:center; gap:.75rem; margin:1rem 0 .2rem; }
+  .tc-pagination[hidden] { display:none !important; }
+  .tc-page-btn { min-width:5rem; height:2rem; padding:0 .75rem; border:1px solid #cbd5e1; border-radius:999px; background:#fff; color:#334155; font-size:.72rem; font-weight:800; cursor:pointer; }
+  .tc-page-btn:hover:not(:disabled) { border-color:#2563eb; color:#1d4ed8; background:#eff6ff; }
+  .tc-page-btn:disabled { opacity:.42; cursor:default; }
+  .tc-page-status { min-width:9.5rem; text-align:center; color:#64748b; font-size:.72rem; font-weight:750; }
   .data-note { margin-top: 1.2rem; }
   @media (max-width: 900px) {
     .tc-overview { grid-template-columns:1fr; gap:1rem; }

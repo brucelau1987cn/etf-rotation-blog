@@ -306,7 +306,6 @@ def test_tracking_page_has_batched_live_quote_layer():
         assert marker in page
 
     assert "/api/public/v1/quote?symbols=" in live_app
-    assert "Promise.all" not in live_app
     assert "30000" in live_app
     assert "EtfQuote.normalizeQuotePayload" in live_app
     assert "EtfQuote.findQuoteItem" in live_app
@@ -324,6 +323,11 @@ def test_tracking_page_has_batched_live_quote_layer():
     assert "获利盘待收盘" in live_app
     assert "第1日待结算" in live_app
     assert "quote_time" in live_app
+    assert "QUOTE_BATCH_SIZE = 40" in live_app
+    assert "chunkedSymbols" in live_app
+    assert "Promise.all" in live_app
+    assert "if (batches.some(function (batch) { return !batch; })) return;" in live_app
+    assert "flatMap" in live_app
     # A newly joined stock has zero formal post-join closes on day 1; it still receives
     # a live price, while its join-to-live change begins at 0% until settlement.
     assert "Number.isFinite(firstClose) ? firstClose : price" in live_app
@@ -332,6 +336,23 @@ def test_tracking_page_has_batched_live_quote_layer():
     assert "connector.removeAttribute('hidden')" in live_app
     assert "livePoint.removeAttribute('hidden')" in live_app
     assert "label.removeAttribute('hidden')" in live_app
+
+
+def test_tracking_page_paginates_filtered_cards_by_twenty():
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+
+    for marker in (
+        'id="tc-pagination"',
+        'id="tc-page-prev"',
+        'id="tc-page-next"',
+        'id="tc-page-status"',
+        'var PAGE_SIZE = 20',
+        'var currentPage = 1',
+        'function renderPagination()',
+        'Math.ceil(filteredItems.length / PAGE_SIZE)',
+        'currentPage = 1;',
+    ):
+        assert marker in page
 
 
 def test_tencent_daily_includes_requested_end_day(monkeypatch):

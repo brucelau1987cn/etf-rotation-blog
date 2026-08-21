@@ -5,6 +5,7 @@
   if (!cards.length) return;
 
   var POLL_MS = 30000;
+  var QUOTE_BATCH_SIZE = 40;
   var UP = '#e04444';
   var DOWN = '#0aa869';
   var quoteBySymbol = new Map();
@@ -250,16 +251,37 @@
     renderSummary();
   }
 
+  function chunkedSymbols() {
+    var symbols = cards.map(function (card) { return card.dataset.liveSymbol; });
+    var chunks = [];
+    for (var index = 0; index < symbols.length; index += QUOTE_BATCH_SIZE) {
+      chunks.push(symbols.slice(index, index + QUOTE_BATCH_SIZE));
+    }
+    return chunks;
+  }
+
+  async function fetchQuoteBatch(symbols) {
+    try {
+      var response = await fetch('/api/public/v1/quote?symbols=' + encodeURIComponent(symbols.join(',')), { cache: 'default' });
+      if (!response.ok) return null;
+      var payload = await response.json();
+      var normalized = window.EtfQuote && window.EtfQuote.normalizeQuotePayload(payload);
+      return normalized && normalized.ok ? normalized : null;
+    } catch (error) {
+      console.warn('[low-chip-live] quote batch failed', error);
+      return null;
+    }
+  }
+
   async function refresh() {
     if (fetching || document.hidden) return;
     fetching = true;
     try {
-      var symbols = cards.map(function (card) { return card.dataset.liveSymbol; }).join(',');
-      var response = await fetch('/api/public/v1/quote?symbols=' + encodeURIComponent(symbols), { cache: 'default' });
-      if (!response.ok) return;
-      var payload = await response.json();
-      var normalized = window.EtfQuote && window.EtfQuote.normalizeQuotePayload(payload);
-      if (!normalized || !normalized.ok) return;
+      var batches = await Promise.all(chunkedSymbols().map(fetchQuoteBatch));
+      if (batches.some(function (batch) { return !batch; })) return;
+      var items = batches.filter(Boolean).flatMap(function (batch) { return batch.items || []; });
+      var normalized = { ok: items.length > 0, count: items.length, items: items };
+      if (!normalized.ok) return;
       cards.forEach(function (card) {
         var quote = window.EtfQuote.findQuoteItem(normalized, card.dataset.liveSymbol);
         if (quote) renderCard(card, quote);
