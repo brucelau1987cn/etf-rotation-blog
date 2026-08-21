@@ -32,8 +32,39 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
-  
 
+
+
+  '2026-08-21': {
+    tradeDate: '2026-08-21',
+    shortDate: '08/21',
+    title: '8月21日滚动信号收盘复盘',
+    subtitle: '当日A/H股盘面分化，国民技术H（02701）10m空方触发，创新医疗（002173）10m+15m空方簇共振，盘中触发价均被小幅收复或贴价确认；其余标的横盘无信号。白银$69.35（+2.01%），黄金$4588.47（+1.54%），原油$86.86（+0.22%），美元指数98.60（+0.02%）。',
+    cutoff: '2026-08-21 收市（A股15:00 / 港股16:08 / 白银22:00 / 美股04:00）',
+    summary: '今日A/H股共录得空方信号3条（创新医疗10m、15m，国民技术H 10m），无多方信号，其余11只标的横盘无触发。盘面分化明显：创新医疗大跌3.83%后触发10m+15m空方共振，触发价分别为¥18.10、¥18.25，收盘¥18.33；国民技术H触发10m空方，收盘HK$8.845。白银现货$69.35（+2.01%），黄金$4588.47（+1.54%），原油$86.86（+0.22%），美元指数98.60（+0.02%）。整体无多方确认，操盘台以空方观察与止损纪律为主。',
+    buyRule: '今日无多方触发，下一交易日关注创新医疗¥18.00整数支撑是否企稳，若收复¥18.50可转为观望。国民技术H若跌破HK$8.70可关注空方延续。',
+    sellRule: '创新医疗10m空方（¥18.10）和15m空方（¥18.25）已触发，收盘¥18.33，贴价收复两档；国民技术H 10m空方（HK$9.235）收盘HK$8.845已深度收复。空方均贴价确认，力度偏弱，次日关注是否再次破位。',
+    discipline: '创新医疗空方贴价确认，¥18.00为强支撑，跌破¥18.00视为空方延续并可追空；¥18.50为多空分水，收复此处空方失效。国民技术H止损参考¥9.50，¥9.00止损。',
+    sources: 'Cloudflare D1 REST rolling_signals（trade_date=2026-08-21，3条2只：创新医疗10m/15m空方、国民技术H 10m空方）与rolling_instruments启用清单；同花顺多key包装器查询创新医疗当日均线、RSI、箔码与主力资金；腾讯港股qt.gtimg.cn批量行情（02701 HK$8.845 -0.74%）；新浪hq.sinajs.cn批量现货行情（hf_XAG $69.35/+2.01%、hf_XAU $4588.47/+1.54%、hf_CL $86.86/+0.22%、DINIW 98.60/+0.02%）。',
+    signals: [
+      {
+        name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL',
+        nodes: '10m空方, 15m空方', signalPrices: '¥18.10, ¥18.25', close: '¥18.33', change: '-3.83%',
+        validation: 'watch', validationLabel: '贴价收复（空方未确认）',
+        verdict: '创新医疗今日大跌3.83%后触发10m+15m空方共振（触发价¥18.10与¥18.25），但收盘¥18.33已小幅收复两档触发价，贴价确认特征明显。RSI6=28.88属短期超卖区域，空方动能有所衰竭。MACD Diff=0.134转正，DEA=0.544，价格跌破MA5/MA10/MA20三线，短期偏弱但RSI低位提示追空风险。',
+        support: '¥18.00整数支撑；¥18.10信号价强支撑', pressure: '¥18.50—18.80压力区（多空分水）', buyPlan: '收复¥18.50后可转为观望或试探性买入；目标¥19.20（MA20）。', sellPlan: '跌破¥18.00视为空方确认，可追空至¥17.70；¥18.50止损。',
+        evidence: ['信号价¥18.10/¥18.25', '收盘¥18.33', 'MA5=19.38/MA10=20.58/MA20=20.62', 'RSI6=28.88（短期超卖）', '主力净流出951万']
+      },
+      {
+        name: '国民技术', symbol: '02701', market: '港股', direction: 'SELL',
+        nodes: '10m空方', signalPrices: 'HK$9.235', close: 'HK$8.845', change: '-0.74%',
+        validation: 'reclaimed', validationLabel: '空方已收复',
+        verdict: '国民技术H早盘触发10m空方（HK$9.235），盘中持续回落，收盘HK$8.845较触发价HK$9.235偏离-4.22%，已深度收复。收盘价高于当日开盘HK$8.780，低点HK$8.705显示支撑仍有效，空方力度偏弱但信号成立。',
+        support: 'HK$8.70整数支撑；HK$8.705日低', pressure: 'HK$9.235信号价；HK$9.50前期高点', buyPlan: '回调HK$8.70企稳可轻仓买入；目标HK$9.235。', sellPlan: '跌破HK$8.70止损；收复HK$9.235空方失效。',
+        evidence: ['信号价HK$9.235', '收盘HK$8.845', '当日高HK$9.090/低HK$8.705', '成交量143.72万股']
+      }
+    ]
+  },
   '2026-08-20': {
     tradeDate: '2026-08-20',
     shortDate: '08/20',
@@ -893,7 +924,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-20', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-21', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-20', href: '/rolling/insights/2026-08-20/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-19', href: '/rolling/insights/2026-08-19/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-18', href: '/rolling/insights/2026-08-18/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-17', href: '/rolling/insights/2026-08-17/' },
@@ -910,4 +942,3 @@ export const rollingDailyArticleCatalog = [
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-31', href: '/rolling/insights/2026-07-31/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-30', href: '/rolling/insights/2026-07-30/' },
 ];
-

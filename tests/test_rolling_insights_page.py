@@ -59,14 +59,14 @@ def test_daily_rolling_reports_cover_latest_dates():
         "国民技术H股",
     ):
         assert marker in page + component + data + hist + static_05 + static_06 + static_07
-    assert "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data and "2026-08-13" in data and "2026-08-12" in data and "2026-08-11" in data and "2026-08-10" in data and "2026-08-07" in data
-    assert "rollingDailyReports['2026-08-20']" in page
-    latest = data.split("  '2026-08-20': {", 1)[1].split("  '2026-08-19': {", 1)[0]
-    assert latest.count("name: '") == 5
+    assert "2026-08-21" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data and "2026-08-13" in data and "2026-08-12" in data and "2026-08-11" in data and "2026-08-10" in data and "2026-08-07" in data
+    assert "rollingDailyReports['2026-08-21']" in page
+    latest = data.split("  '2026-08-21': {", 1)[1].split("  '2026-08-19': {", 1)[0]
+    assert latest.count("name: '") == 7
     assert latest.count("validation: 'confirmed'") == 3
-    assert latest.count("validation: 'reclaimed'") == 1
+    assert latest.count("validation: 'reclaimed'") == 2
     assert latest.count("validation: 'mixed'") == 0
-    assert latest.count("validation: 'watch'") == 1
+    assert latest.count("validation: 'watch'") == 2
     assert "当日D1入库6条5只" in latest
     assert '多方已确认' in latest
     assert '空方已收复' in latest
@@ -126,7 +126,7 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
-    assert "2026-08-20" in catalog
+    assert "2026-08-21" in catalog
     assert "2026-08-18" in catalog
     assert "2026-08-17" in catalog
     assert "2026-08-14" in catalog
@@ -145,8 +145,8 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
     assert "/rolling/insights/2026-08-19 /rolling/insights/2026-08-19/ 301" in redirects
     assert "/rolling/insights/2026-08-19/ /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-20 /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-20/ /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-21 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-21/ /rolling/insights/ 301" in redirects
     assert "/rolling/insights/2026-08-18 /rolling/insights/2026-08-18/ 301" in redirects
     assert "/rolling/insights/2026-08-18/ /rolling/insights/ 301" not in redirects
     assert "/rolling/insights/2026-08-17 /rolling/insights/2026-08-17/ 301" in redirects
