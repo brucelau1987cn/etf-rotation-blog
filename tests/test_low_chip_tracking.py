@@ -369,6 +369,13 @@ def test_tracking_page_paginates_filtered_cards_by_twenty():
         'currentPage = 1;',
     ):
         assert marker in page
+    assert "list.scrollIntoView" not in page
+    tools_start = page.index('<section class="tc-list-tools"')
+    filters_pos = page.index('id="tc-financial-filters"')
+    tools_end = page.index('</section>', filters_pos)
+    assert tools_start < filters_pos < tools_end
+    assert '.tc-list-top { display:grid;' in page
+    assert 'border-bottom:1px solid #e2e8f0' not in page
 
 
 def test_tencent_daily_includes_requested_end_day(monkeypatch):

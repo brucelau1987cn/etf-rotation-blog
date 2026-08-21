@@ -137,19 +137,19 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           <button type="button" id="tc-page-next" class="tc-page-btn">下一页</button>
         </nav>
       </div>
-    </section>
 
-    <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
-      <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
-      <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
-      <button type="button" class="tc-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
-      <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
-      <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
-      <button type="button" class="tc-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
-      <button type="button" class="tc-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
-      <button type="button" class="tc-filter-reset" id="tc-filter-reset">清除</button>
-      <span class="tc-filter-meta" id="tc-filter-meta">未启用筛选</span>
-    </div>
+      <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
+        <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
+        <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
+        <button type="button" class="tc-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+        <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
+        <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
+        <button type="button" class="tc-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
+        <button type="button" class="tc-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
+        <button type="button" class="tc-filter-reset" id="tc-filter-reset">清除</button>
+        <span class="tc-filter-meta" id="tc-filter-meta">未启用筛选</span>
+      </div>
+    </section>
 
     <section class="tc-list" id="tc-list" aria-label="追踪股票列表">
       {stocks.length === 0 && (
@@ -504,14 +504,12 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         if (currentPage <= 1) return;
         currentPage -= 1;
         renderPagination();
-        list.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       pageNext.addEventListener('click', function() {
         var totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
         if (currentPage >= totalPages) return;
         currentPage += 1;
         renderPagination();
-        list.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       applyFilter(true);
     })();
@@ -529,7 +527,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
   /* 列表工具栏 */
   .tc-list-tools { margin-bottom:.8rem; overflow:visible; border:1px solid #dbe3ec; border-radius:14px; background:#fff; }
-  .tc-list-top { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:1rem; padding:1rem 1.2rem; border-left:4px solid #d97706; border-bottom:1px solid #e2e8f0; }
+  .tc-list-top { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:1rem; padding:1rem 1.2rem .7rem; border-left:4px solid #d97706; }
   .tc-list-top h2 { margin:0; font-size:1.15rem; line-height:2.1rem; }
   .tc-top-actions { display:flex; align-items:center; justify-content:flex-end; gap:.75rem; }
   .tc-view-switch,.tc-search-wrap { display:inline-flex; align-items:center; gap:.4rem; height:2.1rem; }
@@ -557,7 +555,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-star-switch input:checked + .tc-star-track span { transform: translateX(.9rem); }
   .tc-star-switch input:focus-visible + .tc-star-track { outline: 2px solid #2563eb; outline-offset: 2px; }
   .tc-filter-count { font-size: .68rem; color: rgb(var(--gray-mid)); font-weight: 700; white-space:nowrap; }
-  .tc-financial-filters { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:0 0 .8rem; padding:.65rem .8rem; border:1px solid #e2e8f0; border-radius:10px; background:#fafbfc; }
+  .tc-financial-filters { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; margin:0; padding:.65rem 1.2rem; border:0; border-top:1px solid #eef2f7; border-radius:0 0 14px 14px; background:#fafbfc; }
   .tc-filter-btn,.tc-filter-reset { height:1.95rem; padding:0 .7rem; border:1px solid #fcd34d; border-radius:999px; background:#fffbeb; color:#b45309; font-size:.72rem; font-weight:750; cursor:pointer; transition:all .15s ease; }
   .tc-filter-btn.is-active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
   .tc-filter-reset { border-color:#e2e8f0; color:#94a3b8; background:#fff; }
