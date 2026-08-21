@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-21T22:31:49.394080+00:00",
+  "updated_at": "2026-08-21T22:50:27.724358+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -269,7 +269,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 11319.22592743433,
+      "cash": 9296.265459300786,
       "positions": {
         "SOXX": {
           "symbol": "SOXX",
@@ -284,7 +284,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 528.71,
-          "last_price": 522.3499755859375
+          "last_price": 520.0499877929688
         },
         "SMH": {
           "symbol": "SMH",
@@ -299,7 +299,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 562.6500244140625
+          "last_price": 560.4199829101562
         },
         "SPMO": {
           "symbol": "SPMO",
@@ -314,7 +314,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 148.09,
-          "last_price": 148.30999755859375
+          "last_price": 148.72999572753906
         },
         "HACK": {
           "symbol": "HACK",
@@ -329,7 +329,7 @@
           "signal_date": "2026-08-19",
           "signal_kind": "plant",
           "signal_level": 112.19,
-          "last_price": 109.7699966430664
+          "last_price": 111.62000274658203
         },
         "CIBR": {
           "symbol": "CIBR",
@@ -344,17 +344,32 @@
           "signal_date": "2026-08-19",
           "signal_kind": "plant",
           "signal_level": 95.11,
-          "last_price": 93.44999694824219
+          "last_price": 94.8499984741211
+        },
+        "FBND": {
+          "symbol": "FBND",
+          "name": "Fidelity Total Bond ETF",
+          "quantity": 45,
+          "entry_price": 44.90999984741211,
+          "entry_cost": 2.010475,
+          "entry_at": "2026-08-21T13:35:11.601543+00:00",
+          "target": 45.23,
+          "stop": 44.58,
+          "level_basis": null,
+          "signal_date": "2026-08-20",
+          "signal_kind": "plant",
+          "signal_level": 44.92,
+          "last_price": 44.900001525878906
         }
       },
-      "equity": 20440.565771,
+      "equity": 20492.675402,
       "realized_pnl": 512.1369081130371,
-      "unrealized_pnl": -71.571137,
-      "daily_return": -0.00652388,
-      "cumulative_return": 0.02202829,
+      "unrealized_pnl": -19.461506,
+      "daily_return": 0.00254932,
+      "cumulative_return": 0.02463377,
       "max_drawdown": -0.00652388,
       "peak_equity": 20574.793245907473,
-      "cash_ratio": 0.55376285,
+      "cash_ratio": 0.45363845,
       "history": [
         {
           "date": "2026-08-04",
@@ -458,6 +473,14 @@
           "cash": 11319.225927,
           "daily_return": -0.00652388,
           "cumulative_return": 0.02202829,
+          "max_drawdown": -0.00652388
+        },
+        {
+          "date": "2026-08-21",
+          "equity": 20492.675402,
+          "cash": 9296.265459,
+          "daily_return": 0.00254932,
+          "cumulative_return": 0.02463377,
           "max_drawdown": -0.00652388
         }
       ],
@@ -1165,6 +1188,22 @@
           "signal_kind": "plant",
           "signal_level": 95.11,
           "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:FBND:buy:1787319303:plant",
+          "timestamp": "2026-08-21T13:35:11.601543+00:00",
+          "market": "US",
+          "symbol": "FBND",
+          "name": "Fidelity Total Bond ETF",
+          "side": "buy",
+          "quantity": 45,
+          "price": 44.91,
+          "cost": 2.010475,
+          "reason": "plant",
+          "signal_date": "2026-08-20",
+          "signal_kind": "plant",
+          "signal_level": 44.92,
+          "decision_tag": "计划内首仓"
         }
       ],
       "pending_signals": [],
@@ -1175,11 +1214,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 41,
+        "total": 42,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 23,
+            "count": 24,
             "closed_pnl": null
           },
           {
