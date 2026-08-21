@@ -156,10 +156,13 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
               <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
             </div>
-            <label class="chip-search-wrap">
+            <div class="chip-search-wrap">
               <span class="chip-search-label">检索</span>
-              <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" />
-            </label>
+              <div class="chip-search-box">
+                <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" role="combobox" aria-autocomplete="list" aria-controls="chip-search-suggestions" aria-expanded="false" />
+                <div id="chip-search-suggestions" class="chip-search-suggestions" role="listbox" aria-label="匹配标的" hidden></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -261,6 +264,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       var prevBtn = document.getElementById('chip-page-prev');
       var nextBtn = document.getElementById('chip-page-next');
       var searchInput = document.getElementById('chip-search-input');
+      var searchSuggestions = document.getElementById('chip-search-suggestions');
       var empty = document.getElementById('chip-search-empty');
       var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
       var filterReset = document.getElementById('chip-filter-reset');
@@ -293,6 +297,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       var cache = {};
       if (initialData && initialData.data_as_of) cache[initialData.data_as_of] = initialData;
       var loading = false;
+      var suggestionIndex = -1;
 
       var CHAR_INITIAL = {
         上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
@@ -417,6 +422,43 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
       function rowsEls() {
         return Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
+      }
+
+      function closeSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        searchSuggestions.hidden = true;
+        searchInput.setAttribute('aria-expanded', 'false');
+        suggestionIndex = -1;
+      }
+
+      function renderSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        var matches = !query ? [] : rowsEls().filter(function(c) {
+          var values = [c.dataset.symbol, c.dataset.name, c.dataset.initials, c.dataset.industry].map(normalize);
+          return values.some(function(value) { return value.indexOf(query) !== -1; });
+        }).slice(0, 8);
+        searchSuggestions.replaceChildren();
+        suggestionIndex = -1;
+        if (!matches.length) { closeSuggestions(); return; }
+        matches.forEach(function(row, index) {
+          var option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'chip-search-option';
+          option.setAttribute('role', 'option');
+          option.innerHTML = '<strong>' + esc(row.dataset.name) + '</strong><span>' + esc(row.dataset.symbol) + '</span><small>' + esc(row.dataset.initials) + '</small>';
+          option.addEventListener('mousedown', function(event) { event.preventDefault(); });
+          option.addEventListener('click', function() {
+            searchInput.value = row.dataset.symbol || row.dataset.name;
+            query = normalize(searchInput.value);
+            closeSuggestions();
+            page = 1;
+            renderPager();
+            searchInput.focus();
+          });
+          searchSuggestions.appendChild(option);
+        });
+        searchSuggestions.hidden = false;
+        searchInput.setAttribute('aria-expanded', 'true');
       }
 
       function filtered() {
@@ -569,6 +611,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         page = 1;
         updateMeta(data);
         renderPager();
+        renderSuggestions();
       }
 
       function loadDate(day) {
@@ -640,7 +683,21 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       prevBtn.addEventListener('click', function() { if (page > 1) { page--; renderPager(); } });
       nextBtn.addEventListener('click', function() { page++; renderPager(); });
       if (searchInput) {
-        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; renderPager(); });
+        searchInput.addEventListener('input', function() { query = normalize(searchInput.value); page = 1; renderPager(); renderSuggestions(); });
+        searchInput.addEventListener('focus', renderSuggestions);
+        searchInput.addEventListener('keydown', function(event) {
+          var options = searchSuggestions ? Array.from(searchSuggestions.querySelectorAll('.chip-search-option')) : [];
+          if (event.key === 'Escape') { closeSuggestions(); return; }
+          if (!options.length || searchSuggestions.hidden) return;
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            suggestionIndex = (suggestionIndex + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+            options.forEach(function(option, index) { option.classList.toggle('is-active', index === suggestionIndex); option.setAttribute('aria-selected', index === suggestionIndex ? 'true' : 'false'); });
+          } else if (event.key === 'Enter' && suggestionIndex >= 0) {
+            event.preventDefault();
+            options[suggestionIndex].click();
+          }
+        });
       }
       filterButtons.forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -668,6 +725,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
       if (calendarMonthPrev) calendarMonthPrev.addEventListener('click', function() { calendarMonth = monthShift(calendarMonth, -1); renderCalendar(); });
       if (calendarMonthNext) calendarMonthNext.addEventListener('click', function() { calendarMonth = monthShift(calendarMonth, 1); renderCalendar(); });
       document.addEventListener('click', closeCalendar);
+      document.addEventListener('click', function(event) {
+        if (searchSuggestions && !searchSuggestions.contains(event.target) && event.target !== searchInput) closeSuggestions();
+      });
       document.addEventListener('keydown', function(event) { if (event.key === 'Escape') closeCalendar(); });
       if (historyPrev) historyPrev.addEventListener('click', function() {
         var idx = dates.indexOf(currentDate);
@@ -715,6 +775,14 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap}
   .chip-search-wrap{display:flex;align-items:center;gap:.5rem}
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
+  .chip-search-box{position:relative}
+  .chip-search-suggestions{position:absolute;z-index:40;top:calc(100% + .35rem);right:0;width:280px;max-height:22rem;overflow:auto;padding:.3rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 14px 32px rgba(15,23,42,.16)}
+  .chip-search-suggestions[hidden]{display:none!important}
+  .chip-search-option{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem .6rem;width:100%;padding:.55rem .65rem;border:0;border-radius:8px;background:#fff;color:#14243b;text-align:left;cursor:pointer}
+  .chip-search-option:hover,.chip-search-option.is-active{background:#eff6ff}
+  .chip-search-option strong{font-size:.82rem}
+  .chip-search-option span,.chip-search-option small{color:#64748b;font-size:.7rem}
+  .chip-search-option small{grid-column:1 / -1;color:#94a3b8}
   .chip-history{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}
   .chip-history-label{color:#64748b;font-size:.78rem;font-weight:800}
   .chip-calendar-wrap{position:relative}
@@ -808,5 +876,5 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{align-items:flex-start;flex-direction:column}.chip-toolbar-right{width:100%;justify-content:space-between}.chip-pager{order:2}.chip-search-wrap{order:1;flex:1 1 100%}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{align-items:flex-start;flex-direction:column}.chip-pager{order:2}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 </style>
