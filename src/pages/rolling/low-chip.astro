@@ -124,7 +124,8 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
             <h2 id="chip-title">内部模型观察列表</h2>
           </div>
           <div class="chip-toolbar-right">
-            <div class="chip-search-wrap">
+            <div class="chip-top-actions">
+              <div class="chip-search-wrap">
               <span class="chip-search-label">检索</span>
               <div class="chip-search-box">
                 <input id="chip-search-input" class="chip-search-input" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="代码 / 名称 / 首字母" role="combobox" aria-autocomplete="list" aria-controls="chip-search-suggestions" aria-expanded="false" />
@@ -156,6 +157,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               </div>
               <button type="button" class="chip-history-btn" id="chip-history-next" aria-label="更新日期">›</button>
               <span class="chip-history-status" id="chip-history-status">最新快照</span>
+            </div>
             </div>
             <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
               <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
@@ -780,10 +782,11 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-section{margin-top:1rem;overflow:visible}
   .chip-toolbar{display:block;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
   .chip-toolbar h2{margin:0;font-size:1.15rem}
-  .chip-toolbar-right{display:grid;grid-template-columns:minmax(180px,1fr) auto auto;align-items:center;gap:.75rem;margin-top:1rem}
-  .chip-search-wrap{display:flex;align-items:center;justify-content:flex-start;gap:.5rem;grid-column:1}
-  .chip-history{grid-column:2;margin-top:0}
-  .chip-pager{grid-column:3;justify-self:end}
+  .chip-toolbar-right{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.75rem;margin-top:1rem}
+  .chip-top-actions{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;grid-column:2}
+  .chip-search-wrap{display:flex;align-items:center;justify-content:flex-start;gap:.5rem}
+  .chip-history{margin-top:0}
+  .chip-pager{grid-column:1 / -1;justify-self:end}
   .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
   .chip-search-box{position:relative}
   .chip-search-suggestions{position:absolute;z-index:40;top:calc(100% + .35rem);right:0;width:280px;max-height:22rem;overflow:auto;padding:.3rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 14px 32px rgba(15,23,42,.16)}
@@ -887,5 +890,5 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
-  @media(max-width:900px){.chip-toolbar-right{grid-template-columns:1fr;gap:.65rem}.chip-search-wrap{grid-column:1;justify-content:flex-start;order:1}.chip-history{grid-column:1;order:2}.chip-pager{grid-column:1;justify-self:start;order:3}.chip-search-input{width:min(100%,20rem)}}
+  @media(max-width:900px){.chip-toolbar-right{grid-template-columns:1fr;gap:.65rem}.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;justify-content:flex-start;order:1}.chip-history{grid-column:1;order:2}.chip-pager{grid-column:1;justify-self:start;order:3}.chip-search-input{width:min(100%,20rem)}}
   @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}</style>
