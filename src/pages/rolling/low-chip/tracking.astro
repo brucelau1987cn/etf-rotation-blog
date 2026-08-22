@@ -191,7 +191,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                 {rec.industry && <span class="tc-industry">{rec.industry.split('--').pop()}</span>}
               </div>
               <div class="tc-badges">
-                <span class="tc-badge tc-badge-join" title={`首次进入观察列表 ${rec.first_seen}`}>加入 {rec.first_seen}</span>
+                <span class="tc-badge tc-badge-join" title={`最近一次进入观察列表 ${rec.last_seen}`}>加入 {rec.last_seen}</span>
                 <span class="tc-badge tc-progress-label">第{rec.daily.length}/20日</span>
               </div>
             </div>

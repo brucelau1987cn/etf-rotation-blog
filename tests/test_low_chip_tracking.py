@@ -457,3 +457,15 @@ def test_new_entry_label_only_applies_to_latest_trading_day():
     # 页面必须按「最新数据日期」摘除已退出股票的「新入池」标签
     assert "const latestDate = Object.values(historyModules)" in page
     assert "isNew: false" in page
+
+
+def test_join_badge_uses_last_seen_not_first_seen():
+    """「加入」badge 显示最近一次进入观察列表的日期（last_seen），而非首次入池日。
+
+    回归：反复入池的股票（如 19 号入池、20 号退出、21 号重入）应显示「加入 21 号」，
+    而不是停留在历史首次的「加入 19 号」。
+    """
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+    assert "加入 {rec.last_seen}" in page
+    assert "加入 {rec.first_seen}" not in page
+    assert "首次进入观察列表" not in page
