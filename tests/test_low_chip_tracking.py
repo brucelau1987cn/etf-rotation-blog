@@ -430,3 +430,30 @@ def test_tencent_daily_includes_requested_end_day(monkeypatch):
     dates = [b["date"] for b in bars]
     assert dates == ["2026-08-10", "2026-08-11"]
     assert bars[-1]["close"] == 20.55
+
+
+def test_new_entry_label_only_applies_to_latest_trading_day():
+    """「新入池」只在最新数据日期入池时显示；已退出池的股票摘除该标签。
+
+    回归：last_seen 早于最新 history 日期的股票（历史入池后退出）曾被错误地
+    永久标记为「新入池」（isNew 由 appearances==1 派生，取的是该股最后出现那天）。
+    """
+    import glob
+
+    history_dir = ROOT / "public" / "data" / "low-chip-history"
+    snapshots = sorted(glob.glob(str(history_dir / "*.json")))
+    assert snapshots, "低筹码 history 快照目录不应为空"
+    latest_date = json.loads(Path(snapshots[-1]).read_text(encoding="utf-8"))["data_as_of"]
+
+    tracking = json.loads(TRACKING.read_text(encoding="utf-8"))
+    exited = [
+        symbol for symbol, rec in tracking["stocks"].items()
+        if rec.get("last_seen") and rec["last_seen"] < latest_date
+    ]
+    # 数据里必须存在「已退出池」的股票，否则本回归无法被覆盖
+    assert exited, f"应有 last_seen < {latest_date} 的股票用于回归验证"
+
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+    # 页面必须按「最新数据日期」摘除已退出股票的「新入池」标签
+    assert "const latestDate = Object.values(historyModules)" in page
+    assert "isNew: false" in page

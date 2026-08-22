@@ -13,6 +13,13 @@ const occurrenceLookup = buildLowChipOccurrenceLookup(Object.values(historyModul
   date: snapshot.data_as_of,
   intersection: snapshot.intersection || [],
 })));
+// 「新入池」只在全局最新数据日期才有意义：已退出池的股票（last_seen 早于最新日期）
+// 不应再显示「新入池」——它入池是历史事件，不是最近一个交易日才加入。
+const latestDate = Object.values(historyModules)
+  .map((snapshot: any) => String(snapshot.data_as_of || ''))
+  .filter(Boolean)
+  .sort()
+  .at(-1) || '';
 
 const title = `低筹码追踪｜加入以来表现 | ${SITE_TITLE}`;
 const description = '内部模型观察标的加入以来每日走势与跟踪指标统计。';
@@ -39,7 +46,10 @@ const stocks = Object.entries(trackingData.stocks || {})
       if (peak > 0) maxDrawdown = Math.min(maxDrawdown, ((close - peak) / peak) * 100);
     }
     const maxGain = firstClose != null && maxClose != null ? ((maxClose - firstClose) / firstClose) * 100 : null;
-    const occurrence = occurrenceLookup[rec.last_seen]?.[symbol] || null;
+    const rawOccurrence = occurrenceLookup[rec.last_seen]?.[symbol] || null;
+    const occurrence = rawOccurrence && rec.last_seen && rec.last_seen !== latestDate
+      ? { ...rawOccurrence, isNew: false }
+      : rawOccurrence;
     return {
       symbol, ...rec, daily,
       joinClose: (rec.daily || [])[0]?.close ?? null,
