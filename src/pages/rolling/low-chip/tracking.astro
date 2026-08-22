@@ -6,7 +6,13 @@ import LowChipModeNav from '../../../components/LowChipModeNav.astro';
 import RollingSubnav from '../../../components/RollingSubnav.astro';
 import { pinyin } from 'pinyin-pro';
 import { SITE_TITLE } from '../../../consts';
+import { buildLowChipOccurrenceLookup, lowChipOccurrenceLabel, lowChipOccurrenceTitle } from '../../../lib/lowChipOccurrences.mjs';
 import trackingData from '../../../../public/data/low-chip-tracking.json';
+const historyModules = import.meta.glob('../../../../public/data/low-chip-history/*.json', { eager: true, import: 'default' });
+const occurrenceLookup = buildLowChipOccurrenceLookup(Object.values(historyModules).map((snapshot: any) => ({
+  date: snapshot.data_as_of,
+  intersection: snapshot.intersection || [],
+})));
 
 const title = `低筹码追踪｜加入以来表现 | ${SITE_TITLE}`;
 const description = '内部模型观察标的加入以来每日走势与跟踪指标统计。';
@@ -33,6 +39,7 @@ const stocks = Object.entries(trackingData.stocks || {})
       if (peak > 0) maxDrawdown = Math.min(maxDrawdown, ((close - peak) / peak) * 100);
     }
     const maxGain = firstClose != null && maxClose != null ? ((maxClose - firstClose) / firstClose) * 100 : null;
+    const occurrence = occurrenceLookup[rec.last_seen]?.[symbol] || null;
     return {
       symbol, ...rec, daily,
       joinClose: (rec.daily || [])[0]?.close ?? null,
@@ -41,6 +48,7 @@ const stocks = Object.entries(trackingData.stocks || {})
       maxGain, maxDrawdown,
       totalChange: firstClose != null && lastClose != null ? ((lastClose - firstClose) / firstClose) * 100 : null,
       profitChange: firstProfit != null && lastProfit != null ? lastProfit - firstProfit : null,
+      occurrence,
     };
   })
   .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
@@ -168,6 +176,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
+                {rec.occurrence && <span class:list={['tc-occurrence', rec.occurrence.isNew && 'is-new', rec.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(rec.occurrence)}>{lowChipOccurrenceLabel(rec.occurrence)}</span>}
                 <span class="tc-code">{rec.symbol.split('.')[0]}</span>
                 {rec.industry && <span class="tc-industry">{rec.industry.split('--').pop()}</span>}
               </div>
@@ -579,6 +588,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .45rem; }
   .tc-id { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
   .tc-name { font-size: 1.02rem; }
+  .tc-occurrence { display:inline-flex; align-items:center; padding:.16rem .42rem; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-size:.64rem; font-weight:850; white-space:nowrap; line-height:1.2; }
+  .tc-occurrence.is-new { border-color:#bbf7d0; background:#f0fdf4; color:#047857; }
+  .tc-occurrence.is-reentry { border-color:#fde68a; background:#fffbeb; color:#b45309; }
   .tc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; color: rgb(var(--gray-mid)); background: rgb(var(--gray-soft)); border-radius: 6px; padding: .1rem .35rem; }
   .tc-industry { font-size: .7rem; color: rgb(var(--gray-mid)); background: #f0f4ff; color: #3b5bd6; border-radius: 6px; padding: .12rem .4rem; }
   .tc-badges { display: flex; gap: .3rem; flex: 0 0 auto; }

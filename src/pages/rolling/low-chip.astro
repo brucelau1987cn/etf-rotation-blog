@@ -5,14 +5,21 @@ import Header from '../../components/Header.astro';
 import LowChipModeNav from '../../components/LowChipModeNav.astro';
 import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
+import { buildLowChipOccurrenceLookup, lowChipOccurrenceLabel, lowChipOccurrenceTitle } from '../../lib/lowChipOccurrences.mjs';
 import lowChipData from '../../../public/data/a-low-chip-stocks.json';
 import lowChipHistoryIndex from '../../../public/data/low-chip-history-index.json';
+const historyModules = import.meta.glob('../../../public/data/low-chip-history/*.json', { eager: true, import: 'default' });
 const historyDates = lowChipHistoryIndex.dates || [];
 const historyItems = lowChipHistoryIndex.items || [];
+const occurrenceLookup = buildLowChipOccurrenceLookup(Object.values(historyModules).map((snapshot: any) => ({
+  date: snapshot.data_as_of,
+  intersection: snapshot.intersection || [],
+})));
 const clientHistoryIndex = {
   dates: historyDates,
   items: historyItems.map((item) => ({ date: item.date, intersection_count: item.intersection_count })),
 };
+const clientOccurrenceLookup = occurrenceLookup;
 
 const title = `低筹码股 | ${SITE_TITLE}`;
 const description = 'A股低筹码观察列表。';
@@ -75,6 +82,7 @@ const rows = intersectionRows.map((row) => {
     ? enr.theme_concepts.filter(Boolean).slice(0, 3)
     : (enr.theme_concept ? String(enr.theme_concept).split(/[、,，]/).map((s) => s.trim()).filter(Boolean).slice(0, 3) : []);
   const themeText = themes.join('、');
+  const occurrence = occurrenceLookup[lowChipData.data_as_of]?.[row.symbol] || null;
   return {
     symbol: row.symbol,
     name: row.name,
@@ -93,6 +101,7 @@ const rows = intersectionRows.map((row) => {
     financials: enr.financials || {},
     shareholderMetrics: enr.shareholder_metrics || {},
     yearProfit: yearProfitBySymbol[row.symbol] ?? null,
+    occurrence,
   };
 });
 const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
@@ -203,7 +212,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
             >
               <div class="chip-row-top">
                 <div class="chip-row-main">
-                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-row-code">{row.symbol}</span></div>
+                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
                   <span class="chip-industry" title={row.themeConcepts.length ? `${row.industry} · 近期贴合：${row.themeConcepts.join('、')}` : row.industry}>
                     {row.sector}{row.themeConcepts.length ? <em class="chip-theme">（{row.themeConcepts.join('、')}）</em> : null}
                   </span>
@@ -260,7 +269,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
     </main>
     <Footer />
 
-    <script is:inline define:vars={{ initialData: initialClientData, historyIndex: clientHistoryIndex, pageSize: PAGE_SIZE }}>
+    <script is:inline define:vars={{ initialData: initialClientData, historyIndex: clientHistoryIndex, occurrenceLookup: clientOccurrenceLookup, pageSize: PAGE_SIZE }}>
     (function() {
       var list = document.getElementById('chip-list');
       var pager = document.getElementById('chip-pager');
@@ -347,6 +356,16 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         if (focus === '分散') return 'is-dispersing';
         return '';
       }
+      function occurrenceLabel(meta) {
+        if (!meta) return '';
+        if (meta.isNew) return '新入池';
+        if (meta.isReentry) return '第' + meta.episodes + '次入池';
+        if (meta.episodes > 1) return '第' + meta.episodes + '轮 · 连续' + meta.streak + '日';
+        return '连续' + meta.streak + '日';
+      }
+      function occurrenceTitle(meta) {
+        return meta ? '累计入池' + meta.appearances + '日 · 共' + meta.episodes + '轮 · 本轮连续' + meta.streak + '日' : '';
+      }
 
       function buildRows(data) {
         return (Array.isArray(data.rows) ? data.rows : []).map(function(row) {
@@ -376,6 +395,8 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         var themeHtml = themeText ? '<em class="chip-theme">（' + esc(themeText) + '）</em>' : '';
         var asOfLabel = String(asOf || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3') || String(asOf || '');
         var sm = row.shareholderMetrics || {};
+        var occurrence = row.occurrence || null;
+        var occurrenceHtml = occurrence ? '<span class="chip-occurrence' + (occurrence.isNew ? ' is-new' : '') + (occurrence.isReentry ? ' is-reentry' : '') + '" title="' + esc(occurrenceTitle(occurrence)) + '">' + esc(occurrenceLabel(occurrence)) + '</span>' : '';
         var changePct = sm.shareholder_change_pct;
         var changeClass = Number(changePct) <= 0 ? 'is-concentrating' : 'is-dispersing';
         var shrinkLabel = function(label) {
@@ -386,7 +407,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
-                '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong><span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
+                '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
                 '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
@@ -664,6 +685,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                   themeConcepts: themes.slice(0, 3),
                   financials: row.financials ? JSON.parse(row.financials) : {},
                   yearProfit: row.year_profit ?? null,
+                  occurrence: occurrenceLookup[day]?.[code] || null,
                   qualityShareholder: Boolean(row.shareholder_nature?.quality_shareholder ?? row.quality_shareholder),
                   qualityShareholderNames: row.shareholder_nature?.quality_shareholder_names || [],
                   institutionalShareholder: Boolean(row.shareholder_nature?.institutional_shareholder),
@@ -864,6 +886,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-identity{display:flex;align-items:baseline;gap:.4rem}
   .chip-row-name{font-size:.95rem;color:#14243b}
   .chip-row-code{color:#64748b;font-size:.78rem}
+  .chip-occurrence{padding:.16rem .42rem;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.64rem;font-weight:850;white-space:nowrap;line-height:1.2}
+  .chip-occurrence.is-new{border-color:#bbf7d0;background:#f0fdf4;color:#047857}
+  .chip-occurrence.is-reentry{border-color:#fde68a;background:#fffbeb;color:#b45309}
   .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
   .chip-theme{margin-left:.05rem;color:#9a3412;font-style:normal;font-weight:800}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}

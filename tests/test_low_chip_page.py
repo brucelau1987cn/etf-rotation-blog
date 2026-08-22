@@ -175,6 +175,10 @@ def test_low_chip_history_archive_and_query_ui():
         "/api/public/v1/low-chip-metrics?date=",  # D1-backed history query
         "loadDate",
         "yearProfit: row.year_profit ?? null",
+        "occurrence: occurrenceLookup[day]?.[code] || null",
+        "chip-occurrence",
+        "新入池",
+        "连续",
         "renderCalendar",
         "item.intersection_count > 0 ? ' has-results' : ' is-zero'",
         "有标的日期",
