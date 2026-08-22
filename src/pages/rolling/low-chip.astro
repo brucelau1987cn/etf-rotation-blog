@@ -22,6 +22,7 @@ const periodSections = [
   { key: 'quarter', label: '季线', rows: lowChipData.periods.quarter },
 ];
 const allRows = periodSections.flatMap((period) => period.rows);
+const yearProfitBySymbol = Object.fromEntries((lowChipData.periods.year || []).map((row) => [row.symbol, row.value]));
 const intersectionRows = allRows.filter((row, index, rows) =>
   lowChipData.intersection.includes(row.symbol) && rows.findIndex((item) => item.symbol === row.symbol) === index
 );
@@ -91,6 +92,7 @@ const rows = intersectionRows.map((row) => {
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     financials: enr.financials || {},
     shareholderMetrics: enr.shareholder_metrics || {},
+    yearProfit: yearProfitBySymbol[row.symbol] ?? null,
   };
 });
 const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
@@ -173,6 +175,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
+          <button type="button" class="chip-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 3%</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -192,6 +195,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               data-cash-profit={row.financials.cash_profit_ratio ?? ''}
               data-gross-margin={row.financials.gross_margin ?? ''}
               data-debt-ratio={row.financials.debt_ratio ?? ''}
+              data-year-profit={row.yearProfit ?? ''}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -379,7 +383,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           return map[label] || label || '';
         };
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong><span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
@@ -475,6 +479,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || !Number.isFinite(Number(c.dataset.cashProfit)) || Number(c.dataset.cashProfit) < 20)) return false;
           if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
           if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 30)) return false;
+          if (activeFilters.has('year-profit') && (c.dataset.yearProfit === '' || !Number.isFinite(Number(c.dataset.yearProfit)) || Number(c.dataset.yearProfit) > 3)) return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -658,6 +663,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                   themeConcept: themes.slice(0, 3).join('、'),
                   themeConcepts: themes.slice(0, 3),
                   financials: row.financials ? JSON.parse(row.financials) : {},
+                  yearProfit: row.year_profit ?? null,
                   qualityShareholder: Boolean(row.shareholder_nature?.quality_shareholder ?? row.quality_shareholder),
                   qualityShareholderNames: row.shareholder_nature?.quality_shareholder_names || [],
                   institutionalShareholder: Boolean(row.shareholder_nature?.institutional_shareholder),

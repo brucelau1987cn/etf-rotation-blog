@@ -23,6 +23,7 @@ const CLIENT_METRIC_FIELDS = [
   'main_force', 'main_force_label', 'concentration90', 'chip_focus', 'report_period',
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
+  'year_profit',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
@@ -60,6 +61,7 @@ export async function onRequest(context) {
         week_profit REAL,
         month_profit REAL,
         quarter_profit REAL,
+        year_profit REAL,
         change_percent REAL,
         industry TEXT,
         sector TEXT,
@@ -136,6 +138,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN week_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN month_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN quarter_profit REAL').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN year_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN change_percent REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN industry TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN sector TEXT').run(); } catch (e) {}
@@ -154,13 +157,13 @@ export async function onRequest(context) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} ${type}`).run(); } catch (e) {}
     }
     let inserted = 0;
-    // 批量写入：D1 prepared statement 参数上限约100；32列×3行=96参数。
-    const ROWS_PER_STMT = 3;
+    // 批量写入：D1 prepared statement 参数上限约100；34列×2行=68参数。
+    const ROWS_PER_STMT = 2;
     const STMTS_PER_BATCH = 100;
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
       'shareholder_change_pct', 'main_force', 'main_force_label',
       'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
-      'week_profit', 'month_profit', 'quarter_profit', 'change_percent',
+      'week_profit', 'month_profit', 'quarter_profit', 'year_profit', 'change_percent',
       'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
       'closing_profit', 'average_cost', 'conc70',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
@@ -172,7 +175,7 @@ export async function onRequest(context) {
       m.chip_focus || null, m.report_period || null,
       m.top10_float_ratio ?? null, m.price ?? null,
       m.announcement_date || null,
-      m.week_profit ?? null, m.month_profit ?? null, m.quarter_profit ?? null,
+      m.week_profit ?? null, m.month_profit ?? null, m.quarter_profit ?? null, m.year_profit ?? null,
       m.change_percent ?? null,
       m.industry || null, m.sector || null,
       m.financials ? JSON.stringify(m.financials) : null,

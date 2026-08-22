@@ -44,6 +44,7 @@ def test_tracking_data_contract():
         financials = rec.get("entry_financials")
         assert isinstance(financials, dict)
         assert {"roe", "net_margin", "cash_profit_ratio", "gross_margin", "debt_ratio"} <= set(financials)
+        assert rec.get("year_profit") is None or isinstance(rec["year_profit"], (int, float))
 
     hengyunchang = stocks["688785.SH"]["entry_features"]
     assert hengyunchang == {
@@ -98,6 +99,7 @@ def test_tracking_page_and_entry_link():
         "现金流/净利润 ≥ 20%",
         "毛利率 ≥ 15%",
         "负债率 ≤ 30%",
+        "K年 ≤ 3%",
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         "data-quality-shareholder",
@@ -111,6 +113,7 @@ def test_tracking_page_and_entry_link():
         "data-cash-profit",
         "data-gross-margin",
         "data-debt-ratio",
+        "data-year-profit",
     ):
         assert marker in page
     assert "threshY" not in page
@@ -155,6 +158,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "el.dataset.debtRatio !== ''" in tracking
     assert "Number(el.dataset.roe) >= 15" in tracking
     assert "Number(el.dataset.debtRatio) <= 30" in tracking
+    assert "Number(el.dataset.yearProfit) <= 3" in tracking
     assert "activeFilters.clear()" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking

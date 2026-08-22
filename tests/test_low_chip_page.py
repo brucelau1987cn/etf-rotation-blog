@@ -85,7 +85,8 @@ def test_low_chip_page_hides_private_screening_strategy():
     quarterly_codes = {item["symbol"] for item in data["periods"]["quarter"]}
     assert set(data["intersection_before_filters"]) == weekly_codes & monthly_codes & quarterly_codes
     assert set(data["intersection"]) <= set(data["intersection_before_filters"])
-    assert all(0 <= item["value"] < 3 for period in data["periods"].values() for item in period)
+    assert all(0 <= item["value"] < 3 for period in (data["periods"]["week"], data["periods"]["month"], data["periods"]["quarter"]) for item in period)
+    assert all(0 <= item["value"] <= 3 for item in data["periods"]["year"])
 
 
 def test_low_chip_financial_filter_controls_and_logic():
@@ -98,6 +99,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         'data-filter="cash-profit"',
         'data-filter="gross-margin"',
         'data-filter="debt-ratio"',
+        'data-filter="year-profit"',
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         'data-quality-shareholder=',
@@ -109,6 +111,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         '现金流/净利润 ≥ 20%',
         '毛利率 ≥ 15%',
         '负债率 ≤ 30%',
+        'K年 ≤ 3%',
         'var activeFilters = new Set()',
         "activeFilters.has('roe')",
         "activeFilters.has('net-margin')",
@@ -121,13 +124,15 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.clear()",
     ):
         assert marker in page
-    assert page.count('class="chip-filter-btn"') == 7
-    assert page.count('aria-pressed="false"') >= 7
+    assert page.count('class="chip-filter-btn"') == 8
+    assert page.count('aria-pressed="false"') >= 8
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page
     assert "Number(c.dataset.roe) < 15" in page
     assert "Number(c.dataset.netMargin) < 15" in page
     assert "Number(c.dataset.debtRatio) > 30" in page
+    assert "Number(c.dataset.yearProfit) > 3" in page
+    assert page.index('data-filter="debt-ratio"') < page.index('data-filter="year-profit"') < page.index('data-filter="quality-shareholder"')
 
 
 def test_low_chip_search_supports_guo_tou_zi_ben_initials():
@@ -169,6 +174,7 @@ def test_low_chip_history_archive_and_query_ui():
         "low-chip-history-index.json",
         "/api/public/v1/low-chip-metrics?date=",  # D1-backed history query
         "loadDate",
+        "yearProfit: row.year_profit ?? null",
         "renderCalendar",
         "item.intersection_count > 0 ? ' has-results' : ' is-zero'",
         "有标的日期",

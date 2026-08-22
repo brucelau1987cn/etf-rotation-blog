@@ -209,6 +209,34 @@ def load_entry_enrichment(entry_snapshot: Path, symbol: str) -> tuple[dict, dict
     return entry_enrichment, entry_metrics
 
 
+def fetch_current_year_profit(codes: list[str]) -> dict[str, float | None]:
+    """Fetch current year-line profit for tracked symbols in bounded batches."""
+    values: dict[str, float | None] = {code: None for code in codes}
+    for start in range(0, len(codes), 20):
+        batch = codes[start:start + 20]
+        query = "、".join(code.split(".")[0] for code in batch) + " 年线收盘获利"
+        result = subprocess.run(
+            ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--limit", "100", "--timeout", "90"],
+            capture_output=True, text=True, check=False, timeout=120,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"iWenCai year-profit query failed: {result.stderr[:200]}")
+        payload = json.loads(result.stdout)
+        rows = payload.get("datas") or []
+        field = next((key for row in rows for key in row if key.startswith("年线收盘获利[")), None)
+        if not field:
+            continue
+        for row in rows:
+            code = row.get("股票代码")
+            if code not in values:
+                continue
+            try:
+                values[code] = round(float(row.get(field)), 4)
+            except (TypeError, ValueError):
+                values[code] = None
+    return values
+
+
 def load_existing() -> dict:
     if not DATA.exists():
         return {"schema_version": "low-chip-tracking-v1", "generated_at": "", "stocks": {}}
@@ -358,6 +386,10 @@ def main() -> int:
             "main_force_label": entry_metrics.get("main_force_label") or "",
         }
         r["entry_financials"] = dict(entry_enrichment.get("financials") or {})
+
+    current_year_profit = fetch_current_year_profit(sorted(stocks))
+    for sym, r in stocks.items():
+        r["year_profit"] = current_year_profit.get(sym)
 
     atomic_write_json(DATA, {"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks})
     print(json.dumps({"stocks": len(stocks), "total_bars": sum(len(r["daily"]) for r in stocks.values())}, ensure_ascii=False))

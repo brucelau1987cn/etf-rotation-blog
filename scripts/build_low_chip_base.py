@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build the low-chip base JSON from iWenCai weekly/monthly/quarterly queries."""
+"""Build low-chip JSON from iWenCai period queries.
+
+Membership stays week/month/quarter AND. Year-line data is an optional UI filter.
+"""
 from __future__ import annotations
 
 import datetime
@@ -68,6 +71,47 @@ def period_field(rows, prefix):
     return None
 
 
+def fetch_year_overlay(codes: list[str]) -> list[dict]:
+    """Fetch year-line values for the 3-period pool only.
+
+    A broad year-line screen is capped by iWenCai, so query exact symbols in
+    bounded batches and retry any omitted symbol individually.
+    """
+    compact_date = DATE.replace("-", "")
+    by_symbol = {}
+    for start in range(0, len(codes), 20):
+        batch = codes[start:start + 20]
+        bare = [code.split(".")[0] for code in batch]
+        rows, _ = paginate("、".join(bare) + f" 年线收盘获利[{compact_date}]")
+        by_symbol.update({r.get("股票代码"): r for r in rows if r.get("股票代码")})
+        for code in batch:
+            if code in by_symbol:
+                continue
+            rows, _ = paginate(code.split(".")[0] + f" 年线收盘获利[{compact_date}]")
+            by_symbol.update({r.get("股票代码"): r for r in rows if r.get("股票代码")})
+
+    field = period_field(list(by_symbol.values()), "年线收盘获利")
+    if not field:
+        return []
+    result = []
+    for code in codes:
+        row = by_symbol.get(code) or {}
+        try:
+            value = float(row.get(field))
+        except (TypeError, ValueError):
+            continue
+        if value > 3:
+            continue
+        result.append({
+            "symbol": code,
+            "name": row.get("股票简称") or "",
+            "value": round(value, 4),
+            "price": float(row.get("最新价") or 0),
+            "change_percent": round(float(row.get("最新涨跌幅") or 0), 6),
+        })
+    return result
+
+
 def main() -> int:
     periods = {}
     counts = {}
@@ -101,7 +145,11 @@ def main() -> int:
     week_codes = {r["symbol"] for r in periods["week"]}
     month_codes = {r["symbol"] for r in periods["month"]}
     quarter_codes = {r["symbol"] for r in periods["quarter"]}
+    # 年线仅供页面独立开关使用，不参与正式入池交集。
     inter_raw = sorted(week_codes & month_codes & quarter_codes)
+    periods["year"] = fetch_year_overlay(inter_raw)
+    counts["year"] = len(periods["year"])
+    print(f"year: pool={len(inter_raw)} matched={counts['year']}", flush=True)
     # Pre-filter .BJ out of intersection (enrich_low_chip_stocks.py will read it from here)
     excluded_bj_initial = [c for c in inter_raw if c.endswith(".BJ")]
     inter_pre = [c for c in inter_raw if not c.endswith(".BJ")]

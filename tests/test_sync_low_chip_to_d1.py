@@ -23,6 +23,7 @@ def test_snapshot_metrics_name_from_periods_not_enrichments():
                 {"symbol": "002992.SZ", "name": "宝明科技", "value": 0.5, "price": 32.15, "change_percent": 0.1},
             ],
             "quarter": [],
+            "year": [{"symbol": "600269.SH", "name": "赣粤高速", "value": 2.2}],
         },
         "enrichments": {
             # name intentionally missing — real snapshots store names only on period rows
@@ -42,6 +43,7 @@ def test_snapshot_metrics_name_from_periods_not_enrichments():
     assert by_code["002992"]["stock_name"] == "宝明科技"
     assert by_code["600269"]["week_profit"] == 1.1
     assert by_code["002992"]["month_profit"] == 0.5
+    assert by_code["600269"]["year_profit"] == 2.2
     assert {row["trade_date"] for row in rows} == {"20260811"}
 
 

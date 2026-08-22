@@ -53,16 +53,18 @@ def snapshot_metrics(payload: dict) -> list[dict]:
     week_list = periods.get("week") or []
     month_list = periods.get("month") or []
     quarter_list = periods.get("quarter") or []
+    year_list = periods.get("year") or []
     # build period lookup by symbol
     def _by_symbol(lst):
         return {r.get("symbol"): r for r in lst if r.get("symbol")}
     week_map = _by_symbol(week_list)
     month_map = _by_symbol(month_list)
     quarter_map = _by_symbol(quarter_list)
+    year_map = _by_symbol(year_list)
 
     def _period_name(code: str) -> str:
         """Names live on period rows (week/month/quarter), not enrichments."""
-        for m in (week_map, month_map, quarter_map):
+        for m in (week_map, month_map, quarter_map, year_map):
             row = m.get(code) or {}
             name = row.get("name") or row.get("stock_name")
             if name:
@@ -85,6 +87,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
         w = week_map.get(code) or {}
         m = month_map.get(code) or {}
         q = quarter_map.get(code) or {}
+        y = year_map.get(code) or {}
         # use the first available period record for price/change
         base = w or m or q or {}
         compact_trade_date = "".join(ch for ch in str(data_as_of) if ch.isdigit())[:8]
@@ -105,6 +108,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "week_profit": w.get("value"),
             "month_profit": m.get("value"),
             "quarter_profit": q.get("value"),
+            "year_profit": y.get("value"),
             "change_percent": base.get("change_percent"),
             "industry": enr.get("industry"),
             "sector": enr.get("sector"),
