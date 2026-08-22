@@ -1,13 +1,13 @@
 {
   "schema_version": "us-compass-research-v2",
-  "updated_at": "2026-08-18T02:45:05.478514+00:00",
+  "updated_at": "2026-08-22T01:00:18.900747+00:00",
   "latest_week": "2026-W34",
   "reports": [
     {
       "schema_version": "us-compass-research-v2",
       "week_key": "2026-W34",
-      "trade_date": "2026-08-17",
-      "generated_at": "2026-08-18T02:45:05.478514+00:00",
+      "trade_date": "2026-08-21",
+      "generated_at": "2026-08-22T01:00:18.900747+00:00",
       "model_fingerprint": {
         "model_version": "US ETF Garden v3 · Flower Signals",
         "universe_count": 74,
@@ -31,78 +31,78 @@
         }
       },
       "health_summary": {
-        "status": "MIXED",
-        "score": 0.5,
+        "status": "FRAGILE",
+        "score": 0.4,
         "reasons": [
-          "T+5 reached the 20-observation research gate; status is MIXED"
+          "T+5 reached the 20-observation research gate; status is FRAGILE"
         ],
-        "model_date": "2026-08-17",
-        "generated_at": "2026-08-18T02:45:05.427079Z"
+        "model_date": "2026-08-21",
+        "generated_at": "2026-08-22T01:00:13.958022Z"
       },
       "sample_maturity": {
-        "status": "MIXED",
-        "observations": 21,
+        "status": "FRAGILE",
+        "observations": 25,
         "minimum_observations": 20,
         "mature": true,
         "reasons": [
-          "T+5 reached the 20-observation research gate; status is MIXED"
+          "T+5 reached the 20-observation research gate; status is FRAGILE"
         ]
       },
       "walk_forward_summary": {
-        "status": "MIXED",
+        "status": "FRAGILE",
         "windows": 5,
-        "evaluated_windows": 4,
+        "evaluated_windows": 5,
         "positive_windows": 2,
-        "positive_slice_rate": 0.5,
-        "score": 0.5,
+        "positive_slice_rate": 0.4,
+        "score": 0.4,
         "reasons": [
-          "2 of 4 evaluated T+5 slices have positive mean RankIC"
+          "2 of 5 evaluated T+5 slices have positive mean RankIC"
         ]
       },
       "shadow_health_summary": {
-        "status": "FRAGILE",
-        "observations": 24,
-        "return": -0.001083600383082195,
+        "status": "MIXED",
+        "observations": 28,
+        "return": 0.010907983065084226,
         "max_drawdown": 0.04171576082420336,
-        "score": 0.4153121661878139,
+        "score": 0.44220640740278383,
         "reasons": [
           "fusion shadow performance rated from persisted net returns"
         ],
         "portfolios": {
           "benchmark": {
-            "total_return": 0.03047639498364596,
+            "total_return": 0.017026087664574252,
             "max_drawdown": 0.02411801731571861,
-            "annualized_volatility": 0.12473979777468604,
-            "positive_period_rate": 0.625,
+            "annualized_volatility": 0.12138088608865347,
+            "positive_period_rate": 0.6071428571428571,
             "excess_return_vs_benchmark": 0.0
           },
           "timing": {
-            "total_return": 0.00330189497270994,
+            "total_return": -0.009793716811201558,
             "max_drawdown": 0.022247171904283936,
-            "annualized_volatility": 0.09057634931155426,
-            "positive_period_rate": 0.4583333333333333,
-            "excess_return_vs_benchmark": -0.02717450001093602
+            "annualized_volatility": 0.0904400072884414,
+            "positive_period_rate": 0.4642857142857143,
+            "excess_return_vs_benchmark": -0.02681980447577581
           },
           "rotation": {
-            "total_return": 0.023172750949186582,
+            "total_return": 0.035455521989488314,
             "max_drawdown": 0.025998999999999994,
-            "annualized_volatility": 0.18423053083899366,
-            "positive_period_rate": 0.5416666666666666,
-            "excess_return_vs_benchmark": -0.007303644034459378
+            "annualized_volatility": 0.18220962499549798,
+            "positive_period_rate": 0.5357142857142857,
+            "excess_return_vs_benchmark": 0.018429434324914062
           },
           "fusion": {
-            "total_return": -0.001083600383082195,
+            "total_return": 0.010907983065084226,
             "max_drawdown": 0.04171576082420336,
-            "annualized_volatility": 0.1575694862313684,
-            "positive_period_rate": 0.3333333333333333,
-            "excess_return_vs_benchmark": -0.031559995366728155
+            "annualized_volatility": 0.1600078651264785,
+            "positive_period_rate": 0.35714285714285715,
+            "excess_return_vs_benchmark": -0.006118104599490026
           }
         }
       },
       "cost_sensitivity_summary": {
         "status": "UNAVAILABLE",
         "baseline_cost": 0.001,
-        "observations": 24,
+        "observations": 28,
         "break_even_cost": null,
         "score": null,
         "reasons": [
@@ -144,11 +144,11 @@
       "data_quality": {
         "status": "HEALTHY",
         "reasons": [
-          "T+5 reached the 20-observation research gate; status is MIXED",
+          "T+5 reached the 20-observation research gate; status is FRAGILE",
           "turnover history unavailable; exact cost scenarios require persisted turnover"
         ],
-        "health_model_date": "2026-08-17",
-        "pool_model_date": "2026-08-17",
+        "health_model_date": "2026-08-21",
+        "pool_model_date": "2026-08-21",
         "fingerprint_consistent": true,
         "production_change_allowed": false
       },
@@ -160,10 +160,10 @@
             "label": "D1",
             "horizon": "t1",
             "status": "EVALUATED",
-            "observations": 25,
-            "mean_return": 0.00093216,
-            "benchmark_return": 0.00110516,
-            "excess_return": -0.000173,
+            "observations": 29,
+            "mean_return": 0.0016438275862068964,
+            "benchmark_return": 0.0006435172413793102,
+            "excess_return": 0.001000310345,
             "mfe": null,
             "mae": null,
             "unavailable_reasons": [
@@ -174,10 +174,10 @@
             "label": "5D",
             "horizon": "t5",
             "status": "EVALUATED",
-            "observations": 21,
-            "mean_return": 0.004346428571428571,
-            "benchmark_return": 0.007002095238095239,
-            "excess_return": -0.002655666667,
+            "observations": 25,
+            "mean_return": 0.0029112,
+            "benchmark_return": 0.0042098000000000005,
+            "excess_return": -0.0012986,
             "mfe": null,
             "mae": null,
             "unavailable_reasons": [
@@ -188,10 +188,10 @@
             "label": "20D",
             "horizon": "t20",
             "status": "ACCUMULATING",
-            "observations": 6,
-            "mean_return": 0.033037166666666666,
-            "benchmark_return": 0.030699833333333332,
-            "excess_return": 0.002337333333,
+            "observations": 10,
+            "mean_return": 0.0364119,
+            "benchmark_return": 0.0302722,
+            "excess_return": 0.0061397,
             "mfe": null,
             "mae": null,
             "unavailable_reasons": [
@@ -217,7 +217,7 @@
       "rotation_research_summary": {
         "status": "ACCUMULATING",
         "signal": "RISK_ON_OBSERVATION",
-        "model_date": "2026-08-17",
+        "model_date": "2026-08-21",
         "production_change_allowed": false,
         "production_weights_changed": false,
         "coverage": {
@@ -228,138 +228,138 @@
         "observation_gate": {
           "minimum_completed_days": 10,
           "preferred_completed_days": 20,
-          "completed_days": 1,
+          "completed_days": 5,
           "status": "ACCUMULATING"
         },
         "selection": [
           {
-            "symbol": "SKYY",
-            "theme": "云计算",
-            "return_21d": 0.19206465,
-            "return_63d": 0.26256814,
-            "rotation_score": 0.22228043
-          },
-          {
             "symbol": "GDX",
             "theme": "黄金矿业",
-            "return_21d": 0.28841839,
-            "return_63d": 0.05197483,
-            "rotation_score": 0.18708544
+            "return_21d": 0.37070123,
+            "return_63d": 0.19583678,
+            "rotation_score": 0.29575932
           },
           {
-            "symbol": "HACK",
-            "theme": "网络安全",
-            "return_21d": 0.04070602,
-            "return_63d": 0.30502534,
-            "rotation_score": 0.15398573
+            "symbol": "SKYY",
+            "theme": "云计算",
+            "return_21d": 0.24290776,
+            "return_63d": 0.24242884,
+            "rotation_score": 0.24270251
           },
           {
-            "symbol": "XAR",
-            "theme": "国防",
-            "return_21d": 0.14038746,
-            "return_63d": 0.13114335,
-            "rotation_score": 0.1364257
-          },
-          {
-            "symbol": "COPX",
-            "theme": "铜矿",
-            "return_21d": 0.19072935,
-            "return_63d": 0.05522929,
-            "rotation_score": 0.1326579
+            "symbol": "ETHA",
+            "theme": "以太坊",
+            "return_21d": 0.29270023,
+            "return_63d": 0.12941178,
+            "rotation_score": 0.22271946
           },
           {
             "symbol": "IBB",
             "theme": "生物科技",
-            "return_21d": 0.06413363,
-            "return_63d": 0.21056394,
-            "rotation_score": 0.12688948
+            "return_21d": 0.13006669,
+            "return_63d": 0.26339782,
+            "rotation_score": 0.1872086
           },
           {
-            "symbol": "XME",
-            "theme": "金属矿业",
-            "return_21d": 0.20081342,
-            "return_63d": 0.02241369,
-            "rotation_score": 0.1243564
-          },
-          {
-            "symbol": "QTUM",
-            "theme": "量子计算",
-            "return_21d": 0.11666313,
-            "return_63d": 0.10764586,
-            "rotation_score": 0.11279858
-          },
-          {
-            "symbol": "IHI",
-            "theme": "医疗器械",
-            "return_21d": 0.09047721,
-            "return_63d": 0.13832642,
-            "rotation_score": 0.11098401
+            "symbol": "COPX",
+            "theme": "铜矿",
+            "return_21d": 0.20696686,
+            "return_63d": 0.14323584,
+            "rotation_score": 0.17965357
           },
           {
             "symbol": "IGV",
             "theme": "软件",
-            "return_21d": 0.09903011,
-            "return_63d": 0.11145261,
-            "rotation_score": 0.10435404
+            "return_21d": 0.18679684,
+            "return_63d": 0.11796473,
+            "rotation_score": 0.15729736
+          },
+          {
+            "symbol": "ARKK",
+            "theme": "创新成长",
+            "return_21d": 0.16768247,
+            "return_63d": 0.12516309,
+            "rotation_score": 0.14945988
+          },
+          {
+            "symbol": "HACK",
+            "theme": "网络安全",
+            "return_21d": 0.07502649,
+            "return_63d": 0.20409931,
+            "rotation_score": 0.13034342
+          },
+          {
+            "symbol": "IHI",
+            "theme": "医疗器械",
+            "return_21d": 0.13612459,
+            "return_63d": 0.11307755,
+            "rotation_score": 0.12624729
+          },
+          {
+            "symbol": "XLV",
+            "theme": "医疗",
+            "return_21d": 0.08164019,
+            "return_63d": 0.18386854,
+            "rotation_score": 0.12545234
           }
         ],
         "reason": null
       },
       "verdict": "达到月度评估门槛",
-      "snapshot_count": 26,
+      "snapshot_count": 30,
       "metrics": {
         "t1": {
-          "observations": 25,
-          "rank_ic_pct": -5.59,
-          "positive_rate_pct": 48.0,
-          "deviation_pct": 33.79,
+          "observations": 29,
+          "rank_ic_pct": -4.87,
+          "positive_rate_pct": 44.83,
+          "deviation_pct": 33.68,
           "random_reference_pct": 33.33,
-          "deviation_vs_random_pp": 0.45
+          "deviation_vs_random_pp": 0.34
         },
         "t5": {
-          "observations": 21,
-          "rank_ic_pct": -6.9,
-          "positive_rate_pct": 38.1,
-          "deviation_pct": 34.52,
+          "observations": 25,
+          "rank_ic_pct": -7.14,
+          "positive_rate_pct": 36.0,
+          "deviation_pct": 34.48,
           "random_reference_pct": 33.33,
-          "deviation_vs_random_pp": 1.19
+          "deviation_vs_random_pp": 1.14
         },
         "t20": {
-          "observations": 6,
-          "rank_ic_pct": -18.87,
-          "positive_rate_pct": 0.0,
-          "deviation_pct": 36.58,
+          "observations": 10,
+          "rank_ic_pct": -12.87,
+          "positive_rate_pct": 20.0,
+          "deviation_pct": 35.34,
           "random_reference_pct": 33.33,
-          "deviation_vs_random_pp": 3.25
+          "deviation_vs_random_pp": 2.01
         }
       },
       "portfolios": {
         "benchmark": {
-          "total_return_pct": 3.05,
+          "total_return_pct": 1.7,
           "max_drawdown_pct": -2.41,
-          "equity": 20609.52
+          "equity": 20340.54
         },
         "timing": {
-          "total_return_pct": 0.33,
+          "total_return_pct": -0.98,
           "max_drawdown_pct": -2.22,
-          "equity": 20066.0
+          "equity": 19804.11
         },
         "rotation": {
-          "total_return_pct": 2.32,
+          "total_return_pct": 3.55,
           "max_drawdown_pct": -2.6,
-          "equity": 20463.41
+          "equity": 20709.06
         },
         "fusion": {
-          "total_return_pct": -0.11,
+          "total_return_pct": 1.09,
           "max_drawdown_pct": -4.17,
-          "equity": 19978.3
+          "equity": 20218.14
         }
       },
       "attribution": {
-        "timing_pp": -2.72,
-        "rotation_pp": -0.73,
-        "interaction_pp": 0.29,
-        "fusion_vs_benchmark_pp": -3.16
+        "timing_pp": -2.68,
+        "rotation_pp": 1.84,
+        "interaction_pp": 0.23,
+        "fusion_vs_benchmark_pp": -0.61
       },
       "risk_budget": {
         "current_exposure_pct": 100.0,
@@ -373,80 +373,80 @@
       },
       "top10": [
         {
-          "symbol": "SKYY",
-          "theme": "云计算",
+          "symbol": "ARKK",
+          "theme": "创新成长",
           "trend_score": 100,
-          "risk_score": 35.5,
+          "risk_score": 44.7,
           "state": "回踩候选"
+        },
+        {
+          "symbol": "IBB",
+          "theme": "生物科技",
+          "trend_score": 100,
+          "risk_score": 22.8,
+          "state": "可持有"
         },
         {
           "symbol": "GDX",
           "theme": "黄金矿业",
           "trend_score": 100,
-          "risk_score": 48.8,
-          "state": "回踩候选"
-        },
-        {
-          "symbol": "XME",
-          "theme": "金属矿业",
-          "trend_score": 90.1,
-          "risk_score": 42.0,
-          "state": "回踩候选"
-        },
-        {
-          "symbol": "QTUM",
-          "theme": "量子计算",
-          "trend_score": 88.2,
-          "risk_score": 38.1,
-          "state": "回踩候选"
-        },
-        {
-          "symbol": "XAR",
-          "theme": "国防",
-          "trend_score": 86.4,
-          "risk_score": 30.4,
-          "state": "可持有"
+          "risk_score": 100,
+          "state": "观察"
         },
         {
           "symbol": "COPX",
           "theme": "铜矿",
-          "trend_score": 83.8,
-          "risk_score": 25.6,
-          "state": "可持有"
+          "trend_score": 100,
+          "risk_score": 58.0,
+          "state": "回踩候选"
         },
         {
-          "symbol": "URA",
-          "theme": "核能",
-          "trend_score": 83.4,
-          "risk_score": 29.3,
-          "state": "可持有"
+          "symbol": "IBIT",
+          "theme": "比特币",
+          "trend_score": 100,
+          "risk_score": 100,
+          "state": "观察"
         },
         {
-          "symbol": "OIH",
-          "theme": "油服",
-          "trend_score": 80.7,
-          "risk_score": 24.6,
-          "state": "可持有"
+          "symbol": "ETHA",
+          "theme": "以太坊",
+          "trend_score": 100,
+          "risk_score": 100,
+          "state": "观察"
         },
         {
           "symbol": "SLV",
           "theme": "贵金属",
-          "trend_score": 78.9,
-          "risk_score": 22.9,
+          "trend_score": 99.3,
+          "risk_score": 44.1,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "SKYY",
+          "theme": "云计算",
+          "trend_score": 96.5,
+          "risk_score": 42.0,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "GLD",
+          "theme": "黄金",
+          "trend_score": 93.2,
+          "risk_score": 23.2,
           "state": "可持有"
         },
         {
-          "symbol": "IBB",
-          "theme": "生物科技",
-          "trend_score": 78.6,
-          "risk_score": 16.5,
+          "symbol": "XME",
+          "theme": "金属矿业",
+          "trend_score": 90.4,
+          "risk_score": 30.8,
           "state": "可持有"
         }
       ],
       "iwencai": {
-        "status": "unavailable",
+        "status": "ok",
         "source": "同花顺问财",
-        "summary": "问财验证暂不可用"
+        "summary": "问财查询“美股 创新成长 生物科技 黄金矿业 铜矿 比特币 近20日涨幅、成交额、行业，按涨幅排序”返回空结果，外部证据保持中性。"
       },
       "execution_basis": {
         "signal": "T日收盘生成",
