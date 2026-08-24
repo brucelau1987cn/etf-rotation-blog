@@ -79,10 +79,13 @@ def foreign_dirty_paths(lines: list[str]) -> list[str]:
 
 def restore_tracked_dist() -> None:
     for path in EXTERNAL_DIRTY:
-        tracked = run(["git", "show", f"HEAD:{path}"]).stdout
+        shown = run(["git", "show", f"HEAD:{path}"], check=False)
+        if shown.returncode != 0:
+            # 未跟踪 / HEAD 不存在的 shadow 文件（如打板层 / mootdx 首次生成，.gitignore 隔离），跳过
+            continue
         target = ROOT / "dist" / Path(path).relative_to("public")
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(tracked, encoding="utf-8")
+        target.write_text(shown.stdout, encoding="utf-8")
 
 
 def preflight() -> None:
