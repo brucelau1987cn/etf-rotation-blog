@@ -10,8 +10,10 @@ from pathlib import Path
 
 try:
     from pages_release import release_pages
+    from shadow_dirty_files import SHADOW_DIRTY_FILES
 except ModuleNotFoundError:
     from scripts.pages_release import release_pages
+    from scripts.shadow_dirty_files import SHADOW_DIRTY_FILES
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = "public/data/futures-compass.json"
@@ -20,11 +22,9 @@ PUBLISH_FILES = (SNAPSHOT, BRIEFING)
 FUTURES_PYTHON = "/root/.cache/etf-futures/venv/bin/python"
 LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
-    "public/data/korea-tech-factor-shadow.json",
-    "public/data/us-selector-shadow.json",
-    # US insider/ownership 影子数据（shadow cron 每日刷新，不接生产，勿被其 dirty 阻塞）
-    "public/data/us-insider-ownership.json",
-    # a-stock-data 影子快照（打板层 / mootdx 行情补充源），不接生产，勿被其 dirty 阻塞
+    # 跨发布器共享的 shadow 脏文件豁免（单一来源 scripts/shadow_dirty_files.py）
+    *SHADOW_DIRTY_FILES,
+    # a-stock-data 影子快照（打板层 / mootdx，.gitignore 隔离，不接生产）
     "public/data/limit-up-shadow.json",
     "public/data/mootdx-shadow.json",
     # A-share stage generated files — futures publisher should not be blocked
