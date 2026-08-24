@@ -256,10 +256,13 @@ def test_push_success_flag_is_set_only_after_push_returns():
 
 def test_release_rejects_uncommitted_generators_tests_and_generated_data():
     module = load_module()
-    assert module.ALLOWED_DIRTY == {
-        'public/data/korea-tech-factor-shadow.json',
-        'public/data/us-selector-shadow.json',
-    }
+    # shadow 脏文件豁免清单已统一为单一来源 scripts/shadow_dirty_files.py（2026-08-24 重构）。
+    # 断言跟随该来源，避免新增 shadow 数据源时测试与实现漂移。
+    from scripts.shadow_dirty_files import SHADOW_DIRTY_FILES
+
+    assert module.ALLOWED_DIRTY == set(SHADOW_DIRTY_FILES)
+    assert 'public/data/korea-tech-factor-shadow.json' in module.ALLOWED_DIRTY
+    assert 'public/data/us-selector-shadow.json' in module.ALLOWED_DIRTY
     source = SCRIPT.read_text(encoding='utf-8')
     assert 'foreign -= generated' not in source
     assert 'if staged()' in source

@@ -109,7 +109,11 @@ def test_select_latest_top10_report_row_uses_latest_explicit_period():
 
 def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed():
     source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
+    # 核心防造假契约（不可退化）：绝不合成占位报告期。
     assert "period or 'latest'" not in source
-    assert "missing shareholder report period after per-symbol fallback" in source
+    assert 'period or "latest"' not in source
+    # 展示型附加字段（行业/股东名单）缺失走软跳过、badge 默认 false，
+    # 由 50bd377「股东/财务/行业附加数据缺失不再阻断发布」批准；
+    # 入池（周/月/季交集）与 unlock 风险仍严格 fail-closed。
     assert "top10 shareholder names unavailable" in source
-    assert "missing top10 shareholder names after per-symbol fallback" not in source
+    assert "shareholder names without report period" in source

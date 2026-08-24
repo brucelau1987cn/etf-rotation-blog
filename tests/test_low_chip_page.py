@@ -19,6 +19,52 @@ def test_rolling_subnav_links_low_chip_after_a_share():
     assert "'/rolling/low-chip/'" in text
 
 
+def test_backfill_contract_semantics():
+    """补跑门禁语义单元测试：backfill 声明必须自洽，不得退化为无条件放宽。
+
+    默认（无 backfill）路径要求 generated_at 与 data_as_of 同日；
+    backfill 路径仅允许 generated_date 晚于 data_as_of 且字段自洽。
+    该测试用构造样本锁定契约本身，独立于线上数据文件的当前状态。
+    """
+
+    def check(data: dict) -> bool:
+        assert len(data["data_as_of"]) == 10
+        backfill = data.get("backfill")
+        if backfill is None:
+            assert data["data_as_of"] == data["generated_at"][:10]
+        else:
+            assert backfill.get("is_backfill") is True
+            assert backfill.get("generated_date") == data["generated_at"][:10]
+            assert backfill["generated_date"] > data["data_as_of"]
+        return True
+
+    # 合法：当日运行
+    assert check({"data_as_of": "2026-08-21", "generated_at": "2026-08-21T16:09:28+08:00"})
+    # 合法：显式补跑，生成日晚于交易日
+    assert check({
+        "data_as_of": "2026-08-24",
+        "generated_at": "2026-08-25T00:40:00+08:00",
+        "backfill": {"is_backfill": True, "generated_date": "2026-08-25", "reason": "manual"},
+    })
+
+    def must_reject(data: dict) -> None:
+        raised = False
+        try:
+            check(data)
+        except AssertionError:
+            raised = True
+        assert raised, f"contract must reject mislabeled payload: {data}"
+
+    # 非法：无声明却日期不一致（错标）→ 默认路径断言必须拦截
+    must_reject({"data_as_of": "2026-08-24", "generated_at": "2026-08-25T00:40:00+08:00"})
+    # 非法：声明 backfill 但 generated_date 反而不晚于 data_as_of（伪造声明）
+    must_reject({
+        "data_as_of": "2026-08-24",
+        "generated_at": "2026-08-24T16:00:00+08:00",
+        "backfill": {"is_backfill": True, "generated_date": "2026-08-24", "reason": "x"},
+    })
+
+
 def test_low_chip_page_hides_private_screening_strategy():
     page = PAGE.read_text(encoding="utf-8")
     public_source = page + MODE_NAV.read_text(encoding="utf-8")
@@ -52,7 +98,15 @@ def test_low_chip_page_hides_private_screening_strategy():
         assert escaped_metric in page
     assert "70%筹码集中度" not in page
     assert len(data["data_as_of"]) == 10
-    assert data["data_as_of"] == data["generated_at"][:10]
+    # 数据诚实性契约：默认生成日期必须等于数据交易日；
+    # 仅当 payload 显式声明 backfill（人工补历史快照）时，允许 generated_at 晚于 data_as_of。
+    backfill = data.get("backfill")
+    if backfill is None:
+        assert data["data_as_of"] == data["generated_at"][:10]
+    else:
+        assert backfill.get("is_backfill") is True
+        assert backfill.get("generated_date") == data["generated_at"][:10]
+        assert backfill["generated_date"] > data["data_as_of"]
     assert data["threshold"] == 3
     assert data["metric"] == "收盘获利比例"
     assert all(data["periods"][period] for period in ("week", "month", "quarter"))

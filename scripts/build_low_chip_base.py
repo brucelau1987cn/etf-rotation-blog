@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,17 @@ CN = ZoneInfo("Asia/Shanghai")
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 DATE = sys.argv[1] if len(sys.argv) > 1 else "2026-08-07"
+
+# 补跑声明：当生成日期晚于数据交易日时（人工补历史快照），必须显式标注，
+# 让下游门禁能区分「合法补跑」与「日期错标」。当日正常运行时该字段为 None。
+_GENERATED_AT = datetime.datetime.now(CN)
+_BACKFILL = None
+if _GENERATED_AT.date().isoformat() > DATE:
+    _BACKFILL = {
+        "is_backfill": True,
+        "generated_date": _GENERATED_AT.date().isoformat(),
+        "reason": os.environ.get("LOW_CHIP_BACKFILL_REASON", "manual historical backfill"),
+    }
 
 # 新股（上市不足 90 天）没有完整季线周期 K 线，iWenCai 返回的周/月/季
 # 获利比例是失真值（0.1~0.5% 极易误入选）。cutoff 用于查询条件与审计。
@@ -169,7 +181,7 @@ def main() -> int:
     payload = {
         "schema_version": "a-low-profit-v3",
         "data_as_of": DATE,
-        "generated_at": datetime.datetime.now(CN).isoformat(timespec="seconds"),
+        "generated_at": _GENERATED_AT.isoformat(timespec="seconds"),
         "source": "iWenCai SkillHub",
         "universe": "沪深A股，非ST，非退市，不含北交所",
         "metric": "收盘获利比例",
@@ -196,6 +208,8 @@ def main() -> int:
         "financial_filters": {},
         "shareholder_metrics": {},
     }
+    if _BACKFILL is not None:
+        payload["backfill"] = _BACKFILL
 
     DATA.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({"data_as_of": DATE, "counts": counts, "intersection_before_filters": inter_raw, "intersection": inter_pre}, ensure_ascii=False))
