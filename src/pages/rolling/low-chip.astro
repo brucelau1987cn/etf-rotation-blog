@@ -99,6 +99,7 @@ const rows = intersectionRows.map((row) => {
     institutionalShareholder: Boolean(enr.institutional_shareholder),
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     financials: enr.financials || {},
+    technical: enr.technical || {},
     shareholderMetrics: enr.shareholder_metrics || {},
     yearProfit: yearProfitBySymbol[row.symbol] ?? null,
     occurrence,
@@ -185,6 +186,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
           <button type="button" class="chip-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 3%</button>
+          <button type="button" class="chip-filter-btn" data-filter="rsi" aria-pressed="false">RSI ≤ 25%</button>
+          <button type="button" class="chip-filter-btn" data-filter="outer-inner" aria-pressed="false">外盘 &gt; 内盘 1.5倍</button>
+          <button type="button" class="chip-filter-btn" data-filter="change-20d" aria-pressed="false">近20日跌幅 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -205,6 +209,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               data-gross-margin={row.financials.gross_margin ?? ''}
               data-debt-ratio={row.financials.debt_ratio ?? ''}
               data-year-profit={row.yearProfit ?? ''}
+              data-rsi={row.technical.rsi ?? ''}
+              data-outer-inner={row.technical.outer_inner_ratio ?? ''}
+              data-change-20d={row.technical.change_20d ?? ''}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -395,6 +402,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         var themeHtml = themeText ? '<em class="chip-theme">（' + esc(themeText) + '）</em>' : '';
         var asOfLabel = String(asOf || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3') || String(asOf || '');
         var sm = row.shareholderMetrics || {};
+        var tech = row.technical || {};
         var occurrence = row.occurrence || null;
         var occurrenceHtml = occurrence ? '<span class="chip-occurrence' + (occurrence.isNew ? ' is-new' : '') + (occurrence.isReentry ? ' is-reentry' : '') + '" title="' + esc(occurrenceTitle(occurrence)) + '">' + esc(occurrenceLabel(occurrence)) + '</span>' : '';
         var changePct = sm.shareholder_change_pct;
@@ -404,7 +412,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           return map[label] || label || '';
         };
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-rsi=\"' + esc(tech.rsi ?? '') + '\" data-outer-inner=\"' + esc(tech.outer_inner_ratio ?? '') + '\" data-change-20d=\"' + esc(tech.change_20d ?? '') + '\" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
@@ -501,6 +509,9 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
           if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 30)) return false;
           if (activeFilters.has('year-profit') && (c.dataset.yearProfit === '' || !Number.isFinite(Number(c.dataset.yearProfit)) || Number(c.dataset.yearProfit) > 3)) return false;
+          if (activeFilters.has('rsi') && (c.dataset.rsi === '' || !Number.isFinite(Number(c.dataset.rsi)) || Number(c.dataset.rsi) > 25)) return false;
+          if (activeFilters.has('outer-inner') && (c.dataset.outerInner === '' || !Number.isFinite(Number(c.dataset.outerInner)) || Number(c.dataset.outerInner) < 1.5)) return false;
+          if (activeFilters.has('change-20d') && (c.dataset.change20d === '' || !Number.isFinite(Number(c.dataset.change20d)) || Number(c.dataset.change20d) > -15)) return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -684,6 +695,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                   themeConcept: themes.slice(0, 3).join('、'),
                   themeConcepts: themes.slice(0, 3),
                   financials: row.financials ? JSON.parse(row.financials) : {},
+                  technical: row.technical ? JSON.parse(row.technical) : {},
                   yearProfit: row.year_profit ?? null,
                   occurrence: occurrenceLookup[day]?.[code] || null,
                   qualityShareholder: Boolean(row.shareholder_nature?.quality_shareholder ?? row.quality_shareholder),
