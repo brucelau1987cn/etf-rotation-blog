@@ -82,7 +82,14 @@ def main() -> int:
     payload = json.loads(DATA.read_text(encoding="utf-8"))
     codes = list(payload.get("intersection") or [])
     if not codes:
-        raise SystemExit("intersection is empty; nothing to attach")
+        # technical 是页面附加筛选字段，不参与入池。缺数据时 fail-soft：
+        # 不阻塞整条低筹码发布链路（缺失即过滤，前端已兜底）。
+        print(json.dumps({
+            "status": "skipped",
+            "reason": "intersection is empty; nothing to attach",
+            "total": 0, "attached": 0, "missing": [],
+        }, ensure_ascii=False))
+        return 0
 
     bare_codes = [c.split(".")[0] for c in codes]
     by_code: dict[str, dict] = {}
