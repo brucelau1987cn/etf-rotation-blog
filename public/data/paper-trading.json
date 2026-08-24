@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-24T22:31:49.580682+00:00",
+  "updated_at": "2026-08-24T22:50:25.583457+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -277,7 +277,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 9296.265459300786,
+      "cash": 7303.490116297857,
       "positions": {
         "SOXX": {
           "symbol": "SOXX",
@@ -292,7 +292,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 528.71,
-          "last_price": 520.0499877929688
+          "last_price": 506.17999267578125
         },
         "SMH": {
           "symbol": "SMH",
@@ -307,7 +307,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 560.4199829101562
+          "last_price": 546.7999877929688
         },
         "SPMO": {
           "symbol": "SPMO",
@@ -322,7 +322,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 148.09,
-          "last_price": 148.72999572753906
+          "last_price": 146.13999938964844
         },
         "HACK": {
           "symbol": "HACK",
@@ -337,7 +337,7 @@
           "signal_date": "2026-08-19",
           "signal_kind": "plant",
           "signal_level": 112.19,
-          "last_price": 111.62000274658203
+          "last_price": 109.56999969482422
         },
         "CIBR": {
           "symbol": "CIBR",
@@ -352,7 +352,7 @@
           "signal_date": "2026-08-19",
           "signal_kind": "plant",
           "signal_level": 95.11,
-          "last_price": 94.8499984741211
+          "last_price": 93.2300033569336
         },
         "FBND": {
           "symbol": "FBND",
@@ -367,17 +367,32 @@
           "signal_date": "2026-08-20",
           "signal_kind": "plant",
           "signal_level": 44.92,
-          "last_price": 44.900001525878906
+          "last_price": 44.97999954223633
+        },
+        "XLK": {
+          "symbol": "XLK",
+          "name": "Technology Select Sector",
+          "quantity": 11,
+          "entry_price": 180.97999572753906,
+          "entry_cost": 1.99539,
+          "entry_at": "2026-08-24T13:30:48.783678+00:00",
+          "target": 187.81,
+          "stop": 177.31,
+          "level_basis": null,
+          "signal_date": "2026-08-21",
+          "signal_kind": "plant",
+          "signal_level": 182.76,
+          "last_price": 180.0500030517578
         }
       },
-      "equity": 20492.675402,
+      "equity": 20296.990128,
       "realized_pnl": 512.1369081130371,
-      "unrealized_pnl": -19.461506,
-      "daily_return": 0.00254932,
-      "cumulative_return": 0.02463377,
-      "max_drawdown": -0.00652388,
+      "unrealized_pnl": -215.14678,
+      "daily_return": -0.00954903,
+      "cumulative_return": 0.01484951,
+      "max_drawdown": -0.01350211,
       "peak_equity": 20574.793245907473,
-      "cash_ratio": 0.45363845,
+      "cash_ratio": 0.35983119,
       "history": [
         {
           "date": "2026-08-04",
@@ -490,6 +505,14 @@
           "daily_return": 0.00254932,
           "cumulative_return": 0.02463377,
           "max_drawdown": -0.00652388
+        },
+        {
+          "date": "2026-08-24",
+          "equity": 20296.990128,
+          "cash": 7303.490116,
+          "daily_return": -0.00954903,
+          "cumulative_return": 0.01484951,
+          "max_drawdown": -0.01350211
         }
       ],
       "events": [
@@ -1212,6 +1235,22 @@
           "signal_kind": "plant",
           "signal_level": 44.92,
           "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:XLK:buy:1787578247:plant",
+          "timestamp": "2026-08-24T13:30:48.783678+00:00",
+          "market": "US",
+          "symbol": "XLK",
+          "name": "Technology Select Sector",
+          "side": "buy",
+          "quantity": 11,
+          "price": 180.979996,
+          "cost": 1.99539,
+          "reason": "plant",
+          "signal_date": "2026-08-21",
+          "signal_kind": "plant",
+          "signal_level": 182.76,
+          "decision_tag": "计划内首仓"
         }
       ],
       "pending_signals": [],
@@ -1222,11 +1261,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 42,
+        "total": 43,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 24,
+            "count": 25,
             "closed_pnl": null
           },
           {
