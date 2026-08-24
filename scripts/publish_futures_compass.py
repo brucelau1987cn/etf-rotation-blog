@@ -22,6 +22,8 @@ LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
     "public/data/korea-tech-factor-shadow.json",
     "public/data/us-selector-shadow.json",
+    # US insider/ownership 影子数据（shadow cron 每日刷新，不接生产，勿被其 dirty 阻塞）
+    "public/data/us-insider-ownership.json",
     # a-stock-data 影子快照（打板层 / mootdx 行情补充源），不接生产，勿被其 dirty 阻塞
     "public/data/limit-up-shadow.json",
     "public/data/mootdx-shadow.json",
