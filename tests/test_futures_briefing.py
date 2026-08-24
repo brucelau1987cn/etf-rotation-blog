@@ -60,3 +60,35 @@ def test_build_briefing_combines_dynamic_delivery_and_jin10_data():
     assert payload["index_delivery"]["date"] == "2026-09-18"
     assert payload["industry_policy"][0]["scope"] == "碳酸锂"
     assert payload["fed_watch"]["latest"][0]["event"] == "美国7月核心PCE物价指数年率"
+
+
+def test_build_policy_items_captures_supply_geopolitical_events():
+    news = [
+        {"time": "2026-08-21T22:16:29+08:00", "title": "美军声称正护航霍尔木兹海峡，逾6.6亿桶原油已突破封锁", "url": "https://xnews.jin10.com/details/228104"},
+        {"time": "2026-08-19T20:07:59+08:00", "title": "沙特阿美突然“放量”：欧洲9月原油足额供应，恢复霍尔木兹海峡内装船", "url": "https://xnews.jin10.com/details/227888"},
+    ]
+    items = module.build_policy_items(news)
+    assert len(items) == 2
+    assert items[0]["scope"] == "原油"
+    assert "护航霍尔木兹" in items[0]["title"]
+    assert "impact" not in items[0]
+
+
+def test_build_policy_items_excludes_noise_review_headlines():
+    news = [
+        {"time": "2026-06-11T11:42:00", "title": "多晶硅价格周期复盘 | 金十期货热图", "url": "https://x"},
+        {"time": "2026-08-02 09:00", "title": "工信部发布多晶硅行业绿色发展政策", "url": "https://y"},
+    ]
+    items = module.build_policy_items(news)
+    assert len(items) == 1
+    assert items[0]["scope"] == "多晶硅"
+
+
+def test_build_policy_items_strips_date_prefix_and_sorts_desc():
+    news = [
+        {"time": "2026-08-02T07:15:00", "title": "2026年8月2日金十期货早餐：国家发改委部署煤炭产能储备", "url": "https://a"},
+        {"time": "2026-08-07T07:11:00", "title": "2026年8月7日金十期货早餐：特朗普宣布对多晶硅加征关税", "url": "https://b"},
+    ]
+    items = module.build_policy_items(news)
+    assert items[0]["as_of"] == "2026-08-07"
+    assert items[0]["title"] == "特朗普宣布对多晶硅加征关税"

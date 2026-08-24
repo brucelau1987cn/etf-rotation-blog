@@ -118,7 +118,7 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
     <main>
       <FuturesSubnav active="home" />
       <section class="terminal" aria-label="期货罗盘决策总览">
-        <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>先验价格与持仓方向，再核验结构、关键位、成交活跃度及仓单；缺失数据标记为未知。</p></div><div class="data-stamp"><strong id="data-time">{snapshotTime.slice(0,16)}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
+        <div class="terminal-top"><div><span class="eyebrow">Futures market terminal</span><h1>商品期货趋势与供需雷达</h1><p>三栏速览：股指交割倒计时、标的供需/政策事件、美联储关键数据。</p></div><div class="data-stamp"><strong id="data-time">{snapshotTime.slice(0,16)}</strong><span id="source-label">{snapshot.source || '新浪期货'}</span><span>{snapshot.stale ? '最近有效快照' : '当前快照'}</span></div></div>
         <div class="briefing-grid" aria-label="期货事件提示">
           <article class="briefing-panel delivery">
           <span class="eyebrow">Index delivery</span><h2>股指期货交割提示</h2>
@@ -137,10 +137,14 @@ const reviewSlot: Record<string, string> = { preopen: '盘前', 'day-close': '�
           <p>{briefing.index_delivery?.symbols?.join(' / ') || 'IF / IH / IC / IM'} · {briefing.index_delivery?.days_note || '到期月第三个周五，节假日顺延。'}</p>
         </article>
         <article class="briefing-panel">
-          <span class="eyebrow">Industry policy</span><h2>标的行业政策利好</h2>
-          <div class="brief-list">
-            {(briefing.industry_policy || []).slice(0, 3).map((item) => <div class="brief-item"><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><small>{item.scope} · {item.as_of}</small><p>{item.impact}</p></div>)}
-          </div>
+          <span class="eyebrow">Supply &amp; policy</span><h2>供需与政策动态</h2>
+          {(briefing.industry_policy || []).length ? (
+            <div class="brief-list">
+              {(briefing.industry_policy || []).slice(0, 3).map((item) => <div class="brief-item"><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><small>{item.scope} · {item.as_of}</small></div>)}
+            </div>
+          ) : (
+            <p>暂无新增供需或政策事件</p>
+          )}
         </article>
         <article class="briefing-panel">
           <span class="eyebrow">Fed watch · Jin10</span><h2>美联储关键信息</h2>

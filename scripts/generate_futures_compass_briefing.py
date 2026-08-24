@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import calendar
 import json
+import re
 import tempfile
 import os
 import urllib.parse
@@ -33,7 +34,19 @@ ASSET_KEYWORDS = {
     "猪肉": ("生猪", "猪肉", "养殖"),
     "焦煤": ("焦煤", "炼焦煤", "煤炭", "双焦"),
 }
-POLICY_KEYWORDS = ("政策", "规划", "国务院", "发改委", "工信部", "财政部", "商务部", "央行", "国家能源局", "补贴", "产能", "储备", "关税", "出口", "进口")
+# 供需/地缘/政策事件信号词：放宽原「政策词」硬门槛，纳入供给中断、地缘冲突、OPEC 动作等真正影响供需的事件。
+SUPPLY_EVENT_KEYWORDS = (
+    "政策", "规划", "国务院", "发改委", "工信部", "财政部", "商务部", "央行", "国家能源局",
+    "补贴", "产能", "储备", "收储", "抛储", "限产", "增产", "减产", "停产", "检修",
+    "关税", "出口", "进口", "调控",
+    "中断", "封锁", "护航", "放量", "供应", "供给", "断供", "装船",
+    "沙特", "伊朗", "OPEC", "欧佩克", "霍尔木兹", "红海", "罢工",
+)
+# 复盘/行情解读类标题噪音，排除。
+NOISE_KEYWORDS = (
+    "复盘", "热图", "速览", "席位", "财料", "爆点", "主线", "影响有多大",
+    "价格周期", "产业链", "尾盘", "盘后", "机构观点", "如何看待", "揭秘",
+)
 FED_KEYWORDS = ("美联储", "FOMC", "鲍威尔", "非农", "失业率", "CPI", "PCE", "零售销售", "GDP", "初请失业金", "联邦基金利率")
 FED_COUNTRY_PREFIX = "美国"
 
@@ -82,31 +95,42 @@ def item_date(raw_time: Any) -> str:
     return text[:10] if len(text) >= 10 else date.today().isoformat()
 
 
+_TITLE_DATE_PREFIX = re.compile(r"^\d{4}年\d{1,2}月\d{1,2}日金十(?:期货)?早餐[：:]\s*")
+
+
 def build_policy_items(news_rows: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
-    output: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    """构建「供需与政策事件」列表。
+
+    命中期货品种词 + 供需/地缘/政策事件词（排除复盘类噪音），按时间降序取最新 N 条。
+    新闻接口不返回 summary，故不再生成模板化 impact。
+    """
+    candidates: list[dict[str, Any]] = []
+    seen_titles: set[str] = set()
     for row in news_rows:
         title = " ".join(str(row.get("title") or "").split())
-        summary = " ".join(str(row.get("summary") or row.get("content") or "").split())
-        combined = f"{title} {summary}"
-        scopes = [name for name, keywords in ASSET_KEYWORDS.items() if any(keyword.lower() in combined.lower() for keyword in keywords)]
-        if not scopes or not any(keyword in combined for keyword in POLICY_KEYWORDS):
+        if not title:
             continue
-        key = title.lower()
-        if not title or key in seen:
+        scopes = [name for name, keywords in ASSET_KEYWORDS.items() if any(keyword.lower() in title.lower() for keyword in keywords)]
+        if not scopes:
             continue
-        output.append({
-            "title": title[:100],
-            "scope": " · ".join(scopes[:4]),
-            "impact": (summary or f"政策涉及{'、'.join(scopes[:4])}，用于复核相关期货品种的供需预期。")[:180],
-            "as_of": item_date(row.get("time") or row.get("published_at")),
+        if not any(keyword in title for keyword in SUPPLY_EVENT_KEYWORDS):
+            continue
+        if any(keyword in title for keyword in NOISE_KEYWORDS):
+            continue
+        clean_title = _TITLE_DATE_PREFIX.sub("", title).strip()
+        key = clean_title.lower()
+        if key in seen_titles:
+            continue
+        seen_titles.add(key)
+        candidates.append({
+            "title": clean_title[:56],
+            "scope": " · ".join(dict.fromkeys(scopes[:4])),
+            "as_of": item_date(row.get("time")),
             "source": "金十数据",
             "url": str(row.get("url") or "/futures-compass/jin10/"),
         })
-        seen.add(key)
-        if len(output) >= limit:
-            break
-    return output
+    candidates.sort(key=lambda item: item["as_of"], reverse=True)
+    return candidates[:limit]
 
 
 def value_summary(row: dict[str, Any]) -> str:
@@ -140,7 +164,7 @@ def build_fed_watch(rows: list[dict[str, Any]], today: date | None = None, limit
             "time": str(row.get("time") or "") + " 北京时间",
             "event": str(row.get("title") or "未命名事项"),
             "result": value_summary(row),
-            "impact": f"金十方向：{direction}；结合美元、贵金属、工业金属及原油走势复核。",
+            "impact": f"金十方向：{direction}",
         })
     return {
         "latest": latest,
@@ -202,8 +226,6 @@ def main() -> int:
         failures["news"] = str(exc)
         news_rows = []
     payload = build_briefing(args.date, calendar_rows, news_rows)
-    if not payload["industry_policy"]:
-        payload["industry_policy"] = previous.get("industry_policy", [])
     if not payload["fed_watch"]["latest"]:
         payload["fed_watch"] = previous.get("fed_watch", payload["fed_watch"])
     payload["data_quality"] = {"failed": len(failures), "failures": failures}
