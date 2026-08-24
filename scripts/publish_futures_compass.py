@@ -22,6 +22,9 @@ LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
     "public/data/korea-tech-factor-shadow.json",
     "public/data/us-selector-shadow.json",
+    # a-stock-data 影子快照（打板层 / mootdx 行情补充源），不接生产，勿被其 dirty 阻塞
+    "public/data/limit-up-shadow.json",
+    "public/data/mootdx-shadow.json",
     # A-share stage generated files — futures publisher should not be blocked
     # by dirty A-share artifacts (hit 2026-08-10: 08:30 LLM failure left
     # garden-recommendations/mid-macro/etf-garden-pool/... dirty → all
