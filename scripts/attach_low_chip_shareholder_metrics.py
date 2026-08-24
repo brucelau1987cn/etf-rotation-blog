@@ -29,10 +29,14 @@ def main() -> None:
 
     missing = [code for code in payload["intersection"] if code not in holder_em]
     if missing:
-        raise SystemExit(f"missing eastmoney holder rows: {missing}")
+        # 东财股东/户数缺失不再中断发布：缺的股票字段填空、页面显示「—」。
+        print(
+            f"  shareholder_metrics: {len(missing)} 只缺东财户数数据，字段留空（不阻断）",
+            flush=True,
+        )
 
     for code in payload["intersection"]:
-        em = holder_em[code]
+        em = holder_em.get(code) or {}
         main_force = None
         main_force_label = None
         mf_row = mf_by_code.get(code.split(".")[0])
@@ -47,7 +51,8 @@ def main() -> None:
         }
         absent = [name for name, value in required.items() if value is None]
         if absent:
-            raise SystemExit(f"{code} missing holder fields: {absent}")
+            # 字段缺失不再中断：该股 shareholder_metrics 用空值兜底。
+            print(f"  {code}: 缺股东字段 {absent}，留空显示「—」", flush=True)
         payload["enrichments"][code]["shareholder_metrics"] = {
             "shareholder_count": em.get("holder_total"),
             "previous_shareholder_count": em.get("previous_holder"),

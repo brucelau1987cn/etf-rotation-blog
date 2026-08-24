@@ -142,10 +142,15 @@ def main() -> int:
                         matched["所属同花顺行业"] = r.get("所属同花顺行业")
                     break
             if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
-                raise SystemExit(
-                    f"missing industry after per-symbol fallback: {code}; "
-                    f"returned={len(fallback_rows)}"
+                # 行业缺失不再中断整条发布：该股 enrich 阶段标「待补充」，
+                # 页面显示「—」。keep a light record, keep going.
+                print(
+                    f"  {code}: industry unavailable; enrich marks 待补充 "
+                    f"(returned={len(fallback_rows)})",
+                    flush=True,
                 )
+                if matched is None:
+                    matched = {"股票代码": code}
         if not has_top10_names(matched):
             holder_detail = iwc(
                 f"{code.split('.')[0]} 最新完整报告期十大流通股东明细、前十大流通股东名称、公告日期",
@@ -183,10 +188,16 @@ def main() -> int:
                         names.append(name)
                 if names:
                     if not period:
-                        raise SystemExit(
-                            f"missing shareholder report period after per-symbol fallback: {code}"
+                        # 股东名称已拿到但报告期缺失：不再中断整条发布，
+                        # 该股 badge 默认 false（evidence fail-closed），继续下一只。
+                        print(
+                            f"  {code}: shareholder names without report period; "
+                            f"badge defaults to false",
+                            flush=True,
                         )
-                    detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
+                        detail = None
+                    else:
+                        detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
             if detail is None:
                 # Some stocks have no currently published top-10 holder names.
                 # Shareholder badges are evidence-based and therefore fail closed;

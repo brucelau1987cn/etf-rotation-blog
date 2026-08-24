@@ -36,11 +36,15 @@ def main() -> None:
     by_code = {str(row.get("股票代码")): row for row in source.get("datas", [])}
     missing = [code for code in payload["intersection"] if code not in by_code]
     if missing:
-        raise SystemExit(f"missing financial rows: {missing}")
+        # 财务数据缺失不再中断发布：缺的股票 financials 留空，页面显示「—」/筛选不满足。
+        print(
+            f"  financials: {len(missing)} 只缺财务数据，字段留空（不阻断）",
+            flush=True,
+        )
 
     report_period = None
     for code in payload["intersection"]:
-        row = by_code[code]
+        row = by_code.get(code) or {}
         roe = field_first(row, ("加权净资产收益率", "净资产收益率roe"))
         net_margin = field_first(row, ("销售净利率",))
         cash_flow = field_first(row, ("经营活动产生的现金流量净额",))
