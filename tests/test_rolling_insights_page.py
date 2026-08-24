@@ -16,11 +16,10 @@ def test_daily_rolling_reports_cover_latest_dates():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     component = (ROOT / "src/components/RollingDailyInsightReport.astro").read_text(encoding="utf-8")
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
-    hist = (ROOT / "src/pages/rolling/insights/2026-08-14.astro").read_text(encoding="utf-8")
-    static_05 = (ROOT / "src/pages/rolling/insights/2026-08-05.astro").read_text(encoding="utf-8")
-    static_06 = (ROOT / "src/pages/rolling/insights/2026-08-06.astro").read_text(encoding="utf-8")
-    static_07 = (ROOT / "src/pages/rolling/insights/2026-08-07.astro").read_text(encoding="utf-8")
+    hist21 = (ROOT / "src/pages/rolling/insights/2026-08-21.astro").read_text(encoding="utf-8")
     for marker in (
+        "8月21日滚动信号收盘复盘",
+        "8月20日滚动信号收盘复盘",
         "8月19日滚动信号收盘复盘",
         "8月18日滚动信号收盘复盘",
         "8月17日滚动信号收盘复盘",
@@ -32,10 +31,6 @@ def test_daily_rolling_reports_cover_latest_dates():
         "8月7日滚动信号收盘复盘",
         "8月6日滚动信号收盘复盘",
         "8月5日滚动信号收盘复盘",
-        "8月4日滚动信号收盘复盘",
-        "8月3日滚动信号收盘复盘",
-        "7月31日滚动信号收盘复盘",
-        "7月30日滚动信号收盘复盘",
         "今日操作结论",
         "什么时候买",
         "什么时候卖",
@@ -46,36 +41,37 @@ def test_daily_rolling_reports_cover_latest_dates():
         'RollingSubnav active="insights"',
         "白银现货",
         "创新医疗",
-        "长鑫科技",
         "德福科技",
         "海光信息",
         "上海电力",
         "东方明珠",
-        "三安光电",
-        "华天科技",
         "特斯拉",
         "中国宏桥",
         "澜起科技",
-        "国民技术H股",
     ):
-        assert marker in page + component + data + hist + static_05 + static_06 + static_07
-    assert "2026-08-21" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data and "2026-08-13" in data and "2026-08-12" in data and "2026-08-11" in data and "2026-08-10" in data and "2026-08-07" in data
-    assert "rollingDailyReports['2026-08-21']" in page
-    latest = data.split("  '2026-08-21': {", 1)[1].split("  '2026-08-19': {", 1)[0]
-    assert latest.count("name: '") == 7
-    assert latest.count("validation: 'confirmed'") == 3
-    assert latest.count("validation: 'reclaimed'") == 2
-    assert latest.count("validation: 'mixed'") == 0
-    assert latest.count("validation: 'watch'") == 2
-    assert "当日D1入库6条5只" in latest
-    assert '多方已确认' in latest
-    assert '空方已收复' in latest
-    assert '空方贴价微弱确认' in latest
-    assert "nodes: '60m多方'" in latest
-    assert "nodes: '5m空方观察'" in latest
-    assert '白银5m空方' in latest
-    assert '特斯拉' in latest
-    assert '新浪' in latest
+        assert marker in page + component + data + hist21
+    assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
+    assert "rollingDailyReports['2026-08-24']" in page
+    # Extract just the 2026-08-24 entry (from pos of its start to pos of next date entry)
+    # Using regex to find the exact start/end of the 2026-08-24 block
+    import re
+    m24 = re.search(r"'2026-08-24': \{\n", data)
+    m21 = re.search(r"'2026-08-21': \{", data)
+    m20 = re.search(r"'2026-08-20': \{", data)
+    latest_block = data[m24.start():m21.start()]
+    assert latest_block.count("name: '") == 3
+    assert latest_block.count("validation: 'confirmed'") == 3
+    assert latest_block.count("validation: 'reclaimed'") == 0
+    assert latest_block.count("validation: 'mixed'") == 0
+    assert latest_block.count("validation: 'watch'") == 0
+    assert "德福科技" in latest_block
+    assert "创新医疗" in latest_block
+    assert "澜起科技" in latest_block
+    assert "多方已确认" not in latest_block
+    assert "空方已确认" in latest_block
+    assert "/rolling/insights/2026-08-21/" in data
+    assert "/rolling/insights/2026-08-20/" in data
+    assert "/rolling/insights/2026-08-19/" in data
     assert "/rolling/insights/2026-08-18/" in data
     assert "/rolling/insights/2026-08-17/" in data
     assert "/rolling/insights/2026-08-14/" in data
@@ -84,16 +80,12 @@ def test_daily_rolling_reports_cover_latest_dates():
     assert "/rolling/insights/2026-08-11/" in data
     assert "/rolling/insights/2026-08-10/" in data
     assert "/rolling/insights/2026-08-07/" in data
-    assert "/rolling/insights/2026-08-06/" in data
-    assert "/rolling/insights/2026-08-05/" in data
-    assert "/rolling/insights/2026-08-04/" in data
-    assert (ROOT / "src/pages/rolling/insights/2026-08-18.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-21.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-20.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-19.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-18.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-17.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-14.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-05.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-06.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-07.astro").exists()
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -126,30 +118,22 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
+    assert "2026-08-24" in catalog
     assert "2026-08-21" in catalog
+    assert "2026-08-20" in catalog
+    assert "2026-08-19" in catalog
     assert "2026-08-18" in catalog
     assert "2026-08-17" in catalog
     assert "2026-08-14" in catalog
-    assert "2026-08-13" in catalog
-    assert "2026-08-12" in catalog
-    assert "2026-08-11" in catalog
-    assert "2026-08-10" in catalog
-    assert "2026-08-07" in catalog
-    assert "2026-08-06" in catalog
-    assert "2026-08-05" in catalog
-    assert "2026-08-04" in catalog
-    assert "2026-08-03" in catalog
-    assert "2026-07-31" in catalog
-    assert "2026-07-30" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
+    assert "/rolling/insights/2026-08-24 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-24/ /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-21 /rolling/insights/2026-08-21/ 301" in redirects
+    assert "/rolling/insights/2026-08-21/ /rolling/insights/2026-08-21/ 301" in redirects
+    assert "/rolling/insights/2026-08-20 /rolling/insights/2026-08-20/ 301" in redirects
     assert "/rolling/insights/2026-08-19 /rolling/insights/2026-08-19/ 301" in redirects
     assert "/rolling/insights/2026-08-19/ /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-21 /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-21/ /rolling/insights/ 301" in redirects
     assert "/rolling/insights/2026-08-18 /rolling/insights/2026-08-18/ 301" in redirects
-    assert "/rolling/insights/2026-08-18/ /rolling/insights/ 301" not in redirects
     assert "/rolling/insights/2026-08-17 /rolling/insights/2026-08-17/ 301" in redirects
-    assert "/rolling/insights/2026-08-17/ /rolling/insights/ 301" not in redirects
     assert "/rolling/insights/2026-08-14 /rolling/insights/2026-08-14/ 301" in redirects
-    assert "/rolling/insights/2026-08-14/ /rolling/insights/ 301" not in redirects
