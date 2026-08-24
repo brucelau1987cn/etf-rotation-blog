@@ -1,12 +1,12 @@
 ---
-import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
-import Header from '../../components/Header.astro';
-import RollingDailyInsightReport from '../../components/RollingDailyInsightReport.astro';
-import RollingSubnav from '../../components/RollingSubnav.astro';
-import { SITE_TITLE } from '../../consts';
-import { rollingDailyReports } from '../../data/rolling-daily-insights';
-import '../../styles/rolling-insights.css';
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+import '../../../styles/rolling-insights.css';
 
 const report = rollingDailyReports['2026-08-21'];
 const title = `${report.title} | ${SITE_TITLE}`;
