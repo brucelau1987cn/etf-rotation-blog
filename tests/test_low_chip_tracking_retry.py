@@ -164,6 +164,41 @@ def test_tencent_daily_retries_payload_with_no_bar_in_requested_window():
     assert sleeps == [1.0]
 
 
+def test_tracking_tests_never_hit_live_iwencai(tmp_path, monkeypatch):
+    """守卫：main() 的所有外部数据源必须可 mock，单测不得发真实网络请求。
+
+    2026-08-25 事故：本文件 4 个用例 mock 了 tencent_daily / iwencai_profit_ratio
+    却漏了 fetch_current_year_profit，导致每次跑发布器都真实查询 iWenCai，
+    白烧当日额度；额度耗尽后又反过来拖垮整条低筹码发布链路。
+    """
+    module = load_module()
+    history = tmp_path / "history"
+    history.mkdir()
+    (history / "2026-01-02.json").write_text(json.dumps({
+        "data_as_of": "2026-01-02",
+        "intersection": ["000012.SZ"],
+        "enrichments": {"000012.SZ": {"industry": "测试", "financials": {}, "shareholder_metrics": {}}},
+        "periods": {"week": [{"symbol": "000012.SZ", "name": "测试股"}]},
+    }), encoding="utf-8")
+    data_path = tmp_path / "tracking.json"
+    monkeypatch.setattr(module, "HISTORY_DIR", history)
+    monkeypatch.setattr(module, "DATA", data_path)
+
+    # 任何真实外部调用都让用例失败
+    def forbid_subprocess(*_a, **_kw):
+        pytest.fail("unit test attempted a real subprocess/network call")
+
+    monkeypatch.setattr(module.subprocess, "run", forbid_subprocess)
+    monkeypatch.setattr(module, "tencent_daily", lambda *_a, **_kw: [
+        {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0},
+    ])
+    monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
+
+    assert module.main() == 0
+    assert data_path.exists()
+
+
 def test_tracking_main_preserves_existing_bars_when_tencent_returns_nothing(tmp_path, monkeypatch):
     """Regression: empty Tencent response must not erase already-saved history rows."""
     module = load_module()
@@ -188,6 +223,7 @@ def test_tracking_main_preserves_existing_bars_when_tencent_returns_nothing(tmp_
         return []
     monkeypatch.setattr(module, "tencent_daily", fake_no_bars)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **__kw: None)
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
     rc = module.main()
     result = json.loads(module.DATA.read_text())
     existing = result["stocks"]["000012.SZ"]["daily"]
@@ -247,6 +283,7 @@ def test_tracking_main_preserves_dates_missing_from_partial_tencent_reply(tmp_pa
         {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
     ])
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
     result = json.loads(data_path.read_text(encoding="utf-8"))
@@ -276,6 +313,7 @@ def test_duplicate_daily_dates_do_not_mark_tracking_complete(tmp_path, monkeypat
         {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
     ] * 21)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
     assert calls == [True]
@@ -368,6 +406,7 @@ def test_tracking_main_skips_tencent_for_completed_21_bar_records(tmp_path, monk
     monkeypatch.setattr(module, "HISTORY_DIR", history_dir)
     monkeypatch.setattr(module, "DATA", data_path)
     monkeypatch.setattr(module, "tencent_daily", lambda *_args, **_kwargs: pytest.fail("completed record queried Tencent"))
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
     result = json.loads(data_path.read_text(encoding="utf-8"))
