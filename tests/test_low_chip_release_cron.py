@@ -220,6 +220,42 @@ def test_rollback_refuses_to_overwrite_concurrent_head(monkeypatch, tmp_path):
     assert ['git', 'reset', '--mixed', 'base-sha'] not in calls
 
 
+def test_low_chip_build_uses_last_iwencai_key_from_pool(monkeypatch):
+    module = load_module()
+    captured = []
+
+    def fake_run(args, timeout=900, env=None):
+        captured.append((args, env))
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setenv('IWENCAI_APIKEYS', json.dumps(['key-first', 'key-middle', 'key-last']))
+    env = module.iwencai_last_key_env()
+    module.run([module.sys.executable, 'scripts/build_low_chip_base.py', '2026-08-25'], 900, env=env)
+
+    assert captured[0][1]['IWENCAI_API_KEY'] == 'key-last'
+    assert captured[0][1]['IWENCAI_APIKEYS'] == json.dumps(['key-first', 'key-middle', 'key-last'])
+
+
+def test_low_chip_build_loads_last_key_from_credentials_file(tmp_path, monkeypatch):
+    module = load_module()
+    credentials = tmp_path / 'credentials.env'
+    credentials.write_text(
+        "export IWENCAI_APIKEYS\nIWENCAI_APIKEYS='[\"key-first\",\"key-last\"]'\n",
+        encoding='utf-8',
+    )
+    monkeypatch.delenv('IWENCAI_APIKEYS', raising=False)
+    env = module.iwencai_last_key_env(credentials)
+    assert env['IWENCAI_API_KEY'] == 'key-last'
+
+
+def test_low_chip_build_rejects_missing_iwencai_pool(tmp_path, monkeypatch):
+    module = load_module()
+    monkeypatch.delenv('IWENCAI_APIKEYS', raising=False)
+    with pytest.raises(RuntimeError, match='IWENCAI_APIKEYS'):
+        module.iwencai_last_key_env(tmp_path / 'missing.env')
+
+
 def test_main_restores_backup_after_precommit_failure(monkeypatch):
     module = load_module()
     restored = []
