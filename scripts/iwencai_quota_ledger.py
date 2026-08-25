@@ -13,7 +13,7 @@
   2. `--report`    查看今日/近期用量
   3. `--check N`   预检：本次预计消耗 N 次，若会超出安全水位则非零退出
 
-额度口径：8 keys × 150 次/天 = 1200 次/天，Asia/Shanghai 零点自然日重置。
+额度口径：优先 key 1000 次/天，其余 key 各 100 次/天；10 keys 总计 1900 次/天。
 """
 from __future__ import annotations
 
@@ -29,7 +29,8 @@ CN = ZoneInfo("Asia/Shanghai")
 STATE = Path.home() / ".hermes" / "state" / "iwencai-usage.json"
 KEY_INDEX = Path.home() / ".hermes" / "state" / "iwencai-key-index"
 
-PER_KEY_LIMIT = 150
+PRIMARY_KEY_LIMIT = 1000
+REGULAR_KEY_LIMIT = 100
 # 安全水位：留 15% 余量给夜间链路与重试，避免把额度用到刚好卡死。
 SAFETY_RATIO = 0.85
 
@@ -44,11 +45,18 @@ def key_count() -> int:
     declared = os.environ.get("IWENCAI_APIKEY_COUNT")
     if declared and declared.isdigit():
         return int(declared)
-    return 8
+    return 10
+
+
+def key_limits() -> list[int]:
+    count = key_count()
+    if count <= 0:
+        return []
+    return [PRIMARY_KEY_LIMIT] + [REGULAR_KEY_LIMIT] * (count - 1)
 
 
 def daily_capacity() -> int:
-    return key_count() * PER_KEY_LIMIT
+    return sum(key_limits())
 
 
 def today() -> str:
@@ -105,7 +113,7 @@ def report(data: dict) -> dict:
     return {
         "date": today(),
         "keys": key_count(),
-        "per_key_limit": PER_KEY_LIMIT,
+        "key_limits": key_limits(),
         "capacity": cap,
         "used": used,
         "remaining": cap - used,

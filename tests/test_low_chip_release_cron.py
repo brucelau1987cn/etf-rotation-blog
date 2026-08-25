@@ -220,18 +220,20 @@ def test_rollback_refuses_to_overwrite_concurrent_head(monkeypatch, tmp_path):
     assert ['git', 'reset', '--mixed', 'base-sha'] not in calls
 
 
-def test_low_chip_pipeline_pins_last_iwencai_key_for_all_subprocesses(monkeypatch):
+def test_low_chip_pipeline_loads_rotation_pool_without_fixed_key(monkeypatch):
     module = load_module()
-    monkeypatch.setenv('IWENCAI_APIKEYS', json.dumps(['key-first', 'key-middle', 'key-last']))
+    monkeypatch.setenv('IWENCAI_APIKEYS', json.dumps(['key-high', 'key-regular']))
+    monkeypatch.setenv('IWENCAI_API_KEY', 'stale-fixed-key')
 
-    selected = module.pin_iwencai_last_key()
+    keys = module.configure_iwencai_rotation()
 
-    assert selected == 'key-last'
-    assert module.os.environ['IWENCAI_API_KEY'] == 'key-last'
+    assert keys == ['key-high', 'key-regular']
+    assert module.os.environ['IWENCAI_APIKEYS'] == json.dumps(['key-high', 'key-regular'])
+    assert 'IWENCAI_API_KEY' not in module.os.environ
     assert module.run.__defaults__[1] is None  # subprocesses inherit the pinned process environment
 
 
-def test_low_chip_build_loads_last_key_from_credentials_file(tmp_path, monkeypatch):
+def test_low_chip_build_loads_rotation_pool_from_credentials_file(tmp_path, monkeypatch):
     module = load_module()
     credentials = tmp_path / 'credentials.env'
     credentials.write_text(
@@ -239,16 +241,16 @@ def test_low_chip_build_loads_last_key_from_credentials_file(tmp_path, monkeypat
         encoding='utf-8',
     )
     monkeypatch.delenv('IWENCAI_APIKEYS', raising=False)
-    selected = module.pin_iwencai_last_key(credentials)
-    assert selected == 'key-last'
-    assert module.os.environ['IWENCAI_API_KEY'] == 'key-last'
+    keys = module.configure_iwencai_rotation(credentials)
+    assert keys == ['key-first', 'key-last']
+    assert 'IWENCAI_API_KEY' not in module.os.environ
 
 
 def test_low_chip_build_rejects_missing_iwencai_pool(tmp_path, monkeypatch):
     module = load_module()
     monkeypatch.delenv('IWENCAI_APIKEYS', raising=False)
     with pytest.raises(RuntimeError, match='IWENCAI_APIKEYS'):
-        module.pin_iwencai_last_key(tmp_path / 'missing.env')
+        module.configure_iwencai_rotation(tmp_path / 'missing.env')
 
 
 def test_main_restores_backup_after_precommit_failure(monkeypatch):

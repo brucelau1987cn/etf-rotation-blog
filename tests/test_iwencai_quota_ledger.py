@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/iwencai_quota_ledger.py"
 
 
-def load_module(tmp_state: Path, monkeypatch, keys: int = 8):
+def load_module(tmp_state: Path, monkeypatch, keys: int = 10):
     spec = importlib.util.spec_from_file_location("iwencai_quota_ledger", SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -20,9 +20,10 @@ def load_module(tmp_state: Path, monkeypatch, keys: int = 8):
 
 
 def test_capacity_derives_from_key_count(tmp_path, monkeypatch):
-    module = load_module(tmp_path / "usage.json", monkeypatch, keys=8)
-    assert module.key_count() == 8
-    assert module.daily_capacity() == 1200
+    module = load_module(tmp_path / "usage.json", monkeypatch, keys=10)
+    assert module.key_count() == 10
+    assert module.key_limits() == [1000] + [100] * 9
+    assert module.daily_capacity() == 1900
 
 
 def test_record_accumulates_per_stage(tmp_path, monkeypatch):
@@ -33,18 +34,19 @@ def test_record_accumulates_per_stage(tmp_path, monkeypatch):
 
     info = module.report(module.load())
     assert info["used"] == 40
-    assert info["remaining"] == 1160
+    assert info["key_limits"] == [1000] + [100] * 9
+    assert info["remaining"] == 1860
     assert info["stages_today"] == {"build": 25, "enrich": 15}
 
 
 def test_check_blocks_when_projection_exceeds_safety_limit(tmp_path, monkeypatch):
     module = load_module(tmp_path / "usage.json", monkeypatch)
-    # capacity 1200, safety limit = 1020
-    module.record(1000, "earlier")
+    # capacity 1900, safety limit = 1615
+    module.record(1600, "earlier")
     info = module.report(module.load())
-    assert info["safety_limit"] == 1020
+    assert info["safety_limit"] == 1615
 
-    # 30 more keeps us at 1030 > 1020 -> must block
+    # 30 more reaches 1630 > 1615 -> must block
     projected = info["used"] + 30
     assert projected > info["safety_limit"]
 
