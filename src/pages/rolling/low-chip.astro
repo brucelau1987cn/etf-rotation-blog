@@ -180,15 +180,14 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         </div>
 
         <div class="chip-financial-filters" id="chip-financial-filters" aria-label="财务与股东条件筛选">
+          <button type="button" class="chip-filter-btn" data-filter="rsi" aria-pressed="false">RSI ≤ 30</button>
+          <button type="button" class="chip-filter-btn" data-filter="outer-inner" aria-pressed="false">外盘 &gt; 内盘 1.5倍</button>
           <button type="button" class="chip-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
-          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+          <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
           <button type="button" class="chip-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 3%</button>
-          <button type="button" class="chip-filter-btn" data-filter="rsi" aria-pressed="false">RSI ≤ 25%</button>
-          <button type="button" class="chip-filter-btn" data-filter="outer-inner" aria-pressed="false">外盘 &gt; 内盘 1.5倍</button>
-          <button type="button" class="chip-filter-btn" data-filter="change-20d" aria-pressed="false">近20日跌幅 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -211,7 +210,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               data-year-profit={row.yearProfit ?? ''}
               data-rsi={row.technical.rsi ?? ''}
               data-outer-inner={row.technical.outer_inner_ratio ?? ''}
-              data-change-20d={row.technical.change_20d ?? ''}
+
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -509,9 +508,8 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
           if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 30)) return false;
           if (activeFilters.has('year-profit') && (c.dataset.yearProfit === '' || !Number.isFinite(Number(c.dataset.yearProfit)) || Number(c.dataset.yearProfit) > 3)) return false;
-          if (activeFilters.has('rsi') && (c.dataset.rsi === '' || !Number.isFinite(Number(c.dataset.rsi)) || Number(c.dataset.rsi) > 25)) return false;
+          if (activeFilters.has('rsi') && (c.dataset.rsi === '' || !Number.isFinite(Number(c.dataset.rsi)) || Number(c.dataset.rsi) > 30)) return false;
           if (activeFilters.has('outer-inner') && (c.dataset.outerInner === '' || !Number.isFinite(Number(c.dataset.outerInner)) || Number(c.dataset.outerInner) < 1.5)) return false;
-          if (activeFilters.has('change-20d') && (c.dataset.change20d === '' || !Number.isFinite(Number(c.dataset.change20d)) || Number(c.dataset.change20d) > -15)) return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;

@@ -156,14 +156,13 @@ def test_low_chip_financial_filter_controls_and_logic():
         'data-filter="year-profit"',
         'data-filter="rsi"',
         'data-filter="outer-inner"',
-        'data-filter="change-20d"',
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         'data-quality-shareholder=',
         'data-institutional-shareholder=',
         'data-rsi=',
         'data-outer-inner=',
-        'data-change-20d=',
+
         'id="chip-filter-reset"',
         'id="chip-filter-meta"',
         'ROE ≥ 15%',
@@ -172,9 +171,8 @@ def test_low_chip_financial_filter_controls_and_logic():
         '毛利率 ≥ 15%',
         '负债率 ≤ 30%',
         'K年 ≤ 3%',
-        'RSI ≤ 25%',
+        'RSI ≤ 30',
         '外盘 &gt; 内盘 1.5倍',
-        '近20日跌幅 ≥ 15%',
         'var activeFilters = new Set()',
         "activeFilters.has('roe')",
         "activeFilters.has('net-margin')",
@@ -183,25 +181,38 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.has('debt-ratio')",
         "activeFilters.has('rsi')",
         "activeFilters.has('outer-inner')",
-        "activeFilters.has('change-20d')",
+
         "activeFilters.has('quality-shareholder')",
         "activeFilters.has('institutional-shareholder')",
         "filterButtons.forEach(function(btn)",
         "activeFilters.clear()",
     ):
         assert marker in page
-    assert page.count('class="chip-filter-btn"') == 11
-    assert page.count('aria-pressed="false"') >= 11
+    assert page.count('class="chip-filter-btn"') == 10
+    assert page.count('aria-pressed="false"') >= 10
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page
     assert "Number(c.dataset.roe) < 15" in page
     assert "Number(c.dataset.netMargin) < 15" in page
     assert "Number(c.dataset.debtRatio) > 30" in page
     assert "Number(c.dataset.yearProfit) > 3" in page
-    assert "Number(c.dataset.rsi) > 25" in page
+    assert "Number(c.dataset.rsi) > 30" in page
     assert "Number(c.dataset.outerInner) < 1.5" in page
-    assert "Number(c.dataset.change20d) > -15" in page
-    assert page.index('data-filter="debt-ratio"') < page.index('data-filter="year-profit"') < page.index('data-filter="rsi"') < page.index('data-filter="quality-shareholder"')
+    expected_order = [
+        'data-filter="rsi"',
+        'data-filter="outer-inner"',
+        'data-filter="roe"',
+        'data-filter="cash-profit"',
+        'data-filter="net-margin"',
+        'data-filter="gross-margin"',
+        'data-filter="debt-ratio"',
+        'data-filter="year-profit"',
+        'data-filter="quality-shareholder"',
+        'data-filter="institutional-shareholder"',
+    ]
+    assert [page.index(marker) for marker in expected_order] == sorted(page.index(marker) for marker in expected_order)
+    assert 'data-filter="change-20d"' not in page
+    assert "activeFilters.has('change-20d')" not in page
 
 
 def test_low_chip_search_supports_guo_tou_zi_ben_initials():
