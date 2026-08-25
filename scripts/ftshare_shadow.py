@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect FTShare read-only data into an isolated research shadow snapshot."""
+"""Collect FTShare SDK data into an isolated research shadow snapshot."""
 from __future__ import annotations
 
 import argparse
@@ -8,169 +8,128 @@ import json
 import os
 import tempfile
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = ROOT / "public/data/a-low-chip-stocks.json"
 DEFAULT_OUTPUT = ROOT / "public/data/ftshare-shadow.json"
-MCP_URL = "https://market.ft.tech/gateway/mcp"
-PROTOCOL_VERSION = "2025-03-26"
+SDK_BASE_URL = "https://market.ft.tech/gateway/"
+SDK_VERSION = "0.1.1"
 CN = ZoneInfo("Asia/Shanghai")
 
 
-class FTShareToolError(RuntimeError):
-    def __init__(self, code: str, message: str, retryable: bool = False):
-        super().__init__(f"{code}: {message}")
-        self.code = code
-        self.message = message
-        self.retryable = retryable
-
-    def as_dict(self) -> dict[str, Any]:
-        return {"code": self.code, "message": self.message, "retryable": self.retryable}
-
-
-def parse_sse_json(text: str) -> dict[str, Any]:
-    payloads = []
-    for line in text.splitlines():
-        if not line.startswith("data:"):
-            continue
-        value = line[5:].strip()
-        if not value.startswith("{"):
-            continue
-        payloads.append(json.loads(value))
-    if not payloads:
-        raise RuntimeError("FTShare MCP response contains no JSON data event")
-    error_payload = next((payload for payload in payloads if payload.get("error")), None)
-    if error_payload is not None and error_payload is not payloads[-1]:
-        raise RuntimeError(f"FTShare MCP JSON-RPC error: {error_payload['error']}")
-    return payloads[-1]
+def create_retry_session() -> requests.Session:
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=frozenset({"GET", "POST"}),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
-class FTShareMCPClient:
-    def __init__(self, url: str = MCP_URL, timeout: int = 60):
-        self.url = url
-        self.timeout = timeout
-        self.session_id = ""
-        self.protocol_version = PROTOCOL_VERSION
-        self._next_id = 1
-        self._initialize()
+def create_sdk_client(timeout: int):
+    from ftshare.client import FtshareClient
 
-    def _post(self, payload: dict[str, Any], *, expect_json: bool = True) -> tuple[dict[str, Any] | None, Any]:
-        headers = {
-            "content-type": "application/json",
-            "accept": "application/json, text/event-stream",
-        }
-        if self.session_id:
-            headers["mcp-session-id"] = self.session_id
-            headers["mcp-protocol-version"] = self.protocol_version
-        request = urllib.request.Request(
-            self.url,
-            data=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
-            method="POST",
-            headers=headers,
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                body = response.read().decode("utf-8", "replace")
-                response_headers = response.headers
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", "replace")
-            raise RuntimeError(f"FTShare MCP HTTP {exc.code}: {body[:300]}") from exc
-        if not self.session_id:
-            self.session_id = response_headers.get("mcp-session-id", "")
-        if not expect_json or not body.strip():
-            return None, response_headers
-        return parse_sse_json(body), response_headers
-
-    def _initialize(self) -> None:
-        payload = {
-            "jsonrpc": "2.0",
-            "id": self._next_id,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {},
-                "clientInfo": {"name": "etf-compass-ftshare-shadow", "version": "1.0"},
-            },
-        }
-        self._next_id += 1
-        response, _headers = self._post(payload)
-        result = (response or {}).get("result") or {}
-        self.protocol_version = str(result.get("protocolVersion") or PROTOCOL_VERSION)
-        if not self.session_id:
-            raise RuntimeError("FTShare MCP initialize did not return Mcp-Session-Id")
-        self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}, expect_json=False)
-
-    def _rpc(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        payload = {"jsonrpc": "2.0", "id": self._next_id, "method": method, "params": params or {}}
-        self._next_id += 1
-        response, _headers = self._post(payload)
-        if response is None:
-            raise RuntimeError(f"FTShare MCP {method} returned empty response")
-        if response.get("error"):
-            error = response["error"]
-            raise RuntimeError(f"FTShare MCP JSON-RPC error: {error}")
-        return response
-
-    def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        response = self._rpc("tools/call", {"name": name, "arguments": arguments})
-        result = response.get("result") or {}
-        if result.get("isError"):
-            error_obj: dict[str, Any] = {}
-            content = result.get("content") or []
-            if content and isinstance(content[0], dict):
-                try:
-                    parsed = json.loads(str(content[0].get("text") or "{}"))
-                    error_obj = parsed.get("error") or {}
-                except json.JSONDecodeError:
-                    error_obj = {}
-            raise FTShareToolError(
-                str(error_obj.get("code") or "TOOL_ERROR"),
-                str(error_obj.get("message") or f"FTShare tool {name} failed"),
-                bool(error_obj.get("retryable")),
-            )
-        structured = result.get("structuredContent") or result.get("structured_content")
-        if not isinstance(structured, dict):
-            content = result.get("content") or []
-            if content and isinstance(content[0], dict):
-                structured = json.loads(str(content[0].get("text") or "{}"))
-        if not isinstance(structured, dict) or not isinstance(structured.get("data"), list):
-            raise RuntimeError(f"FTShare tool {name} returned invalid structured content")
-        return structured
+    return FtshareClient(base_url=SDK_BASE_URL, timeout=timeout, session=create_retry_session())
 
 
-def metadata_quality(structured: dict[str, Any]) -> dict[str, Any]:
-    metadata = structured.get("metadata") or {}
-    data = structured.get("data") or []
-    total = metadata.get("total")
-    returned = metadata.get("returned")
-    actual = len(data) if isinstance(data, list) else None
-    mismatch = False
-    if isinstance(returned, int) and isinstance(actual, int) and returned != actual:
-        mismatch = True
-    if isinstance(total, int) and isinstance(returned, int) and total != returned:
-        mismatch = True
-    truncated = bool(metadata.get("truncated"))
+def unwrap_sdk_rows(payload: Any) -> list[dict[str, Any]]:
+    rows = payload
+    if isinstance(payload, dict):
+        code = payload.get("code")
+        if code not in (None, 0, "0", 200, "200"):
+            raise RuntimeError(f"FTShare API error {code}: {payload.get('message')}")
+        rows = payload.get("data")
+        if isinstance(rows, dict):
+            if isinstance(rows.get("records"), list):
+                rows = rows["records"]
+            elif isinstance(rows.get("items"), list):
+                rows = rows["items"]
+        if rows is None and isinstance(payload.get("items"), list):
+            rows = payload["items"]
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise RuntimeError("FTShare SDK returned invalid row payload")
+    return rows
+
+
+def unwrap_paginated_sdk_pages(payloads: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    pages = payloads if isinstance(payloads, list) else [payloads]
+    if not pages or any(not isinstance(page, dict) for page in pages):
+        raise RuntimeError("FTShare SDK returned invalid paginated payload")
+    rows: list[dict[str, Any]] = []
+    expected_total: int | None = None
+    expected_pages: int | None = None
+    for page in pages:
+        code = page.get("code")
+        if code not in (None, 0, "0", 200, "200"):
+            raise RuntimeError(f"FTShare API error {code}: {page.get('message')}")
+        data = page.get("data")
+        if not isinstance(data, dict):
+            raise RuntimeError("FTShare SDK returned invalid paginated data")
+        page_rows = data.get("records") if isinstance(data.get("records"), list) else data.get("items")
+        if not isinstance(page_rows, list) or any(not isinstance(row, dict) for row in page_rows):
+            raise RuntimeError("FTShare SDK returned invalid paginated rows")
+        rows.extend(page_rows)
+        if expected_total is None and data.get("total") is not None:
+            expected_total = int(data["total"])
+        if expected_total is None and data.get("total_items") is not None:
+            expected_total = int(data["total_items"])
+        if expected_pages is None and data.get("pages") is not None:
+            expected_pages = int(data["pages"])
+        if expected_pages is None and data.get("total_pages") is not None:
+            expected_pages = int(data["total_pages"])
+    fetched_pages = len(pages)
+    page_cap_reached = expected_pages is not None and fetched_pages < expected_pages
+    count_mismatch = expected_total is not None and len(rows) != expected_total
+    quality = {
+        "total": expected_total,
+        "returned": len(rows),
+        "actual": len(rows),
+        "pages": expected_pages,
+        "fetched_pages": fetched_pages,
+        "page_cap_reached": page_cap_reached,
+        "truncated": page_cap_reached or count_mismatch,
+        "warnings": ["分页未完整拉取"] if page_cap_reached else [],
+        "count_mismatch": count_mismatch,
+        "complete": not page_cap_reached and not count_mismatch,
+    }
+    return rows, quality
+
+
+def rows_quality(rows: list[dict[str, Any]], *, expected: int | None = None) -> dict[str, Any]:
+    actual = len(rows)
+    mismatch = expected is not None and expected != actual
     return {
-        "total": total,
-        "returned": returned,
+        "total": actual if expected is None else expected,
+        "returned": actual,
         "actual": actual,
-        "truncated": truncated,
-        "warnings": list(metadata.get("warnings") or []),
+        "truncated": False,
+        "warnings": [],
         "count_mismatch": mismatch,
-        "complete": not truncated and not mismatch,
+        "complete": not mismatch,
     }
 
 
 def latest_row(rows: list[dict[str, Any]], *date_fields: str) -> dict[str, Any] | None:
-    valid = [row for row in rows if isinstance(row, dict)]
-    if not valid:
+    if not rows:
         return None
-    return max(valid, key=lambda row: tuple(str(row.get(field) or "") for field in date_fields))
+    return max(rows, key=lambda row: tuple(str(row.get(field) or "") for field in date_fields))
 
 
 def number(value: Any) -> float | None:
@@ -200,10 +159,17 @@ def compare_low_chip(source: dict[str, Any], collected: dict[str, Any]) -> dict[
         comparisons[symbol] = {
             "source_report_period": source_metrics.get("report_period"),
             "ftshare_report_period": holder.get("report_date"),
-            "report_period_match": bool(source_metrics.get("report_period")) and str(source_metrics.get("report_period")) == str(holder.get("report_date")),
-            "holder_count_delta": round(provider_count - source_count, 4) if provider_count is not None and source_count is not None else None,
-            "holder_change_pct_delta": round(provider_change - source_change, 4) if provider_change is not None and source_change is not None else None,
-            "top10_float_ratio_delta": round(provider_top10 - source_top10, 4) if provider_top10 is not None and source_top10 is not None else None,
+            "report_period_match": bool(source_metrics.get("report_period"))
+            and str(source_metrics.get("report_period")) == str(holder.get("report_date")),
+            "holder_count_delta": round(provider_count - source_count, 4)
+            if provider_count is not None and source_count is not None
+            else None,
+            "holder_change_pct_delta": round(provider_change - source_change, 4)
+            if provider_change is not None and source_change is not None
+            else None,
+            "top10_float_ratio_delta": round(provider_top10 - source_top10, 4)
+            if provider_top10 is not None and source_top10 is not None
+            else None,
         }
     return {"compared": len(comparisons), "items": comparisons}
 
@@ -219,7 +185,15 @@ def count_low_chip_incomplete(collected: dict[str, Any]) -> int:
     return count
 
 
-def collect_low_chip(client: FTShareMCPClient, symbols: list[str], sleep_seconds: float = 0.15) -> dict[str, Any]:
+def error_dict(exc: Exception) -> dict[str, Any]:
+    return {
+        "code": type(exc).__name__,
+        "message": str(exc),
+        "retryable": type(exc).__name__ in {"ConnectionError", "ConnectTimeout", "ReadTimeout", "Timeout"},
+    }
+
+
+def collect_low_chip(client: Any, symbols: list[str], sleep_seconds: float = 0.15) -> dict[str, Any]:
     items: dict[str, Any] = {}
     errors: dict[str, Any] = {}
     holder_success = 0
@@ -228,29 +202,37 @@ def collect_low_chip(client: FTShareMCPClient, symbols: list[str], sleep_seconds
         item: dict[str, Any] = {"symbol": symbol, "quality": {}}
         symbol_errors: dict[str, Any] = {}
         try:
-            holder = client.call_tool("ft_stock_holders_number", {"stock_code": symbol})
-            item["holder_latest"] = latest_row(holder["data"], "publish_date", "report_date")
-            item["holder_history_count"] = len(holder["data"])
-            item["quality"]["holder"] = metadata_quality(holder)
+            payloads = client.stock_holders_number(
+                stock_code=symbol,
+                all_pages=True,
+                page_size=200,
+                max_pages=100,
+                raw=True,
+            )
+            rows, quality = unwrap_paginated_sdk_pages(payloads)
+            item["holder_latest"] = latest_row(rows, "publish_date", "report_date")
+            item["holder_history_count"] = len(rows)
+            item["quality"]["holder"] = quality
             holder_success += 1
-        except FTShareToolError as exc:
-            symbol_errors["holders"] = exc.as_dict()
         except Exception as exc:  # noqa: BLE001
-            symbol_errors["holders"] = {"code": type(exc).__name__, "message": str(exc), "retryable": False}
+            symbol_errors["holders"] = error_dict(exc)
         if sleep_seconds:
             time.sleep(sleep_seconds)
         try:
-            float_holder = client.call_tool("ft_stock_float_holders", {"stock_code": symbol})
-            item["float_holder_latest"] = latest_row(float_holder["data"], "publish_date")
-            item["float_holder_history_count"] = len(float_holder["data"])
-            quality = metadata_quality(float_holder)
+            payloads = client.stock_float_holders(
+                stock_code=symbol,
+                all_pages=True,
+                page_size=200,
+                max_pages=100,
+                raw=True,
+            )
+            rows, quality = unwrap_paginated_sdk_pages(payloads)
+            item["float_holder_latest"] = latest_row(rows, "publish_date")
+            item["float_holder_history_count"] = len(rows)
             item["quality"]["float_holder"] = quality
-            item["quality"]["float_holder_truncated"] = quality["truncated"]
             float_success += 1
-        except FTShareToolError as exc:
-            symbol_errors["float_holders"] = exc.as_dict()
         except Exception as exc:  # noqa: BLE001
-            symbol_errors["float_holders"] = {"code": type(exc).__name__, "message": str(exc), "retryable": False}
+            symbol_errors["float_holders"] = error_dict(exc)
         items[symbol] = item
         if symbol_errors:
             errors[symbol] = symbol_errors
@@ -265,22 +247,31 @@ def collect_low_chip(client: FTShareMCPClient, symbols: list[str], sleep_seconds
     }
 
 
-def collect_market(client: FTShareMCPClient, trade_date: str, auction_page_size: int = 200) -> dict[str, Any]:
-    calls = {
-        "limit_up": ("ft_limit_up_pool", {"trade_date": trade_date}),
-        "limit_up_break": ("ft_limit_up_break_pool", {"trade_date": trade_date}),
-        "limit_down": ("ft_limit_down_pool", {"trade_date": trade_date}),
-        "auction": ("ft_auction_results", {"trade_date": trade_date, "page": 1, "page_size": auction_page_size}),
-    }
+def collect_market(client: Any, trade_date: str, auction_page_size: int = 200) -> dict[str, Any]:
     output: dict[str, Any] = {"trade_date": trade_date, "errors": {}}
-    for key, (tool, arguments) in calls.items():
+    calls = {
+        "limit_up": lambda: client.limit_up_pool(trade_date=trade_date, raw=True),
+        "limit_up_break": lambda: client.limit_up_break_pool(trade_date=trade_date, raw=True),
+        "limit_down": lambda: client.limit_down_pool(trade_date=trade_date, raw=True),
+        "auction": lambda: client.auction_results(
+            trade_date=trade_date,
+            all_pages=True,
+            page_size=auction_page_size,
+            max_pages=100,
+            raw=True,
+        ),
+    }
+    for key, call in calls.items():
         try:
-            structured = client.call_tool(tool, arguments)
-            output[key] = {"data": structured["data"], "quality": metadata_quality(structured)}
-        except FTShareToolError as exc:
-            output["errors"][key] = exc.as_dict()
+            payload = call()
+            if key == "auction":
+                rows, quality = unwrap_paginated_sdk_pages(payload)
+            else:
+                rows = unwrap_sdk_rows(payload)
+                quality = rows_quality(rows)
+            output[key] = {"data": rows, "quality": quality}
         except Exception as exc:  # noqa: BLE001
-            output["errors"][key] = {"code": type(exc).__name__, "message": str(exc), "retryable": False}
+            output["errors"][key] = error_dict(exc)
     output["summary"] = {
         f"{key}_returned": len(value.get("data") or [])
         for key, value in output.items()
@@ -324,13 +315,9 @@ def main() -> int:
 
     top_errors: dict[str, Any] = {}
     try:
-        client = FTShareMCPClient(timeout=args.timeout)
+        client = create_sdk_client(args.timeout)
     except Exception as exc:  # noqa: BLE001
-        top_errors["mcp_initialize"] = {
-            "code": type(exc).__name__,
-            "message": str(exc),
-            "retryable": isinstance(exc, (TimeoutError, urllib.error.URLError)),
-        }
+        top_errors["sdk_initialize"] = error_dict(exc)
         low_chip = {
             "requested": len(symbols),
             "holder_success": 0,
@@ -341,9 +328,15 @@ def main() -> int:
         }
         market = {"trade_date": trade_date, "errors": {}, "summary": {}}
     else:
-        low_chip = collect_low_chip(client, symbols, sleep_seconds=max(0, args.sleep_seconds))
-        low_chip["comparison"] = compare_low_chip(source, low_chip)
-        market = collect_market(client, trade_date)
+        try:
+            low_chip = collect_low_chip(client, symbols, sleep_seconds=max(0, args.sleep_seconds))
+            low_chip["comparison"] = compare_low_chip(source, low_chip)
+            market = collect_market(client, trade_date)
+        finally:
+            close = getattr(client, "close", None)
+            if callable(close):
+                close()
+
     quality_failures = len(low_chip["errors"]) + len(market["errors"])
     market_incomplete = sum(
         1
@@ -353,12 +346,18 @@ def main() -> int:
     low_chip_incomplete = count_low_chip_incomplete(low_chip)
     status = "ok" if quality_failures == 0 and market_incomplete == 0 and low_chip_incomplete == 0 and not top_errors else "degraded"
     payload = {
-        "schema_version": "ftshare-shadow-v1",
+        "schema_version": "ftshare-shadow-v2",
         "mode": "shadow_research_only",
         "production_change_allowed": False,
         "generated_at": dt.datetime.now(CN).isoformat(timespec="seconds"),
         "status": status,
-        "source": {"provider": "FTShare", "mcp_url": MCP_URL, "server_version": "0.1.1"},
+        "source": {
+            "provider": "FTShare",
+            "transport": "python-sdk",
+            "base_url": SDK_BASE_URL,
+            "sdk_version": SDK_VERSION,
+            "sdk_commit": "d9aa00d1bc12632d823d5ce76d39cc52a1546cbd",
+        },
         "errors": top_errors,
         "quality_summary": {
             "low_chip_incomplete_sections": low_chip_incomplete,
@@ -371,6 +370,7 @@ def main() -> int:
     atomic_write_json(args.output, payload)
     print(json.dumps({
         "status": status,
+        "transport": "python-sdk",
         "trade_date": trade_date,
         "low_chip_requested": low_chip["requested"],
         "holder_success": low_chip["holder_success"],
