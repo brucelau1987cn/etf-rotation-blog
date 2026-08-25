@@ -44,6 +44,9 @@ def parse_sse_json(text: str) -> dict[str, Any]:
         payloads.append(json.loads(value))
     if not payloads:
         raise RuntimeError("FTShare MCP response contains no JSON data event")
+    error_payload = next((payload for payload in payloads if payload.get("error")), None)
+    if error_payload is not None and error_payload is not payloads[-1]:
+        raise RuntimeError(f"FTShare MCP JSON-RPC error: {error_payload['error']}")
     return payloads[-1]
 
 

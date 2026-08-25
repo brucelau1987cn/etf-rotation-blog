@@ -28,6 +28,16 @@ def test_parse_sse_json_preserves_jsonrpc_error():
     assert mod.parse_sse_json(text)["error"]["code"] == -32602
 
 
+def test_parse_sse_json_rejects_error_before_later_result():
+    mod = load_module()
+    text = (
+        'data: {"jsonrpc":"2.0","id":2,"error":{"code":-32602,"message":"bad params"}}\n\n'
+        'data: {"jsonrpc":"2.0","id":2,"result":{"ok":true}}\n\n'
+    )
+    with pytest.raises(RuntimeError, match="JSON-RPC error"):
+        mod.parse_sse_json(text)
+
+
 def test_mcp_call_raises_structured_tool_error():
     mod = load_module()
     client = object.__new__(mod.FTShareMCPClient)
