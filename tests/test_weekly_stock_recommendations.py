@@ -15,6 +15,7 @@ def test_weekly_stock_recommendation_contract_and_initial_lists():
     assert payload["schema_version"] == "weekly-stock-recommendations-v1"
     assert payload["week_of"] == "2026-08-24"
     assert payload["tracking_policy"]["mode"] == "continuous"
+    assert payload["tracking_policy"]["start_date"] == "2026-08-24"
     a = payload["markets"]["A"]["items"]
     us = payload["markets"]["US"]["items"]
     assert len(a) == 16
@@ -30,10 +31,13 @@ def test_weekly_stock_recommendation_contract_and_initial_lists():
         for item in items:
             assert item["name"]
             assert item["direction"]
-            assert item["added_on"] == "2026-08-25"
+            assert item["added_on"] == "2026-08-24"
             assert item["status"] == "tracking"
             assert isinstance(item["daily"], list)
             assert item["daily"], f"{market} {item['symbol']} must have baseline data"
+            assert item["baseline_date"] == "2026-08-24"
+            assert item["daily"][0]["date"] == "2026-08-24"
+            assert item["daily"][0]["return_since_added_pct"] == 0.0
             assert {"date", "close", "change_pct", "return_since_added_pct"} <= set(item["daily"][-1])
 
 
