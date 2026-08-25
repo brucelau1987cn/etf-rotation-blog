@@ -153,6 +153,20 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "第{rec.daily.length}/20日" in tracking
     assert 'aria-valuemax="20"' in tracking
     assert "Math.max(0, 20 - rec.daily.length)" in tracking
+    assert 'data-filter="rsi"' in tracking
+    assert 'data-filter="outer-inner"' in tracking
+    expected_filters = [
+        'data-filter="rsi"', 'data-filter="outer-inner"', 'data-filter="roe"',
+        'data-filter="cash-profit"', 'data-filter="net-margin"', 'data-filter="gross-margin"',
+        'data-filter="debt-ratio"', 'data-filter="year-profit"',
+        'data-filter="quality-shareholder"', 'data-filter="institutional-shareholder"',
+    ]
+    assert [low_chip.index(marker) for marker in expected_filters] == sorted(low_chip.index(marker) for marker in expected_filters)
+    assert [tracking.index(marker) for marker in expected_filters] == sorted(tracking.index(marker) for marker in expected_filters)
+    assert "el.dataset.rsi !== ''" in tracking
+    assert "Number(el.dataset.rsi) <= 30" in tracking
+    assert "el.dataset.outerInner !== ''" in tracking
+    assert "Number(el.dataset.outerInner) >= 1.5" in tracking
     assert "el.dataset.roe !== ''" in tracking
     assert "el.dataset.netMargin !== ''" in tracking
     assert "Number(el.dataset.netMargin) >= 15" in tracking
@@ -190,6 +204,7 @@ def test_tracking_script_exists():
     spec.loader.exec_module(mod)
     assert mod.MAX_TRACK_BARS == 20
     assert mod.MAX_STORED_BARS == 21
+    assert 'r["entry_technical"] = dict(entry_enrichment.get("technical") or {})' in text
     assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
     # Tencent multi-day range with concrete end=today often drops the latest bar;
     # empty end in the fqkline param is the reliable form.
@@ -287,6 +302,7 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
     assert completed["daily"][-1]["date"] == "2026-01-21"
     assert completed["tracking_complete"] is True
     assert completed["entry_financials"]["roe"] == 31
+    assert completed["entry_technical"] == {}
 
 
 def test_tracking_page_has_batched_live_quote_layer():

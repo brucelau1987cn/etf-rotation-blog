@@ -386,6 +386,7 @@ def main() -> int:
             "main_force_label": entry_metrics.get("main_force_label") or "",
         }
         r["entry_financials"] = dict(entry_enrichment.get("financials") or {})
+        r["entry_technical"] = dict(entry_enrichment.get("technical") or {})
 
     current_year_profit = fetch_current_year_profit(sorted(stocks))
     for sym, r in stocks.items():

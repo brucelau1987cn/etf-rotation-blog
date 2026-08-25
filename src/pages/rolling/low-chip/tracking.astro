@@ -157,9 +157,11 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
       </div>
 
       <div class="tc-financial-filters" id="tc-financial-filters" aria-label="财务与股东条件筛选">
+        <button type="button" class="tc-filter-btn" data-filter="rsi" aria-pressed="false">RSI ≤ 30</button>
+        <button type="button" class="tc-filter-btn" data-filter="outer-inner" aria-pressed="false">外盘 &gt; 内盘 1.5倍</button>
         <button type="button" class="tc-filter-btn" data-filter="roe" aria-pressed="false">ROE ≥ 15%</button>
-        <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
         <button type="button" class="tc-filter-btn" data-filter="cash-profit" aria-pressed="false">现金流/净利润 ≥ 20%</button>
+        <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
         <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
         <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
         <button type="button" class="tc-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 3%</button>
@@ -182,7 +184,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
         return (
-          <article class="tc-card" data-live-symbol={rec.symbol} data-name-initials={nameInitials(rec.name)} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-year-profit={rec.year_profit ?? ''} data-quality-shareholder={rec.entry_features?.quality_shareholder ? '1' : '0'} data-institutional-shareholder={rec.entry_features?.institutional_shareholder ? '1' : '0'} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
+          <article class="tc-card" data-live-symbol={rec.symbol} data-name-initials={nameInitials(rec.name)} data-first-close={rec.firstClose == null ? '' : rec.firstClose} data-latest-date={rec.latestStoredDate || ''} data-first-seen={rec.first_seen || ''} data-total-change={rec.totalChange == null ? 'null' : rec.totalChange} data-rsi={rec.entry_technical?.rsi ?? ''} data-outer-inner={rec.entry_technical?.outer_inner_ratio ?? ''} data-roe={rec.entry_financials?.roe ?? ''} data-net-margin={rec.entry_financials?.net_margin ?? ''} data-cash-profit={rec.entry_financials?.cash_profit_ratio ?? ''} data-gross-margin={rec.entry_financials?.gross_margin ?? ''} data-debt-ratio={rec.entry_financials?.debt_ratio ?? ''} data-year-profit={rec.year_profit ?? ''} data-quality-shareholder={rec.entry_features?.quality_shareholder ? '1' : '0'} data-institutional-shareholder={rec.entry_features?.institutional_shareholder ? '1' : '0'} data-star-market={rec.symbol.split('.')[0].startsWith('688') ? '1' : '0'} data-tracking-status={rec.tracking_complete ? 'history' : 'active'}>
             <div class="tc-head">
               <div class="tc-id">
                 <strong class="tc-name">{rec.name || '—'}</strong>
@@ -421,7 +423,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           var code = normalize(el.querySelector('.tc-code')?.textContent);
           var initials = normalize(el.dataset.nameInitials);
           var searchMatched = !query || name.indexOf(query) !== -1 || code.indexOf(query) !== -1 || initials.indexOf(query) !== -1;
-          var financialMatched = (!activeFilters.has('roe') || (el.dataset.roe !== '' && Number.isFinite(Number(el.dataset.roe)) && Number(el.dataset.roe) >= 15))
+          var financialMatched = (!activeFilters.has('rsi') || (el.dataset.rsi !== '' && Number.isFinite(Number(el.dataset.rsi)) && Number(el.dataset.rsi) <= 30))
+            && (!activeFilters.has('outer-inner') || (el.dataset.outerInner !== '' && Number.isFinite(Number(el.dataset.outerInner)) && Number(el.dataset.outerInner) >= 1.5))
+            && (!activeFilters.has('roe') || (el.dataset.roe !== '' && Number.isFinite(Number(el.dataset.roe)) && Number(el.dataset.roe) >= 15))
             && (!activeFilters.has('net-margin') || (el.dataset.netMargin !== '' && Number.isFinite(Number(el.dataset.netMargin)) && Number(el.dataset.netMargin) >= 15))
             && (!activeFilters.has('cash-profit') || (el.dataset.cashProfit !== '' && Number.isFinite(Number(el.dataset.cashProfit)) && Number(el.dataset.cashProfit) >= 20))
             && (!activeFilters.has('gross-margin') || (el.dataset.grossMargin !== '' && Number.isFinite(Number(el.dataset.grossMargin)) && Number(el.dataset.grossMargin) >= 15))
