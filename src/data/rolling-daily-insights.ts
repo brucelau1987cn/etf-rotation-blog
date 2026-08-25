@@ -35,7 +35,53 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 
 
 
-    '2026-08-24': {
+    '2026-08-25': {
+    tradeDate: '2026-08-25',
+    shortDate: '08/25',
+    title: '8月25日滚动信号收盘复盘',
+    subtitle: '东方明珠（600637）下午多方集中爆发（1h45m/2h/2.5h），国民技术（300077）早盘触发10m+20m空方共振，中国宏桥（01378）触发10m空方，国民技术港股（02701）触发15m+90m空方。',
+    cutoff: '2026-08-25 收市（A股15:00 / 港股16:08 / 白银22:00 / 美股04:00）',
+    summary: '今日A股/港股共录得确认空方信号3只（国民技术10m+20m空方、中国宏桥10m空方、国民技术港股15m+90m空方），确认多方信号1只（东方明珠1h45m/2h/2.5h）。德福科技等昨日空方共振标的今日无新触发，横盘整理。德福科技昨空方共振后今日缩量整理（¥79.80，-2.54%），等待方向确认。创新医疗、澜起科技等昨日空方共振标的今日同样横盘。整体呈现多方局部修复（东方明珠），空方仍主导市场节奏。',
+    buyRule: '东方明珠¥8.35多方确认，关注¥8.50（MA10）能否突破；¥8.10止损。国民技术¥20.22关注MA5（¥20.27）压制，突破后可试探买入，目标¥21.50。',
+    sellRule: '国民技术10m空方¥19.1已确认（收盘¥20.22高于触发价），20m空方¥19.11同样确认，但收盘已回到触发价上方——空方被收复，关注MA5压制是否重新入场。中国宏桥10m空方HK$23.3，收盘HK$23.48贴价，收盘价仍在信号价附近，多空待确认。国民技术港股02701 15m空方¥8.51、90m空方¥8.53，收盘HK$8.945贴价确认。',
+    discipline: '东方明珠多方确认后，回调¥8.10（MA20）上方可持有，¥8.50突破MA10可加仓。国民技术空方确认被收复，若明日重新跌破¥19.10（10m信号价）空方延续，否则以MA5（¥20.27）为多空分水判断。中国宏桥关注HK$23.00支撑，收复HK$24.00空方失效。白银现货今日无新信号，维持$68.50-$70.00区间整理。',
+    sources: 'Cloudflare D1 REST rolling_signals（trade_date=2026-08-25，A/港股4只标的录得当日信号：东方明珠1h45m/2h/2.5h多方x3，国民技术10m/20m空方x2，中国宏桥10m空方x1，国民技术港股15m/90m空方x2）；腾讯行情API（600637¥8.35/+4.38%/成交726386手，300077¥20.22/+2.54%/成交468413手）；新浪港股hq.sinajs.cn（01378 HK$23.48/-1.76%，02701 HK$8.945/+2.82%）；Yahoo Finance TSLA（昨收$348.95，美股未开市）。',
+    signals: [
+      {
+        name: '东方明珠', symbol: '600637', market: 'A股', direction: 'BUY',
+        nodes: '1h45m多方, 2h多方, 2.5h多方', signalPrices: '¥8.34, ¥8.32, ¥8.32', close: '¥8.35', change: '+4.38%',
+        validation: 'confirmed', validationLabel: '多方已确认',
+        verdict: '东方明珠今日下午触发1h45m/2h/2.5h多方信号（触发价¥8.34/¥8.32/¥8.32），收盘¥8.35已回到信号价上方，多方确认。成交量726386手，较前日放大明显（+40%量比），MA5/MA10/MA20均在价格下方支撑（¥8.45/¥8.31/¥8.80），短期均线多头排列雏形。¥8.50为MA10所在，多方若能突破则空间打开。',
+        support: '¥8.10（MA20）；¥8.30（今日低点附近）', pressure: '¥8.50（MA10）；¥8.80（MA20）', buyPlan: '回调¥8.20上方企稳可买入，目标¥8.80，¥8.10止损。', sellPlan: '¥8.50突破MA10可加仓，¥8.10止损。',
+        evidence: ['1h45m/2h/2.5h三方共振多方', '收盘¥8.35回到信号价上方', '成交726386手量能放大40%', 'MA5=8.45/MA10=8.31/MA20=8.80均线支撑']
+      },
+      {
+        name: '国民技术', symbol: '300077', market: 'A股', direction: 'SELL',
+        nodes: '10m空方, 20m空方', signalPrices: '¥19.10, ¥19.11', close: '¥20.22', change: '+2.54%',
+        validation: 'reclaimed', validationLabel: '空方已收复',
+        verdict: '国民技术早盘触发10m空方（¥19.10）和20m空方（¥19.11），但随后股价反弹，收盘¥20.22远高于两档空方触发价，空方被收盘反收复。MA5=¥20.27已在价格上方形成压制，多空分水明确。¥19.10为10m信号价，收盘在此上方，空方暂时失效。RSI等情绪指标显示短期反弹后逼近超买区域，关注MA5压制是否重新入场。',
+        support: '¥19.10（10m信号价）；¥19.50', pressure: '¥20.27（MA5）；¥21.00（MA10）', buyPlan: '突破¥20.27（MA5）可试探买入，目标¥21.00，¥19.50止损。', sellPlan: '若明日重新跌破¥19.10空方延续，否则以MA5为多空分水。',
+        evidence: ['10m空方触发¥19.10，收盘¥20.22高于信号价', '20m空方触发¥19.11，收盘高于信号价', 'MA5=20.27/MA10=21.00/MA20=19.61', '成交468413手，量能较前日放大']
+      },
+      {
+        name: '中国宏桥', symbol: '01378', market: '港股', direction: 'SELL',
+        nodes: '10m空方', signalPrices: 'HK$23.3', close: 'HK$23.48', change: '-1.76%',
+        validation: 'watch', validationLabel: '空方贴价确认',
+        verdict: '中国宏桥触发10m空方（HK$23.3），收盘HK$23.48贴价确认（收盘价仅高于触发价HK$0.18）。昨收HK$23.90，今日低开低走，HK$23.00为关键整数支撑。多空双方在信号价附近博弈激烈，贴价收盘显示确认力度较弱——明日若补跌则空方延续，若收复HK$24.00则转风险提示。',
+        support: 'HK$23.00整数支撑；HK$23.48（收盘价）', pressure: 'HK$23.30信号价；HK$24.00（收复多空分水）', buyPlan: '收复HK$24.00后可买入，目标HK$25.00。', sellPlan: '若明日低开跌破HK$23.00可追加空方，HK$24.00止损。',
+        evidence: ['10m空方触发HK$23.3', '收盘HK$23.48贴价（仅高HK$0.18）', '昨收HK$23.90，今日低开', 'HK$23.00整数支撑关键']
+      },
+      {
+        name: '国民技术', symbol: '02701', market: '港股', direction: 'SELL',
+        nodes: '15m空方, 90m空方', signalPrices: 'HK$8.51, HK$8.53', close: 'HK$8.945', change: '+2.82%',
+        validation: 'reclaimed', validationLabel: '空方已收复',
+        verdict: '国民技术港股（02701）早盘触发15m空方（HK$8.51）和90m空方（HK$8.53），但随后股价大幅反弹，收盘HK$8.945远高于两档触发价，空方被完全收复。成交量2192000手，量能配合明显。¥8.50（MA5）已在价格上方形成压制，关注明日是否重新跌破触发价。',
+        support: 'HK$8.51（15m信号价）；HK$8.70', pressure: 'HK$8.945（收盘价/MA5参考）', buyPlan: '回调HK$8.70企稳可买入，目标HK$9.20。', sellPlan: '若明日跌破HK$8.51空方延续。',
+        evidence: ['15m空方触发HK$8.51，收盘HK$8.945高于信号价', '90m空方触发HK$8.53，收盘高于信号价', '成交2192000手量能放大', '昨收HK$8.70，今日反弹+2.82%']
+      },
+    ]
+  },
+'2026-08-24': {
     tradeDate: '2026-08-24',
     shortDate: '08/24',
     title: '8月24日滚动信号收盘复盘',
@@ -962,7 +1008,9 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-24', href: '/rolling/insights/' },
+    { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-25', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-24', href: '/rolling/insights/2026-08-24/' },
+
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-21', href: '/rolling/insights/2026-08-21/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-20', href: '/rolling/insights/2026-08-20/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-19', href: '/rolling/insights/2026-08-19/' },
