@@ -102,7 +102,15 @@ def update_item(item: dict, quote: dict) -> None:
         baseline = quote["close"]
         item["baseline_close"] = baseline
         item["baseline_date"] = quote["date"]
-    quote["return_since_added_pct"] = round((quote["close"] / baseline - 1) * 100, 2) if baseline else None
+        quote["return_since_added_pct"] = 0.0
+    else:
+        # Preserve return_since_added_pct for already-recorded dates
+        # to avoid floating-point drift when re-fetching the same date.
+        existing = by_date.get(quote["date"])
+        if existing is not None:
+            quote["return_since_added_pct"] = existing.get("return_since_added_pct", 0.0)
+        else:
+            quote["return_since_added_pct"] = round((quote["close"] / baseline - 1) * 100, 2) if baseline else None
     by_date[quote["date"]] = quote
     item["daily"] = [by_date[day] for day in sorted(by_date)]
     item["latest"] = quote
