@@ -1,0 +1,10 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import AStockSubnav from '../../components/AStockSubnav.astro';
+import WeeklyStockRecommendations from '../../components/WeeklyStockRecommendations.astro';
+import weeklyData from '../../../public/data/weekly-stock-recommendations.json';
+const items = weeklyData.markets.A.items;
+---
+<!doctype html><html lang="zh-CN"><head><BaseHead title="A股每周推荐 | ETF罗盘" description="A股主题股票每周推荐与加入以来持续追踪。" /></head><body><Header /><main class="site-shell weekly-page"><AStockSubnav active="weekly" /><WeeklyStockRecommendations market="A" label="A股" items={items} weekOf={weeklyData.week_of} generatedAt={weeklyData.generated_at} /></main><Footer /><style>.weekly-page{padding:1rem 0 3rem}</style></body></html>

@@ -1,0 +1,27 @@
+---
+type Daily = { date: string; close: number; change_pct?: number | null; return_since_added_pct?: number | null };
+type Item = { rank: number; name: string; symbol: string; direction: string; added_on: string; status: string; daily: Daily[]; latest?: Daily };
+const { market, label, items, weekOf, generatedAt } = Astro.props as { market: 'A'|'US'; label: string; items: Item[]; weekOf: string; generatedAt: string };
+const price = (value?: number | null) => typeof value === 'number' ? (market === 'US' ? `$${value.toFixed(2)}` : value.toFixed(2)) : '—';
+const pct = (value?: number | null) => typeof value === 'number' ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : '—';
+---
+<section class="weekly-hero card">
+  <div><span class="pill">{label} · 每周推荐</span><h1>{label}每周推荐</h1><p>围绕反无人机、电子对抗、光通信和海缆产业链建立持续观察池。名单属于主题研究与行情追踪，不自动改变罗盘仓位、权重或交易动作。</p></div>
+  <div class="weekly-meta"><span>本周 {weekOf}</span><strong>{items.length} 只持续追踪</strong><small>更新 {generatedAt || '待更新'}</small></div>
+</section>
+<section class="weekly-grid" aria-label={`${label}每周推荐持续追踪`}>
+  {items.map((item) => {
+    const latest = item.latest || item.daily?.at(-1);
+    const ret = latest?.return_since_added_pct;
+    return <article class="weekly-card card">
+      <div class="weekly-top"><span class="weekly-rank">#{item.rank}</span><div><h2>{item.name}</h2><code>{item.symbol}</code></div><span class:list={['weekly-ret', typeof ret === 'number' && (ret >= 0 ? 'up' : 'down')]}>{pct(ret)}</span></div>
+      <p>{item.direction}</p>
+      <div class="weekly-stats"><span>最新价<strong>{price(latest?.close)}</strong></span><span>当日涨跌<strong class:list={[typeof latest?.change_pct === 'number' && (latest.change_pct >= 0 ? 'up' : 'down')]}>{pct(latest?.change_pct)}</strong></span><span>加入日期<strong>{item.added_on}</strong></span><span>行情日期<strong>{latest?.date || '—'}</strong></span></div>
+      <details><summary>查看追踪记录（{item.daily?.length || 0}日）</summary><div class="weekly-history">{[...(item.daily || [])].reverse().map((row) => <div><span>{row.date}</span><span>{price(row.close)}</span><span class:list={[typeof row.change_pct === 'number' && (row.change_pct >= 0 ? 'up' : 'down')]}>{pct(row.change_pct)}</span><span class:list={[typeof row.return_since_added_pct === 'number' && (row.return_since_added_pct >= 0 ? 'up' : 'down')]}>{pct(row.return_since_added_pct)}</span></div>)}</div></details>
+    </article>;
+  })}
+</section>
+<style>
+.weekly-hero{padding:clamp(1rem,3vw,1.4rem);display:grid;grid-template-columns:1fr auto;gap:1rem;background:linear-gradient(135deg,#f5f9ff,#fff)}
+.weekly-hero h1{margin:.45rem 0 .25rem;font-size:clamp(1.8rem,5vw,2.6rem)}.weekly-hero p{margin:0;max-width:72ch;color:rgb(var(--gray-dark));line-height:1.65}.weekly-meta{min-width:13rem;padding:.8rem;border:1px solid var(--border);border-radius:14px;background:#fff}.weekly-meta span,.weekly-meta small{display:block;color:rgb(var(--gray));font-size:.72rem}.weekly-meta strong{display:block;margin:.25rem 0;font-size:1.1rem}.weekly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:.75rem;margin-top:1rem}.weekly-card{padding:.9rem;min-width:0}.weekly-top{display:grid;grid-template-columns:auto 1fr auto;gap:.55rem;align-items:start}.weekly-rank{display:flex;width:2rem;height:2rem;align-items:center;justify-content:center;border-radius:10px;background:#14243b;color:#fff;font-size:.72rem;font-weight:900}.weekly-top h2{margin:0;font-size:1rem}.weekly-top code{color:rgb(var(--gray));font-size:.72rem}.weekly-ret{font-weight:900}.weekly-card>p{min-height:2.4em;margin:.55rem 0;color:rgb(var(--gray-dark));font-size:.82rem}.weekly-stats{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--border);border-radius:11px;overflow:hidden}.weekly-stats span{padding:.48rem;font-size:.65rem;color:rgb(var(--gray));background:var(--warm-2);border-bottom:1px solid var(--border)}.weekly-stats span:nth-child(odd){border-right:1px solid var(--border)}.weekly-stats span:nth-last-child(-n+2){border-bottom:0}.weekly-stats strong{display:block;margin-top:.12rem;color:rgb(var(--gray-dark));font-size:.8rem}.up{color:var(--market-up)!important}.down{color:var(--market-down)!important}.weekly-card details{margin-top:.6rem}.weekly-card summary{cursor:pointer;font-size:.75rem;font-weight:850}.weekly-history{margin-top:.45rem;border-top:1px solid var(--border)}.weekly-history div{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:.35rem;padding:.34rem 0;border-bottom:1px solid var(--border);font-size:.7rem;text-align:right}.weekly-history div span:first-child{text-align:left}@media(max-width:620px){.weekly-hero{grid-template-columns:1fr}.weekly-meta{min-width:0}.weekly-grid{grid-template-columns:1fr}}
+</style>
