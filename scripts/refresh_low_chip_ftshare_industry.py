@@ -42,6 +42,33 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
             temp.unlink(missing_ok=True)
 
 
+def transactional_write_json(items: list[tuple[Path, dict[str, Any]]]) -> None:
+    """Write related JSON files as one rollback-protected local transaction."""
+    backups: dict[Path, bytes | None] = {}
+    for path, _ in items:
+        backups[path] = path.read_bytes() if path.exists() else None
+    try:
+        for path, payload in items:
+            atomic_write_json(path, payload)
+    except BaseException:
+        for path, content in backups.items():
+            if content is None:
+                path.unlink(missing_ok=True)
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fd, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.rollback-", suffix=".tmp")
+            try:
+                with os.fdopen(fd, "wb") as handle:
+                    handle.write(content)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temp_name, path)
+            finally:
+                if os.path.exists(temp_name):
+                    os.unlink(temp_name)
+        raise
+
+
 def symbol_with_exchange(stock_code: Any) -> str:
     code = str(stock_code or "").split(".")[0].zfill(6)
     return f"{code}.SH" if code.startswith(("5", "6", "9")) else f"{code}.SZ"
@@ -263,12 +290,16 @@ def main() -> int:
         "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(tracking.get("stocks") or {}),
     }
     tracking["generated_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
-    atomic_write_json(args.current, current)
-    atomic_write_json(args.tracking, tracking)
-    atomic_write_json(args.cache, {
+    cache_payload = {
         "schema_version": "ftshare-sw-industry-map-v1", "generated_at": tracking["generated_at"],
         "as_of": as_of, "source": "FTShare Python SDK", "coverage": len(mapping), "items": mapping,
-    })
+        "validation_scope": "FTShare SW2021 overview validates hierarchy names, parent relationships, and codes for every mapped stock. It does not assert complete per-stock constituent-history coverage.",
+    }
+    transactional_write_json([
+        (args.current, current),
+        (args.tracking, tracking),
+        (args.cache, cache_payload),
+    ])
     print(json.dumps({"status": "ok", "as_of": as_of, "current": len(current.get("intersection") or []), "tracking": len(tracking.get("stocks") or {}), "coverage": len(mapping)}, ensure_ascii=False))
     return 0
 

@@ -2,6 +2,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "refresh_low_chip_ftshare_industry.py"
 CURRENT = ROOT / "public/data/a-low-chip-stocks.json"
@@ -98,6 +100,8 @@ def test_apply_refresh_updates_current_and_tracking_without_rewriting_daily_rows
 def test_published_low_chip_industry_contract_has_full_coverage():
     current = json.loads(CURRENT.read_text(encoding="utf-8"))
     tracking = json.loads(TRACKING.read_text(encoding="utf-8"))
+    assert len(current["intersection"]) == 35
+    assert len(tracking["stocks"]) == 157
     for symbol in current["intersection"]:
         row = current["enrichments"][symbol]
         assert row["industry_source"] == "FTShare Python SDK"
@@ -112,6 +116,32 @@ def test_published_low_chip_industry_contract_has_full_coverage():
         assert "--" not in row["industry"] and "||" not in row["industry"], symbol
         assert 0 <= len(row["theme_concepts"]) <= 3, symbol
         assert row["industry_display"].startswith(row["industry"]), symbol
+
+
+def test_transactional_write_restores_all_targets_when_second_write_fails(tmp_path, monkeypatch):
+    mod = load_module()
+    paths = [tmp_path / "current.json", tmp_path / "tracking.json", tmp_path / "cache.json"]
+    originals = [b'{"old":1}\n', b'{"old":2}\n', b'{"old":3}\n']
+    for path, content in zip(paths, originals):
+        path.write_bytes(content)
+    real_write = mod.atomic_write_json
+    calls = 0
+
+    def fail_second(path, payload):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("forced failure")
+        real_write(path, payload)
+
+    monkeypatch.setattr(mod, "atomic_write_json", fail_second)
+    with pytest.raises(RuntimeError, match="forced failure"):
+        mod.transactional_write_json([
+            (paths[0], {"new": 1}),
+            (paths[1], {"new": 2}),
+            (paths[2], {"new": 3}),
+        ])
+    assert [path.read_bytes() for path in paths] == originals
 
 
 def test_tracking_page_renders_preformatted_industry_display():
