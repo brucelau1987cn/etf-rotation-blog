@@ -63,7 +63,8 @@ def test_fetch_industry_map_validates_existing_paths_against_ftshare_overview():
         "000001.SZ": "银行--股份制银行Ⅱ--股份制银行Ⅲ",
         "600000.SH": "银行||股份制银行Ⅱ||股份制银行Ⅲ",
     }
-    result = mod.fetch_industry_map(FakeClient(), "2026-08-25", hints)
+    result, effective_as_of = mod.fetch_industry_map(FakeClient(), "2026-08-25", hints)
+    assert effective_as_of == "2026-08-25"
     assert set(result) == {"000001.SZ", "600000.SH"}
     assert result["000001.SZ"]["swLevel3Name"] == "股份制银行Ⅲ"
     assert result["600000.SH"]["swLevel2Name"] == "股份制银行Ⅱ"

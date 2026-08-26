@@ -94,6 +94,24 @@ def unwrap_overview(payload: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def resolve_overview_date(client: Any, as_of: str, max_back: int = 15) -> str:
+    """FTShare 申万行业概览对当天可能未就绪（total=0）。
+
+    沿自然日向前回溯（周末/节假日返回 0 自然跳过），返回最近一个 level-1 有数据的日期。
+    该日期即为行业分类实际生效日期，持久化到 industry_as_of，而非 data_as_of。
+    """
+    start = dt.date.fromisoformat(as_of)
+    for offset in range(max_back + 1):
+        candidate = start - dt.timedelta(days=offset)
+        rows = unwrap_overview(client.sw_industry_overview(
+            date=candidate.strftime("%Y%m%d"), level=1, all_pages=True,
+            page_size=200, max_pages=5, raw=True,
+        ))
+        if rows:
+            return candidate.isoformat()
+    raise RuntimeError(f"FTShare SW level-1 overview empty for {as_of} and {max_back} days back")
+
+
 def unwrap_constituents(payload: Any) -> list[dict[str, Any]]:
     if not isinstance(payload, dict) or payload.get("code") not in (0, 200, "0", "200", None):
         raise RuntimeError(f"FTShare constituent error: {payload}")
@@ -117,16 +135,43 @@ def split_industry_path(value: Any) -> list[str]:
     return [part.strip() for part in text.split("--") if part.strip()]
 
 
-def fetch_industry_map(client: Any, as_of: str, industry_hints: dict[str, str]) -> dict[str, dict[str, Any]]:
+def _prev_trading_day(as_of: str) -> str:
+    """Return the previous trading day (Mon–Fri) as YYYY-MM-DD."""
+    today = dt.date.fromisoformat(as_of)
+    wd = today.weekday()
+    if wd == 0:  # Monday → Friday (yesterday)
+        prev = today - dt.timedelta(days=1)
+    elif wd == 6:  # Sunday → Friday
+        prev = today - dt.timedelta(days=2)
+    else:  # Tue–Sat → yesterday
+        prev = today - dt.timedelta(days=1)
+    return prev.isoformat()
+
+
+def fetch_industry_map(client: Any, as_of: str, industry_hints: dict[str, str]) -> tuple[dict[str, dict[str, Any]], str]:
+    """Returns (symbol→mapping dict, effective_as_of). effective_as_of may differ from input when upstream lags."""
     overviews: list[dict[str, Any]] = []
+    effective_as_of = as_of
     for level, max_pages in ((1, 5), (2, 10), (3, 10)):
         rows = unwrap_overview(client.sw_industry_overview(
             date=as_of.replace("-", ""), level=level, all_pages=True,
             page_size=200, max_pages=max_pages, raw=True,
         ))
         if not rows:
-            raise RuntimeError(f"FTShare SW level-{level} overview empty for {as_of}")
+            if level == 1:
+                prev = _prev_trading_day(as_of)
+                print(f"⚠️ FTShare SW level-1 empty for {as_of}, falling back to {prev}", flush=True)
+                rows = unwrap_overview(client.sw_industry_overview(
+                    date=prev.replace("-", ""), level=level, all_pages=True,
+                    page_size=200, max_pages=max_pages, raw=True,
+                ))
+                if rows:
+                    effective_as_of = prev
+            if not rows:
+                raise RuntimeError(f"FTShare SW level-{level} overview empty for {effective_as_of}")
         overviews.extend(rows)
+    if effective_as_of != as_of:
+        print(f"⚠️ FTShare industry effective_as_of = {effective_as_of} (upstream lag)", flush=True)
 
     by_name = {str(row.get("industryName") or ""): row for row in overviews}
     mapping: dict[str, dict[str, Any]] = {}
@@ -158,7 +203,7 @@ def fetch_industry_map(client: Any, as_of: str, industry_hints: dict[str, str]) 
     missing = sorted(set(industry_hints) - mapping.keys())
     if missing:
         raise RuntimeError(f"STAGING BLOCKER: FTShare SW industry missing {len(missing)} symbols: {missing}")
-    return mapping
+    return mapping, effective_as_of
 
 
 def load_industry_hints(current: dict[str, Any], tracking: dict[str, Any]) -> dict[str, str]:
@@ -276,23 +321,23 @@ def main() -> int:
     from ftshare.client import FtshareClient
     client = FtshareClient(base_url=SDK_BASE_URL, timeout=60)
     try:
-        mapping = fetch_industry_map(client, as_of, industry_hints)
+        mapping, effective_as_of = fetch_industry_map(client, as_of, industry_hints)
     finally:
         client.close()
 
-    apply_refresh(current, tracking, mapping, history_themes, as_of)
+    apply_refresh(current, tracking, mapping, history_themes, effective_as_of)
     current["industry_contract"] = {
-        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": as_of,
+        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": effective_as_of,
         "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(current.get("intersection") or []),
     }
     tracking["industry_contract"] = {
-        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": as_of,
+        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": effective_as_of,
         "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(tracking.get("stocks") or {}),
     }
     tracking["generated_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     cache_payload = {
         "schema_version": "ftshare-sw-industry-map-v1", "generated_at": tracking["generated_at"],
-        "as_of": as_of, "source": "FTShare Python SDK", "coverage": len(mapping), "items": mapping,
+        "as_of": effective_as_of, "source": "FTShare Python SDK", "coverage": len(mapping), "items": mapping,
         "validation_scope": "FTShare SW2021 overview validates hierarchy names, parent relationships, and codes for every mapped stock. It does not assert complete per-stock constituent-history coverage.",
     }
     transactional_write_json([
@@ -300,7 +345,7 @@ def main() -> int:
         (args.tracking, tracking),
         (args.cache, cache_payload),
     ])
-    print(json.dumps({"status": "ok", "as_of": as_of, "current": len(current.get("intersection") or []), "tracking": len(tracking.get("stocks") or {}), "coverage": len(mapping)}, ensure_ascii=False))
+    print(json.dumps({"status": "ok", "as_of": effective_as_of, "current": len(current.get("intersection") or []), "tracking": len(tracking.get("stocks") or {}), "coverage": len(mapping)}, ensure_ascii=False))
     return 0
 
 
