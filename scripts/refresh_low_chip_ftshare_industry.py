@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Refresh low-chip industry display from FTShare SW2021 classification."""
+"""落地低筹码行业展示字段，数据源为 iWenCai「所属申万行业」三级路径（申万 2021 口径）。
+
+历史：本脚本原用 FTShare SDK 校验申万行业并补行业代码（SW2021 industryCode），
+但 FTShare 行业概览对当天常返回空（T+1 延迟），2026-08-26 起改用 iWenCai 直接落地：
+iWenCai 返回「医药生物||化学制药||化学制剂」三级路径文本，脚本 split 后落地
+industry_level1/2/3（仅名称，iWenCai 不提供申万行业代码）、industry/sector = 二级名称。
+缺失二级路径的标的标「待补充」（fail-soft，页面显示「—」），不阻断发布。
+"""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +14,6 @@ import datetime as dt
 import json
 import os
 import tempfile
-import time
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +22,6 @@ CURRENT = ROOT / "public/data/a-low-chip-stocks.json"
 TRACKING = ROOT / "public/data/low-chip-tracking.json"
 HISTORY = ROOT / "public/data/low-chip-history"
 CACHE = ROOT / "public/data/model-lab/ftshare-sw-industry-map.json"
-SDK_BASE_URL = "https://market.ft.tech/gateway/"
 GENERIC_CONCEPTS = {
     "融资融券", "深股通", "沪股通", "陆股通", "标普道琼斯A股", "MSCI概念",
     "富时罗素概念", "证金持股", "转融券标的", "机构重仓", "基金重仓",
@@ -69,141 +74,25 @@ def transactional_write_json(items: list[tuple[Path, dict[str, Any]]]) -> None:
         raise
 
 
-def symbol_with_exchange(stock_code: Any) -> str:
-    code = str(stock_code or "").split(".")[0].zfill(6)
-    return f"{code}.SH" if code.startswith(("5", "6", "9")) else f"{code}.SZ"
-
-
-def active_on(row: dict[str, Any], as_of: str) -> bool:
-    in_date = str(row.get("inDate") or "")[:10]
-    out_date = str(row.get("outDate") or "")[:10]
-    return (not in_date or in_date <= as_of) and (not out_date or out_date > as_of)
-
-
-def unwrap_overview(payload: Any) -> list[dict[str, Any]]:
-    pages = payload if isinstance(payload, list) else [payload]
-    rows: list[dict[str, Any]] = []
-    for page in pages:
-        if not isinstance(page, dict) or page.get("code") not in (0, 200, "0", "200", None):
-            raise RuntimeError(f"FTShare overview error: {page}")
-        data = page.get("data") or {}
-        page_rows = data.get("records") or data.get("items") or []
-        if not isinstance(page_rows, list):
-            raise RuntimeError("FTShare overview returned invalid rows")
-        rows.extend(row for row in page_rows if isinstance(row, dict))
-    return rows
-
-
-def resolve_overview_date(client: Any, as_of: str, max_back: int = 15) -> str:
-    """FTShare 申万行业概览对当天可能未就绪（total=0）。
-
-    沿自然日向前回溯（周末/节假日返回 0 自然跳过），返回最近一个 level-1 有数据的日期。
-    该日期即为行业分类实际生效日期，持久化到 industry_as_of，而非 data_as_of。
-    """
-    start = dt.date.fromisoformat(as_of)
-    for offset in range(max_back + 1):
-        candidate = start - dt.timedelta(days=offset)
-        rows = unwrap_overview(client.sw_industry_overview(
-            date=candidate.strftime("%Y%m%d"), level=1, all_pages=True,
-            page_size=200, max_pages=5, raw=True,
-        ))
-        if rows:
-            return candidate.isoformat()
-    raise RuntimeError(f"FTShare SW level-1 overview empty for {as_of} and {max_back} days back")
-
-
-def unwrap_constituents(payload: Any) -> list[dict[str, Any]]:
-    if not isinstance(payload, dict) or payload.get("code") not in (0, 200, "0", "200", None):
-        raise RuntimeError(f"FTShare constituent error: {payload}")
-    data = payload.get("data") or {}
-    rows = data.get("items") or data.get("records") or []
-    if not isinstance(rows, list):
-        raise RuntimeError("FTShare constituent returned invalid rows")
-    return [row for row in rows if isinstance(row, dict)]
-
-
-def merge_classification(existing: dict[str, Any] | None, candidate: dict[str, Any]) -> dict[str, Any]:
-    if existing is None:
-        return dict(candidate)
-    existing_score = sum(bool(existing.get(key)) for key in ("swLevel1Code", "swLevel2Code", "swLevel3Code"))
-    candidate_score = sum(bool(candidate.get(key)) for key in ("swLevel1Code", "swLevel2Code", "swLevel3Code"))
-    return dict(candidate if candidate_score >= existing_score else existing)
-
-
 def split_industry_path(value: Any) -> list[str]:
     text = str(value or "").replace("||", "--")
     return [part.strip() for part in text.split("--") if part.strip()]
 
 
-def _prev_trading_day(as_of: str) -> str:
-    """Return the previous trading day (Mon–Fri) as YYYY-MM-DD."""
-    today = dt.date.fromisoformat(as_of)
-    wd = today.weekday()
-    if wd == 0:  # Monday → Friday (yesterday)
-        prev = today - dt.timedelta(days=1)
-    elif wd == 6:  # Sunday → Friday
-        prev = today - dt.timedelta(days=2)
-    else:  # Tue–Sat → yesterday
-        prev = today - dt.timedelta(days=1)
-    return prev.isoformat()
-
-
-def fetch_industry_map(client: Any, as_of: str, industry_hints: dict[str, str]) -> tuple[dict[str, dict[str, Any]], str]:
-    """Returns (symbol→mapping dict, effective_as_of). effective_as_of may differ from input when upstream lags."""
-    overviews: list[dict[str, Any]] = []
-    effective_as_of = as_of
-    for level, max_pages in ((1, 5), (2, 10), (3, 10)):
-        rows = unwrap_overview(client.sw_industry_overview(
-            date=as_of.replace("-", ""), level=level, all_pages=True,
-            page_size=200, max_pages=max_pages, raw=True,
-        ))
-        if not rows:
-            if level == 1:
-                prev = _prev_trading_day(as_of)
-                print(f"⚠️ FTShare SW level-1 empty for {as_of}, falling back to {prev}", flush=True)
-                rows = unwrap_overview(client.sw_industry_overview(
-                    date=prev.replace("-", ""), level=level, all_pages=True,
-                    page_size=200, max_pages=max_pages, raw=True,
-                ))
-                if rows:
-                    effective_as_of = prev
-            if not rows:
-                raise RuntimeError(f"FTShare SW level-{level} overview empty for {effective_as_of}")
-        overviews.extend(rows)
-    if effective_as_of != as_of:
-        print(f"⚠️ FTShare industry effective_as_of = {effective_as_of} (upstream lag)", flush=True)
-
-    by_name = {str(row.get("industryName") or ""): row for row in overviews}
+def build_industry_mapping(industry_hints: dict[str, str]) -> dict[str, dict[str, Any]]:
+    """从 iWenCai「所属申万行业」路径文本解析三级名称映射（iWenCai 不提供申万行业代码）。"""
     mapping: dict[str, dict[str, Any]] = {}
     for symbol, raw_path in industry_hints.items():
         path = split_industry_path(raw_path)
         if len(path) < 2:
-            continue
-        level1 = by_name.get(path[0])
-        level2 = by_name.get(path[1])
-        level3 = by_name.get(path[2]) if len(path) >= 3 else None
-        if not level1 or not level2:
-            continue
-        if int(level1.get("level") or 0) != 1 or int(level2.get("level") or 0) != 2:
-            continue
-        if str(level2.get("parentIndustryName") or "") != path[0]:
-            continue
-        if level3 and (
-            int(level3.get("level") or 0) != 3
-            or str(level3.get("parentIndustryName") or "") != path[1]
-        ):
-            continue
+            continue  # 缺二级 → 不落地，页面标「待补充」
         mapping[symbol] = {
             "stockCode": symbol.split(".")[0],
-            "swLevel1Code": level1.get("industryCode"), "swLevel1Name": path[0],
-            "swLevel2Code": level2.get("industryCode"), "swLevel2Name": path[1],
-            "swLevel3Code": level3.get("industryCode") if level3 else None,
-            "swLevel3Name": path[2] if level3 else None,
+            "swLevel1Code": None, "swLevel1Name": path[0],
+            "swLevel2Code": None, "swLevel2Name": path[1],
+            "swLevel3Code": None, "swLevel3Name": path[2] if len(path) >= 3 else None,
         }
-    missing = sorted(set(industry_hints) - mapping.keys())
-    if missing:
-        raise RuntimeError(f"STAGING BLOCKER: FTShare SW industry missing {len(missing)} symbols: {missing}")
-    return mapping, effective_as_of
+    return mapping
 
 
 def load_industry_hints(current: dict[str, Any], tracking: dict[str, Any]) -> dict[str, str]:
@@ -242,16 +131,16 @@ def clean_themes(values: Any, industry_names: set[str]) -> list[str]:
 
 
 def build_industry_fields(row: dict[str, Any], themes: Any, as_of: str) -> dict[str, Any]:
-    level1 = {"code": str(row.get("swLevel1Code") or ""), "name": str(row.get("swLevel1Name") or "")}
-    level2 = {"code": str(row.get("swLevel2Code") or ""), "name": str(row.get("swLevel2Name") or "")}
-    level3 = {"code": str(row.get("swLevel3Code") or ""), "name": str(row.get("swLevel3Name") or "")}
-    if not level2["code"] or not level2["name"]:
-        raise RuntimeError(f"invalid FTShare level-2 classification: {row}")
+    level1 = {"code": row.get("swLevel1Code"), "name": str(row.get("swLevel1Name") or "")}
+    level2 = {"code": row.get("swLevel2Code"), "name": str(row.get("swLevel2Name") or "")}
+    level3 = {"code": row.get("swLevel3Code"), "name": str(row.get("swLevel3Name") or "")}
+    if not level2["name"]:
+        raise RuntimeError(f"invalid level-2 classification: {row}")
     concepts = clean_themes(themes, {level1["name"], level2["name"], level3["name"]})
     display = level2["name"] + (f"（{'、'.join(concepts)}）" if concepts else "")
     return {
         "industry_standard": "SW2021",
-        "industry_source": "FTShare Python SDK",
+        "industry_source": "iWenCai 所属申万行业",
         "industry_as_of": as_of,
         "industry_level1": level1,
         "industry_level2": level2,
@@ -280,12 +169,19 @@ def load_entry_themes(tracking: dict[str, Any]) -> dict[str, list[str]]:
 
 
 def apply_refresh(current: dict[str, Any], tracking: dict[str, Any], mapping: dict[str, dict[str, Any]], history_themes: dict[str, list[str]], as_of: str) -> None:
+    missing: list[str] = []
     for symbol in current.get("intersection") or []:
         enrichment = (current.get("enrichments") or {}).get(symbol)
         if not isinstance(enrichment, dict):
             raise RuntimeError(f"STAGING BLOCKER: current enrichment missing for {symbol}")
+        if symbol not in mapping:
+            missing.append(symbol)
+            continue  # 缺二级行业路径 → 保持「待补充」，页面「—」
         enrichment.update(build_industry_fields(mapping[symbol], enrichment.get("theme_concepts") or [], as_of))
     for symbol, rec in (tracking.get("stocks") or {}).items():
+        if symbol not in mapping:
+            missing.append(symbol)
+            continue
         fields = build_industry_fields(mapping[symbol], history_themes.get(symbol) or [], as_of)
         rec.update({
             "industry_standard": fields["industry_standard"],
@@ -298,6 +194,8 @@ def apply_refresh(current: dict[str, Any], tracking: dict[str, Any], mapping: di
             "theme_concepts": fields["theme_concepts"],
             "industry_display": fields["sector_with_theme"],
         })
+    if missing:
+        print(f"  {len(missing)} 只缺完整行业路径（标待补充，不阻断）", flush=True)
 
 
 def main() -> int:
@@ -312,40 +210,31 @@ def main() -> int:
     tracking = json.loads(args.tracking.read_text(encoding="utf-8"))
     as_of = str(current.get("data_as_of") or "")
     dt.date.fromisoformat(as_of)
-    required = set(current.get("intersection") or []) | set((tracking.get("stocks") or {}).keys())
     industry_hints = load_industry_hints(current, tracking)
-    if set(industry_hints) != required:
-        raise RuntimeError(f"STAGING BLOCKER: missing industry hints for {sorted(required - set(industry_hints))}")
     history_themes = load_entry_themes(tracking)
 
-    from ftshare.client import FtshareClient
-    client = FtshareClient(base_url=SDK_BASE_URL, timeout=60)
-    try:
-        mapping, effective_as_of = fetch_industry_map(client, as_of, industry_hints)
-    finally:
-        client.close()
-
-    apply_refresh(current, tracking, mapping, history_themes, effective_as_of)
+    mapping = build_industry_mapping(industry_hints)
+    apply_refresh(current, tracking, mapping, history_themes, as_of)
     current["industry_contract"] = {
-        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": effective_as_of,
-        "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(current.get("intersection") or []),
+        "standard": "SW2021", "source": "iWenCai 所属申万行业", "as_of": as_of,
+        "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(mapping),
     }
     tracking["industry_contract"] = {
-        "standard": "SW2021", "source": "FTShare Python SDK", "as_of": effective_as_of,
-        "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(tracking.get("stocks") or {}),
+        "standard": "SW2021", "source": "iWenCai 所属申万行业", "as_of": as_of,
+        "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(mapping),
     }
     tracking["generated_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     cache_payload = {
         "schema_version": "ftshare-sw-industry-map-v1", "generated_at": tracking["generated_at"],
-        "as_of": effective_as_of, "source": "FTShare Python SDK", "coverage": len(mapping), "items": mapping,
-        "validation_scope": "FTShare SW2021 overview validates hierarchy names, parent relationships, and codes for every mapped stock. It does not assert complete per-stock constituent-history coverage.",
+        "as_of": as_of, "source": "iWenCai 所属申万行业", "coverage": len(mapping), "items": mapping,
+        "validation_scope": "iWenCai 所属申万行业三级路径（无申万行业代码）落地为 level1/2/3 名称。不提供行业代码。",
     }
     transactional_write_json([
         (args.current, current),
         (args.tracking, tracking),
         (args.cache, cache_payload),
     ])
-    print(json.dumps({"status": "ok", "as_of": effective_as_of, "current": len(current.get("intersection") or []), "tracking": len(tracking.get("stocks") or {}), "coverage": len(mapping)}, ensure_ascii=False))
+    print(json.dumps({"status": "ok", "as_of": as_of, "current": len(current.get("intersection") or []), "tracking": len(tracking.get("stocks") or {}), "coverage": len(mapping)}, ensure_ascii=False))
     return 0
 
 
