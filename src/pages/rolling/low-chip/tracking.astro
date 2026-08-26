@@ -190,7 +190,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                 <strong class="tc-name">{rec.name || '—'}</strong>
                 {rec.occurrence && <span class:list={['tc-occurrence', rec.occurrence.isNew && 'is-new', rec.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(rec.occurrence)}>{lowChipOccurrenceLabel(rec.occurrence)}</span>}
                 <span class="tc-code">{rec.symbol.split('.')[0]}</span>
-                {rec.industry && <span class="tc-industry">{rec.industry.split('--').pop()}</span>}
+                {rec.industry && <span class="tc-industry">{rec.industry_display || rec.industry}</span>}
               </div>
               <div class="tc-badges">
                 <span class="tc-badge tc-badge-join" title={`最近一次进入观察列表 ${rec.last_seen}`}>加入 {rec.last_seen}</span>

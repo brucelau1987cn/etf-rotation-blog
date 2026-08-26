@@ -123,6 +123,17 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
     assert shadow < source.index("run(['npm', 'run', 'build']")
 
 
+def test_ftshare_industry_refresh_runs_after_tracking_and_is_release_scoped():
+    source = SCRIPT.read_text(encoding='utf-8')
+    tracking = source.index("run([sys.executable, 'scripts/update_low_chip_tracking.py']")
+    industry = source.index("run([str(ftshare_python), 'scripts/refresh_low_chip_ftshare_industry.py']")
+    validation = source.index("summary = validate_payload(json.loads(DATA.read_text")
+    assert tracking < industry < validation
+    assert "STAGING BLOCKER: FTShare SDK runtime missing" in source
+    assert "public/data/model-lab/ftshare-sw-industry-map.json" in source
+    assert "tests/test_refresh_low_chip_ftshare_industry.py" in source
+
+
 def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeypatch):
     module = load_module()
     data_dir = tmp_path / 'data'
@@ -132,6 +143,7 @@ def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeyp
         'DATA': data_dir / 'stocks.json',
         'TRACKING': data_dir / 'tracking.json',
         'FUYAO_SHADOW': data_dir / 'fuyao.json',
+        'FTSHARE_INDUSTRY_CACHE': data_dir / 'ftshare-industry.json',
         'INDEX': data_dir / 'index.json',
     }
     originals = {
@@ -158,6 +170,7 @@ def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeyp
     for name, original in originals.items():
         assert paths[name].read_bytes() == original
     assert not paths['FUYAO_SHADOW'].exists()
+    assert not paths['FTSHARE_INDUSTRY_CACHE'].exists()
     assert (history_dir / 'old.json').read_bytes() == b'history-before'
     assert not (history_dir / 'new.json').exists()
 
