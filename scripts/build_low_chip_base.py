@@ -83,36 +83,46 @@ def period_field(rows, prefix):
     return None
 
 
+def _year_profit_value(row: dict) -> float | None:
+    """提取年线收盘获利值，兼容批量返回的「收盘获利」与单只返回的「年线收盘获利」。"""
+    for key, value in row.items():
+        if "[" in key and ("年线收盘获利" in key or key.startswith("收盘获利")):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
 def fetch_year_overlay(codes: list[str]) -> list[dict]:
     """Fetch year-line values for the 3-period pool only.
 
-    A broad year-line screen is capped by iWenCai, so query exact symbols in
-    bounded batches and retry any omitted symbol individually.
+    iWenCai 批量查询会把「年线收盘获利」字段简写为「收盘获利」，且可能把部分
+    6 位代码误识别成基金(.OF)而遗漏。因此批量后逐只核对：字段缺失或代码遗漏
+    的股票单只重查（单只返回完整字段名「年线收盘获利」）。
     """
     compact_date = DATE.replace("-", "")
-    by_symbol = {}
+    by_symbol: dict[str, dict] = {}
     for start in range(0, len(codes), 20):
         batch = codes[start:start + 20]
         bare = [code.split(".")[0] for code in batch]
         rows, _ = paginate("、".join(bare) + f" 年线收盘获利[{compact_date}]")
-        by_symbol.update({r.get("股票代码"): r for r in rows if r.get("股票代码")})
         for code in batch:
-            if code in by_symbol:
+            matched = next((r for r in rows if r.get("股票代码") == code), None)
+            if matched is not None and _year_profit_value(matched) is not None:
+                by_symbol[code] = matched
                 continue
-            rows, _ = paginate(code.split(".")[0] + f" 年线收盘获利[{compact_date}]")
-            by_symbol.update({r.get("股票代码"): r for r in rows if r.get("股票代码")})
+            # 批量遗漏（.OF 误识别）或字段缺失 → 单只重查
+            rows2, _ = paginate(code.split(".")[0] + f" 年线收盘获利[{compact_date}]")
+            m2 = next((r for r in rows2 if r.get("股票代码") == code), None)
+            if m2 is not None and _year_profit_value(m2) is not None:
+                by_symbol[code] = m2
 
-    field = period_field(list(by_symbol.values()), "年线收盘获利")
-    if not field:
-        return []
     result = []
     for code in codes:
         row = by_symbol.get(code) or {}
-        try:
-            value = float(row.get(field))
-        except (TypeError, ValueError):
-            continue
-        if value > 3:
+        value = _year_profit_value(row)
+        if value is None or value > 3:
             continue
         result.append({
             "symbol": code,
