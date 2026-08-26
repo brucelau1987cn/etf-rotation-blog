@@ -228,6 +228,8 @@ def main() -> int:
     payload = build_briefing(args.date, calendar_rows, news_rows)
     if not payload["fed_watch"]["latest"]:
         payload["fed_watch"] = previous.get("fed_watch", payload["fed_watch"])
+    if not payload["industry_policy"]:
+        payload["industry_policy"] = previous.get("industry_policy", payload["industry_policy"])
     payload["data_quality"] = {"failed": len(failures), "failures": failures}
     atomic_json(args.output, payload)
     print(json.dumps({"delivery": payload["index_delivery"]["date"], "policy": len(payload["industry_policy"]), "fed": len(payload["fed_watch"].get("latest", [])), "failed": len(failures)}, ensure_ascii=False))

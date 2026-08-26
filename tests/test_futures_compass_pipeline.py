@@ -115,6 +115,43 @@ def test_futures_page_contains_event_briefing_sections():
     assert "background:#17243a" in page
 
 
+def test_briefing_generator_preserves_last_good_policy_when_upstream_down(monkeypatch, tmp_path):
+    spec = importlib.util.spec_from_file_location("briefing_gen", SCRIPTS / "generate_futures_compass_briefing.py")
+    assert spec and spec.loader
+    gen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gen)
+
+    out = tmp_path / "futures-compass-briefing.json"
+    out.write_text(json.dumps({
+        "generated_at": "2026-08-25T15:45:00+08:00",
+        "index_delivery": {"date": "2026-09-18", "weekday": "周五", "days_note": "", "symbols": ["IF", "IH", "IC", "IM"]},
+        "industry_policy": [
+            {"title": "某油田宣布检修减产", "scope": "原油", "as_of": "2026-08-25", "source": "金十数据", "url": "/"},
+            {"title": "发改委规划多晶硅产能", "scope": "多晶硅", "as_of": "2026-08-25", "source": "金十数据", "url": "/"},
+            {"title": "工信部碳酸锂收储政策", "scope": "碳酸锂", "as_of": "2026-08-25", "source": "金十数据", "url": "/"},
+        ],
+        "fed_watch": {
+            "latest": [{"time": "2026-08-26 20:30 北京时间", "event": "美国初请失业金人数", "result": "等待数据公布", "impact": "金十方向：影响待确认"}],
+            "next_focus": "重点跟踪高星级美国通胀、就业、增长数据及美联储决议与官员讲话。",
+            "source": "金十数据 API",
+            "calendar_url": "https://rili.jin10.com/",
+        },
+        "data_quality": {"failed": 0, "failures": {}},
+    }, ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setattr(gen, "fetch_calendar_rows", lambda: (_ for _ in ()).throw(RuntimeError("upstream down")))
+    monkeypatch.setattr(gen, "fetch_policy_news", lambda: [])
+    monkeypatch.setattr(sys, "argv", ["generate_futures_compass_briefing.py", "--output", str(out), "--date", "2026-08-26"])
+    assert gen.main() == 0
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert len(payload["industry_policy"]) == 3, "last-good industry_policy must be preserved when upstream returns empty"
+    assert payload["industry_policy"][0]["title"].startswith("某油田")
+    assert payload["fed_watch"]["latest"], "last-good fed_watch must be preserved when calendar is down"
+    assert payload["data_quality"]["failed"] == 1
+    assert "calendar" in payload["data_quality"]["failures"]
+
+
 def test_each_maintenance_slot_refreshes_event_briefing(monkeypatch):
     calls = []
     monkeypatch.setattr(maintenance, "refresh_briefing", lambda: calls.append("briefing") or {"status": "ok"})
