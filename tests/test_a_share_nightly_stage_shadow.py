@@ -44,6 +44,56 @@ def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
     assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
 
 
+def test_stage_timeouts_are_capped_per_stage():
+    module = load()
+    assert module.effective_timeout('precheck', 3600) == 60
+    assert module.effective_timeout('cache', 3600) == 1200
+    assert module.effective_timeout('fundamental-shadow', 3600) == 600
+    assert module.effective_timeout('cache', 300) == 300
+
+
+def test_run_stage_persists_running_stage_before_subprocess(monkeypatch):
+    module = load()
+    statuses = []
+
+    class Completed:
+        returncode = 0
+        stdout = ''
+        stderr = ''
+
+    monkeypatch.setattr(module, 'write_status', lambda payload: statuses.append(payload))
+    monkeypatch.setattr(module, 'write_log', lambda *args: None)
+    monkeypatch.setattr(module.subprocess, 'run', lambda *args, **kwargs: Completed())
+    payload = module.run_stage('precheck', 3600)
+
+    assert payload['ok'] is True
+    assert statuses[0]['status'] == 'running'
+    assert statuses[0]['current_stage'] == 'precheck'
+    assert statuses[0]['requested_stage'] == 'precheck'
+    assert statuses[-1]['ok'] is True
+
+
+def test_timeout_report_names_the_stage(monkeypatch):
+    module = load()
+
+    def timeout(*args, **kwargs):
+        raise module.subprocess.TimeoutExpired(args[0], kwargs['timeout'])
+
+    monkeypatch.setattr(module, 'write_status', lambda payload: None)
+    monkeypatch.setattr(module, 'write_log', lambda *args: None)
+    monkeypatch.setattr(module.subprocess, 'run', timeout)
+    payload = module.run_stage('fundamental-shadow', 3600)
+    assert payload['ok'] is False
+    assert 'STAGING BLOCKER: fundamental-shadow timed out after 600s' in payload['results'][0]['stderr_tail']
+
+
+def test_cache_validator_does_not_require_iwencai_source():
+    validator = Path('/root/.hermes/scripts/update_a_share_cache_nightly.py').read_text(encoding='utf-8')
+    importer = Path('/root/projects/etf-rotation-blog/scripts/update_a_share_bar_cache.py').read_text(encoding='utf-8')
+    assert "source='iwencai'" not in validator
+    assert 'source_counts' in importer
+
+
 def test_nightly_report_formats_success_as_readable_markdown():
     module = load()
     payload = {

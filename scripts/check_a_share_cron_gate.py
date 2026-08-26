@@ -26,6 +26,7 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/etf-garden-pool.json"
 DB = ROOT / "data/local/etf-compass.db"
+NIGHTLY_STATUS = Path("/root/.hermes/state/a-share-nightly-trigger-status.json")
 CN = ZoneInfo("Asia/Shanghai")
 EXPECTED_FORMAL = 91
 MINIMUM_COVERAGE = 82
@@ -54,6 +55,7 @@ class GateInput:
     quote_date: str | None
     qfq_date: str | None
     qfq_coverage: int
+    nightly_precheck_ready: bool = True
 
 
 def stage_rank(value: str | None) -> int:
@@ -91,6 +93,8 @@ def evaluate_gate(data: GateInput) -> tuple[str, str]:
     today = data.now.date().isoformat()
     if data.stage in {"11:30", "14:30", "22:00"} and data.quote_date != today:
         return "blocked", f"quote date {data.quote_date} differs from {today}"
+    if data.stage == "22:00" and not data.nightly_precheck_ready:
+        return "blocked", "nightly precheck-cache not completed"
     if data.stage == "22:00" and (data.qfq_date != today or data.qfq_coverage < MINIMUM_COVERAGE):
         return "blocked", f"final qfq {data.qfq_date} coverage {data.qfq_coverage}"
     return "run", "all mandatory gates passed"
@@ -220,6 +224,20 @@ def qfq_state() -> tuple[str | None, int]:
         return None, 0
 
 
+def nightly_precheck_ready(day: str) -> bool:
+    try:
+        payload = json.loads(NIGHTLY_STATUS.read_text(encoding="utf-8"))
+        finished = datetime.fromisoformat(str(payload.get("finished_at") or ""))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return False
+    return bool(
+        payload.get("requested_stage") == "precheck-cache"
+        and payload.get("ok") is True
+        and payload.get("status") != "running"
+        and finished.astimezone(CN).date().isoformat() == day
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", choices=STAGE_ORDER, required=True)
@@ -252,6 +270,7 @@ def main() -> int:
         quote_date=quote_date,
         qfq_date=qfq_date,
         qfq_coverage=qfq_coverage,
+        nightly_precheck_ready=nightly_precheck_ready(day),
     )
     decision, reason = evaluate_gate(gate)
     result = {

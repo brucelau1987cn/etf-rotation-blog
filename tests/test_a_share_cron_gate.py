@@ -19,6 +19,7 @@ def gate(stage: str, at: str, **kwargs):
         quote_date=kwargs.get("quote_date", "2026-07-14"),
         qfq_date=kwargs.get("qfq_date", "2026-07-14"),
         qfq_coverage=kwargs.get("qfq_coverage", 91),
+        nightly_precheck_ready=kwargs.get("nightly_precheck_ready", True),
     )
     return evaluate_gate(data)
 
@@ -39,6 +40,30 @@ def test_night_requires_today_final_qfq():
     assert gate("22:00", "2026-07-14T22:00:00", qfq_date="2026-07-13")[0] == "blocked"
     assert gate("22:00", "2026-07-14T22:00:00", qfq_coverage=81)[0] == "blocked"
     assert gate("22:00", "2026-07-14T22:00:00")[0] == "run"
+
+
+def test_night_requires_completed_precheck_cache():
+    decision, reason = gate(
+        "22:00", "2026-07-14T22:00:00", nightly_precheck_ready=False,
+    )
+    assert decision == "blocked"
+    assert reason == "nightly precheck-cache not completed"
+
+
+def test_nightly_precheck_status_requires_same_day_success(tmp_path, monkeypatch):
+    path = tmp_path / "status.json"
+    monkeypatch.setattr(cron_gate, "NIGHTLY_STATUS", path)
+    path.write_text(
+        '{"requested_stage":"precheck-cache","ok":true,"finished_at":"2026-07-14T20:55:00+08:00"}',
+        encoding="utf-8",
+    )
+    assert cron_gate.nightly_precheck_ready("2026-07-14") is True
+    assert cron_gate.nightly_precheck_ready("2026-07-15") is False
+    path.write_text(
+        '{"requested_stage":"precheck-cache","status":"running","ok":false,"finished_at":"2026-07-14T20:55:00+08:00"}',
+        encoding="utf-8",
+    )
+    assert cron_gate.nightly_precheck_ready("2026-07-14") is False
 
 
 def test_idempotency_precedes_window_and_stage_parser():

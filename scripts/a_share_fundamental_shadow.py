@@ -273,22 +273,44 @@ def _fetch_partition(
     items: list[dict[str, str]], observation_sessions: int,
 ) -> list[tuple[str, str, dict[str, Any] | None, str | None]]:
     import baostock as bs  # type: ignore[import-not-found]
+
+    def timed_fetch(item: dict[str, str]) -> tuple[str, str, dict[str, Any] | None, str | None]:
+        parent_conn, child_conn = mp.Pipe(duplex=False)
+
+        def worker():
+            try:
+                result = _fetch_symbol_with_session(bs, item, observation_sessions)
+                child_conn.send(("ok", result))
+            except Exception as exc:
+                child_conn.send(("err", str(exc)))
+
+        proc = mp.Process(target=worker)
+        proc.start()
+        if not parent_conn.poll(timeout=60):
+            proc.terminate()
+            proc.join(timeout=5)
+            if proc.is_alive():
+                proc.kill()
+                proc.join(timeout=2)
+            return item["code"], "failed", None, "timeout after 60s"
+        try:
+            status, result = parent_conn.recv()
+        except Exception:
+            status = "err"
+            result = "pipe recv failed"
+        proc.join(timeout=5)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=2)
+        if status == "ok":
+            return result  # type: ignore[return-value]
+        return item["code"], "failed", None, str(result)
+
     login = bs.login()
     if login.error_code != "0":
         return [(item["code"], "failed", None, f"login: {login.error_msg}") for item in items]
     try:
-        results = []
-        for item in items:
-            result = _fetch_symbol_with_session(bs, item, observation_sessions)
-            if result[1] == "failed" and should_relogin(result[3]):
-                try:
-                    bs.logout()
-                except Exception:
-                    pass
-                login = bs.login()
-                if login.error_code == "0":
-                    result = _fetch_symbol_with_session(bs, item, observation_sessions)
-            results.append(result)
+        results = [timed_fetch(item) for item in items]
         return results
     finally:
         try:
@@ -386,7 +408,15 @@ def run(
     else:
         context = mp.get_context("spawn")
         with context.Pool(worker_count) as pool:
-            partitions = pool.starmap(_fetch_partition, [(chunk, 0) for chunk in chunks])
+            async_result = pool.starmap_async(
+                _fetch_partition, [(chunk, 0) for chunk in chunks],
+            )
+            try:
+                partitions = async_result.get(timeout=480)
+            except Exception:
+                pool.terminate()
+                pool.join()
+                raise
         results = [row for partition in partitions for row in partition]
     results = retry_incomplete_or_stale_results(universe, results)
     raw_items = [row for _, status, row, _ in results if status == "succeeded" and row is not None]

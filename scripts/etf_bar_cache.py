@@ -88,7 +88,7 @@ def upsert_bars(db: sqlite3.Connection, bars: Iterable[dict[str, Any]]) -> int:
 
 def get_bars(db: sqlite3.Connection, market: str, symbol: str, adjustment: str = "qfq", limit: int = 90) -> list[dict[str, Any]]:
     # Point-in-time source priority. One row per date is selected deterministically.
-    priority = "CASE source WHEN 'iwencai' THEN 1 WHEN 'stock-api' THEN 2 WHEN 'tencent' THEN 3 ELSE 9 END"
+    priority = "CASE source WHEN 'tencent' THEN 1 WHEN 'baostock' THEN 2 WHEN 'iwencai' THEN 3 WHEN 'stock-api' THEN 4 ELSE 9 END"
     rows = db.execute(
         f"""SELECT * FROM (
           SELECT *, ROW_NUMBER() OVER(PARTITION BY trade_date ORDER BY {priority}, fetched_at DESC) AS rn

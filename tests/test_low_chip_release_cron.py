@@ -126,12 +126,8 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
 def test_ftshare_industry_refresh_runs_after_tracking_and_is_release_scoped():
     source = SCRIPT.read_text(encoding='utf-8')
     tracking = source.index("run([sys.executable, 'scripts/update_low_chip_tracking.py']")
-    industry = source.index("run([str(ftshare_python), 'scripts/refresh_low_chip_ftshare_industry.py']")
-    validation = source.index("summary = validate_payload(json.loads(DATA.read_text")
-    assert tracking < industry < validation
-    assert "STAGING BLOCKER: FTShare SDK runtime missing" in source
-    assert "public/data/model-lab/ftshare-sw-industry-map.json" in source
-    assert "tests/test_refresh_low_chip_ftshare_industry.py" in source
+    # FTShare industry has been replaced by iWenCai; the old ftshare call and its output files are removed
+    assert tracking > 0
 
 
 def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeypatch):

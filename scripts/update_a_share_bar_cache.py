@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import contextlib
 import importlib.util
+import io
 import json
 import math
 import re
@@ -13,7 +15,7 @@ import subprocess
 import sys
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -135,14 +137,74 @@ def parse_stock_api_rows(payload: Any, item: dict[str, str], now: datetime | Non
 def fetch_tencent_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
     symbol = ("sh" if item["market"] == "XSHG" else "sz") + item["code"]
     url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count},qfq"
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    node = (payload.get("data") or {}).get(symbol) or {}
-    raw_rows = node.get("qfqday") or node.get("day") or []
-    normalized = [{"date": row[0], "open": row[1], "close": row[2], "high": row[3], "low": row[4], "volume": row[5]}
-                  for row in raw_rows if isinstance(row, list) and len(row) >= 6]
-    return parse_stock_api_rows(normalized, item, source="tencent")
+    for attempt in range(3):
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            data = payload.get("data") or {}
+            if not data or data == "":
+                if attempt < 2:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                return []
+            node = data.get(symbol) or {}
+            raw_rows = node.get("qfqday") or node.get("day") or []
+            normalized = [{"date": row[0], "open": row[1], "close": row[2], "high": row[3], "low": row[4], "volume": row[5]}
+                          for row in raw_rows if isinstance(row, list) and len(row) >= 6]
+            return parse_stock_api_rows(normalized, item, source="tencent")
+        except Exception:
+            if attempt < 2:
+                time.sleep(1 * (attempt + 1))
+            else:
+                raise
+    return []
+
+
+def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
+    import baostock as bs  # type: ignore[import-not-found]
+    market_code = "sh." + item["code"] if item["market"] == "XSHG" else "sz." + item["code"]
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rs = bs.query_history_k_data_plus(
+            market_code,
+            "date,code,open,high,low,close,volume,amount",
+            start_date=(datetime.now() - timedelta(days=count * 2)).strftime("%Y-%m-%d"),
+            end_date="2099-12-31",
+            frequency="d",
+            adjustflag="2",
+        )
+        rows = []
+        while rs.error_code == "0" and rs.next():
+            rows.append(rs.get_row_data())
+        bs.logout()
+    if not rows:
+        return []
+    normalized = [{"date": r[0], "open": r[2], "close": r[5], "high": r[3], "low": r[4], "volume": r[6]}
+                  for r in rows if r[0] and r[5] != ""]
+    return parse_stock_api_rows(normalized, item, source="baostock")
+
+
+def fetch_primary_history(item: dict[str, str], count: int) -> tuple[list[dict[str, Any]], str]:
+    try:
+        rows = fetch_tencent_history(item, count)
+        if rows:
+            return rows, "tencent"
+    except Exception:
+        pass
+    rows = fetch_baostock_history(item, count)
+    return rows, "baostock"
+
+
+def summarize_source_coverage(bars: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    seen: set[str] = set()
+    for bar in reversed(bars):
+        sym = bar.get("symbol", "")
+        src = bar.get("source", "")
+        if sym and src and sym not in seen:
+            counts[src] = counts.get(src, 0) + 1
+            seen.add(sym)
+    return counts
 
 
 def fetch_stock_api_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
@@ -172,61 +234,80 @@ def main() -> int:
     parser.add_argument("--backfill-days", type=int, default=0, help="stock-api qfq history count for short-history symbols")
     parser.add_argument("--backfill-workers", type=int, default=4)
     parser.add_argument("--minimum-history", type=int, default=260)
+    parser.add_argument("--source", choices=["tencent", "iwencai"], default="tencent",
+                        help="qfq data source (default: tencent)")
+    parser.add_argument("--workers", type=int, default=4, help="parallel workers for tencent source")
     args = parser.parse_args()
     full_universe = load_universe()
     wanted = {x.strip() for x in (args.symbols or "").split(",") if x.strip()}
     universe = [x for x in full_universe if not wanted or x["code"] in wanted]
     item_map = {x["code"]: x for x in universe}
-    run_id = "iwencai-" + datetime.now(CN).strftime("%Y%m%d-%H%M%S")
-    started = utc_now(); t0 = time.monotonic(); all_bars: list[dict[str, Any]] = []
-    succeeded: set[str] = set(); errors: list[str] = []
-    RAW_ROOT.mkdir(parents=True, exist_ok=True)
-    cutoff = time.time() - 90 * 86400
-    for old in RAW_ROOT.glob("*.json"):
-        if old.stat().st_mtime < cutoff:
-            old.unlink()
-    for start in range(0, len(universe), args.batch_size):
-        batch = universe[start:start + args.batch_size]
-        try:
-            payload = query_batch(batch, args.days)
-            bars, symbols = parse_payload(payload, item_map)
-            all_bars.extend(bars); succeeded.update(symbols)
-            raw_path = RAW_ROOT / f"{run_id}-{start // args.batch_size + 1:02d}.json"
-            raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        except Exception as exc:
-            errors.append(f"batch {start // args.batch_size + 1}: {type(exc).__name__}: {exc}")
-    # Natural-language batching can occasionally return metadata without its time
-    # series. Retry only those symbols in smaller groups.
-    missing = [x for x in universe if x["code"] not in succeeded]
-    for start in range(0, len(missing), 4):
-        batch = missing[start:start + 4]
-        try:
-            payload = query_batch(batch, args.days)
-            bars, symbols = parse_payload(payload, item_map)
-            all_bars.extend(bars); succeeded.update(symbols)
-            raw_path = RAW_ROOT / f"{run_id}-repair-{start // 4 + 1:02d}.json"
-            raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        except Exception as exc:
-            errors.append(f"repair {start // 4 + 1}: {type(exc).__name__}: {exc}")
-    # Some newer ETFs are recognized individually but not when four codes share one
-    # natural-language query. Give the final missing set a singleton retry.
-    remaining = [x for x in universe if x["code"] not in succeeded]
-    for index, item in enumerate(remaining, 1):
-        try:
-            payload = query_batch([item], args.days)
-            bars, symbols = parse_payload(payload, item_map)
-            all_bars.extend(bars); succeeded.update(symbols)
-            raw_path = RAW_ROOT / f"{run_id}-singleton-{index:02d}.json"
-            raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        except Exception as exc:
-            errors.append(f"singleton {item['code']}: {type(exc).__name__}: {exc}")
+    run_id = f"{args.source}-" + datetime.now(CN).strftime("%Y%m%d-%H%M%S")
+    started = utc_now()
+    t0 = time.monotonic()
+    all_bars: list[dict[str, Any]] = []
+    succeeded: set[str] = set()
+    source_coverage: dict[str, int] = {}
+    errors: list[str] = []
+
+    if args.source == "tencent":
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
+            futures = {executor.submit(fetch_primary_history, item, args.days): item for item in universe}
+            for future in concurrent.futures.as_completed(futures):
+                item = futures[future]
+                try:
+                    rows, src = future.result()
+                    if not rows:
+                        errors.append(f"{item['code']}: no data from {src}")
+                        continue
+                    all_bars.extend(rows)
+                    succeeded.add(item["code"])
+                    source_coverage[src] = source_coverage.get(src, 0) + 1
+                except Exception as exc:
+                    errors.append(f"{item['code']}: {type(exc).__name__}: {exc}")
+    else:
+        RAW_ROOT.mkdir(parents=True, exist_ok=True)
+        cutoff = time.time() - 90 * 86400
+        for old in RAW_ROOT.glob("*.json"):
+            if old.stat().st_mtime < cutoff:
+                old.unlink()
+        for start in range(0, len(universe), args.batch_size):
+            batch = universe[start:start + args.batch_size]
+            try:
+                payload = query_batch(batch, args.days)
+                bars, symbols = parse_payload(payload, item_map)
+                all_bars.extend(bars); succeeded.update(symbols)
+                raw_path = RAW_ROOT / f"{run_id}-{start // args.batch_size + 1:02d}.json"
+                raw_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            except Exception as exc:
+                errors.append(f"batch {start // args.batch_size + 1}: {type(exc).__name__}: {exc}")
+        missing = [x for x in universe if x["code"] not in succeeded]
+        for start in range(0, len(missing), 4):
+            batch = missing[start:start + 4]
+            try:
+                payload = query_batch(batch, args.days)
+                bars, symbols = parse_payload(payload, item_map)
+                all_bars.extend(bars); succeeded.update(symbols)
+            except Exception as exc:
+                errors.append(f"repair {start // 4 + 1}: {type(exc).__name__}: {exc}")
+        remaining = [x for x in universe if x["code"] not in succeeded]
+        for index, item in enumerate(remaining, 1):
+            try:
+                payload = query_batch([item], args.days)
+                bars, symbols = parse_payload(payload, item_map)
+                all_bars.extend(bars); succeeded.update(symbols)
+            except Exception as exc:
+                errors.append(f"singleton {item['code']}: {type(exc).__name__}: {exc}")
+
     failed_symbols = [x["code"] for x in universe if x["code"] not in succeeded]
-    backfill_bars: list[dict[str, Any]] = []; backfill_errors: list[str] = []; backfill_symbols: list[str] = []
-    if args.backfill_days > 0:
+    backfill_bars: list[dict[str, Any]] = []
+    backfill_errors: list[str] = []
+    backfill_symbols: list[str] = []
+    if args.backfill_days > 0 and args.source == "tencent":
         with connect(args.db) as db:
             short_history = symbols_needing_backfill(db, universe, args.minimum_history)
         with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.backfill_workers)) as executor:
-            futures = {executor.submit(fetch_stock_api_history, item, args.backfill_days): item for item in short_history}
+            futures = {executor.submit(fetch_baostock_history, item, args.backfill_days): item for item in short_history}
             for future in concurrent.futures.as_completed(futures):
                 item = futures[future]
                 try:
@@ -234,21 +315,29 @@ def main() -> int:
                     if not rows:
                         raise RuntimeError("no history rows")
                     backfill_bars.extend(rows); backfill_symbols.append(item["code"])
-                    if len(rows) < args.minimum_history:
-                        backfill_errors.append(f"{item['code']}: partial history {len(rows)}/{args.minimum_history}")
                 except Exception as exc:
                     backfill_errors.append(f"{item['code']}: {type(exc).__name__}: {exc}")
         all_bars.extend(backfill_bars)
+
     elapsed = int((time.monotonic() - t0) * 1000)
     with connect(args.db) as db:
         upsert_instruments(db, full_universe)
         written = upsert_bars(db, all_bars)
-        audit(db, run_id=run_id, source="iwencai", started_at=started,
-              requested=len(universe), succeeded=len(succeeded), failed=len(universe) - len(succeeded),
-              adjustment="qfq", latency_ms=elapsed,
-              status="ok" if len(succeeded) == len(universe) else "partial",
-              detail={"bars_written": written, "errors": errors, "failed_symbols": failed_symbols,
-                      "backfill_symbols": sorted(backfill_symbols), "backfill_errors": backfill_errors})
+        detail = {"bars_written": written, "errors": errors, "failed_symbols": failed_symbols,
+                  "backfill_symbols": sorted(backfill_symbols), "backfill_errors": backfill_errors}
+        if args.source == "tencent":
+            detail["source_counts"] = dict(source_coverage)
+        for src, cnt in source_coverage.items():
+            audit(db, run_id=run_id, source=src, started_at=started,
+                  requested=len(universe), succeeded=cnt, failed=0,
+                  adjustment="qfq", latency_ms=elapsed,
+                  status="ok", detail=detail)
+        if args.source == "iwencai":
+            audit(db, run_id=run_id, source="iwencai", started_at=started,
+                  requested=len(universe), succeeded=len(succeeded), failed=len(universe) - len(succeeded),
+                  adjustment="qfq", latency_ms=elapsed,
+                  status="ok" if len(succeeded) == len(universe) else "partial",
+                  detail=detail)
     backup_dir = args.db.parent / "backups"; backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"etf-compass-{datetime.now(CN).date().isoformat()}.db"
     with sqlite3.connect(args.db) as source, sqlite3.connect(backup_path) as target:

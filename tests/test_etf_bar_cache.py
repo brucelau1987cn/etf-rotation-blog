@@ -19,17 +19,17 @@ def load_importer():
     return module
 
 
-def test_cache_prefers_iwencai_qfq(tmp_path):
+def test_cache_prefers_tencent_qfq(tmp_path):
     db_path = tmp_path / "bars.db"
     base = {"market": "XSHG", "symbol": "510050", "trade_date": "2026-07-10",
             "open": 3.0, "high": 3.1, "low": 2.9, "volume": 10,
             "adjustment": "qfq", "is_final": True}
     with connect(db_path) as db:
-        upsert_bars(db, [{**base, "close": 3.01, "source": "stock-api"},
-                         {**base, "close": 3.05, "source": "iwencai"}])
+        upsert_bars(db, [{**base, "close": 3.01, "source": "iwencai"},
+                         {**base, "close": 3.05, "source": "tencent"}])
         bars = get_bars(db, "XSHG", "510050", "qfq")
     assert len(bars) == 1
-    assert bars[0]["source"] == "iwencai"
+    assert bars[0]["source"] == "tencent"
     assert bars[0]["close"] == 3.05
 
 
@@ -133,6 +133,47 @@ def test_tencent_array_shape_is_normalized(monkeypatch):
     assert len(bars) == 1
     assert bars[0]["source"] == "tencent"
     assert bars[0]["open"] == .874 and bars[0]["close"] == .912
+
+
+def test_tencent_business_empty_payload_retries_then_succeeds(monkeypatch):
+    importer = load_importer()
+    payloads = [
+        {"data": ""},
+        {"data": {"sz159992": {"qfqday": [["2026-07-15", "0.874", "0.912", "0.933", "0.870", "28621018"]]}}},
+    ]
+    sleeps = []
+
+    class Response:
+        def __init__(self, payload): self.payload = payload
+        def __enter__(self): return self
+        def __exit__(self, *args): return None
+        def read(self): return __import__("json").dumps(self.payload).encode()
+
+    monkeypatch.setattr(importer.urllib.request, "urlopen", lambda request, timeout: Response(payloads.pop(0)))
+    monkeypatch.setattr(importer.time, "sleep", sleeps.append)
+    bars = importer.fetch_tencent_history({"code": "159992", "market": "XSHE"}, 320)
+    assert len(bars) == 1
+    assert sleeps == [1]
+
+
+def test_fetch_primary_history_falls_back_to_baostock(monkeypatch):
+    importer = load_importer()
+    expected = [{"symbol": "159992", "source": "baostock"}]
+    monkeypatch.setattr(importer, "fetch_tencent_history", lambda item, count: (_ for _ in ()).throw(RuntimeError("empty")))
+    monkeypatch.setattr(importer, "fetch_baostock_history", lambda item, count: expected)
+    rows, source = importer.fetch_primary_history({"code": "159992", "market": "XSHE"}, 5)
+    assert rows == expected
+    assert source == "baostock"
+
+
+def test_summarize_source_coverage_counts_final_symbols():
+    importer = load_importer()
+    bars = [
+        {"symbol": "510050", "source": "tencent"},
+        {"symbol": "510050", "source": "tencent"},
+        {"symbol": "159915", "source": "baostock"},
+    ]
+    assert importer.summarize_source_coverage(bars) == {"tencent": 1, "baostock": 1}
 
 
 def test_short_history_symbols_are_selected_for_backfill(tmp_path):
