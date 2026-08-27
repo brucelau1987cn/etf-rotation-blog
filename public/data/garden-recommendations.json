@@ -1,35 +1,31 @@
 {
-  "date": "2026-08-26",
-  "updated_at": "2026-08-26 22:30:18 CST",
-  "applies_to": "2026-08-26",
-  "data_as_of": "qfq历史基准：2026-08-25收盘；盘中实时行情：2026-08-26 15:00 CST收盘；夜盘补充：英伟达Q2 FY2027财报（8/26盘后未定价）；池评估日期：2026-08-26；最新交易：2026-08-26",
+  "date": "2026-08-27",
+  "updated_at": "2026-08-27 08:33:21 CST",
+  "applies_to": "2026-08-27",
+  "data_as_of": "qfq历史基准：2026-08-26收盘；盘中实时行情：2026-08-27 08:30 CST（盘前预览）；夜盘补充：英伟达Q2 FY2027财报（8/27凌晨未定价）",
   "level_data_as_of": "2026-08-26",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "Bruce ETF Trend Radar v3",
   "idempotency_key": "CN+2026-08-26+2200+Bruce ETF Trend Radar v3",
-  "market_state": "22:00夜间最终版｜2026-08-26：A三大指数集体收涨（沪指+0.59%收3912、深成+0.69%收13841、创业板+0.51%收3415、科创50+1.71%领涨收1632），全A普涨格局，证券/工业金属/保险/造纸领涨；plant swap（518880风险中→563300中证2000；159329 StrengthD→515220煤炭）；全日无伏击位触发，无持仓无收益；英伟达Q2财报盘后发布，市场等待定价。",
+  "market_state": "08:30盘前版｜2026-08-27：隔夜美股小幅收跌（道指-0.21%报53464、纳指-0.08%报26130），英伟达Q2营收962亿美元超预期、Q3指引1058-1102亿超预期但盘后跌1.59%（今日A股开盘定价），美国7月PCE+3.7%略超预期（9月加息概率38-42%），LME期铜创历史新高14324美元/吨；偏逆风（headwind=1）中铜价新高支撑有色/黄金，内需防御底仓占优，plant候场等待伏击位（159502/563300/515220）",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益10%-30%；防御/现金70%-90%",
-  "mainline": "2026-08-26收盘：①三大指数集体收涨，沪指+0.59%收3912/科创50+1.71%收1632，证券/工业金属/保险/造纸领涨；②全日plant候场（159502/563300/515220），全日无伏击位触发，无持仓，无实现收益；③22:00 plant swap：159502守（StrengthB/score75.6），518880(out：风险中/StrengthC)与159329(out：StrengthD)出，替换为563300中证2000ETF（gap1.73%，低风险/StrengthB/score65.1）和515220煤炭ETF（gap3.97%，低风险/StrengthB/score65.3）；④夜盘：英伟达Q2 FY2027财报8/26盘后发布（共识营收918.5亿美元），AI算力链定价前观望；mid_macro 1偏逆风，position权益上限0%-10%不变（macro权威）。",
-  "summary": "结论：2026-08-26收盘，三大指数集体收涨（沪指+0.59%收3912/科创50+1.71%收1632），全A普涨证券/工业金属领涨；plant swap后候选为159502/563300/515220（全低风险/StrengthB）；全日无伏击位触发，无持仓无收益，英伟达Q2财报盘后发布市场等待定价；mid_macro 1偏逆风position权益0%-10%不变（macro权威）；继续等回踩确认，禁止追高。",
+  "mainline": "2026-08-27盘前：①隔夜美股小幅收跌，英伟达Q2财报超预期但盘后跌（今日A股算力链定价），PCE略高抑制加息预期但铜价新高；②偏逆风格局延续，防御底仓（黄金/豆粕/红利）占优，plant候场（159502标普生物科技/563300中证2000/515220煤炭）等待回踩伏击位；③结论：权益0%-10%，禁止追高，只按伏击位分批布局",
+  "summary": "结论：2026-08-27盘前，偏逆风（headwind=1，权益上限0%-10%），英伟达财报超预期但盘后走弱，今日关注A股算力链开盘定价；铜价历史新高+防御需求支撑有色/黄金；plant候选159502/563300/515220全部距伏击位3-4%，等待回踩确认；禁止追高，只按伏击位分批布局防御性品种",
   "data_quality": {
     "qfq_count": 91,
     "quote_count": 91,
-    "generated_at": "2026-08-26 22:20:00 CST",
+    "generated_at": "2026-08-27 08:32:47 CST",
     "quote_date": "2026-08-26",
     "latest_trade_date": "2026-08-25",
-    "return_basis_disclosure": "涨跌幅基于前复权(qfq)收盘价；伏击位基于qfq日线MA20+ATR14自动计算；夜盘补充英伟达Q2财报来源：公开财经日历/NVIDIA Newsroom；英伟达财报发布前A股夜盘无夜盘T+0行情。",
+    "return_basis_disclosure": "qfq日线基准（前日收盘），OHLC取腾讯行情；price_date为qfq_date（2026-08-26）；return为qfq日线复权收益，非实时行情收益",
     "qfq_basis": "2026-08-25收盘qfq正式池91/91",
     "pool_count": 91,
     "qfq_coverage": 91
   },
   "source_audit": {
-    "iwencai_news": "iWenCai hub wrapper unavailable（网络不可分配地址）；夜盘补充使用公开财经日历/新闻搜索：英伟达Q2 FY2027财报发布时间（2026-08-26 17:00 EDT/8/27 05:00 CST）；A股收盘行情：同花顺/腾讯行情edge proxy。",
-    "fallback": "d1_exchange_calendar（主力），腾讯行情edge proxy（ETF/指数收盘），公开财经日历（英伟达财报）",
-    "calendar": "D1交易日历确认2026-08-26为交易日；11:30 gate decision=run；qfq基线日期2026-08-25（上一完整交易日）",
-    "qfq_pool": "Path A重生成正式池evaluation_date=2026-08-26、latest_trade_date=2026-08-25，正式池91/91、qfq覆盖91/91；selector重选plant=159502/518880/159329（与上一交易日相同，unchanged_from_previous=true）",
-    "quotes": "Tencent公开行情截至2026-08-26 08:30 CST（盘前为上一收盘）：159502 1.664/-0.12%、518880 9.533/-0.32%、159329 0.928/+0.87%；指数收盘：上证3889.44/+0.19%、深成13745.87/-0.35%、创业板3397.52/-1.00%、科创50 1604.59/+0.14%；隔夜外盘：道指+0.30%、标普+0.32%、纳指+0.66%、费半+1.44%、金龙+1.11%；ETF链与指数均返回非空。",
-    "assessment": "盘前研究聚焦隔夜美股反弹、油价大跌对沙特ETF的影响、生物科技回暖与A股地量分化；影子层仅作shadow_research_only研究，不改变生产权重、plant规则或正式仓位。"
+    "iwencai_news": "iwencai-skill-run news-search: A股 8月27日 盘前 隔夜 美股 科技 消息（8条，来源：淘股吧/格隆汇/同花顺/中金在线）；英伟达财报/PCE/铜价/LME数据已纳入",
+    "fallback": "d1_exchange_calendar"
   },
   "harvest": [],
   "plant": [
@@ -58,11 +54,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-26",
-      "selection_score": 87.8,
+      "selected_from_pool_date": "2026-08-27",
+      "selection_score": 89.3,
       "selection_rank": 1,
       "candidate_since": "2026-08-26",
-      "last_qualified_date": "2026-08-26",
+      "last_qualified_date": "2026-08-27",
       "qualified_reason": [
         "趋势B",
         "信号得分75.6",
@@ -99,11 +95,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-26",
-      "selection_score": 80.66,
+      "selected_from_pool_date": "2026-08-27",
+      "selection_score": 82.16,
       "selection_rank": 2,
       "candidate_since": "2026-08-26",
-      "last_qualified_date": "2026-08-26",
+      "last_qualified_date": "2026-08-27",
       "qualified_reason": [
         "趋势B",
         "信号得分65.1",
@@ -140,11 +136,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-08-26",
-      "selection_score": 76.38,
+      "selected_from_pool_date": "2026-08-27",
+      "selection_score": 77.88,
       "selection_rank": 3,
       "candidate_since": "2026-08-26",
-      "last_qualified_date": "2026-08-26",
+      "last_qualified_date": "2026-08-27",
       "qualified_reason": [
         "趋势B",
         "信号得分65.3",
@@ -323,10 +319,10 @@
     }
   ],
   "intraday_0830": {
-    "status": "not_published",
     "stage": "08:30盘前版",
+    "status": "complete",
     "quote_date": "2026-08-26",
-    "quote_as_of": "2026-08-26 08:42:02 CST",
+    "quote_as_of": "2026-08-27 08:30 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -339,8 +335,8 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "盘前广度以昨日收盘为基：约4234涨/1246跌（76%个股上涨）；隔夜美股反弹、富时A50期指收涨0.21%边际偏多，但A股地量1.83万亿、创业板击穿年线、科技权重仍受压，微盘股投机升温。",
-    "morning_session_summary": null,
+    "breadth": "偏逆风：英伟达财报超预期但盘后走弱，铜价创历史新高，防御/内需品种（黄金/豆粕/红利）相对占优；美国PCE略高抑制9月加息预期，A股算力链开盘面临定价压力，plant候场等待回踩",
+    "morning_session_summary": "2026-08-27 08:30盘前：隔夜美股小幅收跌，英伟达Q2营收962亿超预期但盘后跌1.59%；LME期铜创历史新高；美国PCE略高；plant候选全距伏击位3-4%，等待回踩确认入场",
     "triggered_actions": []
   },
   "intraday_1130": {
@@ -386,7 +382,7 @@
     "triggered_actions": []
   },
   "nightly_2200": {
-    "status": "complete",
+    "status": "not_published",
     "stage": "22:00夜间最终版",
     "quote_date": "2026-08-26",
     "quote_as_of": "2026-08-26 22:20:00 CST",
@@ -419,7 +415,7 @@
     }
   },
   "mid_macro": {
-    "generated_at": "2026-08-26 22:30:18 CST",
+    "generated_at": "2026-08-27 08:33:21 CST",
     "headwind_level": 1,
     "label": "偏逆风",
     "equity_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
@@ -432,14 +428,14 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.0,
-        "headline": "固收/权益5日相对中性+0.07pp"
+        "headline": "固收/权益5日相对中性+0.02pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.0,
-        "headline": "海外映射ETF 5日+2.83%"
+        "headline": "海外映射ETF 5日+2.75%"
       },
       {
         "key": "margin_financing",
@@ -451,12 +447,12 @@
     ]
   },
   "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-08-26 20:50:45 UTC+08:00",
+  "level_generated_at": "2026-08-27 08:32:47 CST",
   "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-08-26",
+    "evaluation_date": "2026-08-27",
     "evaluated_count": 91,
     "eligible_count": 11,
     "selected_count": 3,
@@ -485,7 +481,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-08-26",
+    "selected_from_pool_date": "2026-08-27",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
