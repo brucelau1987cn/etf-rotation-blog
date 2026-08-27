@@ -63,9 +63,11 @@ def sync_before_publish():
     # files may be dirty, while the shared index and both owned paths must start clean.
     if run(["git", "diff", "--cached", "--quiet"], check=False).returncode != 0:
         raise RuntimeError("paper publisher requires a clean git index")
-    for path in PUBLISH_FILES:
-        if run(["git", "diff", "--quiet", "--", path], check=False).returncode != 0:
-            raise RuntimeError(f"paper publisher owned path already has uncommitted changes: {path}")
+    # Intraday paper execution intentionally keeps the shared snapshot dirty
+    # until the market-close publisher commits it. The catalog hash remains a
+    # release-owned derivative and must start clean.
+    if run(["git", "diff", "--quiet", "--", CATALOG_JSON], check=False).returncode != 0:
+        raise RuntimeError(f"paper publisher owned path already has uncommitted changes: {CATALOG_JSON}")
     run(["git", "fetch", "origin", "main"])
     if is_ancestor("origin/main", "HEAD"):
         # Retry a commit stranded by an earlier failed push before creating another snapshot.

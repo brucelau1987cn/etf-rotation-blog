@@ -118,7 +118,7 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
     assert financials < shadow < archive
     assert "public/data/model-lab/low-chip-fuyao-shadow.json" in source
     assert "fuyao_shadow = json.loads(FUYAO_SHADOW.read_text(encoding='utf-8'))" in source
-    assert "'fuyao_shadow': fuyao_shadow.get('status')" in source
+    assert 'fuyao_shadow.get("status", "N/A")' in source
     assert "'public/data/model-lab/low-chip-fuyao-shadow.json'" in source
     assert shadow < source.index("run(['npm', 'run', 'build']")
 

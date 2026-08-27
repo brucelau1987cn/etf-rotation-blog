@@ -56,9 +56,11 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
     ]
 
 
-def test_futures_preflight_allows_only_known_external_shadow_files():
+def test_futures_preflight_allows_known_cross_publisher_outputs():
     assert publisher.foreign_dirty_paths([" M public/data/korea-tech-factor-shadow.json"]) == []
     assert publisher.foreign_dirty_paths([" M public/data/us-selector-shadow.json"]) == []
+    assert publisher.foreign_dirty_paths([" M public/data/us-etf-garden.json"]) == []
+    assert publisher.foreign_dirty_paths([" M public/data/us-macro-dashboard.json"]) == []
     assert publisher.foreign_dirty_paths([" M functions/api.js"]) == ["functions/api.js"]
 
 

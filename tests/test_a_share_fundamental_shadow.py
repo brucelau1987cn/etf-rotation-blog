@@ -7,6 +7,8 @@ from scripts.a_share_fundamental_shadow import (
     attach_share_timeline, validate_baostock_workers, normalize_baostock_row,
     load_universe, partition_items, should_relogin, finalize_trade_batch,
     observation_sessions, retry_incomplete_or_stale_results,
+    symbol_fetch_requires_child_process,
+    fetch_partitions_parallel,
 )
 
 
@@ -139,6 +141,46 @@ def test_baostock_work_is_partitioned_into_at_most_four_persistent_sessions():
     assert chunks == [[0, 1, 2], [3, 4, 5], [6, 7], [8, 9]]
     with pytest.raises(ValueError, match="at most 4 independent processes"):
         partition_items(list(range(10)), workers=5)
+
+
+def test_daemonic_pool_worker_fetches_in_process_without_nested_child():
+    assert symbol_fetch_requires_child_process(True) is False
+    assert symbol_fetch_requires_child_process(False) is True
+
+
+def test_parallel_partitions_keep_order_and_allow_symbol_timeout_children(monkeypatch):
+    calls = []
+
+    class Future:
+        def __init__(self, value):
+            self.value = value
+
+        def result(self, timeout):
+            assert timeout == 480
+            return self.value
+
+    class Executor:
+        def __init__(self, max_workers):
+            assert max_workers == 2
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def submit(self, function, items, sessions):
+            return Future(function(items, sessions))
+
+    def fake_fetch(items, sessions):
+        calls.append((items, sessions))
+        return [(item, "succeeded", {"code": item}, None) for item in items]
+
+    monkeypatch.setattr("scripts.a_share_fundamental_shadow._fetch_partition", fake_fetch)
+    monkeypatch.setattr("scripts.a_share_fundamental_shadow.ProcessPoolExecutor", Executor)
+    result = fetch_partitions_parallel([["A", "B"], ["C"]], 0, workers=2)
+    assert [row[0] for partition in result for row in partition] == ["A", "B", "C"]
+    assert calls == [(["A", "B"], 0), (["C"], 0)]
 
 
 def test_only_session_expiry_triggers_a_bounded_relogin():

@@ -42,6 +42,17 @@ EXTERNAL_DIRTY = {
     "public/data/catalog.json",
     "public/data/garden-recommendations.json",
     "public/data/paper-trading.json",
+    # US close publisher owns these as one deterministic snapshot family.
+    "public/data/us-compass-health.json",
+    "public/data/us-compass-learning.json",
+    "public/data/us-compass-rotation-map.json",
+    "public/data/us-compass-risk.json",
+    "public/data/us-compass-shadow.json",
+    "public/data/us-etf-backtest.json",
+    "public/data/us-etf-flower-history.json",
+    "public/data/us-etf-garden.json",
+    "public/data/us-etf-pool.json",
+    "public/data/us-macro-dashboard.json",
 }
 
 

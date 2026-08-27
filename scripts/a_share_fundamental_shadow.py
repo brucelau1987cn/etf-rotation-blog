@@ -10,6 +10,7 @@ import os
 import tempfile
 import urllib.request
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -269,12 +270,28 @@ def _fetch_symbol_with_session(
         return code, "failed", None, f"{type(exc).__name__}: {exc}"
 
 
+def symbol_fetch_requires_child_process(in_daemonic_worker: bool) -> bool:
+    """Nested timeout workers are unavailable inside multiprocessing pools."""
+    return not in_daemonic_worker
+
+
+def fetch_partitions_parallel(chunks, observation_sessions: int, workers: int):
+    """Use non-daemonic workers so each session may spawn timeout children."""
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_fetch_partition, chunk, observation_sessions) for chunk in chunks]
+        return [future.result(timeout=480) for future in futures]
+
+
 def _fetch_partition(
     items: list[dict[str, str]], observation_sessions: int,
 ) -> list[tuple[str, str, dict[str, Any] | None, str | None]]:
     import baostock as bs  # type: ignore[import-not-found]
 
+    in_daemonic_worker = mp.current_process().daemon
+
     def timed_fetch(item: dict[str, str]) -> tuple[str, str, dict[str, Any] | None, str | None]:
+        if not symbol_fetch_requires_child_process(in_daemonic_worker):
+            return _fetch_symbol_with_session(bs, item, observation_sessions)
         parent_conn, child_conn = mp.Pipe(duplex=False)
 
         def worker():
@@ -406,17 +423,7 @@ def run(
     if worker_count == 1:
         results = _fetch_partition(chunks[0], 0)
     else:
-        context = mp.get_context("spawn")
-        with context.Pool(worker_count) as pool:
-            async_result = pool.starmap_async(
-                _fetch_partition, [(chunk, 0) for chunk in chunks],
-            )
-            try:
-                partitions = async_result.get(timeout=480)
-            except Exception:
-                pool.terminate()
-                pool.join()
-                raise
+        partitions = fetch_partitions_parallel(chunks, 0, worker_count)
         results = [row for partition in partitions for row in partition]
     results = retry_incomplete_or_stale_results(universe, results)
     raw_items = [row for _, status, row, _ in results if status == "succeeded" and row is not None]

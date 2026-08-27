@@ -44,6 +44,12 @@ def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
     assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
 
 
+def test_nightly_chain_keeps_outer_timeout_above_inner_budget():
+    wrapper = NIGHTLY_CHAIN.read_text(encoding='utf-8')
+    assert '--timeout 3300' in wrapper
+    assert 'timeout 3900s' in wrapper
+
+
 def test_stage_timeouts_are_capped_per_stage():
     module = load()
     assert module.effective_timeout('precheck', 3600) == 60
