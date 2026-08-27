@@ -1,0 +1,25 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+
+const report = rollingDailyReports['2026-08-26'];
+const title = `${report.title} | ${SITE_TITLE}`;
+const description = '2026年8月26日滚动信号收盘复盘：创新医疗早盘10m+15m空方共振，收盘¥18.84贴价确认（+1.24%）；白银现货5m SELL $68.43（18:40），晚间维持$68.18—69.71区间，5m空方已确认。';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="rolling-insights-main">
+      <RollingSubnav active="insights" />
+      <RollingDailyInsightReport report={report} />
+    </main>
+    <Footer />
+  </body>
+</html>

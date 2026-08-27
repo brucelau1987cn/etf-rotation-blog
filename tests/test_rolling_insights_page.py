@@ -51,21 +51,25 @@ def test_daily_rolling_reports_cover_latest_dates():
     ):
         assert marker in page + component + data + hist21
     assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
-    assert "rollingDailyReports['2026-08-26']" in page
-    # Extract just the 2026-08-26 entry (from pos of its start to pos of next date entry)
-    # Using regex to find the exact start/end of the 2026-08-26 block
+    assert "rollingDailyReports['2026-08-27']" in page
+    # Extract just the 2026-08-27 entry (from pos of its start to pos of next date entry)
     import re
-    m26 = re.search(r"'2026-08-26': \{\n", data)
-    m25 = re.search(r"'2026-08-25': \{", data)
-    latest_block = data[m26.start():m25.start()]
-    assert latest_block.count("name: '") == 2
-    assert latest_block.count("validation: 'confirmed'") == 1
-    assert latest_block.count("validation: 'reclaimed'") == 0
-    assert latest_block.count("validation: 'mixed'") == 0
-    assert latest_block.count("validation: 'watch'") == 1
-    assert "创新医疗" in latest_block
+    m27 = re.search(r"'2026-08-27': \{\n", data)
+    m26 = re.search(r"'2026-08-26': \{", data)
+    assert m27 is not None, "2026-08-27 report not found in data"
+    assert m26 is not None, "2026-08-26 report not found in data"
+    latest_block = data[m27.start():m26.start()]
+    assert latest_block.count("name: '") == 4
+    assert latest_block.count("validation: 'confirmed'") == 2
+    assert latest_block.count("validation: 'reclaimed'") == 1
+    assert latest_block.count("validation: 'mixed'") == 1
+    assert latest_block.count("validation: 'watch'") == 0
+    assert "上海电力" in latest_block
+    assert "中国宏桥" in latest_block
+    assert "海光信息" in latest_block
     assert "白银现货" in latest_block
-    assert "多方已确认" not in latest_block  # 08-26 has no confirmed buy
+    assert "空方已确认" in latest_block
+    assert "多方已收复" in latest_block
     assert "空方已确认" in latest_block
     assert "/rolling/insights/2026-08-21/" in data
     assert "/rolling/insights/2026-08-20/" in data
@@ -116,7 +120,7 @@ def test_insight_navigator_is_daily_only_after_merge():
         "data-insight-date",
     ):
         assert marker in navigator
-    assert "2026-08-25" in catalog
+    assert "2026-08-26" in catalog
     assert "2026-08-21" in catalog
     assert "2026-08-20" in catalog
     assert "2026-08-19" in catalog
@@ -125,10 +129,13 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "2026-08-14" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
-    assert "/rolling/insights/2026-08-24 /rolling/insights/ 301" in redirects
+    # 08-26 demoted archive redirects
+    assert "/rolling/insights/2026-08-26 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-26 /rolling/insights/2026-08-26/ 301" in redirects
+    # 08-25 archive redirects
+    assert "/rolling/insights/2026-08-25 /rolling/insights/2026-08-25/ 301" in redirects
     assert "/rolling/insights/2026-08-25 /rolling/insights/ 301" in redirects
     assert "/rolling/insights/2026-08-25/ /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-08-25 /rolling/insights/2026-08-25/ 301" in redirects
     assert "/rolling/insights/2026-08-24/ /rolling/insights/ 301" in redirects
     assert "/rolling/insights/2026-08-21 /rolling/insights/2026-08-21/ 301" in redirects
     assert "/rolling/insights/2026-08-21/ /rolling/insights/2026-08-21/ 301" in redirects
