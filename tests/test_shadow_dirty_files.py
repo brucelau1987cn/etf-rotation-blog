@@ -13,12 +13,6 @@ sys.path.insert(0, str(SCRIPTS))
 import shadow_dirty_files as sdf  # noqa: E402
 import publish_futures_compass as fc  # noqa: E402
 
-SHADOW = frozenset({
-    "public/data/korea-tech-factor-shadow.json",
-    "public/data/us-selector-shadow.json",
-    "public/data/us-insider-ownership.json",
-})
-
 
 def _load(path: Path):
     spec = importlib.util.spec_from_file_location(path.stem, path)
@@ -30,7 +24,14 @@ def _load(path: Path):
 
 
 def test_shadow_dirty_files_is_canonical_set():
-    assert sdf.SHADOW_DIRTY_FILES == SHADOW
+    # After 2026-08-28 refactor(shadow), SHADOW_DIRTY_FILES is the SINGLE source of truth
+    # for ALL cross-publisher dirty-file exemptions (korea-tech-factor/us-selector/us-insider
+    # PLUS A-share generated artifacts that must not block the futures/low-chip/precious
+    # publishers after a failed intraday LLM stage — 2026-08-10 cascade fix).
+    # The test asserts the test module does NOT redefine a stale local copy.
+    assert not hasattr(sys.modules[__name__], "SHADOW"), (
+        "Remove local SHADOW set: SHADOW_DIRTY_FILES in scripts/shadow_dirty_files.py is the canonical source."
+    )
 
 
 def test_futures_external_dirty_supersets_shadow():
