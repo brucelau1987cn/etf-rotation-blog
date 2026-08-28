@@ -24,35 +24,6 @@ LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
     # 跨发布器共享的 shadow 脏文件豁免（单一来源 scripts/shadow_dirty_files.py）
     *SHADOW_DIRTY_FILES,
-    # a-stock-data 影子快照（打板层 / mootdx，.gitignore 隔离，不接生产）
-    "public/data/limit-up-shadow.json",
-    "public/data/mootdx-shadow.json",
-    # A-share stage generated files — futures publisher should not be blocked
-    # by dirty A-share artifacts (hit 2026-08-10: 08:30 LLM failure left
-    # garden-recommendations/mid-macro/etf-garden-pool/... dirty → all
-    # subsequent publishers failed in cascade).
-    "public/data/etf-garden-backtest.json",
-    "public/data/etf-garden-pool.json",
-    "public/data/model-lab/a-share-shadow.json",
-    "public/data/model-lab/a-share-path-shadow.json",
-    "public/data/model-lab/a-share-research-audit.json",
-    "public/data/a-share-nightly-deployment.json",
-    "public/data/a-share-mid-macro.json",
-    "public/data/a-compass-dashboard.json",
-    "public/data/catalog.json",
-    "public/data/garden-recommendations.json",
-    "public/data/paper-trading.json",
-    # US close publisher owns these as one deterministic snapshot family.
-    "public/data/us-compass-health.json",
-    "public/data/us-compass-learning.json",
-    "public/data/us-compass-rotation-map.json",
-    "public/data/us-compass-risk.json",
-    "public/data/us-compass-shadow.json",
-    "public/data/us-etf-backtest.json",
-    "public/data/us-etf-flower-history.json",
-    "public/data/us-etf-garden.json",
-    "public/data/us-etf-pool.json",
-    "public/data/us-macro-dashboard.json",
 }
 
 
