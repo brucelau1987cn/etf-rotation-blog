@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-08-28 14:36:43 CST",
+  "generated_at": "2026-08-28 22:13:44 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 1.7,
+          "value": 1.63,
           "unit": "%",
-          "display": "1.70%",
+          "display": "1.63%",
           "as_of": "2026-08-28",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +7.72% · 汇率与溢折价会扰动",
+          "detail": "20日 +7.64% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 37.5,
+          "value": 50.0,
           "unit": "%",
-          "display": "37.50%",
+          "display": "50.00%",
           "as_of": "2026-08-28",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -397,12 +397,12 @@
           "detail": "样本 8只 · 只作确认项",
           "change": null,
           "change_label": "较上期",
-          "tone": "neutral"
+          "tone": "warning"
         }
       ],
       "state": "中性",
-      "score": 0.0,
-      "headline": "海外映射ETF 5日+1.70%",
+      "score": 0.25,
+      "headline": "海外映射ETF 5日+1.63%",
       "as_of": "2026-08-28"
     },
     {
@@ -510,17 +510,17 @@
       ],
       "metrics": {
         "bond_ret5": -0.06,
-        "bond_ret20": 0.17,
+        "bond_ret20": 0.18,
         "equity_ret5": 0.0,
         "equity_ret20": 0.58,
         "bond_vs_equity_5d_pp": -0.06,
-        "bond_vs_equity_20d_pp": -0.41
+        "bond_vs_equity_20d_pp": -0.4
       },
       "details": {
         "511260": {
-          "ret5": -0.09,
-          "ret20": 0.19,
-          "last": 135.64,
+          "ret5": -0.08,
+          "ret20": 0.21,
+          "last": 135.66,
           "date": "2026-08-28"
         },
         "511010": {
@@ -548,10 +548,11 @@
       "key": "overseas_deleveraging",
       "label": "海外风险映射压力",
       "state": "中性",
-      "score": 0.0,
-      "headline": "海外映射ETF 5日+1.70%",
+      "score": 0.25,
+      "headline": "海外映射ETF 5日+1.63%",
       "reasons": [
-        "海外映射ETF 5日+1.70%"
+        "海外映射ETF 5日+1.63%",
+        "海外相关池弱化占比50%（确认项）"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -564,11 +565,11 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 1.7,
-        "proxy_ret20_avg": 7.72,
+        "proxy_ret5_avg": 1.63,
+        "proxy_ret20_avg": 7.64,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 0.375
+        "overseas_weak_share": 0.5
       },
       "details": {
         "159941": {
@@ -584,15 +585,15 @@
           "date": "2026-08-28"
         },
         "159502": {
-          "ret5": 2.61,
-          "ret20": 11.42,
-          "last": 1.688,
+          "ret5": 2.67,
+          "ret20": 11.49,
+          "last": 1.689,
           "date": "2026-08-28"
         },
         "513520": {
-          "ret5": 0.88,
-          "ret20": 5.58,
-          "last": 2.288,
+          "ret5": 0.53,
+          "ret20": 5.21,
+          "last": 2.28,
           "date": "2026-08-28"
         }
       },
@@ -710,7 +711,7 @@
     "headwind_level": 0,
     "headwind_count": 0,
     "watch_count": 0,
-    "score_total": 0.0,
+    "score_total": 0.25,
     "label": "中性",
     "allow_chase": true,
     "allow_new_offense": true,
