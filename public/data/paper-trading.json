@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-28T22:32:03.349902+00:00",
+  "updated_at": "2026-08-28T23:00:39.662386+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -309,7 +309,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 13902.287439443611,
+      "cash": 8236.8526035691,
       "positions": {
         "SOXX": {
           "symbol": "SOXX",
@@ -324,7 +324,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 528.71,
-          "last_price": 525.4299926757812
+          "last_price": 508.6199951171875
         },
         "SMH": {
           "symbol": "SMH",
@@ -339,7 +339,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 573.0
+          "last_price": 553.1099853515625
         },
         "SPMO": {
           "symbol": "SPMO",
@@ -354,7 +354,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 148.09,
-          "last_price": 148.60000610351562
+          "last_price": 146.77999877929688
         },
         "IWM": {
           "symbol": "IWM",
@@ -369,17 +369,62 @@
           "signal_date": "2026-08-25",
           "signal_kind": "plant",
           "signal_level": 299.15,
-          "last_price": 299.80999755859375
+          "last_price": 295.75
+        },
+        "DIA": {
+          "symbol": "DIA",
+          "name": "SPDR Dow Jones ETF",
+          "quantity": 3,
+          "entry_price": 534.8400268554688,
+          "entry_cost": 1.80226,
+          "entry_at": "2026-08-28T14:30:21.609237+00:00",
+          "target": 539.92,
+          "stop": 528.96,
+          "level_basis": null,
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 534.88,
+          "last_price": 535.0599975585938
+        },
+        "EFA": {
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "quantity": 19,
+          "entry_price": 107.79000091552734,
+          "entry_cost": 2.024005,
+          "entry_at": "2026-08-28T16:05:24.694154+00:00",
+          "target": 108.84,
+          "stop": 106.93,
+          "level_basis": null,
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 107.81,
+          "last_price": 107.72000122070312
+        },
+        "EWJ": {
+          "symbol": "EWJ",
+          "name": "iShares MSCI Japan",
+          "quantity": 21,
+          "entry_price": 95.57499694824219,
+          "entry_cost": 2.003537,
+          "entry_at": "2026-08-28T16:25:25.289897+00:00",
+          "target": 96.93,
+          "stop": 94.39,
+          "level_basis": null,
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 95.67,
+          "last_price": 95.87000274658203
         }
       },
-      "equity": 20928.237482,
+      "equity": 20769.812603,
       "realized_pnl": 890.3949512023925,
-      "unrealized_pnl": 37.842531,
-      "daily_return": 0.02503366,
-      "cumulative_return": 0.04641187,
+      "unrealized_pnl": -120.582349,
+      "daily_return": -0.00756991,
+      "cumulative_return": 0.03849063,
       "max_drawdown": -0.01350211,
       "peak_equity": 20928.23748216822,
-      "cash_ratio": 0.66428372,
+      "cash_ratio": 0.39657809,
       "history": [
         {
           "date": "2026-08-04",
@@ -523,6 +568,14 @@
           "cash": 13902.287439,
           "daily_return": 0.02503366,
           "cumulative_return": 0.04641187,
+          "max_drawdown": -0.01350211
+        },
+        {
+          "date": "2026-08-28",
+          "equity": 20769.812603,
+          "cash": 8236.852604,
+          "daily_return": -0.00756991,
+          "cumulative_return": 0.03849063,
           "max_drawdown": -0.01350211
         }
       ],
@@ -1473,6 +1526,54 @@
           "target": 418.86,
           "stop": 386.24,
           "decision_tag": "止盈退出"
+        },
+        {
+          "id": "US:DIA:buy:1787927420:plant",
+          "timestamp": "2026-08-28T14:30:21.609237+00:00",
+          "market": "US",
+          "symbol": "DIA",
+          "name": "SPDR Dow Jones ETF",
+          "side": "buy",
+          "quantity": 3,
+          "price": 534.840027,
+          "cost": 1.80226,
+          "reason": "plant",
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 534.88,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:EFA:buy:1787933125:plant",
+          "timestamp": "2026-08-28T16:05:24.694154+00:00",
+          "market": "US",
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "side": "buy",
+          "quantity": 19,
+          "price": 107.790001,
+          "cost": 2.024005,
+          "reason": "plant",
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 107.81,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:EWJ:buy:1787934326:plant",
+          "timestamp": "2026-08-28T16:25:25.289897+00:00",
+          "market": "US",
+          "symbol": "EWJ",
+          "name": "iShares MSCI Japan",
+          "side": "buy",
+          "quantity": 21,
+          "price": 95.574997,
+          "cost": 2.003537,
+          "reason": "plant",
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 95.67,
+          "decision_tag": "计划内首仓"
         }
       ],
       "pending_signals": [],
@@ -1483,11 +1584,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 54,
+        "total": 57,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 29,
+            "count": 32,
             "closed_pnl": null
           },
           {
