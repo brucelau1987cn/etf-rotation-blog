@@ -457,7 +457,7 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
     )
     if not any(marker in article_text for marker in stage_markers):
         raise RuntimeError("article frontmatter is not 22:00夜间最终版")
-    if "### 22:00 夜间最终整理" not in article_text:
+    if "### 22:00 夜间最终版" not in article_text:
         raise RuntimeError("article is missing the 22:00 final section")
 
     expected_content = set(nightly_content_files(trade_date))
