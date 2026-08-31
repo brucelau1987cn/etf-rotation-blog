@@ -437,7 +437,7 @@ def test_publish_idempotent_when_no_owned_changes(tmp_path, monkeypatch):
     (tmp_path / "public/data").mkdir(parents=True)
     state = tmp_path / "state.json"
     state.write_text(json.dumps(prepared_state()))
-    (tmp_path / "src/content/blog/2026-07-14.md").write_text("---\nstage: '22:00夜间最终版'\n---\n### 22:00 夜间最终整理\n")
+    (tmp_path / "src/content/blog/2026-07-14.md").write_text("---\nstage: '22:00夜间最终版'\n---\n### 22:00 夜间最终版\n")
     (tmp_path / "public/data/garden-recommendations.json").write_text(json.dumps({"date": "2026-07-14", "stage": "22:00夜间最终版"}))
     (tmp_path / "public/data/a-share-mid-macro.json").write_text("{}")
     monkeypatch.setattr(publish, "git_changes", lambda: {"unrelated.txt"})
