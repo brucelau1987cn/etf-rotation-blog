@@ -51,27 +51,26 @@ def test_daily_rolling_reports_cover_latest_dates():
     ):
         assert marker in page + component + data + hist21
     assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
-    assert "rollingDailyReports['2026-08-28']" in page
-    # Extract just the 2026-08-28 entry (from pos of its start to pos of next date entry)
+    assert "rollingDailyReports['2026-09-01']" in page
+    # Extract just the 2026-09-01 entry (from pos of its start to pos of next date entry)
     import re
+    m91 = re.search(r"'2026-09-01': \{\n", data)
     m28 = re.search(r"'2026-08-28': \{\n", data)
-    m27 = re.search(r"'2026-08-27': \{", data)
+    assert m91 is not None, "2026-09-01 report not found in data"
     assert m28 is not None, "2026-08-28 report not found in data"
-    assert m27 is not None, "2026-08-27 report not found in data"
-    latest_block = data[m28.start():m27.start()]
-    assert latest_block.count("name: '") == 5
-    assert latest_block.count("validation: 'confirmed'") == 4
+    latest_block = data[m91.start():m28.start()]
+    assert latest_block.count("name: '") == 4
+    assert latest_block.count("validation: 'confirmed'") == 2
     assert latest_block.count("validation: 'reclaimed'") == 1
-    assert latest_block.count("validation: 'mixed'") == 0
+    assert latest_block.count("validation: 'mixed'") == 1
     assert latest_block.count("validation: 'watch'") == 0
-    assert "民爆光电" in latest_block
-    assert "三安光电" in latest_block
-    assert "创新医疗" in latest_block
+    assert "德福科技" in latest_block
+    assert "长鑫科技" in latest_block
     assert "澜起科技" in latest_block
     assert "白银现货" in latest_block
     assert "空方贴价确认" in latest_block
-    assert "10m+15m空方深度确认" in latest_block
-    assert "空方被强劲收复" in latest_block
+    assert "10m+150m+180m空方三档共振已被收复" in latest_block
+    assert "6.5h多方收复失败" in latest_block
     assert "/rolling/insights/2026-08-21/" in data
     assert "/rolling/insights/2026-08-20/" in data
     assert "/rolling/insights/2026-08-19/" in data
@@ -89,6 +88,7 @@ def test_daily_rolling_reports_cover_latest_dates():
     assert (ROOT / "src/pages/rolling/insights/2026-08-18.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-17.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-08-14.astro").exists()
+    assert (ROOT / "src/pages/rolling/insights/2026-08-28.astro").exists()
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -130,6 +130,9 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "2026-08-14" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
+    # 09-01 demoted latest, demoted archive redirects
+    assert "/rolling/insights/2026-08-28 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-08-28 /rolling/insights/2026-08-28/ 301" in redirects
     # 08-27 demoted archive redirects
     assert "/rolling/insights/2026-08-27 /rolling/insights/ 301" in redirects
     assert "/rolling/insights/2026-08-27 /rolling/insights/2026-08-27/ 301" in redirects
