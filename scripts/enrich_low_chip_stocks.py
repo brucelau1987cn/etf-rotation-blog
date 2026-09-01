@@ -8,7 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
-PROFILE_FILES = [Path(f"/tmp/lc_p{i}.json") for i in range(1, 5)]
+# 动态读取 fetch_low_chip_enrichments.py 生成的全部 profile 分页文件。
+# 初筛池规模随市场波动（月末可超 20 只 → lc_p5+），硬编码 range(1,5) 会漏读
+# 后段分页导致行业数据缺失（2026-08-31 生产故障根因）。
+PROFILE_FILES = sorted(Path("/tmp").glob("lc_p*.json"))
 INDIVIDUAL = Path("/tmp/low_chip_individual.json")
 QUALITY = Path("/tmp/low_chip_quality.json")
 UNLOCK = Path("/tmp/low_chip_unlock.json")

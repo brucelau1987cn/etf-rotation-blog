@@ -99,6 +99,10 @@ def main() -> int:
     bare_codes = [c.split(".")[0] for c in codes]
     print(f"intersection: {codes}", flush=True)
 
+    # 清理旧的 profile 分页文件，避免 enrich_low_chip_stocks.py 的 glob 读到历史残留。
+    for stale in Path("/tmp").glob("lc_p*.json"):
+        stale.unlink(missing_ok=True)
+
     # /tmp/lc_p{n}.json — per-stock profile query (industry, top10, shareholders)
     # 5 codes per batch
     batches = [bare_codes[i:i + PROFILE_BATCH_SIZE] for i in range(0, len(bare_codes), PROFILE_BATCH_SIZE)]
