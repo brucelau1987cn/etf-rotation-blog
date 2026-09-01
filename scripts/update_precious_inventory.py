@@ -458,6 +458,32 @@ def main():
     etf_profit = fetch_etf_profit_ratios()
     for k, v in etf_profit.get('assets', {}).items():
         print(f'  ETF_PROFIT[{k}]: {"OK" if v.get("ok") else "FAIL"} day={v.get("day")} week={v.get("week")} month={v.get("month")}', flush=True)
+
+    # THS 同花顺 kline 在 9/1 整天 502/504 (commit 79e66da 加了 retry 但仍全失败)：
+    # gold/silver 任意一个 ok=False 时，从上次发布的 DATA 中合并成功的 ratios，
+    # 保留展示连续性，避免 daily update cron 因临时网络问题整体失败。
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.abspath(os.path.join(script_dir, '..'))
+    out_path = os.path.join(project_dir, 'public', 'data', 'precious-inventory.json')
+    if os.path.exists(out_path):
+        try:
+            prev = json.load(open(out_path, encoding='utf-8'))
+            prev_profit = (prev.get('data') or {}).get('etf_profit') or {}
+            prev_assets = prev_profit.get('assets') or {}
+            merged = etf_profit.setdefault('assets', {})
+            for k in ('gold', 'silver'):
+                row = merged.get(k) or {}
+                if row.get('ok') and row.get('day') is not None:
+                    continue  # 当前拉取成功则保留
+                if k in prev_assets and (prev_assets[k] or {}).get('ok'):
+                    merged[k] = prev_assets[k]
+                    merged[k]['fallback'] = 'previous_publish'
+                    print(f'  ETF_PROFIT[{k}]: restored from previous publish', flush=True)
+            if all((merged.get(k) or {}).get('ok') for k in ('gold', 'silver')):
+                etf_profit['ok'] = True
+                etf_profit.setdefault('warnings', []).append('partial_restore_from_previous_publish')
+        except (OSError, ValueError, KeyError) as exc:
+            print(f'  WARN: failed to merge previous ETF profits: {exc}', flush=True)
     # Keep kitco key as alias so older clients still resolve the lease panel.
     kitco_alias = dict(lease)
     kitco_alias['legacy_key'] = 'kitco'
