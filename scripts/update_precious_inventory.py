@@ -281,24 +281,53 @@ def fetch_etf_profit_ratios() -> dict:
     获利比 = 现价下方筹码占比。GLD 自算 vs App：日 44.6/40.85、周 74.6/70.40、月 92.7/91.32。
     """
     import urllib.request
+    import urllib.error
     import datetime as _dt
+    import time
 
     def _fetch_kline(code: str, period: str) -> list[dict]:
+        # THS d.10jqka.com.cn kline returns HTTP 502/504 sporadically (2026-09-01 session
+        # left both gold/silver ok=False with "no kline" because the year-loop got 8/11 502s
+        # in a row). Bounded retry on transient HTTP faults and empty/string payloads before
+        # returning empty (per skill ths-10jqka-data-apis + low-chip Tencent retry recipe).
         url = f'https://d.10jqka.com.cn/v6/line/{code}/01/{period}.js'
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-        with urllib.request.urlopen(req, timeout=25) as r:
-            txt = r.read().decode('utf-8', 'replace')
-        m = re.search(r'\((.*)\)\s*$', txt, re.S)
-        if not m:
-            return []
-        d = json.loads(m.group(1))
-        recs = []
-        for rec in (d.get('data') or '').split(';'):
-            f = rec.split('~')[0].split(',')
-            if len(f) >= 6 and f[0].isdigit():
-                recs.append({'date': f[0], 'open': float(f[1]), 'high': float(f[2]), 'low': float(f[3]),
-                             'close': float(f[4]), 'vol': float(f[5])})
-        return recs
+        last_err = ''
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=25) as r:
+                    txt = r.read().decode('utf-8', 'replace')
+                m = re.search(r'\((.*)\)\s*$', txt, re.S)
+                if not m:
+                    last_err = 'no_match'
+                    time.sleep(1 + attempt * 2)
+                    continue
+                d = json.loads(m.group(1))
+                raw = d.get('data') or ''
+                if not isinstance(raw, str) or not raw:
+                    last_err = 'empty_data'
+                    time.sleep(1 + attempt * 2)
+                    continue
+                recs = []
+                for rec in raw.split(';'):
+                    f = rec.split('~')[0].split(',')
+                    if len(f) >= 6 and f[0].isdigit():
+                        try:
+                            recs.append({'date': f[0], 'open': float(f[1]), 'high': float(f[2]), 'low': float(f[3]),
+                                         'close': float(f[4]), 'vol': float(f[5])})
+                        except (TypeError, ValueError):
+                            continue
+                if not recs:
+                    last_err = 'no_parsable_rows'
+                    time.sleep(1 + attempt * 2)
+                    continue
+                return recs
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+                last_err = str(e)
+                time.sleep(1 + attempt * 2)
+                continue
+        print(f'  [ths kline retry exhausted] {code}/{period}: {last_err}', flush=True)
+        return []
 
     def _agg(recs, freq, drop_incomplete=False):
         """周=交易周（丢弃未完成周），月=自然月（含本月至今）"""
