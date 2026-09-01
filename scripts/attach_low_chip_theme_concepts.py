@@ -112,7 +112,7 @@ def query_concepts(symbols: list[str]) -> dict[str, list[str]]:
             continue
         concepts = row.get("所属概念") or []
         if isinstance(concepts, str):
-            concepts = [x.strip() for x in re.split(r"[、,，/|]", concepts) if x.strip()]
+            concepts = [x.strip() for x in re.split(r"[、,，/|;；]", concepts) if x.strip()]
         out[code] = [str(c) for c in concepts if c]
     return out
 
