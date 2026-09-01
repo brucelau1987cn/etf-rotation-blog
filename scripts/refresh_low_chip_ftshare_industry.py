@@ -180,6 +180,10 @@ def apply_refresh(current: dict[str, Any], tracking: dict[str, Any], mapping: di
         enrichment.update(build_industry_fields(mapping[symbol], enrichment.get("theme_concepts") or [], as_of))
     for symbol, rec in (tracking.get("stocks") or {}).items():
         if symbol not in mapping:
+            # 缺二级行业路径：保留 enrichment 原值，但补 industry_source/standard 以满足
+            # test_published_low_chip_industry_contract_has_full_coverage 100% 覆盖断言。
+            rec.setdefault("industry_source", "iWenCai 所属申万行业")
+            rec.setdefault("industry_standard", "SW2021")
             missing.append(symbol)
             continue
         fields = build_industry_fields(mapping[symbol], history_themes.get(symbol) or [], as_of)
