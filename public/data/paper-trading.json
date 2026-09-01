@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-01T22:31:37.627528+00:00",
+  "updated_at": "2026-09-01T23:00:20.804540+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -325,7 +325,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 12025.016517721931,
+      "cash": 13445.86970795777,
       "positions": {
         "SOXX": {
           "symbol": "SOXX",
@@ -340,7 +340,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 528.71,
-          "last_price": 511.0400085449219
+          "last_price": 500.30999755859375
         },
         "SMH": {
           "symbol": "SMH",
@@ -355,62 +355,47 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 556.6300048828125
+          "last_price": 545.219970703125
         },
-        "SPMO": {
-          "symbol": "SPMO",
-          "name": "Invesco S&P 500 Momentum ETF",
-          "quantity": 13,
-          "entry_price": 147.96009826660156,
-          "entry_cost": 1.961741,
-          "entry_at": "2026-08-19T14:15:00.682072+00:00",
-          "target": 155.36,
-          "stop": 144.95,
+        "XLK": {
+          "symbol": "XLK",
+          "name": "Technology Select Sector",
+          "quantity": 11,
+          "entry_price": 183.82000732421875,
+          "entry_cost": 2.01101,
+          "entry_at": "2026-09-01T13:30:27.942044+00:00",
+          "target": 190.35,
+          "stop": 181.36,
           "level_basis": null,
-          "signal_date": "2026-08-18",
+          "signal_date": "2026-08-31",
           "signal_kind": "plant",
-          "signal_level": 148.09,
-          "last_price": 147.08999633789062
+          "signal_level": 185.98,
+          "last_price": 183.63999938964844
         },
-        "DIA": {
-          "symbol": "DIA",
-          "name": "SPDR Dow Jones ETF",
-          "quantity": 3,
-          "entry_price": 534.8400268554688,
-          "entry_cost": 1.80226,
-          "entry_at": "2026-08-28T14:30:21.609237+00:00",
-          "target": 539.92,
-          "stop": 528.96,
+        "TLT": {
+          "symbol": "TLT",
+          "name": "iShares 20+ Year Treasury Bond",
+          "quantity": 25,
+          "entry_price": 81.88999938964844,
+          "entry_cost": 2.023625,
+          "entry_at": "2026-09-01T13:30:27.942044+00:00",
+          "target": 83.25,
+          "stop": 81.55,
           "level_basis": null,
-          "signal_date": "2026-08-27",
+          "signal_date": "2026-08-31",
           "signal_kind": "plant",
-          "signal_level": 534.88,
-          "last_price": 531.5700073242188
-        },
-        "EFA": {
-          "symbol": "EFA",
-          "name": "iShares MSCI EAFE",
-          "quantity": 19,
-          "entry_price": 107.79000091552734,
-          "entry_cost": 2.024005,
-          "entry_at": "2026-08-28T16:05:24.694154+00:00",
-          "target": 108.84,
-          "stop": 106.93,
-          "level_basis": null,
-          "signal_date": "2026-08-27",
-          "signal_kind": "plant",
-          "signal_level": 107.81,
-          "last_price": 107.44999694824219
+          "signal_level": 82.52,
+          "last_price": 81.87000274658203
         }
       },
-      "equity": 20776.456474,
-      "realized_pnl": 875.6844790632323,
-      "unrealized_pnl": -99.228005,
-      "daily_return": 0.00031988,
-      "cumulative_return": 0.03882282,
+      "equity": 20649.249675,
+      "realized_pnl": 788.0429881794432,
+      "unrealized_pnl": -138.793313,
+      "daily_return": -0.00612264,
+      "cumulative_return": 0.03246248,
       "max_drawdown": -0.01350211,
       "peak_equity": 20928.23748216822,
-      "cash_ratio": 0.57878092,
+      "cash_ratio": 0.65115536,
       "history": [
         {
           "date": "2026-08-04",
@@ -570,6 +555,14 @@
           "cash": 12025.016518,
           "daily_return": 0.00031988,
           "cumulative_return": 0.03882282,
+          "max_drawdown": -0.01350211
+        },
+        {
+          "date": "2026-09-01",
+          "equity": 20649.249675,
+          "cash": 13445.869708,
+          "daily_return": -0.00612264,
+          "cumulative_return": 0.03246248,
           "max_drawdown": -0.01350211
         }
       ],
@@ -1610,6 +1603,101 @@
           "target": 302.68,
           "stop": 294.64,
           "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:DIA:sell:1788269415:stop",
+          "timestamp": "2026-09-01T13:30:27.942044+00:00",
+          "market": "US",
+          "symbol": "DIA",
+          "name": "SPDR Dow Jones ETF",
+          "side": "sell",
+          "quantity": 3,
+          "price": 528.419983,
+          "cost": 1.79263,
+          "reason": "stop",
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 534.88,
+          "entry_at": "2026-08-28T14:30:21.609237+00:00",
+          "entry_price": 534.8400268554688,
+          "entry_cost": 1.80226,
+          "target": 539.92,
+          "stop": 528.96,
+          "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:XLK:buy:1788269422:plant",
+          "timestamp": "2026-09-01T13:30:27.942044+00:00",
+          "market": "US",
+          "symbol": "XLK",
+          "name": "Technology Select Sector",
+          "side": "buy",
+          "quantity": 11,
+          "price": 183.820007,
+          "cost": 2.01101,
+          "reason": "plant",
+          "signal_date": "2026-08-31",
+          "signal_kind": "plant",
+          "signal_level": 185.98,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:TLT:buy:1788269403:plant",
+          "timestamp": "2026-09-01T13:30:27.942044+00:00",
+          "market": "US",
+          "symbol": "TLT",
+          "name": "iShares 20+ Year Treasury Bond",
+          "side": "buy",
+          "quantity": 25,
+          "price": 81.889999,
+          "cost": 2.023625,
+          "reason": "plant",
+          "signal_date": "2026-08-31",
+          "signal_kind": "plant",
+          "signal_level": 82.52,
+          "decision_tag": "计划内首仓"
+        },
+        {
+          "id": "US:EFA:sell:1788274237:stop",
+          "timestamp": "2026-09-01T14:50:37.725909+00:00",
+          "market": "US",
+          "symbol": "EFA",
+          "name": "iShares MSCI EAFE",
+          "side": "sell",
+          "quantity": 19,
+          "price": 106.926201,
+          "cost": 2.015799,
+          "reason": "stop",
+          "signal_date": "2026-08-27",
+          "signal_kind": "plant",
+          "signal_level": 107.81,
+          "entry_at": "2026-08-28T16:05:24.694154+00:00",
+          "entry_price": 107.79000091552734,
+          "entry_cost": 2.024005,
+          "target": 108.84,
+          "stop": 106.93,
+          "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:SPMO:sell:1788288306:stop",
+          "timestamp": "2026-09-01T18:45:04.815710+00:00",
+          "market": "US",
+          "symbol": "SPMO",
+          "name": "Invesco S&P 500 Momentum ETF",
+          "side": "sell",
+          "quantity": 13,
+          "price": 144.850006,
+          "cost": 1.941525,
+          "reason": "stop",
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 148.09,
+          "entry_at": "2026-08-19T14:15:00.682072+00:00",
+          "entry_price": 147.96009826660156,
+          "entry_cost": 1.961741,
+          "target": 155.36,
+          "stop": 144.95,
+          "decision_tag": "止损退出"
         }
       ],
       "pending_signals": [],
@@ -1620,11 +1708,11 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 59,
+        "total": 64,
         "by_tag": [
           {
             "tag": "计划内首仓",
-            "count": 32,
+            "count": 34,
             "closed_pnl": null
           },
           {
@@ -1634,8 +1722,8 @@
           },
           {
             "tag": "止损退出",
-            "count": 5,
-            "closed_pnl": -175.382967
+            "count": 8,
+            "closed_pnl": -263.024456
           },
           {
             "tag": "风险降仓",
