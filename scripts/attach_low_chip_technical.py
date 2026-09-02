@@ -15,6 +15,7 @@ import argparse
 import json
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ TECH_QUERY_TERMS = "RSI、近20日涨跌幅、外盘成交量、内盘成交量"
 
 BATCH_SIZE = 50
 TIMEOUT = 120
+MAX_WORKERS = 4  # concurrent iWenCai 补查（凌晨 ~9s/只，串行会超时）
 
 
 def iwc(query: str, page: int = 1, limit: int = 200, timeout: int = TIMEOUT) -> dict:
@@ -109,22 +111,27 @@ def main() -> int:
             if code and code not in by_code:
                 by_code[code] = r
 
-    # 缺失的股票按单只补查一次（容错），仍缺则记入 missing。
-    for code in codes:
+    # 缺失的股票按单只补查一次（并发，容错），仍缺则记入 missing。
+    pending = [code for code in codes if code.upper() not in by_code and code not in by_code]
+
+    def _refetch(code: str):
         full = code.upper()
-        if full in by_code or code in by_code:
-            continue
         try:
             d = iwc(f"{code.split('.')[0]} {TECH_QUERY_TERMS}", limit=10)
             for r in d.get("datas") or []:
                 rc = str(r.get("股票代码") or "").upper()
                 if rc == full:
-                    by_code[full] = r
-                    break
+                    return full, r
         except RuntimeError:
             pass
-        if full not in by_code and code not in by_code:
-            missing.append(code)
+        return full, None
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        for full, r in ex.map(_refetch, pending):
+            if r is not None:
+                by_code[full] = r
+            else:
+                missing.append(full)
 
     attached = 0
     for code in codes:
