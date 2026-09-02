@@ -123,7 +123,7 @@ def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed
 
 def test_fetch_ftshare_holders_maps_to_iwencai_compatible_field(monkeypatch):
     fake_stdout = json.dumps({
-        "000157.SZ": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+        "000157": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
     }, ensure_ascii=False)
 
     def fake_run(_cmd, **kwargs):
@@ -132,8 +132,15 @@ def test_fetch_ftshare_holders_maps_to_iwencai_compatible_field(monkeypatch):
     monkeypatch.setattr(fetch.subprocess, "run", fake_run)
     result = fetch.fetch_ftshare_holders(["000157.SZ"])
     assert result == {
-        "000157.SZ": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+        "000157": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
     }
+
+
+def test_fetch_ftshare_holders_uses_bare_code_key_in_inline_script():
+    source = (ROOT / "scripts/fetch_low_chip_enrichments.py").read_text(encoding="utf-8")
+    # 内联脚本必须用 bare code 作 key（individual 循环用 code.split('.')[0] 查），
+    # 否则完整 symbol key 与 bare code 查询不匹配，FTShare 结果全被忽略。
+    assert 'out[code.split(".")[0]]' in source
 
 
 def test_fetch_ftshare_holders_fails_soft_on_subprocess_error(monkeypatch):

@@ -57,7 +57,7 @@ for code in codes:
         holders = item.get("fen_holders") or []
         names = [str(h.get("shareholder_name") or "").strip() for h in holders if str(h.get("shareholder_name") or "").strip()]
         if names and len(period) == 8:
-            out[code] = {"前十大流通股东名称(报告期)[" + period + "]": ", ".join(names)}
+            out[code.split(".")[0]] = {"前十大流通股东名称(报告期)[" + period + "]": ", ".join(names)}
     except Exception:
         pass
     time.sleep(0.15)
