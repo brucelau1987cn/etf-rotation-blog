@@ -21,6 +21,7 @@ import subprocess
 import sys
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,7 @@ DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
 TOP_N_HOLDINGS = 5      # keep top-N ETFs by weight (smaller list for the page)
 DELAY_BETWEEN = 0.30    # seconds between iWenCai calls (rate-limit)
+MAX_WORKERS = 4         # concurrent iWenCai queries (no 429 observed at 3 concurrent)
 IWC_BIN = "/root/.hermes/scripts/iwencai-market-query"
 IWC_TIMEOUT = 30        # seconds per query
 IWC_QUERY = "{code} 持有ETF,基金类型包含ETF"  # also exposes etf_category_l1/l2
@@ -131,12 +133,13 @@ def main() -> int:
     success = 0
     empty = 0
     failed_codes = []
-    for i, code in enumerate(symbols, 1):
+    # 并发查询：iWenCai 支持并发（实测 3 并发无 429），串行 ~9s/只 × 32 只 ≈ 300s 会超 run() timeout
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        results = list(ex.map(attach_for_one, symbols))
+    for i, (code, (holdings, cat, raw_n)) in enumerate(zip(symbols, results), 1):
         rec = enrichments.setdefault(code, {})
         rec.setdefault("etf_holdings", None)
         rec.setdefault("etf_top_category", None)
-
-        holdings, cat, raw_n = attach_for_one(code)
         if raw_n == 0:
             empty += 1
             print(f"[{i}/{len(symbols)}] {code}: 0 rows (ETF holdings unavailable)")
@@ -148,8 +151,6 @@ def main() -> int:
         if not args.dry_run:
             rec["etf_holdings"] = holdings
             rec["etf_top_category"] = cat
-
-        time.sleep(args.delay)
 
     if not args.dry_run:
         # Atomic write with compact JSON (matches existing contract)
