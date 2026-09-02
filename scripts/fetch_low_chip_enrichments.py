@@ -119,15 +119,19 @@ def main() -> int:
 
     # /tmp/low_chip_individual.json — per-stock current shareholding row with industry/concept
     rows = []
-    for code in codes:
-        q = f"{code.split('.')[0]} 最新价、最新涨跌幅、所属申万行业、所属概念、最新完整报告期十大流通股东明细、前十大流通股东名称、股东名称、股东类型、持股比例、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
-        d = iwc(q)
-        matched = None
+    INDIV_BATCH = 5
+    batch_cache: dict[str, dict] = {}
+    for start in range(0, len(codes), INDIV_BATCH):
+        batch = codes[start:start + INDIV_BATCH]
+        bare_batch = [c.split(".")[0] for c in batch]
+        q = "、".join(bare_batch) + " 最新价、最新涨跌幅、所属申万行业、所属概念、最新完整报告期十大流通股东明细、前十大流通股东名称、股东名称、股东类型、持股比例、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
+        d = iwc(q, limit=max(50, len(batch) * 20))
         for r in d.get("datas") or []:
             row_code = str(r.get("股票代码", "")).upper().split(".")[0]
-            if row_code == code.split(".")[0]:
-                matched = r
-                break
+            if row_code in bare_batch and row_code not in batch_cache:
+                batch_cache[row_code] = r
+    for code in codes:
+        matched = batch_cache.get(code.split(".")[0])
         # Batch-style shareholder fields can return an incomplete row set.
         # Retry the industry/quote identity query per symbol before fail-closed validation.
         if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
