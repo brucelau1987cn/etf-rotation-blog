@@ -28,6 +28,56 @@ def iwc(query, page=1, limit=50, timeout=90):
     return json.loads(r.stdout)
 
 
+FTSHARE_PY = "/root/.cache/ftshare-sdk/bin/python"
+FTSHARE_SDK_URL = "https://market.ft.tech/gateway/"
+
+
+def fetch_ftshare_holders(codes: list[str]) -> dict[str, dict]:
+    """用 FTShare SDK 查十大流通股东，构建 iWenCai 兼容字段（无每日配额）。
+
+    返回 {bare_code: {"前十大流通股东名称(报告期)[YYYYMMDD]": "name1, name2, ..."}}；
+    失败返回空 dict（调用方 fallback iWenCai）。
+    """
+    if not codes:
+        return {}
+    inline = r'''
+import json, sys, time
+from ftshare.client import FtshareClient
+codes = json.loads(sys.stdin.read())
+client = FtshareClient(base_url="__URL__", timeout=60)
+out = {}
+for code in codes:
+    try:
+        rows = client.stock_float_holders(stock_code=code, all_pages=False, page_size=20, raw=True)
+        items = ((rows or {}).get("data") or {}).get("items") or []
+        if not items:
+            continue
+        item = items[0]
+        period = str(item.get("publish_date") or "").replace("-", "")
+        holders = item.get("fen_holders") or []
+        names = [str(h.get("shareholder_name") or "").strip() for h in holders if str(h.get("shareholder_name") or "").strip()]
+        if names and len(period) == 8:
+            out[code] = {"前十大流通股东名称(报告期)[" + period + "]": ", ".join(names)}
+    except Exception:
+        pass
+    time.sleep(0.15)
+print(json.dumps(out, ensure_ascii=False))
+'''.replace("__URL__", FTSHARE_SDK_URL)
+    try:
+        r = subprocess.run(
+            [FTSHARE_PY, "-c", inline],
+            input=json.dumps(codes, ensure_ascii=False),
+            capture_output=True, text=True, check=False, timeout=900,
+        )
+        if r.returncode != 0:
+            print(f"WARNING: FTShare holders query failed: {r.stderr[:200]}", file=sys.stderr)
+            return {}
+        return json.loads(r.stdout)
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: FTShare holders query failed: {exc}", file=sys.stderr)
+        return {}
+
+
 def has_top10_names(row: dict | None) -> bool:
     return bool(row and any(
         key.startswith("前十大流通股东名称") and value
@@ -130,6 +180,7 @@ def main() -> int:
             row_code = str(r.get("股票代码", "")).upper().split(".")[0]
             if row_code in bare_batch and row_code not in batch_cache:
                 batch_cache[row_code] = r
+    ftshare_holders = fetch_ftshare_holders(codes)
     for code in codes:
         matched = batch_cache.get(code.split(".")[0])
         # Batch-style shareholder fields can return an incomplete row set.
@@ -160,67 +211,77 @@ def main() -> int:
                 if matched is None:
                     matched = {"股票代码": code}
         if not has_top10_names(matched):
-            holder_detail = iwc(
-                f"{code.split('.')[0]} 最新完整报告期十大流通股东明细、前十大流通股东名称、公告日期",
-                limit=30,
-            )
-            detail_rows = holder_detail.get("datas") or []
-            detail = next((
-                r for r in detail_rows
-                if str(r.get("股票代码") or "").upper().split(".")[0] == code.split(".")[0]
-                and has_top10_names(r)
-            ), None)
-            if detail is None:
-                detail = aggregate_top10_detail(
-                    code, detail_rows, report_period_from_rows([matched] if matched else [])
+            fts = ftshare_holders.get(code.split(".")[0])
+            if fts:
+                # FTShare 已拿到完整十大流通股东明细，直接填充，省 iWenCai fallback 链
+                if matched is None:
+                    matched = fts
+                else:
+                    for key, value in fts.items():
+                        if key.startswith("前十大流通股东名称") and value:
+                            matched[key] = value
+            else:
+                holder_detail = iwc(
+                    f"{code.split('.')[0]} 最新完整报告期十大流通股东明细、前十大流通股东名称、公告日期",
+                    limit=30,
                 )
-            if detail is None:
-                period_payload = iwc(
-                    f"{code.split('.')[0]} 前十大流通股东报告期、截止日期",
-                    limit=10,
-                )
-                detail = select_latest_top10_report_row(
-                    code, period_payload.get("datas") or []
-                )
-            if detail is None:
-                period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
-                query = f"{code.split('.')[0]} 前十大流通股东名称" + (f"[{period}]" if period else "")
-                holder_names = iwc(query, limit=20)
-                name_rows = holder_names.get("datas") or []
-                names = []
-                for item in name_rows:
-                    if str(item.get("股票代码") or "").upper().split(".")[0] != code.split(".")[0]:
-                        continue
-                    name = str(item.get("流通股东名称") or item.get("股东名称") or item.get("名称") or "").strip()
-                    if name and name not in names:
-                        names.append(name)
-                if names:
-                    if not period:
-                        # 股东名称已拿到但报告期缺失：不再中断整条发布，
-                        # 该股 badge 默认 false（evidence fail-closed），继续下一只。
-                        print(
-                            f"  {code}: shareholder names without report period; "
-                            f"badge defaults to false",
-                            flush=True,
-                        )
-                        detail = None
-                    else:
-                        detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
-            if detail is None:
-                # Some stocks have no currently published top-10 holder names.
-                # Shareholder badges are evidence-based and therefore fail closed;
-                # industry/concept enrichment remains valid and must continue.
-                print(
-                    f"  {code}: top10 shareholder names unavailable; "
-                    f"badges default to false (returned={len(detail_rows)})",
-                    flush=True,
-                )
-            if matched is None:
-                matched = detail
-            elif detail is not None:
-                for key, value in detail.items():
-                    if key.startswith("前十大流通股东名称") and value:
-                        matched[key] = value
+                detail_rows = holder_detail.get("datas") or []
+                detail = next((
+                    r for r in detail_rows
+                    if str(r.get("股票代码") or "").upper().split(".")[0] == code.split(".")[0]
+                    and has_top10_names(r)
+                ), None)
+                if detail is None:
+                    detail = aggregate_top10_detail(
+                        code, detail_rows, report_period_from_rows([matched] if matched else [])
+                    )
+                if detail is None:
+                    period_payload = iwc(
+                        f"{code.split('.')[0]} 前十大流通股东报告期、截止日期",
+                        limit=10,
+                    )
+                    detail = select_latest_top10_report_row(
+                        code, period_payload.get("datas") or []
+                    )
+                if detail is None:
+                    period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
+                    query = f"{code.split('.')[0]} 前十大流通股东名称" + (f"[{period}]" if period else "")
+                    holder_names = iwc(query, limit=20)
+                    name_rows = holder_names.get("datas") or []
+                    names = []
+                    for item in name_rows:
+                        if str(item.get("股票代码") or "").upper().split(".")[0] != code.split(".")[0]:
+                            continue
+                        name = str(item.get("流通股东名称") or item.get("股东名称") or item.get("名称") or "").strip()
+                        if name and name not in names:
+                            names.append(name)
+                    if names:
+                        if not period:
+                            # 股东名称已拿到但报告期缺失：不再中断整条发布，
+                            # 该股 badge 默认 false（evidence fail-closed），继续下一只。
+                            print(
+                                f"  {code}: shareholder names without report period; "
+                                f"badge defaults to false",
+                                flush=True,
+                            )
+                            detail = None
+                        else:
+                            detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
+                if detail is None:
+                    # Some stocks have no currently published top-10 holder names.
+                    # Shareholder badges are evidence-based and therefore fail closed;
+                    # industry/concept enrichment remains valid and must continue.
+                    print(
+                        f"  {code}: top10 shareholder names unavailable; "
+                        f"badges default to false (returned={len(detail_rows)})",
+                        flush=True,
+                    )
+                if matched is None:
+                    matched = detail
+                elif detail is not None:
+                    for key, value in detail.items():
+                        if key.startswith("前十大流通股东名称") and value:
+                            matched[key] = value
         if matched is not None:
             rows.append(matched)
     Path("/tmp/low_chip_individual.json").write_text(

@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import types
 from pathlib import Path
 
 
@@ -117,3 +119,38 @@ def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed
     # 入池（周/月/季交集）与 unlock 风险仍严格 fail-closed。
     assert "top10 shareholder names unavailable" in source
     assert "shareholder names without report period" in source
+
+
+def test_fetch_ftshare_holders_maps_to_iwencai_compatible_field(monkeypatch):
+    fake_stdout = json.dumps({
+        "000157.SZ": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+    }, ensure_ascii=False)
+
+    def fake_run(_cmd, **kwargs):
+        return types.SimpleNamespace(returncode=0, stdout=fake_stdout, stderr="")
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    result = fetch.fetch_ftshare_holders(["000157.SZ"])
+    assert result == {
+        "000157.SZ": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+    }
+
+
+def test_fetch_ftshare_holders_fails_soft_on_subprocess_error(monkeypatch):
+    def fake_run(_cmd, **kwargs):
+        return types.SimpleNamespace(returncode=1, stdout="", stderr="sdk missing")
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    assert fetch.fetch_ftshare_holders(["000157.SZ"]) == {}
+
+
+def test_fetch_ftshare_holders_returns_empty_for_empty_codes(monkeypatch):
+    called = []
+
+    def fake_run(_cmd, **kwargs):
+        called.append(1)
+        return types.SimpleNamespace(returncode=0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    assert fetch.fetch_ftshare_holders([]) == {}
+    assert called == []  # 空输入不触发 subprocess
