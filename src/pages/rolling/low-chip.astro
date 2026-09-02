@@ -101,6 +101,8 @@ const rows = intersectionRows.map((row) => {
     financials: enr.financials || {},
     technical: enr.technical || {},
     shareholderMetrics: enr.shareholder_metrics || {},
+    etfHoldings: Array.isArray(enr.etf_holdings) ? enr.etf_holdings : [],
+    etfTopCategory: enr.etf_top_category || null,
     yearProfit: yearProfitBySymbol[row.symbol] ?? null,
     occurrence,
   };
@@ -252,6 +254,30 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                   <span><strong>{reportPeriodLabel(row.shareholderMetrics.report_period)}</strong></span>
                 </div>
               </div>
+              {row.etfHoldings.length > 0 ? (
+                <div class="chip-row-etf" aria-label={`${row.name} 持仓ETF`}>
+                  <span class="chip-etf-label">持仓ETF · {row.etfTopCategory || '—'}</span>
+                  <div class="chip-etf-list">
+                    {row.etfHoldings.map((h) => (
+                      <a
+                        class="chip-etf-pill"
+                        href={`https://fund.10jqka.com.cn/${String(h.code).split('.')[0]}/`}
+                        target="_blank"
+                        rel="noopener"
+                        title={`${h.full_name || h.name} · 持仓占比 ${fmt(h.weight_pct)}% · 排名 ${h.rank}`}
+                      >
+                        <span class="chip-etf-name">{h.name}</span>
+                        <span class="chip-etf-meta">{fmt(h.weight_pct)}% · #{h.rank}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div class="chip-row-etf chip-etf-empty" aria-label={`${row.name} 暂无持仓ETF数据`}>
+                  <span class="chip-etf-label">持仓ETF</span>
+                  <span class="chip-etf-meta">暂无公开数据</span>
+                </div>
+              )}
             </div>
           ))}
           {rows.length === 0 && (
@@ -438,8 +464,28 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                 '<span><strong>' + esc(sm.report_period || '—') + '</strong></span>' +
               '</div>' +
             '</div>' +
+            renderEtfSection(row) +
           '</div>'
         );
+      }
+
+      function renderEtfSection(row) {
+        var etf = Array.isArray(row.etfHoldings) ? row.etfHoldings : [];
+        if (etf.length === 0) {
+          return '<div class="chip-row-etf chip-etf-empty">' +
+                   '<span class="chip-etf-label">持仓ETF</span>' +
+                   '<span class="chip-etf-meta">暂无公开数据</span>' +
+                 '</div>';
+        }
+        var pills = etf.map(function(h) {
+          var bare = String(h.code || '').split('.')[0];
+          return '<a class="chip-etf-pill" href="https://fund.10jqka.com.cn/' + esc(bare) + '/" target="_blank" rel="noopener" title="' + esc((h.full_name || h.name) + ' · 持仓占比 ' + fmt(h.weight_pct) + '% · 排名 ' + h.rank) + '">' +
+                   '<span class="chip-etf-name">' + esc(h.name) + '</span>' +
+                   '<span class="chip-etf-meta">' + fmt(h.weight_pct) + '% · #' + h.rank + '</span>' +
+                 '</a>';
+        }).join('');
+        var cat = row.etfTopCategory ? '<span class="chip-etf-label">持仓ETF · ' + esc(row.etfTopCategory) + '</span>' : '<span class="chip-etf-label">持仓ETF</span>';
+        return '<div class="chip-row-etf">' + cat + '<div class="chip-etf-list">' + pills + '</div></div>';
       }
 
       function bindShareholderToggles() {
@@ -932,4 +978,17 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{grid-template-columns:1fr}.chip-toolbar-left{grid-column:1;grid-row:1}.chip-toolbar-right,.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;grid-row:2;justify-content:flex-start}.chip-history{grid-column:1;grid-row:3}.chip-pager{grid-column:1;grid-row:4;justify-self:start}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}</style>
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}
+
+/* 持仓ETF section (added 2026-09-02) */
+.chip-row-etf{margin-top:.5rem;display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;padding:.35rem .5rem;background:rgba(241,245,249,.55);border-radius:8px;border:1px solid rgba(148,163,184,.18)}
+.chip-etf-label{font-size:.7rem;color:#64748b;font-weight:500;flex-shrink:0;padding-top:.18rem}
+.chip-etf-list{display:flex;flex-wrap:wrap;gap:.3rem;flex:1;min-width:0}
+.chip-etf-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .55rem;background:#fff;border:1px solid #e2e8f0;border-radius:999px;font-size:.72rem;color:#1d4ed8;text-decoration:none;transition:all .15s;line-height:1.2}
+.chip-etf-pill:hover{background:#eff6ff;border-color:#93c5fd;color:#1e40af;transform:translateY(-1px)}
+.chip-etf-name{font-weight:600}
+.chip-etf-meta{color:#64748b;font-weight:400;font-variant-numeric:tabular-nums}
+.chip-etf-empty .chip-etf-meta{color:#94a3b8;font-style:italic}
+.chip-etf-empty{background:transparent;border-color:transparent;padding-left:0}
+.chip-row-empty ~ .chip-row-etf{display:none}
+</style>
