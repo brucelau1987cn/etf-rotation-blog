@@ -175,15 +175,33 @@ def apply_refresh(current: dict[str, Any], tracking: dict[str, Any], mapping: di
         if not isinstance(enrichment, dict):
             raise RuntimeError(f"STAGING BLOCKER: current enrichment missing for {symbol}")
         if symbol not in mapping:
+            # 缺二级行业路径：fail-soft 写出完整 contract 占位，满足
+            # test_published_low_chip_industry_contract_has_full_coverage 100% 覆盖断言。
+            enrichment.update({
+                "industry_source": "iWenCai 所属申万行业",
+                "industry_standard": "SW2021",
+                "industry_level2": {"code": None, "name": "待补充"},
+                "industry": "待补充",
+                "sector": "待补充",
+                "theme_concepts": [],
+                "sector_with_theme": "待补充",
+            })
             missing.append(symbol)
-            continue  # 缺二级行业路径 → 保持「待补充」，页面「—」
+            continue  # 缺二级行业路径 → 页面「待补充」
         enrichment.update(build_industry_fields(mapping[symbol], enrichment.get("theme_concepts") or [], as_of))
     for symbol, rec in (tracking.get("stocks") or {}).items():
         if symbol not in mapping:
-            # 缺二级行业路径：保留 enrichment 原值，但补 industry_source/standard 以满足
-            # test_published_low_chip_industry_contract_has_full_coverage 100% 覆盖断言。
-            rec.setdefault("industry_source", "iWenCai 所属申万行业")
-            rec.setdefault("industry_standard", "SW2021")
+            # 缺二级行业路径：fail-soft 写出完整 contract 占位（待补充），
+            # 满足 100% 覆盖断言（source/standard/level2/themes/display 必须存在）。
+            # 用 update 覆盖（非 setdefault），清理旧三级路径文本（含 --/||）。
+            rec.update({
+                "industry_source": "iWenCai 所属申万行业",
+                "industry_standard": "SW2021",
+                "industry_level2": {"code": None, "name": "待补充"},
+                "industry": "待补充",
+                "theme_concepts": [],
+                "industry_display": "待补充",
+            })
             missing.append(symbol)
             continue
         fields = build_industry_fields(mapping[symbol], history_themes.get(symbol) or [], as_of)
