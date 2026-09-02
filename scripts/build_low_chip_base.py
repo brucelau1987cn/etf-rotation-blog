@@ -35,9 +35,9 @@ MIN_LISTING_DAYS = 90
 CUTOFF = (datetime.date.fromisoformat(DATE) - datetime.timedelta(days=MIN_LISTING_DAYS)).isoformat()
 
 PERIODS = [
-    ("week", "周线收盘获利", f"A股 周线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
-    ("month", "月线收盘获利", f"A股 月线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
-    ("quarter", "季线收盘获利", f"A股 季线收盘获利小于3%，非ST，非退市，上市日期早于{CUTOFF}"),
+    ("week", "周线收盘获利", f"A股 周线收盘获利小于等于2%，非ST，非退市，上市日期早于{CUTOFF}"),
+    ("month", "月线收盘获利", f"A股 月线收盘获利小于等于2%，非ST，非退市，上市日期早于{CUTOFF}"),
+    ("quarter", "季线收盘获利", f"A股 季线收盘获利小于等于2%，非ST，非退市，上市日期早于{CUTOFF}"),
 ]
 
 
@@ -122,7 +122,7 @@ def fetch_year_overlay(codes: list[str]) -> list[dict]:
     for code in codes:
         row = by_symbol.get(code) or {}
         value = _year_profit_value(row)
-        if value is None or value > 3:
+        if value is None or value > 2:
             continue
         result.append({
             "symbol": code,
@@ -169,8 +169,14 @@ def main() -> int:
     quarter_codes = {r["symbol"] for r in periods["quarter"]}
     # 年线仅供页面独立开关使用，不参与正式入池交集。
     inter_raw = sorted(week_codes & month_codes & quarter_codes)
-    periods["year"] = fetch_year_overlay(inter_raw)
-    counts["year"] = len(periods["year"])
+    # 年线排最后且可选：quota 耗尽/上游异常不阻塞入库，periods["year"] 留空。
+    try:
+        periods["year"] = fetch_year_overlay(inter_raw)
+        counts["year"] = len(periods["year"])
+    except Exception as exc:  # noqa: BLE001
+        periods["year"] = []
+        counts["year"] = 0
+        print(f"year overlay skipped (fail-soft): {exc}", flush=True)
     print(f"year: pool={len(inter_raw)} matched={counts['year']}", flush=True)
     # Pre-filter .BJ out of intersection (enrich_low_chip_stocks.py will read it from here)
     excluded_bj_initial = [c for c in inter_raw if c.endswith(".BJ")]
@@ -179,7 +185,7 @@ def main() -> int:
     # 审计：无上市日期过滤的周线查询，识别被 cutoff 排除的新股（上市不足 90 天）
     excluded_new_listing = []
     try:
-        raw_rows, _ = paginate(f"A股 周线收盘获利小于3%，非ST，非退市")
+        raw_rows, _ = paginate(f"A股 周线收盘获利小于等于2%，非ST，非退市")
         raw_week_codes = {r.get("股票代码") or "" for r in raw_rows} - {""}
         excluded_new_listing = sorted(raw_week_codes - week_codes)
     except Exception as exc:  # 审计失败不阻塞主流程
@@ -195,7 +201,7 @@ def main() -> int:
         "source": "iWenCai SkillHub",
         "universe": "沪深A股，非ST，非退市，不含北交所",
         "metric": "收盘获利比例",
-        "threshold": 3,
+        "threshold": 2,
         "counts": counts,
         "periods": periods,
         "intersection_before_filters": inter_raw,
