@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-02T22:31:31.338633+00:00",
+  "updated_at": "2026-09-02T23:00:10.102729+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -333,23 +333,8 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 13445.86970795777,
+      "cash": 14925.828839647224,
       "positions": {
-        "SOXX": {
-          "symbol": "SOXX",
-          "name": "iShares Semiconductor ETF",
-          "quantity": 3,
-          "entry_price": 526.8519897460938,
-          "entry_cost": 1.790278,
-          "entry_at": "2026-08-19T13:40:59.795957+00:00",
-          "target": 557.95,
-          "stop": 495.97,
-          "level_basis": null,
-          "signal_date": "2026-08-18",
-          "signal_kind": "plant",
-          "signal_level": 528.71,
-          "last_price": 500.30999755859375
-        },
         "SMH": {
           "symbol": "SMH",
           "name": "VanEck Semiconductor ETF",
@@ -363,7 +348,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 545.219970703125
+          "last_price": 550.47998046875
         },
         "XLK": {
           "symbol": "XLK",
@@ -378,7 +363,7 @@
           "signal_date": "2026-08-31",
           "signal_kind": "plant",
           "signal_level": 185.98,
-          "last_price": 183.63999938964844
+          "last_price": 183.60000610351562
         },
         "TLT": {
           "symbol": "TLT",
@@ -393,17 +378,17 @@
           "signal_date": "2026-08-31",
           "signal_kind": "plant",
           "signal_level": 82.52,
-          "last_price": 81.87000274658203
+          "last_price": 81.94999694824219
         }
       },
-      "equity": 20649.249675,
-      "realized_pnl": 788.0429881794432,
-      "unrealized_pnl": -138.793313,
-      "daily_return": -0.00612264,
-      "cumulative_return": 0.03246248,
-      "max_drawdown": -0.01350211,
+      "equity": 20645.618772,
+      "realized_pnl": 685.6558726306151,
+      "unrealized_pnl": -40.037101,
+      "daily_return": -0.00017584,
+      "cumulative_return": 0.03228094,
+      "max_drawdown": -0.01350418,
       "peak_equity": 20928.23748216822,
-      "cash_ratio": 0.65115536,
+      "cash_ratio": 0.72295381,
       "history": [
         {
           "date": "2026-08-04",
@@ -572,6 +557,14 @@
           "daily_return": -0.00612264,
           "cumulative_return": 0.03246248,
           "max_drawdown": -0.01350211
+        },
+        {
+          "date": "2026-09-02",
+          "equity": 20645.618772,
+          "cash": 14925.82884,
+          "daily_return": -0.00017584,
+          "cumulative_return": 0.03228094,
+          "max_drawdown": -0.01350418
         }
       ],
       "events": [
@@ -1706,6 +1699,27 @@
           "target": 155.36,
           "stop": 144.95,
           "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:SOXX:sell:1788357310:stop",
+          "timestamp": "2026-09-02T13:55:00.634268+00:00",
+          "market": "US",
+          "symbol": "SOXX",
+          "name": "iShares Semiconductor ETF",
+          "side": "sell",
+          "quantity": 3,
+          "price": 493.899994,
+          "cost": 1.74085,
+          "reason": "stop",
+          "signal_date": "2026-08-18",
+          "signal_kind": "plant",
+          "signal_level": 528.71,
+          "entry_at": "2026-08-19T13:40:59.795957+00:00",
+          "entry_price": 526.8519897460938,
+          "entry_cost": 1.790278,
+          "target": 557.95,
+          "stop": 495.97,
+          "decision_tag": "止损退出"
         }
       ],
       "pending_signals": [],
@@ -1716,7 +1730,7 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 64,
+        "total": 65,
         "by_tag": [
           {
             "tag": "计划内首仓",
@@ -1730,8 +1744,8 @@
           },
           {
             "tag": "止损退出",
-            "count": 8,
-            "closed_pnl": -263.024456
+            "count": 9,
+            "closed_pnl": -365.411571
           },
           {
             "tag": "风险降仓",
