@@ -210,18 +210,32 @@ def load_entry_enrichment(entry_snapshot: Path, symbol: str) -> tuple[dict, dict
 
 
 def fetch_current_year_profit(codes: list[str]) -> dict[str, float | None]:
-    """Fetch current year-line profit for tracked symbols in bounded batches."""
+    """Fetch current year-line profit for tracked symbols in bounded batches.
+
+    年线为可选字段：iWenCai quota 耗尽 / 上游异常 / 非 JSON 响应均 fail-soft，
+    返回全 None，绝不阻塞 tracking（日线 + 获利盘核心字段已在前序步骤拿到）。
+    """
     values: dict[str, float | None] = {code: None for code in codes}
     for start in range(0, len(codes), 20):
         batch = codes[start:start + 20]
         query = "、".join(code.split(".")[0] for code in batch) + " 年线收盘获利"
-        result = subprocess.run(
-            ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--limit", "100", "--timeout", "90"],
-            capture_output=True, text=True, check=False, timeout=120,
-        )
+        try:
+            result = subprocess.run(
+                ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--limit", "100", "--timeout", "90"],
+                capture_output=True, text=True, check=False, timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"WARNING: iWenCai year-profit query timeout for batch {start}-{start+len(batch)}; year_profit 留空", file=sys.stderr)
+            continue
         if result.returncode != 0:
-            raise RuntimeError(f"iWenCai year-profit query failed: {result.stderr[:200]}")
-        payload = json.loads(result.stdout)
+            # 常见为 quota 耗尽（所有 key 轮流失败）。年线可选 → 不阻塞。
+            print(f"WARNING: iWenCai year-profit query failed rc={result.returncode}; year_profit 留空: {result.stdout.strip()[:120]}", file=sys.stderr)
+            continue
+        try:
+            payload = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            print(f"WARNING: iWenCai year-profit query returned non-JSON (quota/upstream); year_profit 留空: {result.stdout.strip()[:120]}", file=sys.stderr)
+            continue
         rows = payload.get("datas") or []
         field = next((key for row in rows for key in row if key.startswith("年线收盘获利[")), None)
         if not field:
