@@ -31,6 +31,7 @@ import http.client
 import json
 import math
 import os
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -45,6 +46,59 @@ HISTORY_DIR = ROOT / "public/data/low-chip-history"
 MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记录）
 MAX_TRACK_BARS = 20  # 加入后统计窗口：最多 20 个交易日；不足按实际天数
 MAX_STORED_BARS = MAX_TRACK_BARS + 1  # 加入日基准 + 加入后的 20 个交易日
+
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
+
+
+def chip_list_profit_ratios(symbol: str) -> dict[str, float | None]:
+    """拉同花顺 chip_list 筹码曲线，复算逐日获利盘（无鉴权、无每日配额）。
+
+    返回 {date(YYYYMMDD): profit_ratio}；失败/无数据返回空 dict，调用方 fallback iWenCai。
+    复算公式（skill 证实与官方 closing_profit 吻合 0.002pp）：
+        sum(jeton where price <= close) / sum(jeton)
+    """
+    code = symbol.split(".")[0]
+    market = "17" if symbol.endswith(".SH") else "33"
+    ms_now = int(time.time() * 1000)
+    ms_start = ms_now - 90 * 86400 * 1000  # 90 天窗口，覆盖 20 交易日追踪窗口
+    url = (
+        f"https://dq.10jqka.com.cn/fuyao/chip_shape_stock_selection/stock/v1/chip_list"
+        f"?chip_type=all&stock_code={code}&stock_market={market}"
+        f"&start_date={ms_start}&end_date={ms_now}"
+    )
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=20, context=_SSL_CTX) as response:
+            payload = json.loads(response.read())
+    except Exception:
+        return {}
+    date_map = (payload.get("data") or {}).get("list") or {}
+    result: dict[str, float | None] = {}
+    for date, item in date_map.items():
+        if not isinstance(item, dict):
+            continue
+        close = (item.get("summary") or {}).get("close_price")
+        curve = (item.get("curve_data") or {}).get("list") or []
+        if close is None or not curve:
+            continue
+        total = 0.0
+        below = 0.0
+        for x in curve:
+            try:
+                jeton = float(x.get("jeton") or 0)
+            except (TypeError, ValueError):
+                jeton = 0.0
+            total += jeton
+            try:
+                price = float(x.get("price") or 0)
+            except (TypeError, ValueError):
+                price = 0.0
+            if price <= close:
+                below += jeton
+        result[date] = round(below / total * 100, 2) if total > 0 else None
+    return result
 
 
 def load_history_dates() -> dict[str, list[str]]:
@@ -352,10 +406,14 @@ def main() -> int:
             continue
         have = {d["date"] for d in rec["daily"]}
         new_rows = []
+        # 获利盘优先走同花顺 chip_list 曲线复算（无鉴权、无每日配额），失败 fallback iWenCai
+        profit_map = chip_list_profit_ratios(symbol)
         for bar in target_bars:
             if bar["date"] in have:
                 continue
-            pr = iwencai_profit_ratio(symbol, bar["date"])
+            pr = profit_map.get(bar["date"].replace("-", ""))
+            if pr is None:
+                pr = iwencai_profit_ratio(symbol, bar["date"])
             new_rows.append({**bar, "profit_ratio": pr})
             have.add(bar["date"])
             print(f"  {symbol} {bar['date']}: close={bar['close']} chg={bar['change_pct']} profit={pr}", flush=True)

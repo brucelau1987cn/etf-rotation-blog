@@ -279,6 +279,8 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
     monkeypatch.setattr(mod, "HISTORY_DIR", history_dir)
     monkeypatch.setattr(mod, "DATA", data_path)
     monkeypatch.setattr(mod, "iwencai_profit_ratio", lambda _symbol, _date: 1.0)
+    # chip_list 曲线复算也必须离线 mock（返回空 dict → main fallback 到 iwencai_profit_ratio）
+    monkeypatch.setattr(mod, "chip_list_profit_ratios", lambda _symbol: {})
     # 全 mock：main() 末尾的年线获利查询也必须离线，否则单测会真实消耗 iWenCai 额度。
     monkeypatch.setattr(mod, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
