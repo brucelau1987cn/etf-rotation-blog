@@ -16,7 +16,14 @@ from zoneinfo import ZoneInfo
 CN = ZoneInfo("Asia/Shanghai")
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
-DATE = sys.argv[1] if len(sys.argv) > 1 else "2026-08-07"
+def _resolve_trade_date() -> str:
+    # CLI 运行：sys.argv[1]；import 复用（年线脚本/测试）：LOW_CHIP_TRADE_DATE 环境变量；否则默认
+    if len(sys.argv) > 1 and Path(sys.argv[0]).name == "build_low_chip_base.py":
+        return sys.argv[1]
+    return os.environ.get("LOW_CHIP_TRADE_DATE", "2026-08-07")
+
+
+DATE = _resolve_trade_date()
 
 # 补跑声明：当生成日期晚于数据交易日时（人工补历史快照），必须显式标注，
 # 让下游门禁能区分「合法补跑」与「日期错标」。当日正常运行时该字段为 None。
@@ -169,15 +176,11 @@ def main() -> int:
     quarter_codes = {r["symbol"] for r in periods["quarter"]}
     # 年线仅供页面独立开关使用，不参与正式入池交集。
     inter_raw = sorted(week_codes & month_codes & quarter_codes)
-    # 年线排最后且可选：quota 耗尽/上游异常不阻塞入库，periods["year"] 留空。
-    try:
-        periods["year"] = fetch_year_overlay(inter_raw)
-        counts["year"] = len(periods["year"])
-    except Exception as exc:  # noqa: BLE001
-        periods["year"] = []
-        counts["year"] = 0
-        print(f"year overlay skipped (fail-soft): {exc}", flush=True)
-    print(f"year: pool={len(inter_raw)} matched={counts['year']}", flush=True)
+    # 年线 overlay 已彻底移到流水线最后的 attach_low_chip_year_line.py（先入库→其他条件→年线最后）。
+    # 这里 periods["year"] 留空，由最后一步回填；年线失败不阻塞入库。
+    periods["year"] = []
+    counts["year"] = 0
+    print(f"year: pool={len(inter_raw)} matched=0 (deferred to year-line step)", flush=True)
     # Pre-filter .BJ out of intersection (enrich_low_chip_stocks.py will read it from here)
     excluded_bj_initial = [c for c in inter_raw if c.endswith(".BJ")]
     inter_pre = [c for c in inter_raw if not c.endswith(".BJ")]
