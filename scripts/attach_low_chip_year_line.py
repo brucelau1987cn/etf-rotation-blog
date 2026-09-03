@@ -33,7 +33,7 @@ def main() -> int:
 
     try:
         year = base.fetch_year_overlay(inter)
-    except Exception as exc:  # noqa: BLE001 年线排最后，失败不阻塞
+    except (Exception, SystemExit) as exc:  # noqa: BLE001 年线排最后失败不阻塞；build fetch 用 SystemExit 报 quota 耗尽
         print(f"year overlay skipped (fail-soft): {exc}", flush=True)
         return 0
 

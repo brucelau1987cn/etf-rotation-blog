@@ -164,7 +164,6 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         <button type="button" class="tc-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
         <button type="button" class="tc-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
         <button type="button" class="tc-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
-        <button type="button" class="tc-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 2.5%</button>
         <button type="button" class="tc-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
         <button type="button" class="tc-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
         <button type="button" class="tc-filter-reset" id="tc-filter-reset">清除</button>
@@ -430,7 +429,6 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
             && (!activeFilters.has('cash-profit') || (el.dataset.cashProfit !== '' && Number.isFinite(Number(el.dataset.cashProfit)) && Number(el.dataset.cashProfit) >= 20))
             && (!activeFilters.has('gross-margin') || (el.dataset.grossMargin !== '' && Number.isFinite(Number(el.dataset.grossMargin)) && Number(el.dataset.grossMargin) >= 15))
             && (!activeFilters.has('debt-ratio') || (el.dataset.debtRatio !== '' && Number.isFinite(Number(el.dataset.debtRatio)) && Number(el.dataset.debtRatio) <= 30))
-            && (!activeFilters.has('year-profit') || (el.dataset.yearProfit !== '' && Number.isFinite(Number(el.dataset.yearProfit)) && Number(el.dataset.yearProfit) <= 2.5))
             && (!activeFilters.has('quality-shareholder') || el.dataset.qualityShareholder === '1')
             && (!activeFilters.has('institutional-shareholder') || el.dataset.institutionalShareholder === '1');
           return el.dataset.trackingStatus === currentView && searchMatched && financialMatched && (starToggle.checked || el.dataset.starMarket !== '1');

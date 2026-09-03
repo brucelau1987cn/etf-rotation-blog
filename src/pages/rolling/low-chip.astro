@@ -189,7 +189,6 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
-          <button type="button" class="chip-filter-btn" data-filter="year-profit" aria-pressed="false">K年 ≤ 2.5%</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -553,7 +552,6 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           if (activeFilters.has('cash-profit') && (c.dataset.cashProfit === '' || !Number.isFinite(Number(c.dataset.cashProfit)) || Number(c.dataset.cashProfit) < 20)) return false;
           if (activeFilters.has('gross-margin') && (c.dataset.grossMargin === '' || !Number.isFinite(Number(c.dataset.grossMargin)) || Number(c.dataset.grossMargin) < 15)) return false;
           if (activeFilters.has('debt-ratio') && (c.dataset.debtRatio === '' || !Number.isFinite(Number(c.dataset.debtRatio)) || Number(c.dataset.debtRatio) > 30)) return false;
-          if (activeFilters.has('year-profit') && (c.dataset.yearProfit === '' || !Number.isFinite(Number(c.dataset.yearProfit)) || Number(c.dataset.yearProfit) > 2.5)) return false;
           if (activeFilters.has('rsi') && (c.dataset.rsi === '' || !Number.isFinite(Number(c.dataset.rsi)) || Number(c.dataset.rsi) > 30)) return false;
           if (activeFilters.has('outer-inner') && (c.dataset.outerInner === '' || !Number.isFinite(Number(c.dataset.outerInner)) || Number(c.dataset.outerInner) < 1.5)) return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
