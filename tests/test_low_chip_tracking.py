@@ -102,7 +102,7 @@ def test_tracking_page_and_entry_link():
         "现金流/净利润 ≥ 20%",
         "毛利率 ≥ 15%",
         "负债率 ≤ 30%",
-        "K年 ≤ 2%",
+        "K年 ≤ 2.5%",
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         "data-quality-shareholder",

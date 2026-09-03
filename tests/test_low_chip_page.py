@@ -170,7 +170,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         '现金流/净利润 ≥ 20%',
         '毛利率 ≥ 15%',
         '负债率 ≤ 30%',
-        'K年 ≤ 2%',
+        'K年 ≤ 2.5%',
         'RSI ≤ 30',
         '外盘 &gt; 内盘 1.5倍',
         'var activeFilters = new Set()',
