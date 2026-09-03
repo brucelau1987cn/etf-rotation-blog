@@ -170,7 +170,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         '现金流/净利润 ≥ 20%',
         '毛利率 ≥ 15%',
         '负债率 ≤ 30%',
-        'K年 ≤ 3%',
+        'K年 ≤ 2%',
         'RSI ≤ 30',
         '外盘 &gt; 内盘 1.5倍',
         'var activeFilters = new Set()',
@@ -195,7 +195,7 @@ def test_low_chip_financial_filter_controls_and_logic():
     assert "Number(c.dataset.roe) < 15" in page
     assert "Number(c.dataset.netMargin) < 15" in page
     assert "Number(c.dataset.debtRatio) > 30" in page
-    assert "Number(c.dataset.yearProfit) > 3" in page
+    assert "Number(c.dataset.yearProfit) > 2" in page
     assert "Number(c.dataset.rsi) > 30" in page
     assert "Number(c.dataset.outerInner) < 1.5" in page
     expected_order = [

@@ -102,7 +102,7 @@ def test_tracking_page_and_entry_link():
         "现金流/净利润 ≥ 20%",
         "毛利率 ≥ 15%",
         "负债率 ≤ 30%",
-        "K年 ≤ 3%",
+        "K年 ≤ 2%",
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
         "data-quality-shareholder",
@@ -175,7 +175,7 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "el.dataset.debtRatio !== ''" in tracking
     assert "Number(el.dataset.roe) >= 15" in tracking
     assert "Number(el.dataset.debtRatio) <= 30" in tracking
-    assert "Number(el.dataset.yearProfit) <= 3" in tracking
+    assert "Number(el.dataset.yearProfit) <= 2" in tracking
     assert "activeFilters.clear()" in tracking
     assert "tc-progress-bar" in tracking
     assert 'class="tc-overview"' in tracking
