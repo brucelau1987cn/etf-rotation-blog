@@ -12,13 +12,34 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
+
+MX_QUERY = "{code} 所属概念板块"
+RATE_LIMIT_CODES = (112,)
+MAX_RETRIES = 2
+RETRY_BACKOFF_S = 5.0
+
+_mx_client = None
+
+
+def _get_mx():
+    global _mx_client
+    if _mx_client is None:
+        sys.path.insert(0, "/root/.hermes/skills/mx-data")
+        from mx_data import MXData
+        api_key = os.getenv("MX_APIKEY")
+        if not api_key:
+            raise RuntimeError("MX_APIKEY env var not set")
+        _mx_client = MXData(api_key=api_key)
+    return _mx_client
 IWENCAI = Path("/root/.hermes/scripts/iwencai-market-query")
 
 GENERIC_CONCEPTS = {
@@ -88,32 +109,73 @@ def pick_theme(concepts: list[str], industry: str, sector: str, limit: int = 3) 
     return top, filtered[:5]
 
 
-def query_concepts(symbols: list[str]) -> dict[str, list[str]]:
-    if not symbols:
-        return {}
-    if not IWENCAI.exists():
-        raise SystemExit(f"missing iWenCai wrapper: {IWENCAI}")
-    # Batch by codes for stable holder fields.
-    codes = ",".join(s.split(".")[0] for s in symbols)
-    q = f"{codes} 所属概念 热门概念"
-    proc = subprocess.run(
-        [str(IWENCAI), "-q", q, "--limit", str(max(20, len(symbols))), "--timeout", "60"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise SystemExit(f"iWenCai failed: {proc.stderr or proc.stdout}")
-    payload = json.loads(proc.stdout)
-    out: dict[str, list[str]] = {}
-    for row in payload.get("datas") or []:
-        code = str(row.get("股票代码") or row.get("code") or "").upper()
-        if not code:
+def _parse_mx_concepts(tables: list[dict], full_code: str) -> list[str]:
+    """Extract concept list from mx-data sheets.
+
+    mx-data sheet "恒瑞医药(600276.SH)的所属概念板块":
+      row 0: {date: '2026-09-02', '所属概念板块': 'AH股,HS300_,创新药,...'}
+    """
+    target_sheet = None
+    for t in tables:
+        sn = t.get("sheet_name", "")
+        if f"({full_code})" in sn and "所属概念" in sn:
+            target_sheet = t
+            break
+    if not target_sheet or not target_sheet["rows"]:
+        return []
+    # 取首行的「所属概念板块」字段
+    first_row = target_sheet["rows"][0]
+    concepts_str = ""
+    for k, v in first_row.items():
+        if k == "date":
             continue
-        concepts = row.get("所属概念") or []
-        if isinstance(concepts, str):
-            concepts = [x.strip() for x in re.split(r"[、,，/|;；]", concepts) if x.strip()]
-        out[code] = [str(c) for c in concepts if c]
+        if "所属概念板块" in k or "概念板块" in k:
+            concepts_str = str(v).strip()
+            break
+    if not concepts_str:
+        return []
+    return [c.strip() for c in re.split(r"[,，、/|;；\s]+", concepts_str) if c.strip()]
+
+
+def query_concepts_for_one(full_code: str) -> list[str]:
+    """Per-stock mx-data query with retry on rate-limit."""
+    bare = full_code.split(".")[0]
+    mx = _get_mx()
+    q = MX_QUERY.format(code=bare)
+    last_err = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            r = mx.query(q)
+        except Exception as exc:
+            last_err = f"exception: {exc}"
+            time.sleep(RETRY_BACKOFF_S)
+            continue
+        tables, _, _, err = mx.parse_result(r)
+        if err is None:
+            return _parse_mx_concepts(tables, full_code)
+        if any(f"状态码 {c}" in err for c in RATE_LIMIT_CODES):
+            last_err = err
+            print(f"[{full_code}] rate-limited (attempt {attempt+1}/{MAX_RETRIES+1}): {err}", file=sys.stderr)
+            time.sleep(RETRY_BACKOFF_S * (attempt + 1))
+            continue
+        print(f"[{full_code}] mx-data parse error: {err}", file=sys.stderr)
+        return []
+    print(f"[{full_code}] gave up: {last_err}", file=sys.stderr)
+    return []
+
+
+def query_concepts(symbols: list[str]) -> dict[str, list[str]]:
+    """Per-stock mx-data query (sequential to avoid code=112 rate-limit)."""
+    out: dict[str, list[str]] = {}
+    for s in symbols:
+        concepts = query_concepts_for_one(s)
+        # 统一存为大写 code (matching existing contract)
+        key = str(s).upper()
+        out[key] = concepts
+        # 也存裸代码 key 给向后兼容
+        bare = s.split(".")[0]
+        if bare not in out:
+            out[bare] = concepts
     return out
 
 
@@ -142,7 +204,7 @@ def attach(data: dict, concept_map: dict[str, list[str]] | None = None) -> dict:
             enr["sector_with_theme"] = f"{sector}（{'、'.join(themes)}）"
         else:
             enr["sector_with_theme"] = sector
-    data["theme_source"] = "iWenCai 所属概念 / 热门概念筛选"
+    data["theme_source"] = "mx-data (东财妙想) 所属概念板块"
     return data
 
 
