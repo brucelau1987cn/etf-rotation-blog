@@ -295,12 +295,8 @@ def main() -> int:
         json.dumps(d, ensure_ascii=False), encoding="utf-8")
     print(f"  quality rows: {len(d.get('datas') or [])}", flush=True)
 
-    # /tmp/low_chip_financial_test_annual.json — annual financials (20251231)
-    q = "、".join(bare_codes) + " 净资产收益率[20251231]、加权净资产收益率[20251231]、销售净利率[20251231]、经营活动产生的现金流量净额[20251231]、归属于母公司所有者的净利润[20251231]、销售毛利率[20251231]、资产负债率[20251231]"
-    d = iwc(q, limit=max(20, len(bare_codes) * 3))
-    Path("/tmp/low_chip_financial_test_annual.json").write_text(
-        json.dumps(d, ensure_ascii=False), encoding="utf-8")
-    print(f"  financial rows: {len(d.get('datas') or [])}", flush=True)
+    # 财务指标已改为 Fuyao 接口（attach_low_chip_financials.py 直接查 Fuyao），
+    # 此处不再用 iWenCai 查财务（省 1 次配额）。
 
     return 0
 
