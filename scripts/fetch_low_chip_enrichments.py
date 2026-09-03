@@ -6,6 +6,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,14 +19,26 @@ QUALITY_QUERY = " 前十大流通股东名称包含全国社保基金或基本�
 
 
 def iwc(query, page=1, limit=50, timeout=90):
-    r = subprocess.run(
-        ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--page", str(page),
-         "--limit", str(limit), "--timeout", str(timeout)],
-        capture_output=True, text=True, check=False,
-    )
-    if r.returncode != 0:
-        raise SystemExit(f"iWenCai error: {r.stderr[:200]}")
-    return json.loads(r.stdout)
+    last_err = ""
+    for attempt in range(3):
+        r = subprocess.run(
+            ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--page", str(page),
+             "--limit", str(limit), "--timeout", str(timeout)],
+            capture_output=True, text=True, check=False,
+        )
+        if r.returncode == 0:
+            try:
+                return json.loads(r.stdout)
+            except json.JSONDecodeError as exc:
+                last_err = f"JSON decode error: {exc}"
+                time.sleep(5 * (attempt + 1))
+                continue
+        # quota 耗尽不可恢复，立即失败（不重试）；瞬时失败（超时/服务端）重试。
+        if any(x in (r.stdout or "") for x in ("已达上限", "次数已用完", "额度已用完")):
+            raise SystemExit(f"iWenCai quota exhausted: {(r.stdout or '')[:200]}")
+        last_err = (r.stderr or r.stdout or "")[:200]
+        time.sleep(5 * (attempt + 1))
+    raise SystemExit(f"iWenCai error after retries: {last_err}")
 
 
 FTSHARE_PY = "/root/.cache/ftshare-sdk/bin/python"
