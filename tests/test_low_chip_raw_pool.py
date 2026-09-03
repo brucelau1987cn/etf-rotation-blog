@@ -27,7 +27,7 @@ def sample_payload(trade_date="2026-08-21", with_backfill=False):
         "generated_at": f"{trade_date}T16:09:28+08:00",
         "source": "iWenCai SkillHub",
         "universe": "沪深A股，非ST，非退市，不含北交所",
-        "threshold": 2,
+        "threshold": 2.5,
         "counts": {"week": 2, "month": 2, "quarter": 1, "year": 1},
         "periods": {
             "week": [
@@ -76,7 +76,7 @@ def test_extract_rows_covers_every_period_and_keeps_raw_values():
 
     assert meta is not None
     assert meta[0] == "2026-08-21"
-    assert meta[1] == 2            # threshold
+    assert meta[1] == 2.5            # threshold
     assert meta[9] == 1            # intersection_count
     assert meta[11] == 0           # is_backfill
 

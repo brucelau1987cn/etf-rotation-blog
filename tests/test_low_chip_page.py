@@ -107,7 +107,7 @@ def test_low_chip_page_hides_private_screening_strategy():
         assert backfill.get("is_backfill") is True
         assert backfill.get("generated_date") == data["generated_at"][:10]
         assert backfill["generated_date"] > data["data_as_of"]
-    assert data["threshold"] == 2
+    assert data["threshold"] == 2.5
     assert data["metric"] == "收盘获利比例"
     assert all(data["periods"][period] for period in ("week", "month", "quarter"))
     # 新股（上市不足90天）被排除
@@ -139,8 +139,8 @@ def test_low_chip_page_hides_private_screening_strategy():
     quarterly_codes = {item["symbol"] for item in data["periods"]["quarter"]}
     assert set(data["intersection_before_filters"]) == weekly_codes & monthly_codes & quarterly_codes
     assert set(data["intersection"]) <= set(data["intersection_before_filters"])
-    assert all(0 <= item["value"] <= 2 for period in (data["periods"]["week"], data["periods"]["month"], data["periods"]["quarter"]) for item in period)
-    assert all(0 <= item["value"] <= 2 for item in data["periods"]["year"])
+    assert all(0 <= item["value"] <= 2.5 for period in (data["periods"]["week"], data["periods"]["month"], data["periods"]["quarter"]) for item in period)
+    assert all(0 <= item["value"] <= 2.5 for item in data["periods"]["year"])
 
 
 def test_low_chip_financial_filter_controls_and_logic():
