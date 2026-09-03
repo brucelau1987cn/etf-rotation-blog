@@ -126,6 +126,7 @@ export async function onRequest(context) {
       return json({ ok: false, error: 'invalid JSON' }, 400);
     }
     const preserveExisting = body?.preserve_existing === true;
+    const replaceTradeDate = String(body?.replace_trade_date || '').trim();
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
       return json({ ok: false, error: 'metrics array required' }, 400);
@@ -190,6 +191,18 @@ export async function onRequest(context) {
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
     const valid = metrics;
+    if (replaceTradeDate) {
+      if (!/^\d{8}$/.test(replaceTradeDate)) {
+        return json({ ok: false, error: 'replace_trade_date must be YYYYMMDD' }, 400);
+      }
+      const tradeDates = new Set(valid.map((m) => String(m.trade_date)));
+      if (tradeDates.size !== 1 || !tradeDates.has(replaceTradeDate)) {
+        return json({ ok: false, error: 'metric trade_dates must match replace_trade_date' }, 400);
+      }
+      if (preserveExisting) {
+        return json({ ok: false, error: 'replace_trade_date cannot be combined with preserve_existing' }, 400);
+      }
+    }
     const stmts = [];
     for (let i = 0; i < valid.length; i += ROWS_PER_STMT) {
       const chunk = valid.slice(i, i + ROWS_PER_STMT);
@@ -203,15 +216,24 @@ export async function onRequest(context) {
         `${insertPrefix} stock_metrics (${cols.join(',')}) VALUES ${placeholders}${conflict}`
       ).bind(...chunk.flatMap(rowValues)));
     }
+    let deleted = 0;
     for (let i = 0; i < stmts.length; i += STMTS_PER_BATCH) {
       const part = stmts.slice(i, i + STMTS_PER_BATCH);
-      const results = await env.DB.batch(part);
+      let results;
+      if (replaceTradeDate && i === 0) {
+        const deleteStmt = env.DB.prepare('DELETE FROM stock_metrics WHERE trade_date = ?').bind(replaceTradeDate);
+        results = await env.DB.batch([deleteStmt, ...part]);
+        const deletion = results.shift();
+        deleted = Number(deletion?.meta?.changes ?? deletion?.changes ?? 0);
+      } else {
+        results = await env.DB.batch(part);
+      }
       for (const r of results) {
         const changes = Number(r?.meta?.changes ?? r?.changes ?? 0);
         if (changes > 0) inserted += changes;
       }
     }
-    return json({ ok: true, inserted, total: metrics.length });
+    return json({ ok: true, inserted, deleted, total: metrics.length });
   }
 
   return json({ ok: false, error: 'method not allowed' }, 405);

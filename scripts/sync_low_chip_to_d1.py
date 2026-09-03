@@ -28,9 +28,12 @@ TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
 
 
-def post_metrics(metrics: list[dict]) -> dict:
+def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> dict:
     """POST metrics array to the D1 API endpoint."""
-    payload = json.dumps({"metrics": metrics}, ensure_ascii=False)
+    body: dict[str, object] = {"metrics": metrics}
+    if replace_trade_date:
+        body["replace_trade_date"] = replace_trade_date
+    payload = json.dumps(body, ensure_ascii=False)
     r = subprocess.run(
         ["curl", "-s", "-X", "POST", ENDPOINT,
          "-H", f"Authorization: Bearer {TOKEN}",
@@ -132,7 +135,8 @@ def push(payload: dict) -> int:
         source = payload.get("_source") or "current"
         print(f"no metrics to push ({source})", flush=True)
         return 0
-    result = post_metrics(metrics)
+    replace_trade_date = "".join(ch for ch in str(payload.get("data_as_of") or "") if ch.isdigit())[:8]
+    result = post_metrics(metrics, replace_trade_date=replace_trade_date)
     label = payload.get("data_as_of") or payload.get("_source") or ""
     if result.get("ok"):
         print(f"D1 sync: {result.get('inserted')}/{result.get('total')} inserted ({label})", flush=True)

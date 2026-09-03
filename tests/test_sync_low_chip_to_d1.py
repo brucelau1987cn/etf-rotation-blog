@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from sync_low_chip_to_d1 import snapshot_metrics  # noqa: E402
+from sync_low_chip_to_d1 import snapshot_metrics, push  # noqa: E402
 
 
 def test_snapshot_metrics_name_from_periods_not_enrichments():
@@ -85,3 +86,20 @@ def test_snapshot_metrics_carries_shareholder_nature_for_history_api():
     assert nature["report_period"] == "20260630"
     assert nature["institutional_shareholder"] is True
     assert nature["institutional_shareholder_names"] == ["长城人寿保险股份有限公司", "香港中央结算有限公司"]
+
+
+def test_push_replaces_the_entire_trade_date_membership():
+    payload = {
+        "data_as_of": "2026-09-03",
+        "intersection": ["000001.SZ"],
+        "periods": {
+            "week": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.5}],
+            "month": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.4}],
+            "quarter": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.3}],
+        },
+        "enrichments": {"000001.SZ": {"shareholder_metrics": {}}},
+    }
+    with mock.patch("sync_low_chip_to_d1.post_metrics", return_value={"ok": True, "inserted": 1, "total": 1}) as post:
+        assert push(payload) == 0
+    _, kwargs = post.call_args
+    assert kwargs["replace_trade_date"] == "20260903"
