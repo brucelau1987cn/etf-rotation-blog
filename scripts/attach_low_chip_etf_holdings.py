@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
-"""Attach ETF-holding data per low-chip stock via iWenCai.
+"""Attach ETF-holding data per low-chip stock via mx-data (Eastmoney Miaoxiang).
 
-For each symbol in `intersection`, query `{code} 持有ETF,基金类型包含ETF` and
-attach a normalized list to `enrichments[code].etf_holdings` (top N by weight)
-plus a single `etf_top_category` (the most common etf_category_l2 — that is
-the "板块 ETF" the stock belongs to).
+Replace iWenCai's holding-ETF query. mx-data returns fund-holdings table
+with 基金代码/简称/持股数量/持股市值; filter by suffix .SH/.SZ (ETF)
+vs .OF (off-exchange fund, skip).
 
-Failure-soft per existing contract: any HTTP error or non-JSON row leaves
-`etf_holdings=[]` + `etf_top_category=null`. Never raises — orchestrator treats
-missing fields as `UNAVAILABLE`.
-
-Outputs are atomic JSON write with `separators=(",", ":")` + `ensure_ascii=False`.
+Failure-soft: HTTP/query error -> etf_holdings=[] + etf_top_category=null.
+Outputs atomic JSON write with separators=(",", ":") + ensure_ascii=False.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
-import subprocess
 import sys
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -28,94 +23,148 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
-TOP_N_HOLDINGS = 5      # keep top-N ETFs by weight (smaller list for the page)
-DELAY_BETWEEN = 0.30    # seconds between iWenCai calls (rate-limit)
-MAX_WORKERS = 4         # concurrent iWenCai queries (no 429 observed at 3 concurrent)
-IWC_BIN = "/root/.hermes/scripts/iwencai-market-query"
-IWC_TIMEOUT = 30        # seconds per query
-IWC_QUERY = "{code} 持有ETF,基金类型包含ETF"  # also exposes etf_category_l1/l2
+TOP_N_HOLDINGS = 5
+MAX_WORKERS = 1   # mx-data 限额 code=112: 并发>1 触发限流
+MX_QUERY = "{code} 持有ETF 基金持股统计"
+RATE_LIMIT_CODES = (112,)
+MAX_RETRIES = 2
+RETRY_BACKOFF_S = 5.0
 
-# iWenCai returns float-as-JSON with .000000… drift; trim to 4 decimals
-def _trim(v: Any, ndigits: int = 4) -> Any:
-    if isinstance(v, float):
-        return round(v, ndigits)
-    return v
+_mx_client = None
 
 
-def iwc_query(bare_code: str) -> list[dict]:
-    """Run iWenCai query and return the `datas` list (may be empty)."""
-    q = IWC_QUERY.format(code=bare_code)
-    try:
-        r = subprocess.run(
-            [IWC_BIN, "-q", q, "--page", "1", "--limit", "100", "--timeout", str(IWC_TIMEOUT)],
-            capture_output=True, text=True, check=False, timeout=IWC_TIMEOUT + 10,
-        )
-    except subprocess.TimeoutExpired:
-        print(f"[{bare_code}] iWenCai timeout", file=sys.stderr)
-        return []
-    if r.returncode != 0:
-        print(f"[{bare_code}] iWenCai rc={r.returncode}: {r.stderr[:120]}", file=sys.stderr)
-        return []
-    try:
-        d = json.loads(r.stdout)
-    except json.JSONDecodeError as e:
-        print(f"[{bare_code}] iWenCai non-JSON: {e}, head={r.stdout[:80]}", file=sys.stderr)
-        return []
-    return d.get("datas") or []
+def _get_mx():
+    global _mx_client
+    if _mx_client is None:
+        sys.path.insert(0, "/root/.hermes/skills/mx-data")
+        from mx_data import MXData
+        api_key = os.getenv("MX_APIKEY")
+        if not api_key:
+            raise RuntimeError("MX_APIKEY env var not set")
+        _mx_client = MXData(api_key=api_key)
+    return _mx_client
 
 
-def parse_holdings(rows: list[dict]) -> list[dict]:
-    """Normalize iWenCai rows to our schema, sorted by weight desc."""
-    out = []
-    for row in rows:
-        # Skip non-ETF rows (e.g. 场外主动 / LOF — they have no weight)
-        cat = row.get("etf类型一级分类") or ""
-        if "ETF" not in cat:
-            continue
-        weight = row.get("持仓市值占基金资产净值比")
-        rank = row.get("排名")
-        if weight is None or rank is None:
-            continue
-        out.append({
-            "code": row.get("基金代码"),
-            "name": row.get("基金简称"),
-            "full_name": row.get("基金扩位简称"),
-            "weight_pct": _trim(weight),
-            "rank": int(rank) if rank == int(rank) else rank,
-            "holding_value": _trim(row.get("持仓市值")),
-            "holding_qty": _trim(row.get("持仓数量")),
-            "is_heavy": bool(row.get("是否重仓")),
-            "etf_category_l1": cat,
-            "etf_category_l2": row.get("etf类型二级分类"),
-            "fund_manager": (row.get("现任基金经理姓名") or [None])[0] if isinstance(row.get("现任基金经理姓名"), list) else row.get("现任基金经理姓名"),
-        })
-    out.sort(key=lambda x: (-float(x["weight_pct"] or 0), x["rank"] or 0))
-    return out
-
-
-def top_category(rows: list[dict]) -> str | None:
-    """Most common etf_category_l2 among all ETF rows (NOT just top-N)."""
-    cats = [r.get("etf类型二级分类") for r in rows if r.get("etf类型二级分类")]
-    if not cats:
+def _to_yi(value_str: str) -> float | None:
+    if not value_str:
         return None
-    return Counter(cats).most_common(1)[0][0]
+    s = str(value_str).strip()
+    m = re.match(r'^([\d.]+)\s*亿', s)
+    if m:
+        return float(m.group(1))
+    m = re.match(r'^([\d.]+)\s*万', s)
+    if m:
+        return float(m.group(1)) / 10000.0
+    m = re.match(r'^([\d.]+)$', s)
+    if m:
+        v = float(m.group(1))
+        if v >= 1e9:
+            return v / 1e8
+        return v
+    return None
 
 
-def attach_for_one(code: str) -> tuple[list[dict], str | None, int]:
-    """Returns (top_N_holdings, top_category, raw_row_count)."""
-    bare = code.split(".")[0]
-    rows = iwc_query(bare)
-    if not rows:
+def _to_shares(value_str: str) -> float | None:
+    if not value_str:
+        return None
+    s = str(value_str).strip()
+    m = re.match(r'^([\d.]+)\s*亿', s)
+    if m:
+        return float(m.group(1)) * 1e8
+    m = re.match(r'^([\d.]+)\s*万', s)
+    if m:
+        return float(m.group(1)) * 1e4
+    m = re.match(r'^([\d.]+)$', s)
+    if m:
+        return float(m.group(1))
+    return None
+
+
+def parse_mx_etf_holdings(tables: list[dict], full_code: str) -> list[dict]:
+    target_sheet = None
+    for t in tables:
+        if f"({full_code})" in t.get("sheet_name", ""):
+            target_sheet = t
+            break
+    if not target_sheet:
+        return []
+
+    rows = target_sheet["rows"]
+    if not rows or len(rows) < 3:
+        return []
+    name_row = rows[0]
+    shares_row = rows[1] if len(rows) > 1 else {}
+    value_row = rows[2] if len(rows) > 2 else {}
+
+    etf_rows: list[dict] = []
+    for fund_code, fund_name in name_row.items():
+        if fund_code == "date":
+            continue
+        if not (fund_code.endswith(".SH") or fund_code.endswith(".SZ")):
+            continue
+        shares = _to_shares(shares_row.get(fund_code, ""))
+        value_yi = _to_yi(value_row.get(fund_code, ""))
+        if shares is None or value_yi is None:
+            continue
+        etf_rows.append({
+            "code": fund_code,
+            "name": str(fund_name),
+            "full_name": str(fund_name),
+            "weight_pct": None,
+            "rank": None,
+            "holding_value": value_yi,
+            "holding_qty": shares,
+            "is_heavy": None,
+            "etf_category_l1": "ETF",
+            "etf_category_l2": None,
+            "fund_manager": None,
+            "_market_value_yi": value_yi,
+        })
+
+    etf_rows.sort(key=lambda x: x["_market_value_yi"], reverse=True)
+    for i, row in enumerate(etf_rows, 1):
+        row["rank"] = i
+        del row["_market_value_yi"]
+    return etf_rows[:TOP_N_HOLDINGS]
+
+
+def top_category(holdings: list[dict]) -> str | None:
+    if not holdings:
+        return None
+    return "ETF"
+
+
+def attach_for_one(full_code: str) -> tuple[list[dict], str | None, int]:
+    bare = full_code.split(".")[0]
+    mx = _get_mx()
+    q = MX_QUERY.format(code=bare)
+    last_err: str | None = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            r = mx.query(q)
+        except Exception as exc:
+            last_err = f"exception: {exc}"
+            time.sleep(RETRY_BACKOFF_S)
+            continue
+        tables, _, _, err = mx.parse_result(r)
+        if err is None:
+            holdings = parse_mx_etf_holdings(tables, full_code)
+            return holdings, top_category(holdings), len(holdings)
+        # 检查是否为限流错误
+        if any(f"状态码 {c}" in err for c in RATE_LIMIT_CODES):
+            last_err = err
+            print(f"[{full_code}] rate-limited (attempt {attempt+1}/{MAX_RETRIES+1}): {err}", file=sys.stderr)
+            time.sleep(RETRY_BACKOFF_S * (attempt + 1))
+            continue
+        print(f"[{full_code}] mx-data parse error: {err}", file=sys.stderr)
         return [], None, 0
-    holdings = parse_holdings(rows)
-    cat = top_category(rows)
-    return holdings[:TOP_N_HOLDINGS], cat, len(rows)
+    print(f"[{full_code}] gave up after {MAX_RETRIES+1} attempts: {last_err}", file=sys.stderr)
+    return [], None, 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=str(DATA))
-    parser.add_argument("--delay", type=float, default=DELAY_BETWEEN)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -132,34 +181,25 @@ def main() -> int:
 
     success = 0
     empty = 0
-    failed_codes = []
-    # 并发查询：iWenCai 支持并发（实测 3 并发无 429），串行 ~9s/只 × 32 只 ≈ 300s 会超 run() timeout
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
         results = list(ex.map(attach_for_one, symbols))
     for i, (code, (holdings, cat, raw_n)) in enumerate(zip(symbols, results), 1):
         rec = enrichments.setdefault(code, {})
-        rec.setdefault("etf_holdings", None)
-        rec.setdefault("etf_top_category", None)
+        rec["etf_holdings"] = holdings
+        rec["etf_top_category"] = cat
         if raw_n == 0:
             empty += 1
-            print(f"[{i}/{len(symbols)}] {code}: 0 rows (ETF holdings unavailable)")
+            print(f"[{i}/{len(symbols)}] {code}: 0 ETFs")
         else:
             success += 1
-            print(f"[{i}/{len(symbols)}] {code}: {raw_n} ETFs, top_weight={holdings[0]['weight_pct'] if holdings else '—'}, cat={cat}")
-
-        # Atomic per-record write so partial progress survives crashes
-        if not args.dry_run:
-            rec["etf_holdings"] = holdings
-            rec["etf_top_category"] = cat
+            top = holdings[0] if holdings else None
+            print(f"[{i}/{len(symbols)}] {code}: {raw_n} ETFs, top={top['name'] if top else '-'} ({top['code'] if top else '-'})")
 
     if not args.dry_run:
-        # Atomic write with compact JSON (matches existing contract)
         tmp = src.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         tmp.replace(src)
-    print(f"\nETF holdings attach: {success} ok, {empty} empty/0-row, total {len(symbols)}")
-    if failed_codes:
-        print(f"failed codes: {failed_codes}")
+    print(f"\nETF holdings attach (mx-data): {success} ok, {empty} empty, total {len(symbols)}")
     return 0
 
 
