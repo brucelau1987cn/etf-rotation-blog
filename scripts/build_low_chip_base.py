@@ -41,7 +41,7 @@ if _GENERATED_AT.date().isoformat() > DATE:
 MIN_LISTING_DAYS = 90
 CUTOFF = (datetime.date.fromisoformat(DATE) - datetime.timedelta(days=MIN_LISTING_DAYS)).isoformat()
 
-PROFIT_THRESHOLD = 2.0
+PROFIT_THRESHOLD = 1.5
 
 PERIODS = [
     ("week", "周线收盘获利", f"A股 周线收盘获利小于{PROFIT_THRESHOLD:g}%，非ST，非退市，上市日期早于{CUTOFF}"),

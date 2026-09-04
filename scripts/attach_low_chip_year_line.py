@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """年线收盘获利 overlay —— 低筹码流水线最后一步，单独回填 payload 的 periods["year"]。
 
-设计：入库（三周期 ≤2%）→ 其他 enrichment → 年线排最后（本脚本）。
+设计：入库（三周期 ≤1.5%）→ 其他 enrichment → 年线排最后（本脚本）。
 年线可选：quota 耗尽 / 上游异常 / 空交集时 fail-soft，不阻塞、不回滚前面任何产出。
 
 用法：

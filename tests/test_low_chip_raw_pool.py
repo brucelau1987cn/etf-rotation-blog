@@ -27,7 +27,7 @@ def sample_payload(trade_date="2026-08-21", with_backfill=False):
         "generated_at": f"{trade_date}T16:09:28+08:00",
         "source": "iWenCai SkillHub",
         "universe": "沪深A股，非ST，非退市，不含北交所",
-        "threshold": 2,
+        "threshold": 1.5,
         "counts": {"week": 2, "month": 2, "quarter": 1, "year": 1},
         "periods": {
             "week": [
@@ -76,7 +76,7 @@ def test_extract_rows_covers_every_period_and_keeps_raw_values():
 
     assert meta is not None
     assert meta[0] == "2026-08-21"
-    assert meta[1] == 2              # threshold
+    assert meta[1] == 1.5            # threshold
     assert meta[9] == 1            # intersection_count
     assert meta[11] == 0           # is_backfill
 
@@ -142,10 +142,10 @@ def test_intersection_recomputable_from_db_without_iwencai(tmp_path):
     ).fetchall()
     assert [r[0] for r in recomputed] == ["600000.SH"]
 
-    # 换个阈值重算也无需外部调用：≤2.0% 的周线命中
+    # 换个阈值重算也无需外部调用：≤1.5% 的周线命中
     stricter = conn.execute(
         """SELECT stock_code FROM low_chip_raw_pool
-           WHERE trade_date = ? AND period = 'week' AND profit_ratio <= 2.0""",
+           WHERE trade_date = ? AND period = 'week' AND profit_ratio <= 1.5""",
         ("2026-08-21",),
     ).fetchall()
     assert [r[0] for r in stricter] == ["600000.SH"]
