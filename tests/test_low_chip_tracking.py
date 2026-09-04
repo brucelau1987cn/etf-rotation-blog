@@ -236,6 +236,29 @@ def test_join_date_snapshot_evidence_fails_closed(tmp_path):
         mod.load_entry_enrichment(incomplete, "600000.SH")
 
 
+def test_join_date_snapshot_resolver_uses_original_membership_snapshot(tmp_path):
+    """阈值收窄后历史快照可能移除旧成员；追踪仍须取其首次真实入池证据。"""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("tracking_join_snapshot_resolver", SCRIPT)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    current = tmp_path / "2026-09-03.json"
+    current.write_text(json.dumps({"intersection": [], "enrichments": {}}), encoding="utf-8")
+    original = tmp_path / "2026-09-03.threshold-2.5.json"
+    original.write_text(json.dumps({
+        "intersection": ["001289.SZ"],
+        "enrichments": {"001289.SZ": {"industry": "电力", "financials": {"roe": 8}}},
+    }), encoding="utf-8")
+
+    resolved = mod.resolve_entry_snapshot(tmp_path, "2026-09-03", "001289.SZ")
+    assert resolved == original
+    enrichment, _metrics = mod.load_entry_enrichment(resolved, "001289.SZ")
+    assert enrichment["industry"] == "电力"
+
+
 def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, monkeypatch):
     import importlib.util
 

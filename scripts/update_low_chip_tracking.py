@@ -247,6 +247,27 @@ def iwencai_profit_ratio(symbol: str, date: str) -> float | None:
     return None
 
 
+def resolve_entry_snapshot(history_dir: Path, first_seen: str, symbol: str) -> Path:
+    """Resolve the immutable snapshot that originally admitted a tracked symbol.
+
+    Same-day threshold tightening may replace the canonical date snapshot and remove
+    older members. A threshold-suffixed copy preserves their original join evidence.
+    """
+    canonical = history_dir / f"{first_seen}.json"
+    candidates = [canonical, *sorted(history_dir.glob(f"{first_seen}.threshold-*.json"))]
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        try:
+            snapshot = json.loads(candidate.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        enrichments = snapshot.get("enrichments")
+        if isinstance(enrichments, dict) and symbol in enrichments:
+            return candidate
+    return canonical
+
+
 def load_entry_enrichment(entry_snapshot: Path, symbol: str) -> tuple[dict, dict]:
     """Load immutable join-date evidence; missing/corrupt evidence blocks refresh."""
     try:
@@ -446,7 +467,7 @@ def main() -> int:
     for sym, r in stocks.items():
         r["name"] = r.get("name") or name_map.get(sym, "")
         r["industry"] = r.get("industry") or industry_map.get(sym, "")
-        entry_snapshot = HISTORY_DIR / f"{r['first_seen']}.json"
+        entry_snapshot = resolve_entry_snapshot(HISTORY_DIR, r["first_seen"], sym)
         entry_enrichment, entry_metrics = load_entry_enrichment(entry_snapshot, sym)
         r["entry_features"] = {
             "quality_shareholder": bool(entry_enrichment.get("quality_shareholder")),
