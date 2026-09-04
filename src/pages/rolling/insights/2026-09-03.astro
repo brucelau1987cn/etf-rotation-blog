@@ -1,0 +1,25 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+
+const report = rollingDailyReports['2026-09-03'];
+const title = `${report.title} | ${SITE_TITLE}`;
+const description = '2026年9月3日滚动信号收盘复盘：中国宏桥10m+15m+30m+90m空方四档共振；澜起科技2.5h多方收复失败；A股10m-15m空方全面确认（创新医疗/上海电力/东方明珠/三安光电贴价）。';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head><BaseHead title={title} description={description} /></head>
+  <body>
+    <Header />
+    <main id="main-content" class="rolling-insights-main">
+      <RollingSubnav active="insights" />
+      <RollingDailyInsightReport report={report} />
+    </main>
+    <Footer />
+  </body>
+</html>

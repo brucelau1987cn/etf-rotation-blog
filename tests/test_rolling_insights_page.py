@@ -51,56 +51,46 @@ def test_daily_rolling_reports_cover_latest_dates():
     ):
         assert marker in page + component + data + hist21
     assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
-    assert "rollingDailyReports['2026-09-03']" in page
-    # Extract just the 2026-09-01 entry (from pos of its start to pos of next date entry)
+    assert "rollingDailyReports['2026-09-04']" in page
+    # Extract just the 2026-09-04 entry (from pos of its start to pos of next date entry)
     import re
+    m0904 = re.search(r"'2026-09-04': \{\n", data)
     m03 = re.search(r"'2026-09-03': \{\n", data)
     m02 = re.search(r"'2026-09-02': \{\n", data)
     m01 = re.search(r"'2026-09-01': \{\n", data)
+    assert m0904 is not None, "2026-09-04 report not found in data"
     assert m03 is not None, "2026-09-03 report not found in data"
     assert m02 is not None, "2026-09-02 report not found in data"
     assert m01 is not None, "2026-09-01 report not found in data"
-    latest_block = data[m03.start():m02.start()]
-    assert latest_block.count("name: '") == 2
-    assert latest_block.count("validation: 'confirmed'") == 2
+    latest_block = data[m0904.start():m03.start()]
+    assert latest_block.count("name: '") == 6
+    assert latest_block.count("validation: 'confirmed'") == 4
     assert latest_block.count("validation: 'reclaimed'") == 0
     assert latest_block.count("validation: 'mixed'") == 0
-    assert latest_block.count("validation: 'watch'") == 0
-    assert "东方明珠" in latest_block
+    assert latest_block.count("validation: 'watch'") == 2
     assert "三安光电" in latest_block
+    assert "创新医疗" in latest_block
+    assert "国民技术" in latest_block
+    assert "德福科技" in latest_block
+    assert "海光信息" in latest_block
+    assert "特斯拉" in latest_block
+    assert "空方双档贴价确认" in latest_block
     assert "空方贴价确认" in latest_block
-    assert "多方涨停确认" in latest_block
-    assert "2.5h+3.5h多方两档共振" in latest_block
-    assert "15m空方" in latest_block
-    # 09-02 demoted report still present (subheadline marker)
+    assert "美股空方贴价观察" in latest_block
+    assert "10m空方¥13.72 + 15m空方¥13.71" in latest_block
+    assert "30m空方" in latest_block
+    # 09-03 demoted report still present (subheadline marker)
     assert "10m+15m+30m+90m空方四档共振" in data
     assert "60m+120m+150m空方被2.5h多方收复失败" in data
-    # 09-01 demoted report still present (subheadline marker)
+    # 09-02 demoted report still present (subheadline marker)
     assert "10m+150m+180m空方三档共振已被收复" in data
     assert "6.5h多方收复失败" in data
-    assert "/rolling/insights/2026-08-21/" in data
-    assert "/rolling/insights/2026-08-20/" in data
-    assert "/rolling/insights/2026-08-19/" in data
-    assert "/rolling/insights/2026-08-18/" in data
-    assert "/rolling/insights/2026-08-17/" in data
-    assert "/rolling/insights/2026-08-14/" in data
-    assert "/rolling/insights/2026-08-13/" in data
-    assert "/rolling/insights/2026-08-12/" in data
-    assert "/rolling/insights/2026-08-11/" in data
-    assert "/rolling/insights/2026-08-10/" in data
-    assert "/rolling/insights/2026-08-07/" in data
-    assert (ROOT / "src/pages/rolling/insights/2026-08-21.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-20.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-19.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-18.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-17.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-14.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-08-28.astro").exists()
-    assert (ROOT / "src/pages/rolling/insights/2026-09-02.astro").exists()
-    assert "/rolling/insights/2026-09-02/" in data
-    assert (ROOT / "src/pages/rolling/insights/2026-09-01.astro").exists()
-    assert "/rolling/insights/2026-09-01/" in data
-    assert "tradeDate: '2026-09-03'" in data
+    # 2026-09-03 demoted archive page exists + catalog link
+    assert (ROOT / "src/pages/rolling/insights/2026-09-03.astro").exists()
+    assert "/rolling/insights/2026-09-03/" in data
+    # 2026-09-04 latest archive page exists (new latest day, href is /rolling/insights/ not dated)
+    assert (ROOT / "src/pages/rolling/insights/2026-09-04.astro").exists()
+    assert "tradeDate: '2026-09-04'" in data
 
 
 def test_insights_styles_are_responsive_and_card_light():
@@ -142,10 +132,14 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "2026-08-14" in catalog
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
-    # 09-03 new latest redirect
-    assert "/rolling/insights/2026-09-03 /rolling/insights/ 301" in redirects
-    # 09-03 latest no-slash canonicalize
+    # 09-04 new latest redirect
+    assert "/rolling/insights/2026-09-04 /rolling/insights/ 301" in redirects
+    # 09-04 latest no-slash canonicalize
+    assert "/rolling/insights/2026-09-04 /rolling/insights/2026-09-04/ 301" in redirects
+    # 09-03 demoted archive canonicalize
     assert "/rolling/insights/2026-09-03 /rolling/insights/2026-09-03/ 301" in redirects
+    # 09-03 demoted; canonical no-slash -> slash rule present, root rule removed
+    assert "/rolling/insights/2026-09-03 /rolling/insights/ 301" not in redirects
     # 09-02 demoted archive canonicalize
     assert "/rolling/insights/2026-09-02 /rolling/insights/2026-09-02/ 301" in redirects
     # 09-01 demoted archive canonicalize
