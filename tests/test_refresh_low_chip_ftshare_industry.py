@@ -65,6 +65,22 @@ def test_build_industry_mapping_parses_iwencai_paths_without_codes():
     assert result["600000.SH"]["swLevel2Code"] is None
 
 
+def test_load_entry_themes_uses_original_membership_snapshot_after_threshold_change(tmp_path, monkeypatch):
+    mod = load_module()
+    monkeypatch.setattr(mod, "HISTORY", tmp_path)
+    (tmp_path / "2026-09-03.json").write_text(
+        json.dumps({"intersection": [], "enrichments": {}}), encoding="utf-8"
+    )
+    original = tmp_path / "2026-09-03.threshold-2.5.json"
+    original.write_text(json.dumps({
+        "intersection": ["001289.SZ"],
+        "enrichments": {"001289.SZ": {"theme_concepts": ["绿电", "央企"]}},
+    }), encoding="utf-8")
+    tracking = {"stocks": {"001289.SZ": {"first_seen": "2026-09-03"}}}
+
+    assert mod.load_entry_themes(tracking) == {"001289.SZ": ["绿电", "央企"]}
+
+
 def test_apply_refresh_updates_current_and_tracking_without_rewriting_daily_rows():
     mod = load_module()
     current = {

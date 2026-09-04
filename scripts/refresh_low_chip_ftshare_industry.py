@@ -157,13 +157,26 @@ def load_entry_themes(tracking: dict[str, Any]) -> dict[str, list[str]]:
     result: dict[str, list[str]] = {}
     for symbol, rec in (tracking.get("stocks") or {}).items():
         first_seen = str(rec.get("first_seen") or "")
-        path = HISTORY / f"{first_seen}.json"
-        if not path.exists():
-            raise RuntimeError(f"STAGING BLOCKER: missing first-seen snapshot for {symbol}: {path.name}")
-        snapshot = json.loads(path.read_text(encoding="utf-8"))
-        enrichment = (snapshot.get("enrichments") or {}).get(symbol)
+        canonical = HISTORY / f"{first_seen}.json"
+        candidates = [canonical, *sorted(HISTORY.glob(f"{first_seen}.threshold-*.json"))]
+        enrichment = None
+        evidence_path = canonical
+        for path in candidates:
+            if not path.exists():
+                continue
+            try:
+                snapshot = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            candidate = (snapshot.get("enrichments") or {}).get(symbol)
+            if isinstance(candidate, dict):
+                enrichment = candidate
+                evidence_path = path
+                break
         if not isinstance(enrichment, dict):
-            raise RuntimeError(f"STAGING BLOCKER: missing first-seen enrichment for {symbol}: {path.name}")
+            if not canonical.exists() and not any(path.exists() for path in candidates[1:]):
+                raise RuntimeError(f"STAGING BLOCKER: missing first-seen snapshot for {symbol}: {canonical.name}")
+            raise RuntimeError(f"STAGING BLOCKER: missing first-seen enrichment for {symbol}: {evidence_path.name}")
         result[symbol] = list(enrichment.get("theme_concepts") or [])
     return result
 
