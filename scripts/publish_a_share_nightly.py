@@ -343,6 +343,30 @@ def ensure_pub_date(article: Path, trade_date: str, *, write: bool = True) -> No
     article.write_text(text[:match.start("header")] + updated_header + text[match.end("header"):], encoding="utf-8")
 
 
+def normalize_article_format(article: Path, *, write: bool) -> list[str]:
+    """Deterministically repair the two known 22:00-agent format slips before validation.
+
+    The content agent has repeatedly written the four-window 22:00 section header as
+    ``### 22:00 夜间最终整理`` (canonical is ``### 22:00 夜间最终版``) and left the
+    frontmatter ``appliesTo`` date unquoted (a bare date parses as a YAML Date and
+    breaks ``astro build``). Both are pure format normalizations with no content
+    ambiguity, so they are repaired here; any other deviation still fails the strict
+    checks below.
+    """
+    text = article.read_text(encoding="utf-8")
+    fixes: list[str] = []
+    new = re.sub(r"(?m)^#+\s*22:00\s*夜间最终整理\s*$", "### 22:00 夜间最终版", text)
+    if new != text:
+        fixes.append("22:00 section header → 最终版")
+    text = new
+    new = re.sub(r'(?m)^appliesTo:\s*(\d{4}-\d{2}-\d{2})\s*$', r'appliesTo: "\1"', text)
+    if new != text:
+        fixes.append("appliesTo date → quoted")
+    if fixes and write:
+        article.write_text(new, encoding="utf-8")
+    return fixes
+
+
 def refresh_nightly_recommendations(env: dict[str, str]) -> None:
     """Rebuild candidate identity before applying the macro eligibility gate."""
     run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
@@ -449,6 +473,7 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
             f"recommendations stage/date mismatch: date={reco.get('date')!r}, stage={reco.get('stage')!r}"
         )
     ensure_pub_date(article, trade_date, write=not dry_run)
+    normalize_article_format(article, write=not dry_run)
     article_text = article.read_text(encoding="utf-8")
     stage_markers = (
         "stage: 22:00夜间最终版",
