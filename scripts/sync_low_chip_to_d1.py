@@ -117,6 +117,9 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "sector": enr.get("sector"),
             "financials": enr.get("financials"),
             "theme_concepts": enr.get("theme_concepts") or enr.get("theme_concept"),
+            "industry_etfs": enr.get("industry_etfs") or [],
+            "industry_etf_status": enr.get("industry_etf_status") or "unknown",
+            "industry_etf_pool_count": enr.get("industry_etf_pool_count"),
             "quality_shareholder": 1 if enr.get("quality_shareholder") else 0,
             "shareholder_nature": {
                 "report_period": enr.get("shareholder_nature_report_period"),

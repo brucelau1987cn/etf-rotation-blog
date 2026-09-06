@@ -79,7 +79,7 @@ test('authenticated admin can query low-chip historical metrics', async () => {
         args: [],
         bind(...args) { this.args = args; calls.push({ sql, args }); return this; },
         async run() { return { meta: { changes: 0 } }; },
-        async all() { return { results: [{ stock_code: '600000', stock_name: '测试', week_profit: 1.2, month_profit: 1.3, quarter_profit: 1.4, year_profit: 2.1 }] }; },
+        async all() { return { results: [{ stock_code: '600000', stock_name: '测试', week_profit: 1.2, month_profit: 1.3, quarter_profit: 1.4, year_profit: 2.1, industry_etfs: '[{"code":"512480.SH","source_pool":"etf-garden-formal-91"}]', industry_etf_status: 'matched', industry_etf_pool_count: 91 }] }; },
       };
     },
   };
@@ -99,6 +99,9 @@ test('authenticated admin can query low-chip historical metrics', async () => {
   assert.equal('month_profit' in payload.results[0], false);
   assert.equal('quarter_profit' in payload.results[0], false);
   assert.equal(payload.results[0].year_profit, 2.1);
+  assert.deepEqual(payload.results[0].industry_etfs, [{ code: '512480.SH', source_pool: 'etf-garden-formal-91' }]);
+  assert.equal(payload.results[0].industry_etf_status, 'matched');
+  assert.equal(payload.results[0].industry_etf_pool_count, 91);
 });
 
 test('sync bearer can verify low-chip historical metrics after publication', async () => {

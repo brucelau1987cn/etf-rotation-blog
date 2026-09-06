@@ -22,13 +22,17 @@ const CLIENT_METRIC_FIELDS = [
   'trade_date', 'stock_code', 'stock_name', 'shareholder_count', 'shareholder_change_pct',
   'main_force', 'main_force_label', 'concentration90', 'chip_focus', 'report_period',
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
-  'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
+  'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
+  'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
   'year_profit',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
 function clientMetric(row) {
   const metric = Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
+  if (typeof metric.industry_etfs === 'string') {
+    try { metric.industry_etfs = JSON.parse(metric.industry_etfs); } catch (e) { metric.industry_etfs = []; }
+  }
   if (typeof metric.shareholder_nature === 'string') {
     try { metric.shareholder_nature = JSON.parse(metric.shareholder_nature); } catch (e) { metric.shareholder_nature = null; }
   }
@@ -67,6 +71,9 @@ export async function onRequest(context) {
         sector TEXT,
         financials TEXT,
         theme_concepts TEXT,
+        industry_etfs TEXT,
+        industry_etf_status TEXT,
+        industry_etf_pool_count INTEGER,
         quality_shareholder INTEGER,
         shareholder_nature TEXT,
         pe_ttm REAL,
@@ -145,6 +152,9 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN sector TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN financials TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN theme_concepts TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN industry_etfs TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN industry_etf_status TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN industry_etf_pool_count INTEGER').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN quality_shareholder INTEGER').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN shareholder_nature TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN closing_profit REAL').run(); } catch (e) {}
@@ -158,14 +168,15 @@ export async function onRequest(context) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} ${type}`).run(); } catch (e) {}
     }
     let inserted = 0;
-    // 批量写入：D1 prepared statement 参数上限约100；34列×2行=68参数。
+    // 批量写入：D1 prepared statement 参数上限约100；37列×2行=74参数。
     const ROWS_PER_STMT = 2;
     const STMTS_PER_BATCH = 100;
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
       'shareholder_change_pct', 'main_force', 'main_force_label',
       'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
       'week_profit', 'month_profit', 'quarter_profit', 'year_profit', 'change_percent',
-      'industry', 'sector', 'financials', 'theme_concepts', 'quality_shareholder', 'shareholder_nature',
+      'industry', 'sector', 'financials', 'theme_concepts', 'industry_etfs',
+      'industry_etf_status', 'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
       'closing_profit', 'average_cost', 'conc70',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
@@ -181,6 +192,8 @@ export async function onRequest(context) {
       m.industry || null, m.sector || null,
       m.financials ? JSON.stringify(m.financials) : null,
       m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
+      m.industry_etfs ? JSON.stringify(m.industry_etfs) : null,
+      m.industry_etf_status || null, m.industry_etf_pool_count ?? null,
       m.quality_shareholder ? 1 : 0,
       m.shareholder_nature ? JSON.stringify(m.shareholder_nature) : null,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,

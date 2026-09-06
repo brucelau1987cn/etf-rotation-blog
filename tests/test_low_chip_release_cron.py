@@ -123,11 +123,13 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
     assert shadow < source.index("run(['npm', 'run', 'build']")
 
 
-def test_ftshare_industry_refresh_runs_after_tracking_and_is_release_scoped():
+def test_ftshare_industry_refresh_runs_after_tracking_and_before_industry_etf_mapping():
     source = SCRIPT.read_text(encoding='utf-8')
     tracking = source.index("run([sys.executable, 'scripts/update_low_chip_tracking.py']")
-    # FTShare industry has been replaced by iWenCai; the old ftshare call and its output files are removed
-    assert tracking > 0
+    industry = source.index("run([sys.executable, 'scripts/refresh_low_chip_ftshare_industry.py']")
+    industry_etf = source.index("run([sys.executable, 'scripts/attach_low_chip_industry_etfs.py']")
+    final_archive = source.rindex("run([sys.executable, 'scripts/archive_low_chip_snapshot.py']")
+    assert tracking < industry < industry_etf < final_archive
 
 
 def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeypatch):

@@ -155,6 +155,9 @@ const rows = intersectionRows.map((row) => {
     shareholderMetrics: sm,
     etfHoldings: Array.isArray(enr.etf_holdings) ? enr.etf_holdings : [],
     etfTopCategory: enr.etf_top_category || null,
+    industryEtfs: Array.isArray(enr.industry_etfs) ? enr.industry_etfs : [],
+    industryEtfStatus: enr.industry_etf_status || 'unknown',
+    industryEtfPoolCount: enr.industry_etf_pool_count ?? null,
     yearProfit: yearProfitBySymbol[row.symbol] ?? null,
     occurrence,
     profits,
@@ -317,6 +320,19 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span><strong>{row.shareholderMetrics.top10_float_ratio ? fmtMetric(row.shareholderMetrics.top10_float_ratio, 1, '%') : '—'}</strong></span>
                   <span><strong>{reportPeriodLabel(row.shareholderMetrics.report_period)}</strong></span>
                 </div>
+              </div>
+              <div class="chip-row-etf" aria-label={`${row.name} 所属行业ETF`}>
+                <span class="chip-etf-label">行业ETF · 91只池</span>
+                {row.industryEtfs.length > 0 ? (
+                  <div class="chip-etf-list">
+                    {row.industryEtfs.map((h) => (
+                      <span class="chip-etf-pill" title={`${h.name} · ${h.theme} · ${h.match_type}`}>
+                        <span class="chip-etf-name">{h.name}</span>
+                        <span class="chip-etf-meta">{h.code}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : <span class="chip-etf-meta">{row.industryEtfStatus === 'industry_missing' ? '行业待补充' : row.industryEtfStatus === 'unknown' ? '映射尚未计算' : '库内暂无匹配'}</span>}
               </div>
               {row.etfHoldings.length > 0 ? (
                 <div class="chip-row-etf" aria-label={`${row.name} 持仓ETF`}>
@@ -564,9 +580,27 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 '<span><strong>' + esc(sm.report_period || '—') + '</strong></span>' +
               '</div>' +
             '</div>' +
+            renderIndustryEtfSection(row) +
             renderEtfSection(row) +
           '</div>'
         );
+      }
+
+      function renderIndustryEtfSection(row) {
+        var etf = Array.isArray(row.industryEtfs) ? row.industryEtfs : [];
+        var pills = etf.map(function(h) {
+          return '<span class="chip-etf-pill" title="' + esc((h.name || '') + ' · ' + (h.theme || '') + ' · ' + (h.match_type || '')) + '">' +
+                   '<span class="chip-etf-name">' + esc(h.name) + '</span>' +
+                   '<span class="chip-etf-meta">' + esc(h.code) + '</span>' +
+                 '</span>';
+        }).join('');
+        var emptyText = row.industryEtfStatus === 'industry_missing'
+          ? '行业待补充'
+          : (row.industryEtfStatus === 'unknown' ? '映射尚未计算' : '库内暂无匹配');
+        var content = pills
+          ? '<div class="chip-etf-list">' + pills + '</div>'
+          : '<span class="chip-etf-meta">' + emptyText + '</span>';
+        return '<div class="chip-row-etf"><span class="chip-etf-label">行业ETF · 91只池</span>' + content + '</div>';
       }
 
       function renderEtfSection(row) {
@@ -839,6 +873,9 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   themeConcepts: themes.slice(0, 3),
                   financials: row.financials ? JSON.parse(row.financials) : {},
                   technical: row.technical ? JSON.parse(row.technical) : {},
+                  industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
+                  industryEtfStatus: row.industry_etf_status || 'unknown',
+                  industryEtfPoolCount: row.industry_etf_pool_count ?? null,
                   yearProfit: row.year_profit ?? null,
                   occurrence: occurrenceLookup[day]?.[code] || null,
                   qualityShareholder: Boolean(row.shareholder_nature?.quality_shareholder ?? row.quality_shareholder),

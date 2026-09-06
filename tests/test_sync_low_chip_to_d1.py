@@ -88,6 +88,35 @@ def test_snapshot_metrics_carries_shareholder_nature_for_history_api():
     assert nature["institutional_shareholder_names"] == ["长城人寿保险股份有限公司", "香港中央结算有限公司"]
 
 
+def test_snapshot_metrics_carries_industry_etfs_from_formal_91_pool():
+    payload = {
+        "data_as_of": "2026-09-04",
+        "intersection": ["603501.SH"],
+        "periods": {
+            "week": [{"symbol": "603501.SH", "name": "韦尔股份", "value": 1.1}],
+            "month": [{"symbol": "603501.SH", "name": "韦尔股份", "value": 1.0}],
+            "quarter": [{"symbol": "603501.SH", "name": "韦尔股份", "value": 0.9}],
+        },
+        "enrichments": {"603501.SH": {
+            "industry": "半导体",
+            "industry_etf_status": "matched",
+            "industry_etf_pool_count": 91,
+            "industry_etfs": [{
+                "code": "512480.SH",
+                "name": "半导体ETF国联安",
+                "theme": "半导体",
+                "match_type": "exact",
+                "source_pool": "etf-garden-formal-91",
+            }],
+            "shareholder_metrics": {},
+        }},
+    }
+    row = snapshot_metrics(payload)[0]
+    assert row["industry_etf_status"] == "matched"
+    assert row["industry_etf_pool_count"] == 91
+    assert row["industry_etfs"][0]["code"] == "512480.SH"
+
+
 def test_push_replaces_the_entire_trade_date_membership():
     payload = {
         "data_as_of": "2026-09-03",
