@@ -1087,11 +1087,13 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           bindShareholderToggles();
           updateMeta(initialData);
           renderPager();
+          loadNotes(currentDate);
         }
       } catch (e) {
         bindShareholderToggles();
         updateMeta(initialData);
         renderPager();
+        loadNotes(currentDate);
       }
     })();
     </script>
