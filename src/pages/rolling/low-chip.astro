@@ -322,9 +322,10 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 {row.industryEtfs.length > 0 ? (
                   <div class="chip-etf-list">
                     {row.industryEtfs.map((h) => (
-                      <span class="chip-etf-pill" title={`${h.name} · ${h.theme} · ${h.match_type}`}>
+                      <span class="chip-etf-pill" title={`${h.name} · ${h.theme} · ${h.match_type}${h.profit_ratio != null ? ` · 收盘获利 ${fmt(h.profit_ratio)}%` : ''}`}>
                         <span class="chip-etf-name">{h.name}</span>
                         <span class="chip-etf-meta">{h.code}</span>
+                        {h.profit_ratio != null && <span class="chip-etf-profit">获利{fmt(h.profit_ratio)}%</span>}
                       </span>
                     ))}
                   </div>
@@ -555,9 +556,13 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       function renderIndustryEtfSection(row) {
         var etf = Array.isArray(row.industryEtfs) ? row.industryEtfs : [];
         var pills = etf.map(function(h) {
-          return '<span class="chip-etf-pill" title="' + esc((h.name || '') + ' · ' + (h.theme || '') + ' · ' + (h.match_type || '')) + '">' +
+          var profitHtml = (h.profit_ratio != null)
+            ? '<span class="chip-etf-profit">获利' + fmt(h.profit_ratio) + '%</span>'
+            : '';
+          return '<span class="chip-etf-pill" title="' + esc((h.name || '') + ' · ' + (h.theme || '') + ' · ' + (h.match_type || '') + (h.profit_ratio != null ? ' · 收盘获利 ' + fmt(h.profit_ratio) + '%' : '')) + '">' +
                    '<span class="chip-etf-name">' + esc(h.name) + '</span>' +
                    '<span class="chip-etf-meta">' + esc(h.code) + '</span>' +
+                   profitHtml +
                  '</span>';
         }).join('');
         var emptyText = row.industryEtfStatus === 'industry_missing'
@@ -1088,6 +1093,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 .chip-row-etf{margin-top:.5rem;display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;padding:.35rem .5rem;background:rgba(241,245,249,.55);border-radius:8px;border:1px solid rgba(148,163,184,.18)}
 .chip-etf-list{display:flex;flex-wrap:wrap;gap:.3rem;flex:1;min-width:0}
 .chip-etf-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .55rem;background:#fff;border:1px solid #e2e8f0;border-radius:999px;font-size:.72rem;color:#1d4ed8;text-decoration:none;transition:all .15s;line-height:1.2}
+.chip-etf-profit{color:#b45309;font-weight:700;font-variant-numeric:tabular-nums;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:.02rem .35rem;font-size:.64rem}
 .chip-etf-pill:hover{background:#eff6ff;border-color:#93c5fd;color:#1e40af;transform:translateY(-1px)}
 .chip-etf-name{font-weight:600}
 .chip-etf-meta{color:#64748b;font-weight:400;font-variant-numeric:tabular-nums}
