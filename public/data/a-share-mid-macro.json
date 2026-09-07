@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-07 14:48:31 CST",
+  "generated_at": "2026-09-07 22:14:39 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 1.05,
+          "value": 1.26,
           "unit": "pp",
-          "display": "1.05pp",
+          "display": "1.26pp",
           "as_of": "2026-09-07",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "逆风",
       "score": 1.5,
-      "headline": "固收5日相对转强+1.05pp",
+      "headline": "固收5日相对转强+1.26pp",
       "as_of": "2026-09-07"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 0.53,
+          "value": 0.58,
           "unit": "%",
-          "display": "0.53%",
+          "display": "0.58%",
           "as_of": "2026-09-07",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 -0.27% · 汇率与溢折价会扰动",
+          "detail": "20日 -0.22% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -387,9 +387,9 @@
         {
           "key": "overseas_weak",
           "title": "海外池弱化占比",
-          "value": 100.0,
+          "value": 87.5,
           "unit": "%",
-          "display": "100.00%",
+          "display": "87.50%",
           "as_of": "2026-09-07",
           "frequency": "日频",
           "source": "ETF罗盘海外池",
@@ -402,7 +402,7 @@
       ],
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日+0.53%",
+      "headline": "海外映射ETF 5日+0.58%",
       "as_of": "2026-09-07"
     },
     {
@@ -494,10 +494,10 @@
       "label": "固收相对权益强弱",
       "state": "逆风",
       "score": 1.5,
-      "headline": "固收5日相对转强+1.05pp",
+      "headline": "固收5日相对转强+1.26pp",
       "reasons": [
-        "固收5日相对转强+1.05pp",
-        "固收20日相对偏强+2.67pp"
+        "固收5日相对转强+1.26pp",
+        "固收20日相对偏强+2.88pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -512,16 +512,16 @@
       "metrics": {
         "bond_ret5": 0.09,
         "bond_ret20": 0.17,
-        "equity_ret5": -0.96,
-        "equity_ret20": -2.5,
-        "bond_vs_equity_5d_pp": 1.05,
-        "bond_vs_equity_20d_pp": 2.67
+        "equity_ret5": -1.17,
+        "equity_ret20": -2.71,
+        "bond_vs_equity_5d_pp": 1.26,
+        "bond_vs_equity_20d_pp": 2.88
       },
       "details": {
         "511260": {
           "ret5": 0.14,
           "ret20": 0.24,
-          "last": 135.89,
+          "last": 135.889,
           "date": "2026-09-07"
         },
         "511010": {
@@ -533,13 +533,13 @@
         "511110": {
           "ret5": 0.05,
           "ret20": 0.2,
-          "last": 103.25,
+          "last": 103.251,
           "date": "2026-09-07"
         },
         "510300": {
-          "ret5": -0.96,
-          "ret20": -2.5,
-          "last": 4.64,
+          "ret5": -1.17,
+          "ret20": -2.71,
+          "last": 4.63,
           "date": "2026-09-07"
         }
       },
@@ -550,10 +550,10 @@
       "label": "海外风险映射压力",
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日+0.53%",
+      "headline": "海外映射ETF 5日+0.58%",
       "reasons": [
-        "海外映射ETF 5日+0.53%",
-        "海外相关池弱化占比100%（确认项）"
+        "海外映射ETF 5日+0.58%",
+        "海外相关池弱化占比88%（确认项）"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -566,11 +566,11 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 0.53,
-        "proxy_ret20_avg": -0.27,
+        "proxy_ret5_avg": 0.58,
+        "proxy_ret20_avg": -0.22,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
-        "overseas_weak_share": 1.0
+        "overseas_weak_share": 0.875
       },
       "details": {
         "159941": {
@@ -586,15 +586,15 @@
           "date": "2026-09-07"
         },
         "159502": {
-          "ret5": 0.49,
-          "ret20": 1.18,
-          "last": 1.631,
+          "ret5": 0.62,
+          "ret20": 1.3,
+          "last": 1.633,
           "date": "2026-09-07"
         },
         "513520": {
-          "ret5": 1.41,
-          "ret20": -1.2,
-          "last": 2.306,
+          "ret5": 1.5,
+          "ret20": -1.11,
+          "last": 2.308,
           "date": "2026-09-07"
         }
       },
