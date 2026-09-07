@@ -287,7 +287,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
             >
               <div class="chip-row-top">
                 <div class="chip-row-main">
-                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class:list={['chip-reco', `is-${row.reco || 'low'}`]} title={`推荐度：${row.reco || '低'}（${row.composite ?? '—'}/100）`}>{row.reco || '低'}</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
+                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class="chip-reco is-star is-none" title="短线反转观察星级加载中…（综合分 {row.composite ?? '—'}/100）">—</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
                   <span class="chip-industry" title={row.themeConcepts.length ? `${row.industry} · 近期贴合：${row.themeConcepts.join('、')}` : row.industry}>
                     {row.sector}{row.themeConcepts.length ? <em class="chip-theme">（{row.themeConcepts.join('、')}）</em> : null}
                   </span>
@@ -415,6 +415,9 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       var page = 1;
       var query = '';
       var activeFilters = new Set();
+      // AI 评语/星级缓存: notesByDate[date] = { code: {stars,label,comment} }
+      var notesByDate = {};
+      var notesLoading = false;
 
       var currentDate = String((initialData && initialData.data_as_of) || '');
       var dates = (historyIndex && historyIndex.dates) || [];
@@ -487,6 +490,95 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         });
       }
 
+      function starText(stars) { return stars === 3 ? '★★★' : stars === 2 ? '★★' : '★'; }
+
+      // 异步加载某日的 AI 评语/星级, 成功则注入 DOM 并重排
+      function loadNotes(day) {
+        if (!day || notesLoading) return;
+        if (notesByDate[day]) { applyNotes(day); return; }
+        notesLoading = true;
+        fetch('/api/public/v1/low-chip-notes?date=' + day)
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(resp) {
+            var map = {};
+            (resp.results || []).forEach(function(n) {
+              map[n.stock_code] = n;
+            });
+            notesByDate[day] = map;
+            notesLoading = false;
+            applyNotes(day);
+          })
+          .catch(function(err) {
+            notesLoading = false;
+            notesByDate[day] = null; // 失败标记, 不重试
+            console.error('low-chip-notes fetch failed:', err);
+          });
+      }
+
+      function noteFor(row, day) {
+        var map = notesByDate[day];
+        if (!map) return null;
+        var bare = String(row.symbol || '').split('.')[0];
+        return map[bare] || null;
+      }
+
+      // 星级写入徽标 + 评语行, 并按星级重排(★★★→★, 无星按综合分垫底)
+      function applyNotes(day) {
+        rowsEls().forEach(function(c) {
+          var sym = String(c.dataset.symbol || '').split('.')[0];
+          var n = (notesByDate[day] || {})[sym] || null;
+          var recoEl = c.querySelector('.chip-reco');
+          if (n && recoEl) {
+            var stars = Number(n.stars);
+            recoEl.className = 'chip-reco is-star is-s' + stars;
+            recoEl.textContent = starText(stars);
+            recoEl.title = '短线反转观察 ' + starText(stars) + ' · ' + (n.label || '') + (n.comment ? ' · ' + n.comment : '');
+          } else if (recoEl) {
+            recoEl.className = 'chip-reco is-star is-none';
+            recoEl.textContent = '—';
+            recoEl.title = '暂无AI评语';
+          }
+          c.dataset.stars = n ? String(n.stars) : '0';
+          // 评语行(重复注入防抖)
+          var old = c.querySelector('.chip-note-row');
+          if (old) old.remove();
+          if (n && n.comment) {
+            var div = document.createElement('div');
+            div.className = 'chip-note-row';
+            div.innerHTML = '<button type="button" class="chip-note-toggle" aria-expanded="false"><span class="chip-note-ai">AI评语</span><span class="chip-note-stars">' + starText(Number(n.stars)) + '</span>' + (n.label ? '<span class="chip-note-label">' + esc(n.label) + '</span>' : '') + '<i class="chip-note-chev" aria-hidden="true">▾</i></button>' +
+              '<div class="chip-note-body" hidden>' + '<p>' + esc(n.comment) + '</p>' +
+              '<span class="chip-note-meta">短线反转观察 · 星级每日随数据重估</span></div>';
+            c.appendChild(div);
+            var btn = div.querySelector('.chip-note-toggle');
+            btn.addEventListener('click', function() {
+              var open = div.classList.toggle('is-open');
+              var body = div.querySelector('.chip-note-body');
+              body.hidden = !open;
+              btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+          }
+        });
+        reorderByStars();
+        renderPager();
+      }
+
+      // DOM 按星级降序(有星前无星后, 同星/无星按原综合分保持稳定序)
+      function reorderByStars() {
+        var els = rowsEls();
+        if (els.length < 2) return;
+        var stable = els.map(function(c, i) { return { el: c, i: i, stars: Number(c.dataset.stars || 0) }; });
+        stable.sort(function(a, b) {
+          if (a.stars !== b.stars) return b.stars - a.stars;
+          return a.i - b.i;
+        });
+        var emptyEl = list.querySelector('.chip-row-empty');
+        stable.forEach(function(s) { list.appendChild(s.el); });
+        if (emptyEl) list.appendChild(emptyEl);
+      }
+
       // 综合上涨潜力分 (0-100) — 与 SSR 端 compositeScore 同口径
       // 筹码干净度35 + 主力吸筹25 + 股东收敛/筹码集中20 + 财务质地20
       function compositeOf(row) {
@@ -550,8 +642,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var etfTopCategory = row.etfTopCategory || null;
         var profits = row.profits || {};
         var composite = row.composite != null ? row.composite : compositeOf(row);
-        var reco = composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
-        var recoHtml = '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
+        var recoHtml = '<span class="chip-reco is-star is-none" title="短线反转观察星级加载中…（综合分 ' + composite + '/100）">—</span>';
         return (
           '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '" data-composite="' + esc(composite) + '" data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-rsi="' + esc(tech.rsi ?? '') + '" data-outer-inner="' + esc(tech.outer_inner_ratio ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
@@ -835,6 +926,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         updateMeta(data);
         renderPager();
         renderSuggestions();
+        loadNotes(currentDate);
       }
 
       function loadDate(day) {
@@ -1103,6 +1195,22 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-reco.is-高{border:1px solid #fecaca;background:#fef2f2;color:#b91c1c}
   .chip-reco.is-中{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
   .chip-reco.is-低{border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
+  .chip-reco.is-star{font-size:.7rem;letter-spacing:.02em}
+  .chip-reco.is-star.is-s3{border:1px solid #fecaca;background:#fef2f2;color:#b91c1c}
+  .chip-reco.is-star.is-s2{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
+  .chip-reco.is-star.is-s1{border:1px solid #e2e8f0;background:#f8fafc;color:#64748b}
+  .chip-reco.is-star.is-none{border:1px solid #eef2f7;background:#f8fafc;color:#cbd5e1;font-size:.62rem}
+  .chip-note-row{width:100%;margin-top:.45rem;padding-top:.4rem;border-top:1px dashed #e2e8f0}
+  .chip-note-toggle{display:flex;align-items:center;gap:.4rem;width:100%;padding:.25rem 0;border:0;background:none;color:#475569;font-size:.7rem;font-weight:750;cursor:pointer;text-align:left}
+  .chip-note-toggle:hover{color:#1d4ed8}
+  .chip-note-ai{color:#1d4ed8;font-weight:850;letter-spacing:.03em}
+  .chip-note-stars{color:#b45309;font-weight:850}
+  .chip-note-label{padding:.1rem .4rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#64748b;font-size:.62rem;font-weight:800}
+  .chip-note-chev{margin-left:auto;font-style:normal;font-size:.72rem;color:#94a3b8;transition:transform .15s}
+  .chip-note-row.is-open .chip-note-chev{transform:rotate(180deg)}
+  .chip-note-body{margin-top:.35rem;padding:.5rem .6rem;border:1px solid #eef2f7;border-radius:8px;background:#fafbfc}
+  .chip-note-body p{margin:0;color:#334155;font-size:.78rem;line-height:1.7}
+  .chip-note-meta{display:block;margin-top:.4rem;color:#94a3b8;font-size:.6rem;font-weight:700}
   .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
   .chip-theme{margin-left:.05rem;color:#9a3412;font-style:normal;font-weight:800}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
