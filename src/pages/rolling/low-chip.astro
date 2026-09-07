@@ -75,6 +75,55 @@ const nameInitials = (name: string) => {
 
 const PAGE_SIZE = 6;
 const asOfLabel = String(lowChipData.data_as_of || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3');
+
+// 三周期获利盘索引: symbol -> {week, month, quarter, price, change_percent}
+const profitBySymbol: Record<string, { week: number | null; month: number | null; quarter: number | null }> = {};
+for (const periodKey of ['week', 'month', 'quarter'] as const) {
+  for (const row of lowChipData.periods[periodKey] || []) {
+    const entry = (profitBySymbol[row.symbol] ||= { week: null, month: null, quarter: null });
+    entry[periodKey] = row.value;
+  }
+}
+
+// 综合上涨潜力分 (0-100), 服务端算好注入 data-composite。每日随快照自动复算。
+// 口径(低筹码策略=筹码博弈, 财务做下限保护):
+//   筹码干净度(三周期获利盘低=抛压小) 35 + 主力吸筹 25 + 股东收敛/筹码集中 20 + 财务质地 20
+const chipFocusScore = (focus: string | null) => (focus === '非常集中' ? 4 : focus === '较集中' ? 2 : 0);
+const compositeScore = (symbol: string, enr: any) => {
+  const profits = profitBySymbol[symbol];
+  const sm = enr.shareholder_metrics || {};
+  const fin = enr.financials || {};
+  const pValues = [profits?.week, profits?.month, profits?.quarter].filter((v) => v != null && Number.isFinite(Number(v))).map(Number);
+  // 筹码干净度 35: 三周期均值越低越好; 全部≈0(浮筹清零) 封顶
+  let profitScore: number;
+  if (!pValues.length) profitScore = 15;
+  else {
+    const pa = pValues.reduce((a, b) => a + b, 0) / pValues.length;
+    const allZero = pValues.every((v) => v <= 0.05);
+    profitScore = allZero ? 35 : pa <= 0.1 ? 32 : pa <= 0.5 ? 28 : pa <= 1.0 ? 20 : pa <= 1.3 ? 14 : 10;
+  }
+  // 主力吸筹 25
+  const mf = Number(sm.main_force);
+  const mfScore = Number.isFinite(mf) ? (mf >= 35 ? 25 : mf >= 28 ? 20 : mf >= 22 ? 14 : 8) : 8;
+  // 股东收敛 + 筹码集中 20 (股东变化为负=户数减少=筹码集中)
+  const shChg = Number(sm.shareholder_change_pct);
+  let shScore = 0;
+  if (Number.isFinite(shChg)) shScore = shChg <= -12 ? 16 : shChg <= -5 ? 14 : shChg < 0 ? 11 : shChg <= 6 ? 6 : 2;
+  else shScore = 6;
+  shScore = Math.min(20, shScore + chipFocusScore(sm.chip_focus || null));
+  // 财务质地 20 (下限保护: 盈利/低负债加分, 亏损不全否决)
+  const roe = Number(fin.roe);
+  const roeScore = Number.isFinite(roe) ? (roe >= 8 ? 8 : roe >= 4 ? 6 : roe >= 0 ? 4 : 0) : 2;
+  const net = Number(fin.net_margin);
+  const netScore = Number.isFinite(net) ? (net >= 15 ? 6 : net >= 5 ? 4 : net >= 0 ? 2 : 0) : 2;
+  const debt = Number(fin.debt_ratio);
+  const debtScore = Number.isFinite(debt) ? (debt < 30 ? 6 : debt < 50 ? 4 : debt < 70 ? 2 : 0) : 2;
+  const finScore = Math.min(20, roeScore + netScore + debtScore);
+  return Math.round(profitScore + mfScore + shScore + finScore);
+};
+// 推荐度标签: 分数 → 高/中/低
+const recoLabel = (score: number | null | undefined) => (score == null ? '' : score >= 70 ? '高' : score >= 55 ? '中' : '低');
+
 const rows = intersectionRows.map((row) => {
   const enr = lowChipData.enrichments?.[row.symbol] || {};
   const sector = enr.sector || '待补充';
@@ -83,6 +132,9 @@ const rows = intersectionRows.map((row) => {
     : (enr.theme_concept ? String(enr.theme_concept).split(/[、,，]/).map((s) => s.trim()).filter(Boolean).slice(0, 3) : []);
   const themeText = themes.join('、');
   const occurrence = occurrenceLookup[lowChipData.data_as_of]?.[row.symbol] || null;
+  const sm = enr.shareholder_metrics || {};
+  const profits = profitBySymbol[row.symbol] || { week: null, month: null, quarter: null };
+  const changePct = row.change_percent ?? null;
   return {
     symbol: row.symbol,
     name: row.name,
@@ -100,14 +152,20 @@ const rows = intersectionRows.map((row) => {
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     financials: enr.financials || {},
     technical: enr.technical || {},
-    shareholderMetrics: enr.shareholder_metrics || {},
+    shareholderMetrics: sm,
     etfHoldings: Array.isArray(enr.etf_holdings) ? enr.etf_holdings : [],
     etfTopCategory: enr.etf_top_category || null,
     yearProfit: yearProfitBySymbol[row.symbol] ?? null,
     occurrence,
+    profits,
+    composite: compositeScore(row.symbol, enr),
+    reco: recoLabel(compositeScore(row.symbol, enr)),
   };
 });
 const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
+
+// 默认综合分降序(前端首次渲染即按综合分排); 排序按钮可切换
+rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -209,6 +267,13 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
               data-gross-margin={row.financials.gross_margin ?? ''}
               data-debt-ratio={row.financials.debt_ratio ?? ''}
               data-year-profit={row.yearProfit ?? ''}
+              data-week-profit={row.profits?.week ?? ''}
+              data-month-profit={row.profits?.month ?? ''}
+              data-quarter-profit={row.profits?.quarter ?? ''}
+              data-composite={row.composite ?? ''}
+              data-main-force={row.shareholderMetrics.main_force ?? ''}
+              data-shareholder-change={row.shareholderMetrics.shareholder_change_pct ?? ''}
+              data-change={row.change_percent ?? ''}
               data-rsi={row.technical.rsi ?? ''}
               data-outer-inner={row.technical.outer_inner_ratio ?? ''}
 
@@ -219,7 +284,7 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
             >
               <div class="chip-row-top">
                 <div class="chip-row-main">
-                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
+                  <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class:list={['chip-reco', `is-${row.reco || 'low'}`]} title={`推荐度：${row.reco || '低'}（${row.composite ?? '—'}/100）`}>{row.reco || '低'}</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
                   <span class="chip-industry" title={row.themeConcepts.length ? `${row.industry} · 近期贴合：${row.themeConcepts.join('、')}` : row.industry}>
                     {row.sector}{row.themeConcepts.length ? <em class="chip-theme">（{row.themeConcepts.join('、')}）</em> : null}
                   </span>
@@ -406,6 +471,36 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
         });
       }
 
+      // 综合上涨潜力分 (0-100) — 与 SSR 端 compositeScore 同口径
+      // 筹码干净度35 + 主力吸筹25 + 股东收敛/筹码集中20 + 财务质地20
+      function compositeOf(row) {
+        var sm = row.shareholderMetrics || {};
+        var fin = row.financials || {};
+        var profits = row.profits || {};
+        var pValues = [profits.week, profits.month, profits.quarter].filter(function(v) { return v != null && isFinite(Number(v)); }).map(Number);
+        var profitScore;
+        if (!pValues.length) profitScore = 15;
+        else {
+          var pa = pValues.reduce(function(a, b) { return a + b; }, 0) / pValues.length;
+          var allZero = pValues.every(function(v) { return v <= 0.05; });
+          profitScore = allZero ? 35 : pa <= 0.1 ? 32 : pa <= 0.5 ? 28 : pa <= 1.0 ? 20 : pa <= 1.3 ? 14 : 10;
+        }
+        var mf = Number(sm.main_force);
+        var mfScore = isFinite(mf) ? (mf >= 35 ? 25 : mf >= 28 ? 20 : mf >= 22 ? 14 : 8) : 8;
+        var shChg = Number(sm.shareholder_change_pct);
+        var shScore = isFinite(shChg) ? (shChg <= -12 ? 16 : shChg <= -5 ? 14 : shChg < 0 ? 11 : shChg <= 6 ? 6 : 2) : 6;
+        var focus = sm.chip_focus;
+        shScore = Math.min(20, shScore + (focus === '非常集中' ? 4 : focus === '较集中' ? 2 : 0));
+        var roe = Number(fin.roe);
+        var roeScore = isFinite(roe) ? (roe >= 8 ? 8 : roe >= 4 ? 6 : roe >= 0 ? 4 : 0) : 2;
+        var net = Number(fin.net_margin);
+        var netScore = isFinite(net) ? (net >= 15 ? 6 : net >= 5 ? 4 : net >= 0 ? 2 : 0) : 2;
+        var debt = Number(fin.debt_ratio);
+        var debtScore = isFinite(debt) ? (debt < 30 ? 6 : debt < 50 ? 4 : debt < 70 ? 2 : 0) : 2;
+        var finScore = Math.min(20, roeScore + netScore + debtScore);
+        return Math.round(profitScore + mfScore + shScore + finScore);
+      }
+
       function rowHtml(row, index, asOf) {
         var change = Number(row.change_percent);
         var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
@@ -435,11 +530,17 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
           var map = { '轻度控盘': '轻度', '中度控盘': '中度', '高度控盘': '完全', '不控盘': '不控', '无控盘': '不控' };
           return map[label] || label || '';
         };
+        var etfHoldings = Array.isArray(row.etfHoldings) ? row.etfHoldings : [];
+        var etfTopCategory = row.etfTopCategory || null;
+        var profits = row.profits || {};
+        var composite = row.composite != null ? row.composite : compositeOf(row);
+        var reco = composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
+        var recoHtml = '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-rsi=\"' + esc(tech.rsi ?? '') + '\" data-outer-inner=\"' + esc(tech.outer_inner_ratio ?? '') + '\" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '" data-composite="' + esc(composite) + '" data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-rsi="' + esc(tech.rsi ?? '') + '" data-outer-inner="' + esc(tech.outer_inner_ratio ?? '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
-                '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
+                '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
                 '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
@@ -753,7 +854,25 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
                     top10_float_ratio: row.top10_float_ratio,
                     report_period: row.report_period,
                     price: row.price,
-                  }
+                  },
+                  profits: {
+                    week: row.week_profit ?? null,
+                    month: row.month_profit ?? null,
+                    quarter: row.quarter_profit ?? null,
+                  },
+                  composite: compositeOf({
+                    financials: row.financials ? JSON.parse(row.financials) : {},
+                    shareholderMetrics: {
+                      shareholder_change_pct: row.shareholder_change_pct,
+                      main_force: row.main_force,
+                      chip_focus: row.chip_focus,
+                    },
+                    profits: {
+                      week: row.week_profit ?? null,
+                      month: row.month_profit ?? null,
+                      quarter: row.quarter_profit ?? null,
+                    },
+                  })
                 });
               });
             }
@@ -943,6 +1062,10 @@ const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
   .chip-occurrence{padding:.16rem .42rem;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.64rem;font-weight:850;white-space:nowrap;line-height:1.2}
   .chip-occurrence.is-new{border-color:#bbf7d0;background:#f0fdf4;color:#047857}
   .chip-occurrence.is-reentry{border-color:#fde68a;background:#fffbeb;color:#b45309}
+  .chip-reco{display:inline-flex;align-items:center;padding:.14rem .42rem;border-radius:999px;font-size:.64rem;font-weight:850;line-height:1.2;white-space:nowrap}
+  .chip-reco.is-高{border:1px solid #fecaca;background:#fef2f2;color:#b91c1c}
+  .chip-reco.is-中{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
+  .chip-reco.is-低{border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
   .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
   .chip-theme{margin-left:.05rem;color:#9a3412;font-style:normal;font-weight:800}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
