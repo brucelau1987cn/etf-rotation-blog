@@ -288,9 +288,6 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               <div class="chip-row-top">
                 <div class="chip-row-main">
                   <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class:list={['chip-reco', `is-${row.reco || 'low'}`]} title={`推荐度：${row.reco || '低'}（${row.composite ?? '—'}/100）`}>{row.reco || '低'}</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
-                  <span class="chip-industry" title={row.themeConcepts.length ? `${row.industry} · 近期贴合：${row.themeConcepts.join('、')}` : row.industry}>
-                    {row.sector}{row.themeConcepts.length ? <em class="chip-theme">（{row.themeConcepts.join('、')}）</em> : null}
-                  </span>
                   {row.qualityShareholder ? (
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
                   ) : row.institutionalShareholder ? (
@@ -321,8 +318,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span><strong>{reportPeriodLabel(row.shareholderMetrics.report_period)}</strong></span>
                 </div>
               </div>
-              <div class="chip-row-etf" aria-label={`${row.name} 所属行业ETF`}>
-                <span class="chip-etf-label">行业ETF</span>
+              <div class="chip-row-etf" aria-label={`${row.name} 对应ETF`}>
                 {row.industryEtfs.length > 0 ? (
                   <div class="chip-etf-list">
                     {row.industryEtfs.map((h) => (
@@ -332,7 +328,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                       </span>
                     ))}
                   </div>
-                ) : <span class="chip-etf-meta">{row.industryEtfStatus === 'industry_missing' ? '行业待补充' : row.industryEtfStatus === 'unknown' ? '映射尚未计算' : '库内暂无匹配'}</span>}
+                ) : <span class="chip-etf-meta chip-etf-empty-text">{row.industryEtfStatus === 'industry_missing' ? '行业待补充' : row.industryEtfStatus === 'unknown' ? '映射尚未计算' : '库内暂无匹配'}</span>}
               </div>
             </div>
           ))}
@@ -507,10 +503,6 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           ? row.themeConcepts.filter(Boolean).slice(0, 3)
           : (row.themeConcept ? String(row.themeConcept).split(/[、,，]/).map(function(s){return s.trim();}).filter(Boolean).slice(0, 3) : []);
         var themeText = themes.join('、');
-        var themeTitle = themeText
-          ? esc(row.industry) + ' · 近期贴合：' + esc(themeText)
-          : esc(row.industry);
-        var themeHtml = themeText ? '<em class="chip-theme">（' + esc(themeText) + '）</em>' : '';
         var asOfLabel = String(asOf || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3') || String(asOf || '');
         var sm = row.shareholderMetrics || {};
         var tech = row.technical || {};
@@ -533,7 +525,6 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' +
-                '<span class="chip-industry" title="' + themeTitle + '">' + esc(row.sector) + themeHtml + '</span>' +
                 badge +
               '</div>' +
               '<div class="chip-row-metrics" aria-label="观察日期">' +
@@ -574,8 +565,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           : (row.industryEtfStatus === 'unknown' ? '映射尚未计算' : '库内暂无匹配');
         var content = pills
           ? '<div class="chip-etf-list">' + pills + '</div>'
-          : '<span class="chip-etf-meta">' + emptyText + '</span>';
-        return '<div class="chip-row-etf"><span class="chip-etf-label">行业ETF</span>' + content + '</div>';
+          : '<span class="chip-etf-meta chip-etf-empty-text">' + emptyText + '</span>';
+        return '<div class="chip-row-etf">' + content + '</div>';
       }
 
       function bindShareholderToggles() {
@@ -1059,8 +1050,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-reco.is-高{border:1px solid #fecaca;background:#fef2f2;color:#b91c1c}
   .chip-reco.is-中{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
   .chip-reco.is-低{border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
-  .chip-industry,.chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
-  .chip-theme{margin-left:.05rem;color:#9a3412;font-style:normal;font-weight:800}
+  .chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
   .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
@@ -1094,9 +1084,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   @media(max-width:900px){.chip-toolbar{grid-template-columns:1fr}.chip-toolbar-left{grid-column:1;grid-row:1}.chip-toolbar-right,.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;grid-row:2;justify-content:flex-start}.chip-history{grid-column:1;grid-row:3}.chip-pager{grid-column:1;grid-row:4;justify-self:start}.chip-search-input{width:min(100%,20rem)}}
   @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}
 
-/* 行业ETF (2026-09-07: 去掉池说明字样, 仅显示ETF本身) */
+/* 对应ETF (2026-09-07: 直接显示ETF名称+代码, 无标签无池说明) */
 .chip-row-etf{margin-top:.5rem;display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;padding:.35rem .5rem;background:rgba(241,245,249,.55);border-radius:8px;border:1px solid rgba(148,163,184,.18)}
-.chip-etf-label{font-size:.7rem;color:#64748b;font-weight:500;flex-shrink:0;padding-top:.18rem}
 .chip-etf-list{display:flex;flex-wrap:wrap;gap:.3rem;flex:1;min-width:0}
 .chip-etf-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .55rem;background:#fff;border:1px solid #e2e8f0;border-radius:999px;font-size:.72rem;color:#1d4ed8;text-decoration:none;transition:all .15s;line-height:1.2}
 .chip-etf-pill:hover{background:#eff6ff;border-color:#93c5fd;color:#1e40af;transform:translateY(-1px)}

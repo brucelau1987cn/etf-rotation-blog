@@ -286,8 +286,6 @@ def test_low_chip_page_uses_horizontal_rows_and_toolbar_pager():
         ".chip-search-suggestions[hidden]",
         ".chip-page-num.is-active",
         ".chip-pager[hidden],.chip-row[hidden]",
-        "chip-industry",
-        "chip-theme",
         "chip-metric-asof",
         "chip-asof-val",
         "chip-quality",

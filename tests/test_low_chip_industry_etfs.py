@@ -167,14 +167,16 @@ def test_d1_api_persists_and_decodes_industry_etfs():
 
 
 def test_low_chip_page_renders_industry_etfs_without_pool_label():
-    """行业ETF 显示但去掉"91只池"池说明; 持仓ETF 展示已关闭(2026-09-07)。"""
+    """行业ETF 直接显示ETF名称与代码, 无"行业ETF"标签与"91只池"说明(2026-09-07)。"""
     page = (ROOT / "src/pages/rolling/low-chip.astro").read_text(encoding="utf-8")
-    # 行业ETF 区块恢复显示
-    assert "行业ETF" in page
-    assert "renderIndustryEtfSection(row)" in page
+    # 行业ETF 胶囊显示(名称+代码)
     assert "chip-etf-pill" in page
-    # 不出现"91只池"池说明
-    assert "行业ETF · 91只池" not in page
+    assert "chip-etf-name" in page
+    assert "chip-etf-meta" in page
+    assert "renderIndustryEtfSection(row)" in page
+    # 无"行业ETF"标签文字、无"91只池"说明
+    assert "chip-etf-label" not in page
+    assert "行业ETF" not in page
     assert "91只池" not in page
     # 持仓ETF 展示保持关闭
     assert "renderEtfSection" not in page
