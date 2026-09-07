@@ -312,9 +312,6 @@ def post_notes(notes: list[dict], token: str, dry_run: bool) -> dict:
     req = urllib.request.Request(NOTE_API, data=json.dumps(payload).encode(), headers={
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {token}',
-        # Cloudflare WAF: 默认 urllib UA 会被 code 1010 拦, 用真实浏览器 UA
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-        'Accept': 'application/json',
     })
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
