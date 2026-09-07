@@ -166,14 +166,17 @@ def test_d1_api_persists_and_decodes_industry_etfs():
     assert "ADD COLUMN industry_etfs TEXT" in migration
 
 
-def test_low_chip_page_no_longer_renders_etf_sections():
-    """页面已移除行业ETF/持仓ETF展示(2026-09-07 用户决定不研究ETF持仓)。
-
-    数据层(industry_etfs 列/attach 脚本)仍保留, 仅前端不再渲染。
-    """
+def test_low_chip_page_renders_industry_etfs_without_pool_label():
+    """行业ETF 显示但去掉"91只池"池说明; 持仓ETF 展示已关闭(2026-09-07)。"""
     page = (ROOT / "src/pages/rolling/low-chip.astro").read_text(encoding="utf-8")
+    # 行业ETF 区块恢复显示
+    assert "行业ETF" in page
+    assert "renderIndustryEtfSection(row)" in page
+    assert "chip-etf-pill" in page
+    # 不出现"91只池"池说明
     assert "行业ETF · 91只池" not in page
-    assert "renderIndustryEtfSection" not in page
+    assert "91只池" not in page
+    # 持仓ETF 展示保持关闭
     assert "renderEtfSection" not in page
     assert "持仓ETF" not in page
     assert "暂无公开数据" not in page
