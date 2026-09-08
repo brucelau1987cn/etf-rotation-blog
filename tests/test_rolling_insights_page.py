@@ -55,30 +55,33 @@ def test_daily_rolling_reports_cover_latest_dates():
     assert "rollingDailyReports['2026-09-08']" in page
     import re
     m0907 = re.search(r"'2026-09-08': \{\n", data)
+    m_prev = re.search(r"'2026-09-07': \{\n", data)
     m0904 = re.search(r"'2026-09-04': \{\n", data)
     m03 = re.search(r"'2026-09-03': \{\n", data)
     m02 = re.search(r"'2026-09-02': \{\n", data)
     m01 = re.search(r"'2026-09-01': \{\n", data)
     assert m0907 is not None, "2026-09-08 report not found in data"
+    assert m_prev is not None, "2026-09-07 report not found in data"
     assert m0904 is not None, "2026-09-04 report not found in data"
     assert m03 is not None, "2026-09-03 report not found in data"
     assert m02 is not None, "2026-09-02 report not found in data"
     assert m01 is not None, "2026-09-01 report not found in data"
-    latest_block = data[m0907.start():m0904.start()]
+    latest_block = data[m0907.start():m_prev.start()]
     assert latest_block.count("name: '") == 4
     assert latest_block.count("validation: 'confirmed'") == 2
     assert latest_block.count("validation: 'reclaimed'") == 1
     assert latest_block.count("validation: 'mixed'") == 0
-    assert latest_block.count("validation: 'watch'") == 0
-    assert "上海电力" in latest_block
+    assert latest_block.count("validation: 'watch'") == 1  # 白银现货未收盘(22:00)标观察
+    assert "国民技术" in latest_block
     assert "三安光电" in latest_block
-    assert "东方明珠" in latest_block
+    assert "澜起科技" in latest_block
+    assert "白银现货" in latest_block
     assert "空方贴价确认（弱）" in latest_block
-    assert "空方收复（触发后收回）" in latest_block
-    assert "多方确认" in latest_block
-    assert "15m空方¥13.39 + 10m空方¥13.38" in latest_block
-    assert "30m空方¥12.99" in latest_block
-    assert "2.5h多方¥8.63" in latest_block
+    assert "空方确认（收盘破触发价）" in latest_block
+    assert "空方收复（收盘站回触发价上方）" in latest_block
+    assert "60m空方¥12.89" in latest_block
+    assert "20m/10m空方¥19.76" in latest_block
+    assert "10m空方HK$274.00" in latest_block
     # 09-04 demoted report still present (subheadline marker)
     assert "空方双档贴价确认" in data
     assert "10m空方¥13.72 + 15m空方¥13.71" in data
