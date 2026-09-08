@@ -65,7 +65,7 @@ def test_daily_rolling_reports_cover_latest_dates():
     assert m02 is not None, "2026-09-02 report not found in data"
     assert m01 is not None, "2026-09-01 report not found in data"
     latest_block = data[m0907.start():m0904.start()]
-    assert latest_block.count("name: '") == 3
+    assert latest_block.count("name: '") == 4
     assert latest_block.count("validation: 'confirmed'") == 2
     assert latest_block.count("validation: 'reclaimed'") == 1
     assert latest_block.count("validation: 'mixed'") == 0
