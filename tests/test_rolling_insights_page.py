@@ -52,14 +52,14 @@ def test_daily_rolling_reports_cover_latest_dates():
         assert marker in page + component + data + hist21
     assert "2026-09-24" not in data  # sanity: not future-dated
     assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
-    assert "rollingDailyReports['2026-09-07']" in page
+    assert "rollingDailyReports['2026-09-08']" in page
     import re
-    m0907 = re.search(r"'2026-09-07': \{\n", data)
+    m0907 = re.search(r"'2026-09-08': \{\n", data)
     m0904 = re.search(r"'2026-09-04': \{\n", data)
     m03 = re.search(r"'2026-09-03': \{\n", data)
     m02 = re.search(r"'2026-09-02': \{\n", data)
     m01 = re.search(r"'2026-09-01': \{\n", data)
-    assert m0907 is not None, "2026-09-07 report not found in data"
+    assert m0907 is not None, "2026-09-08 report not found in data"
     assert m0904 is not None, "2026-09-04 report not found in data"
     assert m03 is not None, "2026-09-03 report not found in data"
     assert m02 is not None, "2026-09-02 report not found in data"
@@ -91,7 +91,7 @@ def test_daily_rolling_reports_cover_latest_dates():
     # archive pages exist
     assert (ROOT / "src/pages/rolling/insights/2026-09-04.astro").exists()
     assert (ROOT / "src/pages/rolling/insights/2026-09-03.astro").exists()
-    assert "tradeDate: '2026-09-07'" in data
+    assert "tradeDate: '2026-09-08'" in data
     assert "tradeDate: '2026-09-04'" in data
 
 
@@ -135,8 +135,8 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
     # 09-07 new latest redirects (both no-slash and slash -> root)
-    assert "/rolling/insights/2026-09-07 /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-09-07/ /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-09-08 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-09-08/ /rolling/insights/ 301" in redirects
     # 09-04 demoted archive canonicalize
     assert "/rolling/insights/2026-09-04 /rolling/insights/2026-09-04/ 301" in redirects
     # 09-04 demoted; root rule removed
