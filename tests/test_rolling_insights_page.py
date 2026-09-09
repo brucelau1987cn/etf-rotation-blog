@@ -50,38 +50,41 @@ def test_daily_rolling_reports_cover_latest_dates():
         "澜起科技",
     ):
         assert marker in page + component + data + hist21
-    assert "2026-09-24" not in data  # sanity: not future-dated
+    assert "2026-09-25" not in data  # sanity: not future-dated
     assert "2026-08-24" in data and "2026-08-21" in data and "2026-08-20" in data and "2026-08-19" in data and "2026-08-18" in data and "2026-08-17" in data and "2026-08-14" in data
-    assert "rollingDailyReports['2026-09-08']" in page
+    assert "rollingDailyReports['2026-09-09']" in page
     import re
-    m0907 = re.search(r"'2026-09-08': \{\n", data)
+    m0909 = re.search(r"'2026-09-09': \{\n", data)
+    m0908 = re.search(r"'2026-09-08': \{\n", data)
     m_prev = re.search(r"'2026-09-07': \{\n", data)
     m0904 = re.search(r"'2026-09-04': \{\n", data)
     m03 = re.search(r"'2026-09-03': \{\n", data)
     m02 = re.search(r"'2026-09-02': \{\n", data)
     m01 = re.search(r"'2026-09-01': \{\n", data)
-    assert m0907 is not None, "2026-09-08 report not found in data"
+    assert m0909 is not None, "2026-09-09 report not found in data"
+    assert m0908 is not None, "2026-09-08 report not found in data"
     assert m_prev is not None, "2026-09-07 report not found in data"
     assert m0904 is not None, "2026-09-04 report not found in data"
     assert m03 is not None, "2026-09-03 report not found in data"
     assert m02 is not None, "2026-09-02 report not found in data"
     assert m01 is not None, "2026-09-01 report not found in data"
-    latest_block = data[m0907.start():m_prev.start()]
-    assert latest_block.count("name: '") == 4
-    assert latest_block.count("validation: 'confirmed'") == 2
-    assert latest_block.count("validation: 'reclaimed'") == 1
+    latest_block = data[m0909.start():m_prev.start()]
+    assert latest_block.count("name: '") == 6
+    assert latest_block.count("validation: 'confirmed'") == 1
+    assert latest_block.count("validation: 'reclaimed'") == 4
     assert latest_block.count("validation: 'mixed'") == 0
-    assert latest_block.count("validation: 'watch'") == 1  # 白银现货未收盘(22:00)标观察
+    assert latest_block.count("validation: 'watch'") == 1  # 白银连续行情
     assert "国民技术" in latest_block
-    assert "三安光电" in latest_block
+    assert "国民技术" in latest_block
+    assert "海光信息" in latest_block
+    assert "长鑫科技" in latest_block
+    assert "东方明珠" in latest_block
     assert "澜起科技" in latest_block
     assert "白银现货" in latest_block
-    assert "空方贴价确认（弱）" in latest_block
-    assert "空方确认（收盘破触发价）" in latest_block
-    assert "空方收复（收盘站回触发价上方）" in latest_block
-    assert "60m空方¥12.89" in latest_block
-    assert "20m/10m空方¥19.76" in latest_block
-    assert "10m空方HK$274.00" in latest_block
+    assert "收盘确认空方" in latest_block
+    assert "贴价弱收复" in latest_block
+    assert "现货高于信号价" in latest_block
+    assert "10m空方HK$253.80" in latest_block
     # 09-04 demoted report still present (subheadline marker)
     assert "空方双档贴价确认" in data
     assert "10m空方¥13.72 + 15m空方¥13.71" in data
@@ -138,8 +141,8 @@ def test_insight_navigator_is_daily_only_after_merge():
     assert "/rolling/insights/" in catalog
     assert "rollingInsightArticles: RollingInsightArticle[] = []" in legacy
     # 09-07 new latest redirects (both no-slash and slash -> root)
-    assert "/rolling/insights/2026-09-08 /rolling/insights/ 301" in redirects
-    assert "/rolling/insights/2026-09-08/ /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-09-09 /rolling/insights/ 301" in redirects
+    assert "/rolling/insights/2026-09-09/ /rolling/insights/ 301" in redirects
     # 09-04 demoted archive canonicalize
     assert "/rolling/insights/2026-09-04 /rolling/insights/2026-09-04/ 301" in redirects
     # 09-04 demoted; root rule removed

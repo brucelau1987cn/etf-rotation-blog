@@ -138,6 +138,33 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
       },
     ],
   },
+
+  '2026-09-09': {
+    tradeDate: '2026-09-09',
+    shortDate: '09/09',
+    title: '9月9日滚动信号收盘复盘',
+    subtitle: 'A股5只标的触发6条空方信号：东方明珠、国民技术、海光信息、长鑫科技与港股澜起科技均出现空方节点，白银期货30m空方收盘收复；A股权威以收盘位置为确认基准。',
+    cutoff: '2026-09-09 收市（A股15:00 / 港股16:00 / 24H行情18:33）',
+    summary: '今日D1共6条信号，全部为SELL，覆盖东方明珠10m ¥8.60、国民技术10m ¥19.67、海光信息30m ¥235.64、长鑫科技10m ¥56.64、港股澜起科技10m HK$253.80与白银期货30m $65.656。国民技术收盘¥19.63低于触发价，确认空方；其余标的收盘均略高于触发价，归为收复/弱收复，暂不追空。海光收盘¥235.80虽高于节点但日内低点¥234.32且仍低于MA5/MA20，属于贴价反抽；东方明珠收盘¥8.63略高节点且收盘高于MA20 ¥8.309，技术上不是强空。长鑫收盘¥56.87高于节点但低于MA20 ¥57.10，港股澜起收盘HK$271.40高于节点且高波动。白银现货18:33 $66.26，高于$65.656节点，空方已被收复。信号标的数6，确认1、收复4、观察1（白银现货为连续行情收盘验证，纳入报告但不作A股权威动作）。',
+    buyRule: '不因单条SELL抄底。右侧修复只观察：①国民技术重新站回¥19.67并放量；②东方明珠站回¥8.68并收复MA5 ¥8.57；③海光站回¥235.64后仍需收复MA5 ¥241.06；④长鑫站回¥56.64并突破MA20 ¥57.10；⑤港股澜起站回HK$253.80并突破当日高点HK$287.40才确认修复。确认前仅观察仓，单标的试错≤1/4。',
+    sellRule: '空方优先做风险处理：国民技术收盘确认，SELL有效，次日跌破¥19.51才延续；东方明珠、海光、长鑫、澜起均属收盘收复/弱收复，不追空，触及信号价先看反抽强弱。海光跌破¥234.32、长鑫跌破¥56.47、澜起跌破HK$270才重新确认下行；白银站回$65.656上方后空方离场。',
+    discipline: '硬规则：同标的同方向近价节点按一个执行簇处理，今日每标的仅计一个主动作；D1同日同节点不回写，首次触发价作为证据锚，收盘价才是确认基准。海光、长鑫虽收复触发价但仍低于MA20，只能记弱收复；国民技术价格低于节点才确认。盘中波动不替代收盘，仓位不因“看起来跌得多”自动放大。',
+    sources: 'Cloudflare D1 REST（2026-09-09，6 rows）：SI=F 30m SELL $65.656（webhook）；600637 10m SELL ¥8.60（sina-m1）；300077 10m SELL ¥19.67（sina-m1）；688041 30m SELL ¥235.64（sina-m1）；06809 10m SELL HK$253.80（tencent-minute）；688825 10m SELL ¥56.64（sina-m1）。iWenCai多key包装器：300077收盘¥19.63、量比0.956、MA20 ¥20.124、主力净流出约4462万元；公开腾讯quote交叉核验。Yahoo SI=F $66.92；Sina hf_XAG $66.26、hf_XAU $4395.10、hf_CL $95.383、DINIW 98.8161。',
+    signals: [
+      { name: '东方明珠', symbol: '600637', market: 'A股', direction: 'SELL', nodes: '10m空方', signalPrices: '¥8.60', close: '¥8.63', change: '-1.15%', validation: 'reclaimed', validationLabel: '收盘收复触发价',
+        verdict: '10:00触发10m空方¥8.60，收盘¥8.63仅高于触发价0.35%，日内低点¥8.57仍低于节点，量比0.814、主力净流出约4353万元。收盘高于MA5 ¥8.57及MA20 ¥8.309，故仅作弱收复。', support: '¥8.57日内低点；¥8.50观察位', pressure: '¥8.60信号价；¥8.68日内高点', buyPlan: '收复¥8.68并放量再观察；未确认前不抄底。', sellPlan: '反弹¥8.60—8.68先看反抽；跌破¥8.57空方再确认。', evidence: ['D1信号价¥8.60@10:00', '收盘¥8.63、涨跌幅-1.15%', '量比0.814 / 换手0.955%', '日内低¥8.57、主力净流出约4353万元'] },
+      { name: '国民技术', symbol: '300077', market: 'A股', direction: 'SELL', nodes: '10m空方', signalPrices: '¥19.67', close: '¥19.63', change: '-1.11%', validation: 'confirmed', validationLabel: '收盘确认空方',
+        verdict: '11:00触发10m空方¥19.67，收盘¥19.63低于触发价0.20%；日内低点¥19.51、量比0.956、主力净流出约4462万元，均支持弱势结构。收盘低于MA5 ¥20.03、MA10 ¥20.381与MA20 ¥20.124，是今日唯一完成收盘确认的标的。', support: '¥19.51日内低点；¥19.40', pressure: '¥19.67信号价；¥20.03 MA5', buyPlan: '不追空；重新站回¥19.67并放量才解除空方。', sellPlan: '反弹¥19.67附近减仓；跌破¥19.51延续空方，¥19.40失守加强防守。', evidence: ['D1信号价¥19.67@11:00', '收盘¥19.63、涨跌幅-1.11%', '量比0.956 / 换手4.874%', 'RSI6 34.644、主力净流出约4462万元'] },
+      { name: '海光信息', symbol: '688041', market: 'A股', direction: 'SELL', nodes: '30m空方', signalPrices: '¥235.64', close: '¥235.80', change: '-0.46%', validation: 'reclaimed', validationLabel: '贴价弱收复',
+        verdict: '11:00触发30m空方¥235.64，收盘¥235.80仅高于触发价0.07%；日内低¥234.32，量比1.049，主力净流出约2.17亿元。价格仍低于MA5 ¥241.056和MA20 ¥251.513，RSI6 27.266处超卖区，定义为贴价收复而非空方确认。', support: '¥234.32日内低点；¥230', pressure: '¥235.64信号价；¥241.06 MA5', buyPlan: '收复¥241.06并放量才观察修复；超卖不等于反转。', sellPlan: '反弹¥235.64—241.06减仓/观察承接；跌破¥234.32再确认。', evidence: ['D1信号价¥235.64@11:00', '收盘¥235.80、涨跌幅-0.46%', '量比1.049 / 主力净流出约2.17亿元', 'MA5 ¥241.056 / MA20 ¥251.513'] },
+      { name: '长鑫科技', symbol: '688825', market: 'A股', direction: 'SELL', nodes: '10m空方', signalPrices: '¥56.64', close: '¥56.87', change: '-2.60%', validation: 'reclaimed', validationLabel: '弱收复未确认',
+        verdict: '13:40触发10m空方¥56.64，收盘¥56.87高于节点0.41%；日内低¥56.47，量比0.746，主力净流出约26.64亿元。收盘略高于MA5 ¥56.816但低于MA20 ¥57.10，属于窄幅弱收复，空头趋势未完成收盘确认。', support: '¥56.47日内低点；¥56.00', pressure: '¥56.64信号价；¥57.10 MA20', buyPlan: '站回¥57.10并放量才观察修复；未确认不追多。', sellPlan: '反弹¥56.64—57.10先看压力；跌破¥56.47空方再确认。', evidence: ['D1信号价¥56.64@13:40', '收盘¥56.87、涨跌幅-2.60%', '量比0.746 / 换手3.969%', 'MA5 ¥56.816 / MA20 ¥57.10'] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'SELL', nodes: '10m空方', signalPrices: 'HK$253.80', close: 'HK$271.40', change: '-1.67%', validation: 'reclaimed', validationLabel: '收盘收复未确认',
+        verdict: '12:06触发10m空方HK$253.80，收盘HK$271.40高于触发价6.93%，空方信号被明显收复。日内高HK$287.40、低HK$270.00、振幅6.30%，不适合追空；只保留次日跌破HK$270的重新确认条件。', support: 'HK$270.00日内低点；HK$265', pressure: 'HK$253.80信号价；HK$287.40日内高点', buyPlan: '站回并突破HK$287.40再观察修复；否则不抄底。', sellPlan: '反弹关注HK$287.40压力；跌破HK$270重新确认空方。', evidence: ['D1信号价HK$253.80@12:06', '收盘HK$271.40、涨跌幅-1.67%', '日内高HK$287.40 / 低HK$270.00', '信号为HKEX澜起科技06809'] },
+      { name: '白银现货', symbol: 'HF_XAG', market: '24H', direction: 'SELL', nodes: '30m空方（期货）', signalPrices: '$65.656', close: '$66.26', change: '+0.81%', validation: 'watch', validationLabel: '现货高于信号价，空方收复',
+        verdict: 'D1记录白银期货30m空方$65.656；新浪连续行情18:33显示现货$66.26，较前收$65.73上涨0.81%，高于触发价0.92%，期货节点已被现货收复。SI=F Yahoo最新约$66.92亦高于触发价。只作风险观察，不把现货数据替代期货信号价。', support: '$65.73前收；$65.49日内低点', pressure: '$65.656信号价；$66.97日内高点', buyPlan: '站回$65.656并保持不破才解除空方观察；否则不追多。', sellPlan: '站回$65.656上方空方离场；跌破$65.49才重新偏空。', evidence: ['D1期货信号$65.656@04:30', 'Sina hf_XAG $66.26，涨跌幅+0.81%', 'Yahoo SI=F约$66.92，高于信号价', '连续行情非A股收盘价，证据等级单列'] }
+    ]
+  },
 '2026-09-07': {
     tradeDate: '2026-09-07',
     shortDate: '09/07',
@@ -1852,7 +1879,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-    { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-08', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-09', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-08', href: '/rolling/insights/2026-09-08/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-07', href: '/rolling/insights/2026-09-07/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-04', href: '/rolling/insights/2026-09-04/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-03', href: '/rolling/insights/2026-09-03/' },
