@@ -1,8 +1,8 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "956f0781e28996a02b3945512fae987add32faff2fdb53498c4df23b2071660b",
+  "batch_id": "15c7d8ca844b8b7d0aa8df9960d024c583dc5ea4346e0729ec603e410a67cb89",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-09-09T17:10:33Z",
+  "generated_at": "2026-09-09T22:31:41Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
@@ -208,8 +208,8 @@
       "role": "production",
       "market": "US",
       "schema_version": "legacy-unversioned",
-      "observation_date": "2026-09-08",
-      "generated_at": "2026-09-08T18:31:01.725641-04:00",
+      "observation_date": "2026-09-09",
+      "generated_at": "2026-09-09T18:30:32.202771-04:00",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -227,9 +227,9 @@
         "market_data",
         "derived_research"
       ],
-      "semantic_sha256": "2fd74dfef7c0d324fe90b245c3e511511b6e3fa5c93c1a4858ec8988666dc4f3",
-      "sha256": "c840920d1b1ba476a2aa10cf3ce16be8027525c0a5eccba5fb5d37e5c4b6e1dc",
-      "bytes": 15115,
+      "semantic_sha256": "e9ae8ff7a60ae03bf031fad4e775919fcc4c10593070ab5bc0bfc9b688afa6be",
+      "sha256": "3a29988361e5ee0cbdf1d45cf22b9e5231b1ca90037b66c425dea8d2eeb19166",
+      "bytes": 12637,
       "public_url": "/data/us-etf-garden.json"
     },
     {
@@ -237,8 +237,8 @@
       "role": "runtime",
       "market": "US",
       "schema_version": "legacy-unversioned",
-      "observation_date": "2026-09-08",
-      "generated_at": "2026-09-08T18:31:01.725641-04:00",
+      "observation_date": "2026-09-09",
+      "generated_at": "2026-09-09T18:30:32.202771-04:00",
       "completeness": {
         "status": "known",
         "ratio": 1.0,
@@ -254,9 +254,9 @@
         "market_data",
         "derived_research"
       ],
-      "semantic_sha256": "7671d2d0021e7dc716d753bcb57e36dd6a25e44179ce6ce38b0bbfa544121022",
-      "sha256": "3d3289db121df399c9eb361fe210b82de3c5c62b38d846baf3d662cda22ffc01",
-      "bytes": 75119,
+      "semantic_sha256": "a8b66d9cf5d0f24d8ee5306b4afba22d7b7ea4d7ae5ede03ff05edf9b0e282cf",
+      "sha256": "bfcac021bfbff9bac60ec82786f97cdbad25723317cc9674996fa3c40191881e",
+      "bytes": 72789,
       "public_url": "/data/us-etf-pool.json"
     },
     {
@@ -264,8 +264,8 @@
       "role": "production",
       "market": "US",
       "schema_version": "us-macro-dashboard-v2",
-      "observation_date": "2026-09-08",
-      "generated_at": "2026-09-08T18:32:15.638270-04:00",
+      "observation_date": "2026-09-09",
+      "generated_at": "2026-09-09T18:31:39.806590-04:00",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -274,9 +274,9 @@
         "reason": "dataset does not publish a comparable observed/expected count"
       },
       "degradation": {
-        "status": "unknown",
+        "status": "degraded",
         "reasons": [
-          "dataset does not publish a comparable observed/expected count"
+          "1 public source observations unavailable"
         ]
       },
       "source_categories": [
@@ -284,9 +284,9 @@
         "official_statistics",
         "public_events"
       ],
-      "semantic_sha256": "1b7f4ee336c15c24ba52d6b400a3d960728d593d99e8a319b8ced452fb2f8f97",
-      "sha256": "f271386692749ef12d4cd0252a5475fad25fecde4472419df61784ab9b469226",
-      "bytes": 16235,
+      "semantic_sha256": "4d58fc8aa5e547c876e2ad11d4277a735fe14ae8b63a611cb49759beb6c73bf3",
+      "sha256": "b46a778c4ffa8da1e9860b33cc0a8a6c98ca2431160dd45040b2038128c5c3a2",
+      "bytes": 16282,
       "public_url": "/data/us-macro-dashboard.json"
     },
     {
@@ -325,8 +325,8 @@
       "role": "shadow",
       "market": "US",
       "schema_version": "us-compass-health-v1",
-      "observation_date": "2026-09-08",
-      "generated_at": "2026-09-08T22:32:17.270398Z",
+      "observation_date": "2026-09-09",
+      "generated_at": "2026-09-09T22:31:41.179370Z",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -345,9 +345,9 @@
         "model_output",
         "derived_research"
       ],
-      "semantic_sha256": "5b373a687949d0cb29948ea3b5c6830f462f0650a86cf0a4f73ffb8f61e3bbb5",
-      "sha256": "c96bc5d337095d7fbeae8effa21749c1818ddad523ff9aa3524d691f7553a24c",
-      "bytes": 40963,
+      "semantic_sha256": "25bbd58cbcfb46332369de7fc2e9ccb4204ded49f92570ed856f1f3223b1b741",
+      "sha256": "f67056658b525589da4714237abcd32b95e2b26136be219bcdf54afd6e846b5a",
+      "bytes": 42198,
       "public_url": "/data/us-compass-health.json"
     },
     {
@@ -356,7 +356,7 @@
       "market": "MULTI",
       "schema_version": "paper-trading-v1",
       "observation_date": "2026-09-09",
-      "generated_at": "2026-09-09T17:10:33.786164+00:00",
+      "generated_at": "2026-09-09T22:31:41.276461+00:00",
       "completeness": {
         "status": "unknown",
         "ratio": null,
@@ -374,9 +374,9 @@
         "simulated_execution",
         "derived_research"
       ],
-      "semantic_sha256": "17ddf8a1e8ce603db9e16d66be818133b3e85493902d2fac433b0a1b8efbe047",
-      "sha256": "ad301541094fbbaa7d8ab46c8c6237c8e6f1ecab3d6d0259aba498da8851710f",
-      "bytes": 59459,
+      "semantic_sha256": "319bdd11fd6754f88e7630996ab669606dde361a0b490af67153f53d6b423731",
+      "sha256": "24f3034fd22639baac35513c32a081856f8c425cd22b2d254544b34d463d4eee",
+      "bytes": 59836,
       "public_url": "/data/paper-trading.json"
     },
     {
