@@ -270,6 +270,14 @@ def prepared_state():
     }
 
 
+def test_content_ready_manifest_is_publishable():
+    payload = prepared_state()
+    payload["status"] = "content_ready"
+    payload["phase"] = "content_ready"
+
+    assert publish.validate_manifest(payload) == []
+
+
 def test_nightly_refresh_reselects_before_macro_and_validation(monkeypatch):
     calls = []
 

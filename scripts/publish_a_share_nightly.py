@@ -60,7 +60,7 @@ def run(
 
 FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-PUBLISHABLE_STATUSES = {"prepared", "candidate_validated", "committed", "deploy_failed", "published"}
+PUBLISHABLE_STATUSES = {"prepared", "content_ready", "candidate_validated", "committed", "deploy_failed", "published"}
 
 
 def validate_manifest(payload: Any) -> list[str]:
