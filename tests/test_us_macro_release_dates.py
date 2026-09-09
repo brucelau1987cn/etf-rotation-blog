@@ -14,10 +14,10 @@ spec.loader.exec_module(module)
 
 def test_bls_release_dates_are_explicit_and_series_specific():
     assert module.BLS_RELEASES["employment"] == {
-        "observation_period": "2026-07",
-        "date": "2026-08-07",
-        "updated_at": "2026-08-07T08:30:00-04:00",
-        "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-08",
+        "date": "2026-09-04",
+        "updated_at": "2026-09-04T08:30:00-04:00",
+        "next_release": {"time": "2026-10-02T08:30", "star": None, "consensus": None},
     }
     assert module.BLS_RELEASES["cpi"] == {
         "observation_period": "2026-07",
@@ -86,7 +86,7 @@ def test_real_retail_release_metadata_uses_census_dates():
 
     # 数据源已有 date → 保留；next_release 由官方日程补齐
     assert item["date"] == "2026-06-01"
-    assert item["next_release"]["time"] == "2026-08-14T08:30"
+    assert item["next_release"]["time"] == "2026-09-16T08:30"
 
 
 def test_fundamental_preserves_observation_and_updated_metadata():

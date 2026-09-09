@@ -45,7 +45,11 @@ const makeFetch = (responses) => {
   return {
     calls,
     fn: async (url, options) => {
-      calls.push({ url: String(url), options, body: options?.body ? JSON.parse(options.body) : null });
+      const parsedBody = options?.body ? JSON.parse(options.body) : null;
+      calls.push({ url: String(url), options, body: parsedBody });
+      if (parsedBody?.method === 'notifications/initialized' && responses.length === 1) {
+        return new Response('', { status: 202 });
+      }
       const next = responses.shift();
       if (!next) return new Response('', { status: 502 });
       return new Response(next.body, { status: 200, headers: { 'content-type': 'text/event-stream', 'mcp-session-id': next.sessionId || '' } });
@@ -75,10 +79,11 @@ test('handleMcpCalendar performs initialize then list_calendar and returns norma
 
   // initialize first, then tools/call with session id
   assert.equal(fake.calls[0].body.method, 'initialize');
-  assert.equal(fake.calls[1].body.method, 'tools/call');
-  assert.equal(fake.calls[1].body.params.name, 'list_calendar');
-  assert.equal(fake.calls[1].options.headers['mcp-session-id'], 'sess-abc-123');
-  assert.equal(fake.calls[1].options.headers['authorization'], 'Bearer sk-test-token');
+  assert.equal(fake.calls[1].body.method, 'notifications/initialized');
+  assert.equal(fake.calls[2].body.method, 'tools/call');
+  assert.equal(fake.calls[2].body.params.name, 'list_calendar');
+  assert.equal(fake.calls[2].options.headers['mcp-session-id'], 'sess-abc-123');
+  assert.equal(fake.calls[2].options.headers['authorization'], 'Bearer sk-test-token');
 
   const rig = payload.items.find((item) => item.title.includes('石油钻井'));
   assert.equal(rig.affect_txt, '利空');
@@ -86,6 +91,36 @@ test('handleMcpCalendar performs initialize then list_calendar and returns norma
   const pce = payload.items.find((item) => item.title.includes('PCE'));
   assert.equal(pce.affect_txt, '利多');
   assert.equal(pce.impact, '利多');
+});
+
+test('handleMcpCalendar sends initialized notification before calling a tool', async () => {
+  const fake = makeFetch([
+    { body: mcpSessionResponse, sessionId: 'sess-init-order' },
+    { body: '', sessionId: 'sess-init-order' },
+    { body: mcpCalendarResponse, sessionId: 'sess-init-order' },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
+
+  assert.equal(response.status, 200);
+  assert.equal(fake.calls[1].body.method, 'notifications/initialized');
+  assert.equal(fake.calls[1].body.id, undefined);
+  assert.equal(fake.calls[2].body.method, 'tools/call');
+});
+
+test('handleMcpCalendar continues when initialize succeeds without an optional session id', async () => {
+  const fake = makeFetch([
+    { body: mcpSessionResponse, sessionId: '' },
+    { body: mcpCalendarResponse, sessionId: '' },
+  ]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.status, 'ok');
+  assert.equal(payload.count, 3);
+  assert.equal(fake.calls[1].options.headers['mcp-session-id'], undefined);
 });
 
 test('handleMcpCalendar returns 401 when token is missing', async () => {
@@ -102,7 +137,24 @@ test('handleMcpCalendar returns 502 when initialize fails', async () => {
   const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
   const payload = await response.json();
   assert.equal(response.status, 502);
+  assert.equal(payload.code, 'MCP_UPSTREAM_INVALID_RESPONSE');
+  assert.equal(payload.stage, 'initialize');
+  assert.equal(payload.retryable, true);
   assert.match(payload.detail, /mcp response/);
+});
+
+test('handleMcpCalendar returns an actionable structured initialize rejection', async () => {
+  const errorSse = sse({ jsonrpc: '2.0', id: 1, error: { code: -32602, message: 'Unsupported protocol version' } });
+  const fake = makeFetch([{ body: errorSse, sessionId: '' }]);
+  const request = new Request('https://etf.peekabo.cc/api/public/v1/jin10-mcp-calendar');
+  const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
+  const payload = await response.json();
+
+  assert.equal(response.status, 502);
+  assert.equal(payload.code, 'MCP_INITIALIZE_REJECTED');
+  assert.equal(payload.stage, 'initialize');
+  assert.equal(payload.source, 'jin10-mcp');
+  assert.match(payload.detail, /Unsupported protocol version/);
 });
 
 test('handleMcpCalendar returns 502 when MCP reports a business error', async () => {
@@ -115,6 +167,9 @@ test('handleMcpCalendar returns 502 when MCP reports a business error', async ()
   const response = await handleMcpCalendar(request, { JIN10_MCP_TOKEN: 'sk-test-token', fetchImpl: fake.fn });
   const payload = await response.json();
   assert.equal(response.status, 502);
+  assert.equal(payload.code, 'MCP_TOOL_REJECTED');
+  assert.equal(payload.stage, 'tools/call');
+  assert.equal(payload.retryable, false);
   assert.match(payload.error, /调用次数已达上限/);
 });
 
@@ -151,8 +206,8 @@ test('handleMcpCalendar supports a safe search_news query for futures policy bri
   const payload = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(fake.calls[1].body.params.name, 'search_news');
-  assert.deepEqual(fake.calls[1].body.params.arguments, { keyword: '多晶硅政策' });
+  assert.equal(fake.calls[2].body.params.name, 'search_news');
+  assert.deepEqual(fake.calls[2].body.params.arguments, { keyword: '多晶硅政策' });
   assert.equal(payload.items[0].title, '工信部发布多晶硅行业政策');
   assert.equal(payload.items[0].url, 'https://example/news');
 });

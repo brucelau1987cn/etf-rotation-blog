@@ -50,3 +50,7 @@ def test_inventory_json_has_etf_profit_assets():
     assert silver.get("ok") is True
     assert "day" in gold and "week" in gold and "month" in gold
     assert "day" in silver and "week" in silver and "month" in silver
+    assert isinstance(gold.get("price"), (int, float))
+    assert isinstance(silver.get("price"), (int, float))
+    assert isinstance(gold.get("change_percent"), (int, float))
+    assert isinstance(silver.get("change_percent"), (int, float))

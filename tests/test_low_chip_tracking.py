@@ -186,6 +186,21 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "剩余天数" in tracking
 
 
+def test_tracking_page_progressively_materializes_cards_from_safe_inline_data():
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+
+    assert "const PAGE_SIZE = 12;" in page
+    assert "const initialStocks = activeStocks.slice(0, PAGE_SIZE);" in page
+    assert "{initialStocks.map((rec) =>" in page
+    assert 'id="tc-card-data"' in page
+    assert "JSON.stringify(clientStocks).replace(/</g, '\\u003c')" in page
+    assert "function createCard(rec)" in page
+    assert "document.createElement('article')" in page
+    assert "fragment.appendChild(createCard(rec))" in page
+    assert "list.insertBefore(fragment, filterEmpty)" in page
+    assert "var items = Array.from(list.querySelectorAll('.tc-card'));" in page
+
+
 def test_tracking_script_exists():
     assert SCRIPT.exists()
     text = SCRIPT.read_text(encoding="utf-8")

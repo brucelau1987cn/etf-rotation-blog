@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-09T15:25:58.380401+00:00",
+  "updated_at": "2026-09-09T17:10:33.786164+00:00",
   "accounts": {
     "A": {
       "market": "A",
@@ -243,6 +243,22 @@
           "max_drawdown": 0.0
         },
         {
+          "date": "2026-09-03",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
+        },
+        {
+          "date": "2026-09-04",
+          "equity": 150000.0,
+          "cash": 150000.0,
+          "daily_return": 0.0,
+          "cumulative_return": 0.0,
+          "max_drawdown": 0.0
+        },
+        {
           "date": "2026-09-07",
           "equity": 150000.0,
           "cash": 150000.0,
@@ -357,7 +373,7 @@
       "currency": "USD",
       "initial_capital": 20000.0,
       "inception_date": "2026-07-26",
-      "cash": 14925.828839647224,
+      "cash": 16960.810423570565,
       "positions": {
         "SMH": {
           "symbol": "SMH",
@@ -372,7 +388,7 @@
           "signal_date": "2026-08-18",
           "signal_kind": "plant",
           "signal_level": 565.15,
-          "last_price": 573.72998046875
+          "last_price": 574.7050170898438
         },
         "XLK": {
           "symbol": "XLK",
@@ -387,32 +403,17 @@
           "signal_date": "2026-08-31",
           "signal_kind": "plant",
           "signal_level": 185.98,
-          "last_price": 187.8699951171875
-        },
-        "TLT": {
-          "symbol": "TLT",
-          "name": "iShares 20+ Year Treasury Bond",
-          "quantity": 25,
-          "entry_price": 81.88999938964844,
-          "entry_cost": 2.023625,
-          "entry_at": "2026-09-01T13:30:27.942044+00:00",
-          "target": 83.25,
-          "stop": 81.55,
-          "level_basis": null,
-          "signal_date": "2026-08-31",
-          "signal_kind": "plant",
-          "signal_level": 82.52,
-          "last_price": 82.19999694824219
+          "last_price": 188.05999755859375
         }
       },
-      "equity": 20768.588651,
-      "realized_pnl": 685.6558726306151,
-      "unrealized_pnl": 82.932778,
-      "daily_return": 0.00127276,
-      "cumulative_return": 0.03842943,
+      "equity": 20753.585448,
+      "realized_pnl": 671.363846812744,
+      "unrealized_pnl": 82.221601,
+      "daily_return": -0.0007224,
+      "cumulative_return": 0.03767927,
       "max_drawdown": -0.01350418,
       "peak_equity": 20928.23748216822,
-      "cash_ratio": 0.71867324,
+      "cash_ratio": 0.81724724,
       "history": [
         {
           "date": "2026-08-04",
@@ -591,10 +592,18 @@
           "max_drawdown": -0.01350418
         },
         {
+          "date": "2026-09-03",
+          "equity": 20681.048752,
+          "cash": 14925.828819,
+          "daily_return": 0.0017161,
+          "cumulative_return": 0.03405244,
+          "max_drawdown": -0.01350418
+        },
+        {
           "date": "2026-09-04",
           "equity": 20742.188833,
           "cash": 14925.82884,
-          "daily_return": 0.00467751,
+          "daily_return": 0.00295633,
           "cumulative_return": 0.03710944,
           "max_drawdown": -0.01350418
         },
@@ -1760,9 +1769,71 @@
           "target": 557.95,
           "stop": 495.97,
           "decision_tag": "止损退出"
+        },
+        {
+          "id": "US:TLT:sell:1788966933:stop",
+          "timestamp": "2026-09-09T15:15:26.545928+00:00",
+          "market": "US",
+          "symbol": "TLT",
+          "name": "iShares 20+ Year Treasury Bond",
+          "side": "sell",
+          "quantity": 25,
+          "price": 81.480003,
+          "cost": 2.0185,
+          "reason": "stop",
+          "signal_date": "2026-08-31",
+          "signal_kind": "plant",
+          "signal_level": 82.52,
+          "entry_at": "2026-09-01T13:30:27.942044+00:00",
+          "entry_price": 81.88999938964844,
+          "entry_cost": 2.023625,
+          "target": 83.25,
+          "stop": 81.55,
+          "decision_tag": "止损退出"
         }
       ],
-      "pending_signals": [],
+      "pending_signals": [
+        {
+          "symbol": "GDX",
+          "name": "VanEck Gold Miners",
+          "support": 97.25,
+          "target": 102.92,
+          "stop": 92.4,
+          "signal_date": "2026-09-08",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "XME",
+          "name": "SPDR S&P Metals & Mining",
+          "support": 118.05,
+          "target": 124.87,
+          "stop": 113.39,
+          "signal_date": "2026-09-08",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "OIH",
+          "name": "VanEck Oil Services",
+          "support": 419.43,
+          "target": 443.72,
+          "stop": 408.37,
+          "signal_date": "2026-09-08",
+          "kind": "ready_plant",
+          "status": "候场"
+        },
+        {
+          "symbol": "ARKK",
+          "name": "ARK Innovation ETF",
+          "support": 83.94,
+          "target": 89.05,
+          "stop": 82.12,
+          "signal_date": "2026-09-08",
+          "kind": "ready_plant",
+          "status": "候场"
+        }
+      ],
       "benchmark": {
         "symbol": "SPY",
         "cumulative_return": null,
@@ -1770,7 +1841,7 @@
       },
       "decision_review": {
         "scope": "all_events",
-        "total": 65,
+        "total": 66,
         "by_tag": [
           {
             "tag": "计划内首仓",
@@ -1784,8 +1855,8 @@
           },
           {
             "tag": "止损退出",
-            "count": 9,
-            "closed_pnl": -365.411571
+            "count": 10,
+            "closed_pnl": -379.703606
           },
           {
             "tag": "风险降仓",

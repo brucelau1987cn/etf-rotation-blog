@@ -64,6 +64,22 @@ const mcpPost = async (url, token, body, sessionId = null, fetchImpl = fetch) =>
   return { payload, sessionId: newSessionId };
 };
 
+const mcpNotifyInitialized = async (url, token, sessionId, fetchImpl = fetch) => {
+  if (!sessionId) return;
+  const response = await fetchImpl(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+      authorization: `Bearer ${token}`,
+      'user-agent': 'HermesETF/1.0',
+      'mcp-session-id': sessionId,
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }),
+  });
+  if (!response.ok) throw new Error(`mcp initialized notification status=${response.status}`);
+};
+
 /**
  * Handle GET /api/public/v1/jin10-mcp-calendar
  *
@@ -88,6 +104,7 @@ export async function handleMcpCalendar(request, env = {}) {
   const token = tokens[Math.floor(Date.now() / 60000) % tokens.length];
   if (!token) return json({ error: 'unauthorized', source: 'jin10-mcp' }, 401);
   const fetchImpl = env.fetchImpl || fetch;
+  let stage = 'initialize';
 
   try {
     // 1. initialize
@@ -102,11 +119,20 @@ export async function handleMcpCalendar(request, env = {}) {
       },
     }, null, fetchImpl);
 
-    if (!sessionId || initPayload?.error) {
-      return json({ error: 'mcp initialization failed', detail: initPayload?.error?.message || null }, 502);
+    if (initPayload?.error || !initPayload?.result) {
+      return json({
+        error: 'mcp initialization failed',
+        code: 'MCP_INITIALIZE_REJECTED',
+        stage: 'initialize',
+        detail: initPayload?.error?.message || 'initialize response missing result',
+        source: 'jin10-mcp',
+      }, 502);
     }
 
+    await mcpNotifyInitialized(MCP_URL, token, sessionId, fetchImpl);
+
     // 2. tools/call allowlisted Jin10 tool
+    stage = 'tools/call';
     const { payload: calPayload } = await mcpPost(MCP_URL, token, {
       jsonrpc: '2.0',
       id: 2,
@@ -116,7 +142,13 @@ export async function handleMcpCalendar(request, env = {}) {
 
     if (calPayload?.error) {
       const msg = String(calPayload.error.message || 'mcp error');
-      return json({ error: msg, source: 'jin10-mcp' }, 502);
+      return json({
+        error: msg,
+        code: 'MCP_TOOL_REJECTED',
+        stage: 'tools/call',
+        retryable: false,
+        source: 'jin10-mcp',
+      }, 502);
     }
 
     // 3. Extract data: prefer structuredContent, fall back to content[0].text
@@ -173,7 +205,14 @@ export async function handleMcpCalendar(request, env = {}) {
       items,
     });
   } catch (error) {
-    return json({ error: 'mcp upstream unavailable', detail: error?.message || null, source: 'jin10-mcp' }, 502);
+    return json({
+      error: 'mcp upstream unavailable',
+      code: 'MCP_UPSTREAM_INVALID_RESPONSE',
+      stage,
+      retryable: true,
+      detail: error?.message || null,
+      source: 'jin10-mcp',
+    }, 502);
   }
 }
 

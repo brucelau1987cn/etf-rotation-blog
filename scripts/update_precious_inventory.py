@@ -244,6 +244,57 @@ ETF_PROFIT_LABELS = {
 IWENCAI_QUERY = '/root/.hermes/scripts/iwencai-market-query'
 
 
+def _fetch_tencent_etf_quote(symbol: str) -> dict | None:
+    """Return the latest US ETF price and daily percentage change from Tencent."""
+    import urllib.request
+
+    try:
+        raw = urllib.request.urlopen(urllib.request.Request(
+            f'https://qt.gtimg.cn/q=us{symbol}',
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}),
+            timeout=15,
+        ).read().decode('gbk', 'ignore')
+        match = re.search(r'="([^"\r\n]+)"', raw)
+        fields = match.group(1).split('~') if match else []
+        if len(fields) <= 32:
+            return None
+        return {'price': float(fields[3]), 'change_percent': float(fields[32])}
+    except (OSError, TypeError, ValueError):
+        return None
+
+
+def _merge_previous_etf_profit(etf_profit: dict, previous_profit: dict,
+                               quote_fetcher=_fetch_tencent_etf_quote,
+                               asset_keys=('gold', 'silver')) -> dict:
+    """Restore stale profit ratios while refreshing quote-only fields."""
+    merged = etf_profit.setdefault('assets', {})
+    previous_assets = previous_profit.get('assets') or {}
+    restored = False
+    for key in asset_keys:
+        row = merged.get(key) or {}
+        if row.get('ok') and row.get('day') is not None:
+            continue
+        previous_row = previous_assets.get(key) or {}
+        if not previous_row.get('ok'):
+            continue
+        restored_row = dict(previous_row)
+        symbol = str(restored_row.get('symbol') or '').removeprefix('169_')
+        quote = quote_fetcher(symbol) if symbol else None
+        if quote:
+            restored_row['price'] = quote.get('price')
+            restored_row['change_percent'] = quote.get('change_percent')
+        restored_row['fallback'] = 'previous_publish'
+        merged[key] = restored_row
+        restored = True
+    if all((merged.get(key) or {}).get('ok') for key in asset_keys):
+        etf_profit['ok'] = True
+        if restored:
+            warnings = etf_profit.setdefault('warnings', [])
+            if 'partial_restore_from_previous_publish' not in warnings:
+                warnings.append('partial_restore_from_previous_publish')
+    return etf_profit
+
+
 def _run_iwencai(query: str, limit: int = 2, timeout: int = 45) -> list[dict]:
     import subprocess
     import time
@@ -412,15 +463,8 @@ def fetch_etf_profit_ratios() -> dict:
                 raise RuntimeError('no kline')
             # 基准价解耦：同花顺美股 K 线最新一根有结算延迟（如 8/11 close=401.89 vs 腾讯 400.96）
             # → 现价用腾讯官方收盘价，K 线只管筹码分布形状
-            try:
-                tq = urllib.request.urlopen(urllib.request.Request(
-                    f'https://qt.gtimg.cn/q=us{symbol}',
-                    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}), timeout=15).read().decode('gbk', 'ignore')
-                # 腾讯格式: v_usGLD="200~名称~代码~现价~昨收~开~...  (split('~')[3] = 现价)
-                m = re.search(r'"\d+~[^~]*~[^~]*~([\d.]+)~', tq)
-                price = float(m.group(1)) if m else float(daily[-1]['close'])
-            except Exception:
-                price = float(daily[-1]['close'])
+            quote = _fetch_tencent_etf_quote(symbol)
+            price = quote['price'] if quote else float(daily[-1]['close'])
             week = _agg(daily, 'week', drop_incomplete=True)
             month = _agg(daily, 'month', drop_incomplete=False)
             day_p = _chip_profit(daily, price, WINDOWS[key])
@@ -431,7 +475,7 @@ def fetch_etf_profit_ratios() -> dict:
                 'symbol': f'169_{symbol}',
                 'name': ETF_PROFIT_LABELS[key],
                 'price': price,
-                'change_percent': None,
+                'change_percent': quote['change_percent'] if quote else None,
                 'day': round(day_p, 2) if day_p is not None else None,
                 'week': round(week_p, 2) if week_p is not None else None,
                 'month': round(month_p, 2) if month_p is not None else None,
@@ -469,19 +513,12 @@ def main():
         try:
             prev = json.load(open(out_path, encoding='utf-8'))
             prev_profit = (prev.get('data') or {}).get('etf_profit') or {}
-            prev_assets = prev_profit.get('assets') or {}
-            merged = etf_profit.setdefault('assets', {})
-            for k in ('gold', 'silver'):
-                row = merged.get(k) or {}
-                if row.get('ok') and row.get('day') is not None:
-                    continue  # 当前拉取成功则保留
-                if k in prev_assets and (prev_assets[k] or {}).get('ok'):
-                    merged[k] = prev_assets[k]
-                    merged[k]['fallback'] = 'previous_publish'
+            failed_keys = [k for k in ('gold', 'silver')
+                           if not ((etf_profit.get('assets') or {}).get(k) or {}).get('ok')]
+            _merge_previous_etf_profit(etf_profit, prev_profit)
+            for k in failed_keys:
+                if ((etf_profit.get('assets') or {}).get(k) or {}).get('fallback') == 'previous_publish':
                     print(f'  ETF_PROFIT[{k}]: restored from previous publish', flush=True)
-            if all((merged.get(k) or {}).get('ok') for k in ('gold', 'silver')):
-                etf_profit['ok'] = True
-                etf_profit.setdefault('warnings', []).append('partial_restore_from_previous_publish')
         except (OSError, ValueError, KeyError) as exc:
             print(f'  WARN: failed to merge previous ETF profits: {exc}', flush=True)
     # Keep kitco key as alias so older clients still resolve the lease panel.

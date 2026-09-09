@@ -40,10 +40,10 @@ FRED_SAHM_URL = "https://fred.stlouisfed.org/series/SAHMREALTIME"
 # Refresh these from the official BLS/Census release schedules when the source advances.
 BLS_RELEASES = {
     "employment": {
-        "observation_period": "2026-07",
-        "date": "2026-08-07",
-        "updated_at": "2026-08-07T08:30:00-04:00",
-        "next_release": {"time": "2026-09-04T08:30", "star": None, "consensus": None},
+        "observation_period": "2026-08",
+        "date": "2026-09-04",
+        "updated_at": "2026-09-04T08:30:00-04:00",
+        "next_release": {"time": "2026-10-02T08:30", "star": None, "consensus": None},
     },
     "cpi": {
         "observation_period": "2026-07",
@@ -53,10 +53,10 @@ BLS_RELEASES = {
     },
 }
 REAL_RETAIL_RELEASE = {
-    "observation_period": "2026-06",
-    "date": "2026-07-16",
-    "updated_at": "2026-07-16T08:30:00-04:00",
-    "next_release": {"time": "2026-08-14T08:30", "star": None, "consensus": None},
+    "observation_period": "2026-07",
+    "date": "2026-08-14",
+    "updated_at": "2026-08-14T08:30:00-04:00",
+    "next_release": {"time": "2026-09-16T08:30", "star": None, "consensus": None},
 }
 CORE_PCE_RELEASE = {
     "next_release": {"time": "2026-08-26", "star": None, "consensus": None},
@@ -414,6 +414,19 @@ def apply_core_pce_release_metadata(item: dict[str, Any]) -> None:
     for field, value in CORE_PCE_RELEASE.items():
         if not item.get(field):
             item[field] = value
+
+
+def carry_forward_official(
+    official: dict[str, dict[str, Any]], previous_snapshot: dict[str, Any],
+    failures: dict[str, str] | None = None,
+) -> None:
+    for key, item in previous_snapshot.get("official", {}).items():
+        if key == "copper":
+            continue
+        if key not in official:
+            official[key] = {**item, "stale": True}
+            if failures is not None:
+                failures.pop(key, None)
 
 
 def payroll_change(item: dict[str, Any]) -> float | None:
@@ -786,10 +799,7 @@ def main() -> None:
             if isinstance(exc, (TimeoutError, urllib.error.URLError)):
                 fred_available = False
         time.sleep(POLL_DELAY_SECONDS)
-    for key, item in previous_snapshot.get("official", {}).items():
-        if key not in official:
-            official[key] = {**item, "stale": True}
-            failures.pop(key, None)
+    carry_forward_official(official, previous_snapshot, failures)
     for key, item in previous_snapshot.get("market", {}).items():
         if key not in market:
             market[key] = {**item, "stale": True}

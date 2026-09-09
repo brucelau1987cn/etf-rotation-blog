@@ -64,6 +64,39 @@ const stocks = Object.entries(trackingData.stocks || {})
   .sort((a, b) => (b.first_seen || '').localeCompare(a.first_seen || ''));
 const activeStocks = stocks.filter((s) => !s.tracking_complete);
 const historyStocks = stocks.filter((s) => Boolean(s.tracking_complete));
+const PAGE_SIZE = 12;
+const initialStocks = activeStocks.slice(0, PAGE_SIZE);
+const clientStocks = stocks.map((rec) => ({
+  symbol: rec.symbol,
+  name: rec.name,
+  industry: rec.industry,
+  industry_display: rec.industry_display,
+  first_seen: rec.first_seen,
+  last_seen: rec.last_seen,
+  tracking_complete: Boolean(rec.tracking_complete),
+  daily: rec.daily,
+  joinClose: rec.joinClose,
+  latestStoredDate: rec.latestStoredDate,
+  firstClose: rec.firstClose,
+  lastClose: rec.lastClose,
+  maxClose: rec.maxClose,
+  minClose: rec.minClose,
+  firstProfit: rec.firstProfit,
+  lastProfit: rec.lastProfit,
+  maxGain: rec.maxGain,
+  maxDrawdown: rec.maxDrawdown,
+  totalChange: rec.totalChange,
+  profitChange: rec.profitChange,
+  entry_features: rec.entry_features,
+  entry_financials: rec.entry_financials,
+  entry_technical: rec.entry_technical,
+  year_profit: rec.year_profit,
+  occurrence: rec.occurrence,
+  occurrenceLabel: rec.occurrence ? lowChipOccurrenceLabel(rec.occurrence) : '',
+  occurrenceTitle: rec.occurrence ? lowChipOccurrenceTitle(rec.occurrence) : '',
+  nameInitials: nameInitials(rec.name),
+}));
+const cardDataJson = JSON.stringify(clientStocks).replace(/</g, '\u003c');
 const validChanges = activeStocks.map((s) => s.totalChange).filter((v): v is number => v != null && Number.isFinite(v));
 const risingCount = validChanges.filter((v) => v > 0).length;
 const risingRatio = validChanges.length ? (risingCount / validChanges.length) * 100 : 0;
@@ -178,7 +211,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
           <span>每日流水线生成模型观察快照后自动开始记录。</span>
         </div>
       )}
-      {stocks.map((rec) => {
+      {initialStocks.map((rec) => {
         const cGeom = chartGeom(rec.daily.map((d) => d.close).filter((v) => v != null), 220, 56);
         const pGeom = chartGeom(rec.daily.map((d) => d.profit_ratio).filter((v) => v != null), 220, 56);
         const up = (rec.totalChange ?? 0) >= 0;
@@ -326,6 +359,118 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
     </footer>
   </main>
   <Footer />
+  <script id="tc-card-data" type="application/json" set:html={cardDataJson}></script>
+  <script is:inline>
+    ;(function() {
+      var list = document.getElementById('tc-list');
+      var dataNode = document.getElementById('tc-card-data');
+      var filterEmpty = document.getElementById('tc-filter-empty');
+      if (!list || !dataNode || !filterEmpty) return;
+
+      function finite(value) { return value != null && Number.isFinite(Number(value)); }
+      function fmt(value, digits) { return finite(value) ? Number(value).toFixed(digits == null ? 2 : digits) : '—'; }
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+      function svgEl(tag, attrs) {
+        var node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.keys(attrs || {}).forEach(function(key) { node.setAttribute(key, String(attrs[key])); });
+        return node;
+      }
+      function geom(values) {
+        values = values.map(Number).filter(Number.isFinite);
+        if (values.length < 2) return null;
+        var width = 220, height = 56, pad = 4;
+        var min = Math.min.apply(null, values), max = Math.max.apply(null, values), range = max - min || 1;
+        var points = values.map(function(value, index) {
+          return [pad + index / (values.length - 1) * (width - pad * 2), height - pad - (value - min) / range * (height - pad * 2)];
+        });
+        var pointText = points.map(function(point) { return point[0].toFixed(1) + ',' + point[1].toFixed(1); }).join(' ');
+        var last = points[points.length - 1];
+        return { points: pointText, area: 'M' + points[0][0].toFixed(1) + ',' + height + ' L' + pointText.replace(/ /g, ' L') + ' L' + last[0].toFixed(1) + ',' + height + ' Z', lastX: last[0], lastY: last[1] };
+      }
+      function append(parent, children) { children.forEach(function(child) { if (child) parent.appendChild(child); }); return parent; }
+      function metric(label, value, className) {
+        var node = el('div', 'tc-metric');
+        append(node, [el('span', 'tc-label', label), el('strong', className || '', value)]);
+        return node;
+      }
+      function chart(title, subtitle, values, color, up, isPrice, anchor) {
+        var node = el('div', 'tc-chart' + (isPrice ? ' tc-price-chart' : ''));
+        if (isPrice) { node.dataset.priceCloses = JSON.stringify(values); node.dataset.chartAnchor = finite(anchor) ? String(anchor) : ''; }
+        var heading = el('div', 'tc-chart-title');
+        append(heading, [el('span', '', title), el('em', '', subtitle)]);
+        node.appendChild(heading);
+        var g = geom(values);
+        if (!g && !isPrice) return node;
+        var svg = svgEl('svg', { viewBox: '0 0 220 56', width: '100%', height: '56', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+        [0.25, 0.5, 0.75].forEach(function(f) { svg.appendChild(svgEl('line', { x1: 0, x2: 220, y1: (56 * f).toFixed(1), y2: (56 * f).toFixed(1), stroke: '#eef1f5', 'stroke-width': 1 })); });
+        var area = svgEl('path', { d: g ? g.area : '', fill: color + '1a' });
+        var line = svgEl('polyline', { points: g ? g.points : '', fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+        var point = svgEl('circle', { cx: g ? g.lastX : 0, cy: g ? g.lastY : 0, r: 2.6, fill: color, stroke: '#fff', 'stroke-width': 1.2 });
+        if (isPrice) { area.classList.add('tc-price-area'); line.classList.add('tc-price-line'); point.classList.add('tc-price-point'); }
+        append(svg, [area, line, point]);
+        if (isPrice) {
+          var connector = svgEl('line', { class: 'tc-live-connector', x1: 0, y1: 0, x2: 0, y2: 0, stroke: color, 'stroke-width': 1.8, 'stroke-dasharray': '4 3', hidden: '' });
+          var livePoint = svgEl('circle', { class: 'tc-live-point', cx: 0, cy: 0, r: 3, fill: '#fff', stroke: color, 'stroke-width': 1.8, hidden: '' });
+          var liveLabel = svgEl('text', { class: 'tc-live-label', x: 0, y: 0, fill: color, 'font-size': 8, 'font-weight': 800, 'text-anchor': 'end', hidden: '' });
+          liveLabel.textContent = '今'; append(svg, [connector, livePoint, liveLabel]);
+        }
+        node.appendChild(svg); return node;
+      }
+      function createCard(rec) {
+        var article = document.createElement('article');
+        article.className = 'tc-card';
+        var code = String(rec.symbol || '').split('.')[0];
+        var daily = Array.isArray(rec.daily) ? rec.daily : [];
+        var up = Number(rec.totalChange || 0) >= 0;
+        var attrs = {
+          liveSymbol: rec.symbol, nameInitials: rec.nameInitials, firstClose: finite(rec.firstClose) ? rec.firstClose : '', latestDate: rec.latestStoredDate || '', firstSeen: rec.first_seen || '',
+          totalChange: finite(rec.totalChange) ? rec.totalChange : 'null', rsi: rec.entry_technical?.rsi ?? '', outerInner: rec.entry_technical?.outer_inner_ratio ?? '', roe: rec.entry_financials?.roe ?? '',
+          netMargin: rec.entry_financials?.net_margin ?? '', cashProfit: rec.entry_financials?.cash_profit_ratio ?? '', grossMargin: rec.entry_financials?.gross_margin ?? '', debtRatio: rec.entry_financials?.debt_ratio ?? '',
+          yearProfit: rec.year_profit ?? '', qualityShareholder: rec.entry_features?.quality_shareholder ? '1' : '0', institutionalShareholder: rec.entry_features?.institutional_shareholder ? '1' : '0',
+          starMarket: code.startsWith('688') ? '1' : '0', trackingStatus: rec.tracking_complete ? 'history' : 'active'
+        };
+        Object.keys(attrs).forEach(function(key) { article.dataset[key] = String(attrs[key]); });
+        var head = el('div', 'tc-head'), id = el('div', 'tc-id'), badges = el('div', 'tc-badges');
+        id.appendChild(el('strong', 'tc-name', rec.name || '—'));
+        if (rec.occurrenceLabel) { var occurrence = el('span', 'tc-occurrence', rec.occurrenceLabel); occurrence.title = rec.occurrenceTitle || ''; if (rec.occurrence?.isNew) occurrence.classList.add('is-new'); if (rec.occurrence?.isReentry) occurrence.classList.add('is-reentry'); id.appendChild(occurrence); }
+        id.appendChild(el('span', 'tc-code', code));
+        if (rec.industry) id.appendChild(el('span', 'tc-industry', rec.industry_display || rec.industry));
+        var joined = el('span', 'tc-badge tc-badge-join', '加入 ' + (rec.last_seen || '')); joined.title = '最近一次进入观察列表 ' + (rec.last_seen || '');
+        append(badges, [joined, el('span', 'tc-badge tc-progress-label', '第' + daily.length + '/20日')]); append(head, [id, badges]); article.appendChild(head);
+        var progress = el('div', 'tc-progress'); progress.setAttribute('role', 'progressbar'); progress.setAttribute('aria-label', '20日追踪进度 ' + daily.length + '/20'); progress.setAttribute('aria-valuemin', '0'); progress.setAttribute('aria-valuemax', '20'); progress.setAttribute('aria-valuenow', String(Math.min(daily.length, 20)));
+        var bar = el('span', 'tc-progress-bar'); bar.style.width = Math.min(daily.length, 20) / 20 * 100 + '%'; progress.appendChild(bar); article.appendChild(progress);
+        var tags = el('div', 'tc-model-tags'); tags.setAttribute('aria-label', '加入时模型标签'); var features = rec.entry_features || {};
+        if (features.quality_shareholder) { var quality = el('span', 'tc-feature tc-feature-quality', '优质股东 '); quality.title = '加入时优质股东：' + ((features.quality_shareholder_names || []).join('、') || '已识别'); quality.appendChild(el('b', '', '✓')); tags.appendChild(quality); }
+        if (features.institutional_shareholder) { var institutional = el('span', 'tc-feature tc-feature-institutional', '机构股东 '); institutional.title = '加入时机构股东：' + ((features.institutional_shareholder_names || []).join('、') || '已识别'); institutional.appendChild(el('b', '', '●')); tags.appendChild(institutional); }
+        if (features.chip_focus) { var focus = el('span', 'tc-feature tc-feature-focus'); if (String(features.chip_focus).includes('集中')) focus.classList.add('is-concentrated'); append(focus, [el('small', '', '筹码集中度'), el('strong', '', features.chip_focus)]); tags.appendChild(focus); }
+        if (finite(features.main_force)) { var control = el('span', 'tc-feature tc-feature-control'); append(control, [el('small', '', '主力控盘'), el('strong', '', fmt(features.main_force) + '（' + (String(features.main_force_label || '').replace(/控盘/g, '') || '—') + '）')]); tags.appendChild(control); }
+        article.appendChild(tags);
+        var changeRow = el('div', 'tc-change-row'), change = el('span', 'tc-change ' + (up ? 'tc-up' : 'tc-down'), (up ? '▲ ' : '▼ ') + fmt(rec.totalChange) + '%'); change.dataset.liveChange = '';
+        var liveBadge = el('span', 'tc-live-badge', '盘中'); liveBadge.dataset.liveBadge = ''; liveBadge.hidden = true;
+        var volume = el('span', 'tc-vol-tag-slot vol-tag vol-tag-amber'); volume.dataset.priceVolumeSymbol = (code.startsWith('6') ? '17' : '33') + '_' + code; volume.setAttribute('aria-label', '量价12态'); volume.hidden = true;
+        append(changeRow, [change, liveBadge, volume]); article.appendChild(changeRow);
+        var summaryRow = el('div', 'tc-live-summary-row'), summary = el('span', 'tc-change-sub', '加入以来 · ¥' + fmt(rec.firstClose) + ' → ¥' + fmt(rec.lastClose)); summary.dataset.liveSummary = ''; summaryRow.appendChild(summary); article.appendChild(summaryRow);
+        var closes = daily.map(function(day) { return day.close; }).filter(finite), profits = daily.map(function(day) { return day.profit_ratio; }).filter(finite);
+        var charts = el('div', 'tc-charts'); append(charts, [chart('股价走势', '最高 ¥' + fmt(rec.maxClose) + ' / 最低 ¥' + fmt(rec.minClose), closes, up ? '#e04444' : '#0aa869', up, true, rec.joinClose), chart('获利盘指数', fmt(rec.firstProfit) + '% → ' + fmt(rec.lastProfit) + '%', profits, '#7c5cd6', true, false)]); article.appendChild(charts);
+        var metrics = el('div', 'tc-metrics'); append(metrics, [metric('最高涨幅', (Number(rec.maxGain || 0) >= 0 ? '+' : '') + fmt(rec.maxGain) + '%', Number(rec.maxGain || 0) >= 0 ? 'tc-up' : 'tc-down'), metric('最大回撤', fmt(rec.maxDrawdown) + '%', 'tc-down'), metric('获利盘变化', (Number(rec.profitChange || 0) >= 0 ? '+' : '') + fmt(rec.profitChange) + 'pp', Number(rec.profitChange || 0) >= 0 ? 'tc-up' : 'tc-down'), metric('剩余天数', Math.max(0, 20 - daily.length) + '天')]); article.appendChild(metrics);
+        var details = el('details', 'tc-table-details'); details.dataset.settledDays = String(daily.length); details.appendChild(el('summary', '', '每日明细（' + daily.length + ' 天）'));
+        var table = el('table', 'tc-table'), thead = document.createElement('thead'), hr = document.createElement('tr'); ['日期','收盘价','涨跌幅','获利盘 %'].forEach(function(text) { hr.appendChild(el('th', '', text)); }); thead.appendChild(hr); table.appendChild(thead);
+        var tbody = document.createElement('tbody'); tbody.dataset.liveTableBody = ''; daily.forEach(function(day) { var row = document.createElement('tr'); var dayUp = finite(day.change_pct) && Number(day.change_pct) >= 0; append(row, [el('td', 'tc-date', day.date || ''), el('td', '', '¥' + fmt(day.close)), el('td', finite(day.change_pct) ? (dayUp ? '+' : '') + fmt(day.change_pct) + '%' : '—'), el('td', finite(day.profit_ratio) ? fmt(day.profit_ratio) + '%' : '—')]); if (finite(day.change_pct)) row.children[2].className = dayUp ? 'tc-up' : 'tc-down'; tbody.appendChild(row); });
+        table.appendChild(tbody); details.appendChild(table); article.appendChild(details); return article;
+      }
+      var records;
+      try { records = JSON.parse(dataNode.textContent || '[]'); } catch (_) { records = []; }
+      var rendered = new Set(Array.from(list.querySelectorAll('.tc-card')).map(function(card) { return card.dataset.liveSymbol; }));
+      var fragment = document.createDocumentFragment();
+      records.forEach(function(rec) { if (!rendered.has(rec.symbol)) fragment.appendChild(createCard(rec)); });
+      list.insertBefore(fragment, filterEmpty);
+    })();
+  </script>
   <script is:inline src="/js/normalize-quote-payload.js"></script>
   <script is:inline src="/js/etf-live-poll.js"></script>
   <script is:inline src="/js/price-volume-tag.js"></script>
