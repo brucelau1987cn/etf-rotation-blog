@@ -139,6 +139,26 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
     ],
   },
 
+  '2026-09-10': {
+    tradeDate: '2026-09-10',
+    shortDate: '09/10',
+    title: '9月10日滚动信号收盘复盘',
+    subtitle: 'A股3只、港股2只与白银现货共6只标的出现日内信号；白银30m/15m/10m连续空方在18:31现货报价下得到确认，其余缺少同源收盘价或触发价，均只保留观察。',
+    cutoff: '2026-09-10 收市（A股15:00 / 港股16:08 / 24H行情18:31）',
+    summary: 'Cloudflare D1当日锁定11条节点：白银现货先有2h多方，后有30m、15m、10m三档空方；A股东方明珠15m、国民技术30m、三安光电90m各一条空方；港股中国宏桥10m/15m/30m与澜起科技10m各一条空方。按同标的同方向合并为6个执行簇。白银现货18:31报$66.32，低于三档空方触发价$66.62—67.07，收盘确认空方；其余A/港节点存在缺失的触发价，且iWenCai收盘查询遭TLS错误，不能估算确认，统一列为观察。信号标的数6：确认1、收复0、混合0、观察5。',
+    buyRule: '不因空方节点直接抄底。白银需先重新站回$66.62（30m）再观察短线修复，站回$67.07（15m）才解除连续空方压力。A股与港股因同源收盘证据不可用，只接受次一交易日以触发价、前低和成交量共同确认的右侧修复；未补齐收盘证据前，试错仓不超过计划仓位1/4。',
+    sellRule: '白银现货低于$66.62且未收回时维持空方防守，$66.31日内低点失守才视为延续；反弹至$66.62—67.07先看承接。东方明珠¥8.51、国民技术¥17.66、三安光电¥12.66为D1首次写入锚点；中国宏桥与澜起科技本次触发价缺失，不以收盘倒推节点，不追空，待下一根有效行情验证。',
+    discipline: 'D1同日同节点首次写入即锁定；同向近价节点按一簇执行，白银三档空方不拆成三次加仓。A股webhook未提供真实触发时刻时，触发时间仅代表服务器接收时刻。数据源失败必须标记观察，不能用前日价格或不同市场代理补作收盘确认；下一交易日先补齐同源收盘与量价证据，再更新动作。',
+    sources: 'Cloudflare D1 REST（2026-09-10，11 rows）：600637 15m SELL ¥8.51；002173 30m SELL ¥17.66；600703 90m SELL ¥12.66；01378 10m/15m/30m SELL（触发价缺失）；06809 10m SELL（触发价缺失）；SI=F 2h BUY $67.8904、30m/15m/10m SELL $66.6172/$67.068/$66.957。腾讯港股收盘：中国宏桥HK$23.44（-4.17%，高24.22/低23.40）、澜起科技HK$270.40（-0.37%，高282.60/低269.00）。公开quote：伦敦银$66.32（-1.40%，18:31）。iWenCai多key包装器当日TLS握手失败，A股收盘技术字段UNAVAILABLE。',
+    signals: [
+      { name: '东方明珠', symbol: '600637', market: 'A股', direction: 'SELL', nodes: '15m空方', signalPrices: '¥8.51', close: 'UNAVAILABLE', change: 'UNAVAILABLE', validation: 'watch', validationLabel: '收盘证据不可用，观察', verdict: 'D1于09:45首次锁定15m空方¥8.51；iWenCai收盘查询TLS失败，不能判断收盘是否跌破节点。', support: '待补日内低点', pressure: '¥8.51信号价', buyPlan: '下一交易日收回¥8.51并放量后再观察。', sellPlan: '未补齐收盘证据前不追空；跌破日内低点才续作防守。', evidence: ['D1：15m SELL ¥8.51', 'iWenCai技术字段UNAVAILABLE'] },
+      { name: '国民技术', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '30m空方', signalPrices: '¥17.66', close: 'UNAVAILABLE', change: 'UNAVAILABLE', validation: 'watch', validationLabel: '收盘证据不可用，观察', verdict: 'D1于10:00首次锁定30m空方¥17.66；缺少同源收盘与量价字段，不作确认。', support: '待补日内低点', pressure: '¥17.66信号价', buyPlan: '站回¥17.66并有量价修复再观察。', sellPlan: '只把¥17.66作为风险锚，次日补齐证据后执行。', evidence: ['D1：30m SELL ¥17.66', 'iWenCai技术字段UNAVAILABLE'] },
+      { name: '三安光电', symbol: '600703', market: 'A股', direction: 'SELL', nodes: '90m空方', signalPrices: '¥12.66', close: 'UNAVAILABLE', change: 'UNAVAILABLE', validation: 'watch', validationLabel: '收盘证据不可用，观察', verdict: 'D1于14:00首次锁定90m空方¥12.66；收盘验证源失败，保留观察。', support: '待补日内低点', pressure: '¥12.66信号价', buyPlan: '收回¥12.66并完成次日量价确认再观察。', sellPlan: '未确认前不追空，失守日内低点才加强防守。', evidence: ['D1：90m SELL ¥12.66', 'iWenCai技术字段UNAVAILABLE'] },
+      { name: '中国宏桥', symbol: '01378', market: '港股', direction: 'SELL', nodes: '10m+15m+30m空方', signalPrices: '触发价缺失', close: 'HK$23.44', change: '-4.17%', validation: 'watch', validationLabel: '多节点但触发价缺失，观察', verdict: 'D1在09:55与14:45锁定三档空方，但历史写入未带触发价；腾讯收盘HK$23.44、低23.40，不能以收盘倒推节点确认。', support: 'HK$23.40日内低点', pressure: 'HK$24.22日内高点', buyPlan: '先收复HK$24.22再观察。', sellPlan: '跌破HK$23.40才视为后续空方延续。', evidence: ['D1：10m/15m/30m SELL，价格缺失', '腾讯：收盘HK$23.44、-4.17%'] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'SELL', nodes: '10m空方', signalPrices: '触发价缺失', close: 'HK$270.40', change: '-0.37%', validation: 'watch', validationLabel: '触发价缺失，观察', verdict: 'D1于16:05锁定10m空方但未带价格；腾讯收盘HK$270.40、低269.00，证据不足以确认。', support: 'HK$269.00日内低点', pressure: 'HK$282.60日内高点', buyPlan: '收复HK$282.60才观察修复。', sellPlan: '跌破HK$269.00再确认空方。', evidence: ['D1：10m SELL，价格缺失', '腾讯：收盘HK$270.40、-0.37%'] },
+      { name: '白银现货', symbol: 'SI=F', market: '24H', direction: 'BUY→SELL', nodes: '2h多方；30m+15m+10m空方', signalPrices: '$67.8904；$66.6172/$67.068/$66.957', close: '$66.32', change: '-1.40%', validation: 'confirmed', validationLabel: '收盘确认连续空方', verdict: '2h多方后出现30m、15m、10m连续空方；18:31现货$66.32低于全部三档空方锚点，确认空方。现货与SI=F并非同一合约，结论仅作连续行情交叉验证。', support: '$66.31日内低点', pressure: '$66.62 30m；$67.07 15m', buyPlan: '站回$66.62后才观察短线修复。', sellPlan: '低于$66.62维持防守；跌破$66.31视为延续。', evidence: ['D1：30m/15m/10m SELL $66.6172/$67.068/$66.957', 'Sina：18:31现货$66.32、-1.40%'] },
+    ],
+  },
   '2026-09-09': {
     tradeDate: '2026-09-09',
     shortDate: '09/09',
@@ -1879,7 +1899,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-09', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-10', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-09', href: '/rolling/insights/2026-09-09/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-08', href: '/rolling/insights/2026-09-08/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-07', href: '/rolling/insights/2026-09-07/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-04', href: '/rolling/insights/2026-09-04/' },
