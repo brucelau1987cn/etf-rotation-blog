@@ -88,10 +88,19 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
 def validate_us_release_data() -> None:
     """Fail closed on the US close edition without coupling to A-share batches."""
     data = REPO / "public/data"
-    pool = json.loads((data / "us-etf-pool.json").read_text(encoding="utf-8"))
-    garden = json.loads((data / "us-etf-garden.json").read_text(encoding="utf-8"))
-    health = json.loads((data / "us-compass-health.json").read_text(encoding="utf-8"))
-    macro = json.loads((data / "us-macro-dashboard.json").read_text(encoding="utf-8"))
+    def strict_json(name: str) -> dict:
+        try:
+            return json.loads(
+                (data / name).read_text(encoding="utf-8"),
+                parse_constant=lambda value: (_ for _ in ()).throw(ValueError(f"non-finite {value}")),
+            )
+        except (OSError, json.JSONDecodeError, ValueError) as error:
+            raise RuntimeError(f"invalid US release data: {name}: {error}") from error
+
+    pool = strict_json("us-etf-pool.json")
+    garden = strict_json("us-etf-garden.json")
+    health = strict_json("us-compass-health.json")
+    macro = strict_json("us-macro-dashboard.json")
     model_date = str(pool.get("model_date") or "")
     errors: list[str] = []
     if not model_date:
@@ -229,7 +238,6 @@ def main() -> None:
         write_state("validating_recovery", trade_date=old)
         run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         validate_us_release_data()
-        run("python3", "scripts/validate_public_data_contracts.py")
         # Commit only US-owned snapshots here. The waiting A-share nightly publisher
         # regenerates and commits catalog.json with both US and A final hashes.
         run("git", "add", *US_OWNED_FILES)

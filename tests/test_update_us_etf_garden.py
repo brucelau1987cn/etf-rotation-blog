@@ -106,6 +106,28 @@ def test_recovery_validation_is_not_coupled_to_a_share_batch_gate():
     recovery = source[source.index('if action == "recover"'):source.index('if action == "noop"')]
     assert "validate_us_release_data()" in recovery
     assert "validate_dashboard_batches.py" not in recovery
+    assert "validate_public_data_contracts.py" not in recovery
+
+
+def test_us_release_validator_rejects_nonfinite_owned_json(tmp_path, monkeypatch):
+    data = tmp_path / "public/data"
+    data.mkdir(parents=True)
+    payloads = {
+        "us-etf-pool.json": '{"model_date":"2026-09-10","session_state":"closed","bad":NaN}',
+        "us-etf-garden.json": '{"date":"2026-09-10","stage":"美股收盘版","session_state":"closed"}',
+        "us-compass-health.json": '{"model_date":"2026-09-10"}',
+        "us-macro-dashboard.json": '{}',
+    }
+    for name, text in payloads.items():
+        (data / name).write_text(text, encoding="utf-8")
+    monkeypatch.setattr(module, "REPO", tmp_path)
+
+    try:
+        module.validate_us_release_data()
+    except RuntimeError as error:
+        assert "non-finite" in str(error)
+    else:
+        raise AssertionError("non-finite US release JSON must fail closed")
 
 
 def test_us_release_validator_rejects_cross_date_payload(tmp_path, monkeypatch):
