@@ -75,7 +75,8 @@ def test_prepare_writes_manifest_for_valid_gate(tmp_path, monkeypatch):
     (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
-        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}},
+        "pattern_research": {"mode": "shadow_research_only", "production_change_allowed": False, "production_weights_changed": False, "formal_signal_logic_changed": False, "coverage": {"requested": 89, "evaluated": 89, "rps_evaluated": 89, "unavailable": 0}, "items": [{} for _ in range(89)]}
     }))
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
     write_macro_fixture(tmp_path)
@@ -161,7 +162,8 @@ def test_prepare_blocks_when_research_audit_generation_fails(tmp_path, monkeypat
     (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
-        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}},
+        "pattern_research": {"mode": "shadow_research_only", "production_change_allowed": False, "production_weights_changed": False, "formal_signal_logic_changed": False, "coverage": {"requested": 89, "evaluated": 89, "rps_evaluated": 89, "unavailable": 0}, "items": [{} for _ in range(89)]}
     }))
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
     write_macro_fixture(tmp_path)
@@ -194,7 +196,7 @@ def test_prepare_blocks_invalid_shadow_and_overwrites_manifest(tmp_path, monkeyp
     state.write_text(json.dumps({"status": "prepared", "trade_date": "2026-07-13"}))
     result = prepare.prepare(now=datetime(2026, 7, 14, 21, 50, tzinfo=CN), state_path=state)
     assert result["status"] == "blocked"
-    assert len(result["errors"]) == 4
+    assert len(result["errors"]) == 5
     assert json.loads(state.read_text())["status"] == "blocked"
     assert json.loads(audit_path.read_text()) == {"sentinel": True}
 
@@ -212,7 +214,8 @@ def test_prepare_soft_checks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     (tmp_path / "public/data/etf-garden-backtest.json").write_text(json.dumps({"records": []}))
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
-        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}}
+        "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}},
+        "pattern_research": {"mode": "shadow_research_only", "production_change_allowed": False, "production_weights_changed": False, "formal_signal_logic_changed": False, "coverage": {"requested": 89, "evaluated": 89, "rps_evaluated": 89, "unavailable": 0}, "items": [{} for _ in range(89)]}
     }))
     invalid = kronos_fixture(count=88)
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(invalid))
@@ -243,6 +246,7 @@ def test_prepare_blocks_when_macro_generation_fails(tmp_path, monkeypatch):
     (tmp_path / "public/data/model-lab/a-share-shadow.json").write_text(json.dumps({
         "mode": "shadow_research_only", "production_weights_changed": False, "rotation_universe_count": 89,
         "signal_enhancement": {"formal_signal_logic_changed": False, "production_role": "shadow_filter_and_audit_only", "coverage": {"symbols_at_least_260": 89}},
+        "pattern_research": {"mode": "shadow_research_only", "production_change_allowed": False, "production_weights_changed": False, "formal_signal_logic_changed": False, "coverage": {"requested": 89, "evaluated": 89, "rps_evaluated": 89, "unavailable": 0}, "items": [{} for _ in range(89)]},
     }))
     (tmp_path / "public/data/model-lab/a-share-path-shadow.json").write_text(json.dumps(kronos_fixture()))
     monkeypatch.setattr(prepare, "run_json", lambda command: {

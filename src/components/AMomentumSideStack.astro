@@ -2,6 +2,16 @@
 /**
  * Side stack: live today notes + static strategy parameters.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+let pattern: any = null;
+try {
+  const shadow = JSON.parse(readFileSync(join(process.cwd(), 'public/data/model-lab/a-share-shadow.json'), 'utf8'));
+  pattern = shadow.pattern_research || null;
+} catch {}
+const counts = pattern?.summary || {};
+const gate = pattern?.observation_gate || {};
 ---
 <aside class="side-stack">
   <div class="panel card">
@@ -19,5 +29,19 @@
       <li><strong>风险：</strong>高位过热、缩量冲高、跌破20日线进入降权。</li>
       <li><strong>输出：</strong>可持有、回踩候选、观察、减仓或退出。</li>
     </ul>
+  </div>
+  <div class="panel card pattern-shadow" data-mode={pattern?.mode || 'UNAVAILABLE'}>
+    <div class="panel-head"><h3>形态研究影子层</h3><span class="pill">研究专用</span></div>
+    {pattern ? (
+      <>
+        <div class="pattern-counts" aria-label="形态研究摘要">
+          <div><span>RPS突破</span><strong>{counts.rps_breakout ?? 0}</strong></div>
+          <div><span>高位旗形</span><strong>{counts.high_tight_flag ?? 0}</strong></div>
+          <div><span>海龟确认</span><strong>{counts.turtle_confirmed ?? 0}</strong></div>
+        </div>
+        <p class="pattern-progress">观察 {gate.completed_days ?? 0} / {gate.preferred_completed_days ?? 20} 个交易日 · {gate.status || 'ACCUMULATING'}</p>
+        <p class="pattern-boundary">RPS20/60/120、ATR自适应收敛与20日突破用于前向验证；生产权重、仓位和交易动作保持不变。</p>
+      </>
+    ) : <p class="pattern-boundary">研究数据将在下一次A股夜间缓存刷新后生成。</p>}
   </div>
 </aside>

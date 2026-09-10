@@ -46,15 +46,15 @@ def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
 
 def test_nightly_chain_keeps_outer_timeout_above_inner_budget():
     wrapper = NIGHTLY_CHAIN.read_text(encoding='utf-8')
-    assert '--timeout 3300' in wrapper
-    assert 'timeout 3900s' in wrapper
+    assert '--timeout 3900' in wrapper
+    assert 'timeout 4500s' in wrapper
 
 
 def test_stage_timeouts_are_capped_per_stage():
     module = load()
     assert module.effective_timeout('precheck', 3600) == 60
     assert module.effective_timeout('cache', 3600) == 1200
-    assert module.effective_timeout('fundamental-shadow', 3600) == 600
+    assert module.effective_timeout('fundamental-shadow', 3600) == 780
     assert module.effective_timeout('cache', 300) == 300
 
 
@@ -90,7 +90,7 @@ def test_timeout_report_names_the_stage(monkeypatch):
     monkeypatch.setattr(module.subprocess, 'run', timeout)
     payload = module.run_stage('fundamental-shadow', 3600)
     assert payload['ok'] is False
-    assert 'STAGING BLOCKER: fundamental-shadow timed out after 600s' in payload['results'][0]['stderr_tail']
+    assert 'STAGING BLOCKER: fundamental-shadow timed out after 780s' in payload['results'][0]['stderr_tail']
 
 
 def test_cache_validator_does_not_require_iwencai_source():
@@ -180,3 +180,9 @@ def test_malformed_coverage_shape_does_not_crash_report():
     report = module.format_report(payload)
     assert '**基本面覆盖：** —/—（—）' in report
     assert report.strip().endswith('可进入22:00内容生成阶段。')
+
+
+def test_prepare_gate_enforces_pattern_research_isolation_contract():
+    source = Path('/root/projects/etf-rotation-blog/scripts/prepare_a_share_nightly.py').read_text(encoding='utf-8')
+    assert 'pattern_research must remain research-only' in source
+    assert 'pattern_research coverage below 82' in source

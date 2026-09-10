@@ -544,6 +544,25 @@
   font-size: .8rem;
   line-height: 1.5;
 }
+.a-momentum-main .pattern-shadow { grid-column: 1 / -1; }
+.a-momentum-main .pattern-counts {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: .55rem;
+}
+.a-momentum-main .pattern-counts div {
+  padding: .68rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--warm-2);
+}
+.a-momentum-main .pattern-counts span,
+.a-momentum-main .pattern-counts strong { display: block; }
+.a-momentum-main .pattern-counts span { color: rgb(var(--gray)); font-size: .72rem; }
+.a-momentum-main .pattern-counts strong { margin-top: .15rem; font-size: 1.15rem; }
+.a-momentum-main .pattern-progress,
+.a-momentum-main .pattern-boundary { margin: .65rem 0 0; color: rgb(var(--gray)); font-size: .76rem; line-height: 1.55; }
+.a-momentum-main .pattern-boundary { padding-top: .55rem; border-top: 1px solid var(--border); }
 .a-momentum-main .status-line {
   margin: .2rem 0 0;
   color: rgb(var(--gray));

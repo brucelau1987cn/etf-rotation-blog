@@ -236,6 +236,127 @@ def break_retest_audit(df: pd.DataFrame, lookback: int = 20, expiry_bars: int = 
     }
 
 
+PATTERN_SIGNAL_VERSION = "a-etf-pattern-shadow-v1"
+
+
+def pattern_observation_gate(completed_days: int) -> dict[str, Any]:
+    completed = max(int(completed_days), 0)
+    status = "ACCUMULATING" if completed < 10 else "EVALUATING" if completed < 20 else "OBSERVING"
+    return {
+        "completed_days": completed,
+        "minimum_completed_days": 10,
+        "preferred_completed_days": 20,
+        "eligible_for_evaluation": completed >= 10,
+        "status": status,
+    }
+
+
+def sequoia_pattern_metric(df: pd.DataFrame) -> dict[str, Any]:
+    """ETF-adapted price-pattern labels kept outside production decisions."""
+    base = {"signal_version": PATTERN_SIGNAL_VERSION, "mode": "shadow_research_only", "production_change_allowed": False}
+    if len(df) < 40:
+        return {**base, "status": "UNAVAILABLE", "reason": "requires at least 40 completed qfq bars"}
+    values: pd.DataFrame = df.loc[:, ["open", "high", "low", "close", "volume", "amount"]].apply(pd.to_numeric, errors="coerce")
+    ohlc: pd.DataFrame = values.loc[:, ["open", "high", "low", "close"]]
+    if (
+        bool(ohlc.tail(40).isna().to_numpy().any())
+        or not np.isfinite(ohlc.tail(40).to_numpy(dtype=float)).all()
+        or bool((ohlc.tail(40) <= 0).to_numpy().any())
+    ):
+        return {**base, "status": "UNAVAILABLE", "reason": "recent OHLCV contains invalid values"}
+    close = pd.Series(values["close"], index=df.index, dtype=float)
+    current = values.iloc[-1]
+    prior_high20 = float(values["high"].iloc[-21:-1].max())
+    recent_amount = pd.Series(values.loc[:, "amount"].tail(21), index=values.index[-21:], dtype=float)
+    amount_available = bool(
+        not recent_amount.isna().to_numpy().any()
+        and np.isfinite(recent_amount.to_numpy(dtype=float)).all()
+        and not (recent_amount < 0).to_numpy().any()
+    )
+    amount_ma20 = float(recent_amount.iloc[:-1].mean()) if amount_available else math.nan
+    amount_ratio = float(recent_amount.iloc[-1] / amount_ma20) if amount_available and amount_ma20 > 0 else math.nan
+    turtle_triggered = bool(
+        math.isfinite(prior_high20) and math.isfinite(amount_ratio)
+        and current["close"] > prior_high20 and current["close"] > current["open"]
+        and current["close"] > close.iloc[-2] and amount_ratio >= 1.0
+    )
+    tail40, tail10 = values.tail(40), values.tail(10)
+    high40, low40 = float(tail40["high"].max()), float(tail40["low"].min())
+    high10, low10 = float(tail10["high"].max()), float(tail10["low"].min())
+    current_atr = atr_series(values).iloc[-1]
+    atr_pct = float(current_atr / current["close"] * 100) if pd.notna(current_atr) and current["close"] > 0 else math.nan
+    consolidation_limit = max(8.0, min(15.0, atr_pct * 4)) if math.isfinite(atr_pct) else 10.0
+    range40_pct = (high40 / low40 - 1) * 100 if low40 > 0 else math.nan
+    range10_pct = (high10 / low10 - 1) * 100 if low10 > 0 else math.nan
+    htf_triggered = bool(
+        math.isfinite(range40_pct) and range40_pct >= 20
+        and math.isfinite(range10_pct) and range10_pct <= consolidation_limit
+        and low10 >= high40 * .80 and math.isfinite(amount_ratio) and amount_ratio <= .70
+    )
+    return {
+        **base, "status": "ok", "trade_date": df.index[-1].date().isoformat(),
+        "turtle_confirmed": {
+            "status": "ok" if amount_available else "UNAVAILABLE",
+            "reason": None if amount_available else "21-session amount history is unavailable",
+            "triggered": turtle_triggered, "prior_high_20": finite(prior_high20),
+            "amount_ratio_20": finite(amount_ratio, 2),
+            "rules": {"lookback": 20, "minimum_amount_ratio": 1.0, "requires_bullish_body": True},
+        },
+        "high_tight_flag": {
+            "status": "ok" if amount_available else "UNAVAILABLE",
+            "reason": None if amount_available else "21-session amount history is unavailable",
+            "triggered": htf_triggered, "range_40_pct": finite(range40_pct, 2),
+            "range_10_pct": finite(range10_pct, 2), "atr_pct": finite(atr_pct, 2),
+            "consolidation_limit_pct": finite(consolidation_limit, 2),
+            "amount_ratio_20": finite(amount_ratio, 2),
+            "rules": {"minimum_40d_range_pct": 20, "high_level_ratio": .80, "maximum_amount_ratio": .70},
+        },
+    }
+
+
+def rps_breakout_metrics(frames: dict[str, pd.DataFrame]) -> dict[str, dict[str, Any]]:
+    """Cross-sectional 20/60/120-session RPS with a 120-day high proximity gate."""
+    raw: dict[str, dict[str, float]] = {}
+    result: dict[str, dict[str, Any]] = {}
+    common_trade_date = max((df.index[-1] for df in frames.values() if len(df)), default=None)
+    for symbol, df in frames.items():
+        if common_trade_date is not None and (not len(df) or df.index[-1] != common_trade_date):
+            result[symbol] = {"status": "UNAVAILABLE", "reason": "latest bar differs from common trade date"}
+            continue
+        close = pd.Series(pd.to_numeric(df["close"], errors="coerce"), index=df.index, dtype=float)
+        high = pd.Series(pd.to_numeric(df["high"], errors="coerce"), index=df.index, dtype=float)
+        if (
+            len(df) < 121
+            or close.tail(121).isna().any()
+            or high.tail(120).isna().any()
+            or not np.isfinite(close.tail(121).to_numpy(dtype=float)).all()
+            or not np.isfinite(high.tail(120).to_numpy(dtype=float)).all()
+            or (close.tail(121) <= 0).any()
+        ):
+            result[symbol] = {"status": "UNAVAILABLE", "reason": "requires 121 valid completed qfq bars"}
+            continue
+        raw[symbol] = {
+            "ret20": float(close.iloc[-1] / close.iloc[-21] - 1),
+            "ret60": float(close.iloc[-1] / close.iloc[-61] - 1),
+            "ret120": float(close.iloc[-1] / close.iloc[-121] - 1),
+            "close": float(close.iloc[-1]), "high120": float(high.tail(120).max()),
+        }
+    if raw:
+        table = pd.DataFrame(raw).T
+        for window in (20, 60, 120):
+            table[f"rps{window}"] = table[f"ret{window}"].rank(pct=True, method="average") * 100
+        for symbol, row in table.iterrows():
+            near_high = bool(row["close"] >= row["high120"] * .90)
+            result[symbol] = {
+                "status": "ok", "rps20": finite(row["rps20"], 1),
+                "rps60": finite(row["rps60"], 1), "rps120": finite(row["rps120"], 1),
+                "return120_pct": finite(row["ret120"] * 100, 2),
+                "distance_from_high120_pct": finite((row["close"] / row["high120"] - 1) * 100, 2),
+                "near_high120": near_high, "triggered": bool(row["rps120"] >= 90 and near_high),
+            }
+    return result
+
+
 def max_drawdown(returns: pd.Series) -> float:
     equity = (1 + returns.fillna(0)).cumprod()
     drawdown = equity / equity.cummax() - 1
@@ -249,7 +370,7 @@ def load_frames(db_path: Path, limit: int) -> tuple[dict[str, pd.DataFrame], dic
         "SELECT symbol,name FROM instruments WHERE market IN ('A','XSHG','XSHE') AND active=1"
     )}
     rows = db.execute(
-        """SELECT symbol,trade_date,open,high,low,close,volume,amount FROM (
+        """SELECT symbol,trade_date,open,high,low,close,volume,amount,source FROM (
           SELECT *, ROW_NUMBER() OVER (
             PARTITION BY symbol,trade_date
             ORDER BY CASE source WHEN 'iwencai' THEN 1 WHEN 'stock-api' THEN 2 WHEN 'tencent' THEN 3 ELSE 9 END,
@@ -495,6 +616,20 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 320
     )
     ranked = list(table.sort_values("factor_score", ascending=False).index)
     top = ranked[:12]
+    rps_metrics = rps_breakout_metrics(frames)
+    pattern_metrics = {symbol: sequoia_pattern_metric(frame) for symbol, frame in frames.items()}
+    prior_pattern_dates: set[str] = set()
+    if history_path.exists():
+        for line in history_path.read_text(encoding="utf-8").splitlines():
+            try:
+                prior = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            research = prior.get("pattern_research") if isinstance(prior, dict) else None
+            if isinstance(research, dict) and prior.get("latest_trade_date"):
+                prior_pattern_dates.add(str(prior["latest_trade_date"]))
+    current_trade_date = max((metric["trade_date"] for metric in metrics.values()), default=None)
+    completed_pattern_days = len(prior_pattern_dates | ({current_trade_date} if current_trade_date else set()))
     items = []
     for symbol in ranked:
         metric = metrics[symbol]
@@ -525,6 +660,44 @@ def generate(db_path: Path, out_path: Path, history_path: Path, limit: int = 320
         "portfolio_risk": portfolio_risk(frames, top),
         "correlation": correlation_summary(frames, top),
         "items": items,
+        "pattern_research": {
+            "schema_version": 1,
+            "signal_version": PATTERN_SIGNAL_VERSION,
+            "mode": "shadow_research_only",
+            "production_change_allowed": False,
+            "production_weights_changed": False,
+            "formal_signal_logic_changed": False,
+            "basis": "completed qfq daily bars; cross-sectional ETF RPS and ATR-adaptive price patterns",
+            "signals": {
+                "rps_breakout": {"rps_window": 120, "threshold": 90, "minimum_high_proximity": .90},
+                "high_tight_flag": {"momentum_range_40d_pct": 20, "consolidation": "clamp(4*ATR%,8%,15%)", "maximum_amount_ratio": .70},
+                "turtle_confirmed": {"lookback": 20, "minimum_amount_ratio": 1.0, "requires_bullish_body": True},
+            },
+            "coverage": {
+                "requested": len(frames),
+                "evaluated": sum(value.get("status") == "ok" for value in pattern_metrics.values()),
+                "amount_evaluated": sum(value.get("turtle_confirmed", {}).get("status") == "ok" for value in pattern_metrics.values()),
+                "rps_evaluated": sum(value.get("status") == "ok" for value in rps_metrics.values()),
+                "unavailable": sum(value.get("status") != "ok" for value in pattern_metrics.values()),
+            },
+            "summary": {
+                "rps_breakout": sum(value.get("triggered") is True for value in rps_metrics.values()),
+                "high_tight_flag": sum(value.get("high_tight_flag", {}).get("triggered") is True for value in pattern_metrics.values()),
+                "turtle_confirmed": sum(value.get("turtle_confirmed", {}).get("triggered") is True for value in pattern_metrics.values()),
+            },
+            "observation_gate": pattern_observation_gate(completed_pattern_days),
+            "items": [
+                {
+                    "symbol": symbol,
+                    "name": names.get(symbol, symbol),
+                    "rps_breakout": rps_metrics.get(symbol, {"status": "UNAVAILABLE"}),
+                    "high_tight_flag": pattern_metrics[symbol].get("high_tight_flag"),
+                    "turtle_confirmed": pattern_metrics[symbol].get("turtle_confirmed"),
+                    "status": pattern_metrics[symbol].get("status", "UNAVAILABLE"),
+                }
+                for symbol in ranked
+            ],
+        },
         "signal_enhancement": {
             "version": "A ETF Sidecar Signals v1",
             "production_role": "shadow_filter_and_audit_only",

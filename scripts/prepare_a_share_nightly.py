@@ -226,6 +226,39 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
         errors.append("signal_enhancement must remain audit-only")
     elif int((enhancement.get("coverage") or {}).get("symbols_at_least_260") or 0) < 82:
         errors.append("signal_enhancement 260-bar coverage below 82")
+    pattern_research = shadow.get("pattern_research")
+    if not isinstance(pattern_research, dict):
+        errors.append("pattern_research is required")
+    elif (
+        pattern_research.get("mode") != "shadow_research_only"
+        or pattern_research.get("production_change_allowed") is not False
+        or pattern_research.get("production_weights_changed") is not False
+        or pattern_research.get("formal_signal_logic_changed") is not False
+    ):
+        errors.append("pattern_research must remain research-only")
+    else:
+        pattern_coverage = pattern_research.get("coverage")
+        pattern_items = pattern_research.get("items")
+        if not isinstance(pattern_coverage, dict) or not isinstance(pattern_items, list):
+            errors.append("pattern_research coverage must be an object with items")
+        else:
+            requested = pattern_coverage.get("requested")
+            evaluated = pattern_coverage.get("evaluated")
+            rps_evaluated = pattern_coverage.get("rps_evaluated")
+            unavailable = pattern_coverage.get("unavailable")
+            counts = (requested, evaluated, rps_evaluated, unavailable)
+            if not all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in counts):
+                errors.append("pattern_research coverage counts must be nonnegative integers")
+            else:
+                requested_count, evaluated_count, rps_count, unavailable_count = [value for value in counts if isinstance(value, int)]
+                if (
+                    requested_count != len(pattern_items)
+                    or evaluated_count + unavailable_count != requested_count
+                    or evaluated_count < 82
+                    or rps_count < 82
+                    or rps_count > requested_count
+                ):
+                    errors.append("pattern_research coverage below 82")
     if int(shadow.get("rotation_universe_count") or 0) < 82:
         errors.append("shadow rotation universe below 82")
     if pool.get("latest_trade_date") != gate.get("qfq_date"):

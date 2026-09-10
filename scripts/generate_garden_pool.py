@@ -149,6 +149,17 @@ def safe_float(v: Any) -> float:
         return math.nan
 
 
+def sanitize_for_json(value: Any) -> Any:
+    """Recursively convert non-finite numerics to JSON null."""
+    if isinstance(value, dict):
+        return {key: sanitize_for_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_for_json(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
+
+
 def avg(values: list[float]) -> float:
     return sum(values) / len(values) if values else math.nan
 
@@ -708,7 +719,7 @@ def main() -> int:
     }
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    OUT_JSON.write_text(json.dumps(sanitize_for_json(payload), ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     elapsed = (now_cn() - start).total_seconds()
     print(
         f"✅ 完成：{len(GARDEN_POOL)}只正式池中有效 {payload['summary']['valid_count']}，动量通过 {len(core)}，"
