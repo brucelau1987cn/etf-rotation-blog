@@ -79,6 +79,56 @@ def test_close_publisher_regenerates_health_after_learning():
     assert "public/data/us-compass-health.json" in module.US_OWNED_FILES
 
 
+def test_us_release_build_is_independent_from_a_share_batch_gate(monkeypatch):
+    calls = []
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: calls.append(args))
+    monkeypatch.setattr(module, "validate_us_release_data", lambda: None)
+    monkeypatch.setattr(module, "restore_foreign_public_data_in_dist", lambda: None)
+
+    module.build_us_release()
+
+    assert calls == [
+        ("python3", "scripts/bootstrap_build_python.py"),
+        ("npx", "astro", "build"),
+        ("node", "scripts/inject_public_js_version.mjs", "dist"),
+    ]
+    assert ("npm", "run", "build") not in calls
+
+
+def test_us_close_commit_precedes_release_build():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    publish_block = source[source.index('write_state("validated", trade_date=new)'):]
+    assert publish_block.index("push_compass_commit()") < publish_block.index("build_us_release()")
+
+
+def test_recovery_validation_is_not_coupled_to_a_share_batch_gate():
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    recovery = source[source.index('if action == "recover"'):source.index('if action == "noop"')]
+    assert "validate_us_release_data()" in recovery
+    assert "validate_dashboard_batches.py" not in recovery
+
+
+def test_us_release_validator_rejects_cross_date_payload(tmp_path, monkeypatch):
+    data = tmp_path / "public/data"
+    data.mkdir(parents=True)
+    payloads = {
+        "us-etf-pool.json": {"model_date": "2026-09-10", "session_state": "closed"},
+        "us-etf-garden.json": {"date": "2026-09-10", "stage": "美股收盘版", "session_state": "closed"},
+        "us-compass-health.json": {"model_date": "2026-09-09"},
+        "us-macro-dashboard.json": {"primary_data_date": "2026-09-10"},
+    }
+    for name, payload in payloads.items():
+        (data / name).write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(module, "REPO", tmp_path)
+
+    try:
+        module.validate_us_release_data()
+    except RuntimeError as error:
+        assert "health model_date" in str(error)
+    else:
+        raise AssertionError("cross-date US release must fail closed")
+
+
 def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):
     state = tmp_path / "publisher.json"
     monkeypatch.setattr(module, "STATE", state)

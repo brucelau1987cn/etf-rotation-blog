@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -40,6 +41,7 @@ FILES = [
     "public/data/catalog.json",
 ]
 US_OWNED_FILES = [path for path in FILES if path != "public/data/catalog.json"]
+BUILD_PYTHON = ".build-venv/bin/python"
 OWNED_COMMIT_PREFIXES = (
     "data: update US ETF Compass for ",
     "data: recover US ETF Compass close for ",
@@ -81,6 +83,59 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         detail = result.stderr.strip() or result.stdout.strip() or "no command output"
         raise RuntimeError(f"command failed ({result.returncode}): {' '.join(args)}\n{detail}")
     return result
+
+
+def validate_us_release_data() -> None:
+    """Fail closed on the US close edition without coupling to A-share batches."""
+    data = REPO / "public/data"
+    pool = json.loads((data / "us-etf-pool.json").read_text(encoding="utf-8"))
+    garden = json.loads((data / "us-etf-garden.json").read_text(encoding="utf-8"))
+    health = json.loads((data / "us-compass-health.json").read_text(encoding="utf-8"))
+    macro = json.loads((data / "us-macro-dashboard.json").read_text(encoding="utf-8"))
+    model_date = str(pool.get("model_date") or "")
+    errors: list[str] = []
+    if not model_date:
+        errors.append("pool model_date is missing")
+    if pool.get("session_state") != "closed":
+        errors.append("pool session_state must be closed")
+    if garden.get("date") != model_date or garden.get("session_state") != "closed" or garden.get("stage") != "美股收盘版":
+        errors.append("garden close identity differs from pool")
+    if health.get("model_date") != model_date:
+        errors.append("health model_date differs from pool")
+    macro_date = str(macro.get("primary_data_date") or macro.get("date") or model_date)
+    if macro_date != model_date:
+        errors.append("macro primary date differs from pool")
+    if errors:
+        raise RuntimeError("invalid US release data: " + "; ".join(errors))
+
+
+def restore_foreign_public_data_in_dist() -> None:
+    """Keep concurrent cron artifacts out of this publisher's deployment."""
+    owned = set(US_OWNED_FILES)
+    status = run("git", "status", "--porcelain", "--", "public/data").stdout.splitlines()
+    for line in status:
+        relative = line[3:].strip()
+        if " -> " in relative:
+            relative = relative.split(" -> ", 1)[1]
+        if not relative or relative in owned:
+            continue
+        lookup = run("git", "ls-tree", "--name-only", "HEAD", "--", relative)
+        if lookup.stdout.strip() != relative:
+            continue
+        target = REPO / "dist" / Path(relative).relative_to("public")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(["git", "show", f"HEAD:{relative}"], cwd=REPO, capture_output=True, check=True)
+        target.write_bytes(result.stdout)
+
+
+def build_us_release() -> None:
+    """Build a validated US release while A-share batches converge independently."""
+    validate_us_release_data()
+    run("python3", "scripts/bootstrap_build_python.py")
+    shutil.rmtree(REPO / "dist", ignore_errors=True)
+    run("npx", "astro", "build")
+    run("node", "scripts/inject_public_js_version.mjs", "dist")
+    restore_foreign_public_data_in_dist()
 
 
 def is_ancestor(left: str, right: str) -> bool:
@@ -173,7 +228,7 @@ def main() -> None:
     if action == "recover":
         write_state("validating_recovery", trade_date=old)
         run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
-        run("python3", "scripts/validate_dashboard_batches.py")
+        validate_us_release_data()
         run("python3", "scripts/validate_public_data_contracts.py")
         # Commit only US-owned snapshots here. The waiting A-share nightly publisher
         # regenerates and commits catalog.json with both US and A final hashes.
@@ -184,7 +239,7 @@ def main() -> None:
         write_state("committed", trade_date=old, commit=commit)
         # Deploy the recovered close edition as well; commit success alone does not
         # advance etf.peekabo.cc because production uses direct Wrangler Pages deploys.
-        run("npm", "run", "build")
+        build_us_release()
         release_pages([
             "https://etf.peekabo.cc/us-compass/",
             "https://etf.peekabo.cc/us-momentum/",
@@ -236,7 +291,6 @@ def main() -> None:
 
     write_state("validated", trade_date=new)
     run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
-    run("npm", "run", "build")
     run("git", "add", *FILES)
     # Commit only when the close edition actually changed.
     status = subprocess.run(["git", "status", "--porcelain", "--", *FILES], cwd=REPO, text=True, capture_output=True, check=True)
@@ -245,6 +299,7 @@ def main() -> None:
         push_compass_commit()
     commit = run("git", "rev-parse", "HEAD").stdout.strip()
     write_state("committed", trade_date=new, commit=commit)
+    build_us_release()
     release_pages([
         "https://etf.peekabo.cc/us-compass/",
         "https://etf.peekabo.cc/us-momentum/",
