@@ -1,34 +1,34 @@
 {
-  "date": "2026-09-09",
-  "updated_at": "2026-09-09 23:25:58 CST",
-  "applies_to": "2026-09-09",
-  "data_as_of": "2026-09-09收盘qfq基线与腾讯收盘行情；22:00完成全日触发、方向、资金与资讯复核",
+  "date": "2026-09-10",
+  "updated_at": "2026-09-10 08:34:03 CST",
+  "applies_to": "2026-09-10",
+  "data_as_of": "qfq基线=2026-09-09收盘(腾讯行情22:02 CST)；盘前加入09-09 21:00→09-10 08:30隔夜窗口(美股/油/金/科技催化)",
   "level_data_as_of": "2026-09-09",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "a-share-compass-v1",
-  "idempotency_key": "CN+2026-09-09+22:00+model_v3",
-  "market_state": "2026-09-09收盘：权重与资源相对强，科技硬件高开后分化，市场未形成可确认的追涨扩散；正式池重选显示船舶、农业、油气的趋势与动量组合更优，但候选仍需回踩关键位确认。结构层与中观层均不支持把候场信号当作已执行交易。",
+  "idempotency_key": "CN+2026-09-10+08:30+model_v3",
+  "market_state": "2026-09-09收盘(08:30盘前基线): 上证3951.51(🔴+0.28%)/深成13723.32(🔴+0.15%)/创业板3354.97(🟢-0.14%)/科创50 1580.06(🟢-0.69%)权重与资源相对强, 科技硬件分化(科创50-0.69%/创业板-0.14%继续退潮), 农业/油气周期延续; 09-08沪强深弱第三日, 沪指权重护盘+深创科创回吐格局未改; 正式池91行, 22:00 selector重选plant=560710船舶ETF富国(+3.01%放量)/159825农业ETF富国(-0.13%震荡)/159309油气ETF汇添富(+1.57%中阳)三只, 162411华宝油气LOF/159985豆粕ETF华夏换出保留历史候场观察; 09-10隔夜美股三连跌(道-0.77%/纳-0.64%/标普-0.48%)+布油破101(中东升级)+现货金4400/银67.27回稳 + SK海力士+7%创新高/Meta+6.6%(AI Agent)+苹果折叠屏; 国新办今日15时十五五金融规划发布会(央行/金管/证监会/外管局同台)对冲外围砸盘, 9月CPI 9.30待发=科技股情绪仍待二次确认",
   "position": "权益10%-30%；防御/现金70%-90%",
   "position_base": "权益10%-30%；防御/现金70%-90%",
-  "mainline": "22:00正式池重选后的plant=560710船舶/159825农业/159309油气，三只均为候场；触发条件是回踩各自伏击位附近并出现止跌、资金回流，失效条件是跌破各自失效价或主题逻辑反转。全日执行=0，未触发不计持仓收益；mid_macro=0中性，canonical position=权益10%-30%/防御现金70%-90%，较日内约束放宽一档但仍不追高。",
-  "summary": "22:00收盘复核：正式池重选plant=560710/159825/159309，替换出162411/159985；全日无plant触发、无harvest、无退出、无升级，executable全零。下一交易日只在回踩伏击位并止跌确认后分批执行，跌破失效价取消候场；mid_macro=0中性，canonical position=权益10%-30%/防御现金70%-90%。结论：保持候场，禁止把候选重选当成已买入，等待回踩确认。",
+  "mainline": "08:30盘前保持22:00重选plant=560710船舶/159825农业/159309油气三只候场; 触发条件=回踩各自伏击位(0.962/0.762/1.436)附近止跌确认+30分钟级别资金回流, 失效条件=跌破失效价(0.916/0.745/1.419)或主题逻辑反转; 全日未触发不计实现收益; mid_macro=0中性, canonical position=权益10%-30%/防御现金70%-90%, 较日内可放宽但仍不追高; 隔夜美股三连跌+布油破101为09-10早盘外围压力, 国新办15时发布会与9月CPI为盘中两类对冲, 注意高位科技(光模块/半导体)继续退潮风险",
+  "summary": "08:30盘前: 09-09收盘qfq基线=上证3951.51(+0.28%)/深成13723.32(+0.15%)/科创50 1580.06(-0.69%), 权重资源相对强、科技分化; plant=560710船舶/159825农业/159309油气三只候场不变(22:00收盘重选结果), 全部等待回踩伏击位(0.962/0.762/1.436)止跌确认; 隔夜美股三连跌+布油破101(中东)+现货金4400回升+SK海力士+7%/Meta+6.6%(AI Agent)+苹果折叠屏, 国新办今日15时十五五金融规划发布会+9月CPI 9.30为盘中两类对冲催化; executable全零, 候场≠持仓; mid_macro=0中性, canonical position=权益10%-30%/防御现金70%-90%; 结论: 保持候场, 早盘外围压力下只回踩不追, 国新办15时发布会与9月CPI之前禁止升级plant, 高位科技(光模块/半导体)严禁追高",
   "data_quality": {
-    "generated_at": "2026-09-09 22:04:00 CST",
-    "return_basis_disclosure": "qfq基线=2026-09-09收盘；候选方向按当日收盘变化，未触发候场不计实现收益；OHLC来自腾讯行情，缺失字段不填零",
+    "generated_at": "2026-09-10 08:34:00 CST",
+    "return_basis_disclosure": "qfq基线=2026-09-09收盘；候选方向按当日收盘变化；08:30为盘前计划，未触发候场不计实现收益；OHLC来自腾讯行情直采，缺失字段不填零",
     "latest_trade_date": "2026-09-09",
     "quote_date": "2026-09-09",
     "level_data_as_of": "2026-09-09",
     "qfq_coverage": 91,
     "pool_count": 91,
-    "pool_evaluation_date": "2026-09-09"
+    "pool_evaluation_date": "2026-09-10"
   },
   "source_audit": {
-    "iwencai_news": "22:00以多Key包装器调用IWENCAI_APIKEYS轮询池检索2026-09-09收盘ETF、板块资金与公告资讯；结果与腾讯收盘行情交叉校验，未采用无法与行情基线吻合的叙述",
-    "tencent_quote": "2026-09-09收盘由腾讯qt.gtimg.cn直采；quote_as_of=2026-09-09 22:02 CST",
+    "iwencai_news": "盘前以多Key包装器调用IWENCAI_APIKEYS轮询池检索2026-09-10开盘/隔夜美股/AI存储/CPI/国新办发布会/十五五金融规划；与腾讯收盘行情基线交叉校验，未采用无法与qfq吻合的叙述",
+    "tencent_quote": "2026-09-09收盘由腾讯qt.gtimg.cn直采；quote_as_of=2026-09-09 16:14 CST",
     "fallback": "D1 exchange calendar",
-    "data_scope": "全91池qfq基线；plant=560710船舶/159825农业/159309油气三只；watch为历史候场与主题观察",
-    "iwencai_market_query": "多Key包装器调用IWENCAI_APIKEYS轮询池, 隔夜美股/光通信/CPI校验",
-    "quote_sources": "腾讯行情直采 qt.gtimg.cn；部分指数与ETF字段若无返回则披露缺口，不解释为空零资金"
+    "data_scope": "全91池qfq基线；plant=560710船舶/159825农业/159309油气三只候场(09-09 22:00收盘重选结果)；watch=34只含科技硬件退潮观察与海外映射/防御/替代候场",
+    "iwencai_market_query": "多Key包装器调用IWENCAI_APIKEYS轮询池, 隔夜美股/光通信/油/金/苹果折叠屏/DeepSeek新模型/十五五金融规划校验",
+    "quote_sources": "腾讯行情直采 qt.gtimg.cn；指数/ETF基线若无返回则披露缺口，不解释为零资金"
   },
   "harvest": [],
   "plant": [
@@ -57,11 +57,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-09",
+      "selected_from_pool_date": "2026-09-10",
       "selection_score": 91.73,
       "selection_rank": 1,
       "candidate_since": "2026-09-09",
-      "last_qualified_date": "2026-09-09",
+      "last_qualified_date": "2026-09-10",
       "qualified_reason": [
         "趋势B",
         "信号得分77.2",
@@ -97,11 +97,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-09",
+      "selected_from_pool_date": "2026-09-10",
       "selection_score": 88.76,
       "selection_rank": 2,
       "candidate_since": "2026-09-07",
-      "last_qualified_date": "2026-09-09",
+      "last_qualified_date": "2026-09-10",
       "qualified_reason": [
         "趋势B",
         "信号得分74.8",
@@ -137,11 +137,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-09",
+      "selected_from_pool_date": "2026-09-10",
       "selection_score": 84.21,
       "selection_rank": 3,
       "candidate_since": "2026-09-09",
-      "last_qualified_date": "2026-09-09",
+      "last_qualified_date": "2026-09-10",
       "qualified_reason": [
         "趋势B",
         "信号得分71.1",
@@ -362,20 +362,20 @@
   "intraday_0830": {
     "stage": "08:30盘前版",
     "status": "complete",
-    "quote_date": "2026-09-08",
-    "quote_as_of": "2026-09-08 16:14 CST",
+    "quote_date": "2026-09-09",
+    "quote_as_of": "2026-09-09 16:14 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0,
       "plant_codes": [
-        "162411",
+        "560710",
         "159825",
-        "159985"
+        "159309"
       ],
       "plant_names": [
-        "华宝油气LOF",
+        "船舶ETF富国",
         "农业ETF富国",
-        "豆粕ETF华夏"
+        "油气ETF汇添富"
       ],
       "harvest_codes": []
     },
@@ -387,17 +387,17 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "昨日高低切换兑现第二日, 3417涨/2026跌, 涨停74-75家封板率降至约65%, 农业/油气/化工周期扛旗(农化+4.71%/油气+4.23%), 高位科技(光模块/半导体)继续退潮, 主力净流出电子-82.9亿转流入基础化工+38.5亿/有色+33.4亿",
-    "morning_session_summary": "09-08沪强深弱高低切换, 沪指+0.20%权重护盘/深成-0.52%/创业板-1.15%/科创50-1.52%, 成交1.96万亿, 农业油气化工周期扛旗, 高位科技退潮",
+    "breadth": "09-09收盘qfq基线: 沪强深弱第三日, 上证3951.51(🔴+0.28%)/深成13723.32(🔴+0.15%)/创业板3354.97(🟢-0.14%)/科创50 1580.06(🟢-0.69%)/沪深300 4572.6(🔴+0.30%)/中证500 7768.11(🟢-0.03%); 周期资源相对强(560710船舶+3.01%/159309油气+1.57%/512800银行+0.36%/515180红利企稳), 科技硬件分化退潮(515880通信+0.89%/512480半导体-0.51%/561980半导体设备-0.61%/588000科创50-0.59%)",
+    "morning_session_summary": "08:30盘前计划; 等11:30午前修正窗口接管",
     "triggered_actions": [],
-    "overnight_news": "隔夜窗口(09-07 21:00→09-08 08:30): 1)美股09-07劳工节休市, 期指假日清淡交投: 道指期货-0.62%/标普期货-0.17%/纳指100期货+0.13%; 2)美伊冲突持续+OPEC+供应收紧推国际油价周一集体上涨: WTI +1.33%报92.7美元(站稳92上方)/布伦特+1.07%报97.31后突破98(+1.81%); 3)LME铜暴涨突破14530美元/吨创历史新高; 4)贵金属承压: 现货金-0.58%报4404.30(纽约尾盘回升至4420一线/日内转+0.31%)/COMEX金期货-0.55%报4452, 美联储9月加息预期升温压制; COMEX银+0.1%报66.815; 5)美元指数跌破98(-0.26%); 6)特朗普威胁禁止销售庞巴迪飞机, 加拿大周二(09-08)起对数百种美国产品征15-50%关税, 美加贸易战升级; 7)伊朗公布新型弹道导弹卡西姆·巴希尔, 外长称数日内就霍尔木兹海峡临时通道达成协议(油价短线回落风险); 8)巴拿马运河干旱: 通航量或于明年初从32艘降至约29艘/日(航运供应链); 9)国内商品夜盘: 甲醇连续主力+2%报3232元",
+    "overnight_news": "隔夜窗口(09-09 21:00→09-10 08:30): 1)美股09-09(周三)三连跌: 道指收52380.66跌0.77%/纳指26253.34跌0.64%/标普500 7636.36跌0.48%(标普三连阴), 工业+非必需消费品领跌, 英伟达/亚马逊/Alphabet领跌纳指100-0.3%; 2)中东冲突升级推油价: 布伦特原油7月以来首次破101美元/桶收101.21(+3.36%)/WTI收96.05(+3.25%)创5月22日以来最高; 3)贵金属回稳: 现货金4400.29(+1.02%结束三连跌)/现货银67.2718(+2.30%); 4)美股结构性亮点: SK海力士美股+7%创新高报198.63美元(总市值1.45万亿美元, 存储链景气持续)/Meta+6.6%(发布AI智能体Muse)/存储/光通信板块走高; 苹果折叠屏iPhone发布后-0.28%(新CEO特努斯时代开启); 5)周五CPI公布前市场谨慎: 摩根大通美国市场情报部门预计若核心月度CPI＞0.3%则标普500将下跌1.5%-2.5%; 6)美元指数走强+欧股重挫(德法跌超1.7%)+澳大利亚S&P/ASX200早盘-1.3%, 全球风险偏好收缩; 7)今日国新办15时十五五金融规划发布会: 央行副行长陆磊/金管总局副局长丛林/证监会副主席李超/外管局副局长李斌同台, 可能释放金融政策利好; 8)深科技公告子公司拟投资18.5亿元扩大高端存储芯片封测产能(映射存储链); 9)DeepSeek预计今日前后发布新模型(科技硬件催化); 10)日本农林水产省宣布10月起将进口小麦价格上调12%, 叠加厄尔尼诺=小麦/种业涨价逻辑延续",
     "note": "本日08:30盘前计划; 等11:30午前修正窗口接管",
-    "price_date": "2026-09-08",
-    "generated_at": "2026-09-09 08:34:54 CST"
+    "price_date": "2026-09-09",
+    "generated_at": "2026-09-10 08:34:00 CST"
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "complete",
+    "status": "not_published",
     "quote_date": "2026-09-09",
     "quote_as_of": "2026-09-09 11:30 CST",
     "prepared": {
@@ -456,15 +456,17 @@
         "trigger_status": "未触发(距伏击位3.3%)",
         "direction": "flat"
       }
-    ]
+    ],
+    "note": "本日窗口未发布"
   },
   "intraday_1430": {
     "status": "not_published",
     "stage": "14:30尾盘操作版",
-    "note": "本日14:30窗口未单独发布，22:00统一复核收盘结果"
+    "note": "本日窗口未发布",
+    "breadth": "待2026-09-10 14:30后更新"
   },
   "nightly_2200": {
-    "status": "complete",
+    "status": "not_published",
     "stage": "22:00夜间最终版",
     "quote_date": "2026-09-09",
     "quote_as_of": "2026-09-09 22:02 CST",
@@ -495,10 +497,10 @@
       ],
       "reason": "22:00以当日91行正式池重选，入选资格与动量排名变化；159825继续满足当前资格"
     },
-    "note": "全日无实际执行；plant候场不计hold，现金扫尾窗口无遗漏"
+    "note": "本日窗口未发布"
   },
   "mid_macro": {
-    "generated_at": "2026-09-09 23:25:58 CST",
+    "generated_at": "2026-09-10 08:34:03 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
@@ -511,14 +513,14 @@
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.5,
-        "headline": "固收/权益5日相对中性-0.36pp"
+        "headline": "固收/权益5日相对中性-0.30pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.25,
-        "headline": "海外映射ETF 5日+1.68%"
+        "headline": "海外映射ETF 5日+1.73%"
       },
       {
         "key": "margin_financing",
@@ -535,7 +537,7 @@
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-09-09",
+    "evaluation_date": "2026-09-10",
     "evaluated_count": 91,
     "eligible_count": 13,
     "selected_count": 3,
@@ -564,13 +566,13 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-09-09",
+    "selected_from_pool_date": "2026-09-10",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
     "removed_codes": []
   },
-  "category": "22:00-nightly-final",
+  "category": "08:30-premarket",
   "candidate_swap": {
     "from": [],
     "to": [],
