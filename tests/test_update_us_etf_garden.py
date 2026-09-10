@@ -63,7 +63,7 @@ def test_owned_commit_subject_accepts_normal_and_recovery_commits():
 
 
 def test_recovery_scope_excludes_catalog_and_includes_synced_paper_projection():
-    assert "public/data/catalog.json" in module.FILES
+    assert "public/data/catalog.json" not in module.FILES
     assert "public/data/catalog.json" not in module.US_OWNED_FILES
     assert "public/data/us-etf-garden.json" in module.US_OWNED_FILES
     assert "public/data/paper-trading.json" in module.FILES
@@ -83,6 +83,7 @@ def test_us_release_build_is_independent_from_a_share_batch_gate(monkeypatch):
     calls = []
     monkeypatch.setattr(module, "run", lambda *args, **kwargs: calls.append(args))
     monkeypatch.setattr(module, "validate_us_release_data", lambda: None)
+    monkeypatch.setattr(module, "validate_us_public_contracts", lambda: None)
     monkeypatch.setattr(module, "restore_foreign_public_data_in_dist", lambda: None)
 
     module.build_us_release()
@@ -106,7 +107,7 @@ def test_recovery_validation_is_not_coupled_to_a_share_batch_gate():
     recovery = source[source.index('if action == "recover"'):source.index('if action == "noop"')]
     assert "validate_us_release_data()" in recovery
     assert "validate_dashboard_batches.py" not in recovery
-    assert "validate_public_data_contracts.py" not in recovery
+    assert "validate_public_data_contracts.py" in source
 
 
 def test_us_release_validator_rejects_nonfinite_owned_json(tmp_path, monkeypatch):
@@ -137,7 +138,7 @@ def test_us_release_validator_rejects_cross_date_payload(tmp_path, monkeypatch):
         "us-etf-pool.json": {"model_date": "2026-09-10", "session_state": "closed"},
         "us-etf-garden.json": {"date": "2026-09-10", "stage": "美股收盘版", "session_state": "closed"},
         "us-compass-health.json": {"model_date": "2026-09-09"},
-        "us-macro-dashboard.json": {"primary_data_date": "2026-09-10"},
+        "us-macro-dashboard.json": {},
     }
     for name, payload in payloads.items():
         (data / name).write_text(json.dumps(payload), encoding="utf-8")

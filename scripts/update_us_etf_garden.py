@@ -38,9 +38,8 @@ FILES = [
     "public/data/us-compass-shadow.json",
     "public/data/us-compass-health.json",
     "public/data/paper-trading.json",
-    "public/data/catalog.json",
 ]
-US_OWNED_FILES = [path for path in FILES if path != "public/data/catalog.json"]
+US_OWNED_FILES = list(FILES)
 BUILD_PYTHON = ".build-venv/bin/python"
 OWNED_COMMIT_PREFIXES = (
     "data: update US ETF Compass for ",
@@ -111,11 +110,33 @@ def validate_us_release_data() -> None:
         errors.append("garden close identity differs from pool")
     if health.get("model_date") != model_date:
         errors.append("health model_date differs from pool")
-    macro_date = str(macro.get("primary_data_date") or macro.get("date") or model_date)
+    macro_date = str(macro.get("primary_data_date") or macro.get("date") or "")
+    if not macro_date:
+        errors.append("macro primary date is missing")
     if macro_date != model_date:
         errors.append("macro primary date differs from pool")
     if errors:
         raise RuntimeError("invalid US release data: " + "; ".join(errors))
+
+
+def validate_us_public_contracts() -> None:
+    """Run the broad validator while allowing only known foreign drift."""
+    result = run("python3", "scripts/validate_public_data_contracts.py", check=False)
+    if result.returncode == 0:
+        return
+    allowed = {
+        "catalog paper-trading sha256 mismatch",
+        "catalog paper-trading metadata differs from source dataset",
+        "a-compass-dashboard differs from etf-garden-pool export",
+    }
+    try:
+        payload = json.loads(result.stdout)
+        errors = payload.get("errors") or []
+    except json.JSONDecodeError as error:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip()) from error
+    unexpected = [error for error in errors if error not in allowed]
+    if unexpected:
+        raise RuntimeError("US public contract validation failed: " + "; ".join(unexpected))
 
 
 def restore_foreign_public_data_in_dist() -> None:
@@ -129,9 +150,10 @@ def restore_foreign_public_data_in_dist() -> None:
         if not relative or relative in owned:
             continue
         lookup = run("git", "ls-tree", "--name-only", "HEAD", "--", relative)
-        if lookup.stdout.strip() != relative:
-            continue
         target = REPO / "dist" / Path(relative).relative_to("public")
+        if lookup.stdout.strip() != relative:
+            target.unlink(missing_ok=True)
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         result = subprocess.run(["git", "show", f"HEAD:{relative}"], cwd=REPO, capture_output=True, check=True)
         target.write_bytes(result.stdout)
@@ -140,6 +162,7 @@ def restore_foreign_public_data_in_dist() -> None:
 def build_us_release() -> None:
     """Build a validated US release while A-share batches converge independently."""
     validate_us_release_data()
+    validate_us_public_contracts()
     run("python3", "scripts/bootstrap_build_python.py")
     shutil.rmtree(REPO / "dist", ignore_errors=True)
     run("npx", "astro", "build")
@@ -238,6 +261,7 @@ def main() -> None:
         write_state("validating_recovery", trade_date=old)
         run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         validate_us_release_data()
+        validate_us_public_contracts()
         # Commit only US-owned snapshots here. The waiting A-share nightly publisher
         # regenerates and commits catalog.json with both US and A final hashes.
         run("git", "add", *US_OWNED_FILES)
