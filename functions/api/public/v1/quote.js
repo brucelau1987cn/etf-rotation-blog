@@ -9,7 +9,7 @@ import {
   computeChipDistributionSeries,
 } from './_chip.js';
 import { fetchKlineFromBaoStock } from './_baostock.js';
-import { handleThsInternal } from './ths.js';
+import { handleThsInternal } from './_ths.js';
 
 export {
   fetchKlineFromTencent,
