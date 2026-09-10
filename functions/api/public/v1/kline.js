@@ -3,6 +3,34 @@
  * 支持 A股、港股、美股及期货全市场极速行情，具备【腾讯 -> 新浪 -> 雪球】三源全自动降级容错
  */
 
+import {
+  fetchKlineFromTencent,
+  computeChipDistribution,
+  computeChipDistributionSeries,
+} from './_chip.js';
+import { fetchKlineFromBaoStock } from './_baostock.js';
+import { handleThsInternal } from './_ths.js';
+
+export {
+  fetchKlineFromTencent,
+  computeChipDistribution,
+  computeChipDistributionSeries,
+} from './_chip.js';
+export { fetchKlineFromBaoStock } from './_baostock.js';
+
+const CHIP_CACHE_TTL_MS = 15 * 60 * 1000;
+const CHIP_CACHE_MAX_ENTRIES = 200;
+const chipCache = new Map(); // key -> { payload, storedAt, expiresAt, promise }
+export function clearChipCache() {
+  chipCache.clear();
+}
+
+function trimChipCache() {
+  while (chipCache.size > CHIP_CACHE_MAX_ENTRIES) {
+    chipCache.delete(chipCache.keys().next().value);
+  }
+}
+
 let cachedXqToken = null;
 let xqTokenExpireAt = 0;
 
@@ -255,6 +283,11 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
   const s = rawSymbol.trim();
   if (!s) return null;
 
+  const yahooAlias = { 'SI=F': 'hf_XAG', 'GC=F': 'hf_XAU', 'CL=F': 'hf_CL' }[s.toUpperCase()];
+  if (yahooAlias) {
+    return { tencent: yahooAlias, sina: yahooAlias, xueqiu: yahooAlias, displayCode: s.toUpperCase(), type: 'futures' };
+  }
+
   if (s.includes('.')) {
     const parts = s.split('.');
     const code = parts[0];
@@ -269,7 +302,7 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
       return { tencent: `us${normalized}`, sina: `gb_${normalized.toLowerCase()}`, xueqiu: normalized, displayCode: normalized, type: 'us' };
     }
     if (ex === 'SZ' || ex === 'SZSE') return { tencent: `sz${code}`, sina: `sz${code}`, xueqiu: `SZ${code}`, displayCode: code, type: 'a' };
-    if (ex === 'SH' || ex === 'SSE') return { tencent: `sh${code}`, sina: `sh${code}`, xueqiu: `SH${code}`, displayCode: code, type: 'a' };
+    if (ex === 'SH' || ex === 'SS' || ex === 'SSE') return { tencent: `sh${code}`, sina: `sh${code}`, xueqiu: `SH${code}`, displayCode: code, type: 'a' };
     if (ex === 'BJ') return { tencent: `bj${code}`, sina: `bj${code}`, xueqiu: `BJ${code}`, displayCode: code, type: 'a' };
   }
 
@@ -283,11 +316,6 @@ export function parseSymbol(rawSymbol, defaultExchange = 'SSE') {
   if (upper === 'DINIW' || upper === 'DXY' || upper === 'USDINDEX') {
     return { tencent: 'DINIW', sina: 'DINIW', xueqiu: 'DINIW', displayCode: 'DINIW', type: 'fx' };
   }
-
-  // Yahoo-style continuous futures aliases → Sina wire codes (silver spot SI=F → hf_XAG).
-  const YAHOO_ALIAS = { 'SI=F': 'hf_XAG', 'GC=F': 'hf_XAU', 'CL=F': 'hf_CL' };
-  const alias = YAHOO_ALIAS[upper];
-  if (alias) return { tencent: alias, sina: alias, xueqiu: alias, displayCode: upper, type: 'futures' };
 
   if (/^\d{5}$/.test(s)) return { tencent: `hk${s}`, sina: `hk${s}`, xueqiu: s, displayCode: s, type: 'hk' };
   if (/^[A-Za-z]{1,5}$/.test(s)) return { tencent: `us${s}`, sina: `gb_${s.toLowerCase()}`, xueqiu: s.toUpperCase(), displayCode: s.toUpperCase(), type: 'us' };
@@ -834,8 +862,8 @@ export async function fetchQuote(symbolsStr, defaultExchange = 'SSE') {
 const KLINE_CACHE_TTL_MS = 15000;
 const klineCache = new Map(); // key -> { expiresAt, payload, storedAt }
 
-function normalizeKlineCacheKey(symbol, limit, at) {
-  return `kline1m|${String(symbol || '').toUpperCase()}|${limit || 240}|${at || ''}`;
+function normalizeKlineCacheKey(symbol, limit, at, interval = '1m', range = '1d') {
+  return `kline|${String(symbol || '').toUpperCase()}|${interval}|${range}|${limit || 240}|${at || ''}`;
 }
 
 function readKlineCache(key) {
@@ -1085,67 +1113,6 @@ async function fetchSinaMinuteBars(parsed, limit = 480) {
   }
 }
 
-/** Yahoo Finance futures symbol mapping for 1m kline. */
-const YAHOO_FUTURES_SYMBOL = {
-  'hf_XAG': 'SI=F',
-  'hf_XAU': 'GC=F',
-  'hf_CL': 'CL=F',
-  'nf_AU0': 'GC=F',
-  'nf_SC0': 'CL=F',
-  'nf_M0': 'ZS=F',
-};
-
-async function fetchYahooMinuteBars(parsed, limit = 240) {
-  const yahooSymbol = YAHOO_FUTURES_SYMBOL[parsed.sina] || YAHOO_FUTURES_SYMBOL[parsed.tencent];
-  if (!yahooSymbol) return [];
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1d&interval=1m`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 ETF-Compass/1.0' },
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`Yahoo kline HTTP ${res.status}`);
-    const payload = await res.json();
-    return parseYahooMinuteBars(payload, limit);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function parseYahooMinuteBars(payload, limit) {
-  const result = payload?.chart?.result?.[0];
-  if (!result) return [];
-  const timestamps = result.timestamp || [];
-  const quote = result.indicators?.quote?.[0];
-  if (!quote || !timestamps.length) return [];
-
-  const bars = [];
-  const len = Math.min(timestamps.length, limit);
-  for (let i = Math.max(0, timestamps.length - len); i < timestamps.length; i++) {
-    const ts = timestamps[i];
-    const close = quote.close?.[i];
-    if (close == null) continue;
-    // Yahoo timestamps are UTC; convert to Shanghai time for minute key.
-    const shDt = new Date(new Date(ts * 1000).getTime() + 8 * 3600000);
-    const minuteKey = shDt.toISOString().slice(0, 16).replace('T', ' ');
-    const isoTime = shDt.toISOString().slice(0, 19) + '+08:00';
-    bars.push({
-      minute: minuteKey,
-      time: isoTime,
-      open: quote.open?.[i] ?? close,
-      high: quote.high?.[i] ?? close,
-      low: quote.low?.[i] ?? close,
-      close,
-      volume: 0,
-      source: 'yahoo-1m',
-    });
-  }
-  return bars;
-}
-
 /**
  * Fetch 1-minute bars for one symbol via Cloudflare edge upstreams.
  * Sources: Sina 1m K first, Tencent minute/m1 as fill.
@@ -1153,33 +1120,9 @@ function parseYahooMinuteBars(payload, limit) {
 export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExchange = 'SSE' } = {}) {
   const parsed = parseSymbol(symbol, defaultExchange);
   if (!parsed) throw new Error('invalid symbol');
-
-  if (parsed.type === 'futures') {
-    const bars = await fetchYahooMinuteBars(parsed, Math.max(limit, at ? 800 : 240));
-    if (!bars.length) throw new Error('no 1m bars available for futures symbol');
-    const bar = at ? pickMinuteBar(bars, at) : bars[bars.length - 1];
-    const clipped = bars.slice(Math.max(0, bars.length - limit));
-    if (bar && !clipped.some((item) => item.minute === bar.minute)) {
-      clipped.unshift(bar);
-      clipped.sort((a, b) => a.minute.localeCompare(b.minute));
-    }
-    return {
-      status: 'ok',
-      interval: '1m',
-      symbol: parsed.displayCode,
-      sec_code: parsed.tencent,
-      source: 'yahoo-1m',
-      count: clipped.length,
-      at: at || null,
-      at_minute: at ? normalizeShanghaiMinuteKey(at) : null,
-      bar: bar || null,
-      bars: clipped,
-    };
-  }
-
-  if (parsed.type !== 'a' && parsed.type !== 'hk') {
-    // First ship A-share/ETF and HK 1m only; US/futures can be added later.
-    throw new Error('1m kline currently supports A-share/ETF and HK symbols only');
+  if (parsed.type !== 'a') {
+    // First ship A-share/ETF 1m only; HK/US/futures can be added later.
+    throw new Error('1m kline currently supports A-share/ETF symbols only');
   }
 
   const errors = [];
@@ -1227,22 +1170,251 @@ export async function fetchKline1m(symbol, { limit = 240, at = null, defaultExch
   };
 }
 
+const TWO_YEARS_MS = 730 * 86400000;
+
+function requestedRangeStart(range, nowMs = Date.now()) {
+  return range === '2y' ? nowMs - TWO_YEARS_MS : null;
+}
+
+function historicalCoverage(bars, requestedStartMs) {
+  if (!bars.length) return { actualRange: null, complete: false };
+  const start = bars[0].timestamp;
+  const end = bars.at(-1).timestamp;
+  return {
+    actualRange: { start: new Date(start).toISOString(), end: new Date(end).toISOString() },
+    complete: start <= requestedStartMs + (7 * 86400000),
+  };
+}
+
+function yahooKlineSymbol(parsed) {
+  if (parsed.type === 'hk' && /^\d+$/.test(parsed.displayCode)) return `${Number(parsed.displayCode)}.HK`;
+  if (parsed.type === 'a') return `${parsed.displayCode}.${parsed.tencent.startsWith('sz') ? 'SZ' : 'SS'}`;
+  return null;
+}
+
+function parseYahooHistoricalBars(payload) {
+  const result = payload?.chart?.result?.[0];
+  const timestamps = result?.timestamp;
+  const quote = result?.indicators?.quote?.[0];
+  if (!Array.isArray(timestamps) || !quote) return [];
+  return timestamps.flatMap((seconds, index) => {
+    const values = [quote.open?.[index], quote.high?.[index], quote.low?.[index], quote.close?.[index]].map(Number);
+    if (!(seconds > 0) || !values.every(Number.isFinite)) return [];
+    const timestamp = seconds * 1000;
+    return [{ timestamp, time: new Date(timestamp).toISOString(), open: values[0], high: values[1], low: values[2], close: values[3], volume: Number(quote.volume?.[index]) || 0, source: 'yahoo' }];
+  }).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function parseSinaHistoricalBars(payload) {
+  if (!Array.isArray(payload)) return [];
+  return payload.flatMap((row) => {
+    const minute = normalizeShanghaiMinuteKey(row?.day);
+    const values = [row?.open, row?.high, row?.low, row?.close].map(Number);
+    if (!minute || !values.every(Number.isFinite)) return [];
+    const time = toShanghaiIsoMinute(minute);
+    return [{ timestamp: Date.parse(time), minute, time, open: values[0], high: values[1], low: values[2], close: values[3], volume: Number(row?.volume) || 0, source: 'sina' }];
+  }).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+async function fetchHistoricalBars(parsed, interval, range) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    if (parsed.type === 'a') {
+      const scale = interval === '30m' ? 30 : 60;
+      const url = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${encodeURIComponent(parsed.sina)}&scale=${scale}&ma=no&datalen=5000`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://finance.sina.com.cn/' }, signal: controller.signal });
+      if (!res.ok) throw new Error(`Sina historical kline HTTP ${res.status}`);
+      return { source: 'sina', bars: parseSinaHistoricalBars(await res.json()) };
+    }
+    if (parsed.type === 'hk') {
+      const yahooSymbol = yahooKlineSymbol(parsed);
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }, signal: controller.signal });
+      if (!res.ok) throw new Error(`Yahoo historical kline HTTP ${res.status}`);
+      return { source: 'yahoo', bars: parseYahooHistoricalBars(await res.json()) };
+    }
+    throw new Error('unsupported historical symbol');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchHistoricalKline(symbol, { interval, range, defaultExchange = 'SSE', nowMs = Date.now() } = {}) {
+  const parsed = parseSymbol(symbol, defaultExchange);
+  if (!parsed || parsed.type === 'unknown') throw new Error('unsupported symbol');
+  const requestedStart = requestedRangeStart(range, nowMs);
+  const result = await fetchHistoricalBars(parsed, interval, range);
+  const bars = result.bars.filter((bar) => bar.timestamp >= requestedStart - 86400000 && bar.timestamp <= nowMs + 60000);
+  if (!bars.length) throw new Error('empty historical kline response');
+  const coverage = historicalCoverage(bars, requestedStart);
+  return {
+    status: 'ok', interval, requested_interval: interval, actual_interval: interval,
+    requested_range: range, actual_range: coverage.actualRange,
+    symbol: parsed.displayCode, sec_code: parsed.tencent, source: result.source,
+    count: bars.length, complete: coverage.complete, bar: bars.at(-1), bars,
+  };
+}
+
 /**
  * Cloudflare Pages Functions entry (functions/api/public/v1/quote.js or kline.js)
  * and Workers entry (export default.fetch) share this handler.
  */
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const path = url.pathname || '';
+  if (/\/api\/internal\/v1\/ths(?:\/|$)/i.test(path)) {
+    return handleThsInternal({ request, env });
+  }
   const isKline = /\/kline(?:\.js)?$/i.test(path) || url.searchParams.get('mode') === 'kline';
+  const isChip = /\/chip(?:\.js)?$/i.test(path);
+
+  if (isChip) {
+    const symbol = url.searchParams.get('symbol') || url.searchParams.get('symbols') || '';
+    const adjust = url.searchParams.get('adjust') || '';
+    const provider = url.searchParams.get('provider') || 'auto';
+    const limitRaw = url.searchParams.get('limit') || '90';
+    const limit = Number(limitRaw);
+    const bypassCache = url.searchParams.get('nocache') === '1' || url.searchParams.get('refresh') === '1';
+    const cacheKey = `${symbol}:${adjust}:${limit}:${provider}`;
+    const headers = {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'public, max-age=300, s-maxage=900, stale-while-revalidate=3600',
+      'access-control-allow-origin': '*',
+      'x-content-type-options': 'nosniff',
+      'x-chip-cache-ttl-ms': String(CHIP_CACHE_TTL_MS),
+    };
+    try {
+      if (!symbol) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'symbol required' }), {
+          status: 400, headers,
+        });
+      }
+      if (!['', 'qfq', 'hfq'].includes(adjust)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'invalid adjust' }), {
+          status: 400, headers,
+        });
+      }
+      if (!['auto', 'tencent', 'baostock'].includes(provider)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'invalid provider' }), {
+          status: 400, headers,
+        });
+      }
+      if (!/^(?:[1-9]|[1-8]\d|90)$/.test(limitRaw)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'invalid limit' }), {
+          status: 400, headers,
+        });
+      }
+      if (!/^(?:00|30|60|68)\d{4}$/.test(symbol)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', message: 'unsupported symbol' }), {
+          status: 400, headers,
+        });
+      }
+      const marketCode = symbol.startsWith('6') ? 1 : 0;
+      const secid = `${marketCode}.${symbol}`;
+      const now = Date.now();
+      const cached = chipCache.get(cacheKey);
+      if (!bypassCache) {
+        if (cached?.payload && cached.expiresAt > now) {
+          headers['x-chip-cache'] = 'HIT';
+          headers['x-chip-cache-age-ms'] = String(now - cached.storedAt);
+          return new Response(JSON.stringify(cached.payload), { status: 200, headers });
+        }
+      }
+      if (cached?.promise) {
+        const payload = await cached.promise;
+        headers['x-chip-cache'] = 'COALESCED';
+        if (bypassCache) headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify(payload), { status: 200, headers });
+      }
+      const loadPayload = async () => {
+        let klines;
+        let source;
+        if (provider === 'baostock') {
+          source = 'baostock-tcp+local-cyq';
+          klines = await fetchKlineFromBaoStock(symbol, adjust);
+        } else {
+          source = 'tencent-kline+local-cyq';
+          try {
+            klines = await fetchKlineFromTencent(symbol, adjust);
+          } catch (tencentError) {
+            if (provider === 'tencent') throw tencentError;
+            source = 'baostock-tcp+local-cyq';
+            klines = await fetchKlineFromBaoStock(symbol, adjust);
+          }
+        }
+        const chip = computeChipDistribution(klines);
+        const comparisonSeries = computeChipDistributionSeries(klines, 2);
+        const series = computeChipDistributionSeries(klines, limit);
+        const latest = comparisonSeries.at(-1) || null;
+        const previous = comparisonSeries.at(-2) || null;
+        if (!chip || !latest) throw new Error('chip computation failed');
+        return {
+          status: 'ok', symbol, secid, adjust, provider, source,
+          algorithm: 'akshare-cyq-compatible-approximation',
+          assumptions: {
+            range_bars: 120,
+            price_bins: 150,
+            turnover_source: source.startsWith('tencent')
+              ? 'daily_volume/current_float_shares'
+              : 'baostock_daily_turnover',
+          },
+          kline_count: klines.length,
+          as_of: latest.date,
+          latest,
+          previous,
+          profit_ratio_change_pp: previous
+            ? +(latest.profit_ratio_pct - previous.profit_ratio_pct).toFixed(2)
+            : null,
+          series,
+          ...chip,
+        };
+      };
+      const promise = loadPayload();
+      chipCache.set(cacheKey, { promise });
+      trimChipCache();
+      let payload;
+      try {
+        payload = await promise;
+      } catch (error) {
+        chipCache.delete(cacheKey);
+        throw error;
+      }
+      if (!bypassCache) {
+        chipCache.set(cacheKey, {
+          payload,
+          storedAt: Date.now(),
+          expiresAt: Date.now() + CHIP_CACHE_TTL_MS,
+        });
+        trimChipCache();
+      }
+      headers['x-chip-cache'] = bypassCache ? 'BYPASS' : 'MISS';
+      if (bypassCache) headers['cache-control'] = 'no-store';
+      return new Response(JSON.stringify(payload), { status: 200, headers });
+    } catch (err) {
+      headers['cache-control'] = 'no-store';
+      console.error(JSON.stringify({ event: 'chip_error', symbol, adjust, message: err.message || 'unknown' }));
+      return new Response(JSON.stringify({ status: 'error', message: 'chip data unavailable' }), {
+        status: 502, headers,
+      });
+    }
+  }
 
   if (isKline) {
     const symbol = url.searchParams.get('symbol') || url.searchParams.get('symbols') || '';
     const exchange = (url.searchParams.get('exchange') || 'SSE').toUpperCase();
-    const limit = Math.max(1, Math.min(1000, Number(url.searchParams.get('limit') || 240) || 240));
+    const limit = Math.max(1, Math.min(5000, Number(url.searchParams.get('limit') || 240) || 240));
     const at = url.searchParams.get('at') || url.searchParams.get('time') || null;
+    const interval = url.searchParams.get('interval') || '1m';
+    const range = url.searchParams.get('range') || (interval === '1m' ? '1d' : '2y');
+    const historical = interval !== '1m' || url.searchParams.has('range');
     const bypassCache = url.searchParams.get('nocache') === '1' || url.searchParams.get('refresh') === '1';
-    const cacheKey = normalizeKlineCacheKey(symbol, limit, at);
+    const cacheKey = normalizeKlineCacheKey(symbol, limit, at, interval, range);
     const headers = {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'public, max-age=10, s-maxage=10, stale-while-revalidate=30',
@@ -1258,6 +1430,12 @@ export async function onRequestGet({ request }) {
           headers,
         });
       }
+      if (historical && (!['30m', '60m'].includes(interval) || range !== '2y' || at)) {
+        headers['cache-control'] = 'no-store';
+        return new Response(JSON.stringify({ status: 'error', code: 'INVALID_REQUEST', message: 'historical kline supports interval=30m|60m and range=2y' }), {
+          status: 400, headers,
+        });
+      }
       if (!bypassCache) {
         const hit = readKlineCache(cacheKey);
         if (hit) {
@@ -1268,9 +1446,11 @@ export async function onRequestGet({ request }) {
           return new Response(JSON.stringify(hit.payload), { status: 200, headers });
         }
       }
-      const data = await fetchKline1m(symbol, { limit, at, defaultExchange: exchange });
+      const data = historical
+        ? await fetchHistoricalKline(symbol, { interval, range, defaultExchange: exchange })
+        : await fetchKline1m(symbol, { limit, at, defaultExchange: exchange });
       // Response for fixed-time lookup can omit full bars unless include_bars=1.
-      const includeBars = url.searchParams.get('include_bars') === '1' || !at;
+      const includeBars = historical || url.searchParams.get('include_bars') === '1' || !at;
       const payload = includeBars
         ? data
         : {
@@ -1298,8 +1478,10 @@ export async function onRequestGet({ request }) {
     } catch (err) {
       headers['x-quote-cache'] = 'ERROR';
       headers['x-quote-source'] = 'none';
-      return new Response(JSON.stringify({ status: 'error', message: err.message || 'internal error' }), {
-        status: 500,
+      headers['cache-control'] = 'no-store';
+      console.error(JSON.stringify({ event: 'kline_error', symbol, interval, range, message: err.message || 'unknown' }));
+      return new Response(JSON.stringify({ status: 'error', code: 'UNAVAILABLE', message: 'kline data unavailable' }), {
+        status: 503,
         headers,
       });
     }
@@ -1394,7 +1576,7 @@ export async function onRequestGet({ request }) {
 }
 
 export default {
-  async fetch(request) {
-    return onRequestGet({ request });
+  async fetch(request, env) {
+    return onRequestGet({ request, env });
   },
 };

@@ -14,6 +14,7 @@ const chipSource = join(sourceRoot, 'src', 'chip.js');
 const baostockSource = join(sourceRoot, 'src', 'baostock.js');
 const thsSource = join(sourceRoot, 'src', 'ths.js');
 const target = join(root, 'functions', 'api', 'public', 'v1', 'quote.js');
+const klineTarget = join(root, 'functions', 'api', 'public', 'v1', 'kline.js');
 const chipRouteTarget = join(root, 'functions', 'api', 'public', 'v1', 'chip.js');
 const chipHelperTarget = join(root, 'functions', 'api', 'public', 'v1', '_chip.js');
 const baostockHelperTarget = join(root, 'functions', 'api', 'public', 'v1', '_baostock.js');
@@ -40,6 +41,7 @@ if (!text.includes('export default')) {
 mkdirSync(dirname(target), { recursive: true });
 mkdirSync(dirname(chipRouteTarget), { recursive: true });
 writeFileSync(target, text);
+writeFileSync(klineTarget, text);
 writeFileSync(chipRouteTarget, "/** Thin Pages route: /api/public/v1/chip shares quote.js (path-dispatched chip handler). */\nexport { onRequestGet, parseSymbol } from './quote.js';\n");
 copyFileSync(chipSource, chipHelperTarget);
 copyFileSync(baostockSource, baostockHelperTarget);
