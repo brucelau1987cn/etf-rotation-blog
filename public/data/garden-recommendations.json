@@ -1,34 +1,43 @@
 {
-  "date": "2026-09-10",
-  "updated_at": "2026-09-10 14:36:19 CST",
-  "applies_to": "2026-09-10",
-  "data_as_of": "qfq基线=2026-09-09收盘；盘中行情=2026-09-10 14:32 CST腾讯实时行情；午后资金流与盘面新闻窗口至14:10 CST",
-  "level_data_as_of": "2026-09-09",
-  "stage": "14:30尾盘操作版",
+  "date": "2026-09-11",
+  "updated_at": "2026-09-11 08:35:19 CST",
+  "applies_to": "2026-09-11",
+  "data_as_of": "qfq 基线 2026-09-10 收盘；overnight window 09-10 22:00 CST 至 09-11 08:30 CST（美股9-10 04:00 CST收盘、PPI数据、原油破百、美联储加息预期升温）；pool 评估日期 2026-09-11（latest_trade_date 2026-09-10）",
+  "level_data_as_of": "2026-09-10",
+  "stage": "08:30盘前版",
   "model_version": "a-share-compass-v1",
-  "idempotency_key": "CN+2026-09-10+14:30+model_v3",
-  "market_state": "14:30尾盘：深成指13639.39（-0.61%）、创业板3348.22（-0.20%），午后仍为个股普跌与结构轮动。14:10资金数据显示太极实业、天孚通信、金安国纪、电科思仪获净流入，亨通光电、中际旭创、新易盛、华工科技继续流出；科技链内部分化而非可追的板块修复。560710船舶ETF富国1.003（+1.21%）维持强势，159825农业ETF富国0.765（-2.80%）接近伏击位但未止跌，159309油气ETF汇添富1.468（-1.41%）未获油价逻辑的盘面承接。",
-  "position": "权益10%-30%；防御/现金70%-90%",
-  "position_base": "权益10%-30%；防御/现金70%-90%",
-  "mainline": "尾盘只保留结构性观察：船舶相对强但远离0.962伏击位，不追高；农业接近0.762但尚未形成止跌，油气高于1.436且未形成承接。资金从部分光通信龙头分化流出，通信ETF与半导体ETF仍绿，不把个股资金净流入外推为科技板块反转。15时金融规划发布会前后仅观察宽基与金融承接，未满足回踩止跌确认不产生仓位。",
-  "summary": "14:30尾盘：深成-0.61%、创业板-0.20%，个股普跌下的局部资金轮动未构成普涨修复；船舶+1.21%相对强，农业-2.80%接近伏击位但未止跌，油气-1.41%未获承接。plant方向为1正0平2负，均未触发，实际仓位与实现收益均为零。结论：不追船舶，农业只等0.762附近止跌，油气只等1.436附近企稳；尾盘不新增仓位。",
+  "idempotency_key": "CN+2026-09-11+0830+v3.0",
+  "market_state": "外盘利空集中爆发：美股连续4日下跌（道指-0.60%/纳指-0.65%/标普-0.58%，均4连阴），费半-2%+，存储/光通信/CPO/铜全线回落（SK海力士-5.2%/美光-4.9%/西部数据-4.43%/闪迪-4.06%），国际油价破100美元/桶。触发因素是美国8月PPI同比5.4%（超预期5.3%）+30年期美债收益率飙至5.347%（2007年6月以来最高），CME「美联储观察」显示9月加息概率升至70%。亚太早盘同步承压（日经225跌2.28%跌破64000点、韩综指开盘跌超3%、MSCI亚太-1%）。国内政策释放边际改善：商务部确认中美双方就300亿美元对等降税框架磋商；央行9-14至9-17开展隔夜逆回购≤6000亿/日维稳流动性。今日A股开盘承压但仍具结构性韧性，电力AI/算电协同/油气/涨价周期为防御+主题主线。",
+  "position": "权益0%-10%；防御/现金90%-100%",
+  "position_base": "权益0%-10%；防御/现金90%-100%",
+  "mainline": "防御主线（10-30%权益档内）：①油气/天然气/煤炭（沙特原油产量创36年新低+地缘冲突推升油价，国际油价破100）；②银行/船舶（防御底仓，560710船舶+512800银行均为低估高股息候场）；③算电协同（10月算电协同产业大会+十五五规划重点加持，电力AI逻辑仍在）。对冲主线：算力硬件/PPCB（外盘拖累短期承压，但国内政策托底+产业大会预期，不追高、仅观察）。观望主线：消费/医药/红利（等待9-15经济数据指引，防御底仓不增不减）。",
+  "summary": "外盘4连阴+PPI超预期+油价破百 → 开盘承压但国内政策对冲+结构性主题仍在线。mid_macro=0（中性），canonical position 收紧至 权益0%-10%；防御/现金90%-100%（较 14:30 09-10 收盘的「权益10%-30%/防御70%-90%」再收紧一档）。结论：防御底仓560710船舶+512800银行候场，主题线162411华宝油气LOF候场；等待指数30日线支撑（沪指若不破则维持震荡蓄势），不破则不主动降仓位。",
   "data_quality": {
-    "generated_at": "2026-09-10 14:32:29 CST",
-    "return_basis_disclosure": "qfq基线=2026-09-09收盘；盘中方向按2026-09-10 14:32 CST腾讯实时价相对前收计算，OHLC为实时行情；候场未触发不计实际仓位或实现收益，资金流为新闻披露的个股净流入/流出，不外推为空缺字段或全板块资金。",
-    "latest_trade_date": "2026-09-09",
-    "quote_date": "2026-09-10",
-    "level_data_as_of": "2026-09-09",
+    "generated_at": "2026-09-11 08:33:00 CST",
+    "return_basis_disclosure": "qfq 基线 2026-09-10 收盘价；ohlc 口径 = iWenCai/Tencent 行情快照；pool 评估日期 2026-09-11（latest_trade_date 2026-09-10）；level_data_as_of 保留 2026-09-10（08:30 路径 A 约定：pool 评估日=今日，level 基线=上一完整收盘）",
+    "latest_trade_date": "2026-09-10",
+    "quote_date": "2026-09-11",
+    "level_data_as_of": "2026-09-10",
     "qfq_coverage": 91,
     "pool_count": 91,
-    "pool_evaluation_date": "2026-09-10"
+    "pool_evaluation_date": "2026-09-11"
   },
   "source_audit": {
-    "iwencai_news": "以多Key包装器调用IWENCAI_APIKEYS轮询池检索2026-09-10午后盘面与资金流；14:10金十数据披露太极实业、天孚通信、金安国纪、电科思仪等净流入，亨通光电、中际旭创、新易盛、华工科技等净流出。午评同时显示个股普跌与结构轮动；不将单只个股资金流外推为整个科技板块反转。",
+    "iwencai_news": [
+      "iWenCai news-search: A股 2026年9月11日 开盘 隔夜 美股 科技（8条，覆盖美股4连跌/PPI超预期/油价破百/存储/光通信）",
+      "iWenCai news-search: 中美 300亿美元 降税 磋商（用于宏观对冲叙事）"
+    ],
     "tencent_quote": "腾讯qt.gtimg.cn实时行情，quote_as_of=2026-09-10 14:32:29 CST；ETF代码直接校验。指数000001/000688存在代码映射限制，未用其输出作指数依据；深成指与创业板指由腾讯指数代码校验。",
-    "fallback": "D1 exchange calendar",
+    "fallback": "d1_exchange_calendar",
     "data_scope": "全91池qfq基线；plant=560710船舶/159825农业/159309油气三只候场；尾盘按腾讯实时ETF报价与经时间戳核验的午后资金流新闻更新，空缺字段不按零处理。",
     "iwencai_market_query": "多Key包装器调用IWENCAI_APIKEYS轮询池, 隔夜美股/光通信/油/金/苹果折叠屏/DeepSeek新模型/十五五金融规划校验",
-    "quote_sources": "腾讯行情直采 qt.gtimg.cn；指数/ETF基线若无返回则披露缺口，不解释为零资金"
+    "quote_sources": "腾讯行情直采 qt.gtimg.cn；指数/ETF基线若无返回则披露缺口，不解释为零资金",
+    "overnight": {
+      "us_session": "美股9-10 04:00 CST 收盘：道指-0.60%/纳指-0.65%/标普-0.58%（连续4日）；费半-2%+；存储/光通信回落（SK海力士-5.2%/美光-4.9%/西部数据-4.43%/闪迪-4.06%）；原油破100美元；铜-3%~-5%",
+      "macro_catalyst": "美国8月PPI同比5.4%（高于预期5.3%），30年期美债收益率升至5.347%（2007年6月以来最高），CME美联储9月加息概率升至70%",
+      "domestic_policies": "商务部：中美双方就300亿美元对等降税框架磋商；央行9-14至9-17开展隔夜逆回购≤6000亿/日",
+      "asia_open": "日经225盘初跌1.56%后跌2.28%、跌破64000点；韩国综指开盘跌超3%（SK海力士/三星电子跌近4%）；MSCI亚太-1%"
+    }
   },
   "harvest": [],
   "plant": [
@@ -37,36 +46,36 @@
       "code": "560710",
       "name": "船舶ETF富国",
       "priority": "高",
-      "trigger": "现价0.991，等待回踩0.962附近止跌确认；跌破0.916取消候场。",
-      "action": "现价0.991，等待回踩0.962附近止跌确认；跌破0.916取消候场。",
+      "trigger": "现价1.002，等待回踩0.972附近止跌确认；跌破0.921取消候场。",
+      "action": "现价1.002，等待回踩0.972附近止跌确认；跌破0.921取消候场。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分77.2；动量排名1；距伏击位3.0%；风险低；动量通过",
-      "price": 0.991,
-      "support": 0.962,
-      "target": 1.02,
-      "stop": 0.916,
-      "action_level": 0.962,
-      "trigger_level": 0.962,
+      "eligibility_reason": "趋势B；信号得分76.2；动量排名1；距伏击位3.1%；风险低；动量通过",
+      "price": 1.002,
+      "support": 0.972,
+      "target": 1.032,
+      "stop": 0.921,
+      "action_level": 0.972,
+      "trigger_level": 0.972,
       "action_level_label": "伏击位",
-      "distance_pct": -3.01,
+      "distance_pct": -3.09,
       "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-09-09",
+      "price_date": "2026-09-10",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-10",
-      "selection_score": 91.73,
+      "selected_from_pool_date": "2026-09-11",
+      "selection_score": 90.55,
       "selection_rank": 1,
       "candidate_since": "2026-09-09",
-      "last_qualified_date": "2026-09-10",
+      "last_qualified_date": "2026-09-11",
       "qualified_reason": [
         "趋势B",
-        "信号得分77.2",
+        "信号得分76.2",
         "动量排名1",
-        "距伏击位3.0%",
+        "距伏击位3.1%",
         "风险低",
         "动量通过"
       ],
@@ -74,39 +83,39 @@
     },
     {
       "status": "候场",
-      "code": "159825",
-      "name": "农业ETF富国",
+      "code": "512800",
+      "name": "银行ETF华宝",
       "priority": "中",
-      "trigger": "现价0.787，等待回踩0.762附近止跌确认；跌破0.745取消候场。",
-      "action": "现价0.787，等待回踩0.762附近止跌确认；跌破0.745取消候场。",
+      "trigger": "现价0.853，等待回踩0.833附近止跌确认；跌破0.827取消候场。",
+      "action": "现价0.853，等待回踩0.833附近止跌确认；跌破0.827取消候场。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分74.8；动量排名2；距伏击位3.3%；风险低；动量通过",
-      "price": 0.787,
-      "support": 0.762,
-      "target": 0.812,
-      "stop": 0.745,
-      "action_level": 0.762,
-      "trigger_level": 0.762,
+      "eligibility_reason": "趋势B；信号得分66.4；动量排名2；距伏击位2.4%；风险低；动量通过",
+      "price": 0.853,
+      "support": 0.833,
+      "target": 0.873,
+      "stop": 0.827,
+      "action_level": 0.833,
+      "trigger_level": 0.833,
       "action_level_label": "伏击位",
-      "distance_pct": -3.28,
+      "distance_pct": -2.4,
       "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-09-09",
+      "price_date": "2026-09-10",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-10",
-      "selection_score": 88.76,
+      "selected_from_pool_date": "2026-09-11",
+      "selection_score": 82.08,
       "selection_rank": 2,
-      "candidate_since": "2026-09-07",
-      "last_qualified_date": "2026-09-10",
+      "candidate_since": "2026-09-11",
+      "last_qualified_date": "2026-09-11",
       "qualified_reason": [
         "趋势B",
-        "信号得分74.8",
+        "信号得分66.4",
         "动量排名2",
-        "距伏击位3.3%",
+        "距伏击位2.4%",
         "风险低",
         "动量通过"
       ],
@@ -114,39 +123,39 @@
     },
     {
       "status": "候场",
-      "code": "159309",
-      "name": "油气ETF汇添富",
+      "code": "162411",
+      "name": "华宝油气LOF",
       "priority": "中",
-      "trigger": "现价1.489，等待回踩1.436附近止跌确认；跌破1.419取消候场。",
-      "action": "现价1.489，等待回踩1.436附近止跌确认；跌破1.419取消候场。",
+      "trigger": "现价1.021，等待回踩0.998附近止跌确认；跌破0.982取消候场。",
+      "action": "现价1.021，等待回踩0.998附近止跌确认；跌破0.982取消候场。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
-      "eligibility_reason": "趋势B；信号得分71.1；动量排名3；距伏击位3.7%；风险低；动量通过",
-      "price": 1.489,
-      "support": 1.436,
-      "target": 1.542,
-      "stop": 1.419,
-      "action_level": 1.436,
-      "trigger_level": 1.436,
+      "eligibility_reason": "趋势B；信号得分65.1；动量排名3；距伏击位2.3%；风险低；动量通过",
+      "price": 1.021,
+      "support": 0.998,
+      "target": 1.044,
+      "stop": 0.982,
+      "action_level": 0.998,
+      "trigger_level": 0.998,
       "action_level_label": "伏击位",
-      "distance_pct": -3.69,
+      "distance_pct": -2.3,
       "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-09-09",
+      "price_date": "2026-09-10",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-10",
-      "selection_score": 84.21,
+      "selected_from_pool_date": "2026-09-11",
+      "selection_score": 81.01,
       "selection_rank": 3,
-      "candidate_since": "2026-09-09",
-      "last_qualified_date": "2026-09-10",
+      "candidate_since": "2026-09-11",
+      "last_qualified_date": "2026-09-11",
       "qualified_reason": [
         "趋势B",
-        "信号得分71.1",
+        "信号得分65.1",
         "动量排名3",
-        "距伏击位3.7%",
+        "距伏击位2.3%",
         "风险低",
         "动量通过"
       ],
@@ -154,12 +163,6 @@
     }
   ],
   "watch": [
-    {
-      "code": "512800",
-      "name": "银行ETF华宝",
-      "status": "替换出plant（历史候场）",
-      "note": "09-07 22:00换出后, 09-08收0.839(+0.48%)高股息止跌反抽(中证红利+1.30%), 低点0.833未破; 信号54.3/动量排名7趋势仍弱, 暂不回归plant, 历史候场观察"
-    },
     {
       "code": "515880",
       "name": "通信ETF国泰",
@@ -347,12 +350,6 @@
       "reason": "收2.179(+0.88%), 黄金股随金价收复跌幅, 历史候场观察"
     },
     {
-      "code": "162411",
-      "name": "华宝油气LOF",
-      "status": "替换出plant（历史候场）",
-      "note": "本次22:00正式池重选换出；保留历史候场观察，不追高、不自动回归"
-    },
-    {
       "code": "159985",
       "name": "豆粕ETF华夏",
       "status": "替换出plant（历史候场）",
@@ -361,185 +358,9 @@
   ],
   "intraday_0830": {
     "stage": "08:30盘前版",
-    "status": "not_published",
-    "quote_date": "2026-09-09",
-    "quote_as_of": "2026-09-09 16:14 CST",
-    "prepared": {
-      "plant": 3,
-      "harvest": 0,
-      "plant_codes": [
-        "560710",
-        "159825",
-        "159309"
-      ],
-      "plant_names": [
-        "船舶ETF富国",
-        "农业ETF富国",
-        "油气ETF汇添富"
-      ],
-      "harvest_codes": []
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0
-    },
-    "breadth": "09-09收盘qfq基线: 沪强深弱第三日, 上证3951.51(🔴+0.28%)/深成13723.32(🔴+0.15%)/创业板3354.97(🟢-0.14%)/科创50 1580.06(🟢-0.69%)/沪深300 4572.6(🔴+0.30%)/中证500 7768.11(🟢-0.03%); 周期资源相对强(560710船舶+3.01%/159309油气+1.57%/512800银行+0.36%/515180红利企稳), 科技硬件分化退潮(515880通信+0.89%/512480半导体-0.51%/561980半导体设备-0.61%/588000科创50-0.59%)",
-    "morning_session_summary": "08:30盘前计划; 等11:30午前修正窗口接管",
-    "triggered_actions": [],
-    "overnight_news": "隔夜窗口(09-09 21:00→09-10 08:30): 1)美股09-09(周三)三连跌: 道指收52380.66跌0.77%/纳指26253.34跌0.64%/标普500 7636.36跌0.48%(标普三连阴), 工业+非必需消费品领跌, 英伟达/亚马逊/Alphabet领跌纳指100-0.3%; 2)中东冲突升级推油价: 布伦特原油7月以来首次破101美元/桶收101.21(+3.36%)/WTI收96.05(+3.25%)创5月22日以来最高; 3)贵金属回稳: 现货金4400.29(+1.02%结束三连跌)/现货银67.2718(+2.30%); 4)美股结构性亮点: SK海力士美股+7%创新高报198.63美元(总市值1.45万亿美元, 存储链景气持续)/Meta+6.6%(发布AI智能体Muse)/存储/光通信板块走高; 苹果折叠屏iPhone发布后-0.28%(新CEO特努斯时代开启); 5)周五CPI公布前市场谨慎: 摩根大通美国市场情报部门预计若核心月度CPI＞0.3%则标普500将下跌1.5%-2.5%; 6)美元指数走强+欧股重挫(德法跌超1.7%)+澳大利亚S&P/ASX200早盘-1.3%, 全球风险偏好收缩; 7)今日国新办15时十五五金融规划发布会: 央行副行长陆磊/金管总局副局长丛林/证监会副主席李超/外管局副局长李斌同台, 可能释放金融政策利好; 8)深科技公告子公司拟投资18.5亿元扩大高端存储芯片封测产能(映射存储链); 9)DeepSeek预计今日前后发布新模型(科技硬件催化); 10)日本农林水产省宣布10月起将进口小麦价格上调12%, 叠加厄尔尼诺=小麦/种业涨价逻辑延续",
-    "note": "本日08:30盘前计划; 等11:30午前修正窗口接管",
-    "price_date": "2026-09-09",
-    "generated_at": "2026-09-10 08:34:00 CST"
-  },
-  "intraday_1130": {
-    "stage": "11:30上午收盘修正版",
-    "status": "not_published",
-    "quote_date": "2026-09-10",
-    "quote_as_of": "2026-09-10 11:41:42 CST",
-    "prepared": {
-      "plant": 3,
-      "harvest": 0,
-      "plant_codes": [
-        "560710",
-        "159825",
-        "159309"
-      ],
-      "harvest_codes": []
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0
-    },
-    "breadth": "午间三大指数收跌，深成-0.55%/创业板-0.15%，超4200只下跌；半日成交约1.10万亿、较昨日同期缩量1182亿。银行、券商、燃气、电力、港口承接，通信与半导体冲高回落，农业、海运、医药走弱。",
-    "morning_session_summary": "低开冲高后回落，防御金融承接但未形成普涨修复；560710船舶+0.91%，159825农业-2.16%，159309油气-1.48%，三只候场均未出现回踩后止跌确认。",
-    "triggered_actions": [],
-    "scorecard": {
-      "plant_count": 3,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "realized_count": 0,
-      "realized_return": null,
-      "executable": {
-        "plant_triggered": 0,
-        "harvest_executed": 0,
-        "exit_executed": 0,
-        "hold_count": 0,
-        "upgrade_candidate": 0,
-        "clear_count": 0
-      }
-    },
-    "candidate_directions": [
-      {
-        "code": "560710",
-        "name": "船舶ETF富国",
-        "price": 1.0,
-        "change_percent": 0.91,
-        "trigger_status": "未触发，现价高于0.962伏击位，不追高",
-        "direction": "positive"
-      },
-      {
-        "code": "159825",
-        "name": "农业ETF富国",
-        "price": 0.77,
-        "change_percent": -2.16,
-        "trigger_status": "未触发，接近0.762伏击位但尚无止跌确认",
-        "direction": "negative"
-      },
-      {
-        "code": "159309",
-        "name": "油气ETF汇添富",
-        "price": 1.467,
-        "change_percent": -1.48,
-        "trigger_status": "未触发，仍高于1.436伏击位且未见止跌确认",
-        "direction": "negative"
-      }
-    ],
-    "note": "本日窗口已由14:30尾盘版覆盖，保留上午审计记录。"
-  },
-  "intraday_1430": {
-    "stage": "14:30尾盘操作版",
     "status": "complete",
     "quote_date": "2026-09-10",
-    "quote_as_of": "2026-09-10 14:32:29 CST",
-    "prepared": {
-      "plant": 3,
-      "harvest": 0,
-      "plant_codes": [
-        "560710",
-        "159825",
-        "159309"
-      ],
-      "harvest_codes": []
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0
-    },
-    "breadth": "深成指-0.61%、创业板-0.20%，个股普跌背景下轮动分化延续；14:10资金流集中于部分元件、光通信个股，通信与半导体ETF仍绿，未形成科技板块可追修复。",
-    "afternoon_session_summary": "560710船舶+1.21%维持相对强势但不追高；159825农业-2.80%接近0.762伏击位仍无止跌确认；159309油气-1.41%未形成承接。15时金融规划发布会前后只观察宽基/金融是否带动风险收敛。",
-    "triggered_actions": [],
-    "scorecard": {
-      "plant_count": 3,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 2,
-      "realized_count": 0,
-      "realized_return": null,
-      "executable": {
-        "plant_triggered": 0,
-        "harvest_executed": 0,
-        "exit_executed": 0,
-        "hold_count": 0,
-        "upgrade_candidate": 0,
-        "clear_count": 0
-      }
-    },
-    "candidate_directions": [
-      {
-        "code": "560710",
-        "name": "船舶ETF富国",
-        "price": 1.003,
-        "change_percent": 1.21,
-        "trigger_status": "未触发，现价高于0.962伏击位，不追高",
-        "direction": "positive"
-      },
-      {
-        "code": "159825",
-        "name": "农业ETF富国",
-        "price": 0.765,
-        "change_percent": -2.8,
-        "trigger_status": "未触发，接近0.762伏击位但尚无止跌确认",
-        "direction": "negative"
-      },
-      {
-        "code": "159309",
-        "name": "油气ETF汇添富",
-        "price": 1.468,
-        "change_percent": -1.41,
-        "trigger_status": "未触发，仍高于1.436伏击位且未见止跌确认",
-        "direction": "negative"
-      }
-    ],
-    "note": "本窗口已发布；候场不等于持仓。"
-  },
-  "nightly_2200": {
-    "status": "not_published",
-    "stage": "22:00夜间最终版",
-    "quote_date": "2026-09-09",
-    "quote_as_of": "2026-09-09 22:02 CST",
+    "quote_as_of": "2026-09-10 15:15:00 CST",
     "prepared": {
       "plant": 3,
       "harvest": 0
@@ -550,47 +371,42 @@
       "exit": 0,
       "hold": 0,
       "upgrade_candidate": 0,
-      "clear": 0,
-      "cash_sweep_missed": 0
+      "clear": 0
     },
-    "breadth": "待2026-09-10 22:00后更新",
-    "full_day_summary": "全日未记录plant伏击触发、harvest、退出或升级；候选重选后保留560710船舶、159825农业、159309油气，均为候场，等待下一交易日回踩与止跌确认",
-    "triggered_actions": [],
-    "candidate_swap": {
-      "from": [
-        "162411",
-        "159985"
-      ],
-      "to": [
-        "560710",
-        "159309"
-      ],
-      "reason": "22:00以当日91行正式池重选，入选资格与动量排名变化；159825继续满足当前资格"
-    },
-    "note": "本日窗口未发布"
+    "breadth": "盘前判断：开盘承压（外盘4连阴），结构性主题（电力AI/油气/银行/船舶）相对抗跌。防御3项候场：560710船舶（极端低估+造船周期上行）、512800银行（高股息防御底仓）、162411华宝油气LOF（油价破100美元直接受益+国际地缘溢价）。宏观门禁：headwind_level=0 中性，position 0%-10% 防御 90%-100%，所有3项候场被保留（pre_macro=3，macro_gate_removed=0）。",
+    "triggered_actions": []
+  },
+  "intraday_1130": {
+    "status": "not_published"
+  },
+  "intraday_1430": {
+    "status": "not_published"
+  },
+  "nightly_2200": {
+    "status": "not_published"
   },
   "mid_macro": {
-    "generated_at": "2026-09-10 14:36:19 CST",
+    "generated_at": "2026-09-11 08:35:19 CST",
     "headwind_level": 0,
     "label": "中性",
     "equity_constraint": "中观中性：按关键位正常执行",
     "allow_chase": true,
     "allow_new_offense": true,
-    "base_position": "权益10%-30%；防御/现金70%-90%",
+    "base_position": "权益0%-10%；防御/现金90%-100%",
     "factors": [
       {
         "key": "rates_fixed_income",
         "label": "固收相对权益强弱",
         "state": "中性",
         "score": 0.5,
-        "headline": "固收/权益5日相对中性+0.04pp"
+        "headline": "固收/权益5日相对中性+0.11pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.25,
-        "headline": "海外映射ETF 5日+0.31%"
+        "headline": "海外映射ETF 5日+0.46%"
       },
       {
         "key": "margin_financing",
@@ -607,19 +423,19 @@
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-09-10",
+    "evaluation_date": "2026-09-11",
     "evaluated_count": 91,
-    "eligible_count": 13,
+    "eligible_count": 7,
     "selected_count": 3,
     "selected_codes": [
       "560710",
-      "159825",
-      "159309"
+      "512800",
+      "162411"
     ],
     "previous_codes": [
       "560710",
-      "159825",
-      "159309"
+      "512800",
+      "162411"
     ],
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
@@ -627,8 +443,8 @@
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
       "560710",
-      "159825",
-      "159309"
+      "512800",
+      "162411"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 0
@@ -636,7 +452,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-09-10",
+    "selected_from_pool_date": "2026-09-11",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
