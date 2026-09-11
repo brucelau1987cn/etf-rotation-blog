@@ -54,7 +54,7 @@ def test_stage_timeouts_are_capped_per_stage():
     module = load()
     assert module.effective_timeout('precheck', 3600) == 60
     assert module.effective_timeout('cache', 3600) == 1200
-    assert module.effective_timeout('fundamental-shadow', 3600) == 780
+    assert module.effective_timeout('fundamental-shadow', 3600) == 2400
     assert module.effective_timeout('cache', 300) == 300
 
 
@@ -90,7 +90,7 @@ def test_timeout_report_names_the_stage(monkeypatch):
     monkeypatch.setattr(module.subprocess, 'run', timeout)
     payload = module.run_stage('fundamental-shadow', 3600)
     assert payload['ok'] is False
-    assert 'STAGING BLOCKER: fundamental-shadow timed out after 780s' in payload['results'][0]['stderr_tail']
+    assert 'STAGING BLOCKER: fundamental-shadow timed out after 2400s' in payload['results'][0]['stderr_tail']
 
 
 def test_cache_validator_does_not_require_iwencai_source():
