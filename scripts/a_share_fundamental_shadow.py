@@ -279,7 +279,12 @@ def fetch_partitions_parallel(chunks, observation_sessions: int, workers: int):
     """Use non-daemonic workers so each session may spawn timeout children."""
     with ProcessPoolExecutor(max_workers=workers) as executor:
         futures = [executor.submit(_fetch_partition, chunk, observation_sessions) for chunk in chunks]
-        return [future.result(timeout=480) for future in futures]
+        # A partition owns roughly one quarter of the A-share universe. Each
+        # symbol already has a bounded 60-second child timeout, so an 8-minute
+        # partition timeout can abort healthy batches during BaoStock latency.
+        # Keep the partition budget below the nightly stage's 3900-second
+        # outer budget while allowing slow partitions to finish cleanly.
+        return [future.result(timeout=1800) for future in futures]
 
 
 def _fetch_partition(

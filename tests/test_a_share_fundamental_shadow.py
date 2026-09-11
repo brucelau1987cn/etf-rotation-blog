@@ -156,7 +156,7 @@ def test_parallel_partitions_keep_order_and_allow_symbol_timeout_children(monkey
             self.value = value
 
         def result(self, timeout):
-            assert timeout == 480
+            assert timeout == 1800
             return self.value
 
     class Executor:
