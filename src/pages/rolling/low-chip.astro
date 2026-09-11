@@ -150,9 +150,11 @@ const rows = intersectionRows.map((row) => {
     qualityShareholderNames: enr.quality_shareholder_names || [],
     institutionalShareholder: Boolean(enr.institutional_shareholder),
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
+    hlpMetrics: enr.hlp_metrics || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
     shareholderMetrics: sm,
+    hlpMetrics: enr.hlp_metrics || null,
     etfHoldings: Array.isArray(enr.etf_holdings) ? enr.etf_holdings : [],
     etfTopCategory: enr.etf_top_category || null,
     industryEtfs: Array.isArray(enr.industry_etfs) ? enr.industry_etfs : [],
@@ -288,6 +290,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               <div class="chip-row-top">
                 <div class="chip-row-main">
                   <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class:list={['chip-reco', `is-${row.reco || 'low'}`]} title={`推荐度：${row.reco || '低'}（${row.composite ?? '—'}/100）`}>{row.reco || '低'}</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
+                  {row.hlpMetrics?.chip_signals?.length ? <span class="chip-hlp-badge" title={`HLP筹码顶底：${row.hlpMetrics.chip_signals.join('、')}`}>筹码顶底</span> : null}
                   {row.qualityShareholder ? (
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
                   ) : row.institutionalShareholder ? (
@@ -457,6 +460,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       function buildRows(data) {
         return (Array.isArray(data.rows) ? data.rows : []).map(function(row) {
           return Object.assign({}, row, {
+            hlpMetrics: row.hlp_metrics || row.hlpMetrics || null,
             nameInitials: row.nameInitials || nameInitials(row.name || row.symbol)
           });
         });
@@ -497,10 +501,14 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
         var changeText = (change >= 0 ? '+' : '') + fmt(change) + '%';
         var badge = '';
+        var hlp = row.hlpMetrics || null;
+        if (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length) {
+          badge += '<span class="chip-hlp-badge" title="HLP筹码顶底：' + esc(hlp.chip_signals.join('、')) + '">筹码顶底</span>';
+        }
         if (row.qualityShareholder) {
-          badge = '<span class="chip-quality" title="优质股东：' + esc((row.qualityShareholderNames || []).join('、')) + '">优质股东 ✓</span>';
+          badge += '<span class="chip-quality" title="优质股东：' + esc((row.qualityShareholderNames || []).join('、')) + '">优质股东 ✓</span>';
         } else if (row.institutionalShareholder) {
-          badge = '<span class="chip-institutional" title="机构股东：' + esc((row.institutionalShareholderNames || []).join('、')) + '">机构股东 ●</span>';
+          badge += '<span class="chip-institutional" title="机构股东：' + esc((row.institutionalShareholderNames || []).join('、')) + '">机构股东 ●</span>';
         }
         var themes = Array.isArray(row.themeConcepts)
           ? row.themeConcepts.filter(Boolean).slice(0, 3)
@@ -1058,6 +1066,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-reco.is-中{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
   .chip-reco.is-低{border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
   .chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
+  .chip-hlp-badge{padding:.18rem .45rem;border:1px solid #fca5a5;border-radius:999px;background:#fff1f2;color:#be123c;font-size:.66rem;font-weight:800;white-space:nowrap}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
   .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}

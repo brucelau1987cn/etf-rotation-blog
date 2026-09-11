@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit',
+  'year_profit', 'hlp_metrics',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
@@ -35,6 +35,9 @@ function clientMetric(row) {
   }
   if (typeof metric.shareholder_nature === 'string') {
     try { metric.shareholder_nature = JSON.parse(metric.shareholder_nature); } catch (e) { metric.shareholder_nature = null; }
+  }
+  if (typeof metric.hlp_metrics === 'string') {
+    try { metric.hlp_metrics = JSON.parse(metric.hlp_metrics); } catch (e) { metric.hlp_metrics = null; }
   }
   return metric;
 }
@@ -160,6 +163,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN closing_profit REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN average_cost REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN hlp_metrics TEXT').run(); } catch (e) {}
     for (const [column, type] of [
       ['pe_ttm', 'REAL'], ['pb', 'REAL'], ['ps_ttm', 'REAL'], ['pcf_ttm', 'REAL'],
       ['total_share', 'REAL'], ['total_mv', 'REAL'], ['fundamental_shadow_status', 'TEXT'],
@@ -177,7 +181,7 @@ export async function onRequest(context) {
       'week_profit', 'month_profit', 'quarter_profit', 'year_profit', 'change_percent',
       'industry', 'sector', 'financials', 'theme_concepts', 'industry_etfs',
       'industry_etf_status', 'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-      'closing_profit', 'average_cost', 'conc70',
+      'closing_profit', 'average_cost', 'conc70', 'hlp_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
     const rowValues = (m) => [
@@ -197,6 +201,7 @@ export async function onRequest(context) {
       m.quality_shareholder ? 1 : 0,
       m.shareholder_nature ? JSON.stringify(m.shareholder_nature) : null,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
+      m.hlp_metrics ? JSON.stringify(m.hlp_metrics) : null,
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
