@@ -87,6 +87,7 @@ def test_timeout_report_names_the_stage(monkeypatch):
 
     monkeypatch.setattr(module, 'write_status', lambda payload: None)
     monkeypatch.setattr(module, 'write_log', lambda *args: None)
+    monkeypatch.setattr(module, 'fundamental_shadow_fallback', lambda: None)
     monkeypatch.setattr(module.subprocess, 'run', timeout)
     payload = module.run_stage('fundamental-shadow', 3600)
     assert payload['ok'] is False
