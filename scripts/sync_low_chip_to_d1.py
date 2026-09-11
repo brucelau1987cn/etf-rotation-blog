@@ -34,13 +34,17 @@ def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> 
     if replace_trade_date:
         body["replace_trade_date"] = replace_trade_date
     payload = json.dumps(body, ensure_ascii=False)
+    # Send the JSON body through stdin. Passing the full metrics payload as a
+    # command-line argument hits Linux ARG_MAX once the daily pool grows.
     r = subprocess.run(
         ["curl", "-s", "-X", "POST", ENDPOINT,
          "-H", f"Authorization: Bearer {TOKEN}",
          "-H", "Content-Type: application/json",
-         "-d", payload],
-        capture_output=True, text=True, timeout=30,
+         "--data-binary", "@-"],
+        input=payload, capture_output=True, text=True, timeout=30,
     )
+    if r.returncode:
+        return {"error": f"curl exit {r.returncode}: {(r.stderr or r.stdout)[:200]}"}
     try:
         return json.loads(r.stdout)
     except json.JSONDecodeError:
