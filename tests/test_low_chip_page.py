@@ -155,8 +155,10 @@ def test_low_chip_financial_filter_controls_and_logic():
         'data-filter="debt-ratio"',
         'data-filter="rsi"',
         'data-filter="outer-inner"',
+        'data-filter="hlp-chip-signal"',
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
+        'data-hlp-chip-signal=',
         'data-quality-shareholder=',
         'data-institutional-shareholder=',
         'data-rsi=',
@@ -179,6 +181,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.has('debt-ratio')",
         "activeFilters.has('rsi')",
         "activeFilters.has('outer-inner')",
+        "activeFilters.has('hlp-chip-signal')",
 
         "activeFilters.has('quality-shareholder')",
         "activeFilters.has('institutional-shareholder')",
@@ -186,8 +189,8 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.clear()",
     ):
         assert marker in page
-    assert page.count('class="chip-filter-btn"') == 9
-    assert page.count('aria-pressed="false"') >= 9
+    assert page.count('class="chip-filter-btn"') == 10
+    assert page.count('aria-pressed="false"') >= 10
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page
     assert "Number(c.dataset.roe) < 15" in page
@@ -203,6 +206,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         'data-filter="net-margin"',
         'data-filter="gross-margin"',
         'data-filter="debt-ratio"',
+        'data-filter="hlp-chip-signal"',
         'data-filter="quality-shareholder"',
         'data-filter="institutional-shareholder"',
     ]
