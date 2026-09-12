@@ -212,6 +212,19 @@ def fetch_insider_trades(
     return out
 
 
+def dedupe_exact_records(records: list[dict]) -> list[dict]:
+    """Remove exact duplicate records while preserving first occurrence order."""
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for record in records:
+        key = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(record)
+    return unique
+
+
 _ISSUER_SUFFIXES = (
     "CLASS A", "CLASS B", "CLASS C", "CL A", "CL B", "CL C",
     "INC", "CORP", "CORPORATION", "CO", "LTD", "LLC", "PLC",
@@ -330,7 +343,9 @@ def main() -> None:
         entry: dict = {"cik": cik, "insider_transactions": [], "institutional_holders": []}
         if cik:
             try:
-                entry["insider_transactions"] = fetch_insider_trades(client, cik)
+                entry["insider_transactions"] = dedupe_exact_records(
+                    fetch_insider_trades(client, cik)
+                )
             except Exception as exc:  # per-stock isolation
                 entry["insider_error"] = str(exc)
         stocks[ticker] = entry
