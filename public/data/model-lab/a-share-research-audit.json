@@ -178,7 +178,7 @@
       "average_hit_rate_degradation_pp": -3.01
     },
     "methodology": "按交易日顺序使用互不重叠的样本外窗口；每折在训练末端剔除一个T+1标签跨度，训练段仅作为稳定性基线，没有可调参数时不虚构优化结果。",
-    "limitation": "这是历史方向标签的滚动时间切片，不代表模拟盘或真实账户收益；当前历史记录尚缺signal_available_at与label_available_at点时账本，推广前必须按真实标签可得时间复核purge；日期聚类区间按唯一交易日重采样，当前未处理跨日序列相关。"
+    "limitation": "这是历史方向标签的滚动时间切片，不代表账户收益；当前历史记录尚缺signal_available_at与label_available_at点时账本，推广前必须按真实标签可得时间复核purge；日期聚类区间按唯一交易日重采样，当前未处理跨日序列相关。"
   },
   "execution_audit": {
     "row_count": 91,
