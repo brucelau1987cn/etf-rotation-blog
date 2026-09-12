@@ -21,7 +21,7 @@
 - `rotation_research.production_weights_changed = false`
 - `rotation_history`每天按 `model_date` 幂等追加，最多保留520个交易日。
 
-该层不改变正式Top10、趋势分、风险分、动作、仓位、组合权重或模拟盘。
+该层不改变正式Top10、趋势分、风险分、动作、仓位或组合权重。
 
 ## 观察门禁
 

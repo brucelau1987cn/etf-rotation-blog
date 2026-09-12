@@ -2,7 +2,7 @@
 """Generate a deterministic, research-only audit sidecar for ETF Compass.
 
 The artifact is observational. It never mutates production signals, levels,
-weights, positions, or paper-trading state.
+weights, positions, or formal execution state.
 """
 from __future__ import annotations
 
@@ -320,7 +320,7 @@ def walk_forward_evaluation(
             "训练段仅作为稳定性基线，没有可调参数时不虚构优化结果。"
         ),
         "limitation": (
-            "这是历史方向标签的滚动时间切片，不代表模拟盘或真实账户收益；"
+            "这是历史方向标签的滚动时间切片，不代表账户收益；"
             "当前历史记录尚缺signal_available_at与label_available_at点时账本，推广前必须按真实标签可得时间复核purge；"
             "日期聚类区间按唯一交易日重采样，当前未处理跨日序列相关。"
         ),

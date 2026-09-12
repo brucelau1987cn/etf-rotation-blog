@@ -38,7 +38,7 @@
             "required": ["status", "reasons"],
             "properties": {"status": {"enum": ["normal", "degraded", "unknown"]}, "reasons": {"type": "array", "items": {"type": "string"}}}
           },
-          "source_categories": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["market_data", "historical_market_data", "official_statistics", "public_events", "derived_research", "model_output", "simulated_execution", "publication_receipt"]}},
+          "source_categories": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["market_data", "historical_market_data", "official_statistics", "public_events", "derived_research", "model_output", "publication_receipt"]}},
           "semantic_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
           "bytes": {"type": "integer", "minimum": 1},

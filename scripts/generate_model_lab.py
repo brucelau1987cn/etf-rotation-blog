@@ -578,7 +578,7 @@ def correlation_summary(frames: dict[str, pd.DataFrame], symbols: list[str]) -> 
 def execution_estimate(metric: dict[str, Any], order_cny: float) -> dict[str, Any]:
     avg_amount = metric.get("amount_ma20") or 0
     participation = order_cny / avg_amount if avg_amount > 0 else math.nan
-    # Conservative research-only square-root impact proxy; calibrated later from paper fills.
+    # Conservative research-only square-root impact proxy; calibrated later from independently archived market-impact samples.
     impact_bps = 2 + 10 * math.sqrt(max(participation, 0)) if math.isfinite(participation) else math.nan
     return {
         "order_cny": order_cny,

@@ -9,7 +9,7 @@ mode = shadow_research_only
 production_weights_changed = false
 ```
 
-它不会修改正式罗盘的排序、关键位、仓位、候场/伏击资格或模拟盘。
+它不会修改正式罗盘的排序、关键位、仓位或候场/伏击资格。
 
 ## 第一版组件
 

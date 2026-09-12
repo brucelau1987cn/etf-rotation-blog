@@ -118,29 +118,9 @@ def latest_as_of(value: Any) -> str | None:
     return max(dates, default=None)
 
 
-def latest_paper_history_date(payload: dict[str, Any]) -> str | None:
-    dates: list[str] = []
-    accounts = payload.get("accounts")
-    if isinstance(accounts, dict):
-        for account in accounts.values():
-            if not isinstance(account, dict):
-                continue
-            history = account.get("history")
-            if not isinstance(history, list):
-                continue
-            for item in history:
-                if isinstance(item, dict):
-                    parsed = date_prefix(item.get("date"))
-                    if parsed:
-                        dates.append(parsed)
-    return max(dates, default=None)
-
-
 def observation_date_for(payload: dict[str, Any], fields: tuple[str, ...]) -> str | None:
     if fields == ("__latest_as_of__",):
         return latest_as_of(payload)
-    if fields == ("__paper_history__",):
-        return latest_paper_history_date(payload)
     if fields == ("__research_report__",):
         reports = payload.get("reports")
         if isinstance(reports, list):

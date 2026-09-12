@@ -1,6 +1,6 @@
 # ETF sequence-path shadow research
 
-The sequence-path component runs as an isolated research sidecar. It does not feed production scores, actions, levels, positions, or paper-trading execution.
+The sequence-path component runs as an isolated research sidecar. It does not feed production scores, actions, levels, positions, or formal execution.
 
 ## Reproducibility boundary
 

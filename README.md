@@ -5,7 +5,7 @@
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
 [![Build](https://img.shields.io/github/actions/workflow/status/brucelau1987cn/etf-rotation-blog/validate.yml?branch=main&style=flat-square&label=build)](https://github.com/brucelau1987cn/etf-rotation-blog/actions/workflows/validate.yml)
 
-面向 A股、港股、美股与商品期货的研究/交易决策仪表盘：实时行情、滚动多空信号、ETF 轮动、宏观约束、历史验证与模拟交易。前端 Astro，生产环境 Cloudflare Pages + Functions + D1。
+面向 A股、港股、美股与商品期货的研究/交易决策仪表盘：实时行情、滚动多空信号、ETF 轮动、宏观约束、历史验证与研究审计。前端 Astro，生产环境 Cloudflare Pages + Functions + D1。
 
 **在线访问：[https://etf.peekabo.cc/](https://etf.peekabo.cc/)**
 
@@ -69,7 +69,7 @@
 - **金银持仓**：金十 ETF 报告代理，`attr_id=1|2&all=1` 保留 0 变动日；D1 缓存 ≤2 天热读
 - **低筹码股**：内部模型观察结果 + 日归档历史查询；追踪页保留 10 日研究窗口，交易时段叠加批量实时价格
 - **交易时段控制**：D1 多市场日历；休市停轮询、连续品种（金银油美元）24H 独立刷新
-- **风险与研究隔离**：正式动作、影子模型、历史审计、模拟交易边界清晰
+- **风险与研究隔离**：正式动作、影子模型与历史审计边界清晰
 - **数据契约与构建门禁**：Schema、批次一致性、敏感字段与静态产物校验
 
 ## 技术架构

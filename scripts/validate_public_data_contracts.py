@@ -55,7 +55,7 @@ SCHEMA_FILES = (
 ROLES = {"production", "shadow", "history", "runtime", "export"}
 SOURCE_CATEGORIES = {
     "market_data", "historical_market_data", "official_statistics", "public_events",
-    "derived_research", "model_output", "simulated_execution", "publication_receipt",
+    "derived_research", "model_output", "publication_receipt",
 }
 FORBIDDEN_KEYS = re.compile(
     r"(?:api[_-]?key|access[_-]?key|token|secret|password|credential|checkpoint|tokenizer|"
