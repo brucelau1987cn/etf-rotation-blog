@@ -66,8 +66,8 @@ def test_recovery_scope_excludes_catalog_and_includes_synced_paper_projection():
     assert "public/data/catalog.json" not in module.FILES
     assert "public/data/catalog.json" not in module.US_OWNED_FILES
     assert "public/data/us-etf-garden.json" in module.US_OWNED_FILES
-    assert "public/data/paper-trading.json" in module.FILES
-    assert "public/data/paper-trading.json" in module.US_OWNED_FILES
+    assert "public/data/paper-trading.json" not in module.FILES
+    assert "public/data/paper-trading.json" not in module.US_OWNED_FILES
 
 
 def test_close_publisher_regenerates_health_after_learning():

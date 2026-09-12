@@ -44,7 +44,7 @@ DATASETS = (
     DatasetSpec("us-compass-health", "us-compass-health.json", "shadow", "US", "us-compass-health-v1", ("historical_market_data", "model_output", "derived_research"), ("model_date",), ("generated_at",), False),
     DatasetSpec("us-compass-rotation-map", "us-compass-rotation-map.json", "shadow", "US", "us-compass-rotation-map-v1", ("historical_market_data", "derived_research"), ("as_of",), (), False),
     DatasetSpec("us-compass-risk", "us-compass-risk.json", "shadow", "US", "us-compass-risk-v1", ("historical_market_data", "derived_research"), ("as_of",), (), False),
-    DatasetSpec("paper-trading", "paper-trading.json", "history", "MULTI", "paper-trading-v1", ("simulated_execution", "derived_research"), ("__paper_history__",), ("updated_at",)),
+
     DatasetSpec("a-share-nightly-deployment", "a-share-nightly-deployment.json", "history", "CN", "a-share-nightly-deployment-v1", ("publication_receipt",), ("trade_date",), ()),
 )
 

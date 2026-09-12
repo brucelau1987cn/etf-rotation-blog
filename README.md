@@ -17,8 +17,7 @@
 [美股罗盘](https://etf.peekabo.cc/us-compass/) ·
 [期货罗盘](https://etf.peekabo.cc/futures-compass/) ·
 [宏观数据](https://etf.peekabo.cc/futures-compass/jin10/) ·
-[金银持仓](https://etf.peekabo.cc/futures-compass/holdings/) ·
-[模拟盘](https://etf.peekabo.cc/paper/)
+[金银持仓](https://etf.peekabo.cc/futures-compass/holdings/)
 
 > 本项目提供研究与教育信息，不构成投资建议。影子模型仅用于研究和审计，不改变正式动作、权重、关键位或模拟执行规则。
 
@@ -51,7 +50,7 @@
 - `/register/?code=...`：限时邀请码自助注册永久VIP账号；邀请码仅存哈希，名额通过D1原子批处理控制
 - `/account/`：会员身份、有效期、设备名额与密码管理
 - `/admin/`：管理员授权账号管理
-- `/paper/`：公开模拟交易快照
+
 - `/lab/`：只读研究与影子模型
 - `/research-framework/`：研究框架与证据层
 

@@ -32,7 +32,7 @@ SHADOW_DIRTY_FILES = frozenset({
     "public/data/a-compass-dashboard.json",
     "public/data/catalog.json",
     "public/data/garden-recommendations.json",
-    "public/data/paper-trading.json",
+
     # US close publisher owns these as one deterministic snapshot family.
     "public/data/us-compass-health.json",
     "public/data/us-compass-learning.json",

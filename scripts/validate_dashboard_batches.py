@@ -16,14 +16,12 @@ try:
     from audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
     from generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
-    from paper_trade_runner import project_public_pending
     from path_shadow_public_schema import validate_public_payload
 except ModuleNotFoundError:  # imported as scripts.validate_dashboard_batches in tests
     from scripts.a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
     from scripts.audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from scripts.generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
     from scripts.generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
-    from scripts.paper_trade_runner import project_public_pending
     from scripts.path_shadow_public_schema import validate_public_payload
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -199,84 +197,6 @@ def validate_candidate_selection(
         errors.append("garden-recommendations candidate_selection selected_codes differs from plant order")
     if selection.get("unchanged_from_previous") is True:
         warnings.append("A-share candidate set unchanged from previous batch; current-day qualification metadata verified")
-
-
-def validate_public_pending(
-    errors: list[str], paper: dict[str, Any], garden: dict[str, Any], us: dict[str, Any],
-) -> None:
-    accounts = paper.get("accounts")
-    if not isinstance(accounts, dict):
-        errors.append("paper-trading accounts must be an object")
-        return
-    sources = {"A": garden, "US": us}
-    paper_updated_at = timestamp(paper.get("updated_at"))
-    if paper_updated_at is None:
-        errors.append("paper-trading updated_at must be a timezone-aware timestamp")
-    expected_projection = project_public_pending(paper, sources)
-    for market, source in sources.items():
-        account = accounts.get(market)
-        if not isinstance(account, dict):
-            errors.append(f"paper-trading {market} account is missing")
-            continue
-        positions = account.get("positions")
-        held = set(positions) if isinstance(positions, dict) else set()
-        expected: list[tuple[str, str]] = []
-        if market == "A":
-            for item in source.get("plant") or []:
-                if not isinstance(item, dict) or item.get("level_status") == "invalid":
-                    continue
-                status = item.get("status")
-                if status in {"伏击", "种花"} and item.get("eligibility") != "blocked":
-                    public_status = "伏击"
-                elif status in {"候场", "准备种花"}:
-                    public_status = "候场"
-                else:
-                    continue
-                symbol = str(item.get("code") or "")
-                if symbol and symbol not in held:
-                    expected.append((symbol, public_status))
-        else:
-            signals = source.get("flower_signals") or {}
-            for section, accepted, public_status in (
-                ("plant", {"伏击触发", "种花", "伏击"}, "伏击"),
-                ("ready_plant", {"候场", "准备种花"}, "候场"),
-            ):
-                for item in signals.get(section) or []:
-                    if not isinstance(item, dict) or item.get("signal") not in accepted:
-                        continue
-                    symbol = str(item.get("symbol") or "")
-                    if symbol and symbol not in held:
-                        expected.append((symbol, public_status))
-        public_items = account.get("public_pending_signals")
-        if not isinstance(public_items, list):
-            errors.append(f"paper-trading {market} public_pending_signals must be an array")
-            continue
-        actual = [
-            (str(item.get("symbol") or ""), str(item.get("status") or ""))
-            for item in public_items if isinstance(item, dict)
-        ]
-        if actual != expected or len(actual) != len(public_items):
-            errors.append(
-                f"paper-trading {market} public pending identity mismatch: expected={expected}, actual={actual}"
-            )
-        source_date = source.get("date")
-        source_updated_at = source.get("updated_at")
-        if any(
-            not isinstance(item, dict)
-            or item.get("source_date") != source_date
-            or item.get("source_updated_at") != source_updated_at
-            for item in public_items
-        ):
-            errors.append(f"paper-trading {market} public pending source metadata mismatch")
-        if paper_updated_at is not None and any(
-            (source_time := timestamp(item.get("source_updated_at"))) is None
-            or source_time > paper_updated_at
-            for item in public_items if isinstance(item, dict)
-        ):
-            errors.append("paper-trading updated_at predates embedded source metadata")
-        expected_items = expected_projection.get("accounts", {}).get(market, {}).get("public_pending_signals", [])
-        if public_items != expected_items:
-            errors.append(f"paper-trading {market} public pending content mismatch")
 
 
 def validate_us_candidate_selection(
@@ -731,7 +651,6 @@ def validate(data_dir: Path = DATA) -> CheckResult:
         us = load_json(data_dir / "us-etf-garden.json")
         us_pool = load_json(data_dir / "us-etf-pool.json")
         us_macro = load_json(data_dir / "us-macro-dashboard.json")
-        paper = load_json(data_dir / "paper-trading.json")
     except ValueError as exc:
         return CheckResult("error", [str(exc)], warnings, batches)
 
@@ -739,7 +658,6 @@ def validate(data_dir: Path = DATA) -> CheckResult:
     validate_us_candidate_selection(errors, us, us_pool)
     if garden.get("harvest_selection") is not None or str(garden.get("date") or "") >= "2026-07-28":
         validate_harvest_selection(errors, garden, a_pool)
-    validate_public_pending(errors, paper, garden, us)
 
     audit_dataset = validate_research_audit(errors, research_audit, backtest, a_pool)
 

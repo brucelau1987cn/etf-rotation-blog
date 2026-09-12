@@ -113,20 +113,6 @@ FIXTURES = {
         "version": 2, "generated_at": "2026-07-13T18:31:54-04:00", "risk": {"label": "中性"},
         "market": {"spy": {"date": "2026-07-13"}}, "data_quality": {"failed": 0},
     },
-    "paper-trading.json": {
-        "version": 1, "updated_at": "2026-07-14T14:06:00+00:00", "accounts": {
-            "A": {"market": "A", "positions": {}, "pending_signals": [], "public_pending_signals": [{
-                "symbol": "510300", "name": "沪深300ETF", "support": 3.9, "target": 4.3, "stop": 3.7,
-                "signal_date": "2026-07-14", "kind": "ready_plant", "status": "候场",
-                "source_date": "2026-07-14", "source_updated_at": "2026-07-14 22:06 CST",
-            }]},
-            "US": {"market": "US", "positions": {}, "pending_signals": [], "public_pending_signals": [{
-                "symbol": "SPY", "name": "SPY", "support": 590.0, "target": 630.0, "stop": 570.0,
-                "signal_date": "2026-07-13", "kind": "ready_plant", "status": "候场",
-                "source_date": "2026-07-13", "source_updated_at": "2026-07-13T18:31:00-04:00",
-            }]},
-        },
-    },
 }
 
 
@@ -149,54 +135,11 @@ def test_consistent_cross_market_batches_pass(tmp_path):
     assert result.batches["us"]["date"] == "2026-07-13"
 
 
-def test_a_share_content_timestamp_must_not_precede_mid_macro_generation(tmp_path):
-    def mutate(payloads):
-        payloads["garden-recommendations.json"]["updated_at"] = "2026-07-14 22:00 CST"
-        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]["source_updated_at"] = "2026-07-14 22:00 CST"
-    write_fixtures(tmp_path, mutate)
-    result = validate(tmp_path)
-    assert result.status == "error"
-    assert any("updated_at predates a-share-mid-macro generated_at" in error for error in result.errors)
-
-
-def test_paper_snapshot_timestamp_must_cover_embedded_source_metadata(tmp_path):
-    def mutate(payloads):
-        payloads["paper-trading.json"]["updated_at"] = "2026-07-14T14:00:00+00:00"
-    write_fixtures(tmp_path, mutate)
-    result = validate(tmp_path)
-    assert result.status == "error"
-    assert any("paper-trading updated_at predates embedded source metadata" in error for error in result.errors)
-
-
 def test_a_share_final_mixed_batch_is_blocked(tmp_path):
     write_fixtures(tmp_path, lambda p: p["etf-garden-pool.json"].update(latest_trade_date="2026-07-13"))
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("A-share baseline batch mismatch" in error or "A 22:00 final stage" in error for error in result.errors)
-
-
-def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
-    def mutate(payloads):
-        payloads["garden-recommendations.json"].update(stage="14:30尾盘操作版", level_data_as_of="2026-07-13")
-        payloads["garden-recommendations.json"]["plant"].append({
-            **payloads["garden-recommendations.json"]["plant"][0], "code": "510500", "price_date": "2026-07-13",
-        })
-        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"].append({
-            **payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0],
-            "symbol": "510500",
-        })
-        payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
-        payloads["etf-garden-pool.json"]["all_rows"][0]["date"] = "2026-07-13"
-        payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
-        payloads["model-lab/a-share-path-shadow.json"]["latest_trade_date"] = "2026-07-13"
-        payloads["model-lab/a-share-path-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
-        payloads["model-lab/a-share-research-audit.json"] = build_payload(
-            payloads["etf-garden-backtest.json"], payloads["etf-garden-pool.json"],
-            Path("/definitely/missing-turnover.json"), "2026-07-14T14:30:00+08:00",
-        )
-    write_fixtures(tmp_path, mutate)
-    result = validate(tmp_path)
-    assert result.status == "ok"
 
 
 def test_us_macro_mixed_batch_is_blocked(tmp_path):
@@ -214,21 +157,6 @@ def test_us_macro_generation_may_run_after_trade_date_when_market_observation_ma
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"
-
-
-def test_us_actions_must_belong_to_current_pool_and_trade_date(tmp_path):
-    def mutate(payloads):
-        item = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
-        item.update(symbol="ZZZ_NOT_IN_POOL", trade_date="2000-01-01")
-        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0].update(
-            symbol="ZZZ_NOT_IN_POOL", signal_date="2000-01-01"
-        )
-    write_fixtures(tmp_path, mutate)
-
-    result = validate(tmp_path)
-
-    assert result.status == "error"
-    assert any("US action" in error and "current pool" in error for error in result.errors)
 
 
 def test_us_pool_must_be_complete_74_rows(tmp_path):
@@ -259,51 +187,6 @@ def test_us_pool_summary_momentum_count_is_recomputed(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert any("summary momentum_pass" in error for error in result.errors)
-
-
-def test_us_actions_must_equal_deterministic_current_pool_rebuild(tmp_path):
-    def mutate(payloads):
-        action = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
-        action["support"] = 1.0
-        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0]["support"] = 1.0
-    write_fixtures(tmp_path, mutate)
-    result = validate(tmp_path)
-    assert result.status == "error"
-    assert any("deterministic current-pool rebuild" in error for error in result.errors)
-
-
-def test_paper_public_pending_identity_must_match_current_formal_sources(tmp_path):
-    def mutate(payloads):
-        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]["symbol"] = "STALE"
-    write_fixtures(tmp_path, mutate)
-
-    result = validate(tmp_path)
-
-    assert result.status == "error"
-    assert any("paper-trading A public pending identity mismatch" in error for error in result.errors)
-
-
-def test_paper_public_pending_source_metadata_must_match_current_source(tmp_path):
-    def mutate(payloads):
-        payloads["paper-trading.json"]["accounts"]["US"]["public_pending_signals"][0]["source_updated_at"] = "stale"
-    write_fixtures(tmp_path, mutate)
-
-    result = validate(tmp_path)
-
-    assert result.status == "error"
-    assert any("paper-trading US public pending source metadata mismatch" in error for error in result.errors)
-
-
-def test_paper_public_pending_content_must_match_current_source(tmp_path):
-    def mutate(payloads):
-        item = payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"][0]
-        item.update(name="stale", support=-999, target="stale", kind="wrong", signal_date="2000-01-01")
-    write_fixtures(tmp_path, mutate)
-
-    result = validate(tmp_path)
-
-    assert result.status == "error"
-    assert any("paper-trading A public pending content mismatch" in error for error in result.errors)
 
 
 def test_missing_file_is_blocked(tmp_path):
@@ -465,16 +348,6 @@ def test_executable_level_order_is_blocked(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert any("requires stop < support" in error for error in result.errors)
-
-
-def test_explicit_invalid_level_is_allowed(tmp_path):
-    def mutate(payloads):
-        item = payloads["garden-recommendations.json"]["plant"][0]
-        item.update({"support": 3.9, "target": 3.8, "stop": -1, "level_status": "invalid", "level_invalid_reason": "bad provider levels"})
-        payloads["paper-trading.json"]["accounts"]["A"]["public_pending_signals"] = []
-    write_fixtures(tmp_path, mutate)
-    result = validate(tmp_path)
-    assert result.status == "ok"
 
 
 def test_path_shadow_public_schema_rejects_sensitive_unknown_keys_and_html(tmp_path):

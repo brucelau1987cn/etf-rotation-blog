@@ -5,15 +5,10 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import UsSubnav from '../../components/UsSubnav.astro';
-import { buildUsTradeLinks, usSignalAnchor } from '../../lib/us-paper-trade-links.mjs';
 
 const backtest = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-backtest.json'), 'utf8'));
 const flowerHistory = JSON.parse(readFileSync(join(process.cwd(), 'public/data/us-etf-flower-history.json'), 'utf8'));
-const paperTrading = JSON.parse(readFileSync(join(process.cwd(), 'public/data/paper-trading.json'), 'utf8'));
 const records = flowerHistory.records || [];
-const usTrades = buildUsTradeLinks(paperTrading.accounts?.US?.events || [], records);
-const tradesForDate = (date: string) => usTrades.filter((trade: any) => trade.executionDate === date);
-const tradesForSignal = (date: string, symbol: string, kind: string) => usTrades.filter((trade: any) => trade.signalAnchor === usSignalAnchor(date, symbol, kind));
 const total = (key: string) => records.reduce((sum: number, record: any) => sum + (record.counts?.[key] || 0), 0);
 const labels: Record<string, string> = {
   ready_plant: '候场',
@@ -271,7 +266,6 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
     <section class="timeline-shell card">
       {records.length ? records.map((record: any) => {
         const signals = signalEntries(record);
-        const dayTrades = tradesForDate(record.date);
         const formalCount = (record.counts?.plant || 0) + (record.counts?.harvest || 0) + (record.counts?.exit || 0);
         return (
           <details class="timeline-day">
@@ -279,35 +273,20 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
               <div class="day-date"><strong>{record.date}</strong><small>{record.market_regime?.state || '状态待定'} · 权益参考 {record.market_regime?.equity_allocation || '—'}</small></div>
               <div class="day-counts">
                 {Object.entries(record.counts || {}).map(([key, value]: any) => <span class={`count-chip ${tone[key]}`}><span>{labels[key]}</span><b>{value}</b></span>)}
-                {dayTrades.length > 0 && <span class="count-chip day-trade-count"><span>模拟成交</span><b>{dayTrades.length}</b></span>}
               </div>
               <div class="day-total"><b>正式 {formalCount} 次</b><small class="expand-label"></small></div>
             </summary>
             <div class="signal-list">
               {signals.map((item: any) => {
-                const linkedTrades = tradesForSignal(record.date, item.symbol, item.key);
                 return (
-                  <article class="signal-item" id={usSignalAnchor(record.date, item.symbol, item.key)}>
+                  <article class="signal-item">
                     <div class="signal-top"><strong>{item.symbol} · {item.theme || item.name}</strong><span class={`signal-tag ${tone[item.key]}`}>{labels[item.key]}</span></div>
                     <p>{item.trigger_basis || item.trade_state || '按冻结快照记录'}</p>
                     <div class="signal-level"><span>触发位</span><b>{formatLevel(item.trigger_level)}</b></div>
-                    {linkedTrades.length > 0 && <div class="signal-trades">
-                      {linkedTrades.map((trade: any) => <a class="signal-trade" href={`/paper/#${trade.tradeAnchor}`}><b>{trade.executionDate === record.date ? trade.actionLabel : `次日${trade.actionLabel}`} {trade.event.quantity}份</b><span>{trade.executionDate} {trade.executionTime}</span><strong>${Number(trade.event.price).toFixed(2)}</strong></a>)}
-                    </div>}
                   </article>
                 );
               })}
             </div>
-            {dayTrades.length > 0 && <section class="paper-day-trades" aria-label={`${record.date} 模拟成交`}>
-              <h4>{record.date} 模拟盘实际成交 · {dayTrades.length}笔</h4>
-              {dayTrades.map((trade: any) => <div class="paper-trade-row">
-                <time>{trade.executionTime}</time>
-                <b>{trade.actionLabel}</b>
-                <strong>{trade.event.symbol} · {trade.event.name}</strong>
-                <span>{trade.event.quantity}份 × ${Number(trade.event.price).toFixed(2)} · 金额 ${trade.gross.toFixed(2)}</span>
-                <a href={`/paper/#${trade.tradeAnchor}`}>成交明细 →</a>
-              </div>)}
-            </section>}
           </details>
         );
       }) : <p>尚未生成首个交易日记录。</p>}
@@ -333,13 +312,12 @@ const signalEntries = (record: any) => Object.entries(record.signals || {})
           <li><span>触发判断使用未复权原始OHLC，收益验证使用Adjusted Close。</span></li>
           <li><span>同一交易日重复运行采用覆盖写入，避免重复累计。</span></li>
           <li><span>候场和止盈观察属于准备状态，不计作实际成交。</span></li>
-          <li><span>真实成交、交易成本与持仓收益由模拟盘独立记录。</span></li>
         </ol>
       </article>
     </section>
 
     <aside class="boundary-note"><strong>统计边界：</strong>方向验证、信号触发和账户收益属于三套独立证据。当前记录未计入点差、滑点、税务及盘中成交顺序；无实际持仓时，“兑现”只表示目标触发。</aside>
-    <nav class="route-links" aria-label="美股历史页相关入口"><a href="/us-compass/">返回今日动作</a><a href="/us-momentum/">趋势风控</a><a href="/us-macro/">宏观雷达</a><a href="/paper/">模拟盘</a><a href="/a-compass/history/">A股历史成绩</a></nav>
+    <nav class="route-links" aria-label="美股历史页相关入口"><a href="/us-compass/">返回今日动作</a><a href="/us-momentum/">趋势风控</a><a href="/us-macro/">宏观雷达</a><a href="/a-compass/history/">A股历史成绩</a></nav>
   </main>
   <Footer />
 </body>

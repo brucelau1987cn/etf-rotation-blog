@@ -297,10 +297,9 @@ def test_nightly_refresh_reselects_before_macro_and_validation(monkeypatch):
         [publish.PROJECT_PYTHON, "scripts/generate_a_share_mid_macro.py"],
         [publish.PROJECT_PYTHON, "scripts/audit_a_share_harvest.py"],
         [publish.PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"],
-        [publish.PROJECT_PYTHON, "scripts/paper_trade_runner.py", "--mode", "sync-public"],
     ]
-    assert publish.PAPER_TRADING_FILE in publish.nightly_content_files("2026-07-14")
-    assert publish.PAPER_TRADING_FILE in publish.PUBLIC_VERIFY_FILES
+    assert all("paper-trading.json" not in path for path in publish.nightly_content_files("2026-07-14"))
+    assert all("paper-trading.json" not in path for path in publish.PUBLIC_VERIFY_FILES)
 
 
 def test_project_subprocess_env_keeps_project_node_runtime_available(monkeypatch):

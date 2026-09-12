@@ -25,14 +25,14 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     monkeypatch.setattr(pages_release, "probe_json_matches", lambda matches: calls.append(["json", *matches]))
 
     pages_release.release_pages(
-        ["https://etf.peekabo.cc/paper/"],
-        {"https://etf.peekabo.cc/data/paper-trading.json": Path("public/data/paper-trading.json")},
+        ["https://etf.peekabo.cc/a-compass/"],
+        {"https://etf.peekabo.cc/data/etf-garden-pool.json": Path("public/data/etf-garden-pool.json")},
     )
 
     assert calls[0] == ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
     assert calls[1] == ["purge"]
-    assert calls[2] == ["probe", "https://etf.peekabo.cc/paper/"]
-    assert calls[3] == ["json", "https://etf.peekabo.cc/data/paper-trading.json"]
+    assert calls[2] == ["probe", "https://etf.peekabo.cc/a-compass/"]
+    assert calls[3] == ["json", "https://etf.peekabo.cc/data/etf-garden-pool.json"]
 
 
 def test_release_scope_allows_only_known_external_shadow_snapshots():

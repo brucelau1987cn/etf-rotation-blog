@@ -20,10 +20,6 @@ from zoneinfo import ZoneInfo
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 from pages_release import release_pages
-try:
-    from a_share_nightly_contract import paper_publish_lock
-except ModuleNotFoundError:
-    from scripts.a_share_nightly_contract import paper_publish_lock
 POOL = REPO / "public/data/us-etf-pool.json"
 GARDEN = REPO / "public/data/us-etf-garden.json"
 STATE = Path("/root/.hermes/state/us-etf-close-publisher.json")
@@ -37,7 +33,6 @@ FILES = [
     "public/data/us-compass-learning.json",
     "public/data/us-compass-shadow.json",
     "public/data/us-compass-health.json",
-    "public/data/paper-trading.json",
 ]
 US_OWNED_FILES = list(FILES)
 BUILD_PYTHON = ".build-venv/bin/python"
@@ -132,8 +127,6 @@ def validate_us_public_contracts() -> None:
     if result.returncode == 0:
         return
     allowed = {
-        "catalog paper-trading sha256 mismatch",
-        "catalog paper-trading metadata differs from source dataset",
         "a-compass-dashboard differs from etf-garden-pool export",
     }
     try:
@@ -266,7 +259,6 @@ def main() -> None:
     write_state("evaluated", old_model_date=old, latest_trade_date=latest, session_state=state, action=action)
     if action == "recover":
         write_state("validating_recovery", trade_date=old)
-        run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
         validate_us_release_data()
         validate_us_public_contracts()
         # Commit only US-owned snapshots here. The waiting A-share nightly publisher
@@ -329,7 +321,6 @@ def main() -> None:
         )
 
     write_state("validated", trade_date=new)
-    run("python3", "scripts/paper_trade_runner.py", "--mode", "sync-public")
     run("git", "add", *FILES)
     # Commit only when the close edition actually changed.
     status = subprocess.run(["git", "status", "--porcelain", "--", *FILES], cwd=REPO, text=True, capture_output=True, check=True)
@@ -363,8 +354,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        with paper_publish_lock():
-            main()
+        main()
     except Exception as error:
         write_state("error", error=str(error))
         raise
