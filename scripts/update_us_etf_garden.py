@@ -56,6 +56,8 @@ def write_state(phase: str, **fields: object) -> None:
         except (json.JSONDecodeError, OSError):
             current = {}
     current.update({"phase": phase, "updated_at": datetime.now(timezone.utc).isoformat(), **fields})
+    if phase in {"evaluated", "idempotent", "committed", "published", "waiting_for_close"} and "error" not in fields:
+        current.pop("error", None)
     temporary = STATE.with_suffix(".tmp")
     temporary.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(temporary, STATE)

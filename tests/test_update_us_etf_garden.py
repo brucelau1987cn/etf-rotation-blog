@@ -186,3 +186,15 @@ def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):
     assert payload["commit"] == "abc123"
     assert payload["verified"] is True
     assert not state.with_suffix(".tmp").exists()
+
+
+def test_success_state_clears_stale_error(tmp_path, monkeypatch):
+    state = tmp_path / "publisher.json"
+    state.write_text(json.dumps({"phase": "failed", "error": "old failure"}), encoding="utf-8")
+    monkeypatch.setattr(module, "STATE", state)
+
+    module.write_state("idempotent", trade_date="2026-09-11", verified=True)
+
+    payload = json.loads(state.read_text(encoding="utf-8"))
+    assert payload["phase"] == "idempotent"
+    assert "error" not in payload
