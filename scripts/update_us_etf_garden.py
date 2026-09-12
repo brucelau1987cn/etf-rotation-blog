@@ -110,7 +110,12 @@ def validate_us_release_data() -> None:
         errors.append("garden close identity differs from pool")
     if health.get("model_date") != model_date:
         errors.append("health model_date differs from pool")
-    macro_date = str(macro.get("primary_data_date") or macro.get("date") or "")
+    market_dates = sorted({
+        str(item.get("date"))[:10]
+        for item in (macro.get("market") or {}).values()
+        if isinstance(item, dict) and item.get("date")
+    })
+    macro_date = market_dates[-1] if market_dates else ""
     if not macro_date:
         errors.append("macro primary date is missing")
     if macro_date != model_date:

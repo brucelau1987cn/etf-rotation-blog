@@ -152,6 +152,28 @@ def test_us_release_validator_rejects_cross_date_payload(tmp_path, monkeypatch):
         raise AssertionError("cross-date US release must fail closed")
 
 
+def test_us_release_validator_uses_latest_macro_market_observation(tmp_path, monkeypatch):
+    data = tmp_path / "public/data"
+    data.mkdir(parents=True)
+    payloads = {
+        "us-etf-pool.json": {"model_date": "2026-09-11", "session_state": "closed"},
+        "us-etf-garden.json": {"date": "2026-09-11", "stage": "美股收盘版", "session_state": "closed"},
+        "us-compass-health.json": {"model_date": "2026-09-11"},
+        "us-macro-dashboard.json": {
+            "generated_at": "2026-09-11T18:30:00-04:00",
+            "market": {
+                "spy": {"date": "2026-09-11"},
+                "yield_2y_proxy": {"date": "2026-09-10"},
+            },
+        },
+    }
+    for name, payload in payloads.items():
+        (data / name).write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(module, "REPO", tmp_path)
+
+    module.validate_us_release_data()
+
+
 def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):
     state = tmp_path / "publisher.json"
     monkeypatch.setattr(module, "STATE", state)
