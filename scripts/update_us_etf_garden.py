@@ -20,6 +20,10 @@ from zoneinfo import ZoneInfo
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 from pages_release import release_pages
+try:
+    from a_share_nightly_contract import site_publish_lock
+except ModuleNotFoundError:
+    from scripts.a_share_nightly_contract import site_publish_lock
 POOL = REPO / "public/data/us-etf-pool.json"
 GARDEN = REPO / "public/data/us-etf-garden.json"
 STATE = Path("/root/.hermes/state/us-etf-close-publisher.json")
@@ -354,7 +358,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        with site_publish_lock():
+            main()
     except Exception as error:
         write_state("error", error=str(error))
         raise

@@ -20,6 +20,7 @@ try:
         RECOMMENDATIONS_FILE,
         RESEARCH_AUDIT_FILE,
         nightly_lock,
+        site_publish_lock,
     )
     from generate_research_audit import DEFAULT_TURNOVER, build_payload
     from publish_a_share_nightly import (
@@ -43,6 +44,7 @@ except ModuleNotFoundError:
         RECOMMENDATIONS_FILE,
         RESEARCH_AUDIT_FILE,
         nightly_lock,
+        site_publish_lock,
     )
     from scripts.generate_research_audit import DEFAULT_TURNOVER, build_payload
     from scripts.publish_a_share_nightly import (
@@ -246,7 +248,7 @@ def main() -> int:
     parser.add_argument("--message")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    with nightly_lock():
+    with nightly_lock(), site_publish_lock():
         result = publish_stage(args.stage, args.message, args.dry_run)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

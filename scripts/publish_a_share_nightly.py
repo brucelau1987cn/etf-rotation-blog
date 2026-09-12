@@ -20,12 +20,12 @@ from zoneinfo import ZoneInfo
 try:
     from a_share_nightly_contract import (
         CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
-        STATE, file_hashes, nightly_content_files, nightly_lock,
+        STATE, file_hashes, nightly_content_files, nightly_lock, site_publish_lock,
     )
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import (
         CATALOG_INPUT_FILES, GENERATED_PUBLIC_FILES, PUBLIC_VERIFY_FILES, SNAPSHOT_FILES,
-        STATE, file_hashes, nightly_content_files, nightly_lock,
+        STATE, file_hashes, nightly_content_files, nightly_lock, site_publish_lock,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -596,7 +596,7 @@ def main() -> int:
         print("publish_a_share_nightly self-test: OK")
         return 0
     now = datetime.fromisoformat(args.now).astimezone(CN) if args.now else None
-    with nightly_lock():
+    with nightly_lock(), site_publish_lock():
         result = publish(args.state, args.dry_run, now=now)
     print(format_receipt(result))
     return 0
