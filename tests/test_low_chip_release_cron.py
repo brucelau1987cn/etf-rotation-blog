@@ -314,7 +314,7 @@ def test_release_rejects_uncommitted_generators_tests_and_generated_data():
 
 def test_wrapper_holds_shared_publish_lock_for_entire_main():
     source = SCRIPT.read_text(encoding='utf-8')
-    assert "PUBLISH_LOCK = Path('/root/.hermes/state/etf-paper-publish.lock')" in source
+    assert "PUBLISH_LOCK = Path('/root/.hermes/state/etf-site-publish.lock')" in source
     assert 'def publish_lock()' in source
     assert 'with publish_lock():' in source
     assert 'return run_pipeline()' in source
