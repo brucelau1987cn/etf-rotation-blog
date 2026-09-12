@@ -92,6 +92,7 @@ def test_publisher_tracks_briefing_and_deploys_both_json_files():
     source = (SCRIPTS / "publish_futures_compass.py").read_text(encoding="utf-8")
     assert 'BRIEFING = "public/data/futures-compass-briefing.json"' in source
     assert '"https://etf.peekabo.cc/data/futures-compass-briefing.json"' in source
+    assert 'with site_publish_lock(), publish_lock()' in source
     assert 'Path(BRIEFING)' in source
 
 

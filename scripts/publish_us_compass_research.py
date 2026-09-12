@@ -575,23 +575,26 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
 
 def publish() -> str:
     try:
+        from a_share_nightly_contract import site_publish_lock
         from pages_release import release_pages
     except ModuleNotFoundError:
+        from scripts.a_share_nightly_contract import site_publish_lock
         from scripts.pages_release import release_pages
-    run(["python3", "scripts/generate_data_catalog.py"])
-    run(["python3", "scripts/validate_public_data_contracts.py"])
-    run(["npm", "run", "build"])
-    run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
-    staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0
-    if staged:
-        run(["git", "commit", "-m", f"data: publish US Compass research {read_json(OUT).get('latest_week')}"])
-        run(["git", "push", "origin", "HEAD:main"])
-    return release_pages([
-        "https://etf.peekabo.cc/us-compass/research/",
-        "https://etf.peekabo.cc/data/us-compass-research.json",
-    ], {
-        "https://etf.peekabo.cc/data/us-compass-research.json": OUT,
-    })
+    with site_publish_lock():
+        run(["python3", "scripts/generate_data_catalog.py"])
+        run(["python3", "scripts/validate_public_data_contracts.py"])
+        run(["npm", "run", "build"])
+        run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
+        staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0
+        if staged:
+            run(["git", "commit", "-m", f"data: publish US Compass research {read_json(OUT).get('latest_week')}"])
+            run(["git", "push", "origin", "HEAD:main"])
+        return release_pages([
+            "https://etf.peekabo.cc/us-compass/research/",
+            "https://etf.peekabo.cc/data/us-compass-research.json",
+        ], {
+            "https://etf.peekabo.cc/data/us-compass-research.json": OUT,
+        })
 
 
 def main(argv: list[str] | None = None) -> int:

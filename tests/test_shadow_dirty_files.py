@@ -46,3 +46,5 @@ def test_low_chip_allowlist_references_single_source():
 def test_precious_allowlist_references_single_source():
     pi = _load(HERMES_SCRIPTS / "update_precious_inventory_and_release.py")
     assert pi.ALLOWED_DIRTY == {"public/data/precious-inventory.json", *sdf.SHADOW_DIRTY_FILES}
+    source = (HERMES_SCRIPTS / "update_precious_inventory_and_release.py").read_text(encoding="utf-8")
+    assert "with site_publish_lock():" in source

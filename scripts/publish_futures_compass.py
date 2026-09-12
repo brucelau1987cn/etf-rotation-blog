@@ -9,9 +9,11 @@ from contextlib import contextmanager
 from pathlib import Path
 
 try:
+    from a_share_nightly_contract import site_publish_lock
     from pages_release import release_pages
     from shadow_dirty_files import SHADOW_DIRTY_FILES
 except ModuleNotFoundError:
+    from scripts.a_share_nightly_contract import site_publish_lock
     from scripts.pages_release import release_pages
     from scripts.shadow_dirty_files import SHADOW_DIRTY_FILES
 
@@ -89,7 +91,7 @@ def preflight() -> None:
 
 
 def publish(slot: str) -> dict[str, str]:
-    with publish_lock():
+    with site_publish_lock(), publish_lock():
         preflight()
         try:
             run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
