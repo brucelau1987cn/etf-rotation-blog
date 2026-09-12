@@ -26,6 +26,8 @@ OUT = DATA / "us-compass-research.json"
 CATALOG = DATA / "catalog.json"
 IWENCAI_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 PROJECT = "etf-rotation-blog"
+sys.path.insert(0, str(ROOT))
+from scripts.a_share_nightly_contract import site_publish_lock
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint as _strict_consistent_fingerprint
     from .validate_public_data_contracts import validate_us_compass_health_payload
@@ -573,23 +575,22 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, check=True)
 
 
-def publish() -> str:
+def publish_unlocked() -> str:
     try:
         from a_share_nightly_contract import site_publish_lock
         from pages_release import release_pages
     except ModuleNotFoundError:
         from scripts.a_share_nightly_contract import site_publish_lock
         from scripts.pages_release import release_pages
-    with site_publish_lock():
-        run(["python3", "scripts/generate_data_catalog.py"])
-        run(["python3", "scripts/validate_public_data_contracts.py"])
-        run(["npm", "run", "build"])
-        run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
-        staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0
-        if staged:
-            run(["git", "commit", "-m", f"data: publish US Compass research {read_json(OUT).get('latest_week')}"])
-            run(["git", "push", "origin", "HEAD:main"])
-        return release_pages([
+    run(["python3", "scripts/generate_data_catalog.py"])
+    run(["python3", "scripts/validate_public_data_contracts.py"])
+    run(["npm", "run", "build"])
+    run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
+    staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0
+    if staged:
+        run(["git", "commit", "-m", f"data: publish US Compass research {read_json(OUT).get('latest_week')}"])
+        run(["git", "push", "origin", "HEAD:main"])
+    return release_pages([
             "https://etf.peekabo.cc/us-compass/research/",
             "https://etf.peekabo.cc/data/us-compass-research.json",
         ], {
@@ -597,7 +598,10 @@ def publish() -> str:
         })
 
 
-def main(argv: list[str] | None = None) -> int:
+publish = publish_unlocked
+
+
+def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--learning", type=Path, default=LEARNING)
     parser.add_argument("--shadow", type=Path, default=SHADOW)
@@ -651,6 +655,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    # Production generation mutates the shared worktree before publish().
+    # Hold the site lock across that preparation and the deployment.
+    with site_publish_lock():
+        return _main(argv)
 
 
 if __name__ == "__main__":
