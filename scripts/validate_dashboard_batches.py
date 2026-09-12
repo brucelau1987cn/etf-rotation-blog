@@ -16,12 +16,14 @@ try:
     from audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
     from generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
+    from select_a_share_candidates import select_candidates
     from path_shadow_public_schema import validate_public_payload
 except ModuleNotFoundError:  # imported as scripts.validate_dashboard_batches in tests
     from scripts.a_share_execution_contract import ALL_TRADE_STATES, EXECUTION_ELIGIBLE_STATES
     from scripts.audit_a_share_harvest import RULE_VERSION as HARVEST_RULE_VERSION, qualified_reason as harvest_qualified_reason, row_fingerprint as harvest_row_fingerprint
     from scripts.generate_research_audit import DEFAULT_TURNOVER, PROVENANCE, build_payload, combined_fingerprint
     from scripts.generate_us_etf_garden import UNIVERSE as US_UNIVERSE, flower_signals as rebuild_us_flower_signals
+    from scripts.select_a_share_candidates import select_candidates
     from scripts.path_shadow_public_schema import validate_public_payload
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -197,6 +199,28 @@ def validate_candidate_selection(
         errors.append("garden-recommendations candidate_selection selected_codes differs from plant order")
     if selection.get("unchanged_from_previous") is True:
         warnings.append("A-share candidate set unchanged from previous batch; current-day qualification metadata verified")
+    # Lightweight unit fixtures may only exercise metadata. Production pools
+    # contain the selector inputs; compare only when those inputs are present.
+    selector_inputs = ("signal_score", "support_gap", "strength_level", "checks")
+    if pool_rows and all(all(key in row for key in selector_inputs) for row in pool_rows if isinstance(row, dict)):
+        try:
+            rebuilt, rebuilt_audit = select_candidates(a_pool, plants, excluded_codes={
+                str(item.get("code")) for item in (garden.get("harvest") or [])
+                if isinstance(item, dict) and item.get("code")
+            })
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"A-share candidates cannot be rebuilt from current pool: {exc}")
+        else:
+            audit_fields = (
+                "code", "selected_from_pool_date", "last_qualified_date", "selection_score",
+                "selection_rank", "qualified_reason", "selection_rule_version",
+            )
+            actual_audit = [{key: item.get(key) for key in audit_fields} for item in plants]
+            rebuilt_audit_items = [{key: item.get(key) for key in audit_fields} for item in rebuilt]
+            if actual_audit != rebuilt_audit_items:
+                errors.append("A-share plant candidates differ from deterministic current-pool rebuild")
+            if selection.get("rule_version") != rebuilt_audit.get("rule_version"):
+                errors.append("A-share candidate_selection rule_version differs from deterministic rebuild")
 
 
 def validate_us_candidate_selection(

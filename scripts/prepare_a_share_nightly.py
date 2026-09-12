@@ -15,14 +15,14 @@ from zoneinfo import ZoneInfo
 try:
     from a_share_nightly_contract import (
         DEPLOYMENT_MARKER_FILE, PATH_SHADOW_FILE, SNAPSHOT_FILES, STATE, file_hashes,
-        nightly_content_files, nightly_lock,
+        nightly_content_files, nightly_lock, site_publish_lock,
     )
     from generate_research_audit import DEFAULT_TURNOVER, build_payload
     from validate_dashboard_batches import validate_research_audit
 except ModuleNotFoundError:  # imported as scripts.prepare_a_share_nightly in tests
     from scripts.a_share_nightly_contract import (
         DEPLOYMENT_MARKER_FILE, PATH_SHADOW_FILE, SNAPSHOT_FILES, STATE, file_hashes,
-        nightly_content_files, nightly_lock,
+        nightly_content_files, nightly_lock, site_publish_lock,
     )
     from scripts.generate_research_audit import DEFAULT_TURNOVER, build_payload
     from scripts.validate_dashboard_batches import validate_research_audit
@@ -351,7 +351,7 @@ def main() -> int:
         assert ROOT.joinpath("scripts/check_a_share_cron_gate.py").exists()
         print("prepare_a_share_nightly self-test: OK")
         return 0
-    with nightly_lock():
+    with nightly_lock(), site_publish_lock():
         ensure_current_main()
         result = prepare(state_path=args.state)
     if result.get("status") == "prepared":
