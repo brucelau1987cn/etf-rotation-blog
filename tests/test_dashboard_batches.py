@@ -135,11 +135,44 @@ def test_consistent_cross_market_batches_pass(tmp_path):
     assert result.batches["us"]["date"] == "2026-07-13"
 
 
+def test_a_share_content_timestamp_must_not_precede_mid_macro_generation(tmp_path):
+    def mutate(payloads):
+        payloads["garden-recommendations.json"]["updated_at"] = "2026-07-14 22:00 CST"
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("updated_at predates a-share-mid-macro generated_at" in error for error in result.errors)
+
+
+
+
 def test_a_share_final_mixed_batch_is_blocked(tmp_path):
     write_fixtures(tmp_path, lambda p: p["etf-garden-pool.json"].update(latest_trade_date="2026-07-13"))
     result = validate(tmp_path)
     assert result.status == "error"
     assert any("A-share baseline batch mismatch" in error or "A 22:00 final stage" in error for error in result.errors)
+
+
+def test_a_share_intraday_allows_previous_final_baseline(tmp_path):
+    def mutate(payloads):
+        payloads["garden-recommendations.json"].update(stage="14:30尾盘操作版", level_data_as_of="2026-07-13")
+        payloads["garden-recommendations.json"]["plant"].append({
+            **payloads["garden-recommendations.json"]["plant"][0], "code": "510500", "price_date": "2026-07-13",
+        })
+        payloads["etf-garden-pool.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["etf-garden-pool.json"]["all_rows"][0]["date"] = "2026-07-13"
+        payloads["model-lab/a-share-shadow.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-path-shadow.json"]["latest_trade_date"] = "2026-07-13"
+        payloads["model-lab/a-share-path-shadow.json"]["items"][0]["as_of"] = "2026-07-13"
+        payloads["model-lab/a-share-research-audit.json"] = build_payload(
+            payloads["etf-garden-backtest.json"], payloads["etf-garden-pool.json"],
+            Path("/definitely/missing-turnover.json"), "2026-07-14T14:30:00+08:00",
+        )
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "ok"
+
+
 
 
 def test_us_macro_mixed_batch_is_blocked(tmp_path):
@@ -157,6 +190,18 @@ def test_us_macro_generation_may_run_after_trade_date_when_market_observation_ma
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert result.status == "ok"
+
+
+def test_us_actions_must_belong_to_current_pool_and_trade_date(tmp_path):
+    def mutate(payloads):
+        item = payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]
+        item.update(symbol="ZZZ_NOT_IN_POOL", trade_date="2000-01-01")
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("US action" in error and "current pool" in error for error in result.errors)
+
+
 
 
 def test_us_pool_must_be_complete_74_rows(tmp_path):
@@ -187,6 +232,17 @@ def test_us_pool_summary_momentum_count_is_recomputed(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert any("summary momentum_pass" in error for error in result.errors)
+
+
+def test_us_actions_must_equal_deterministic_current_pool_rebuild(tmp_path):
+    def mutate(payloads):
+        payloads["us-etf-garden.json"]["flower_signals"]["ready_plant"][0]["support"] = 1.0
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "error"
+    assert any("deterministic current-pool rebuild" in error for error in result.errors)
+
+
 
 
 def test_missing_file_is_blocked(tmp_path):
@@ -348,6 +404,17 @@ def test_executable_level_order_is_blocked(tmp_path):
     write_fixtures(tmp_path, mutate)
     result = validate(tmp_path)
     assert any("requires stop < support" in error for error in result.errors)
+
+
+def test_explicit_invalid_level_is_allowed(tmp_path):
+    def mutate(payloads):
+        item = payloads["garden-recommendations.json"]["plant"][0]
+        item.update({"support": 3.9, "target": 3.8, "stop": -1, "level_status": "invalid", "level_invalid_reason": "bad provider levels"})
+    write_fixtures(tmp_path, mutate)
+    result = validate(tmp_path)
+    assert result.status == "ok"
+
+
 
 
 def test_path_shadow_public_schema_rejects_sensitive_unknown_keys_and_html(tmp_path):

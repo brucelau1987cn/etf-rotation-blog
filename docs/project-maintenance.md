@@ -14,7 +14,7 @@ Operational notes for maintainers. Product surface lives in root `README.md`.
 
 ## Publisher hygiene
 
-- Futures / paper / Pages release hard-fail on foreign dirty paths.
+- Futures / Pages release hard-fail on foreign dirty paths.
 - Exempt only: `public/data/korea-tech-factor-shadow.json`, `public/data/us-selector-shadow.json`.
 - Nightly: prepare freezes `base_commit`; any intermediate commit requires re-prepare before 22:30 publish.
 - `npm run build` validates A-share + US batches together; a lagging A-share 22:00 shadow can block US close publish.

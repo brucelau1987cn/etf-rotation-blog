@@ -202,7 +202,7 @@ npm run build
 | 17:00 | 低筹码股日更 |
 | 18:00 | 滚动详细解读日更 |
 | 21:00 / 21:50 / 22:00 / 22:30 | A 股 qfq 缓存 → prepare 门禁 → 夜间内容 → 确定性发布 |
-| 美股 06:30 等 | 美股收盘罗盘 / paper / 影子扫描 |
+| 美股 06:30 等 | 美股收盘罗盘 / 影子扫描 |
 | 期货 08:30 / 15:20 / 23:10 | 期货罗盘 preopen / day-close / night |
 
 多 publisher 共享 worktree：外脏路径会硬拦（`korea-tech-factor-shadow.json` / `us-selector-shadow.json` 豁免）。夜间 `base_commit` 漂移需重跑 prepare。
