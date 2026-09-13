@@ -165,23 +165,26 @@ def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, A
     import baostock as bs  # type: ignore[import-not-found]
     market_code = "sh." + item["code"] if item["market"] == "XSHG" else "sz." + item["code"]
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        rs = bs.query_history_k_data_plus(
-            market_code,
-            "date,code,open,high,low,close,volume,amount",
-            start_date=(datetime.now() - timedelta(days=count * 2)).strftime("%Y-%m-%d"),
-            end_date="2099-12-31",
-            frequency="d",
-            adjustflag="2",
-        )
-        rows = []
-        while rs.error_code == "0" and rs.next():
-            rows.append(rs.get_row_data())
-        bs.logout()
-    if not rows:
-        return []
-    normalized = [{"date": r[0], "open": r[2], "close": r[5], "high": r[3], "low": r[4], "volume": r[6]}
-                  for r in rows if r[0] and r[5] != ""]
-    return parse_stock_api_rows(normalized, item, source="baostock")
+        login = bs.login()
+        if getattr(login, "error_code", "1") != "0":
+            raise RuntimeError(f"BaoStock login failed: {getattr(login, 'error_msg', 'unknown error')}")
+        try:
+            rs = bs.query_history_k_data_plus(
+                market_code,
+                "date,code,open,high,low,close,volume,amount",
+                start_date=(datetime.now() - timedelta(days=count * 2)).strftime("%Y-%m-%d"),
+                end_date="2099-12-31", frequency="d", adjustflag="2",
+            )
+            rows = []
+            while rs.error_code == "0" and rs.next():
+                rows.append(rs.get_row_data())
+            if getattr(rs, "error_code", "1") != "0":
+                return []
+            normalized = [{"date": r[0], "open": r[2], "close": r[5], "high": r[3], "low": r[4], "volume": r[6]}
+                          for r in rows if r[0] and r[5] != ""]
+            return parse_stock_api_rows(normalized, item, source="baostock")
+        finally:
+            bs.logout()
 
 
 def fetch_primary_history(item: dict[str, str], count: int) -> tuple[list[dict[str, Any]], str]:
@@ -210,7 +213,7 @@ def summarize_source_coverage(bars: list[dict[str, Any]]) -> dict[str, int]:
 def fetch_stock_api_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
     market_code = ("SH" if item["market"] == "XSHG" else "SZ") + item["code"]
     command = ["npx", "-y", STOCK_API_PACKAGE, "get-klines", market_code,
-               "--period", "day", "--count", str(count), "--adjust", "qfq", "--source", "auto"]
+               "--period", "day", "--count", str(count), "--adjust", "qfq", "--source", "tencent"]
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=120)
     if proc.returncode != 0 or not proc.stdout.strip():
         raise RuntimeError((proc.stderr or proc.stdout or "stock-api failed")[-500:])

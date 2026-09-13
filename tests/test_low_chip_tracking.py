@@ -152,20 +152,22 @@ def test_low_chip_pages_share_mode_navigation_and_tracking_scan_controls():
     assert "第{rec.daily.length}/20日" in tracking
     assert 'aria-valuemax="20"' in tracking
     assert "Math.max(0, 20 - rec.daily.length)" in tracking
-    assert 'data-filter="rsi"' in tracking
-    assert 'data-filter="outer-inner"' in tracking
     expected_filters = [
-        'data-filter="rsi"', 'data-filter="outer-inner"', 'data-filter="roe"',
+        'data-filter="roe"',
         'data-filter="cash-profit"', 'data-filter="net-margin"', 'data-filter="gross-margin"',
         'data-filter="debt-ratio"',
         'data-filter="quality-shareholder"', 'data-filter="institutional-shareholder"',
     ]
     assert [low_chip.index(marker) for marker in expected_filters] == sorted(low_chip.index(marker) for marker in expected_filters)
     assert [tracking.index(marker) for marker in expected_filters] == sorted(tracking.index(marker) for marker in expected_filters)
-    assert "el.dataset.rsi !== ''" in tracking
-    assert "Number(el.dataset.rsi) <= 30" in tracking
-    assert "el.dataset.outerInner !== ''" in tracking
-    assert "Number(el.dataset.outerInner) >= 1.5" in tracking
+    assert 'data-filter="rsi"' not in tracking
+    assert 'data-filter="outer-inner"' not in tracking
+    assert "dataset.rsi" not in tracking
+    assert "dataset.outerInner" not in tracking
+    assert "entry_technical?.rsi" not in tracking
+    assert "entry_technical?.outer_inner_ratio" not in tracking
+    assert 'data-filter="touchstone"' not in tracking
+    assert "点石成金" not in tracking
     assert "el.dataset.roe !== ''" in tracking
     assert "el.dataset.netMargin !== ''" in tracking
     assert "Number(el.dataset.netMargin) >= 15" in tracking

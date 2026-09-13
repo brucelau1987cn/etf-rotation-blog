@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit', 'hlp_metrics',
+  'year_profit', 'hlp_metrics', 'touchstone_metrics',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
 
@@ -38,6 +38,9 @@ function clientMetric(row) {
   }
   if (typeof metric.hlp_metrics === 'string') {
     try { metric.hlp_metrics = JSON.parse(metric.hlp_metrics); } catch (e) { metric.hlp_metrics = null; }
+  }
+  if (typeof metric.touchstone_metrics === 'string') {
+    try { metric.touchstone_metrics = JSON.parse(metric.touchstone_metrics); } catch (e) { metric.touchstone_metrics = null; }
   }
   return metric;
 }
@@ -164,6 +167,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN average_cost REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN hlp_metrics TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN touchstone_metrics TEXT').run(); } catch (e) {}
     for (const [column, type] of [
       ['pe_ttm', 'REAL'], ['pb', 'REAL'], ['ps_ttm', 'REAL'], ['pcf_ttm', 'REAL'],
       ['total_share', 'REAL'], ['total_mv', 'REAL'], ['fundamental_shadow_status', 'TEXT'],
@@ -172,7 +176,7 @@ export async function onRequest(context) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} ${type}`).run(); } catch (e) {}
     }
     let inserted = 0;
-    // 批量写入：D1 prepared statement 参数上限约100；37列×2行=74参数。
+    // 批量写入：D1 prepared statement 参数上限约100；39列×2行=78参数。
     const ROWS_PER_STMT = 2;
     const STMTS_PER_BATCH = 100;
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
@@ -181,7 +185,7 @@ export async function onRequest(context) {
       'week_profit', 'month_profit', 'quarter_profit', 'year_profit', 'change_percent',
       'industry', 'sector', 'financials', 'theme_concepts', 'industry_etfs',
       'industry_etf_status', 'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-      'closing_profit', 'average_cost', 'conc70', 'hlp_metrics',
+      'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
     const rowValues = (m) => [
@@ -202,6 +206,7 @@ export async function onRequest(context) {
       m.shareholder_nature ? JSON.stringify(m.shareholder_nature) : null,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
       m.hlp_metrics ? JSON.stringify(m.hlp_metrics) : null,
+      m.touchstone_metrics ? JSON.stringify(m.touchstone_metrics) : null,
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,

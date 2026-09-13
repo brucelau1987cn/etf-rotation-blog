@@ -339,6 +339,17 @@ def test_dist_and_candidate_identity_are_rechecked_before_release():
     assert "if dirty() - ALLOWED_DIRTY" in source
 
 
-def test_release_gate_runs_tracking_retry_regressions():
+def test_hlp_and_touchstone_use_same_interpreter_and_touchstone_follows_hlp():
+    source = SCRIPT.read_text(encoding='utf-8')
+    repo_script = Path('/root/projects/etf-rotation-blog/scripts/attach_low_chip_touchstone.py')
+    assert repo_script.exists()
+    assert "hlp_python = '/usr/bin/python3'" in source
+    hlp = source.index("run([hlp_python, 'scripts/attach_low_chip_hlp.py']")
+    touchstone = source.index("run([hlp_python, 'scripts/attach_low_chip_touchstone.py']")
+    assert hlp < touchstone
+    assert "tests/test_attach_low_chip_touchstone.py" in source
+    assert source.index("run(['npm', 'run', 'build']") > touchstone
+    assert 'scripts/attach_low_chip_touchstone.py' not in load_module().ALLOWED_DIRTY
+
     source = SCRIPT.read_text(encoding='utf-8')
     assert "'tests/test_low_chip_tracking_retry.py'" in source

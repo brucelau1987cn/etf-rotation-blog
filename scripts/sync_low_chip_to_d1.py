@@ -122,6 +122,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "financials": enr.get("financials"),
             'theme_concepts': enr.get('theme_concepts') or enr.get('theme_concept'),
             'hlp_metrics': enr.get('hlp_metrics'),
+            'touchstone_metrics': enr.get('touchstone_metrics'),
             "industry_etfs": enr.get("industry_etfs") or [],
             "industry_etf_status": enr.get("industry_etf_status") or "unknown",
             "industry_etf_pool_count": enr.get("industry_etf_pool_count"),
