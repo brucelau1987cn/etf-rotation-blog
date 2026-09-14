@@ -40,6 +40,48 @@ DECAY = 1.0                # 换手衰减系数（1.0=真实换手率，标准 C
 SLEEP = 0.3                # baostock 逐只串行限速
 
 
+def shadow_calendar_gate(trade_date: str, lookup=None) -> dict[str, str]:
+    if lookup is None:
+        try:
+            from check_a_share_cron_gate import is_trading_day
+        except ModuleNotFoundError:
+            from scripts.check_a_share_cron_gate import is_trading_day
+        lookup = is_trading_day
+    trading_day, source = lookup(trade_date)
+    status = "run" if trading_day is True else "skip" if trading_day is False else "error"
+    return {"status": status, "trade_date": trade_date, "calendar_source": source}
+
+
+def atomic_write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def write_stale_input(path: Path, *, actual: str, expected: str, generated_at: str) -> int:
+    atomic_write_json(path, {
+        "version": 1,
+        "generated_at": generated_at,
+        "status": "stale_input",
+        "data_as_of": actual,
+        "expected_data_as_of": expected,
+        "production_effect": "none",
+        "errors": {"data_as_of": f"expected {expected}, got {actual or 'missing'}"},
+        "disclaimer": "影子失败已隔离；未接入生产筛选、展示、仓位或交易动作。",
+    })
+    print(f"CYQ影子 stale_input｜data_as_of={actual or 'missing'} expected={expected}")
+    return 2
+
+
 def load_symbols() -> tuple[dict[str, str], dict[str, float | None], str]:
     """返回 (code→name, code→iWenCai最新收盘获利, data_as_of)。"""
     track = json.loads(TRACKING.read_text(encoding="utf-8")) or {}
@@ -107,6 +149,23 @@ def bare(code: str) -> str:
 def main() -> int:
     names, iwencai, data_as_of = load_symbols()
     now = datetime.now(CN_TZ)
+    expected = os.environ.get("LOW_CHIP_TRADE_DATE") or now.date().isoformat()
+    calendar_gate = shadow_calendar_gate(expected)
+    if calendar_gate["status"] != "run":
+        status = "skipped_closed" if calendar_gate["status"] == "skip" else "error"
+        atomic_write_json(OUT, {
+            "version": 1, "generated_at": now.isoformat(timespec="seconds"),
+            "status": status, "data_as_of": data_as_of,
+            "expected_data_as_of": expected, "calendar_gate": calendar_gate,
+            "production_effect": "none",
+        })
+        print(json.dumps({"status": status, "calendar_gate": calendar_gate}, ensure_ascii=False))
+        return 0 if calendar_gate["status"] == "skip" else 2
+    if data_as_of != expected:
+        return write_stale_input(
+            OUT, actual=data_as_of, expected=expected,
+            generated_at=now.isoformat(timespec="seconds"),
+        )
     end_date = data_as_of or now.strftime("%Y-%m-%d")
     try:
         start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%d")
@@ -187,18 +246,10 @@ def main() -> int:
         "disclaimer": "影子快照：本地 CYQ 三角分布推演，与 iWenCai 收盘获利对照，未接入生产筛选/展示。",
     }
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=".cyq-chip.", suffix=".tmp", dir=OUT.parent)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, OUT)
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
+    payload["data_as_of"] = data_as_of
+    payload["expected_data_as_of"] = expected
+    payload["production_effect"] = "none"
+    atomic_write_json(OUT, payload)
 
     s = payload["summary"]
     line = f"CYQ影子 {status}｜标的{s['total_symbols']} 计算{s['computed']} 失败{s['failed']} 对照{s['matched_with_iwencai']}"

@@ -24,6 +24,18 @@ SDK_VERSION = "0.1.1"
 CN = ZoneInfo("Asia/Shanghai")
 
 
+def shadow_calendar_gate(trade_date: str, lookup=None) -> dict[str, str]:
+    if lookup is None:
+        try:
+            from check_a_share_cron_gate import is_trading_day
+        except ModuleNotFoundError:
+            from scripts.check_a_share_cron_gate import is_trading_day
+        lookup = is_trading_day
+    trading_day, source = lookup(trade_date)
+    status = "run" if trading_day is True else "skip" if trading_day is False else "error"
+    return {"status": status, "trade_date": trade_date, "calendar_source": source}
+
+
 def create_retry_session() -> requests.Session:
     retry = Retry(
         total=3,
@@ -295,6 +307,25 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
             os.unlink(tmp)
 
 
+def write_stale_input(path: Path, *, actual: str, expected: str, generated_at: str) -> int:
+    atomic_write_json(path, {
+        "schema_version": "ftshare-shadow-v2",
+        "mode": "shadow_research_only",
+        "generated_at": generated_at,
+        "status": "stale_input",
+        "data_as_of": actual,
+        "expected_data_as_of": expected,
+        "production_effect": "none",
+        "errors": {"data_as_of": f"expected {expected}, got {actual or 'missing'}"},
+        "disclaimer": "影子失败已隔离；不修改生产筛选、权重、仓位或交易动作。",
+    })
+    print(json.dumps({
+        "status": "stale_input", "data_as_of": actual,
+        "expected_data_as_of": expected, "output": str(path),
+    }, ensure_ascii=False))
+    return 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -306,6 +337,25 @@ def main() -> int:
     args = parser.parse_args()
 
     source = json.loads(args.input.read_text(encoding="utf-8"))
+    actual_data_as_of = str(source.get("data_as_of") or "")[:10]
+    expected_data_as_of = os.environ.get("LOW_CHIP_TRADE_DATE") or dt.datetime.now(CN).date().isoformat()
+    calendar_gate = shadow_calendar_gate(expected_data_as_of)
+    if calendar_gate["status"] != "run":
+        status = "skipped_closed" if calendar_gate["status"] == "skip" else "error"
+        atomic_write_json(args.output, {
+            "schema_version": "ftshare-shadow-v2", "mode": "shadow_research_only",
+            "generated_at": dt.datetime.now(CN).isoformat(timespec="seconds"),
+            "status": status, "data_as_of": actual_data_as_of,
+            "expected_data_as_of": expected_data_as_of, "calendar_gate": calendar_gate,
+            "production_effect": "none",
+        })
+        print(json.dumps({"status": status, "calendar_gate": calendar_gate}, ensure_ascii=False))
+        return 0 if calendar_gate["status"] == "skip" else 2
+    if actual_data_as_of != expected_data_as_of:
+        return write_stale_input(
+            args.output, actual=actual_data_as_of, expected=expected_data_as_of,
+            generated_at=dt.datetime.now(CN).isoformat(timespec="seconds"),
+        )
     symbols = list(source.get("intersection") or [])
     if args.max_symbols > 0:
         symbols = symbols[: args.max_symbols]
@@ -351,6 +401,9 @@ def main() -> int:
         "production_change_allowed": False,
         "generated_at": dt.datetime.now(CN).isoformat(timespec="seconds"),
         "status": status,
+        "data_as_of": actual_data_as_of,
+        "expected_data_as_of": expected_data_as_of,
+        "production_effect": "none",
         "source": {
             "provider": "FTShare",
             "transport": "python-sdk",

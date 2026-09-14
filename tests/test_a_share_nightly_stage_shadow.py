@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import signal
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
 
-NIGHTLY_STAGE = Path('/root/.hermes/scripts/run_a_share_nightly_stage.py')
-NIGHTLY_CHAIN = Path('/root/.hermes/scripts/run_a_share_nightly_chain.sh')
+ROOT = Path(__file__).resolve().parents[1]
+NIGHTLY_STAGE = ROOT / 'scripts/run_a_share_nightly_stage.py'
+NIGHTLY_CHAIN = ROOT / 'scripts/run_a_share_nightly_chain.sh'
+HERMES_STAGE_WRAPPER = Path('/root/.hermes/scripts/run_a_share_nightly_stage.py')
+HERMES_CHAIN_WRAPPER = Path('/root/.hermes/scripts/run_a_share_nightly_chain.sh')
 LOCAL_HERMES_READABLE = (
     os.environ.get('CI', '').lower() != 'true'
-    and all(os.access(path, os.R_OK) for path in (NIGHTLY_STAGE, NIGHTLY_CHAIN))
-)
-pytestmark = pytest.mark.skipif(
-    not LOCAL_HERMES_READABLE,
-    reason='requires readable local Hermes nightly scripts',
+    and all(os.access(path, os.R_OK) for path in (HERMES_STAGE_WRAPPER, HERMES_CHAIN_WRAPPER))
 )
 
 
@@ -27,21 +29,33 @@ def load():
     return module
 
 
-def test_cache_chain_includes_fundamental_shadow_after_cache():
+def test_cache_chain_includes_fundamental_shadow_after_cache(monkeypatch, tmp_path):
     module = load()
     names = module.resolve_stages('precheck-cache')
     assert names == ['precheck', 'cache', 'fundamental-shadow']
     command = module.STAGES['fundamental-shadow']
     assert command[0] == '/usr/bin/python3'
     assert command[-3:] == ['--workers', '4', '--write']
+    credentials = tmp_path / 'credentials.env'
+    credentials.write_text('LOW_CHIP_SYNC_TOKEN=test-token\n', encoding='utf-8')
+    monkeypatch.setattr(module, 'CREDENTIALS', credentials)
     env = module.stage_environment('fundamental-shadow')
     assert env['LOW_CHIP_SYNC_TOKEN']
     assert module.stage_environment('cache') is None
 
 
-def test_enabled_nightly_chain_wrapper_invokes_precheck_cache():
+def test_repository_chain_invokes_repository_stage_entry():
     wrapper = NIGHTLY_CHAIN.read_text(encoding='utf-8')
-    assert 'run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
+    assert 'scripts/run_a_share_nightly_stage.py --stage precheck-cache' in wrapper
+
+
+@pytest.mark.skipif(not LOCAL_HERMES_READABLE, reason='requires local Hermes wrappers')
+def test_hermes_entries_are_thin_repository_forwarders():
+    stage_wrapper = HERMES_STAGE_WRAPPER.read_text(encoding='utf-8')
+    chain_wrapper = HERMES_CHAIN_WRAPPER.read_text(encoding='utf-8')
+    assert 'scripts/run_a_share_nightly_stage.py' in stage_wrapper
+    assert 'scripts/run_a_share_nightly_chain.sh' in chain_wrapper
+    assert 'def run_command' not in stage_wrapper
 
 
 def test_nightly_chain_keeps_outer_timeout_above_inner_budget():
@@ -69,7 +83,7 @@ def test_run_stage_persists_running_stage_before_subprocess(monkeypatch):
 
     monkeypatch.setattr(module, 'write_status', lambda payload: statuses.append(payload))
     monkeypatch.setattr(module, 'write_log', lambda *args: None)
-    monkeypatch.setattr(module.subprocess, 'run', lambda *args, **kwargs: Completed())
+    monkeypatch.setattr(module, 'run_command', lambda *args, **kwargs: Completed())
     payload = module.run_stage('precheck', 3600)
 
     assert payload['ok'] is True
@@ -77,6 +91,35 @@ def test_run_stage_persists_running_stage_before_subprocess(monkeypatch):
     assert statuses[0]['current_stage'] == 'precheck'
     assert statuses[0]['requested_stage'] == 'precheck'
     assert statuses[-1]['ok'] is True
+
+
+def test_successful_precheck_chain_persists_dated_ready_receipt(monkeypatch):
+    module = load()
+    receipts = []
+
+    class Completed:
+        returncode = 0
+        stdout = ''
+        stderr = ''
+
+    monkeypatch.setattr(module, 'now_iso', lambda: '2026-09-14T22:04:47+08:00')
+    monkeypatch.setattr(module, 'write_status', lambda payload: None)
+    monkeypatch.setattr(module, 'write_log', lambda *args: None)
+    monkeypatch.setattr(module, 'write_json_atomic', lambda path, payload: receipts.append((path, payload)))
+    monkeypatch.setattr(module, 'run_command', lambda *args, **kwargs: Completed())
+    monkeypatch.setattr(module, 'stage_environment', lambda stage: None)
+
+    payload = module.run_stage('precheck-cache', 3600)
+
+    assert payload['ok'] is True
+    assert len(receipts) == 1
+    path, receipt = receipts[0]
+    assert path == module.CHAIN_READY_PATH
+    assert receipt['trade_date'] == '2026-09-14'
+    assert receipt['status'] == 'ready'
+    assert [item['stage'] for item in receipt['results']] == [
+        'precheck', 'cache', 'fundamental-shadow',
+    ]
 
 
 def test_timeout_report_names_the_stage(monkeypatch):
@@ -88,10 +131,86 @@ def test_timeout_report_names_the_stage(monkeypatch):
     monkeypatch.setattr(module, 'write_status', lambda payload: None)
     monkeypatch.setattr(module, 'write_log', lambda *args: None)
     monkeypatch.setattr(module, 'fundamental_shadow_fallback', lambda: None)
-    monkeypatch.setattr(module.subprocess, 'run', timeout)
+    monkeypatch.setattr(module, 'run_command', timeout)
     payload = module.run_stage('fundamental-shadow', 3600)
     assert payload['ok'] is False
     assert 'STAGING BLOCKER: fundamental-shadow timed out after 2400s' in payload['results'][0]['stderr_tail']
+
+
+def test_timeout_reaps_the_entire_stage_process_group(monkeypatch, tmp_path):
+    module = load()
+    leader_pid_path = tmp_path / 'leader.pid'
+    child_pid_path = tmp_path / 'child.pid'
+    script = (
+        'import os, signal, subprocess, sys, time\n'
+        'signal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+        'child = subprocess.Popen([sys.executable, "-c", '
+        '"import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"], '
+        'stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n'
+        f'open({str(leader_pid_path)!r}, "w").write(str(os.getpid()))\n'
+        f'open({str(child_pid_path)!r}, "w").write(str(child.pid))\n'
+        'time.sleep(60)\n'
+    )
+    monkeypatch.setitem(module.STAGES, 'precheck', [sys.executable, '-c', script])
+    monkeypatch.setitem(module.STAGE_TIMEOUTS, 'precheck', 1)
+    monkeypatch.setattr(module, 'TERMINATE_GRACE_SECONDS', 0.2, raising=False)
+    monkeypatch.setattr(module, 'KILL_GRACE_SECONDS', 1.0, raising=False)
+    monkeypatch.setattr(module, 'write_status', lambda payload: None)
+    monkeypatch.setattr(module, 'write_log', lambda *args: None)
+
+    leader_pid = child_pid = None
+    try:
+        payload = module.run_stage('precheck', 1)
+        leader_pid = int(leader_pid_path.read_text(encoding='utf-8'))
+        child_pid = int(child_pid_path.read_text(encoding='utf-8'))
+        deadline = time.monotonic() + 2
+        while process_is_running(child_pid) and time.monotonic() < deadline:
+            time.sleep(0.02)
+
+        assert payload['results'][0]['returncode'] == 124
+        assert not Path(f'/proc/{leader_pid}').exists()
+        assert not process_is_running(child_pid)
+    finally:
+        if child_pid is not None and process_is_running(child_pid):
+            os.kill(child_pid, signal.SIGKILL)
+
+
+def test_timeout_reaps_child_when_leader_exits_on_term(monkeypatch, tmp_path):
+    module = load()
+    child_pid_path = tmp_path / 'child.pid'
+    script = (
+        'import subprocess, sys, time\n'
+        'child = subprocess.Popen([sys.executable, "-c", '
+        '"import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"], '
+        'stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n'
+        f'open({str(child_pid_path)!r}, "w").write(str(child.pid))\n'
+        'time.sleep(60)\n'
+    )
+    monkeypatch.setattr(module, 'TERMINATE_GRACE_SECONDS', 0.2)
+    monkeypatch.setattr(module, 'KILL_GRACE_SECONDS', 1.0)
+
+    child_pid = None
+    try:
+        with pytest.raises(module.subprocess.TimeoutExpired):
+            module.run_command(
+                [sys.executable, '-c', script], cwd=str(tmp_path), text=True,
+                capture_output=True, env=None, timeout=1,
+            )
+        child_pid = int(child_pid_path.read_text(encoding='utf-8'))
+        deadline = time.monotonic() + 2
+        while process_is_running(child_pid) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert not process_is_running(child_pid)
+    finally:
+        if child_pid is not None and process_is_running(child_pid):
+            os.kill(child_pid, signal.SIGKILL)
+
+
+def process_is_running(pid: int) -> bool:
+    stat_path = Path(f'/proc/{pid}/stat')
+    if not stat_path.exists():
+        return False
+    return stat_path.read_text(encoding='utf-8').split()[2] != 'Z'
 
 
 def test_cache_validator_does_not_require_iwencai_source():

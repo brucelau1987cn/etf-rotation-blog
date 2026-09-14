@@ -52,6 +52,93 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     assert all(path == maintenance.PUBLIC_SNAPSHOT for path, _ in writes)
 
 
+def test_maintenance_exit_fails_when_any_required_stage_errors(monkeypatch, capsys):
+    monkeypatch.setattr(maintenance, "slot_calendar_gate", lambda slot: {"status": "run"})
+    monkeypatch.setattr(maintenance, "run_slot", lambda slot: {
+        "review": {"status": "ok"},
+        "briefing": {"status": "error", "detail": "generator failed"},
+        "snapshot": {"ok": True},
+    })
+    monkeypatch.setattr(sys, "argv", ["run_futures_compass_maintenance.py", "--slot", "preopen"])
+
+    assert maintenance.main() == 1
+    assert json.loads(capsys.readouterr().out)["briefing"]["status"] == "error"
+
+
+def test_day_close_requires_daily_and_warehouse_stages(monkeypatch):
+    result = {
+        "review": {"status": "ok"}, "briefing": {"status": "ok"},
+        "daily": {"status": "ok"}, "warehouse": {"status": "error"},
+        "snapshot": {"ok": True},
+    }
+    assert maintenance.required_stage_errors("day-close", result) == ["warehouse"]
+
+
+def test_futures_calendar_gate_uses_current_day_for_day_slots(monkeypatch):
+    calls = []
+    monkeypatch.setattr(maintenance, "calendar_trading_day", lambda day: calls.append(day) or (True, "fixture"))
+    now = datetime(2026, 9, 14, 8, 15, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+    assert maintenance.slot_calendar_gate("preopen", now=now)["status"] == "run"
+    assert maintenance.slot_calendar_gate("day-close", now=now)["status"] == "run"
+    assert calls == ["2026-09-14", "2026-09-14"]
+
+
+def calendar_fixture(open_days):
+    def lookup(day):
+        return day in open_days, "fixture"
+    return lookup
+
+
+def test_futures_night_gate_uses_next_weekday_trading_day(monkeypatch):
+    monkeypatch.setattr(
+        maintenance,
+        "calendar_trading_day",
+        calendar_fixture({"2026-09-14", "2026-09-15"}),
+    )
+    now = datetime(2026, 9, 14, 23, 10, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+    gate = maintenance.slot_calendar_gate("night", now=now)
+
+    assert gate["status"] == "run"
+    assert gate["calendar_date"] == "2026-09-15"
+
+
+def test_futures_friday_night_belongs_to_monday_trading_day(monkeypatch):
+    monkeypatch.setattr(
+        maintenance,
+        "calendar_trading_day",
+        calendar_fixture({"2026-09-18", "2026-09-21"}),
+    )
+    now = datetime(2026, 9, 18, 23, 10, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+    gate = maintenance.slot_calendar_gate("night", now=now)
+
+    assert gate["status"] == "run"
+    assert gate["calendar_date"] == "2026-09-21"
+
+
+def test_futures_night_gate_stops_before_long_holiday(monkeypatch):
+    monkeypatch.setattr(
+        maintenance,
+        "calendar_trading_day",
+        calendar_fixture({"2026-09-30", "2026-10-09"}),
+    )
+    now = datetime(2026, 9, 30, 23, 10, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+    gate = maintenance.slot_calendar_gate("night", now=now)
+
+    assert gate["status"] == "skip"
+    assert gate["calendar_date"] == "2026-10-09"
+
+
+def test_futures_calendar_unavailable_fails_closed(monkeypatch):
+    monkeypatch.setattr(maintenance, "calendar_trading_day", lambda day: (None, "unavailable"))
+    now = datetime(2026, 9, 14, 15, 45, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+    assert maintenance.slot_calendar_gate("day-close", now=now)["status"] == "error"
+
+
 def test_public_snapshot_validation_blocks_old_or_incomplete_payloads(monkeypatch):
     now = datetime(2026, 7, 28, 8, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
     codes = ("LC", "PS", "SI", "AU", "AG", "CU", "AL", "SC", "LH", "JM", "SA")

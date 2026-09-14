@@ -27,6 +27,15 @@ def load_module():
     return module
 
 
+def test_release_calendar_gate_skips_closed_days_and_fails_closed_when_unavailable():
+    module = load_module()
+    assert module.release_calendar_gate("2026-09-13", lookup=lambda day: (False, "fixture")) == {
+        "status": "skip", "trade_date": "2026-09-13", "calendar_source": "fixture",
+    }
+    assert module.release_calendar_gate("2026-09-14", lookup=lambda day: (True, "fixture"))["status"] == "run"
+    assert module.release_calendar_gate("2026-09-14", lookup=lambda day: (None, "unavailable"))["status"] == "error"
+
+
 def test_sync_d1_metrics_requires_complete_insert_count(tmp_path):
     module = load_module()
     env_file = tmp_path / 'sync.env'

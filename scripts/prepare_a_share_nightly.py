@@ -196,6 +196,17 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     current = now or datetime.now(CN)
     gate = run_json(["python3", "scripts/check_a_share_cron_gate.py", "--stage", "22:00"])
     if gate.get("decision") != "run":
+        if gate.get("decision") == "idempotent" and state_path.is_file():
+            try:
+                existing = json.loads(state_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                existing = None
+            if (
+                isinstance(existing, dict)
+                and existing.get("version") == 2
+                and existing.get("trade_date") == gate.get("qfq_date")
+            ):
+                return existing
         payload = {
             "version": 1,
             "status": gate.get("decision"),
@@ -354,7 +365,7 @@ def main() -> int:
     with nightly_lock(), site_publish_lock():
         ensure_current_main()
         result = prepare(state_path=args.state)
-    if result.get("status") == "prepared":
+    if result.get("version") == 2:
         return 0
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result.get("status") == "idempotent" else 2
