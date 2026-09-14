@@ -139,6 +139,24 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
     ],
   },
 
+  '2026-09-14': {
+    tradeDate: '2026-09-14',
+    shortDate: '09/14',
+    title: '9月14日滚动信号收盘复盘',
+    subtitle: 'A股上海电力盘中触发4条BUY（1h45m/2.5h/3h/3.5h）全部被收盘¥14.18贴价/弱收复；港股澜起科技盘中SELL@HK$266后同分钟BUY@HK$266多空轮换，收盘HK$243跌-5.81%，SELL确认、BUY失效。沪深两市成交额回升，量比2.193偏热，RSI6=78.97过热区间。',
+    cutoff: '2026-09-14 收市（A股15:00 / 港股16:08）',
+    summary: '今日D1共6条信号（4 BUY + 1 SELL + 1 BUY 轮换）覆盖2只标的（A上海电力600021、港澜起06809）。上海电力收盘¥14.18（+2.16%）高于全部4个BUY触发价¥14.12—14.19，BUY全部贴价或弱收复，RSI6=78.97过热、主力净流出约2288万元；澜起科技盘中04:22同时触发SELL@HK$266与BUY@HK$266（同价多空轮换），收盘HK$243（-5.81%）大幅低于触发价，SELL已确认、BUY被深跌打掉（失效）。信号标的数2，确认1（澜起SELL）、收复/弱收复4（上海电力全部BUY）、观察0、失效1（澜起BUY）。',
+    buyRule: 'BUY仅在收盘站回触发价上方且量价齐升时确认。今日上海电力4条BUY信号价全部贴价或低于收盘，但量比2.193/RSI6=78.97显示过热+主力净流出2288万元，不构成有效BUY触发——BUY仅作观察，待价格回踩MA5¥13.79/MA20¥13.63不破再考虑试仓。澜起BUY@HK$266已被同分钟深跌打掉（收盘HK$243），按多空轮换记BUY失效，反手信号不构成。右侧修复通用条件：上海电力需站回¥14.59日内高且RSI6回落至60以下；澜起需站回HK$270上方并放量。',
+    sellRule: '空方优先风险处理：澜起SELL@HK$266收盘HK$243已跌-8.65%，SELL确认有效，次日反弹HK$250—258.00（前日收）先看压力，跌破HK$242.60（日内低）空方再续，HK$230整数关口为下一目标。上海电力虽有4条BUY但收盘价触及MA5上沿、主力净流出，盘中反抽¥14.20—14.59若不放量则形成局部卖压；跌破¥13.79 MA5需警惕转弱。其余标的（002173/688041/301511/600637/01378/TSLA）今日无信号，按持仓纪律不动。',
+    discipline: '硬规则：同标的同方向近价节点按一个执行簇处理，今日每标的仅计一个主动作；D1同日同节点不回写，首次触发价作为证据锚，收盘价才是确认基准。上海电力4个BUY节点（1h45m/2.5h/3h/3.5h）触发价¥14.12-14.19簇内紧密分布，按一簇BUY观察处理，不拆成4次试仓；收盘¥14.18仅贴1h45m BUY价（¥14.19差0.01元）、高于其余3个BUY价，但RSI6=78.97过热+主力净流出，BUY确认需量价再确认。澜起SELL@HK$266与BUY@HK$266同分钟触发，按多空轮换处理——SELL先按收盘HK$243确认下行，BUY被深跌打掉记失效。盘中波动不替代收盘，仓位不因"看起来涨得多"自动放大。',
+    sources: 'Cloudflare D1 REST（2026-09-14，6 rows）。A股权威收盘用Sina hq.sinajs.cn sh600021：14.18（+2.16%，开13.79/高14.59/低13.75，振幅6.05%，换手2.36%，量比2.193，成交额9.50亿元）；iWenCai hithink-market-query 600021：MA5¥13.794 / MA10¥13.603 / MA20¥13.633 / RSI6=78.968 / RSI12=59.664 / 主力资金净流出2288万元 / 收盘获利25.0% / 平均成本¥14.98 / 集中度90=20.7。港股用腾讯qt.gtimg.cn hk06809：243.000（-5.81%，高255.800/低242.600，振幅5.12%，成交额5.66亿港元，前收258.000）；iWenCai 澜起科技 06809：MA5=263.76 / MA20=269.04 / RSI6=26.82。',
+    signals: [
+      { name: '上海电力', symbol: '600021', market: 'A股', direction: 'BUY', nodes: '1h45m/2.5h/3h/3.5h多方', signalPrices: '¥14.19/¥14.12/¥14.13/¥14.18', close: '¥14.18', change: '+2.16%', validation: 'reclaimed', validationLabel: '收盘贴1h45m BUY价，弱收复',
+        verdict: '03:15/05:30/06:30/07:02分别触发1h45m¥14.19/2.5h¥14.12/3.5h¥14.13/3h¥14.18共4条BUY，触发价紧密分布在¥14.12-14.19区间。收盘¥14.18（+2.16%）高于2.5h/3.5h BUY价，贴1h45m BUY价（差0.01元）并低于3h BUY价（差0.00元），按多节点簇统一判定为弱收复。主力净流出2288万元，RSI6=78.968过热区间，量比2.193偏热但未达极端。技术上不算有效BUY确认，仅作回踩观察。', support: '¥13.75日内低；¥14.12 2.5h BUY价；¥13.79 MA5', pressure: '¥14.59日内高；¥13.794 MA5；RSI6=78.97过热', buyPlan: '回踩¥14.00-14.12不破再考虑试仓（≤1/4），站回¥14.59并放量再确认BUY；当前RSI过热+主力净流出，不追多。', sellPlan: '反抽¥14.20—14.59不放量减仓/观察；跌破¥13.79 MA5警惕转弱。', evidence: ['D1 1h45m BUY¥14.19@03:15', 'D1 2.5h BUY¥14.12@05:30', 'D1 3.5h BUY¥14.13@06:30', 'D1 3h BUY¥14.18@07:02', '收盘¥14.18、涨跌幅+2.16%', '主力净流出2288万元 / RSI6=78.968 / 量比2.193'] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'SELL', nodes: '180m空方 + 3h BUY多空轮换', signalPrices: 'HK$266/HK$266', close: 'HK$243.00', change: '-5.81%', validation: 'confirmed', validationLabel: 'SELL收盘跌破触发价-8.65%，BUY同价失效',
+        verdict: '04:22同分钟触发180m SELL@HK$266与3h BUY@HK$266（多空轮换同价簇）。收盘HK$243.00（-5.81%）大幅低于触发价HK$266，SELL已确认有效（跌-8.65%）；BUY被深跌打掉，按多空轮换记BUY失效。日内高HK$255.80 / 低HK$242.60，振幅5.12%，成交额5.66亿港元。MA5=263.76 / MA20=269.04，价格显著跌破两条均线；RSI6=26.82超卖区间但未现底背离证据。', support: 'HK$242.60日内低；HK$230整数关口', pressure: 'HK$255.80日内高；HK$258.00前日收；MA20=269.04', buyPlan: 'BUY@HK$266已失效，不主动抄底；待站回HK$270并放量+RSI6回升至50以上再观察。', sellPlan: 'SELL有效，次日反弹HK$250—258先看压力减仓；跌破HK$242.60空方再续，HK$230整数关口为下一目标；HK$258止损不可破。', evidence: ['D1 180m SELL@HK$266@04:22', 'D1 3h BUY@HK$266@04:22（多空轮换失效）', '收盘HK$243.00、涨跌幅-5.81%', '日内高HK$255.80 / 低HK$242.60', 'MA5=263.76 / MA20=269.04 / RSI6=26.82'] }
+    ]
+  },
   '2026-09-11': {
     tradeDate: '2026-09-11',
     shortDate: '09/11',
@@ -1941,7 +1959,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-11', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-14', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-11', href: '/rolling/insights/2026-09-11/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-10', href: '/rolling/insights/2026-09-10/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-09', href: '/rolling/insights/2026-09-09/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-08', href: '/rolling/insights/2026-09-08/' },
