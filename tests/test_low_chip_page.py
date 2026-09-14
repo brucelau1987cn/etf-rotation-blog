@@ -215,12 +215,12 @@ def test_low_chip_financial_filter_controls_and_logic():
     assert "activeFilters.has('change-20d')" not in page
 
 
-def test_low_chip_search_supports_guo_tou_zi_ben_initials():
+def test_low_chip_search_uses_complete_pinyin_initials():
     page = PAGE.read_text(encoding="utf-8")
-    assert "国:'g'" in page
-    assert "投:'t'" in page
-    assert "资:'z'" in page
-    assert "本:'b'" in page
+    initials = (ROOT / "src/lib/stockNameInitials.mjs").read_text(encoding="utf-8")
+    assert "stockNameInitials" in page
+    assert "pinyin" in initials
+    assert "stockInitialsByCode[code] || ''" in page
     assert "var values = [c.dataset.symbol, c.dataset.name, c.dataset.initials, c.dataset.industry].map(normalize);" in page
 
 
