@@ -207,8 +207,10 @@ def test_low_chip_financial_filter_controls_and_logic():
         'data-filter="institutional-shareholder"',
     ]
     assert [page.index(marker) for marker in expected_order] == sorted(page.index(marker) for marker in expected_order)
-    assert "bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed" in page
-    assert "touchstone.bottom_alert ?? touchstone.bottom_confirmed" in page
+    assert "row.touchstoneMetrics?.touchstone_hit" in page
+    assert "touchstone.touchstone_hit" in page
+    assert "候选底部" in page
+    assert "正式确认" in page
     assert 'data-filter="change-20d"' not in page
     assert "activeFilters.has('change-20d')" not in page
 

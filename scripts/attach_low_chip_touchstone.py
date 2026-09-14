@@ -49,11 +49,23 @@ def calculate_touchstone(closes: Iterable[float], dates: Iterable[str]) -> dict:
     current = last_confirmation if last_confirmation and last_confirmation["confirmation_index"] == len(prices) - 1 else None
     result["bottom_alert"] = bool(current and current["spacing_qualified"])
     result["bottom_confirmed"] = result["bottom_alert"]
+    candidate_trough_allowed = previous_trough is None or (zig_low - 1 - previous_trough) >= MIN_SPACING
+    candidate_active = (
+        direction == -1
+        and zig_low < len(prices) - 1
+        and prices[-1] > prices[zig_low]
+        and candidate_trough_allowed
+    )
+    result["candidate_bottom_active"] = candidate_active
+    result["candidate_anchor_date"] = day_list[zig_low] if direction == -1 else None
+    result["candidate_anchor_close"] = prices[zig_low] if direction == -1 else None
+    result["candidate_rebound_pct"] = round((prices[-1] / prices[zig_low] - 1) * 100, 4) if direction == -1 else None
+    result["touchstone_hit"] = candidate_active or result["bottom_alert"]
     return result
 
 
 def _empty_metrics(coverage):
-    return {"bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/BaoStock)"}
+    return {"candidate_bottom_active": False, "candidate_anchor_date": None, "candidate_anchor_close": None, "candidate_rebound_pct": None, "touchstone_hit": False, "bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/BaoStock)"}
 
 
 def _trough_event(anchor, confirmation, prices, dates, previous_trough):
@@ -181,7 +193,7 @@ def build_and_publish(path=DATA, history_loader=load_history):
         except Exception as exc:
             errors[code] = f'{type(exc).__name__}: {exc}'
     coverage = {'requested': len(codes), 'computed': computed, 'failed': len(errors)}
-    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'signal_field': 'bottom_alert', 'formal_confirmation_only': True, 'source': 'local qfq cache → Tencent qfq daily → BaoStock qfq daily', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
+    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'timeframe': 'daily', 'signal_field': 'touchstone_hit', 'candidate_field': 'candidate_bottom_active', 'formal_field': 'bottom_alert', 'filter_rule': 'candidate_bottom_active OR bottom_alert', 'candidate_definition': 'lowest close anchor on the active down leg after any rebound and before 15% confirmation', 'source': 'local qfq cache → Tencent qfq daily → BaoStock qfq daily', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
     if errors or computed != len(codes):
         raise RuntimeError(f'touchstone coverage incomplete: {coverage}')
     target = Path(path)

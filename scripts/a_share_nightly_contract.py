@@ -5,6 +5,8 @@ from __future__ import annotations
 import fcntl
 import hashlib
 import os
+import secrets
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
@@ -12,6 +14,9 @@ from typing import Iterable
 STATE = Path("/root/.hermes/state/a-share-nightly-pipeline.json")
 LOCK = Path("/root/.hermes/state/a-share-nightly-publish.lock")
 SITE_PUBLISH_LOCK = Path("/root/.hermes/state/etf-site-publish.lock")
+SITE_PUBLISH_LOCK_ENV = "SITE_PUBLISH_LOCK_HELD"
+_SITE_PUBLISH_THREAD_LOCK = threading.RLock()
+_SITE_PUBLISH_LOCAL = threading.local()
 
 BACKTEST_FILE = "public/data/etf-garden-backtest.json"
 POOL_FILE = "public/data/etf-garden-pool.json"
@@ -97,16 +102,81 @@ def nightly_lock():
 @contextmanager
 def site_publish_lock():
     """Serialize publishers sharing the ETF worktree and Pages target."""
-    SITE_PUBLISH_LOCK.parent.mkdir(parents=True, exist_ok=True)
-    with SITE_PUBLISH_LOCK.open("a+") as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
-        previous = os.environ.get("SITE_PUBLISH_LOCK_HELD")
-        os.environ["SITE_PUBLISH_LOCK_HELD"] = "1"
+    with _SITE_PUBLISH_THREAD_LOCK:
+        depth = getattr(_SITE_PUBLISH_LOCAL, "depth", 0)
+        owner_pid = getattr(_SITE_PUBLISH_LOCAL, "pid", None)
+        if depth and owner_pid == os.getpid():
+            _SITE_PUBLISH_LOCAL.depth = depth + 1
+            try:
+                yield
+            finally:
+                _SITE_PUBLISH_LOCAL.depth -= 1
+            return
+
+        _SITE_PUBLISH_LOCAL.pid = os.getpid()
+        _SITE_PUBLISH_LOCAL.depth = 1
         try:
-            yield
+            if _can_reuse_ancestor_lease():
+                yield
+                return
+
+            SITE_PUBLISH_LOCK.parent.mkdir(parents=True, exist_ok=True)
+            lease_path = SITE_PUBLISH_LOCK.with_name(SITE_PUBLISH_LOCK.name + ".lease")
+            with SITE_PUBLISH_LOCK.open("a+") as handle:
+                # Validation processes inherit the lease marker, never this fd.
+                os.set_inheritable(handle.fileno(), False)
+                fcntl.flock(handle, fcntl.LOCK_EX)
+                previous = os.environ.get(SITE_PUBLISH_LOCK_ENV)
+                marker = f"{os.getpid()}:{secrets.token_hex(32)}"
+                lease_path.write_text(marker, encoding="ascii")
+                os.environ[SITE_PUBLISH_LOCK_ENV] = marker
+                try:
+                    yield
+                finally:
+                    if previous is None:
+                        os.environ.pop(SITE_PUBLISH_LOCK_ENV, None)
+                    else:
+                        os.environ[SITE_PUBLISH_LOCK_ENV] = previous
+                    try:
+                        if lease_path.read_text(encoding="ascii") == marker:
+                            lease_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    fcntl.flock(handle, fcntl.LOCK_UN)
         finally:
-            if previous is None:
-                os.environ.pop("SITE_PUBLISH_LOCK_HELD", None)
-            else:
-                os.environ["SITE_PUBLISH_LOCK_HELD"] = previous
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            _SITE_PUBLISH_LOCAL.depth = 0
+            _SITE_PUBLISH_LOCAL.pid = None
+
+
+def _can_reuse_ancestor_lease() -> bool:
+    marker = os.environ.get(SITE_PUBLISH_LOCK_ENV, "")
+    owner_text, separator, secret = marker.partition(":")
+    if not separator or not secret:
+        return False
+    try:
+        owner_pid = int(owner_text)
+    except ValueError:
+        return False
+    if owner_pid == os.getpid() or not _is_ancestor_process(owner_pid):
+        return False
+    lease_path = SITE_PUBLISH_LOCK.with_name(SITE_PUBLISH_LOCK.name + ".lease")
+    try:
+        return lease_path.read_text(encoding="ascii") == marker
+    except (FileNotFoundError, OSError, UnicodeError):
+        return False
+
+
+def _is_ancestor_process(candidate_pid: int) -> bool:
+    current = os.getppid()
+    visited = set()
+    while current > 1 and current not in visited:
+        if current == candidate_pid:
+            return True
+        visited.add(current)
+        try:
+            status = Path(f"/proc/{current}/status").read_text(encoding="ascii")
+            parent_line = next(line for line in status.splitlines() if line.startswith("PPid:"))
+            current = int(parent_line.split()[1])
+        except (FileNotFoundError, OSError, StopIteration, ValueError):
+            return False
+    return current == candidate_pid

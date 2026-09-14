@@ -53,10 +53,40 @@ def test_spacing_allows_confirmation_when_gap_is_ten():
     assert result['anchor_close'] == 75
 
 
-def test_candidate_anchor_does_not_count_before_formal_confirmation():
+def test_candidate_bottom_counts_after_rebound_before_formal_confirmation():
     result = calculate_touchstone([100, 80, 90], ['2026-04-01', '2026-04-02', '2026-04-03'])
     assert result['bottom_confirmed'] is False
     assert result['confirmation_date'] is None
+    assert result['candidate_bottom_active'] is True
+    assert result['candidate_anchor_date'] == '2026-04-02'
+    assert result['candidate_anchor_close'] == 80
+    assert result['candidate_rebound_pct'] == 12.5
+    assert result['touchstone_hit'] is True
+
+
+def test_candidate_bottom_requires_rebound_from_current_low():
+    result = calculate_touchstone([100, 80, 79], ['2026-04-01', '2026-04-02', '2026-04-03'])
+    assert result['candidate_bottom_active'] is False
+    assert result['candidate_anchor_date'] == '2026-04-03'
+    assert result['candidate_anchor_close'] == 79
+    assert result['candidate_rebound_pct'] == 0.0
+    assert result['touchstone_hit'] is False
+
+
+def test_candidate_bottom_respects_trough_spacing():
+    result = calculate_touchstone(
+        [100, 80, 92, 75, 80],
+        [f'2026-06-{i:02d}' for i in range(1, 6)],
+    )
+    assert result['candidate_bottom_active'] is False
+    assert result['touchstone_hit'] is False
+
+
+def test_formal_bottom_remains_a_touchstone_hit_on_confirmation_bar():
+    result = calculate_touchstone([100, 80, 92], ['2026-04-01', '2026-04-02', '2026-04-03'])
+    assert result['candidate_bottom_active'] is False
+    assert result['bottom_alert'] is True
+    assert result['touchstone_hit'] is True
 
 
 def test_cache_history_is_used_before_network(tmp_path, monkeypatch):
@@ -195,5 +225,7 @@ def test_complete_coverage_removes_stale_metrics_and_writes_atomically(tmp_path)
     result = json.loads(target.read_text(encoding='utf-8'))
     assert result['enrichments']['000001.SZ']['touchstone_metrics']['coverage_bars'] == 2
     assert result['touchstone_contract']['coverage'] == {'requested': 1, 'computed': 1, 'failed': 0}
-    assert result['touchstone_contract']['signal_field'] == 'bottom_alert'
-    assert result['touchstone_contract']['formal_confirmation_only'] is True
+    assert result['touchstone_contract']['signal_field'] == 'touchstone_hit'
+    assert result['touchstone_contract']['candidate_field'] == 'candidate_bottom_active'
+    assert result['touchstone_contract']['formal_field'] == 'bottom_alert'
+    assert result['touchstone_contract']['filter_rule'] == 'candidate_bottom_active OR bottom_alert'

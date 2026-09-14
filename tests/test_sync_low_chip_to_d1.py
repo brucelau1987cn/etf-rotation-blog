@@ -72,9 +72,9 @@ def test_snapshot_metrics_carries_touchstone_metrics():
     payload = {
         "data_as_of": "2026-09-03", "intersection": ["000001.SZ"],
         "periods": {"week": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.0}], "month": [], "quarter": []},
-        "enrichments": {"000001.SZ": {"shareholder_metrics": {}, "touchstone_metrics": {"bottom_confirmed": True}}},
+        "enrichments": {"000001.SZ": {"shareholder_metrics": {}, "touchstone_metrics": {"candidate_bottom_active": True, "touchstone_hit": True}}},
     }
-    assert snapshot_metrics(payload)[0]["touchstone_metrics"] == {"bottom_confirmed": True}
+    assert snapshot_metrics(payload)[0]["touchstone_metrics"] == {"candidate_bottom_active": True, "touchstone_hit": True}
 
 
 def test_snapshot_metrics_carries_shareholder_nature_for_history_api():

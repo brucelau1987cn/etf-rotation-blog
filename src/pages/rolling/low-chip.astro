@@ -252,7 +252,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="net-margin" aria-pressed="false">净利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="gross-margin" aria-pressed="false">毛利率 ≥ 15%</button>
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
-          <button type="button" class="chip-filter-btn" data-filter="touchstone" aria-pressed="false">点石成金</button>
+          <button type="button" class="chip-filter-btn" data-filter="touchstone" aria-pressed="false" title="日线 ZIG15：当前候选底部或正式确认底部">点石成金</button>
           <button type="button" class="chip-filter-btn" data-filter="hlp-chip-signal" aria-pressed="false">筹码顶底</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
@@ -283,7 +283,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               data-change={row.change_percent ?? ''}
 
               data-hlp-chip-signal={row.hlpMetrics?.chip_signals?.length ? '1' : '0'}
-              data-touchstone={(row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? '1' : '0'}
+              data-touchstone={(row.touchstoneMetrics?.touchstone_hit ?? row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? '1' : '0'}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -293,7 +293,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 <div class="chip-row-main">
                   <div class="chip-identity"><strong class="chip-row-name">{row.name}</strong><span class:list={['chip-reco', `is-${row.reco || 'low'}`]} title={`推荐度：${row.reco || '低'}（${row.composite ?? '—'}/100）`}>{row.reco || '低'}</span>{row.occurrence && <span class:list={['chip-occurrence', row.occurrence.isNew && 'is-new', row.occurrence.isReentry && 'is-reentry']} title={lowChipOccurrenceTitle(row.occurrence)}>{lowChipOccurrenceLabel(row.occurrence)}</span>}<span class="chip-row-code">{row.symbol}</span></div>
                   {row.hlpMetrics?.chip_signals?.length ? <span class="chip-hlp-badge" title={`HLP筹码顶底：${row.hlpMetrics.chip_signals.join('、')}`}>筹码顶底</span> : null}
-                  {(row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? <span class="chip-hlp-badge" title={`点石成金：${row.touchstoneMetrics.confirmation_date} 确认，锚点 ${row.touchstoneMetrics.anchor_date}，上涨 ${row.touchstoneMetrics.rise_pct}%`}>点石成金</span> : null}
+                  {(row.touchstoneMetrics?.touchstone_hit ?? row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? <span class="chip-hlp-badge" title={row.touchstoneMetrics.candidate_bottom_active ? `点石成金：候选底部，锚点 ${row.touchstoneMetrics.candidate_anchor_date}，当前反弹 ${row.touchstoneMetrics.candidate_rebound_pct}%` : `点石成金：正式确认，锚点 ${row.touchstoneMetrics.anchor_date}，上涨 ${row.touchstoneMetrics.rise_pct}%`}>点石成金</span> : null}
                   {row.qualityShareholder ? (
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
                   ) : row.institutionalShareholder ? (
@@ -518,8 +518,11 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var themes = Array.isArray(row.themeConcepts)
           ? row.themeConcepts.filter(Boolean).slice(0, 3)
           : (row.themeConcept ? String(row.themeConcept).split(/[、,，]/).map(function(s){return s.trim();}).filter(Boolean).slice(0, 3) : []);
-        if (touchstone && (touchstone.bottom_alert ?? touchstone.bottom_confirmed)) {
-          badge += '<span class="chip-hlp-badge" title="点石成金：' + esc(touchstone.confirmation_date || '') + ' 确认，锚点 ' + esc(touchstone.anchor_date || '') + '，上涨 ' + esc(touchstone.rise_pct || '') + '%">点石成金</span>';
+        if (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed)) {
+          var touchstoneTitle = touchstone.candidate_bottom_active
+            ? '点石成金：候选底部，锚点 ' + esc(touchstone.candidate_anchor_date || '') + '，当前反弹 ' + esc(touchstone.candidate_rebound_pct ?? '') + '%'
+            : '点石成金：正式确认，锚点 ' + esc(touchstone.anchor_date || '') + '，上涨 ' + esc(touchstone.rise_pct ?? '') + '%';
+          badge += '<span class="chip-hlp-badge" title="' + touchstoneTitle + '">点石成金</span>';
         }
         var themeText = themes.join('、');
         var asOfLabel = String(asOf || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3') || String(asOf || '');
@@ -540,7 +543,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var reco = composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
         var recoHtml = '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '" data-composite="' + esc(composite) + '" data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '" data-composite="' + esc(composite) + '" data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
