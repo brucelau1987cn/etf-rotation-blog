@@ -6,6 +6,7 @@ import LowChipModeNav from '../../components/LowChipModeNav.astro';
 import RollingSubnav from '../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../consts';
 import { buildLowChipOccurrenceLookup, lowChipOccurrenceLabel, lowChipOccurrenceTitle } from '../../lib/lowChipOccurrences.mjs';
+import { stockNameInitials } from '../../lib/stockNameInitials.mjs';
 import lowChipData from '../../../public/data/a-low-chip-stocks.json';
 import lowChipHistoryIndex from '../../../public/data/low-chip-history-index.json';
 const historyModules = import.meta.glob('../../../public/data/low-chip-history/*.json', { eager: true, import: 'default' });
@@ -20,7 +21,6 @@ const clientHistoryIndex = {
   items: historyItems.map((item) => ({ date: item.date, intersection_count: item.intersection_count })),
 };
 const clientOccurrenceLookup = occurrenceLookup;
-
 const title = `低筹码股 | ${SITE_TITLE}`;
 const description = 'A股低筹码观察列表。';
 const periodSections = [
@@ -29,6 +29,16 @@ const periodSections = [
   { key: 'quarter', label: '季线', rows: lowChipData.periods.quarter },
 ];
 const allRows = periodSections.flatMap((period) => period.rows);
+const stockInitialsByCode = Object.fromEntries(
+  Object.values(historyModules)
+    .flatMap((snapshot: any) => Object.values(snapshot.periods || {}).flat())
+    .concat(allRows)
+    .filter((row: any) => row?.symbol && row?.name)
+    .map((row: any) => [
+      String(row.symbol).replace(/\.(SH|SZ|BJ)$/i, ''),
+      stockNameInitials(row.name),
+    ])
+);
 const yearProfitBySymbol = Object.fromEntries((lowChipData.periods.year || []).map((row) => [row.symbol, row.value]));
 const intersectionRows = allRows.filter((row, index, rows) =>
   lowChipData.intersection.includes(row.symbol) && rows.findIndex((item) => item.symbol === row.symbol) === index
@@ -50,28 +60,7 @@ const chipFocusClass = (focus: string | null) => {
 };
 const reportPeriodLabel = (rp: string | null) => rp || '—';
 
-const CHAR_INITIAL: Record<string, string> = {
-  上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
-  三:'s',安:'a',光:'g',深:'s',科:'k',技:'j',德:'d',福:'f',
-  民:'m',爆:'b',信:'x',息:'x',东:'d',方:'f',明:'m',珠:'z',
-  长:'c',鑫:'x',国:'g',术:'s',澜:'l',起:'q',华:'h',天:'t',
-  中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',投:'t',资:'z',本:'b',
-  武:'w',汉:'h',天:'t',源:'y',千:'q',岸:'a',宝:'b',明:'m',
-  易:'y',龙:'l',曙:'s',光:'g',数:'s',永:'y',光:'g',学:'x',
-  技:'j',源:'y',集:'j',团:'t',金:'j',戈:'g',汇:'h',通:'t',
-  康:'k',美:'m',特:'t',海:'h',新:'x',天:'t',灿:'c',勤:'q',
-  欧:'o',林:'l',生:'s',物:'w',必:'b',贝:'b',恒:'h',运:'y',
-  中:'z',关:'g',村:'c',禾:'h',元:'y',上:'s',海:'h',谊:'y',
-  众:'z',三:'s',维:'w',股:'g',份:'f',吉:'j',和:'h',昌:'c',
-  璞:'p',源:'y',材:'c',料:'l',乔:'q',路:'l',铭:'m',奥:'a',
-  好:'h',莱:'l',客:'k',合:'h',兴:'x',华:'h',大:'d',九:'j',
-  长:'c',进:'j',光:'g',子:'z',坤:'k',材:'c',
-};
-const nameInitials = (name: string) => {
-  const raw = String(name || '').trim();
-  if (!raw) return '';
-  return Array.from(raw).map((ch) => /[A-Za-z0-9]/.test(ch) ? ch.toLowerCase() : CHAR_INITIAL[ch] || '').join('');
-};
+const nameInitials = (name: string) => stockNameInitials(name);
 
 const PAGE_SIZE = 6;
 const asOfLabel = String(lowChipData.data_as_of || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3');
@@ -362,7 +351,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
     </main>
     <Footer />
 
-    <script is:inline define:vars={{ initialData: initialClientData, historyIndex: clientHistoryIndex, occurrenceLookup: clientOccurrenceLookup, pageSize: PAGE_SIZE }}>
+    <script is:inline define:vars={{ initialData: initialClientData, historyIndex: clientHistoryIndex, occurrenceLookup: clientOccurrenceLookup, stockInitialsByCode, pageSize: PAGE_SIZE }}>
     (function() {
       var list = document.getElementById('chip-list');
       var pager = document.getElementById('chip-pager');
@@ -406,21 +395,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       var loading = false;
       var suggestionIndex = -1;
 
-      var CHAR_INITIAL = {
-        上:'s',海:'h',电:'d',力:'l',创:'c',新:'x',医:'y',疗:'l',
-        三:'s',安:'a',光:'g',深:'s',科:'k',技:'j',德:'d',福:'f',
-        民:'m',爆:'b',信:'x',息:'x',东:'d',方:'f',明:'m',珠:'z',
-        长:'c',鑫:'x',国:'g',术:'s',澜:'l',起:'q',华:'h',天:'t',
-        中:'z',宏:'h',桥:'q',特:'t',斯:'s',拉:'l',投:'t',资:'z',本:'b',汇:'h',通:'t',
-        能:'n',源:'y',集:'j',团:'t',金:'j',股:'g',份:'f'
-      };
-
       function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
-      function nameInitials(name) {
-        return Array.from(String(name || '').trim()).map(function(ch) {
-          return /[A-Za-z0-9]/.test(ch) ? ch.toLowerCase() : (CHAR_INITIAL[ch] || '');
-        }).join('');
-      }
       function fmt(value, digits) {
         digits = digits == null ? 2 : digits;
         var n = Number(value);
@@ -465,7 +440,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           return Object.assign({}, row, {
             hlpMetrics: row.hlp_metrics || row.hlpMetrics || null,
             touchstoneMetrics: row.touchstone_metrics || row.touchstoneMetrics || null,
-            nameInitials: row.nameInitials || nameInitials(row.name || row.symbol)
+            nameInitials: row.nameInitials || ''
           });
         });
       }
@@ -837,7 +812,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 data.rows.push({
                   symbol: code,
                   name: stockName || code,
-                  nameInitials: nameInitials(stockName || code),
+                  nameInitials: stockInitialsByCode[code] || '',
                   price: row.price,
                   change_percent: row.change_percent,
                   industry: row.industry || '待补充',
