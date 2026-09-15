@@ -1,32 +1,32 @@
 {
-  "date": "2026-09-14",
-  "updated_at": "2026-09-14 11:47:34 CST",
-  "applies_to": "2026-09-14",
-  "data_as_of": "qfq基线=2026-09-11收盘；盘中行情截至2026-09-14 11:42 CST；上午收盘修正使用11:40附近Tencent行情与iWenCai基金资料/资讯交叉核验。",
-  "level_data_as_of": "2026-09-11",
-  "stage": "11:30上午收盘修正版",
+  "date": "2026-09-15",
+  "updated_at": "2026-09-15 08:36:26 CST",
+  "applies_to": "2026-09-15",
+  "data_as_of": "qfq基线=2026-09-14收盘；盘前计划结合9月15日隔夜美股收盘、9月14日正式池与公开资讯，开盘后行情待实时确认。",
+  "level_data_as_of": "2026-09-14",
+  "stage": "08:30盘前版",
   "model_version": "a-share-compass-v1",
-  "idempotency_key": "CN+2026-09-14+11:30+a-share-compass-v1",
-  "market_state": "2026-09-14上午指数分化：上证指数3894.28（+0.16%），深证成指13436.92（-0.25%），沪深300 4495.92（-0.32%），创业板指3306.36（-0.47%），科创50 1538.84（-0.94%），中证500 7581.80（+0.02%）。候选中162411华宝油气涨1.78%，560710船舶跌0.82%，159227航空航天跌2.37%；尚无候场价格回踩并完成止跌确认的可执行触发。红利低波ETF上涨0.33%，通信ETF下跌2.07%，防御相对占优但未形成全面进攻扩散。结论：下午继续只做回踩确认，不追涨。",
+  "idempotency_key": "CN+2026-09-15+08:30+a-share-compass-v1",
+  "market_state": "9月14日收盘后正式池为极弱状态，91只池仅5只满足动量条件；隔夜美股三大指数收跌，费城半导体指数跌超5%，成长科技的外部映射承压。油气与银行进入当日候场，但均须在伏击位附近完成止跌与承接验证。结论：开盘不追高，先防御、后确认。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "上午主线：油气候选相对最强，但162411仍高于伏击位，未触发；船舶与航空航天走弱，尚未出现止跌承接；红利低波小幅走强、通信走弱，显示风险偏好仍分化。mid_macro刷新为0中性，canonical position仍为权益0%-10%；防御/现金90%-100%。结论：不把方向上涨等同于开仓，下午仅等待关键位与资金回流同步出现。",
-  "summary": "2026-09-14 11:30上午收盘：指数涨跌分化，创业板与科创50偏弱；3只候选方向为1正2负（162411 +1.78%、560710 -0.82%、159227 -2.37%），平盘0只，实际触发0、可执行0、实现收益暂缺。空头方向未满足回踩止跌后的执行条件，油气上涨也未回踩伏击位。mid_macro=0中性，canonical position=权益0%-10%；防御/现金90%-100%。结论：下午不追涨，继续等待回踩、止跌、资金回流三项共振；中观逆风（权益上限已压缩）。",
+  "mainline": "盘前主线为油气的趋势候场与银行的防御观察：162411华宝油气在91池中动量第一但距伏击位仍有空间；512800银行ETF为低波防御候场。隔夜芯片股大跌，半导体与科创成长仅观察止跌，不因单条产业资讯逆势升级。mid_macro=2逆风，canonical position维持权益0%-10%、防御/现金90%-100%。结论：只在回踩、止跌、资金承接三项共振后分批评估。",
+  "summary": "2026-09-15 08:30盘前：正式池91只完整、qfq基线为9月14日；隔夜美股三大指数收跌，费城半导体指数跌超5%，成长风险偏好承压。候场2只为162411华宝油气与512800银行ETF，均未触发、实际仓位0。mid_macro=2逆风，canonical position=权益0%-10%；防御/现金90%-100%。结论：开盘不追高，只等伏击位回踩、止跌和资金承接共振；中观逆风（权益上限已压缩）。",
   "data_quality": {
-    "generated_at": "2026-09-14 11:42:35 CST",
-    "return_basis_disclosure": "qfq基线为2026-09-11完整收盘；候选方向收益为11:40附近Tencent盘中价相对前收的方向收益，计划价格与历史收益以OHLC/qfq为基础；未触发候场不计入实现收益。",
-    "latest_trade_date": "2026-09-11",
-    "quote_date": "2026-09-14",
+    "generated_at": "2026-09-15 08:33:36 CST",
+    "return_basis_disclosure": "收益、均线、ATR与价格地图采用2026-09-14 qfq日线基线；盘前不将未开盘报价作为成交或资金事实。",
+    "latest_trade_date": "2026-09-14",
+    "quote_date": "2026-09-15",
     "level_data_as_of": "2026-09-11",
     "qfq_coverage": 91,
     "pool_count": 91,
     "pool_evaluation_date": "2026-09-14",
-    "quote_window": "morning_close"
+    "quote_window": "premarket"
   },
   "source_audit": {
-    "iwencai_news": "iWenCai news-search查询2026-09-14上午收盘资讯，结果主要为分红日历、医药中报观点、国产芯片采购与ETF临停提示；未采用与盘中指数基线冲突的旧日期数字。",
+    "iwencai_news": "通过多Key轮询包装器检索“美股 2026年9月15日 收盘 A股 科技”及“A股 2026年9月14日 收盘 半导体 黄金 资金”；隔夜结果显示美股三大指数收跌、费城半导体指数大跌，A股半导体资讯仅作主题线索。",
     "tencent_quote": "Tencent qt.gtimg.cn盘中行情，截至约11:42获取指数及候选ETF价格、涨跌幅；指数结果经生产edge quote proxy交叉核验。",
-    "fallback": "d1_exchange_calendar（D1主源），BaoStock备用（未触发）。",
+    "fallback": "交易日由项目D1 exchange calendar确认；盘前池由本地qfq缓存与Tencent行情源生成。",
     "data_scope": "全91只正式池qfq基线；候选由当日正式池重新筛选，空源rows不解释为零资金。",
     "iwencai_market_query": "多Key包装器调用IWENCAI_APIKEYS轮询池，查询159920、512890、159928、515880、513500基金资料；返回5条，未将空rows解释为零资金。",
     "quote_sources": "腾讯行情直采 qt.gtimg.cn；指数/ETF基线若无返回则披露缺口，不解释为零资金",
@@ -37,39 +37,39 @@
   "plant": [
     {
       "status": "候场",
-      "code": "560710",
-      "name": "船舶ETF富国",
+      "code": "162411",
+      "name": "华宝油气LOF",
       "priority": "高",
-      "trigger": "现价0.976，等待回踩0.944附近止跌确认；跌破0.925取消候场。",
-      "action": "现价0.976，等待回踩0.944附近止跌确认；跌破0.925取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "trigger": "现价1.029，等待回踩1.004附近止跌确认；跌破0.990取消候场。",
+      "action": "现价1.029，等待回踩1.004附近止跌确认；跌破0.990取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
-      "eligibility": "watch_only",
-      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 0.976,
-      "support": 0.944,
-      "target": 1.008,
-      "stop": 0.925,
-      "action_level": 0.944,
-      "trigger_level": 0.944,
+      "eligibility": "ok",
+      "eligibility_reason": "趋势B；信号得分68.9；动量排名1；距伏击位2.5%；风险低；动量通过",
+      "price": 1.029,
+      "support": 1.004,
+      "target": 1.054,
+      "stop": 0.99,
+      "action_level": 1.004,
+      "trigger_level": 1.004,
       "action_level_label": "伏击位",
-      "distance_pct": -3.39,
-      "trend_level": "C",
+      "distance_pct": -2.49,
+      "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-09-11",
+      "price_date": "2026-09-14",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-14",
-      "selection_score": 74.89,
+      "selected_from_pool_date": "2026-09-15",
+      "selection_score": 84.45,
       "selection_rank": 1,
       "candidate_since": "2026-09-10",
-      "last_qualified_date": "2026-09-14",
+      "last_qualified_date": "2026-09-15",
       "qualified_reason": [
-        "趋势C",
-        "信号得分64.2",
+        "趋势B",
+        "信号得分68.9",
         "动量排名1",
-        "距伏击位3.4%",
+        "距伏击位2.5%",
         "风险低",
         "动量通过"
       ],
@@ -78,80 +78,39 @@
     },
     {
       "status": "候场",
-      "code": "162411",
-      "name": "华宝油气LOF",
+      "code": "512800",
+      "name": "银行ETF华宝",
       "priority": "中",
-      "trigger": "现价1.010，等待回踩0.986附近止跌确认；跌破0.977取消候场。",
-      "action": "现价1.010，等待回踩0.986附近止跌确认；跌破0.977取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "trigger": "现价0.856，等待回踩0.837附近止跌确认；跌破0.830取消候场。",
+      "action": "现价0.856，等待回踩0.837附近止跌确认；跌破0.830取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "watch_only",
       "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 1.01,
-      "support": 0.986,
-      "target": 1.035,
-      "stop": 0.977,
-      "action_level": 0.986,
-      "trigger_level": 0.986,
+      "price": 0.856,
+      "support": 0.837,
+      "target": 0.875,
+      "stop": 0.83,
+      "action_level": 0.837,
+      "trigger_level": 0.837,
       "action_level_label": "伏击位",
-      "distance_pct": -2.43,
-      "trend_level": "C",
-      "risk_level": "中",
-      "price_date": "2026-09-11",
-      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
-      "model_version": "A ETF Garden Levels v1",
-      "data_source": "tencent",
-      "level_status": "ready",
-      "selected_from_pool_date": "2026-09-14",
-      "selection_score": 74.79,
-      "selection_rank": 2,
-      "candidate_since": "2026-09-10",
-      "last_qualified_date": "2026-09-14",
-      "qualified_reason": [
-        "趋势C",
-        "信号得分62.1",
-        "动量排名2",
-        "距伏击位2.4%",
-        "风险中",
-        "动量通过"
-      ],
-      "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
-    },
-    {
-      "status": "候场",
-      "code": "159227",
-      "name": "航空航天ETF华夏",
-      "priority": "中",
-      "trigger": "现价1.056，等待回踩1.022附近止跌确认；跌破1.011取消候场。",
-      "action": "现价1.056，等待回踩1.022附近止跌确认；跌破1.011取消候场；中观约束：禁止追高，只按伏击位分批。",
-      "signal_state": "当日正式池重选候场",
-      "eligibility": "watch_only",
-      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 1.056,
-      "support": 1.022,
-      "target": 1.09,
-      "stop": 1.011,
-      "action_level": 1.022,
-      "trigger_level": 1.022,
-      "action_level_label": "伏击位",
-      "distance_pct": -3.33,
+      "distance_pct": -2.27,
       "trend_level": "C",
       "risk_level": "低",
-      "price_date": "2026-09-11",
+      "price_date": "2026-09-14",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-14",
-      "selection_score": 64.64,
-      "selection_rank": 3,
-      "candidate_since": "2026-09-11",
-      "last_qualified_date": "2026-09-14",
+      "selected_from_pool_date": "2026-09-15",
+      "selection_score": 76.29,
+      "selection_rank": 2,
+      "candidate_since": "2026-09-15",
+      "last_qualified_date": "2026-09-15",
       "qualified_reason": [
         "趋势C",
-        "信号得分53.8",
-        "动量排名5",
-        "距伏击位3.3%",
+        "信号得分63.3",
+        "动量排名2",
+        "距伏击位2.3%",
         "风险低",
         "动量通过"
       ],
@@ -160,12 +119,6 @@
     }
   ],
   "watch": [
-    {
-      "code": "512800",
-      "name": "银行ETF华宝",
-      "note": "全天-0.70%/成交9.1亿, strength_level=D掉档（pool最新打分trend=C→D）→ selector 排除, 候场取消; 银行相对抗跌保留观察不回归plant",
-      "status": "候场取消（strength掉档换出）"
-    },
     {
       "code": "515880",
       "name": "通信ETF国泰",
@@ -363,9 +316,9 @@
     "stage": "08:30盘前版",
     "status": "complete",
     "quote_date": "2026-09-14",
-    "quote_as_of": "2026-09-14 08:35:00 CST",
+    "quote_as_of": "2026-09-15 08:33:36 CST",
     "prepared": {
-      "plant": 3,
+      "plant": 2,
       "harvest": 0
     },
     "executable": {
@@ -376,12 +329,13 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "盘前不虚构开盘宽度；上一完整交易日为系统性回吐，超4800只下跌，今日等待开盘承接与防御扩散验证。",
+    "breadth": "正式池91只完整，动量通过5只；隔夜美股与芯片链走弱，开盘前不以未开盘报价估算宽度。",
+    "premarket_summary": "隔夜美股三大指数收跌、费城半导体指数跌超5%；油气与银行仅候场，实际触发为零。",
     "triggered_actions": []
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "complete",
+    "status": "not_published",
     "quote_date": "2026-09-14",
     "quote_as_of": "2026-09-14 11:42:00 CST",
     "prepared": {
@@ -396,7 +350,7 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "指数涨跌分化：上证指数与中证500微涨，深证成指、沪深300、创业板指、科创50下跌；未取得全市场涨跌家数，不能据此估算市场宽度。",
+    "breadth": "待2026-09-15 11:30后更新：尚未形成该窗口数据。",
     "morning_session_summary": "上午指数分化，候选1只上涨、2只下跌、0只平盘；162411偏强但未回踩触发，560710与159227未完成止跌确认。",
     "triggered_actions": [
       "162411华宝油气：+1.78%，方向为正但价格仍高于伏击位，未触发、不可执行。",
@@ -421,7 +375,8 @@
     "prepared": {
       "plant": 3,
       "harvest": 0
-    }
+    },
+    "breadth": "待2026-09-15 14:30后更新：尚未形成该窗口数据。"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
@@ -431,10 +386,11 @@
     "prepared": {
       "plant": 3,
       "harvest": 0
-    }
+    },
+    "breadth": "待2026-09-15 22:00后更新：尚未形成该窗口数据。"
   },
   "mid_macro": {
-    "generated_at": "2026-09-14 11:47:34 CST",
+    "generated_at": "2026-09-15 08:36:26 CST",
     "headwind_level": 2,
     "label": "逆风",
     "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
@@ -447,14 +403,14 @@
         "label": "固收相对权益强弱",
         "state": "逆风",
         "score": 2.0,
-        "headline": "固收5日相对沪深300超额+1.61pp"
+        "headline": "固收5日相对沪深300超额+1.77pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "逆风",
         "score": 2.25,
-        "headline": "海外映射ETF 5日偏弱-2.66%"
+        "headline": "海外映射ETF 5日偏弱-2.78%"
       },
       {
         "key": "margin_financing",
@@ -466,33 +422,30 @@
     ]
   },
   "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-09-11 22:35:06 UTC+08:00",
+  "level_generated_at": "2026-09-15 08:30:58 UTC+08:00",
   "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-09-14",
+    "evaluation_date": "2026-09-15",
     "evaluated_count": 91,
-    "eligible_count": 4,
-    "selected_count": 3,
+    "eligible_count": 2,
+    "selected_count": 2,
     "selected_codes": [
-      "560710",
       "162411",
-      "159227"
+      "512800"
     ],
     "previous_codes": [
-      "560710",
       "162411",
-      "159227"
+      "512800"
     ],
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
-      "560710",
       "162411",
-      "159227"
+      "512800"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 2
@@ -500,7 +453,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-09-14",
+    "selected_from_pool_date": "2026-09-15",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
