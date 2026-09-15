@@ -47,7 +47,9 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
 
     assert [publisher.FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", "day-close"] in calls
     assert [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"] in calls
-    assert ["npm", "run", "build"] in calls
+    assert ["python3", "scripts/bootstrap_build_python.py"] in calls
+    assert ["npx", "astro", "build"] in calls
+    assert ["node", "scripts/inject_public_js_version.mjs", "dist"] in calls
     assert ["git", "commit", "--only", "-m", "data: refresh futures compass day-close", "--", *publisher.PUBLISH_FILES] in calls
     assert probes == [
         "https://etf.peekabo.cc/futures-compass/",
@@ -94,7 +96,7 @@ def test_futures_publisher_rolls_back_snapshot_when_build_fails(monkeypatch):
         calls.append(command)
         if command[:4] == ["git", "diff", "--quiet", "--"]:
             return result(returncode=1)
-        if command == ["npm", "run", "build"]:
+        if command == ["npx", "astro", "build"]:
             raise subprocess.CalledProcessError(1, command)
         return result()
 
