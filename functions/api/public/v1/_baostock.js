@@ -57,21 +57,10 @@ async function parseBaoStockResponseBytes(input) {
 }
 
 function parseHistoryResponse(parsed) {
-  const fields = parsed.fields;
-  if (fields[0] !== '0') throw new Error(`baostock error ${fields[0] || 'unknown'}`);
-  if (parsed.type !== '96' || fields.length < 13) throw new Error('invalid baostock history response');
-  let records;
-  try {
-    records = JSON.parse(fields[6]).record;
-  } catch {
-    throw new Error('invalid baostock records');
-  }
-  const columns = fields[8].split(',').map((field) => field.trim());
-  if (!Array.isArray(records) || !columns.length) throw new Error('invalid baostock records');
-  return records.map((row) => {
-    if (!Array.isArray(row) || row.length !== columns.length) throw new Error('invalid baostock row');
-    const item = Object.fromEntries(columns.map((column, index) => [column, row[index]]));
+  const records = parseBaoStockTableResponse(parsed, '96');
+  return records.map((item) => {
     const result = {
+      ...item,
       date: String(item.date || ''),
       open: Number(item.open), high: Number(item.high), low: Number(item.low), close: Number(item.close),
       volume: Number(item.volume), hsl: Number(item.turn),
@@ -80,6 +69,25 @@ function parseHistoryResponse(parsed) {
       throw new Error('invalid baostock row');
     }
     return result;
+  });
+}
+
+export function parseBaoStockTableResponse(parsed, expectedType) {
+  const fields = parsed.fields;
+  if (fields[0] !== '0') throw new Error(`baostock error ${fields[0] || 'unknown'}`);
+  if (parsed.type !== expectedType || fields.length < 7) throw new Error('invalid baostock table response');
+  let records;
+  try {
+    records = JSON.parse(fields[6]).record;
+  } catch {
+    throw new Error('invalid baostock records');
+  }
+  const columnsIndex = expectedType === '34' ? 9 : 8;
+  const columns = String(fields[columnsIndex] || '').split(',').map((field) => field.trim()).filter(Boolean);
+  if (!Array.isArray(records) || !columns.length) throw new Error('invalid baostock records');
+  return records.map((row) => {
+    if (!Array.isArray(row) || row.length !== columns.length) throw new Error('invalid baostock row');
+    return Object.fromEntries(columns.map((column, index) => [column, row[index]]));
   });
 }
 
@@ -112,41 +120,66 @@ async function sendBaoStockRequest(writer, reader, type, body) {
 }
 
 export function baoStockSecCode(symbol) {
-  return /^(sh|sz)\.\d{6}$/i.test(symbol)
-    ? symbol.toLowerCase()
-    : (symbol.startsWith('6') ? `sh.${symbol}` : `sz.${symbol}`);
+  const value = String(symbol || '').toLowerCase();
+  const suffix = value.match(/^(\d{6})\.(sh|sz)$/);
+  if (suffix) return `${suffix[2]}.${suffix[1]}`;
+  return /^(sh|sz)\.\d{6}$/.test(value)
+    ? value
+    : (value.startsWith('6') ? `sh.${value}` : `sz.${value}`);
 }
 
-async function fetchKlineFromBaoStock(symbol, adjust = '', connectOverride = null) {
+async function withBaoStockSession(connectOverride, operation) {
   const connectFn = connectOverride || (await import('cloudflare:sockets')).connect;
-  const secCode = baoStockSecCode(symbol);
-  const adjustFlag = { '': '3', qfq: '2', hfq: '1' }[adjust];
-  if (!adjustFlag) throw new Error('invalid baostock adjust');
   const socket = connectFn({ hostname: 'public-api.baostock.com', port: 10030 });
-  await socket.opened;
-  const writer = socket.writable.getWriter();
-  const reader = socket.readable.getReader();
+  let writer = null;
+  let reader = null;
   try {
+    await socket.opened;
+    writer = socket.writable.getWriter();
+    reader = socket.readable.getReader();
     const login = await sendBaoStockRequest(writer, reader, '00', ['login', 'anonymous', '123456', '0'].join(SEP));
     if (login.type !== '01' || login.fields[0] !== '0' || !login.fields[3]) {
       throw new Error(`baostock login ${login.fields[0] || 'failed'}`);
     }
-    const end = new Date().toISOString().slice(0, 10);
-    const start = new Date(Date.now() - 500 * 86400000).toISOString().slice(0, 10);
-    const body = ['query_history_k_data_plus', login.fields[3], '1', '2000', secCode,
-      'date,open,high,low,close,volume,amount,turn', start, end, 'd', adjustFlag].join(SEP);
-    return parseHistoryResponse(await sendBaoStockRequest(writer, reader, '95', body), adjust);
+    return await operation({ writer, reader, userId: login.fields[3] });
   } finally {
-    try { writer.releaseLock(); } catch {}
-    try { reader.releaseLock(); } catch {}
-    await socket.close();
+    try { writer?.releaseLock(); } catch {}
+    try { reader?.releaseLock(); } catch {}
+    try { await socket.close(); } catch {}
   }
+}
+
+async function fetchKlineFromBaoStock(symbol, options = '', connectOverride = null) {
+  const config = typeof options === 'string' ? { adjust: options } : (options || {});
+  const adjust = config.adjust ?? '';
+  const adjustFlag = { '': '3', none: '3', qfq: '2', hfq: '1' }[adjust];
+  if (!adjustFlag) throw new Error('invalid baostock adjust');
+  const secCode = baoStockSecCode(symbol);
+  const end = config.end || new Date().toISOString().slice(0, 10);
+  const start = config.start || new Date(Date.now() - 500 * 86400000).toISOString().slice(0, 10);
+  const requestedFields = config.fields || ['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'turn'];
+  const fields = Array.isArray(requestedFields) ? requestedFields.join(',') : String(requestedFields);
+  return withBaoStockSession(connectOverride, async ({ writer, reader, userId }) => {
+    const body = ['query_history_k_data_plus', userId, '1', '2000', secCode,
+      fields, start, end, 'd', adjustFlag].join(SEP);
+    const parsed = await sendBaoStockRequest(writer, reader, '95', body);
+    if (typeof options === 'string' || options == null) return parseHistoryResponse(parsed);
+    return parseBaoStockTableResponse(parsed, '96');
+  });
+}
+
+async function fetchCalendarFromBaoStock(start, end, connectOverride = null) {
+  return withBaoStockSession(connectOverride, async ({ writer, reader, userId }) => {
+    const body = ['query_trade_dates', userId, '1', '2000', start, end].join(SEP);
+    return parseBaoStockTableResponse(await sendBaoStockRequest(writer, reader, '33', body), '34');
+  });
 }
 
 export {
   BAOSTOCK_HEADER_LENGTH,
   buildBaoStockMessage,
   expectedBaoStockFrameLength,
+  fetchCalendarFromBaoStock,
   fetchKlineFromBaoStock,
   parseBaoStockResponseBytes,
   parseHistoryResponse,

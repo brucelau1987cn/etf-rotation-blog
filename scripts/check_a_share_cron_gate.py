@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import re
 import sqlite3
 import subprocess
@@ -20,8 +21,10 @@ from zoneinfo import ZoneInfo
 
 try:
     from a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
+    from cf_baostock_client import CFBaoStockClient, CFBaoStockError
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
+    from scripts.cf_baostock_client import CFBaoStockClient, CFBaoStockError
 
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/etf-garden-pool.json"
@@ -170,6 +173,13 @@ def is_trading_day(day: str) -> tuple[bool | None, str]:
     public_value = public_calendar_trading_day(day)
     if public_value is not None:
         return public_value, "d1_exchange_calendar"
+    if os.environ.get("CF_BAOSTOCK_BASE_URL") and os.environ.get("CF_BAOSTOCK_TOKEN"):
+        try:
+            cf_value = CFBaoStockClient.from_env().is_trading_day(day)
+        except CFBaoStockError:
+            cf_value = None
+        if cf_value is not None:
+            return cf_value, "cf_baostock"
     baostock_value = baostock_trading_day(day)
     if baostock_value is not None:
         return baostock_value, "baostock"

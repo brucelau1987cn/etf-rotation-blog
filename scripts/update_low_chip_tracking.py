@@ -41,6 +41,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+try:
+    from cf_baostock_client import CFBaoStockClient, CFBaoStockError
+except ModuleNotFoundError:
+    from scripts.cf_baostock_client import CFBaoStockClient, CFBaoStockError
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/low-chip-tracking.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
@@ -302,6 +307,30 @@ def baostock_daily(symbol: str, start: str, end: str) -> list[dict]:
     return bars
 
 
+def cf_baostock_daily(
+    symbol: str, start: str, end: str, *, client: CFBaoStockClient | None = None,
+) -> list[dict]:
+    """Read one low-chip qfq window through the authenticated CF gateway."""
+    gateway = client or CFBaoStockClient.from_env()
+    lookback = (datetime.date.fromisoformat(start) - datetime.timedelta(days=30)).isoformat()
+    rows = gateway.klines([symbol], lookback, end).get(symbol, [])
+    bars = []
+    prev_close = None
+    for row in rows:
+        date = str(row.get("date") or "")
+        if not date or str(row.get("tradestatus", "1")) != "1":
+            continue
+        try:
+            close_f = float(row.get("close"))
+        except (TypeError, ValueError):
+            continue
+        if date >= start:
+            change = round((close_f - prev_close) / prev_close * 100, 2) if prev_close else None
+            bars.append({"date": date, "close": close_f, "change_pct": change})
+        prev_close = close_f
+    return bars
+
+
 def iwencai_profit_ratio(symbol: str, date: str) -> float | None:
     """收盘获利盘 ratio for one symbol at one date (iWenCai historical query)."""
     ymd = date.replace("-", "")
@@ -501,18 +530,23 @@ def main() -> int:
         try:
             bars = tencent_daily(symbol, rec["first_seen"], today)
         except RuntimeError as exc:
-            print(f"  {symbol}: tencent daily unavailable ({exc}), trying baostock fallback", flush=True)
+            print(f"  {symbol}: tencent daily unavailable ({exc}), trying CF baostock fallback", flush=True)
             try:
-                bars = baostock_daily(symbol, rec["first_seen"], today)
-                print(f"  {symbol}: baostock fallback bars={len(bars)}", flush=True)
-            except Exception as fallback_exc:  # noqa: BLE001
-                print(
-                    f"  {symbol}: baostock fallback unavailable "
-                    f"({type(fallback_exc).__name__}: {fallback_exc}), "
-                    f"preserving {len(rec.get('daily', []))} existing rows",
-                    flush=True,
-                )
-                bars = []
+                bars = cf_baostock_daily(symbol, rec["first_seen"], today)
+                print(f"  {symbol}: CF baostock fallback bars={len(bars)}", flush=True)
+            except Exception as cf_exc:  # noqa: BLE001
+                print(f"  {symbol}: CF baostock unavailable ({type(cf_exc).__name__}: {cf_exc}), trying local baostock", flush=True)
+                try:
+                    bars = baostock_daily(symbol, rec["first_seen"], today)
+                    print(f"  {symbol}: local baostock fallback bars={len(bars)}", flush=True)
+                except Exception as fallback_exc:  # noqa: BLE001
+                    print(
+                        f"  {symbol}: local baostock fallback unavailable "
+                        f"({type(fallback_exc).__name__}: {fallback_exc}), "
+                        f"preserving {len(rec.get('daily', []))} existing rows",
+                        flush=True,
+                    )
+                    bars = []
         time.sleep(0.2)
         target_bars = bars[:MAX_STORED_BARS]
         if not target_bars:
