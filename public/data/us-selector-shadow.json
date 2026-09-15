@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generated_at": "2026-09-11T19:10:27.700082-04:00",
+  "generated_at": "2026-09-14T19:10:21.382743-04:00",
   "timezone": "America/New_York",
-  "status": "degraded",
+  "status": "empty",
   "model_version": "US selector shadow v1.2",
   "price_source_policy": "Yahoo remains production price source; selector is research-only",
   "queries": [
@@ -22,196 +22,22 @@
     },
     {
       "query": "美股 行业ETF 成交额活跃 近5日",
-      "status": "ok",
-      "raw_count": 10,
-      "us_count": 10
+      "status": "degraded",
+      "raw_count": 20,
+      "us_count": 0,
+      "reason": "rows returned but no valid US-listed symbols parsed"
     }
   ],
   "summary": {
-    "candidate_count": 9,
-    "formal_overlap": 1,
-    "new_candidates": 8,
-    "raw_us_symbols": 10,
-    "leveraged_filtered": 1
+    "candidate_count": 0,
+    "formal_overlap": 0,
+    "new_candidates": 0,
+    "raw_us_symbols": 0,
+    "leveraged_filtered": 0
   },
-  "candidates": [
-    {
-      "symbol": "DRAM",
-      "name": "Roundhill记忆ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 1
-    },
-    {
-      "symbol": "JPIE",
-      "name": "摩根大通收益ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 3
-    },
-    {
-      "symbol": "BAI",
-      "name": "iShares A.I.创新科技",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 4
-    },
-    {
-      "symbol": "AIPO",
-      "name": "人工智能电力设施指数",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 5
-    },
-    {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 6
-    },
-    {
-      "symbol": "QTUM",
-      "name": "蓝星机器学习ETF",
-      "in_formal_pool": true,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 7
-    },
-    {
-      "symbol": "BUG",
-      "name": "Indxx网络安全指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 8
-    },
-    {
-      "symbol": "MSOS",
-      "name": "纯美国大麻ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 9
-    },
-    {
-      "symbol": "JTEK",
-      "name": "摩根大通美国科技",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 10
-    }
-  ],
-  "new_candidates": [
-    {
-      "symbol": "DRAM",
-      "name": "Roundhill记忆ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 1
-    },
-    {
-      "symbol": "JPIE",
-      "name": "摩根大通收益ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 3
-    },
-    {
-      "symbol": "BAI",
-      "name": "iShares A.I.创新科技",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 4
-    },
-    {
-      "symbol": "AIPO",
-      "name": "人工智能电力设施指数",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 5
-    },
-    {
-      "symbol": "URNM",
-      "name": "全球铀矿开采指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 6
-    },
-    {
-      "symbol": "BUG",
-      "name": "Indxx网络安全指数ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 8
-    },
-    {
-      "symbol": "MSOS",
-      "name": "纯美国大麻ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 9
-    },
-    {
-      "symbol": "JTEK",
-      "name": "摩根大通美国科技",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 10
-    }
-  ],
-  "formal_overlap": [
-    {
-      "symbol": "QTUM",
-      "name": "蓝星机器学习ETF",
-      "in_formal_pool": true,
-      "likely_etf": true,
-      "leveraged_product": false,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 7
-    }
-  ],
-  "leveraged_noise": [
-    {
-      "symbol": "BITX",
-      "name": "2x Bitcoin ETF",
-      "in_formal_pool": false,
-      "likely_etf": true,
-      "leveraged_product": true,
-      "source_query": "美股 行业ETF 成交额活跃 近5日",
-      "rank_no": 2
-    }
-  ],
+  "candidates": [],
+  "new_candidates": [],
+  "formal_overlap": [],
+  "leveraged_noise": [],
   "disclaimer": "影子候选，不进入生产动作与仓位计算。仅保留美股上市代码，过滤A股QDII与2x/3x日内杠杆单股产品。"
 }
