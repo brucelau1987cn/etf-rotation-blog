@@ -44,7 +44,7 @@ def test_calendar_gate_skips_closed_day_before_freshness_check():
     assert mod.shadow_calendar_gate("2026-09-14", lookup=lambda day: (True, "fixture"))["status"] == "run"
 
 
-def test_cf_fetch_splits_pool_into_five_symbol_qfq_batches_and_maps_ohlc_turn():
+def test_cf_fetch_isolates_each_symbol_request_and_maps_ohlc_turn():
     mod = load_module()
 
     class Client:
@@ -80,7 +80,7 @@ def test_cf_fetch_splits_pool_into_five_symbol_qfq_batches_and_maps_ohlc_turn():
     codes = [f"{code:06d}.SZ" for code in range(1, 8)]
     frames = mod.fetch_cf_batch(codes, "2026-01-01", "2026-09-15", client=client)
 
-    assert [len(call[0]) for call in client.calls] == [5, 2]
+    assert [len(call[0]) for call in client.calls] == [1] * 7
     assert all(call[3] == mod.KLINE_FIELDS for call in client.calls)
     assert all(call[1] == "2026-01-01" and call[2] == "2026-09-15" for call in client.calls)
     assert list(frames) == codes
@@ -98,7 +98,7 @@ def test_fetch_batch_falls_back_locally_for_failed_cf_chunk_only():
 
     class Client:
         def klines(self, symbols, start, end, *, fields):
-            if len(symbols) == 2:
+            if symbols == [codes[5]]:
                 raise RuntimeError("CF unavailable")
             return {symbol: [] for symbol in symbols}
 
@@ -115,9 +115,9 @@ def test_fetch_batch_falls_back_locally_for_failed_cf_chunk_only():
         codes, "2026-01-01", "2026-09-15", client=Client(), local_fetch=local_fetch,
     )
 
-    assert fallback_calls == [(codes[5:], "2026-01-01", "2026-09-15")]
+    assert fallback_calls == [([codes[5]], "2026-01-01", "2026-09-15")]
     assert frames[codes[0]].empty
-    assert len(frames[codes[-1]]) == 1
+    assert len(frames[codes[5]]) == 1
 
 
 def test_fetch_batch_uses_local_fallback_when_cf_is_unconfigured(monkeypatch):
@@ -138,6 +138,26 @@ def test_fetch_batch_uses_local_fallback_when_cf_is_unconfigured(monkeypatch):
 
     assert calls == [(codes, "2026-01-01", "2026-09-15")]
     assert list(frames) == codes
+
+
+def test_fetch_batch_marks_failed_symbols_empty_when_local_fallback_fails():
+    mod = load_module()
+    codes = ["000001.SZ", "600000.SH"]
+
+    class Client:
+        def klines(self, symbols, start, end, *, fields):
+            raise RuntimeError("CF unavailable")
+
+    calls = []
+
+    def local_fetch(symbols, start, end):
+        calls.append(list(symbols))
+        raise RuntimeError("local login blocked")
+
+    frames = mod.fetch_batch(codes, "2026-01-01", "2026-09-15", client=Client(), local_fetch=local_fetch)
+    assert calls == [codes]
+    assert set(frames) == set(codes)
+    assert all(frame.empty for frame in frames.values())
 
 
 def test_local_fallback_keeps_adjustflag_two_and_ohlc_turn_semantics(monkeypatch):

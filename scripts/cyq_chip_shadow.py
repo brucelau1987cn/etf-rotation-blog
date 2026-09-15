@@ -189,8 +189,11 @@ def fetch_cf_batch(
     """按 CF 单批五只限制读取前复权 OHLC+换手率。"""
     gateway = client or CFBaoStockClient.from_env()
     out: dict[str, pd.DataFrame] = {}
-    for offset in range(0, len(codes), MAX_KLINE_SYMBOLS):
-        chunk = codes[offset:offset + MAX_KLINE_SYMBOLS]
+    # BaoStock currently rate-limits repeated TCP logins aggressively. Use one
+    # symbol per HTTP request so one transient failure does not discard a
+    # successful prefix of a five-symbol batch.
+    for offset in range(0, len(codes), 1):
+        chunk = codes[offset:offset + 1]
         rows_by_symbol = gateway.klines(chunk, start_date, end_date, fields=KLINE_FIELDS)
         out.update({symbol: _rows_to_frame(rows_by_symbol[symbol]) for symbol in chunk})
     return out
@@ -213,8 +216,9 @@ def fetch_batch(
         except Exception as exc:  # noqa: BLE001
             gateway_error = exc
     out: dict[str, pd.DataFrame] = {}
-    for offset in range(0, len(codes), MAX_KLINE_SYMBOLS):
-        chunk = codes[offset:offset + MAX_KLINE_SYMBOLS]
+    failed: list[str] = []
+    for offset in range(0, len(codes), 1):
+        chunk = codes[offset:offset + 1]
         try:
             if gateway_error is not None:
                 raise gateway_error
@@ -223,12 +227,24 @@ def fetch_batch(
             out.update(fetch_cf_batch(chunk, start_date, end_date, client=gateway))
         except Exception as exc:  # noqa: BLE001
             print(
-                f"CF BaoStock batch unavailable ({type(exc).__name__}: {exc}); "
-                f"using local fallback for {len(chunk)} symbols",
+                f"CF BaoStock symbol unavailable ({type(exc).__name__}: {exc}); "
+                f"deferring local fallback for {chunk[0]}",
                 file=sys.stderr,
                 flush=True,
             )
-            out.update(local_fetch(chunk, start_date, end_date))
+            failed.extend(chunk)
+    if failed:
+        try:
+            # One local login for all unresolved symbols; avoid login storms.
+            out.update(local_fetch(failed, start_date, end_date))
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"local BaoStock fallback unavailable ({type(exc).__name__}: {exc}); "
+                f"marking {len(failed)} symbols empty",
+                file=sys.stderr,
+                flush=True,
+            )
+            out.update({code: pd.DataFrame() for code in failed})
     return out
 
 
