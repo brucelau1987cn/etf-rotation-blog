@@ -50,19 +50,66 @@ function parseSymbols(url) {
 function parseFields(url) {
   const raw = url.searchParams.get('fields');
   const fields = raw ? raw.split(',').map((value) => value.trim()).filter(Boolean) : DEFAULT_FIELDS;
-  if (!fields.length || fields.some((field) => !ALLOWED_FIELDS.has(field)) || new Set(fields).size !== fields.length) return null;
+  if (!fields.length || !fields.includes('date') || fields.some((field) => !ALLOWED_FIELDS.has(field)) || new Set(fields).size !== fields.length) return null;
   return fields;
 }
 
-function numericKlineRecord(record) {
-  const result = { ...record };
-  for (const field of ['open', 'high', 'low', 'close', 'volume', 'amount', 'turn']) {
-    if (!(field in result) || result[field] === '') continue;
-    const number = Number(result[field]);
-    if (!Number.isFinite(number)) throw new Error(`invalid ${field}`);
-    result[field] = number;
-  }
-  return result;
+function assertRows(rows, label) {
+  if (!Array.isArray(rows)) throw new Error(`invalid ${label} rows`);
+  return rows;
+}
+
+function assertAscendingDate(date, previousDate, range, label) {
+  if (!validDate(date) || date < range.start || date > range.end) throw new Error(`invalid ${label} date`);
+  if (previousDate !== null && date <= previousDate) throw new Error(`unordered ${label} date`);
+}
+
+function normalizeCalendarRecords(rows, range) {
+  let previousDate = null;
+  return assertRows(rows, 'calendar').map((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('invalid calendar row');
+    const date = row.calendar_date;
+    assertAscendingDate(date, previousDate, range, 'calendar');
+    if (row.is_trading_day !== '0' && row.is_trading_day !== '1'
+        && row.is_trading_day !== 0 && row.is_trading_day !== 1) {
+      throw new Error('invalid is_trading_day');
+    }
+    previousDate = date;
+    return { date, is_trading_day: String(row.is_trading_day) === '1' };
+  });
+}
+
+function normalizeKlineRecords(rows, fields, range) {
+  let previousDate = null;
+  return assertRows(rows, 'qfq').map((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('invalid qfq row');
+    if (fields.some((field) => !Object.hasOwn(row, field))) throw new Error('missing requested field');
+
+    const date = row.date;
+    assertAscendingDate(date, previousDate, range, 'qfq');
+    previousDate = date;
+
+    if (Object.hasOwn(row, 'tradestatus') && row.tradestatus !== '0' && row.tradestatus !== '1'
+        && row.tradestatus !== 0 && row.tradestatus !== 1) {
+      throw new Error('invalid tradestatus');
+    }
+
+    const result = { ...row };
+    for (const field of ['open', 'high', 'low', 'close', 'volume', 'amount', 'turn']) {
+      if (!Object.hasOwn(result, field)) continue;
+      if ((typeof result[field] === 'string' && result[field].trim() === '')
+          || result[field] === null || typeof result[field] === 'boolean') throw new Error(`invalid ${field}`);
+      const number = Number(result[field]);
+      if (!Number.isFinite(number)) throw new Error(`invalid ${field}`);
+      result[field] = number;
+    }
+
+    if (['open', 'high', 'low', 'close'].every((field) => fields.includes(field))) {
+      const { open, high, low, close } = result;
+      if (low > high || high < Math.max(open, close) || low > Math.min(open, close)) throw new Error('invalid OHLC relationship');
+    }
+    return result;
+  });
 }
 
 export async function handleBaoStockInternal({ request, env }, dependencies = {}) {
@@ -86,10 +133,7 @@ export async function handleBaoStockInternal({ request, env }, dependencies = {}
   try {
     if (route === 'calendar') {
       const fetchCalendarImpl = dependencies.fetchCalendarImpl || fetchCalendarFromBaoStock;
-      const records = (await fetchCalendarImpl(range.start, range.end)).map((row) => ({
-        date: String(row.calendar_date || ''),
-        is_trading_day: String(row.is_trading_day) === '1',
-      }));
+      const records = normalizeCalendarRecords(await fetchCalendarImpl(range.start, range.end), range);
       return reply({ ok: true, source: 'baostock', ...range, count: records.length, records }, 200,
         'private, max-age=3600, stale-while-revalidate=86400');
     }
@@ -100,7 +144,7 @@ export async function handleBaoStockInternal({ request, env }, dependencies = {}
       if (!symbols || !fields) return fail('BAD_REQUEST', `1-${MAX_SYMBOLS} unique A-share symbols and supported OHLCV fields required`, 400);
       const fetchKlineImpl = dependencies.fetchKlineImpl || fetchKlineFromBaoStock;
       const results = await Promise.all(symbols.map(async (symbol) => {
-        const records = (await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields })).map(numericKlineRecord);
+        const records = normalizeKlineRecords(await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields }), fields, range);
         return { symbol, count: records.length, records };
       }));
       const count = results.reduce((sum, result) => sum + result.count, 0);

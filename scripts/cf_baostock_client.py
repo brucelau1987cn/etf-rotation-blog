@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from datetime import date, timedelta
 from typing import Any
 
 CALENDAR_PATH = "/api/internal/v1/baostock/calendar"
 KLINES_PATH = "/api/internal/v1/baostock/qfq"
 MAX_KLINE_SYMBOLS = 5
+MAX_KLINE_SPAN_DAYS = 366
+DEFAULT_KLINE_FIELDS = ("date", "close", "volume", "amount", "turn", "tradestatus")
+NUMERIC_KLINE_FIELDS = frozenset(("open", "high", "low", "close", "volume", "amount", "turn"))
 
 
 class CFBaoStockError(RuntimeError):
@@ -106,28 +111,65 @@ class CFBaoStockClient:
         end: str,
         *,
         adjust: str = "qfq",
+        fields: tuple[str, ...] | list[str] = DEFAULT_KLINE_FIELDS,
     ) -> dict[str, list[dict[str, Any]]]:
         if not symbols or len(symbols) > MAX_KLINE_SYMBOLS:
             raise ValueError(f"CF BaoStock klines requires 1 to at most {MAX_KLINE_SYMBOLS} symbols")
+        if len(set(symbols)) != len(symbols):
+            raise ValueError("CF BaoStock klines requires unique symbols")
         if adjust != "qfq":
             raise ValueError("CF BaoStock first migration supports adjust=qfq")
+        requested_fields = tuple(fields)
+        if not requested_fields or "date" not in requested_fields or len(set(requested_fields)) != len(requested_fields):
+            raise ValueError("CF BaoStock klines fields must be unique and include date")
+        try:
+            first_day = date.fromisoformat(start)
+            last_day = date.fromisoformat(end)
+        except ValueError as exc:
+            raise ValueError("CF BaoStock klines dates must use YYYY-MM-DD") from exc
+        if first_day > last_day:
+            raise ValueError("CF BaoStock klines start must be on or before end")
+
+        result = {symbol: [] for symbol in symbols}
+        window_start = first_day
+        while window_start <= last_day:
+            window_end = min(window_start + timedelta(days=MAX_KLINE_SPAN_DAYS - 1), last_day)
+            window = self._request_kline_window(
+                symbols, window_start.isoformat(), window_end.isoformat(), requested_fields, adjust,
+            )
+            for symbol in symbols:
+                result[symbol].extend(window[symbol])
+            window_start = window_end + timedelta(days=1)
+
+        for symbol, rows in result.items():
+            dates = [str(row["date"]) for row in rows]
+            if len(dates) != len(set(dates)):
+                raise CFBaoStockError(f"CF BaoStock klines dates must be unique for {symbol}")
+            if dates != sorted(dates):
+                raise CFBaoStockError(f"CF BaoStock klines dates must be sorted for {symbol}")
+        return result
+
+    def _request_kline_window(
+        self,
+        symbols: list[str],
+        start: str,
+        end: str,
+        fields: tuple[str, ...],
+        adjust: str,
+    ) -> dict[str, list[dict[str, Any]]]:
         payload = self._request(KLINES_PATH, query={
-            "symbols": ",".join(symbols),
-            "start": start,
-            "end": end,
-            "fields": "date,close,volume,amount,turn,tradestatus",
+            "symbols": ",".join(symbols), "start": start, "end": end, "fields": ",".join(fields),
         })
+        expected_metadata = {
+            "adjust": adjust, "start": start, "end": end, "fields": list(fields),
+            "symbol_count": len(symbols),
+        }
+        for key, expected in expected_metadata.items():
+            if payload.get(key) != expected:
+                raise CFBaoStockError(f"CF BaoStock qfq {key} is invalid")
         raw_results = payload.get("results")
         if not isinstance(raw_results, list):
             raise CFBaoStockError("CF BaoStock qfq response lacks results")
-        raw: dict[str, list[dict[str, Any]]] = {}
-        for item in raw_results:
-            if not isinstance(item, dict) or not isinstance(item.get("symbol"), str):
-                raise CFBaoStockError("CF BaoStock qfq result is invalid")
-            records = item.get("records")
-            if not isinstance(records, list):
-                raise CFBaoStockError("CF BaoStock qfq records are invalid")
-            raw[item["symbol"]] = records
         result: dict[str, list[dict[str, Any]]] = {}
         aliases = {symbol.lower(): symbol for symbol in symbols}
         aliases.update({
@@ -135,14 +177,57 @@ class CFBaoStockClient:
             for symbol in symbols if "." in symbol
         })
         seen_targets: set[str] = set()
-        for source_symbol, rows in raw.items():
-            target = aliases.get(str(source_symbol).lower())
+        total_count = 0
+        for item in raw_results:
+            if not isinstance(item, dict) or not isinstance(item.get("symbol"), str):
+                raise CFBaoStockError("CF BaoStock qfq result is invalid")
+            target = aliases.get(item["symbol"].lower())
             if target is None or target in seen_targets:
                 raise CFBaoStockError("CF BaoStock qfq symbol set is invalid")
+            rows = item.get("records")
             if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                 raise CFBaoStockError(f"CF BaoStock klines rows are invalid for {target}")
+            if item.get("count") != len(rows):
+                raise CFBaoStockError(f"CF BaoStock qfq count is invalid for {target}")
+            self._validate_kline_rows(target, rows, start, end, fields)
             seen_targets.add(target)
             result[target] = rows
+            total_count += len(rows)
         if seen_targets != set(symbols):
             raise CFBaoStockError("CF BaoStock qfq response is partial")
+        if payload.get("count") != total_count:
+            raise CFBaoStockError("CF BaoStock qfq count is invalid")
         return result
+
+    @staticmethod
+    def _validate_kline_rows(
+        symbol: str, rows: list[dict[str, Any]], start: str, end: str, fields: tuple[str, ...],
+    ) -> None:
+        dates: list[str] = []
+        required = set(fields)
+        for row in rows:
+            if not required.issubset(row):
+                raise CFBaoStockError(f"CF BaoStock klines field is missing for {symbol}")
+            day = row.get("date")
+            if not isinstance(day, str) or not start <= day <= end:
+                raise CFBaoStockError(f"CF BaoStock klines date range is invalid for {symbol}")
+            try:
+                date.fromisoformat(day)
+            except ValueError as exc:
+                raise CFBaoStockError(f"CF BaoStock klines date is invalid for {symbol}") from exc
+            dates.append(day)
+            for field in required & NUMERIC_KLINE_FIELDS:
+                try:
+                    value = float(row[field])
+                except (TypeError, ValueError) as exc:
+                    raise CFBaoStockError(f"CF BaoStock klines {field} must be finite for {symbol}") from exc
+                if not math.isfinite(value):
+                    raise CFBaoStockError(f"CF BaoStock klines {field} must be finite for {symbol}")
+            if {"open", "high", "low", "close"}.issubset(required):
+                open_, high, low, close = (float(row[field]) for field in ("open", "high", "low", "close"))
+                if low > min(open_, close) or high < max(open_, close) or low > high:
+                    raise CFBaoStockError(f"CF BaoStock klines OHLC is invalid for {symbol}")
+        if len(dates) != len(set(dates)):
+            raise CFBaoStockError(f"CF BaoStock klines dates must be unique for {symbol}")
+        if dates != sorted(dates):
+            raise CFBaoStockError(f"CF BaoStock klines dates must be sorted for {symbol}")

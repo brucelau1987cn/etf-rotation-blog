@@ -6,13 +6,13 @@ iWenCai 收盘获利（现有生产追踪页口径）的一致性。不接生产
 
 数据源：
   - 标的：public/data/low-chip-tracking.json（追踪池，含当前观察池 intersection 超集）
-  - OHLC+换手率：baostock 前复权（adjustflag=2）
+  - OHLC+换手率：CF BaoStock 前复权（adjustflag=2），请求失败时回退本地 BaoStock
   - 对照值：追踪池 daily[-1].profit_ratio（iWenCai 收盘获利，百分数）
 
 算法：scripts/reference/a-stock-data/chip_distribution.py 的 chip_distribution()
 （三角分布峰值在均价 (high+low+close)/3，换手率衰减 decay=1.0，初始播种为首日全部流通盘）。
 
-运行时：/usr/bin/python3（系统 python，含 baostock/numpy/pandas）。
+运行时：Python 3（numpy/pandas；本地 fallback 还需 baostock）。
 """
 from __future__ import annotations
 
@@ -27,6 +27,13 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+try:
+    from cf_baostock_client import CFBaoStockClient, MAX_KLINE_SYMBOLS
+except ModuleNotFoundError:
+    from scripts.cf_baostock_client import CFBaoStockClient, MAX_KLINE_SYMBOLS
+
 sys.path.insert(0, str(ROOT / "scripts" / "reference" / "a-stock-data"))
 from chip_distribution import chip_distribution, _bs_code  # noqa: E402
 
@@ -37,7 +44,8 @@ CN_TZ = timezone(timedelta(hours=8))
 
 WINDOW_DAYS = 240          # 回溯自然日，约 115~120 个交易日
 DECAY = 1.0                # 换手衰减系数（1.0=真实换手率，标准 CYQ 口径）
-SLEEP = 0.3                # baostock 逐只串行限速
+SLEEP = 0.3                # 本地 baostock fallback 逐只串行限速
+KLINE_FIELDS = ("date", "open", "high", "low", "close", "turn", "tradestatus")
 
 
 def shadow_calendar_gate(trade_date: str, lookup=None) -> dict[str, str]:
@@ -107,8 +115,8 @@ def load_symbols() -> tuple[dict[str, str], dict[str, float | None], str]:
     return names, iwencai, data_as_of
 
 
-def fetch_batch(codes: list[str], start_date: str, end_date: str) -> dict[str, pd.DataFrame]:
-    """一次 baostock login，逐只取前复权 OHLC+换手率（停牌日过滤）。"""
+def fetch_local_batch(codes: list[str], start_date: str, end_date: str) -> dict[str, pd.DataFrame]:
+    """本地 BaoStock fallback：一次登录，逐只取前复权 OHLC+换手率。"""
     import baostock as bs
     lg = bs.login()
     if lg.error_code != "0":
@@ -119,7 +127,7 @@ def fetch_batch(codes: list[str], start_date: str, end_date: str) -> dict[str, p
             try:
                 bscode = _bs_code(bare(code))
                 rs = bs.query_history_k_data_plus(
-                    bscode, "date,high,low,close,turn,tradestatus",
+                    bscode, "date,open,high,low,close,turn,tradestatus",
                     start_date=start_date, end_date=end_date,
                     frequency="d", adjustflag="2")  # 2=前复权
                 rows = []
@@ -129,7 +137,7 @@ def fetch_batch(codes: list[str], start_date: str, end_date: str) -> dict[str, p
                     out[code] = pd.DataFrame()
                 else:
                     k = pd.DataFrame(rows, columns=rs.fields)
-                    for c in ("high", "low", "close", "turn"):
+                    for c in ("open", "high", "low", "close", "turn"):
                         k[c] = pd.to_numeric(k[c], errors="coerce")
                     k = k[k["tradestatus"] == "1"]
                     out[code] = k
@@ -139,6 +147,88 @@ def fetch_batch(codes: list[str], start_date: str, end_date: str) -> dict[str, p
             time.sleep(SLEEP)
     finally:
         bs.logout()
+    return out
+
+
+def _rows_to_frame(rows: list[dict]) -> pd.DataFrame:
+    frame = pd.DataFrame(rows, columns=KLINE_FIELDS)
+    if frame.empty:
+        return frame
+    for column in ("open", "high", "low", "close", "turn"):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    return frame[frame["tradestatus"].astype(str) == "1"].reset_index(drop=True)
+
+
+def _response_frames(payload: dict, codes: list[str]) -> dict[str, pd.DataFrame]:
+    if payload.get("adjust") != "qfq" or not isinstance(payload.get("results"), list):
+        raise RuntimeError("CF BaoStock qfq response contract is invalid")
+    aliases = {code.lower(): code for code in codes}
+    aliases.update({
+        f"{code.rsplit('.', 1)[1].lower()}.{code.split('.', 1)[0]}": code
+        for code in codes if "." in code
+    })
+    frames: dict[str, pd.DataFrame] = {}
+    for item in payload["results"]:
+        if not isinstance(item, dict):
+            raise RuntimeError("CF BaoStock qfq result is invalid")
+        target = aliases.get(str(item.get("symbol") or "").lower())
+        rows = item.get("records")
+        if target is None or target in frames or not isinstance(rows, list):
+            raise RuntimeError("CF BaoStock qfq symbol set is invalid")
+        if any(not isinstance(row, dict) for row in rows):
+            raise RuntimeError(f"CF BaoStock qfq rows are invalid for {target}")
+        frames[target] = _rows_to_frame(rows)
+    if set(frames) != set(codes):
+        raise RuntimeError("CF BaoStock qfq response is partial")
+    return frames
+
+
+def fetch_cf_batch(
+    codes: list[str], start_date: str, end_date: str, *, client: CFBaoStockClient | None = None,
+) -> dict[str, pd.DataFrame]:
+    """按 CF 单批五只限制读取前复权 OHLC+换手率。"""
+    gateway = client or CFBaoStockClient.from_env()
+    out: dict[str, pd.DataFrame] = {}
+    for offset in range(0, len(codes), MAX_KLINE_SYMBOLS):
+        chunk = codes[offset:offset + MAX_KLINE_SYMBOLS]
+        rows_by_symbol = gateway.klines(chunk, start_date, end_date, fields=KLINE_FIELDS)
+        out.update({symbol: _rows_to_frame(rows_by_symbol[symbol]) for symbol in chunk})
+    return out
+
+
+def fetch_batch(
+    codes: list[str],
+    start_date: str,
+    end_date: str,
+    *,
+    client: CFBaoStockClient | None = None,
+    local_fetch=fetch_local_batch,
+) -> dict[str, pd.DataFrame]:
+    """优先读取 CF，按失败批次回退本地 BaoStock。"""
+    gateway = client
+    gateway_error: Exception | None = None
+    if gateway is None:
+        try:
+            gateway = CFBaoStockClient.from_env()
+        except Exception as exc:  # noqa: BLE001
+            gateway_error = exc
+    out: dict[str, pd.DataFrame] = {}
+    for offset in range(0, len(codes), MAX_KLINE_SYMBOLS):
+        chunk = codes[offset:offset + MAX_KLINE_SYMBOLS]
+        try:
+            if gateway_error is not None:
+                raise gateway_error
+            if gateway is None:
+                raise RuntimeError("CF BaoStock client unavailable")
+            out.update(fetch_cf_batch(chunk, start_date, end_date, client=gateway))
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"CF BaoStock batch unavailable ({type(exc).__name__}: {exc}); "
+                f"using local fallback for {len(chunk)} symbols",
+                file=sys.stderr,
+                flush=True,
+            )
+            out.update(local_fetch(chunk, start_date, end_date))
     return out
 
 

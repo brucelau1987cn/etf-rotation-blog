@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Incrementally import A-share ETF qfq bars from iWenCai into SQLite."""
+"""Incrementally import A-share ETF qfq bars into SQLite."""
 from __future__ import annotations
 
 import argparse
@@ -12,7 +12,6 @@ import math
 import re
 import sqlite3
 import subprocess
-import sys
 import time
 import urllib.request
 from datetime import datetime, timedelta
@@ -23,13 +22,18 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = Path.home() / ".hermes" / "scripts" / "iwencai-market-query"
 RAW_ROOT = ROOT / "data" / "local" / "raw" / "iwencai"
-sys.path.insert(0, str(ROOT / "scripts"))
-from etf_bar_cache import DEFAULT_DB, audit, connect, upsert_bars, upsert_instruments, utc_now  # noqa: E402
+if __package__:
+    from .cf_baostock_client import CFBaoStockClient, CFBaoStockError, MAX_KLINE_SYMBOLS
+    from .etf_bar_cache import DEFAULT_DB, audit, connect, upsert_bars, upsert_instruments, utc_now
+else:
+    from cf_baostock_client import CFBaoStockClient, CFBaoStockError, MAX_KLINE_SYMBOLS
+    from etf_bar_cache import DEFAULT_DB, audit, connect, upsert_bars, upsert_instruments, utc_now
 
 FIELD_RE = re.compile(r"^(?:基金@)?(开盘价|最高价|最低价|收盘价|成交量|成交额)(?:(?:_|:)前复权)?\[(\d{8})\]$")
 FIELD_MAP = {"开盘价": "open", "最高价": "high", "最低价": "low", "收盘价": "close", "成交量": "volume", "成交额": "amount"}
 CN = ZoneInfo("Asia/Shanghai")
 STOCK_API_PACKAGE = "stock-api@2.7.3"
+CF_BAR_FIELDS = "date,open,high,low,close,volume,amount,turn,tradestatus"
 
 
 def valid_ohlc(bar: dict[str, Any]) -> bool:
@@ -162,7 +166,9 @@ def fetch_tencent_history(item: dict[str, str], count: int) -> list[dict[str, An
 
 
 def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
+    """Fetch qfq history from a local BaoStock installation."""
     import baostock as bs  # type: ignore[import-not-found]
+
     market_code = "sh." + item["code"] if item["market"] == "XSHG" else "sz." + item["code"]
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         login = bs.login()
@@ -172,19 +178,161 @@ def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, A
             rs = bs.query_history_k_data_plus(
                 market_code,
                 "date,code,open,high,low,close,volume,amount",
-                start_date=(datetime.now() - timedelta(days=count * 2)).strftime("%Y-%m-%d"),
+                start_date=(datetime.now(CN) - timedelta(days=count * 2)).strftime("%Y-%m-%d"),
                 end_date="2099-12-31", frequency="d", adjustflag="2",
             )
             rows = []
-            while rs.error_code == "0" and rs.next():
+            while getattr(rs, "error_code", "1") == "0" and rs.next():
                 rows.append(rs.get_row_data())
             if getattr(rs, "error_code", "1") != "0":
                 return []
-            normalized = [{"date": r[0], "open": r[2], "close": r[5], "high": r[3], "low": r[4], "volume": r[6]}
-                          for r in rows if r[0] and r[5] != ""]
-            return parse_stock_api_rows(normalized, item, source="baostock")
+            normalized = [
+                {"date": row[0], "open": row[2], "high": row[3], "low": row[4],
+                 "close": row[5], "volume": row[6], "amount": row[7]}
+                for row in rows if row[0] and row[5] != ""
+            ]
+            return parse_stock_api_rows(normalized, item, source="local-baostock")
         finally:
             bs.logout()
+
+
+def cf_symbol(item: dict[str, str]) -> str:
+    suffix = "SH" if item["market"] == "XSHG" else "SZ"
+    return f"{item['code']}.{suffix}"
+
+
+def _cf_date_range(count: int, end: datetime) -> tuple[str, str]:
+    if count < 1:
+        raise ValueError("history count must be positive")
+    return (end.date() - timedelta(days=count * 2)).isoformat(), end.date().isoformat()
+
+
+def _map_cf_rows(
+    rows_by_symbol: dict[str, list[dict[str, Any]]], items: list[dict[str, str]], now: datetime,
+) -> dict[str, list[dict[str, Any]]]:
+    items_by_symbol = {cf_symbol(item): item for item in items}
+    if set(rows_by_symbol) != set(items_by_symbol):
+        raise CFBaoStockError("CF BaoStock qfq response is partial")
+    parsed = {item["code"]: [] for item in items}
+    today = now.date().isoformat()
+    current_is_final = now.hour > 15 or (now.hour == 15 and now.minute >= 15)
+    for symbol, rows in rows_by_symbol.items():
+        item = items_by_symbol[symbol]
+        for row in rows:
+            observed = str(row.get("date") or "")
+            try:
+                datetime.strptime(observed, "%Y-%m-%d")
+            except ValueError as exc:
+                raise CFBaoStockError(f"CF BaoStock invalid row for {item['code']}") from exc
+            status = str(row.get("tradestatus") or "")
+            if status not in ("0", "1"):
+                raise CFBaoStockError(f"CF BaoStock invalid row for {item['code']}")
+            if status == "0":
+                continue
+            numeric: dict[str, float] = {}
+            try:
+                for field in ("open", "high", "low", "close", "volume", "amount", "turn"):
+                    numeric[field] = float(row[field])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise CFBaoStockError(f"CF BaoStock invalid row for {item['code']}") from exc
+            if (
+                not all(math.isfinite(value) for value in numeric.values())
+                or any(numeric[field] <= 0 for field in ("open", "high", "low", "close"))
+                or any(numeric[field] < 0 for field in ("volume", "amount", "turn"))
+                or numeric["high"] < max(numeric["open"], numeric["close"])
+                or numeric["low"] > min(numeric["open"], numeric["close"])
+            ):
+                raise CFBaoStockError(f"CF BaoStock invalid row for {item['code']}")
+            parsed[item["code"]].append({
+                "market": item["market"], "symbol": item["code"], "trade_date": observed,
+                **numeric, "tradestatus": status, "adjustment": "qfq", "source": "cf-baostock",
+                "is_final": observed < today or (observed == today and current_is_final),
+            })
+    return parsed
+
+
+def fetch_cf_baostock_batch(
+    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
+    now: datetime | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    if not items or len(items) > MAX_KLINE_SYMBOLS:
+        raise ValueError(f"CF BaoStock batch requires 1 to at most {MAX_KLINE_SYMBOLS} symbols")
+    current = now or datetime.now(CN)
+    gateway = client or CFBaoStockClient.from_env()
+    symbols = [cf_symbol(item) for item in items]
+    fields = [str(field) for field in CF_BAR_FIELDS.split(",")]
+    start, end = _cf_date_range(count, current)
+    rows_by_symbol = gateway.klines(symbols, start, end, fields=fields)
+    return _map_cf_rows(rows_by_symbol, items, current)
+
+
+def fetch_cf_baostock_history(
+    item: dict[str, str], count: int, *, client: CFBaoStockClient | None = None,
+) -> list[dict[str, Any]]:
+    return fetch_cf_baostock_batch([item], count, client=client)[item["code"]]
+
+
+def fetch_cf_baostock_backfill(
+    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
+) -> tuple[list[dict[str, Any]], set[str], list[str]]:
+    gateway = client or CFBaoStockClient.from_env()
+    bars: list[dict[str, Any]] = []
+    succeeded: set[str] = set()
+    errors: list[str] = []
+    failed_batches: list[list[dict[str, str]]] = []
+    for start in range(0, len(items), MAX_KLINE_SYMBOLS):
+        batch = items[start:start + MAX_KLINE_SYMBOLS]
+        try:
+            result = fetch_cf_baostock_batch(batch, count, client=gateway)
+            for item in batch:
+                rows = result[item["code"]]
+                if rows:
+                    bars.extend(rows)
+                    succeeded.add(item["code"])
+        except Exception as exc:
+            errors.append(f"batch {start // MAX_KLINE_SYMBOLS + 1}: {type(exc).__name__}: {exc}")
+            failed_batches.append(batch)
+    for batch in failed_batches:
+        for item in batch:
+            try:
+                rows = fetch_cf_baostock_batch([item], count, client=gateway)[item["code"]]
+                if rows:
+                    bars.extend(rows)
+                    succeeded.add(item["code"])
+            except Exception as exc:
+                errors.append(f"singleton {item['code']}: {type(exc).__name__}: {exc}")
+    return bars, succeeded, errors
+
+
+def fetch_baostock_backfill(
+    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
+    workers: int = 4,
+) -> tuple[list[dict[str, Any]], set[str], list[str]]:
+    """Backfill through CF first, then repair every unresolved symbol locally."""
+    try:
+        bars, succeeded, errors = fetch_cf_baostock_backfill(items, count, client=client)
+        bars = list(bars)
+        succeeded = set(succeeded)
+        errors = list(errors)
+    except Exception as exc:
+        bars, succeeded = [], set()
+        errors = [f"CF BaoStock setup: {type(exc).__name__}: {exc}"]
+
+    unresolved = [item for item in items if item["code"] not in succeeded]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as executor:
+        futures = {executor.submit(fetch_baostock_history, item, count): item for item in unresolved}
+        for future in concurrent.futures.as_completed(futures):
+            item = futures[future]
+            try:
+                rows = future.result()
+                if rows:
+                    bars.extend(rows)
+                    succeeded.add(item["code"])
+                else:
+                    errors.append(f"local {item['code']}: no history rows")
+            except Exception as exc:
+                errors.append(f"local {item['code']}: {type(exc).__name__}: {exc}")
+    return bars, succeeded, errors
 
 
 def fetch_primary_history(item: dict[str, str], count: int) -> tuple[list[dict[str, Any]], str]:
@@ -194,8 +342,14 @@ def fetch_primary_history(item: dict[str, str], count: int) -> tuple[list[dict[s
             return rows, "tencent"
     except Exception:
         pass
+    try:
+        rows = fetch_cf_baostock_history(item, count)
+        if rows:
+            return rows, "cf-baostock"
+    except Exception:
+        pass
     rows = fetch_baostock_history(item, count)
-    return rows, "baostock"
+    return rows, "local-baostock"
 
 
 def summarize_source_coverage(bars: list[dict[str, Any]]) -> dict[str, int]:
@@ -309,17 +463,10 @@ def main() -> int:
     if args.backfill_days > 0 and args.source == "tencent":
         with connect(args.db) as db:
             short_history = symbols_needing_backfill(db, universe, args.minimum_history)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.backfill_workers)) as executor:
-            futures = {executor.submit(fetch_baostock_history, item, args.backfill_days): item for item in short_history}
-            for future in concurrent.futures.as_completed(futures):
-                item = futures[future]
-                try:
-                    rows = future.result()
-                    if not rows:
-                        raise RuntimeError("no history rows")
-                    backfill_bars.extend(rows); backfill_symbols.append(item["code"])
-                except Exception as exc:
-                    backfill_errors.append(f"{item['code']}: {type(exc).__name__}: {exc}")
+        backfill_bars, backfill_succeeded, backfill_errors = fetch_baostock_backfill(
+            short_history, args.backfill_days, workers=args.backfill_workers,
+        )
+        backfill_symbols = sorted(backfill_succeeded)
         all_bars.extend(backfill_bars)
 
     elapsed = int((time.monotonic() - t0) * 1000)

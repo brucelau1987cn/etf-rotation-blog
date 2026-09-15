@@ -176,7 +176,7 @@ def is_trading_day(day: str) -> tuple[bool | None, str]:
     if os.environ.get("CF_BAOSTOCK_BASE_URL") and os.environ.get("CF_BAOSTOCK_TOKEN"):
         try:
             cf_value = CFBaoStockClient.from_env().is_trading_day(day)
-        except CFBaoStockError:
+        except RuntimeError:
             cf_value = None
         if cf_value is not None:
             return cf_value, "cf_baostock"

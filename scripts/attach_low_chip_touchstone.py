@@ -9,7 +9,14 @@ import tempfile
 from pathlib import Path
 from typing import Iterable
 
-from etf_bar_cache import connect, get_bars
+try:
+    from etf_bar_cache import connect, get_bars
+except ModuleNotFoundError:
+    from scripts.etf_bar_cache import connect, get_bars
+try:
+    from cf_baostock_client import CFBaoStockClient
+except ModuleNotFoundError:
+    from scripts.cf_baostock_client import CFBaoStockClient
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
@@ -65,7 +72,7 @@ def calculate_touchstone(closes: Iterable[float], dates: Iterable[str]) -> dict:
 
 
 def _empty_metrics(coverage):
-    return {"candidate_bottom_active": False, "candidate_anchor_date": None, "candidate_anchor_close": None, "candidate_rebound_pct": None, "touchstone_hit": False, "bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/BaoStock)"}
+    return {"candidate_bottom_active": False, "candidate_anchor_date": None, "candidate_anchor_close": None, "candidate_rebound_pct": None, "touchstone_hit": False, "bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/CF BaoStock/local BaoStock)"}
 
 
 def _trough_event(anchor, confirmation, prices, dates, previous_trough):
@@ -93,6 +100,11 @@ def load_history(item, end, db_path=CACHE_DB):
         rows = fetch_tencent_history(item, HISTORY_BARS)
     except Exception:
         rows = []
+    if not rows:
+        try:
+            rows = fetch_cf_baostock_history(item, HISTORY_START, str(end)[:10])
+        except Exception:
+            rows = []
     if not rows:
         try:
             rows = fetch_baostock_history(item, HISTORY_START, str(end)[:10])
@@ -125,6 +137,26 @@ def _normalize_history(rows, end):
 def fetch_tencent_history(item, count=HISTORY_BARS):
     from update_a_share_bar_cache import fetch_tencent_history as fetch
     return fetch(item, count)
+
+
+def fetch_cf_baostock_history(item, start=HISTORY_START, end='2099-12-31', *, client=None):
+    """Fetch qfq closes from CF before using the local BaoStock session."""
+    symbol = f"{item['code']}.{'SH' if item['market'] == 'XSHG' else 'SZ'}"
+    gateway = client or CFBaoStockClient.from_env()
+    rows = gateway.klines(
+        [symbol], start, end, fields=('date', 'close', 'tradestatus'),
+    )[symbol]
+    result = []
+    for row in rows:
+        if str(row.get('tradestatus', '1')) != '1' or not row.get('date'):
+            continue
+        try:
+            close = float(row.get('close'))
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(close) and close > 0:
+            result.append({'trade_date': str(row['date']), 'close': close})
+    return result
 
 
 def fetch_baostock_history(item, start=HISTORY_START, end='2099-12-31'):
@@ -193,7 +225,7 @@ def build_and_publish(path=DATA, history_loader=load_history):
         except Exception as exc:
             errors[code] = f'{type(exc).__name__}: {exc}'
     coverage = {'requested': len(codes), 'computed': computed, 'failed': len(errors)}
-    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'timeframe': 'daily', 'signal_field': 'touchstone_hit', 'candidate_field': 'candidate_bottom_active', 'formal_field': 'bottom_alert', 'filter_rule': 'candidate_bottom_active OR bottom_alert', 'candidate_definition': 'lowest close anchor on the active down leg after any rebound and before 15% confirmation', 'source': 'local qfq cache → Tencent qfq daily → BaoStock qfq daily', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
+    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'timeframe': 'daily', 'signal_field': 'touchstone_hit', 'candidate_field': 'candidate_bottom_active', 'formal_field': 'bottom_alert', 'filter_rule': 'candidate_bottom_active OR bottom_alert', 'candidate_definition': 'lowest close anchor on the active down leg after any rebound and before 15% confirmation', 'source': 'local qfq cache → Tencent qfq daily → CF BaoStock qfq daily → local BaoStock qfq daily → stock-api Tencent', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
     if errors or computed != len(codes):
         raise RuntimeError(f'touchstone coverage incomplete: {coverage}')
     target = Path(path)

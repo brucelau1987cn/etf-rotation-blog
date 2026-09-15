@@ -1,4 +1,5 @@
 import json
+from datetime import date, timedelta
 import urllib.error
 import urllib.parse
 
@@ -54,10 +55,15 @@ def test_klines_posts_explicit_qfq_contract_and_normalizes_symbols():
         captured["url"] = request.full_url
         captured["body"] = json.loads(request.data) if request.data else None
         captured["authorization"] = request.get_header("Authorization")
-        return Response({"ok": True, "source": "baostock", "results": [{
+        return Response({"ok": True, "source": "baostock", "adjust": "qfq",
+            "start": "2026-09-01", "end": "2026-09-15",
+            "fields": ["date", "close", "volume", "amount", "turn", "tradestatus"],
+            "symbol_count": 1, "count": 1, "results": [{
             "symbol": "sz.000858",
+            "count": 1,
             "records": [
-                {"date": "2026-09-14", "close": "10.50", "tradestatus": "1"},
+                {"date": "2026-09-14", "close": "10.50", "volume": 1000,
+                 "amount": 10500, "turn": 1.2, "tradestatus": "1"},
             ],
         }]})
 
@@ -75,8 +81,95 @@ def test_klines_posts_explicit_qfq_contract_and_normalizes_symbols():
         "fields": ["date,close,volume,amount,turn,tradestatus"],
     }
     assert result == {"000858.SZ": [
-        {"date": "2026-09-14", "close": "10.50", "tradestatus": "1"},
+        {"date": "2026-09-14", "close": "10.50", "volume": 1000,
+         "amount": 10500, "turn": 1.2, "tradestatus": "1"},
     ]}
+
+
+def test_klines_accepts_explicit_fields_and_splits_long_ranges():
+    calls = []
+    fields = ("date", "open", "high", "low", "close", "turn", "tradestatus")
+
+    def opener(request, timeout):
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(request.full_url).query)
+        start = query["start"][0]
+        end = query["end"][0]
+        calls.append((start, end, query["fields"][0]))
+        records = [{"date": start, "open": 10, "high": 11, "low": 9, "close": 10.5,
+                    "turn": 1.2, "tradestatus": "1"}]
+        return Response({
+            "ok": True, "source": "baostock", "adjust": "qfq", "start": start, "end": end,
+            "fields": list(fields), "symbol_count": 1, "count": 1,
+            "results": [{"symbol": "sz.000001", "count": 1, "records": records}],
+        })
+
+    client = CFBaoStockClient("https://example.test", "secret", opener=opener)
+    result = client.klines(["000001.SZ"], "2022-01-01", "2026-09-15", fields=fields)
+
+    assert len(calls) == 5
+    assert calls[0] == ("2022-01-01", "2023-01-01", ",".join(fields))
+    assert calls[-1][1] == "2026-09-15"
+    for previous, current in zip(calls, calls[1:]):
+        assert date.fromisoformat(current[0]) == date.fromisoformat(previous[1]) + timedelta(days=1)
+    assert all((date.fromisoformat(end) - date.fromisoformat(start)).days + 1 <= 366 for start, end, _ in calls)
+    assert [row["date"] for row in result["000001.SZ"]] == [call[0] for call in calls]
+
+
+@pytest.mark.parametrize("mutate,match", [
+    (lambda payload: payload.update(adjust="hfq"), "adjust"),
+    (lambda payload: payload.update(start="2026-09-02"), "start"),
+    (lambda payload: payload.update(end="2026-09-14"), "end"),
+    (lambda payload: payload.update(fields=["date", "close"]), "fields"),
+    (lambda payload: payload.update(symbol_count=2), "symbol_count"),
+    (lambda payload: payload.update(count=2), "count"),
+    (lambda payload: payload["results"][0].update(count=2), "count"),
+])
+def test_klines_rejects_inconsistent_window_metadata(mutate, match):
+    payload = {
+        "ok": True, "source": "baostock", "adjust": "qfq",
+        "start": "2026-09-01", "end": "2026-09-15",
+        "fields": ["date", "close"], "symbol_count": 1, "count": 1,
+        "results": [{"symbol": "sz.000001", "count": 1,
+                     "records": [{"date": "2026-09-14", "close": 10}]}],
+    }
+    if match == "fields":
+        payload["fields"] = ["date", "close", "turn"]
+    else:
+        mutate(payload)
+    client = CFBaoStockClient("https://example.test", "secret", opener=lambda *_a, **_k: Response(payload))
+    with pytest.raises(CFBaoStockError, match=match):
+        client.klines(["000001.SZ"], "2026-09-01", "2026-09-15", fields=("date", "close"))
+
+
+@pytest.mark.parametrize("records,match", [
+    ([{"date": "2026-09-14"}], "field"),
+    ([{"date": "2026-09-14", "close": float("nan")}], "finite"),
+    ([{"date": "2026-09-16", "close": 10}], "date range"),
+    ([{"date": "2026-09-14", "close": 10}, {"date": "2026-09-14", "close": 11}], "unique"),
+    ([{"date": "2026-09-14", "close": 10}, {"date": "2026-09-13", "close": 11}], "sorted"),
+])
+def test_klines_rejects_invalid_records(records, match):
+    payload = {
+        "ok": True, "source": "baostock", "adjust": "qfq",
+        "start": "2026-09-01", "end": "2026-09-15",
+        "fields": ["date", "close"], "symbol_count": 1, "count": len(records),
+        "results": [{"symbol": "sz.000001", "count": len(records), "records": records}],
+    }
+    client = CFBaoStockClient("https://example.test", "secret", opener=lambda *_a, **_k: Response(payload))
+    with pytest.raises(CFBaoStockError, match=match):
+        client.klines(["000001.SZ"], "2026-09-01", "2026-09-15", fields=("date", "close"))
+
+
+def test_klines_rejects_illegal_ohlc():
+    fields = ("date", "open", "high", "low", "close")
+    records = [{"date": "2026-09-14", "open": 10, "high": 9, "low": 8, "close": 10.5}]
+    payload = {"ok": True, "source": "baostock", "adjust": "qfq",
+               "start": "2026-09-01", "end": "2026-09-15", "fields": list(fields),
+               "symbol_count": 1, "count": 1,
+               "results": [{"symbol": "sz.000001", "count": 1, "records": records}]}
+    client = CFBaoStockClient("https://example.test", "secret", opener=lambda *_a, **_k: Response(payload))
+    with pytest.raises(CFBaoStockError, match="OHLC"):
+        client.klines(["000001.SZ"], "2026-09-01", "2026-09-15", fields=fields)
 
 
 def test_klines_enforces_gateway_batch_limit_before_network():

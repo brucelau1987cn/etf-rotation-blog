@@ -1,11 +1,8 @@
-from pathlib import Path
-import sys
 import json
 import sqlite3
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-import attach_low_chip_touchstone as module  # noqa: E402
-from attach_low_chip_touchstone import calculate_touchstone  # noqa: E402
+from scripts import attach_low_chip_touchstone as module
+from scripts.attach_low_chip_touchstone import calculate_touchstone
 
 
 def test_reference_vector_confirms_trough_only_on_rise_confirmation_bar():
@@ -92,7 +89,7 @@ def test_formal_bottom_remains_a_touchstone_hit_on_confirmation_bar():
 def test_cache_history_is_used_before_network(tmp_path, monkeypatch):
     db = tmp_path / 'bars.db'
     with sqlite3.connect(db) as conn:
-        from etf_bar_cache import SCHEMA
+        from scripts.etf_bar_cache import SCHEMA
         conn.executescript(SCHEMA)
         rows = [('XSHE', '000001', f'2025-01-{i:02d}', float(i), float(i), float(i), float(i), 1, 1, 'qfq', 'tencent', 1, 'now') for i in range(1, 10)]
         conn.executemany('INSERT INTO daily_bars VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', rows)
@@ -119,20 +116,21 @@ def test_tencent_history_is_clipped_sorted_deduped_and_validated(tmp_path, monke
     ]
 
 
-def test_baostock_history_receives_same_normalization(tmp_path, monkeypatch):
+def test_cf_baostock_history_receives_same_normalization(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
-    monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [
+    monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [
         {'date': '2025-01-09', 'close': 9},
         {'date': '2025-01-10', 'close': 10},
         {'date': '2025-01-08', 'close': float('inf')},
     ])
+    monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: (_ for _ in ()).throw(AssertionError('local BaoStock used')))
     result = module.load_history({'code': '000001', 'market': 'XSHE'}, '2025-01-09', db_path=tmp_path / 'missing.db')
     assert result == [{'trade_date': '2025-01-09', 'close': 9.0}]
 
 
 def test_tencent_exception_falls_back_to_baostock_and_normalizes(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: (_ for _ in ()).throw(OSError('HTTP 501')))
-    monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [
+    monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [
         {'date': '2025-01-11', 'close': 11},
         {'date': '2025-01-09', 'close': 9},
         {'date': '2025-01-08', 'close': float('nan')},
@@ -151,10 +149,41 @@ def test_cache_exception_continues_to_network(tmp_path, monkeypatch):
 
 def test_stock_api_is_bounded_last_resort(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
+    monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [])
     monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [])
     monkeypatch.setattr(module, 'fetch_stock_api_history', lambda *_: [{'date': '2025-01-09', 'close': 9}])
     result = module.load_history({'code': '000001', 'market': 'XSHE'}, '2025-01-09', db_path=tmp_path / 'missing.db')
     assert result == [{'trade_date': '2025-01-09', 'close': 9.0}]
+
+
+def test_cf_baostock_failure_falls_back_to_local_baostock(tmp_path, monkeypatch):
+    monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
+    monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: (_ for _ in ()).throw(RuntimeError('gateway down')))
+    monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [{'date': '2025-01-09', 'close': 9}])
+    monkeypatch.setattr(module, 'fetch_stock_api_history', lambda *_: (_ for _ in ()).throw(AssertionError('stock-api used')))
+
+    result = module.load_history({'code': '000001', 'market': 'XSHE'}, '2025-01-09', db_path=tmp_path / 'missing.db')
+
+    assert result == [{'trade_date': '2025-01-09', 'close': 9.0}]
+
+
+def test_cf_baostock_maps_gateway_rows_and_symbol():
+    calls = []
+
+    class Client:
+        def klines(self, symbols, start, end, *, fields):
+            calls.append((symbols, start, end, fields))
+            return {'000001.SZ': [
+                {'date': '2025-01-09', 'close': '9', 'tradestatus': '1'},
+                {'date': '2025-01-10', 'close': '10', 'tradestatus': '0'},
+            ]}
+
+    rows = module.fetch_cf_baostock_history(
+        {'code': '000001', 'market': 'XSHE'}, '2025-01-01', '2025-01-10', client=Client(),
+    )
+
+    assert calls == [(['000001.SZ'], '2025-01-01', '2025-01-10', ('date', 'close', 'tradestatus'))]
+    assert rows == [{'trade_date': '2025-01-09', 'close': 9.0}]
 
 
 def test_baostock_history_logs_in_queries_and_logs_out_on_success(monkeypatch):
