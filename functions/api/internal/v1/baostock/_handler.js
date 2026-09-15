@@ -143,10 +143,13 @@ export async function handleBaoStockInternal({ request, env }, dependencies = {}
       const fields = parseFields(url);
       if (!symbols || !fields) return fail('BAD_REQUEST', `1-${MAX_SYMBOLS} unique A-share symbols and supported OHLCV fields required`, 400);
       const fetchKlineImpl = dependencies.fetchKlineImpl || fetchKlineFromBaoStock;
-      const results = await Promise.all(symbols.map(async (symbol) => {
-        const records = normalizeKlineRecords(await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields }), fields, range);
-        return { symbol, count: records.length, records };
-      }));
+      const results = [];
+      for (const symbol of symbols) {
+        const records = normalizeKlineRecords(
+          await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields }), fields, range,
+        );
+        results.push({ symbol, count: records.length, records });
+      }
       const count = results.reduce((sum, result) => sum + result.count, 0);
       return reply({ ok: true, source: 'baostock', adjust: 'qfq', ...range, fields, symbol_count: results.length, count, results }, 200,
         'private, max-age=300, stale-while-revalidate=1800');

@@ -137,6 +137,22 @@ test('qfq fetches a small normalized OHLCV batch with explicit options', async (
   assert.match(response.headers.get('cache-control'), /^private, max-age=300/);
 });
 
+test('qfq opens BaoStock sessions sequentially within a batch', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const response = await handleBaoStockInternal(context('/api/internal/v1/baostock/qfq?symbols=600000,000001.SZ&start=2026-09-01&end=2026-09-03&fields=date,close'), {
+    fetchKlineImpl: async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return [{ date: '2026-09-01', close: '10.5' }];
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(maxActive, 1);
+});
+
 test('qfq rejects malformed upstream records with an uncached 502', async (t) => {
   const base = { date: '2026-09-01', open: '10', high: '11', low: '9', close: '10.5', tradestatus: '1' };
   const cases = {
