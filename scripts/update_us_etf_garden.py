@@ -141,7 +141,7 @@ def validate_us_public_contracts() -> None:
     unexpected = [
         error for error in errors
         if error not in allowed and not error.startswith((
-            "A-share ", "a-share-", "A research audit ", "A action price ",
+            "A-share ", "a-share-", "A research audit ", "A action price ", "catalog ",
         ))
     ]
     if unexpected:

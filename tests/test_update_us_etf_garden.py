@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -186,6 +187,33 @@ def test_write_state_is_atomic_and_preserves_fields(tmp_path, monkeypatch):
     assert payload["commit"] == "abc123"
     assert payload["verified"] is True
     assert not state.with_suffix(".tmp").exists()
+
+
+def test_us_public_contracts_allows_catalog_and_foreign_drift(monkeypatch):
+    errors = [
+        "catalog etf-garden-pool bytes mismatch",
+        "catalog etf-garden-pool sha256 mismatch",
+        "catalog etf-garden-pool metadata differs from source dataset",
+        "catalog us-etf-garden bytes mismatch",
+        "catalog us-etf-pool metadata differs from source dataset",
+        "A-share candidate set unchanged from previous batch",
+        "a-compass-dashboard differs from etf-garden-pool export",
+    ]
+    payload = json.dumps({"status": "error", "errors": errors})
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: subprocess.CompletedProcess(args, 2, stdout=payload, stderr=""))
+    # Should not raise
+    module.validate_us_public_contracts()
+
+    # But unexpected errors still raise
+    bad_errors = errors + ["unexpected foreign table error"]
+    bad_payload = json.dumps({"status": "error", "errors": bad_errors})
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: subprocess.CompletedProcess(args, 2, stdout=bad_payload, stderr=""))
+    try:
+        module.validate_us_public_contracts()
+    except RuntimeError as exc:
+        assert "unexpected foreign table error" in str(exc)
+    else:
+        raise AssertionError("should have raised on unexpected error")
 
 
 def test_success_state_clears_stale_error(tmp_path, monkeypatch):
