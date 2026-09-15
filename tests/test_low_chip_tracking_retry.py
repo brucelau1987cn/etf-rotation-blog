@@ -438,3 +438,142 @@ def test_tracking_main_skips_tencent_for_completed_21_bar_records(tmp_path, monk
     result = json.loads(data_path.read_text(encoding="utf-8"))
     assert len(result["stocks"]["600000.SH"]["daily"]) == 21
     assert result["stocks"]["600000.SH"]["tracking_complete"] is True
+
+
+def _baostock_payload(rows):
+    return json.dumps({"ok": True, "rows": rows, "error": ""})
+
+
+def test_baostock_daily_maps_rows_and_change_pct(monkeypatch):
+    """BaoStock 备用源：字段映射、停牌行跳过、区间外行只用于计算涨跌幅。"""
+    module = load_module()
+    rows = [
+        {"date": "2026-09-09", "close": "10.00", "tradestatus": "1"},
+        {"date": "2026-09-10", "close": "10.50", "tradestatus": "1"},
+        {"date": "2026-09-11", "close": "10.60", "tradestatus": "0"},
+        {"date": "2026-09-14", "close": "10.92", "tradestatus": "1"},
+        {"date": "2026-09-15", "close": "", "tradestatus": "1"},
+    ]
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["payload"] = json.loads(kwargs["input"])
+
+        class Proc:
+            returncode = 0
+            stdout = _baostock_payload(rows)
+            stderr = ""
+
+        return Proc()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    bars = module.baostock_daily("000858.SZ", "2026-09-10", "2026-09-15")
+
+    assert captured["payload"]["code"] == "sz.000858"
+    assert captured["payload"]["end"] == "2026-09-15"
+    assert captured["payload"]["start"] < "2026-09-10"
+    # 停牌 09-11 与空收盘 09-15 被跳过；09-10 的涨跌幅仍用区间外 09-09 基准
+    assert [bar["date"] for bar in bars] == ["2026-09-10", "2026-09-14"]
+    assert bars[0]["close"] == 10.5 and bars[0]["change_pct"] == 5.0
+    assert bars[1]["change_pct"] == 4.0
+
+
+def test_baostock_daily_raises_when_runner_reports_failure(monkeypatch):
+    module = load_module()
+
+    def fake_run(*_a, **_kw):
+        class Proc:
+            returncode = 0
+            stdout = json.dumps({"ok": False, "rows": [], "error": "login: 网络错误"})
+            stderr = ""
+
+        return Proc()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="baostock unavailable"):
+        module.baostock_daily("000858.SZ", "2026-09-10", "2026-09-15")
+
+
+def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypatch):
+    """Regression 2026-09-15：腾讯 fqkline 被网关 501 拦截时改走 BaoStock，"
+    不能让当日行情整段缺失。"""
+    module = load_module()
+    history = tmp_path / "low-chip-history"
+    history.mkdir()
+    (history / "2026-01-02.json").write_text(json.dumps({
+        "enrichments": {"000012.SZ": {"quality_shareholder": True, "quality_shareholder_names": [], "institutional_shareholder": True, "institutional_shareholder_names": []}},
+        "periods": {},
+    }))
+    monkeypatch.setattr(module, "HISTORY_DIR", history)
+    monkeypatch.setattr(module, "DATA", tmp_path / "tracking.json")
+    monkeypatch.setattr(module, "load_history_dates", lambda: {"000012.SZ": ["2026-01-02"]})
+    module.DATA.write_text(json.dumps({
+        "schema_version": "low-chip-tracking-v1", "generated_at": "2026-01-02",
+        "stocks": {"000012.SZ": {"name": "万科A", "first_seen": "2026-01-02", "last_seen": "2026-01-02",
+                                 "industry": "地产", "daily": [
+                                     {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0, "profit_ratio": 0.5},
+                                 ]}},
+    }))
+
+    def tencent_blocked(*_a, **_kw):
+        raise RuntimeError("Tencent fqkline unavailable for 000012.SZ after 4 attempts: HTTP Error 501: Not Implemented")
+
+    calls = {"baostock": 0}
+
+    def fallback(*_a, **_kw):
+        calls["baostock"] += 1
+        return [
+            {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0},
+            {"date": "2026-01-05", "close": 10.4, "change_pct": 4.0},
+        ]
+
+    monkeypatch.setattr(module, "tencent_daily", tencent_blocked)
+    monkeypatch.setattr(module, "baostock_daily", fallback)
+    monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
+
+    assert module.main() == 0
+    assert calls["baostock"] == 1
+    daily = json.loads(module.DATA.read_text(encoding="utf-8"))["stocks"]["000012.SZ"]["daily"]
+    assert [row["date"] for row in daily] == ["2026-01-02", "2026-01-05"]
+    assert daily[1]["close"] == 10.4
+
+
+def test_tencent_daily_fails_fast_on_gateway_rejection():
+    """501/403 是网关/WAF 拒绝，不是瞬时故障：必须立刻失败并交给备用源，
+    不能按 1s/2s/5s 空转三轮（否则 200+ 只标的的追踪步骤必然超时）。"""
+    module = load_module()
+    calls = []
+    sleeps = []
+
+    def opener(request, **_kwargs):
+        calls.append(request.full_url)
+        raise urllib.error.HTTPError(request.full_url, 501, "Not Implemented", {}, None)
+
+    with pytest.raises(RuntimeError, match="501"):
+        module.tencent_daily(
+            "000012.SZ", "2026-08-19", "2026-08-20",
+            opener=opener, sleeper=sleeps.append,
+        )
+    assert len(calls) == 1
+    assert sleeps == []
+
+
+def test_tencent_daily_still_retries_transient_transport_error():
+    """对照：真正的瞬时传输错误仍然要按退避重试。"""
+    module = load_module()
+    calls = []
+    sleeps = []
+
+    def opener(request, **_kwargs):
+        calls.append(request.full_url)
+        raise TimeoutError("read timed out")
+
+    with pytest.raises(RuntimeError):
+        module.tencent_daily(
+            "000012.SZ", "2026-08-19", "2026-08-20",
+            opener=opener, sleeper=sleeps.append,
+        )
+    assert len(calls) == 4
+    assert sleeps == [1.0, 2.0, 5.0]

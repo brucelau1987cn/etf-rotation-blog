@@ -192,6 +192,10 @@ def tencent_daily(
             )
         except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, http.client.HTTPException, OSError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
+            # 网关/WAF 直接拒绝（非瞬时故障，重试无意义且每次 8s）：立即让出给
+            # BaoStock 备用源，避免 200+ 只标的逐个空转把整条追踪步骤拖到超时。
+            if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403, 405, 501):
+                break
         if attempt < len(retry_delays):
             sleeper(retry_delays[attempt])
     if payload is None:
@@ -222,6 +226,78 @@ def tencent_daily(
         if prev_close:
             chg = round((close_f - prev_close) / prev_close * 100, 2)
         bars.append({"date": date, "close": close_f, "change_pct": chg})
+        prev_close = close_f
+    return bars
+
+
+BAOSTOCK_PY = "/usr/bin/python3"
+_BAOSTOCK_QUERY = r'''
+import json, sys
+import baostock as bs
+payload = json.loads(sys.stdin.read())
+out = {"ok": False, "rows": [], "error": ""}
+login = bs.login()
+if login.error_code != "0":
+    out["error"] = f"login: {login.error_msg}"
+else:
+    try:
+        rs = bs.query_history_k_data_plus(
+            payload["code"], "date,close,tradestatus",
+            start_date=payload["start"], end_date=payload["end"],
+            frequency="d", adjustflag="2",
+        )
+        if rs.error_code != "0":
+            out["error"] = f"query: {rs.error_msg}"
+        else:
+            fields = list(rs.fields)
+            while rs.next():
+                out["rows"].append(dict(zip(fields, rs.get_row_data())))
+            out["ok"] = True
+    except Exception as exc:
+        out["error"] = f"{type(exc).__name__}: {exc}"
+    finally:
+        bs.logout()
+print(json.dumps(out))
+'''
+
+
+def baostock_daily(symbol: str, start: str, end: str) -> list[dict]:
+    """BaoStock 前复权日K（腾讯 fqkline 被网关 WAF 拦截时的备用源）。
+
+    与 tencent_daily 返回同一结构（date/close/change_pct）。前复权基准同为最新
+    交易日，窗口内收盘价与腾讯口径一致。BaoStock 只装在系统解释器里，故通过
+    子进程调用（与 FTShare SDK 同一模式），任何解释器下都能用。
+    """
+    code = symbol.split(".")[0]
+    market = "sh" if symbol.endswith(".SH") else "sz"
+    lookback = (datetime.date.fromisoformat(start) - datetime.timedelta(days=30)).isoformat()
+    proc = subprocess.run(
+        [BAOSTOCK_PY, "-c", _BAOSTOCK_QUERY],
+        input=json.dumps({"code": f"{market}.{code}", "start": lookback, "end": end}),
+        capture_output=True, text=True, check=False, timeout=120,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"baostock runner failed ({proc.returncode}): {(proc.stderr or '')[:200]}")
+    try:
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+    except (IndexError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"baostock output unparseable: {exc}") from exc
+    if not payload.get("ok"):
+        raise RuntimeError(f"baostock unavailable: {payload.get('error') or 'unknown'}")
+    bars = []
+    prev_close = None
+    for row in payload.get("rows") or []:
+        date = str(row.get("date") or "")
+        close = row.get("close")
+        if not date or str(row.get("tradestatus") or "") != "1":
+            continue
+        try:
+            close_f = float(close)
+        except (TypeError, ValueError):
+            continue
+        if not start or date >= start:
+            chg = round((close_f - prev_close) / prev_close * 100, 2) if prev_close else None
+            bars.append({"date": date, "close": close_f, "change_pct": chg})
         prev_close = close_f
     return bars
 
@@ -425,8 +501,18 @@ def main() -> int:
         try:
             bars = tencent_daily(symbol, rec["first_seen"], today)
         except RuntimeError as exc:
-            print(f"  {symbol}: tencent daily unavailable ({exc}), preserving {len(rec.get('daily', []))} existing rows", flush=True)
-            bars = []
+            print(f"  {symbol}: tencent daily unavailable ({exc}), trying baostock fallback", flush=True)
+            try:
+                bars = baostock_daily(symbol, rec["first_seen"], today)
+                print(f"  {symbol}: baostock fallback bars={len(bars)}", flush=True)
+            except Exception as fallback_exc:  # noqa: BLE001
+                print(
+                    f"  {symbol}: baostock fallback unavailable "
+                    f"({type(fallback_exc).__name__}: {fallback_exc}), "
+                    f"preserving {len(rec.get('daily', []))} existing rows",
+                    flush=True,
+                )
+                bars = []
         time.sleep(0.2)
         target_bars = bars[:MAX_STORED_BARS]
         if not target_bars:
