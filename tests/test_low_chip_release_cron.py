@@ -348,6 +348,20 @@ def test_dist_and_candidate_identity_are_rechecked_before_release():
     assert "if dirty() - ALLOWED_DIRTY" in source
 
 
+def test_skip_build_requires_target_date_before_enrichment():
+    source = SCRIPT.read_text(encoding='utf-8')
+    gate = source.index("LOW_CHIP_SKIP_BUILD requires DATA on")
+    fetch = source.index("run([sys.executable, 'scripts/fetch_low_chip_enrichments.py']")
+    assert gate < fetch
+
+
+def test_large_pool_timeouts_cover_verified_baostock_runtime():
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2400)" in source
+    assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 2400)" in source
+    assert "run([sys.executable, 'scripts/update_low_chip_tracking.py'], 2400)" in source
+
+
 def test_hlp_and_touchstone_use_same_interpreter_and_touchstone_follows_hlp():
     source = SCRIPT.read_text(encoding='utf-8')
     repo_script = Path('/root/projects/etf-rotation-blog/scripts/attach_low_chip_touchstone.py')

@@ -19,6 +19,24 @@ enrich = load_module("enrich_low_chip_stocks", ROOT / "scripts/enrich_low_chip_s
 fetch = load_module("fetch_low_chip_enrichments", ROOT / "scripts/fetch_low_chip_enrichments.py")
 
 
+unlock = load_module("query_low_chip_unlocks", ROOT / "scripts/query_low_chip_unlocks.py")
+
+
+def test_unlock_query_uses_raw_non_bj_intersection_during_skip_build():
+    payload = {
+        "intersection_before_filters": ["600001.SH", "000002.SZ", "920001.BJ"],
+        "intersection": ["600001.SH"],
+    }
+    assert unlock.unlock_query_codes(payload) == ["600001.SH", "000002.SZ"]
+    assert unlock.unlock_query_codes({
+        "intersection_before_filters": [" 600001.SH ", "600001.SH", None, "", "920001.BJ"],
+    }) == ["600001.SH"]
+
+
+def test_unlock_query_falls_back_to_intersection_for_legacy_payload():
+    assert unlock.unlock_query_codes({"intersection": ["600001.SH"]}) == ["600001.SH"]
+
+
 def test_shareholders_from_row_selects_latest_shareholder_period_independent_of_key_order():
     old = "全国社保基金一一八组合, 旧基金"
     new = "乙保险股份有限公司, 香港中央结算有限公司"
@@ -107,6 +125,22 @@ def test_select_latest_top10_report_row_uses_latest_explicit_period():
         "股票代码": "603262.SH",
         "前十大流通股东名称(报告期)[20260331]": "最新股东甲, 最新股东乙",
     }
+
+
+def test_fetch_uses_raw_non_bj_intersection_for_all_enrichment_queries():
+    payload = {
+        "intersection_before_filters": ["600001.SH", "000002.SZ", "920001.BJ"],
+        # 模拟已发布快照：intersection 已被后置财务/技术门禁缩窄。
+        "intersection": ["600001.SH"],
+    }
+    assert fetch.enrichment_codes(payload) == ["600001.SH", "000002.SZ"]
+    assert fetch.enrichment_codes({
+        "intersection_before_filters": [" 600001.SH ", "600001.SH", None, "", "920001.BJ"],
+    }) == ["600001.SH"]
+
+
+def test_fetch_falls_back_to_intersection_for_legacy_payload():
+    assert fetch.enrichment_codes({"intersection": ["600001.SH"]}) == ["600001.SH"]
 
 
 def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed():

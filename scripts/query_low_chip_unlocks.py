@@ -50,6 +50,26 @@ def fetch_unlocks(code: str) -> list[dict]:
     return (payload.get("result") or {}).get("data") or []
 
 
+def unlock_query_codes(payload: dict) -> list[str]:
+    """Return the full non-BJ pool that enrichment can restore.
+
+    Skip-build starts from an already-published payload whose ``intersection``
+    may be narrowed by later gates. Unlock screening must cover the raw pool,
+    otherwise a previously filtered stock can re-enter without a risk check.
+    """
+    raw = payload.get("intersection_before_filters")
+    candidates = raw if isinstance(raw, list) else (payload.get("intersection") or [])
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in candidates:
+        symbol = str(value or "").strip()
+        if not symbol or symbol.endswith(".BJ") or symbol in seen:
+            continue
+        seen.add(symbol)
+        result.append(symbol)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--window-days", type=int, default=92, help="unlock window in days (default 92 = ~3 months)")
@@ -57,7 +77,7 @@ def main() -> int:
     args = parser.parse_args()
 
     payload = json.loads(DATA.read_text(encoding="utf-8"))
-    codes = list(payload.get("intersection") or [])
+    codes = unlock_query_codes(payload)
     today = date.today()
     horizon = today + timedelta(days=args.window_days)
 

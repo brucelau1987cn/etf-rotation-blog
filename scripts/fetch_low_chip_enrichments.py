@@ -156,9 +156,29 @@ def select_latest_top10_report_row(code: str, rows: list[dict]) -> dict | None:
     return {"股票代码": code, key: value}
 
 
+def enrichment_codes(payload: dict) -> list[str]:
+    """Return the complete non-BJ set that enrich_low_chip_stocks will rebuild.
+
+    A published payload's ``intersection`` may already be narrowed by downstream
+    filters. Querying that subset leaves missing profile rows when enrichment is
+    rebuilt from ``intersection_before_filters`` during a skip-build recovery.
+    """
+    raw = payload.get("intersection_before_filters")
+    candidates = raw if isinstance(raw, list) else (payload.get("intersection") or [])
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in candidates:
+        code = str(value or "").strip()
+        if not code or code.endswith(".BJ") or code in seen:
+            continue
+        seen.add(code)
+        result.append(code)
+    return result
+
+
 def main() -> int:
     payload = json.loads(DATA.read_text(encoding="utf-8"))
-    codes = list(payload.get("intersection") or [])
+    codes = enrichment_codes(payload)
     bare_codes = [c.split(".")[0] for c in codes]
     print(f"intersection: {codes}", flush=True)
 
