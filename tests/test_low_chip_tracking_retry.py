@@ -164,6 +164,32 @@ def test_tencent_daily_retries_payload_with_no_bar_in_requested_window():
     assert sleeps == [1.0]
 
 
+class RawByteResponse:
+    def __init__(self, raw: bytes):
+        self.raw = raw
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def read(self):
+        return self.raw
+
+
+def test_tencent_daily_handles_var_prefix():
+    module = load_module()
+    raw = b'kline_dayqfq=' + json.dumps(valid_payload()).encode()
+    bars = module.tencent_daily(
+        "000012.SZ",
+        "2026-08-19",
+        "2026-08-20",
+        opener=lambda *_args, **_kwargs: RawByteResponse(raw),
+    )
+    assert [bar["date"] for bar in bars] == ["2026-08-19", "2026-08-20"]
+
+
 def test_tracking_tests_never_hit_live_iwencai(tmp_path, monkeypatch):
     """守卫：main() 的所有外部数据源必须可 mock，单测不得发真实网络请求。
 

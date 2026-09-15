@@ -31,6 +31,7 @@ import http.client
 import json
 import math
 import os
+import random
 import ssl
 import subprocess
 import sys
@@ -150,21 +151,25 @@ def tencent_daily(
     """
     code = symbol.split(".")[0]
     ex = "sh" if symbol.endswith(".SH") else "sz"
-    # Empty end is required for latest-bar inclusion; count caps payload size.
-    # 640 keeps full history since first_seen for any reasonable tracking window.
-    url = (
-        f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
-        f"param={ex}{code},day,{start},,640,qfq"
-    )
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     open_request = opener or urllib.request.urlopen
     retry_delays = (1.0, 2.0, 5.0)
     last_error = "unknown response"
     payload = None
     for attempt in range(len(retry_delays) + 1):
         try:
+            # Empty end is required for latest-bar inclusion; count caps payload size.
+            # 640 keeps full history since first_seen for any reasonable tracking window.
+            r_nonce = f"{random.random():.6f}"
+            url = (
+                f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
+                f"r={r_nonce}&param={ex}{code},day,{start},,640,qfq"
+            )
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with open_request(req, timeout=20) as response:
-                decoded = json.loads(response.read())
+                raw_bytes = response.read()
+                if b"=" in raw_bytes and raw_bytes.strip().startswith((b"v_", b"kline_")):
+                    raw_bytes = raw_bytes.split(b"=", 1)[1]
+                decoded = json.loads(raw_bytes)
             business_code = decoded.get("code") if isinstance(decoded, dict) else None
             message = decoded.get("msg") if isinstance(decoded, dict) else "invalid JSON root"
             raw_data = decoded.get("data") if isinstance(decoded, dict) else None
@@ -417,7 +422,12 @@ def main() -> int:
             rec["daily"] = sorted(rec["daily"], key=lambda x: x["date"])[:MAX_STORED_BARS]
             rec["tracking_complete"] = True
             continue
-        bars = tencent_daily(symbol, rec["first_seen"], today)
+        try:
+            bars = tencent_daily(symbol, rec["first_seen"], today)
+        except RuntimeError as exc:
+            print(f"  {symbol}: tencent daily unavailable ({exc}), preserving {len(rec.get('daily', []))} existing rows", flush=True)
+            bars = []
+        time.sleep(0.2)
         target_bars = bars[:MAX_STORED_BARS]
         if not target_bars:
             # 上游无有效数据，保留已有行，下次重试
