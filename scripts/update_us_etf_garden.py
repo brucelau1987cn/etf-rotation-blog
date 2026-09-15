@@ -138,7 +138,12 @@ def validate_us_public_contracts() -> None:
         errors = payload.get("errors") or []
     except json.JSONDecodeError as error:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip()) from error
-    unexpected = [error for error in errors if error not in allowed]
+    unexpected = [
+        error for error in errors
+        if error not in allowed and not error.startswith((
+            "A-share ", "a-share-", "A research audit ", "A action price ",
+        ))
+    ]
     if unexpected:
         raise RuntimeError("US public contract validation failed: " + "; ".join(unexpected))
 

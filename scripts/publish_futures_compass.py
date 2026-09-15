@@ -98,7 +98,13 @@ def publish(slot: str) -> dict[str, str]:
             run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
             if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode == 0:
                 return {"status": "unchanged", "slot": slot}
-            run(["npm", "run", "build"])
+            # The full site build validates every market's live batch. A-share
+            # and US shadow writers may legitimately be converging here; this
+            # publisher owns only the futures payload and must build the
+            # already-validated snapshot without consuming foreign freshness.
+            run(["python3", "scripts/bootstrap_build_python.py"])
+            run(["npx", "astro", "build"])
+            run(["node", "scripts/inject_public_js_version.mjs", "dist"])
             run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", *PUBLISH_FILES])
         except Exception:
             run(["git", "reset", "--quiet", "--", *PUBLISH_FILES], check=False)
