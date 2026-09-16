@@ -629,7 +629,11 @@ def sync_candidate_selection_audit(reco: dict[str, Any], headwind_level: int) ->
     audit = reco.get("candidate_selection")
     if not isinstance(audit, dict):
         return
-    raw_pre_macro_codes = audit.get("selected_codes")
+    raw_pre_macro_codes = (
+        audit["pre_macro_selected_codes"]
+        if "pre_macro_selected_codes" in audit
+        else audit.get("selected_codes")
+    )
     pre_macro_codes = [str(code) for code in raw_pre_macro_codes] if isinstance(raw_pre_macro_codes, list) else []
     raw_plants = reco.get("plant")
     plants: list[Any] = raw_plants if isinstance(raw_plants, list) else []

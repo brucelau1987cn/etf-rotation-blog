@@ -109,7 +109,8 @@ def generated_action(row: dict[str, Any]) -> str:
 
 
 def make_candidate(row: dict[str, Any], previous: dict[str, Any] | None, evaluation_date: str, score: float, rank: int) -> dict[str, Any]:
-    proven_incumbent = bool(previous and previous.get("last_qualified_date"))
+    candidate_since = str(previous.get("candidate_since") or "") if previous else ""
+    proven_incumbent = bool(previous and previous.get("last_qualified_date") and candidate_since < evaluation_date)
     previous_item = previous or {}
     action = generated_action(row)
     trigger = action
@@ -166,7 +167,8 @@ def select_candidates(
         if not isinstance(row, dict) or not row.get("code") or str(row.get("code")) in excluded or not qualifies(row):
             continue
         previous = previous_map.get(str(row["code"]))
-        incumbent = bool(previous and previous.get("last_qualified_date"))
+        candidate_since = str(previous.get("candidate_since") or "") if previous else ""
+        incumbent = bool(previous and previous.get("last_qualified_date") and candidate_since < evaluation_date)
         eligible.append((selection_score(row, incumbent), row))
     eligible.sort(key=lambda item: (-item[0], int(item[1].get("momentum_rank") or 999), str(item[1].get("code"))))
 

@@ -388,6 +388,32 @@ def test_unchanged_candidate_set_emits_audit_warning():
     assert any("unchanged" in warning for warning in warnings)
 
 
+def test_strong_macro_headwind_requires_blocked_candidates_and_matching_audit():
+    item = {
+        "code": "510300", "status": "候场", "eligibility": "ok",
+        "selected_from_pool_date": "2026-07-28", "last_qualified_date": "2026-07-28",
+        "selection_score": 70.0, "selection_rank": 1,
+        "qualified_reason": ["趋势B"], "selection_rule_version": "a-candidate-v1",
+    }
+    garden = {
+        "date": "2026-07-28", "plant": [item],
+        "mid_macro": {"headwind_level": 3},
+        "candidate_selection": {
+            "evaluation_date": "2026-07-28", "selected_codes": ["510300"],
+            "rule_version": "a-candidate-v1", "macro_headwind_level": 2,
+        },
+    }
+    pool_rows = [{"code": "510300", "theme": "宽基"}]
+    pool_rows.extend({"code": f"X{i:05d}", "theme": "行业"} for i in range(90))
+    pool = {"evaluation_date": "2026-07-28", "summary": {"universe_count": 91}, "all_rows": pool_rows}
+    errors, warnings = [], []
+
+    validator.validate_candidate_selection(errors, warnings, garden, pool)
+
+    assert any("macro_headwind_level" in error for error in errors)
+    assert any("requires every plant candidate to be blocked" in error for error in errors)
+
+
 def test_invalid_stage_and_status_are_blocked(tmp_path):
     def mutate(payloads):
         payloads["garden-recommendations.json"]["stage"] = "自由文本阶段"

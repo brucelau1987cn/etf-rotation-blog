@@ -100,6 +100,24 @@ def test_continuity_bonus_keeps_age_but_refreshes_action_text():
     assert "等待回踩" in selected[0]["action"]
 
 
+def test_same_day_rebuild_does_not_add_continuity_bonus():
+    mod = load_module()
+    pool = {
+        "evaluation_date": "2026-07-28",
+        "all_rows": [row("NEW001", score=65, rank=4, strength="B", momentum=True)],
+    }
+    previous = [{
+        "code": "NEW001",
+        "candidate_since": "2026-07-28",
+        "last_qualified_date": "2026-07-28",
+    }]
+
+    selected, _ = mod.select_candidates(pool, previous, limit=1)
+
+    assert selected[0]["selection_score"] == mod.selection_score(pool["all_rows"][0], False)
+    assert selected[0]["candidate_since"] == "2026-07-28"
+
+
 def test_harvest_codes_are_excluded_before_candidate_ranking():
     mod = load_module()
     pool = {

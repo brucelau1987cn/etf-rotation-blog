@@ -197,6 +197,13 @@ def validate_candidate_selection(
         errors.append("garden-recommendations candidate selection exceeds defensive candidate limit 1")
     if selection.get("selected_codes") != selected_codes:
         errors.append("garden-recommendations candidate_selection selected_codes differs from plant order")
+    mid_macro = garden.get("mid_macro")
+    macro_level = mid_macro.get("headwind_level") if isinstance(mid_macro, dict) else None
+    if macro_level == 3:
+        if selection.get("macro_headwind_level") != 3:
+            errors.append("garden-recommendations candidate_selection macro_headwind_level differs from mid_macro")
+        if any(item.get("eligibility") != "blocked" for item in plants if isinstance(item, dict)):
+            errors.append("A-share strong macro headwind requires every plant candidate to be blocked")
     if selection.get("unchanged_from_previous") is True:
         warnings.append("A-share candidate set unchanged from previous batch; current-day qualification metadata verified")
     # Lightweight unit fixtures may only exercise metadata. Production pools
