@@ -49,6 +49,50 @@ def test_cf_failure_falls_back_to_local_baostock(monkeypatch):
     pd.testing.assert_frame_equal(result, expected)
 
 
+def test_cf_batch_fetches_up_to_five_symbols_once(monkeypatch):
+    rows = [
+        {'date': '2026-09-14', 'high': 11, 'low': 9, 'close': 10, 'turn': 1.2, 'tradestatus': '1'},
+    ]
+    client = CFClient(rows)
+    client.klines = lambda symbols, start, end, *, fields: (
+        client.calls.append((symbols, start, end, fields)) or {symbol: rows for symbol in symbols}
+    )
+
+    frames = module.fetch_cf_batch(
+        ['000001.SZ', '000002.SZ'], '2026-09-01', '2026-09-15', client=client,
+    )
+
+    assert set(frames) == {'000001.SZ', '000002.SZ'}
+    assert len(client.calls) == 1
+    assert client.calls[0][0] == ['000001.SZ', '000002.SZ']
+
+
+def test_build_batches_cf_requests_and_publishes_complete_coverage(tmp_path, monkeypatch):
+    codes = [f'{index:06d}.SZ' for index in range(1, 8)]
+    target = tmp_path / 'stocks.json'
+    target.write_text(json.dumps({
+        'data_as_of': '2026-09-15', 'intersection': codes,
+        'enrichments': {code: {} for code in codes},
+    }), encoding='utf-8')
+    rows = [
+        {'date': f'2026-01-{(index % 28) + 1:02d}', 'high': 11, 'low': 9,
+         'close': 10, 'turn': 1, 'tradestatus': '1'}
+        for index in range(100)
+    ]
+    calls = []
+
+    class Client:
+        def klines(self, symbols, start, end, *, fields):
+            calls.append(list(symbols))
+            return {symbol: rows for symbol in symbols}
+
+    monkeypatch.setattr(module, 'calc', lambda _frame: {'hlp': 1, 'chip_signals': []})
+    coverage = module.build_and_publish(target, client=Client())
+
+    assert calls == [codes[:5], codes[5:]]
+    assert coverage == {'requested': 7, 'computed': 7, 'failed': 0}
+
+
 def test_incomplete_hlp_coverage_fails_closed_and_preserves_file(tmp_path):
     original = {
         'data_as_of': '2026-09-15',

@@ -18,6 +18,7 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 LOOKBACK_DAYS = 240
+CF_BATCH_SIZE = 5
 
 def _frame(rows) -> pd.DataFrame:
     columns = ('date', 'high', 'low', 'close', 'turn', 'tradestatus')
@@ -29,11 +30,15 @@ def _frame(rows) -> pd.DataFrame:
     return frame[frame.tradestatus.astype(str) == '1'].dropna().reset_index(drop=True)
 
 
-def fetch_cf_baostock(symbol: str, start: str, end: str, *, client=None) -> pd.DataFrame:
+def fetch_cf_batch(symbols: list[str], start: str, end: str, *, client=None) -> dict[str, pd.DataFrame]:
     gateway = client or CFBaoStockClient.from_env()
     fields = ('date', 'high', 'low', 'close', 'turn', 'tradestatus')
-    rows = gateway.klines([symbol], start, end, fields=fields)[symbol]
-    return _frame(rows)
+    rows_by_symbol = gateway.klines(symbols, start, end, fields=fields)
+    return {symbol: _frame(rows_by_symbol.get(symbol) or []) for symbol in symbols}
+
+
+def fetch_cf_baostock(symbol: str, start: str, end: str, *, client=None) -> pd.DataFrame:
+    return fetch_cf_batch([symbol], start, end, client=client)[symbol]
 
 
 def fetch_local_baostock(symbol: str, start: str, end: str) -> pd.DataFrame:
@@ -77,20 +82,46 @@ def calc(df: pd.DataFrame) -> dict:
     if h100 < 5: signals.append('极品底')
     return {'hlp':round(h,4),'hlp15':round(h15,4),'hlp60':round(h60,4),'hlp100':round(h100,4),'chip_signals':signals}
 
-def build_and_publish(path=DATA, history_loader=fetch) -> dict:
+def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
     original=json.loads(Path(path).read_text(encoding='utf-8'))
     payload=json.loads(json.dumps(original))
     end=payload['data_as_of']; start=(pd.Timestamp(end)-timedelta(days=LOOKBACK_DAYS)).strftime('%Y-%m-%d')
-    codes=payload.get('intersection') or {}
+    codes=list(payload.get('intersection') or [])
     errors={}; computed=0
     enrichments=payload.setdefault('enrichments', {})
     for symbol in codes:
         enrichments.setdefault(symbol, {}).pop('hlp_metrics', None)
+
+    frames: dict[str, pd.DataFrame] = {}
+    if history_loader is not None:
+        for symbol in codes:
+            try:
+                frames[symbol] = history_loader(symbol, start, end)
+            except Exception as exc:
+                errors[symbol] = f'{type(exc).__name__}: {exc}'
+    else:
+        gateway = client or CFBaoStockClient.from_env()
+        for offset in range(0, len(codes), CF_BATCH_SIZE):
+            batch = codes[offset:offset + CF_BATCH_SIZE]
+            try:
+                frames.update(fetch_cf_batch(batch, start, end, client=gateway))
+            except Exception:
+                # Isolate a transient/bad symbol so one five-symbol request does
+                # not discard the rest of the batch.
+                for symbol in batch:
+                    try:
+                        frames[symbol] = fetch_cf_baostock(symbol, start, end, client=gateway)
+                    except Exception as exc:
+                        errors[symbol] = f'{type(exc).__name__}: {exc}'
+
     for symbol in codes:
         try:
-            df=history_loader(symbol,start,end)
+            df=frames.get(symbol, pd.DataFrame())
+            if df.empty and history_loader is None:
+                df=fetch_local_baostock(symbol,start,end)
             if len(df)<100: raise RuntimeError(f'only {len(df)} bars')
             enrichments[symbol]['hlp_metrics']=calc(df); computed+=1
+            errors.pop(symbol, None)
         except Exception as exc: errors[symbol]=f'{type(exc).__name__}: {exc}'
     coverage={'requested':len(codes),'computed':computed,'failed':len(errors)}
     payload['hlp_contract']={'formula':'WINNER(C)*100; HLP15=MA(HLP,15); HLP60=MA(HLP,60); HLP100=MA(HLP,100)','source':'CF BaoStock前复权日K+换手率 → 本地BaoStock最终fallback，本地三角分布估算','window_days':LOOKBACK_DAYS,'errors':errors,'coverage':coverage}
