@@ -1,43 +1,745 @@
 {
   "version": 1,
-  "generated_at": "2026-09-15T19:10:54.986362-04:00",
+  "generated_at": "2026-09-15T21:59:22.969025-04:00",
   "timezone": "America/New_York",
-  "status": "empty",
+  "status": "ok",
   "model_version": "US selector shadow v1.2",
   "price_source_policy": "Yahoo remains production price source; selector is research-only",
   "queries": [
     {
       "query": "美股 ETF 近5日涨幅前20",
-      "status": "degraded",
+      "status": "ok",
       "raw_count": 20,
-      "us_count": 0,
-      "reason": "rows returned but no valid US-listed symbols parsed"
+      "us_count": 20
     },
     {
       "query": "美股 ETF 近20日涨幅前20",
-      "status": "degraded",
+      "status": "ok",
       "raw_count": 20,
-      "us_count": 0,
-      "reason": "rows returned but no valid US-listed symbols parsed"
+      "us_count": 20
     },
     {
       "query": "美股 行业ETF 成交额活跃 近5日",
-      "status": "degraded",
+      "status": "ok",
       "raw_count": 20,
-      "us_count": 0,
-      "reason": "rows returned but no valid US-listed symbols parsed"
+      "us_count": 20
     }
   ],
   "summary": {
-    "candidate_count": 0,
-    "formal_overlap": 0,
-    "new_candidates": 0,
-    "raw_us_symbols": 0,
+    "candidate_count": 46,
+    "formal_overlap": 13,
+    "new_candidates": 33,
+    "raw_us_symbols": 53,
     "leveraged_filtered": 0
   },
-  "candidates": [],
-  "new_candidates": [],
-  "formal_overlap": [],
+  "candidates": [
+    {
+      "symbol": "KEEX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 1
+    },
+    {
+      "symbol": "OSCX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 2
+    },
+    {
+      "symbol": "LNOK",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 3
+    },
+    {
+      "symbol": "SMZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 4
+    },
+    {
+      "symbol": "CORD",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 5
+    },
+    {
+      "symbol": "APLZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 6
+    },
+    {
+      "symbol": "AXTQ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 7
+    },
+    {
+      "symbol": "NBIZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 8
+    },
+    {
+      "symbol": "AAOZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 9
+    },
+    {
+      "symbol": "ORCZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 10
+    },
+    {
+      "symbol": "LITZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 11
+    },
+    {
+      "symbol": "CRWL",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 12
+    },
+    {
+      "symbol": "BWET",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 13
+    },
+    {
+      "symbol": "CRWC",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 14
+    },
+    {
+      "symbol": "NETG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 15
+    },
+    {
+      "symbol": "GMEU",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 16
+    },
+    {
+      "symbol": "OKTG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 17
+    },
+    {
+      "symbol": "SNDQ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 18
+    },
+    {
+      "symbol": "IREZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 19
+    },
+    {
+      "symbol": "RBLU",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 20
+    },
+    {
+      "symbol": "MRNX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 4
+    },
+    {
+      "symbol": "MRNY",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 5
+    },
+    {
+      "symbol": "PUR",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 7
+    },
+    {
+      "symbol": "BLSG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 8
+    },
+    {
+      "symbol": "CRMG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 10
+    },
+    {
+      "symbol": "MSTC",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 12
+    },
+    {
+      "symbol": "MSTU",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 14
+    },
+    {
+      "symbol": "MSTP",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 15
+    },
+    {
+      "symbol": "TEMT",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 16
+    },
+    {
+      "symbol": "CBRZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 17
+    },
+    {
+      "symbol": "SOLT",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 18
+    },
+    {
+      "symbol": "MSTX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 19
+    },
+    {
+      "symbol": "SLON",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 20
+    },
+    {
+      "symbol": "SPY",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 1
+    },
+    {
+      "symbol": "QQQ",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 2
+    },
+    {
+      "symbol": "IWM",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 4
+    },
+    {
+      "symbol": "SMH",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 7
+    },
+    {
+      "symbol": "IBIT",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 8
+    },
+    {
+      "symbol": "SOXX",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 11
+    },
+    {
+      "symbol": "TLT",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 12
+    }
+  ],
+  "new_candidates": [
+    {
+      "symbol": "KEEX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 1
+    },
+    {
+      "symbol": "OSCX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 2
+    },
+    {
+      "symbol": "LNOK",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 3
+    },
+    {
+      "symbol": "SMZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 4
+    },
+    {
+      "symbol": "CORD",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 5
+    },
+    {
+      "symbol": "APLZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 6
+    },
+    {
+      "symbol": "AXTQ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 7
+    },
+    {
+      "symbol": "NBIZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 8
+    },
+    {
+      "symbol": "AAOZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 9
+    },
+    {
+      "symbol": "ORCZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 10
+    },
+    {
+      "symbol": "LITZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 11
+    },
+    {
+      "symbol": "CRWL",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 12
+    },
+    {
+      "symbol": "BWET",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 13
+    },
+    {
+      "symbol": "CRWC",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 14
+    },
+    {
+      "symbol": "NETG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 15
+    },
+    {
+      "symbol": "GMEU",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 16
+    },
+    {
+      "symbol": "OKTG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 17
+    },
+    {
+      "symbol": "SNDQ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 18
+    },
+    {
+      "symbol": "IREZ",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 19
+    },
+    {
+      "symbol": "RBLU",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近5日涨幅前20",
+      "rank_no": 20
+    },
+    {
+      "symbol": "MRNX",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 4
+    },
+    {
+      "symbol": "MRNY",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 5
+    },
+    {
+      "symbol": "PUR",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 7
+    },
+    {
+      "symbol": "BLSG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 8
+    },
+    {
+      "symbol": "CRMG",
+      "name": null,
+      "in_formal_pool": false,
+      "likely_etf": true,
+      "leveraged_product": false,
+      "source_query": "美股 ETF 近20日涨幅前20",
+      "rank_no": 10
+    }
+  ],
+  "formal_overlap": [
+    {
+      "symbol": "SPY",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 1
+    },
+    {
+      "symbol": "QQQ",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 2
+    },
+    {
+      "symbol": "IWM",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 4
+    },
+    {
+      "symbol": "SMH",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 7
+    },
+    {
+      "symbol": "IBIT",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 8
+    },
+    {
+      "symbol": "SOXX",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 11
+    },
+    {
+      "symbol": "TLT",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 12
+    },
+    {
+      "symbol": "GLD",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 13
+    },
+    {
+      "symbol": "XLE",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 15
+    },
+    {
+      "symbol": "SGOV",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 17
+    },
+    {
+      "symbol": "XBI",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 18
+    },
+    {
+      "symbol": "XLF",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 19
+    },
+    {
+      "symbol": "DIA",
+      "name": null,
+      "in_formal_pool": true,
+      "likely_etf": false,
+      "leveraged_product": false,
+      "source_query": "美股 行业ETF 成交额活跃 近5日",
+      "rank_no": 20
+    }
+  ],
   "leveraged_noise": [],
   "disclaimer": "影子候选，不进入生产动作与仓位计算。仅保留美股上市代码，过滤A股QDII与2x/3x日内杠杆单股产品。"
 }
