@@ -211,7 +211,8 @@ def validate_candidate_selection(
     selector_inputs = ("signal_score", "support_gap", "strength_level", "checks")
     if pool_rows and all(all(key in row for key in selector_inputs) for row in pool_rows if isinstance(row, dict)):
         try:
-            rebuilt, rebuilt_audit = select_candidates(a_pool, plants, excluded_codes={
+            rebuild_limit = 2 if macro_level == 3 else 3
+            rebuilt, rebuilt_audit = select_candidates(a_pool, plants, limit=rebuild_limit, excluded_codes={
                 str(item.get("code")) for item in (garden.get("harvest") or [])
                 if isinstance(item, dict) and item.get("code")
             })
