@@ -29,6 +29,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from scripts.path_shadow_public_schema import project_public_payload, validate_public_payload
+try:
+    from scripts.cf_baostock_client import CFBaoStockClient
+except ImportError:  # pragma: no cover - direct script fallback
+    from cf_baostock_client import CFBaoStockClient
 
 DEFAULT_DB = ROOT / "data/local/etf-compass.db"
 DEFAULT_OUT = ROOT / "public/data/model-lab/a-share-path-shadow.json"
@@ -127,30 +131,56 @@ def load_frames(
     return frames, names
 
 
-def next_cn_sessions(after: date, count: int = HORIZON) -> list[pd.Timestamp]:
+def _calendar_from_cf(start: date, end: date) -> list[pd.Timestamp]:
+    rows = CFBaoStockClient.from_env().calendar(start.isoformat(), end.isoformat())
+    sessions: list[pd.Timestamp] = []
+    for row in rows:
+        if row.get("is_open"):
+            sessions.append(pd.Timestamp(date.fromisoformat(str(row["trade_date"]))))
+    return sessions
+
+
+def _calendar_from_local_baostock(start: date, end: date) -> list[pd.Timestamp]:
     try:
         import baostock as bs
     except ImportError as exc:
-        raise RuntimeError("baostock is required for the CN exchange calendar") from exc
-    end = after + timedelta(days=max(20, count * 5))
+        raise RuntimeError("baostock is required for the local CN exchange calendar fallback") from exc
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         login = bs.login()
         if login.error_code != "0":
             raise RuntimeError(f"baostock calendar login failed: {login.error_msg}")
         try:
-            result = bs.query_trade_dates(
-                start_date=(after + timedelta(days=1)).isoformat(),
-                end_date=end.isoformat(),
-            )
+            result = bs.query_trade_dates(start_date=start.isoformat(), end_date=end.isoformat())
             sessions: list[pd.Timestamp] = []
             while result.error_code == "0" and result.next():
                 row = result.get_row_data()
                 if len(row) > 1 and row[1] == "1":
                     sessions.append(pd.Timestamp(row[0]))
+            if result.error_code != "0":
+                raise RuntimeError(f"baostock calendar query failed: {result.error_msg}")
+            return sessions
         finally:
             bs.logout()
+
+
+def next_cn_sessions(after: date, count: int = HORIZON) -> list[pd.Timestamp]:
+    start = after + timedelta(days=1)
+    end = after + timedelta(days=max(20, count * 5))
+    errors: list[str] = []
+    sessions: list[pd.Timestamp] = []
+    if os.environ.get("CF_BAOSTOCK_BASE_URL") and os.environ.get("CF_BAOSTOCK_TOKEN"):
+        try:
+            sessions = _calendar_from_cf(start, end)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"CF calendar: {type(exc).__name__}: {exc}")
     if len(sessions) < count:
-        raise RuntimeError(f"exchange calendar returned {len(sessions)}/{count} future sessions")
+        try:
+            sessions = _calendar_from_local_baostock(start, end)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"local calendar: {type(exc).__name__}: {exc}")
+    if len(sessions) < count:
+        detail = "; ".join(errors) or "no calendar provider configured"
+        raise RuntimeError(f"exchange calendar returned {len(sessions)}/{count} future sessions ({detail})")
     return sessions[:count]
 
 

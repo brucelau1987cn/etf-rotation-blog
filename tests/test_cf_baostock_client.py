@@ -181,6 +181,44 @@ def test_klines_enforces_gateway_batch_limit_before_network():
         client.klines([f"{code:06d}.SZ" for code in range(6)], "2026-09-01", "2026-09-15")
 
 
+@pytest.mark.parametrize("status", [429, 500, 501, 502, 505, 599])
+def test_gateway_retries_transient_http_errors_then_succeeds(status):
+    attempts = []
+    sleeps = []
+
+    def opener(request, timeout):
+        attempts.append(request.full_url)
+        if len(attempts) < 3:
+            raise urllib.error.HTTPError(request.full_url, status, "transient", {}, None)
+        return Response({"ok": True, "source": "baostock", "records": [
+            {"date": "2026-09-15", "is_trading_day": True},
+        ]})
+
+    client = CFBaoStockClient(
+        "https://example.test", "secret", opener=opener,
+        retries=2, retry_delays=(0.1, 0.2), sleeper=sleeps.append,
+    )
+    assert client.is_trading_day("2026-09-15") is True
+    assert len(attempts) == 3
+    assert sleeps == [0.1, 0.2]
+
+
+def test_gateway_does_not_retry_authentication_errors():
+    attempts = []
+
+    def opener(request, timeout):
+        attempts.append(1)
+        raise urllib.error.HTTPError(request.full_url, 401, "unauthorized", {}, None)
+
+    client = CFBaoStockClient(
+        "https://example.test", "secret", opener=opener,
+        retries=2, sleeper=lambda _delay: pytest.fail("slept after auth error"),
+    )
+    with pytest.raises(CFBaoStockError, match="401"):
+        client.calendar("2026-09-15", "2026-09-15")
+    assert attempts == [1]
+
+
 def test_gateway_errors_are_sanitized_and_fail_closed():
     def opener(request, timeout):
         raise urllib.error.HTTPError(request.full_url, 503, "down", {}, None)

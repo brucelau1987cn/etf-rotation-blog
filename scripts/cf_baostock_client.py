@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -32,6 +33,9 @@ class CFBaoStockClient:
         *,
         timeout: float = 30,
         opener: Callable[..., Any] = urllib.request.urlopen,
+        retries: int = 2,
+        retry_delays: tuple[float, ...] = (0.5, 1.5),
+        sleeper: Callable[[float], Any] = time.sleep,
     ) -> None:
         if not base_url:
             raise CFBaoStockError("CF BaoStock base URL is required")
@@ -44,6 +48,9 @@ class CFBaoStockClient:
         self._token = token
         self.timeout = timeout
         self._opener = opener
+        self.retries = max(0, int(retries))
+        self.retry_delays = tuple(max(0.0, float(value)) for value in retry_delays)
+        self._sleeper = sleeper
 
     @classmethod
     def from_env(cls, **kwargs: Any) -> "CFBaoStockClient":
@@ -68,13 +75,22 @@ class CFBaoStockClient:
         if data is not None:
             headers["Content-Type"] = "application/json"
         request = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
-        try:
-            with self._opener(request, timeout=self.timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            raise CFBaoStockError(f"CF BaoStock HTTP {exc.code}") from exc
-        except (OSError, TimeoutError, urllib.error.URLError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise CFBaoStockError(f"CF BaoStock request failed: {type(exc).__name__}") from exc
+        payload: Any = None
+        for attempt in range(self.retries + 1):
+            try:
+                with self._opener(request, timeout=self.timeout) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                if not (exc.code == 429 or 500 <= exc.code < 600) or attempt >= self.retries:
+                    raise CFBaoStockError(f"CF BaoStock HTTP {exc.code}") from exc
+                delay = self.retry_delays[min(attempt, len(self.retry_delays) - 1)] if self.retry_delays else 0.0
+                self._sleeper(delay)
+            except (OSError, TimeoutError, urllib.error.URLError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                if attempt >= self.retries:
+                    raise CFBaoStockError(f"CF BaoStock request failed: {type(exc).__name__}") from exc
+                delay = self.retry_delays[min(attempt, len(self.retry_delays) - 1)] if self.retry_delays else 0.0
+                self._sleeper(delay)
         if not isinstance(payload, dict):
             raise CFBaoStockError("CF BaoStock response root must be an object")
         if payload.get("ok") is not True:

@@ -66,6 +66,41 @@ def seed_db(path: Path, symbols=("510001", "510002"), bars=100):
                 )
 
 
+def test_next_cn_sessions_prefers_cf_calendar(monkeypatch):
+    class Client:
+        def calendar(self, start, end):
+            assert start == "2026-09-16"
+            assert end == "2026-10-10"
+            return [
+                {"trade_date": "2026-09-16", "is_open": True},
+                {"trade_date": "2026-09-17", "is_open": True},
+                {"trade_date": "2026-09-18", "is_open": True},
+                {"trade_date": "2026-09-19", "is_open": False},
+                {"trade_date": "2026-09-20", "is_open": False},
+                {"trade_date": "2026-09-21", "is_open": True},
+                {"trade_date": "2026-09-22", "is_open": True},
+            ]
+
+    monkeypatch.setenv("CF_BAOSTOCK_BASE_URL", "https://example.test")
+    monkeypatch.setenv("CF_BAOSTOCK_TOKEN", "token")
+    monkeypatch.setattr(kronos.CFBaoStockClient, "from_env", lambda: Client())
+    monkeypatch.setattr(kronos, "_calendar_from_local_baostock", lambda *args: (_ for _ in ()).throw(AssertionError("local fallback used")))
+
+    sessions = kronos.next_cn_sessions(pd.Timestamp("2026-09-15").date())
+    assert [item.date().isoformat() for item in sessions] == [
+        "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-21", "2026-09-22",
+    ]
+
+
+def test_next_cn_sessions_falls_back_to_local_after_cf_error(monkeypatch):
+    monkeypatch.setenv("CF_BAOSTOCK_BASE_URL", "https://example.test")
+    monkeypatch.setenv("CF_BAOSTOCK_TOKEN", "token")
+    monkeypatch.setattr(kronos, "_calendar_from_cf", lambda *args: (_ for _ in ()).throw(RuntimeError("edge down")))
+    local = list(pd.bdate_range("2026-09-16", periods=5))
+    monkeypatch.setattr(kronos, "_calendar_from_local_baostock", lambda *args: local)
+    assert kronos.next_cn_sessions(pd.Timestamp("2026-09-15").date()) == local
+
+
 def test_generate_shadow_payload_and_reuse_cache(tmp_path):
     db = tmp_path / "bars.db"
     out = tmp_path / "shadow.json"
