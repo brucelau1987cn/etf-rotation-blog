@@ -1,6 +1,6 @@
 {
   "date": "2026-09-16",
-  "updated_at": "2026-09-16 09:19:24 CST",
+  "updated_at": "2026-09-16 10:13:45 CST",
   "applies_to": "2026-09-16",
   "data_as_of": "qfq日线基线为2026-09-15收盘（91只正式池全量）；隔夜窗口覆盖美股09-15交易日（北京时间09-16 04:00收盘）与09-16 04:00-08:30资讯窗口；盘前不将未开盘报价作为成交或资金事实。",
   "level_data_as_of": "2026-09-15",
@@ -40,19 +40,19 @@
       "code": "162411",
       "name": "华宝油气LOF",
       "priority": "高",
-      "trigger": "现价1.015，等待回踩0.993附近止跌确认；跌破0.982取消候场。",
-      "action": "现价1.015，等待回踩0.993附近止跌确认；跌破0.982取消候场；中观约束：停开新伏击。",
+      "trigger": "现价1.036，等待回踩1.011附近止跌确认；跌破0.994取消候场。",
+      "action": "现价1.036，等待回踩1.011附近止跌确认；跌破0.994取消候场；中观约束：停开新伏击。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "blocked",
       "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
-      "price": 1.015,
-      "support": 0.993,
-      "target": 1.04,
-      "stop": 0.982,
-      "action_level": 0.993,
-      "trigger_level": 0.993,
+      "price": 1.036,
+      "support": 1.011,
+      "target": 1.061,
+      "stop": 0.994,
+      "action_level": 1.011,
+      "trigger_level": 1.011,
       "action_level_label": "伏击位",
-      "distance_pct": -2.22,
+      "distance_pct": -2.47,
       "trend_level": "C",
       "risk_level": "低",
       "price_date": "2026-09-15",
@@ -61,17 +61,57 @@
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-09-16",
-      "selection_score": 74.68,
+      "selection_score": 75.0,
       "selection_rank": 1,
       "candidate_since": "2026-09-10",
       "last_qualified_date": "2026-09-16",
       "qualified_reason": [
         "趋势C",
-        "信号得分61.6",
+        "信号得分62.4",
         "动量排名1",
-        "距伏击位2.2%",
+        "距伏击位2.5%",
         "风险低",
         "动量通过"
+      ],
+      "selection_rule_version": "a-candidate-v1",
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
+    },
+    {
+      "status": "候场",
+      "code": "560710",
+      "name": "船舶ETF富国",
+      "priority": "中",
+      "trigger": "现价0.949，等待回踩0.928附近止跌确认；跌破0.903取消候场。",
+      "action": "现价0.949，等待回踩0.928附近止跌确认；跌破0.903取消候场；中观约束：停开新伏击。",
+      "signal_state": "当日正式池重选候场",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
+      "price": 0.949,
+      "support": 0.928,
+      "target": 0.983,
+      "stop": 0.903,
+      "action_level": 0.928,
+      "trigger_level": 0.928,
+      "action_level_label": "伏击位",
+      "distance_pct": -2.26,
+      "trend_level": "C",
+      "risk_level": "低",
+      "price_date": "2026-09-15",
+      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
+      "model_version": "A ETF Garden Levels v1",
+      "data_source": "tencent",
+      "level_status": "ready",
+      "selected_from_pool_date": "2026-09-16",
+      "selection_score": 56.97,
+      "selection_rank": 2,
+      "candidate_since": "2026-09-16",
+      "last_qualified_date": "2026-09-16",
+      "qualified_reason": [
+        "趋势C",
+        "信号得分53.5",
+        "动量排名2",
+        "距伏击位2.3%",
+        "风险低"
       ],
       "selection_rule_version": "a-candidate-v1",
       "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
@@ -343,7 +383,7 @@
     "breadth": "待2026-09-16 22:00后更新：尚未形成该窗口数据。"
   },
   "mid_macro": {
-    "generated_at": "2026-09-16 09:19:24 CST",
+    "generated_at": "2026-09-16 10:13:45 CST",
     "headwind_level": 3,
     "label": "强逆风",
     "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
@@ -356,14 +396,14 @@
         "label": "固收相对权益强弱",
         "state": "逆风",
         "score": 2.0,
-        "headline": "固收5日相对沪深300超额+2.21pp"
+        "headline": "固收5日相对沪深300超额+2.96pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "逆风",
-        "score": 1.75,
-        "headline": "海外映射ETF 5日偏弱-2.92%"
+        "score": 2.25,
+        "headline": "海外映射ETF 5日均值-3.17%"
       },
       {
         "key": "margin_financing",
@@ -382,20 +422,23 @@
     "rule_version": "a-candidate-v1",
     "evaluation_date": "2026-09-16",
     "evaluated_count": 91,
-    "eligible_count": 1,
-    "selected_count": 1,
+    "eligible_count": 2,
+    "selected_count": 2,
     "selected_codes": [
-      "162411"
+      "162411",
+      "560710"
     ],
     "previous_codes": [
-      "162411"
+      "162411",
+      "560710"
     ],
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
-      "162411"
+      "162411",
+      "560710"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 3
