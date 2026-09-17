@@ -1,0 +1,12 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+const report = rollingDailyReports['2026-09-16'];
+const title = `${report.title} | ${SITE_TITLE}`;
+---
+<!doctype html><html lang="zh-CN"><head><BaseHead title={title} description="2026年9月16日滚动信号收盘复盘：A股民爆光电3.5h/2.5h多方收盘¥116.81贴价确认；创新医疗10m空方收盘¥17.69微幅收复；外盘白银+1.38%、黄金+1.25%同步走强。" /></head><body><Header /><main id="main-content" class="rolling-insights-main"><RollingSubnav active="insights" /><RollingDailyInsightReport report={report} /></main><Footer /></body></html>
