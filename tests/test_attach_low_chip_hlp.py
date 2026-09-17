@@ -86,11 +86,185 @@ def test_build_batches_cf_requests_and_publishes_complete_coverage(tmp_path, mon
             calls.append(list(symbols))
             return {symbol: rows for symbol in symbols}
 
+    monkeypatch.setattr(module, 'fetch_ths_chip_profit_series', lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('THS unavailable')))
+    monkeypatch.setattr(module, 'fetch_local_batch', lambda *_args, **_kwargs: ({}, {}))
     monkeypatch.setattr(module, 'calc', lambda _frame: {'hlp': 1, 'chip_signals': []})
     coverage = module.build_and_publish(target, client=Client())
 
     assert calls == [codes[:5], codes[5:]]
     assert coverage == {'requested': 7, 'computed': 7, 'failed': 0}
+
+
+def test_ths_chip_list_builds_daily_profit_series(monkeypatch):
+    payload = {
+        'status_code': 0,
+        'data': {'list': {
+            '20260915': {
+                'summary': {'close_price': 10, 'average_cost': 9.5},
+                'curve_data': {'list': [
+                    {'price': 9, 'jeton': 3},
+                    {'price': 10, 'jeton': 2},
+                    {'price': 11, 'jeton': 5},
+                ]},
+            },
+            '20260916': {
+                'summary': {'close_price': 9, 'average_cost': 9.8},
+                'curve_data': {'list': [
+                    {'price': 9, 'jeton': 1},
+                    {'price': 10, 'jeton': 9},
+                ]},
+            },
+        }},
+    }
+
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *_): return False
+        def read(self): return json.dumps(payload).encode()
+
+    captured = {}
+    def opener(request, timeout=20):
+        captured['url'] = request.full_url
+        captured['timeout'] = timeout
+        return Response()
+
+    result = module.fetch_ths_chip_profit_series(
+        '600000.SH', '2026-01-01', '2026-09-16', opener=opener,
+    )
+
+    assert result == [
+        {'date': '2026-09-15', 'profit_ratio': 50.0, 'close': 10.0, 'average_cost': 9.5},
+        {'date': '2026-09-16', 'profit_ratio': 10.0, 'close': 9.0, 'average_cost': 9.8},
+    ]
+    assert 'stock_market=17' in captured['url']
+    assert captured['timeout'] == 20
+
+
+def test_hlp_metrics_can_be_calculated_from_official_ths_profit_series():
+    series = [
+        {'date': f'2026-01-{(index % 28) + 1:02d}', 'profit_ratio': float(index), 'close': 10, 'average_cost': 9}
+        for index in range(1, 101)
+    ]
+    result = module.calc_profit_series(series)
+    assert result['hlp'] == 100.0
+    assert result['hlp15'] == 93.0
+    assert result['hlp60'] == 70.5
+    assert result['hlp100'] == 50.5
+    assert result['average_cost'] == 9.0
+
+
+def test_ths_cache_accumulates_until_100_sessions(tmp_path):
+    cache_path = tmp_path / 'series.json'
+    cached = [
+        {'date': f'2025-{(index // 28) + 1:02d}-{(index % 28) + 1:02d}', 'profit_ratio': 2.0,
+         'close': 10.0, 'average_cost': 9.0}
+        for index in range(80)
+    ]
+    fresh = [
+        {'date': f'2026-09-{index + 1:02d}', 'profit_ratio': 3.0, 'close': 11.0, 'average_cost': 10.0}
+        for index in range(20)
+    ]
+    module.save_series_cache({'600000.SH': cached}, cache_path)
+    loaded = module.load_series_cache(cache_path)
+    merged = module.merge_profit_series(loaded['600000.SH'], fresh)
+    assert len(merged) == 100
+    assert module.calc_profit_series(merged)['hlp100'] == 2.2
+
+
+def test_stale_ths_series_enters_fallback(tmp_path, monkeypatch):
+    code = '600000.SH'
+    target = tmp_path / 'stocks.json'
+    target.write_text(json.dumps({'data_as_of': '2026-09-17', 'intersection': [code], 'enrichments': {code: {}}}))
+    series = [
+        {'date': f'2026-{(index // 28) + 1:02d}-{(index % 28) + 1:02d}', 'profit_ratio': 1.0,
+         'close': 10.0, 'average_cost': 9.0}
+        for index in range(100)
+    ]
+    series[-1]['date'] = '2026-09-16'
+    frame = pd.DataFrame([
+        {'date': f'2026-01-{(index % 28) + 1:02d}', 'high': 11, 'low': 9, 'close': 10, 'turn': 1, 'tradestatus': '1'}
+        for index in range(100)
+    ])
+    frame.attrs['source'] = 'local-baostock'
+    monkeypatch.setattr(module, 'SERIES_CACHE', tmp_path / 'cache.json')
+    monkeypatch.setattr(module, 'fetch_ths_chip_profit_series', lambda *_args, **_kwargs: series)
+    monkeypatch.setattr(module, 'fetch_local_batch', lambda *_args, **_kwargs: ({code: frame}, {}))
+    monkeypatch.setattr(module, 'calc', lambda df: {'hlp': 1, 'source': df.attrs['source'], 'chip_signals': []})
+    coverage = module.build_and_publish(target)
+    assert coverage['computed'] == 1
+    assert json.loads(target.read_text())['enrichments'][code]['hlp_metrics']['source'] == 'local-baostock'
+
+
+def test_empty_ths_fresh_with_full_stale_cache_enters_fallback(tmp_path, monkeypatch):
+    code = '600000.SH'
+    target = tmp_path / 'stocks.json'
+    target.write_text(json.dumps({'data_as_of': '2026-09-17', 'intersection': [code], 'enrichments': {code: {}}}))
+    cached = [
+        {'date': f'2025-{(index // 28) + 1:02d}-{(index % 28) + 1:02d}', 'profit_ratio': 1.0,
+         'close': 10.0, 'average_cost': 9.0}
+        for index in range(100)
+    ]
+    cached[-1]['date'] = '2026-09-16'
+    cache_path = tmp_path / 'cache.json'
+    module.save_series_cache({code: cached}, cache_path)
+    frame = pd.DataFrame([
+        {'date': f'2026-01-{(index % 28) + 1:02d}', 'high': 11, 'low': 9, 'close': 10, 'turn': 1, 'tradestatus': '1'}
+        for index in range(100)
+    ])
+    frame.attrs['source'] = 'local-baostock'
+    monkeypatch.setattr(module, 'SERIES_CACHE', cache_path)
+    monkeypatch.setattr(module, 'fetch_ths_chip_profit_series', lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(module, 'fetch_local_batch', lambda *_args, **_kwargs: ({code: frame}, {}))
+    monkeypatch.setattr(module, 'calc', lambda df: {'hlp': 1, 'source': df.attrs['source'], 'chip_signals': []})
+    coverage = module.build_and_publish(target)
+    assert coverage == {'requested': 1, 'computed': 1, 'failed': 0}
+    assert json.loads(target.read_text())['enrichments'][code]['hlp_metrics']['source'] == 'local-baostock'
+
+
+def test_local_partial_failure_preserves_success_and_cf_only_fetches_missing(monkeypatch):
+    codes = ['600000.SH', '000001.SZ']
+    good = pd.DataFrame([{'date': '2026-09-17'}])
+    good.attrs['source'] = 'local-baostock'
+    monkeypatch.setattr(module, 'fetch_local_batch', lambda *_args, **_kwargs: ({codes[0]: good}, {codes[1]: 'boom'}))
+    calls = []
+    class Client:
+        def klines(self, symbols, *_args, **_kwargs):
+            calls.append(list(symbols))
+            return {codes[1]: [{'date': '2026-09-17', 'high': 2, 'low': 1, 'close': 1.5, 'turn': 1, 'tradestatus': '1'}]}
+    frames, _errors = module._baostock_fallback(codes, '2026-01-01', '2026-09-17', client=Client())
+    assert set(frames) == set(codes)
+    assert calls == [[codes[1]]]
+    assert frames[codes[0]].attrs['source'] == 'local-baostock'
+    assert frames[codes[1]].attrs['source'] == 'cf-baostock'
+
+
+def test_build_prefers_ths_and_does_not_call_baostock(tmp_path, monkeypatch):
+    codes = ['600000.SH', '000001.SZ']
+    target = tmp_path / 'stocks.json'
+    target.write_text(json.dumps({
+        'data_as_of': '2026-09-16', 'intersection': codes,
+        'enrichments': {code: {} for code in codes},
+    }), encoding='utf-8')
+    series = [
+        {'date': f'2026-{(index // 28) + 1:02d}-{(index % 28) + 1:02d}', 'profit_ratio': 1.0,
+         'close': 10.0, 'average_cost': 9.0}
+        for index in range(100)
+    ]
+    series[-1]['date'] = '2026-09-16'
+    monkeypatch.setattr(module, 'SERIES_CACHE', tmp_path / 'series-cache.json')
+    assert not module.SERIES_CACHE.exists()
+    monkeypatch.setattr(module, 'fetch_ths_chip_profit_series', lambda symbol, *_args, **_kwargs: list(series))
+    monkeypatch.setattr(module, 'fetch_local_batch', lambda *_args, **_kwargs: pytest.fail('local BaoStock called'))
+    monkeypatch.setattr(module, 'fetch_cf_batch', lambda *_args, **_kwargs: pytest.fail('CF BaoStock called'))
+
+    coverage = module.build_and_publish(target)
+    saved = json.loads(target.read_text())
+    assert module.SERIES_CACHE.exists()
+    assert set(module.load_series_cache(module.SERIES_CACHE)) == set(codes)
+
+    assert coverage == {'requested': 2, 'computed': 2, 'failed': 0}
+    assert saved['hlp_contract']['source'].startswith('同花顺官方 chip-list')
+    assert all(saved['enrichments'][code]['hlp_metrics']['hlp100'] == 1.0 for code in codes)
 
 
 def test_incomplete_hlp_coverage_fails_closed_and_preserves_file(tmp_path):
