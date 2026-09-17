@@ -1,37 +1,39 @@
 {
-  "date": "2026-09-16",
-  "updated_at": "2026-09-16 23:42:08 CST",
-  "applies_to": "2026-09-16",
-  "data_as_of": "qfq日线基线为2026-09-16收盘（91只正式池全量，level_data_as_of同步对齐）；窗口覆盖09-16 09:30-16:14实时报价与资金流（生产edge quote proxy核验：沪指3891.60/+0.71%/科创50 1616.19/+4.14%）；新闻窗口覆盖09-16 11:30-21:30（午后要闻、收盘复盘、板块drill-down、主力资金）。空rows不作零资金解释。",
+  "date": "2026-09-17",
+  "updated_at": "2026-09-17 08:32:54 CST",
+  "applies_to": "2026-09-17",
+  "data_as_of": "qfq日线基线为2026-09-16收盘（91只正式池全量，level_data_as_of同步对齐）；盘前窗口覆盖09-16全天收盘+09-17凌晨隔夜美股（生产edge quote proxy核验：沪指3891.60/+0.71%/科创50 1616.19/+4.14%）；新闻窗口覆盖09-16 22:00 - 09-17 08:30（美联储加息决议+美股收盘+油价回落+金银走低+国内《求是》潘功胜撰文）。空rows不作零资金解释。",
   "level_data_as_of": "2026-09-16",
-  "stage": "22:00夜间最终版",
+  "stage": "08:30盘前版",
   "model_version": "a-share-compass-v1",
-  "idempotency_key": "CN+2026-09-16+22:00+a-share-compass-v1",
-  "market_state": "2026-09-16 22:00夜间最终：全天「低开高走、放量反弹、科创独强」格局收官——沪指3891.60(🔴+0.71%)、深成指13454.74(🔴+1.26%)、创业板指3311.47(🔴+1.96%)、科创50 1616.19(🔴+4.14%)、沪深300 4480.27(🔴+0.68%)、中证500 7683.47(🔴+1.61%)、中证1000 7587.43(🔴+2.01%)；两市全天成交18525亿元(较09-15放量2272亿元)、主力净流入约306亿元、涨跌停91/4、全市场约4160只个股上涨、涨跌比约3.5:1，赚钱效应自09-15的「二次分歧」修复至「主升期」。算力硬件(CPO/光通信/PCB/存储)+半导体材料/设备维持领涨(有研硅/中晶科技/澳弘电子4连板/光迅科技涨停)；银行/养殖/工程机械/汽车整车/保险承压。mid_macro=3强逆风(固收5日+1.90pp+海外映射5日-2.29%+两融5日-0.93%)未变，canonical position=权益0%-10%/防御/现金90%-100%；allow_chase=False、allow_new_offense=False。",
+  "idempotency_key": "CN+2026-09-17+08:30+a-share-compass-v1",
+  "market_state": "2026-09-17 08:30盘前：上一交易日(09-16)「低开高走、放量反弹、科创独强」收官——沪指3891.60(🔴+0.71%)/深成指13454.74(🔴+1.26%)/创业板指3311.47(🔴+1.96%)/科创50 1616.19(🔴+4.14%)/沪深300 4480.27(🔴+0.68%)/中证500 7683.47(🔴+1.61%)/中证1000 7587.43(🔴+2.01%)；两市成交18525亿元(较09-15放量2272亿)/涨跌停91/4/约4160只个股上涨/主力净流入约306亿元。隔夜(09-16美股交易日，北京09-17 04:00收盘)出现宏观双重逆风强化——美联储三年来首次加息25bp，联邦基金利率3.50-3.75%→3.75-4.00%，全票通过；点阵图18位官员16人预计年内至少再加息一次；主席沃什鹰派发言「通胀太高已持续太久」；10年期美债收益率破5%续创新高；美股三大指数收跌——道指🟢-1.21%创6月中旬以来新低/标普🟢-0.45%/纳指🟢-0.01%；费半🔴+0.63%尾盘涨幅收窄，Lumentum +9.59%、Coherent +6.81%、英特尔+4.03%为少数亮点；油价从高位回落(WTI约100美元/桶下方)，沙特据称拟数日内恢复关键管道半数运力；现货金一度跌破4240美元/盎司，现货白银跌破63美元；国内对冲信号强化——潘功胜《求是》撰文强调「淡化贷款数量目标、强化价格调控+维护股市债市汇市平稳」，王毅-伊朗外长阿拉格齐会谈、霍尔木兹海峡开放议题。mid_macro=3强逆风维持(固收5日+1.90pp+海外映射5日-2.28%+两融5日-0.93%)，canonical position=权益0%-10%/防御/现金90%-100%；allow_chase=False、allow_new_offense=False。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "22:00相对14:30的新增事实：(1)全天放量反包确认——成交18525亿元较09-15放量2272亿元、主力净流入约306亿元、涨跌停91/4、约4160只个股上涨，14:30的「高位温和衰减」叙事被午后反包证伪；科创50收盘1616.19(+4.14%)较14:30的1613.70继续走高、全天最高1622.35，结构由「科创单极」强化为「全算力硬件上游扩散」(CPO/光通信/PCB/存储同步爆发，催化来自台积电设备采购+长江存储三期扩产+国产存储替代加速)；(2)22:00 selector dry-run入选承接watch历史候场——候选重选 [162411, 159985, 560710]（previous=[162411,560710]，unchanged=false，加豆粕承接watch历史候场，strength=C通过门禁+signal_score=61.04/全天+3.29%）；(3)mid_macro=3强逆风max-2规则将plant收敛至2只——apply_to_recommendations的line737 `(ok_items + watch)[:2]`触发，560710船舶ETF富国strength=C/risk=低/全天-0.84%基本面未失效，但被headwind级数系统性压缩出plant，转watch作替换出plant（历史候场），17日08:30 cron可重新评估回归；(4)全天scorecard修正——3只候选全天方向2正0平1负(162411+2.56%/159985+3.29%/560710-0.84%)，14:30的1正1平1负基于半天视角被全天视角覆盖；(5)wind-strong确认不追高——515880通信+4.59%/561980半导体设备+4.64%/512480半导体+4.36%/588000科创50+4.03%均在watch内强势确认，mid_macro=3强逆风封锁升级(upgrade_candidate=0)，按纪律只记录、不升级plant、不追高。结论：22:00全天反包是技术性反弹+产业催化+主力回流的三因素共振，但mid_macro强逆风未解除、canonical position维持0%-10%、plant全部不动，仅560710船舶因max-2规则转watch历史候场；17日开盘观察沪指30日线(3880)+算力硬件扩散持续性+油价方向+农产品景气持续性，确认后08:30 cron再判断触发/失效/升级。",
-  "summary": "2026-09-16 22:00夜间最终整理：全天「低开高走、放量反弹、科创独强」+主力净流入约306亿元收官——沪指3891.60(🔴+0.71%)/深成指13454.74(🔴+1.26%)/创业板指3311.47(🔴+1.96%)/科创50 1616.19(🔴+4.14%)/沪深300 4480.27(🔴+0.68%)/中证500 7683.47(🔴+1.61%)/中证1000 7587.43(🔴+2.01%)；全天成交18525亿元(较09-15放量2272亿元)、涨跌停91/4、约4160只个股上涨、涨跌比约3.5:1。候选重选加豆粕承接watch历史候场 → [162411/159985/560710]；mid_macro=3强逆风max-2规则收敛plant至[162411/159985](两条均blocked+constraint标记)，560710船舶ETF富国转watch作替换出plant（历史候场）。全天候选0触发：162411+2.56%/159985+3.29%/560710-0.84%；方向2正0平1负；仓位0%维持。中观强逆风与canonical position=权益0%-10%维持；allow_chase=False、allow_new_offense=False。结论：全天反包是技术性反弹+产业催化+主力回流三因素叠加而非趋势反转，mid_macro=3强逆风未解除、plant全部不动，17日开盘观察沪指30日线(3880)+算力硬件扩散持续性+油价方向+农产品景气持续性，确认后08:30 cron再判断触发/失效/升级。",
+  "mainline": "08:30相对22:00的新增事实（4条）：(1)海外加息+美股收跌+油价/金银回落——美联储三年来首次加息25bp（点阵图年内或再加息1-2次），10Y美债破5%续创，海外映射5日-2.28%逆风强化，22:00的「全天反包=技术性反弹+产业催化+主力回流」叙事在隔夜被加息预期证伪；对国内映射的传导链：科技/CPO/半导体估值端承压（费半尾盘涨幅收窄）+油价回落削弱162411的油气催化+金银走低削弱避险需求；(2)国内政策对冲信号加强——潘功胜《求是》撰文强调「维护股市债市汇市平稳」+王毅-伊朗外长会谈推动霍尔木兹海峡开放+香港五年规划AI列战略产业，三股信号若形成合力可缓解海外逆风的边际冲击，但mid_macro=3强逆风未解除前不构成加仓理由；(3)plant重选收敛——当日正式池重选(91只qfq基线09-16收盘)selector dry-run入选承接watch历史候场，候选[162411/159985/560710](previous=[162411/159985]，unchanged=false)，mid_macro=3强逆风max-2规则触发apply_to_recommendations line737，最终plant收敛为[162411华宝油气LOF / 159985豆粕ETF华夏](两条均标记eligibility=blocked+mid_macro_constraint)，560710船舶ETF富国转watch作替换出plant（历史候场）；(4)开盘观察轴——沪指30日线(3880)是否守住+算力硬件链是否在加息预期下分化(美股Lumentum/Coherent+9%但英特尔+4%表明AI光通信内部仍有承接)+油价回落对162411油气催化的削弱幅度+农产品景气持续性，确认后11:30 cron再判断触发/失效/升级。结论：海外加息+美股收跌+国内政策对冲是08:30的核心张力，mid_macro=3强逆风维持，plant全部不动，仅560710石油因max-2规则转watch历史候场，17日开盘观察上述四条后11:30 cron再判断触发/失效/升级。",
+  "summary": "2026-09-17 08:30盘前｜隔夜宏观双重强化——美联储三年来首次加息25bp(联邦基金利率→3.75-4.00%)+10Y美债破5%+道指-1.21%创6月新低+油价/金银回落，国内政策对冲信号强化(潘功胜《求是》+王毅-伊朗会谈+香港AI五年规划)；上一交易日(09-16)「低开高走、放量反弹、科创独强」收官——沪指3891.60(🔴+0.71%)/深成指13454.74(🔴+1.26%)/创业板指3311.47(🔴+1.96%)/科创50 1616.19(🔴+4.14%)，成交18525亿/涨跌停91/4/主力净流入约306亿元/约4160只个股上涨；当日正式池重选plant收敛为[162411华宝油气LOF/159985豆粕ETF华夏](两条均blocked+constraint标记)，560710船舶ETF富国转watch作替换出plant（历史候场，max-2规则）；mid_macro=3强逆风(固收5日+1.90pp+海外映射5日-2.28%+两融5日-0.93%)未变，canonical position=权益0%-10%/防御/现金90%-100%；allow_chase=False、allow_new_offense=False。结论：海外加息强化逆风+国内对冲信号暂未传导至中观因子，plant全部不动，17日开盘观察沪指30日线(3880)+算力硬件链分化+油价回落对油气催化削弱+农产品景气持续性，11:30 cron再判断触发/失效/升级。",
   "data_quality": {
-    "generated_at": "2026-09-16 22:03:30 CST",
-    "return_basis_disclosure": "qfq前复权日线基线为2026-09-16收盘（91只正式池全量, OHLC均为前复权口径, level_data_as_of同步对齐）；全天涨跌幅以16:14收盘相对09-15前复权收盘计算；plant候场方向收益以16:14收盘相对09-15前收计算，非已实现收益（本阶段无触发、无持仓）。",
-    "latest_trade_date": "2026-09-16",
+    "generated_at": "2026-09-17 08:31:00 CST",
+    "return_basis_disclosure": "qfq日线基线=2026-09-16收盘；OHLC=腾讯行情09-16收盘快照；候选得分=91只正式池qfq动量+趋势+风险合成；plant候场方向收益=16:14收盘相对09-15前收计算(非已实现收益，本阶段无触发、无持仓)；空rows不作零资金解释。",
+    "latest_trade_date": "2026-09-17",
     "quote_date": "2026-09-16",
     "level_data_as_of": "2026-09-16",
     "qfq_coverage": 91,
     "pool_count": 91,
     "pool_evaluation_date": "2026-09-16",
-    "quote_window": "22:00夜间最终"
+    "quote_window": "08:30盘前"
   },
   "source_audit": {
-    "iwencai_news": "经多Key轮询包装器执行 news-search：A股 09-16 收盘+半导体/存储/PCB/CPO/光通信 板块drill-down；经smart_denied=false路径确认无私人路径泄漏；收盘数据与生产edge quote proxy（/api/public/v1/quote?symbols=000001.SH,...）交叉核验一致。",
-    "tencent_quote": "生产edge quote proxy（/api/public/v1/quote）获取2026-09-16 16:14指数与ETF价格、涨跌幅、日内高低；腾讯直采 qt.gtimg.cn 作为兜底（000001.SH存在underlying重定向到平安银行quirk，指数一律走edge proxy）。",
-    "fallback": "d1_exchange_calendar",
-    "data_scope": "全91只正式池qfq基线完整（qfq_coverage=91、valid_count=91、universe_count=91、pool_evaluation_date=2026-09-16、latest_trade_date=2026-09-16）；候选由当日正式池重新筛选(evaluated=91, eligible=3, selected=3, defensive_limit=1)，空源rows不解释为零资金。",
-    "iwencai_market_query": "经多Key轮询包装器查询上证指数/深证成指成交额与涨跌幅：全天成交18525亿元（沪指口径约8650亿/深成指口径约9875亿）；指数与ETF价格另经生产edge quote proxy交叉核验，空rows按缺口披露、不解释为零资金。",
-    "quote_sources": "腾讯行情直采 qt.gtimg.cn；指数与ETF基线若无返回则披露缺口，不解释为零资金；生产edge quote proxy（etf.peekabo.cc/api/public/v1/quote）作为核验二源。",
-    "overnight": "本次为22:00夜间最终窗口，盘后已无新增隔夜美股窗口；17日盘前08:30 cron 会执行隔夜美股+科技+防御+资金面四维度新闻聚合。",
-    "tencent_quotes": "指数与ETF行情使用Tencent直连及生产edge quote proxy交叉核验。"
+    "calendar_source": "d1_exchange_calendar",
+    "calendar_fallback": null,
+    "pool_authority": "public/data/etf-garden-pool.json",
+    "selector_rule": "a-candidate-v1",
+    "macro_engine": "scripts/generate_a_share_mid_macro.py",
+    "iwencai_news": [
+      "news-search『美股 2026年9月17日 隔夜 科技 油价』→ 美联储三年来首次加息25bp决议/美股三大指数收跌/费半+0.63%尾盘涨幅收窄/沙特管道恢复/金银走低/10Y美债破5%",
+      "news-search『A股 2026年9月17日 开盘 政治局 政策 半导体』→ 潘功胜《求是》撰文(维护股市债市汇市平稳)/王毅-伊朗外长会谈(霍尔木兹海峡)/香港五年规划AI列战略产业"
+    ],
+    "fallback": "d1_exchange_calendar主日历+D1公开交易日历，9月17日为A股交易日；quote查询走生产edge quote proxy(美股09-16收盘/沪指/深成指/创业板指/科创50等09-16收盘快照)；行情空rows不作零资金解释。"
   },
   "harvest": [],
   "plant": [
@@ -60,11 +62,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-16",
+      "selected_from_pool_date": "2026-09-17",
       "selection_score": 88.23,
       "selection_rank": 1,
       "candidate_since": "2026-09-10",
-      "last_qualified_date": "2026-09-16",
+      "last_qualified_date": "2026-09-17",
       "qualified_reason": [
         "趋势B",
         "信号得分72.8",
@@ -101,11 +103,11 @@
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
-      "selected_from_pool_date": "2026-09-16",
-      "selection_score": 62.8,
+      "selected_from_pool_date": "2026-09-17",
+      "selection_score": 64.3,
       "selection_rank": 2,
       "candidate_since": "2026-09-16",
-      "last_qualified_date": "2026-09-16",
+      "last_qualified_date": "2026-09-17",
       "qualified_reason": [
         "趋势C",
         "信号得分61.0",
@@ -328,10 +330,10 @@
   "intraday_0830": {
     "stage": "08:30盘前版",
     "status": "complete",
-    "quote_date": "2026-09-15",
-    "quote_as_of": "2026-09-16 09:12:33 CST",
+    "quote_date": "2026-09-16",
+    "quote_as_of": "2026-09-17 08:31:00 CST",
     "prepared": {
-      "plant": 1,
+      "plant": 2,
       "harvest": 0
     },
     "executable": {
@@ -342,143 +344,27 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "09-15收盘基线：正式池91只完整、动量通过3只、strong_count=0（极弱）；沪指3864.28(-0.54%)/深成13287.97(-0.72%)/创业板3247.92(-1.15%)/沪深300 4450.04(-0.67%)/中证500 7561.59(-0.13%)/科创50 1551.96(+1.55%)反向走强；成交1.63万亿缩量、4376只下跌。隔夜美股三连跌、费半仅+0.40%、能源+2.19%领涨；开盘前不以未开盘报价估算宽度。",
-    "premarket_summary": "隔夜美债10年期破5%创2007年以来新高、油价暴涨（WTI +4.38%）、美股三连跌标普创8月新低；当日正式池重选plant收敛为162411华宝油气LOF一只候场，512800银行掉档换出；实际触发为零、仓位0%。",
+    "breadth": "09-16收盘基线：正式池91只完整、动量通过1只、strong_count=1（极弱）；沪指3891.60(🔴+0.71%)/深成指13454.74(🔴+1.26%)/创业板指3311.47(🔴+1.96%)/科创50 1616.19(🔴+4.14%)/沪深300 4480.27(🔴+0.68%)/中证500 7683.47(🔴+1.61%)；成交18525亿元较09-15放量2272亿元、涨跌停91/4、约4160只个股上涨。隔夜美联储三年来首次加息25bp、道指🟢-1.21%创6月新低、10Y美债破5%、油价回落；开盘前不以未开盘报价估算宽度。",
+    "premarket_summary": "隔夜美联储加息25bp+美股三连跌前夜+10Y美债破5%+油价/金银回落；当日正式池重选plant收敛为[162411/159985]两条候场，560710船舶因mid_macro=3强逆风max-2规则转watch历史候场；实际触发为零、仓位0%。",
     "triggered_actions": []
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "complete",
-    "quote_date": "2026-09-16",
-    "quote_as_of": "2026-09-16 11:40 CST",
-    "prepared": {
-      "plant": 2,
-      "harvest": 0
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0
-    },
-    "breadth": "09-16上午收盘：沪指3886.48(+0.57%)/深成指13476.85(+1.42%)/创业板指3324.36(+2.35%)/科创50 1621.75(+4.50%)/沪深300 4479.55(+0.66%)/中证500 7685.84(+1.64%)；半日成交1.17万亿、较上日放量1082亿，约4200只个股上涨；存储芯片/CPO/光通信/通信设备/半导体材料领涨，银行/汽车整车/养殖业/工程机械/海运油气航空领跌。",
-    "morning_session_summary": "低开高走全面转强，量价与宽度同步修复；plant两只候场均未回踩伏击位，无触发、无执行。",
-    "scorecard": {
-      "evaluated": 2,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 1,
-      "realized_return": "无（无触发、无持仓）"
-    },
-    "triggered_actions": [
-      "162411华宝油气LOF：1.031(+1.58%)，未回踩1.011伏击位，维持候场",
-      "560710船舶ETF富国：0.941(-0.84%)，距0.928伏击位约1.4%，维持候场",
-      "watch强势确认不追高：515880通信+5.51%、561980半导体设备+5.87%、512480半导体+4.88%、588000科创50+4.40%"
-    ]
+    "status": "not_published",
+    "note": "待2026-09-17 11:30后更新"
   },
   "intraday_1430": {
     "stage": "14:30尾盘操作版",
-    "status": "complete",
-    "quote_date": "2026-09-16",
-    "quote_as_of": "2026-09-16 14:33 CST",
-    "prepared": {
-      "plant": 2,
-      "harvest": 0
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0
-    },
-    "breadth": "09-16尾盘14:30：沪指3891.39(+0.70%)/深成指13441.31(+1.15%)/创业板指3307.22(+1.83%)/科创50 1613.70(+3.98%)/沪深300 4479.48(+0.66%)/中证500 7675.38(+1.50%)；相对11:30成长指数涨幅各收窄约0.5pp、权重金融抗跌使沪指微升；午后全市场约4400只上涨(13:09盘中口径)、近百只涨超10%；存储芯片/CPO/光通信/半导体设备维持领涨，银行/保险/养殖/工程机械/海运油气航空承压。",
-    "scorecard": {
-      "evaluated": 2,
-      "direction_positive": 1,
-      "direction_flat": 0,
-      "direction_negative": 1,
-      "realized_return": "无（无触发、无持仓）"
-    },
-    "tail_session_summary": "午后高位小幅回落但结构未破，主线收缩至算力硬件上游；plant两只候场均未回踩伏击位，无触发、无执行，仓位0%维持。",
-    "triggered_actions": [
-      "162411华宝油气LOF：1.038(+2.27%)，全天最低1.029未回踩1.011伏击位，维持候场",
-      "560710船舶ETF富国：0.941(-0.84%)，全天最低0.931、距0.928伏击位约1.4%，维持候场",
-      "watch强势确认不追高：515880通信+4.59%、561980半导体设备+4.64%、512480半导体+4.36%、588000科创50+4.03%（mid_macro=3强逆风封锁升级）"
-    ]
+    "status": "not_published",
+    "note": "待2026-09-17 14:30后更新"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "complete",
-    "quote_date": "2026-09-16",
-    "quote_as_of": "2026-09-16 16:14 CST",
-    "prepared": {
-      "plant": 3,
-      "harvest": 0,
-      "selector_selected_codes": [
-        162411,
-        159985,
-        560710
-      ],
-      "selector_previous_codes": [
-        162411,
-        560710
-      ],
-      "selector_unchanged_from_previous": false,
-      "macro_kept_count": 2,
-      "macro_demoted_count": 1,
-      "macro_max2_truncated_codes": [
-        "560710"
-      ]
-    },
-    "executable": {
-      "plant": 0,
-      "harvest": 0,
-      "exit": 0,
-      "hold": 0,
-      "upgrade_candidate": 0,
-      "clear": 0,
-      "cash_sweep_missed": 0
-    },
-    "scorecard": {
-      "evaluated": 3,
-      "direction_positive": 2,
-      "direction_flat": 0,
-      "direction_negative": 1,
-      "realized_return": "无（无触发、无持仓）",
-      "post_macro_publishable_plant_count": 2,
-      "post_macro_blocked_plant_codes": [
-        162411,
-        159985
-      ],
-      "watch_demoted_codes": [
-        560710
-      ]
-    },
-    "breadth": "09-16收盘16:14 CST：沪指3891.60(🔴+0.71%)/深成指13454.74(🔴+1.26%)/创业板指3311.47(🔴+1.96%)/科创50 1616.19(🔴+4.14%)/沪深300 4480.27(🔴+0.68%)/中证500 7683.47(🔴+1.61%)/中证1000 7587.43(🔴+2.01%)；全天成交18525亿元(较09-15放量2272亿元)、主力净流入约306亿元、涨跌停91/4、约4160只个股上涨、涨跌比约3.5:1；算力硬件(CPO/光通信/PCB/存储)+半导体材料/设备领涨；银行/养殖/工程机械/汽车/保险承压。",
-    "tail_session_summary": "全天「低开高走、放量反弹、科创独强」+主力净流入转正；selector候选 [162411/159985/560710] 加豆粕承接watch历史候场；mid_macro=3强逆风max-2规则将plant收敛至2只(162411/159985均blocked)，560710船舶转watch历史候场；3只候选全天0触发、方向2正1负、仓位0%维持。",
-    "triggered_actions": [
-      "162411华宝油气LOF：1.041(🔴+2.56%)全天未回踩1.015伏击位，维持plant(mid_macro blocked)+触发修订",
-      "159985豆粕ETF华夏：2.383(🔴+3.29%)全天未回踩2.288伏击位，selector承接watch历史候场→plant(mid_macro blocked)",
-      "560710船舶ETF富国：0.941(🟢-0.84%)全天最低0.929未触0.928伏击位，被mid_macro=3 max-2规则drop出plant→watch历史候场",
-      "watch强势确认不追高：515880通信+4.59%/561980半导体设备+4.64%/512480半导体+4.36%/588000科创50+4.03%（mid_macro=3强逆风封锁升级）"
-    ],
-    "candidate_swap": {
-      "from": [],
-      "to": [
-        "159985"
-      ],
-      "reason": "selector dry-run 从watch历史候场入选承接 [159985 豆粕ETF华夏]，swap from=[] to=[159985], previous_codes=[162411,560710]; mid_macro=3强逆风max-2规则另将 [560710 船舶ETF富国] 从plant drop至watch历史候场。",
-      "macro_demoted_out_of_plant": [
-        "560710"
-      ]
-    }
+    "status": "not_published",
+    "note": "待2026-09-17 22:00后更新"
   },
   "mid_macro": {
-    "generated_at": "2026-09-16 23:42:08 CST",
+    "generated_at": "2026-09-17 08:32:54 CST",
     "headwind_level": 3,
     "label": "强逆风",
     "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
@@ -498,7 +384,7 @@
         "label": "海外风险映射压力",
         "state": "逆风",
         "score": 1.75,
-        "headline": "海外映射ETF 5日偏弱-2.29%"
+        "headline": "海外映射ETF 5日偏弱-2.28%"
       },
       {
         "key": "margin_financing",
@@ -510,12 +396,12 @@
     ]
   },
   "level_model_version": "A ETF Compass Levels v2",
-  "level_generated_at": "2026-09-16 09:02:07 UTC+08:00",
+  "level_generated_at": "2026-09-17 08:31:03 UTC+08:00",
   "level_source": "stock-api package v2.7.3",
   "level_invalid_count": 0,
   "candidate_selection": {
     "rule_version": "a-candidate-v1",
-    "evaluation_date": "2026-09-16",
+    "evaluation_date": "2026-09-17",
     "evaluated_count": 91,
     "eligible_count": 3,
     "selected_count": 2,
@@ -544,7 +430,7 @@
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
     "selection_mode": "current_tracked_harvest_requalification",
-    "selected_from_pool_date": "2026-09-16",
+    "selected_from_pool_date": "2026-09-17",
     "evaluated_count": 0,
     "selected_count": 0,
     "selected_codes": [],
