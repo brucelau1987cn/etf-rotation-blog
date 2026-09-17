@@ -2,6 +2,8 @@
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
+import SemiFuturesAdmin from '../../components/admin/SemiFuturesAdmin.jsx';
+import '../../styles/semi-preview.css';
 import { SITE_TITLE } from '../../consts';
 
 const title = `期货管理 | ${SITE_TITLE}`;
@@ -32,6 +34,9 @@ const description = '管理期货罗盘监控标的：名称、交易所，支�
     </section>
 
     <section class="fm-panel" id="fm-panel" hidden>
+      <div class="semi-preview-wrap">
+        <SemiFuturesAdmin client:only="react" />
+      </div>
       <div class="overview-grid">
         <article class="stat-card active">
           <span>监控中</span>
@@ -321,6 +326,11 @@ const description = '管理期货罗盘监控标的：名称、交易所，支�
     .auth-required h2 { margin: .75rem 0 .4rem; }
     .auth-required p { color: #64748b; }
     .auth-required a { display: inline-block; margin-top: .5rem; padding: .6rem 1rem; color: #fff; background: #2563eb; border-radius: 999px; text-decoration: none; font-weight: 800; }
+
+    .fm-panel > .overview-grid, .fm-panel > .fm-layout { display: none !important; }
+
+    .semi-preview-wrap { margin-bottom: .9rem; }
+    .semi-preview-wrap .semi-card { border-radius: 18px; box-shadow: 0 16px 40px rgba(15, 23, 42, .05); }
 
     .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: .9rem; }
     .stat-card { display: grid; gap: .28rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, .03); }

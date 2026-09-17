@@ -1,6 +1,7 @@
 // @ts-check
 
 import mdx from '@astrojs/mdx';
+import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
 import { defineConfig, fontProviders } from 'astro/config';
@@ -40,7 +41,7 @@ function rehypePublicText() {
 // https://astro.build/config
 export default defineConfig({
   site: 'https://etf.peekabo.cc',
-  integrations: [mdx(), sitemap()],
+  integrations: [mdx(), react(), sitemap()],
   markdown: {
     processor: unified({ rehypePlugins: [rehypePublicText] }),
   },
