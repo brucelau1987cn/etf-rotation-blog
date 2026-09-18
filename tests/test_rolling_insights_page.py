@@ -13,7 +13,7 @@ def test_latest_daily_report_contract_and_archive():
     component = (ROOT / "src/components/RollingDailyInsightReport.astro").read_text(encoding="utf-8")
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
     redirects = (ROOT / "public/_redirects").read_text(encoding="utf-8")
-    assert "rollingDailyReports['2026-09-17']" in page
+    assert "rollingDailyReports['2026-09-18']" in page
     assert "'2026-09-17': {" in data
     latest = data[data.index("'2026-09-17': {"):data.index("'2026-09-16': {")]
     assert latest.count('{"name":') == 8
@@ -35,3 +35,24 @@ def test_latest_daily_report_contract_and_archive():
 def test_no_standalone_stock_title():
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     assert "<h1>创新医疗" not in page
+
+def test_insights_2026_09_18():
+    import re
+    p = ROOT / 'src/data/rolling-daily-insights.ts'
+    data = p.read_text(encoding='utf-8')
+    assert "'2026-09-18':" in data, 'today report key missing'
+    assert "'002185'" in data, '华天科技 symbol missing'
+    assert "'688041'" in data, '海光信息 symbol missing'
+    assert "'SI=F'" in data, 'SI=F missing'
+    _ty='2026'; _tm=9; _td=18
+    assert '9月18日滚动信号收盘复盘' in data, 'title missing'
+    assert "涨停" in data, '华天涨停描述 missing'
+    assert data.index("'2026-09-18':") < data.index("'2026-09-17':"), 'today must come before prev'
+    page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
+    assert "rollingDailyReports['2026-09-18']" in page, 'insights.astro not pointing to today'
+    cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
+    assert "'2026-09-18', href: '/rolling/insights/'" in cat, 'catalog latest must be today at /rolling/insights/'
+    assert "'2026-09-17', href: '/rolling/insights/2026-09-17/'" in cat, 'catalog demote entry missing'
+    assert (ROOT / 'src/pages/rolling/insights/2026-09-17.astro').exists(), 'prev static page missing'
+    redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
+    assert "/rolling/insights/2026-09-17 /rolling/insights/2026-09-17/ 301" in redirects, 'prev canonicalising redirect missing'
