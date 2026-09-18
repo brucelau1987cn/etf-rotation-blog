@@ -64,7 +64,9 @@ def fetch(query, page):
         capture_output=True, text=True, check=False,
     )
     if r.returncode != 0:
-        raise SystemExit(f"iWenCai error: {r.stderr[:200]}")
+        detail = (r.stderr or r.stdout or '').strip()
+        # 输出完整的短错误分类，便于区分额度耗尽、鉴权、限流和瞬时故障。
+        raise SystemExit(f"iWenCai error: {detail[:500]}")
     out.write_text(r.stdout, encoding="utf-8")
     return json.loads(r.stdout)
 
