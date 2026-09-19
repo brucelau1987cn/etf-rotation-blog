@@ -8,7 +8,8 @@ shareholder_metrics to the D1-backed API endpoint.
 Usage:
   python3 scripts/sync_low_chip_to_d1.py [--date YYYY-MM-DD]   # current file only
   python3 scripts/sync_low_chip_to_d1.py --history             # all snapshots + current
-  python3 scripts/sync_low_chip_to_d1.py --day 2026-07-31      # one snapshot file
+  python3 scripts/sync_low_chip_to_d1.py --day 2026-07-31      # one atomic day
+  python3 scripts/sync_low_chip_to_d1.py --day 2026-07-31 --dry-run
 
 Env:
   LOW_CHIP_SYNC_TOKEN — Bearer token matching wrangler.toml [vars]
@@ -26,10 +27,13 @@ DATA = ROOT / "public/data/a-low-chip-stocks.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
+BATCH_LIMIT = 198
 
 
 def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> dict:
     """POST metrics array to the D1 API endpoint."""
+    if len(metrics) > BATCH_LIMIT:
+        raise ValueError(f"D1 batch exceeds limit {BATCH_LIMIT}: {len(metrics)}")
     body: dict[str, object] = {"metrics": metrics}
     if replace_trade_date:
         body["replace_trade_date"] = replace_trade_date
@@ -84,6 +88,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
         if not enr:
             continue
         sm = enr.get("shareholder_metrics") or {}
+        risk = enr.get("risk") or {}
         # Prefer periods.name (always present in snapshots); enrichments rarely store name.
         stock_name = (
             _period_name(code)
@@ -126,6 +131,16 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "industry_etfs": enr.get("industry_etfs") or [],
             "industry_etf_status": enr.get("industry_etf_status") or "unknown",
             "industry_etf_pool_count": enr.get("industry_etf_pool_count"),
+            # Staging contract fields.  The caller decides when this payload is
+            # posted; risk staging itself never calls push().
+            "risk_version": risk.get("version"),
+            "risk_as_of": risk.get("as_of"),
+            "risk_status": risk.get("status"),
+            "risk_level": risk.get("level"),
+            "risk_reasons": risk.get("reasons") or [],
+            "risk_advisory": risk.get("advisory"),
+            "risk_coverage": risk.get("coverage"),
+            "risk_freshness": risk.get("freshness"),
             "quality_shareholder": 1 if enr.get("quality_shareholder") else 0,
             "shareholder_nature": {
                 "report_period": enr.get("shareholder_nature_report_period"),
@@ -138,17 +153,26 @@ def snapshot_metrics(payload: dict) -> list[dict]:
     return metrics
 
 
-def push(payload: dict) -> int:
+def push(payload: dict, *, dry_run: bool = False) -> int:
     metrics = snapshot_metrics(payload)
     if not metrics:
         source = payload.get("_source") or "current"
         print(f"no metrics to push ({source})", flush=True)
         return 0
     replace_trade_date = "".join(ch for ch in str(payload.get("data_as_of") or "") if ch.isdigit())[:8]
-    result = post_metrics(metrics, replace_trade_date=replace_trade_date)
+    # A date replacement is one API request: DELETE plus full INSERT is atomic.
+    if len(metrics) > BATCH_LIMIT:
+        raise ValueError(f"trade date {replace_trade_date} has {len(metrics)} rows; atomic replacement supports at most {BATCH_LIMIT}")
+    if dry_run:
+        print(f"DRY-RUN D1 sync: {len(metrics)} rows ({replace_trade_date})", flush=True)
+        return 0
+    results = [post_metrics(metrics, replace_trade_date=replace_trade_date)]
+    result = results[0]
     label = payload.get("data_as_of") or payload.get("_source") or ""
-    if result.get("ok"):
-        print(f"D1 sync: {result.get('inserted')}/{result.get('total')} inserted ({label})", flush=True)
+    if all(item.get("ok") for item in results):
+        inserted = sum(int(item.get("inserted") or 0) for item in results)
+        total = sum(int(item.get("total") or 0) for item in results)
+        print(f"D1 sync: {inserted}/{total} inserted ({label})", flush=True)
         return 0
     else:
         print(f"D1 sync FAILED ({label}): {result.get('error')}", flush=True)
@@ -160,6 +184,7 @@ def main() -> int:
     parser.add_argument("--date", help="push current file only (default)")
     parser.add_argument("--history", action="store_true", help="push all history snapshots + current")
     parser.add_argument("--day", help="push a single history snapshot by date YYYY-MM-DD")
+    parser.add_argument("--dry-run", action="store_true", help="validate and report; never call D1")
     args = parser.parse_args()
 
     failures = 0

@@ -222,7 +222,7 @@ def test_d1_api_persists_and_decodes_industry_etfs():
     assert "'industry_etfs'" in source
     assert "'industry_etf_status'" in source
     assert "'industry_etf_pool_count'" in source
-    assert "JSON.parse(metric.industry_etfs)" in source
+    assert "parseJsonField(metric.industry_etfs" in source
     assert "ADD COLUMN industry_etfs TEXT" in migration
 
 

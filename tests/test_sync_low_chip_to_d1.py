@@ -77,6 +77,28 @@ def test_snapshot_metrics_carries_touchstone_metrics():
     assert snapshot_metrics(payload)[0]["touchstone_metrics"] == {"candidate_bottom_active": True, "touchstone_hit": True}
 
 
+def test_snapshot_metrics_exposes_staging_risk_contract_fields():
+    payload = {
+        "data_as_of": "2026-09-03",
+        "intersection": ["000001.SZ"],
+        "periods": {"week": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.0}], "month": [], "quarter": []},
+        "enrichments": {"000001.SZ": {
+            "shareholder_metrics": {},
+            "risk": {
+                "version": "low-chip-risk-v1", "as_of": "2026-09-03", "status": "ok",
+                "level": "watch", "reasons": ["short_term_drawdown"], "advisory": True,
+                "coverage": {"components": 4, "complete": 4},
+                "freshness": {"price_as_of": "2026-09-03"},
+            },
+        }},
+    }
+    row = snapshot_metrics(payload)[0]
+    assert row["risk_version"] == "low-chip-risk-v1"
+    assert row["risk_level"] == "watch"
+    assert row["risk_reasons"] == ["short_term_drawdown"]
+    assert row["risk_coverage"]["complete"] == 4
+
+
 def test_snapshot_metrics_carries_shareholder_nature_for_history_api():
     payload = {
         "data_as_of": "2026-08-11",
@@ -141,3 +163,36 @@ def test_push_replaces_the_entire_trade_date_membership():
         assert push(payload) == 0
     _, kwargs = post.call_args
     assert kwargs["replace_trade_date"] == "20260903"
+
+
+def test_push_rejects_oversized_date_instead_of_partial_replace():
+    module = __import__("sync_low_chip_to_d1")
+    payload = {
+        "data_as_of": "2026-09-03",
+        "intersection": [f"{i:06d}.SZ" for i in range(199)],
+        "periods": {"week": [{"symbol": f"{i:06d}.SZ", "name": "n", "value": 1.0} for i in range(199)], "month": [], "quarter": []},
+        "enrichments": {f"{i:06d}.SZ": {"shareholder_metrics": {}} for i in range(199)},
+    }
+    calls = []
+    def fake_post(metrics, replace_trade_date=None):
+        calls.append((len(metrics), replace_trade_date))
+        return {"ok": True, "inserted": len(metrics), "total": len(metrics)}
+    with mock.patch.object(module, "post_metrics", side_effect=fake_post):
+        try:
+            module.push(payload)
+        except ValueError as exc:
+            assert "atomic replacement" in str(exc)
+        else:
+            raise AssertionError("oversized trade date must fail closed")
+    assert calls == []
+
+
+def test_push_dry_run_never_posts():
+    payload = {
+        "data_as_of": "2026-09-03", "intersection": ["000001.SZ"],
+        "periods": {"week": [{"symbol": "000001.SZ", "name": "平安银行", "value": 1.0}], "month": [], "quarter": []},
+        "enrichments": {"000001.SZ": {"shareholder_metrics": {}}},
+    }
+    with mock.patch("sync_low_chip_to_d1.post_metrics") as post:
+        assert push(payload, dry_run=True) == 0
+    post.assert_not_called()

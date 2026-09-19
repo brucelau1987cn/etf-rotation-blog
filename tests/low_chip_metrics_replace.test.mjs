@@ -9,6 +9,6 @@ assert.match(source, /replaceTradeDate[\s\S]*trade_dates must match replace_trad
 assert.match(source, /env\.DB\.batch\(\[deleteStmt, \.\.\.part\]\)/);
 assert.match(source, /'touchstone_metrics'/);
 assert.match(source, /ALTER TABLE stock_metrics ADD COLUMN touchstone_metrics TEXT/);
-assert.match(source, /JSON\.parse\(metric\.touchstone_metrics\)/);
+assert.match(source, /metric\.touchstone_metrics = parseJsonField\(metric\.touchstone_metrics/);
 
 console.log('low-chip metrics replacement contract ok');

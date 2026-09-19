@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf-rotation-blog.local/schemas/low-chip-risk-v1.schema.json",
+  "title": "Low-chip risk enrichment v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "as_of", "status", "source", "freshness", "coverage", "level", "reasons", "components", "advisory"],
+  "properties": {
+    "version": {"const": "low-chip-risk-v1"},
+    "as_of": {"type": ["string", "null"], "format": "date"},
+    "status": {"enum": ["ok", "failed"]},
+    "source": {"type": "string", "minLength": 1},
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["price_as_of"],
+      "properties": {"price_as_of": {"type": ["string", "null"], "format": "date"}}
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["components", "complete"],
+      "properties": {
+        "components": {"type": "integer", "minimum": 0},
+        "complete": {"type": "integer", "minimum": 0}
+      }
+    },
+    "level": {"enum": ["none", "watch", "medium", "high", "unknown"]},
+    "reasons": {"type": "array", "items": {"type": "string"}},
+    "components": {"type": "array", "items": {"$ref": "#/$defs/component"}},
+    "advisory": {"const": true}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "ok"}}}, "then": {"properties": {"level": {"enum": ["none", "watch", "medium", "high"]}}}},
+    {"if": {"properties": {"status": {"const": "failed"}}}, "then": {"properties": {"level": {"const": "unknown"}}}}
+  ],
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["complete", "status", "level", "reasons", "source"],
+      "properties": {
+        "complete": {"type": "boolean"},
+        "status": {"enum": ["ok", "failed"]},
+        "level": {"enum": ["none", "watch", "medium", "high", "unknown"]},
+        "reasons": {"type": "array", "items": {"type": "string"}},
+        "source": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -105,6 +105,264 @@ def test_verify_history_index_checks_every_published_date(tmp_path):
     ]
 
 
+def test_release_state_records_auditable_d1_push_transitions(tmp_path):
+    module = load_module()
+    state_file = tmp_path / 'release-state.json'
+    module.write_release_state({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }, state_file=state_file)
+
+    assert json.loads(state_file.read_text(encoding='utf-8')) == {
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+        'trade_date': '2026-09-18',
+    }
+
+
+def test_release_state_fsyncs_parent_directory_after_atomic_replace(tmp_path, monkeypatch):
+    module = load_module()
+    state_file = tmp_path / 'state' / 'release-state.json'
+    real_open = module.os.open
+    real_fsync = module.os.fsync
+    real_replace = module.os.replace
+    directory_fds = set()
+    fsynced = []
+    events = []
+
+    def tracking_open(path, flags, *args, **kwargs):
+        fd = real_open(path, flags, *args, **kwargs)
+        if flags & getattr(module.os, 'O_DIRECTORY', 0):
+            directory_fds.add(fd)
+        return fd
+
+    def tracking_fsync(fd):
+        fsynced.append(fd)
+        if fd in directory_fds:
+            events.append('directory-fsync')
+        return real_fsync(fd)
+
+    def tracking_replace(source, destination):
+        events.append('replace')
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(module.os, 'open', tracking_open)
+    monkeypatch.setattr(module.os, 'fsync', tracking_fsync)
+    monkeypatch.setattr(module.os, 'replace', tracking_replace)
+    module.write_release_state({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }, state_file=state_file)
+
+    assert directory_fds
+    assert directory_fds <= set(fsynced)
+    assert events.index('replace') < events.index('directory-fsync')
+
+
+def test_pending_d1_release_verifies_and_retries_only_push(tmp_path, monkeypatch, capsys):
+    module = load_module()
+    state_file = tmp_path / 'release-state.json'
+    state_file.write_text(json.dumps({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }), encoding='utf-8')
+    calls = []
+    pushed = False
+
+    def fake_run(args, timeout=900, env=None):
+        nonlocal pushed
+        calls.append(args)
+        if args == ['git', 'push', 'origin', 'candidate-sha:main']:
+            pushed = True
+            return subprocess.CompletedProcess(args, 0, '', '')
+        if args == ['git', 'rev-parse', 'origin/main']:
+            head = 'candidate-sha' if pushed else 'base-sha'
+            return subprocess.CompletedProcess(args, 0, head + '\n', '')
+        if args == ['git', 'rev-parse', 'candidate-sha^']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args[:2] == ['git', 'show']:
+            payload = {'data_as_of': '2026-09-18', 'intersection': ['000001.SZ', '000002.SZ']}
+            return subprocess.CompletedProcess(args, 0, json.dumps(payload), '')
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'load_env_file', lambda *_args, **_kwargs: {'LOW_CHIP_SYNC_TOKEN': 'token'})
+    monkeypatch.setattr(module, 'verify_d1_api', lambda day, count, token: {
+        'ok': True,
+        'count': count,
+        'results': [{'stock_code': '000001'}, {'stock_code': '2'}],
+    })
+
+    assert module.recover_pending_release(state_file=state_file) == 0
+    saved = json.loads(state_file.read_text(encoding='utf-8'))
+    assert saved['d1_verified'] is True
+    assert saved['pushed'] is True
+    assert ['git', 'push', 'origin', 'candidate-sha:main'] in calls
+    assert not any('build_low_chip_base.py' in call for call in calls)
+    assert 'RECOVERY COMPLETE' in capsys.readouterr().out
+
+
+def test_pending_d1_release_blocks_same_count_with_different_stock_codes(tmp_path, monkeypatch, capsys):
+    module = load_module()
+    state_file = tmp_path / 'release-state.json'
+    state_file.write_text(json.dumps({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }), encoding='utf-8')
+    calls = []
+
+    def fake_run(args, timeout=900, env=None):
+        calls.append(args)
+        if args == ['git', 'rev-parse', 'origin/main']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args == ['git', 'rev-parse', 'candidate-sha^']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args[:2] == ['git', 'show']:
+            payload = {'data_as_of': '2026-09-18', 'intersection': ['000001.SZ', '000002.SZ']}
+            return subprocess.CompletedProcess(args, 0, json.dumps(payload), '')
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'load_env_file', lambda *_args, **_kwargs: {'LOW_CHIP_SYNC_TOKEN': 'token'})
+    monkeypatch.setattr(module, 'verify_d1_api', lambda day, count, token: {
+        'ok': True,
+        'count': count,
+        'results': [{'stock_code': '000001'}, {'stock_code': '000003'}],
+    })
+
+    assert module.recover_pending_release(state_file=state_file) == 1
+    assert not any(call[:2] == ['git', 'push'] for call in calls)
+    saved = json.loads(state_file.read_text(encoding='utf-8'))
+    assert saved['d1_verified'] is False
+    assert saved['pushed'] is False
+    assert 'stock code set mismatch' in capsys.readouterr().out
+
+
+def test_pending_release_with_candidate_on_origin_still_requires_d1_verification(tmp_path, monkeypatch, capsys):
+    module = load_module()
+    state_file = tmp_path / 'release-state.json'
+    state_file.write_text(json.dumps({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }), encoding='utf-8')
+    calls = []
+
+    def fake_run(args, timeout=900, env=None):
+        calls.append(args)
+        if args == ['git', 'rev-parse', 'origin/main']:
+            return subprocess.CompletedProcess(args, 0, 'candidate-sha\n', '')
+        if args == ['git', 'rev-parse', 'candidate-sha^']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args[:2] == ['git', 'show']:
+            payload = {'data_as_of': '2026-09-18', 'intersection': ['000001.SZ']}
+            return subprocess.CompletedProcess(args, 0, json.dumps(payload), '')
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'load_env_file', lambda *_args, **_kwargs: {'LOW_CHIP_SYNC_TOKEN': 'token'})
+    monkeypatch.setattr(module, 'verify_d1_api', lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('D1 unavailable')))
+
+    assert module.recover_pending_release(state_file=state_file) == 1
+    assert not any(call[:2] == ['git', 'push'] for call in calls)
+    saved = json.loads(state_file.read_text(encoding='utf-8'))
+    assert saved['d1_verified'] is False
+    assert saved['pushed'] is False
+    assert 'STAGING BLOCKER' in capsys.readouterr().out
+
+
+def test_pending_d1_release_blocks_when_d1_cannot_be_verified(tmp_path, monkeypatch, capsys):
+    module = load_module()
+    state_file = tmp_path / 'release-state.json'
+    state_file.write_text(json.dumps({
+        'trade_date': '2026-09-18',
+        'candidate_commit': 'candidate-sha',
+        'd1_sync_started': True,
+        'd1_verified': False,
+        'pushed': False,
+    }), encoding='utf-8')
+    calls = []
+
+    def fake_run(args, timeout=900, env=None):
+        calls.append(args)
+        if args == ['git', 'rev-parse', 'origin/main']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args == ['git', 'rev-parse', 'candidate-sha^']:
+            return subprocess.CompletedProcess(args, 0, 'base-sha\n', '')
+        if args[:2] == ['git', 'show']:
+            payload = {'data_as_of': '2026-09-18', 'intersection': ['000001.SZ']}
+            return subprocess.CompletedProcess(args, 0, json.dumps(payload), '')
+        return subprocess.CompletedProcess(args, 0, '', '')
+
+    monkeypatch.setattr(module, 'run', fake_run)
+    monkeypatch.setattr(module, 'load_env_file', lambda *_args, **_kwargs: {'LOW_CHIP_SYNC_TOKEN': 'token'})
+    monkeypatch.setattr(module, 'verify_d1_api', lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('D1 unavailable')))
+
+    assert module.recover_pending_release(state_file=state_file) == 1
+    assert not any(call[:2] == ['git', 'push'] for call in calls)
+    assert json.loads(state_file.read_text(encoding='utf-8'))['pushed'] is False
+    assert 'STAGING BLOCKER' in capsys.readouterr().out
+
+
+def test_pipeline_checks_pending_release_before_generation():
+    source = SCRIPT.read_text(encoding='utf-8')
+    recovery = source.index('recover_pending_release()')
+    build = source.index("run([sys.executable, 'scripts/build_low_chip_base.py'")
+    assert recovery < build
+
+
+def test_risk_staging_gate_uses_copy_and_preserves_formal_file(tmp_path, monkeypatch):
+    module = load_module()
+    formal = tmp_path / 'formal.json'
+    formal.write_text('{"data_as_of":"2026-09-18"}\n', encoding='utf-8')
+    risk_script = tmp_path / 'attach.py'
+    risk_script.write_text('# fixture\n', encoding='utf-8')
+    monkeypatch.setattr(module, 'DATA', formal)
+    monkeypatch.setattr(module, 'RISK_STAGING_SCRIPT', risk_script)
+    before = formal.read_bytes()
+
+    def runner(args, timeout=900, env=None):
+        staging = Path(args[args.index('--data') + 1])
+        assert staging != formal
+        staging.write_text('{"staged":true}\n', encoding='utf-8')
+        report = {"status": "dry-run", "coverage": {"requested": 1, "attached": 1, "failed": []}}
+        return subprocess.CompletedProcess(args, 0, json.dumps(report) + '\n', '')
+
+    report = module.run_risk_staging_gate(runner=runner)
+    assert report['status'] == 'dry-run'
+    assert formal.read_bytes() == before
+
+
+def test_risk_staging_gate_fails_closed_on_incomplete_coverage(tmp_path, monkeypatch):
+    module = load_module()
+    formal = tmp_path / 'formal.json'
+    formal.write_text('{}\n', encoding='utf-8')
+    risk_script = tmp_path / 'attach.py'
+    risk_script.write_text('# fixture\n', encoding='utf-8')
+    monkeypatch.setattr(module, 'DATA', formal)
+    monkeypatch.setattr(module, 'RISK_STAGING_SCRIPT', risk_script)
+    report = {"status": "STAGING BLOCKER", "coverage": {"requested": 1, "attached": 0, "failed": ["000001.SZ"]}}
+    runner = lambda args, timeout=900, env=None: subprocess.CompletedProcess(args, 0, json.dumps(report) + '\n', '')
+    with pytest.raises(RuntimeError, match='risk staging gate blocked'):
+        module.run_risk_staging_gate(runner=runner)
+
+
 def test_full_build_and_local_commit_precede_remote_side_effects():
     source = SCRIPT.read_text(encoding='utf-8')
     build = source.index("run(['npm', 'run', 'build']")
@@ -112,7 +370,7 @@ def test_full_build_and_local_commit_precede_remote_side_effects():
     sync = source.index("token = sync_d1_metrics(summary['trade_date'], summary['final'])")
     verify = source.index("d1 = verify_d1_api(summary['trade_date'], summary['final'], token)")
     history = source.index('history = verify_history_index(token)')
-    push = source.index("run(['git', 'push'")
+    push = source.index("run(['git', 'push'", history)
     release = source.index('release = run([sys.executable, \'-c\', release_code]')
     assert build < commit < sync < verify < history < push < release
     assert 'surgical-json-release' not in source
@@ -275,6 +533,7 @@ def test_low_chip_build_rejects_missing_iwencai_pool(tmp_path, monkeypatch):
 
 def test_main_restores_backup_after_precommit_failure(monkeypatch):
     module = load_module()
+    monkeypatch.setattr(module, 'TRADE_DATE_OVERRIDE', '2026-09-18')
     restored = []
     state = {'sentinel': True}
 

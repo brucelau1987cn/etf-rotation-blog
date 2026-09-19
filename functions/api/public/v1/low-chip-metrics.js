@@ -25,22 +25,32 @@ const CLIENT_METRIC_FIELDS = [
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
   'year_profit', 'hlp_metrics', 'touchstone_metrics',
+  'risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons',
+  'risk_advisory', 'risk_coverage', 'risk_freshness',
 ];
 const LOW_CHIP_MEMBERSHIP_SQL = 'week_profit IS NOT NULL AND month_profit IS NOT NULL AND quarter_profit IS NOT NULL';
+// D1 batches accept at most 100 statements. A replace batch reserves one
+// statement for DELETE and uses two rows per INSERT statement.
+const MAX_METRICS = 198;
+const ROWS_PER_STMT = 2;
+const STMTS_PER_BATCH = 100;
+
+function parseJsonField(value, fallback) {
+  if (typeof value !== 'string') return value ?? fallback;
+  try { return JSON.parse(value); } catch (e) { return fallback; }
+}
 
 function clientMetric(row) {
   const metric = Object.fromEntries(CLIENT_METRIC_FIELDS.filter((field) => field in row).map((field) => [field, row[field]]));
-  if (typeof metric.industry_etfs === 'string') {
-    try { metric.industry_etfs = JSON.parse(metric.industry_etfs); } catch (e) { metric.industry_etfs = []; }
-  }
-  if (typeof metric.shareholder_nature === 'string') {
-    try { metric.shareholder_nature = JSON.parse(metric.shareholder_nature); } catch (e) { metric.shareholder_nature = null; }
-  }
-  if (typeof metric.hlp_metrics === 'string') {
-    try { metric.hlp_metrics = JSON.parse(metric.hlp_metrics); } catch (e) { metric.hlp_metrics = null; }
-  }
-  if (typeof metric.touchstone_metrics === 'string') {
-    try { metric.touchstone_metrics = JSON.parse(metric.touchstone_metrics); } catch (e) { metric.touchstone_metrics = null; }
+  metric.industry_etfs = parseJsonField(metric.industry_etfs, []);
+  metric.shareholder_nature = parseJsonField(metric.shareholder_nature, null);
+  metric.hlp_metrics = parseJsonField(metric.hlp_metrics, null);
+  metric.touchstone_metrics = parseJsonField(metric.touchstone_metrics, null);
+  metric.risk_reasons = parseJsonField(metric.risk_reasons, []);
+  metric.risk_coverage = parseJsonField(metric.risk_coverage, null);
+  metric.risk_freshness = parseJsonField(metric.risk_freshness, null);
+  if (metric.risk_advisory !== undefined && metric.risk_advisory !== null) {
+    metric.risk_advisory = metric.risk_advisory === true || metric.risk_advisory === 1 || metric.risk_advisory === '1';
   }
   return metric;
 }
@@ -90,6 +100,14 @@ export async function onRequest(context) {
         total_mv REAL,
         fundamental_shadow_status TEXT,
         fundamental_shadow_sessions INTEGER,
+        risk_version TEXT,
+        risk_as_of TEXT,
+        risk_status TEXT,
+        risk_level TEXT,
+        risk_reasons TEXT,
+        risk_advisory INTEGER,
+        risk_coverage TEXT,
+        risk_freshness TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
@@ -144,6 +162,9 @@ export async function onRequest(context) {
     if (!Array.isArray(metrics) || metrics.length === 0) {
       return json({ ok: false, error: 'metrics array required' }, 400);
     }
+    if (metrics.length > MAX_METRICS) {
+      return json({ ok: false, error: `metrics array exceeds maximum of ${MAX_METRICS}` }, 400);
+    }
 
     await ensureTable();
     // Ensure new columns exist on pre-existing tables (fail silently if present)
@@ -168,6 +189,10 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN hlp_metrics TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN touchstone_metrics TEXT').run(); } catch (e) {}
+    for (const column of ['risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_coverage', 'risk_freshness']) {
+      try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} TEXT`).run(); } catch (e) {}
+    }
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN risk_advisory INTEGER').run(); } catch (e) {}
     for (const [column, type] of [
       ['pe_ttm', 'REAL'], ['pb', 'REAL'], ['ps_ttm', 'REAL'], ['pcf_ttm', 'REAL'],
       ['total_share', 'REAL'], ['total_mv', 'REAL'], ['fundamental_shadow_status', 'TEXT'],
@@ -177,8 +202,7 @@ export async function onRequest(context) {
     }
     let inserted = 0;
     // 批量写入：D1 prepared statement 参数上限约100；39列×2行=78参数。
-    const ROWS_PER_STMT = 2;
-    const STMTS_PER_BATCH = 100;
+
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
       'shareholder_change_pct', 'main_force', 'main_force_label',
       'chip_focus', 'report_period', 'top10_float_ratio', 'price', 'announcement_date',
@@ -188,6 +212,7 @@ export async function onRequest(context) {
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
+    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -210,6 +235,10 @@ export async function onRequest(context) {
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
+      m.risk_version || null, m.risk_as_of || null, m.risk_status || null, m.risk_level || null,
+      m.risk_reasons ? JSON.stringify(m.risk_reasons) : null, m.risk_advisory ? 1 : 0,
+      m.risk_coverage ? JSON.stringify(m.risk_coverage) : null,
+      m.risk_freshness ? JSON.stringify(m.risk_freshness) : null,
     ];
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
@@ -240,8 +269,9 @@ export async function onRequest(context) {
       ).bind(...chunk.flatMap(rowValues)));
     }
     let deleted = 0;
-    for (let i = 0; i < stmts.length; i += STMTS_PER_BATCH) {
-      const part = stmts.slice(i, i + STMTS_PER_BATCH);
+    for (let i = 0; i < stmts.length;) {
+      const batchLimit = replaceTradeDate && i === 0 ? STMTS_PER_BATCH - 1 : STMTS_PER_BATCH;
+      const part = stmts.slice(i, i + batchLimit);
       let results;
       if (replaceTradeDate && i === 0) {
         const deleteStmt = env.DB.prepare('DELETE FROM stock_metrics WHERE trade_date = ?').bind(replaceTradeDate);
@@ -255,6 +285,7 @@ export async function onRequest(context) {
         const changes = Number(r?.meta?.changes ?? r?.changes ?? 0);
         if (changes > 0) inserted += changes;
       }
+      i += part.length;
     }
     return json({ ok: true, inserted, deleted, total: metrics.length });
   }
