@@ -7,6 +7,8 @@ No API key required; sends a contact User-Agent and respects SEC rate limits.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -327,17 +329,24 @@ def fetch_institution_holdings(
     return out
 
 
-def main() -> None:
-    client = SecClient()
-    company_map = ticker_to_company(client)
-
+def build_payload(
+    client: SecClient,
+    company_map: dict[str, dict[str, str]],
+    *,
+    universe: list[str] | None = None,
+    institutions: dict[str, str] | None = None,
+) -> dict:
+    universe = UNIVERSE if universe is None else universe
+    institutions = INSTITUTIONS if institutions is None else institutions
     targets: dict[str, list[str]] = {}
-    for ticker in UNIVERSE:
+    for ticker in universe:
         info = company_map.get(ticker, {})
         targets[ticker] = [ticker, info.get("name", "")]
 
     stocks: dict[str, dict] = {}
-    for ticker in UNIVERSE:
+    errors: list[dict] = []
+    insider_succeeded = 0
+    for ticker in universe:
         info = company_map.get(ticker, {})
         cik = info.get("cik")
         entry: dict = {"cik": cik, "insider_transactions": [], "institutional_holders": []}
@@ -346,16 +355,32 @@ def main() -> None:
                 entry["insider_transactions"] = dedupe_exact_records(
                     fetch_insider_trades(client, cik)
                 )
+                insider_succeeded += 1
             except Exception as exc:  # per-stock isolation
                 entry["insider_error"] = str(exc)
+                errors.append({
+                    "scope": "stock_insider", "ticker": ticker, "cik": cik,
+                    "error": f"{type(exc).__name__}: {exc}",
+                })
+        else:
+            errors.append({
+                "scope": "stock_insider", "ticker": ticker, "cik": None,
+                "error": "missing CIK",
+            })
         stocks[ticker] = entry
 
     # Forward-lookup each institution's latest 13F and aggregate per stock.
-    for name, cik in INSTITUTIONS.items():
+    institution_succeeded = 0
+    for name, cik in institutions.items():
         try:
             per_stock = fetch_institution_holdings(client, name, cik, targets)
-        except Exception:
-            continue  # a failed institution must not sink the run
+            institution_succeeded += 1
+        except Exception as exc:
+            errors.append({
+                "scope": "institution", "institution": name, "cik": cik,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+            continue
         for ticker, h in per_stock.items():
             stocks[ticker]["institutional_holders"].append({
                 "holder_name": name,
@@ -363,22 +388,64 @@ def main() -> None:
                 **h,
             })
 
-    for ticker in UNIVERSE:
+    for ticker in universe:
         stocks[ticker]["institutional_holders"].sort(
             key=lambda r: -(r.get("value_usd") or 0)
         )
 
-    payload = {
+    coverage = {
+        "stocks": {
+            "requested": len(universe),
+            "succeeded": insider_succeeded,
+            "failed": len(universe) - insider_succeeded,
+        },
+        "institutions": {
+            "requested": len(institutions),
+            "succeeded": institution_succeeded,
+            "failed": len(institutions) - institution_succeeded,
+        },
+    }
+    return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "data_source": "SEC EDGAR",
         "schema_version": "us-insider-ownership-v2",
-        "universe": UNIVERSE,
-        "institutions": INSTITUTIONS,
+        "shadow_status": "ok" if not errors else "degraded",
+        "coverage": coverage,
+        "errors": errors,
+        "universe": universe,
+        "institutions": institutions,
         "stocks": stocks,
     }
+
+
+def main() -> None:
+    client = SecClient()
+    company_map = ticker_to_company(client)
+    payload = build_payload(client, company_map)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {OUT} ({len(stocks)} stocks, {len(INSTITUTIONS)} institutions)")
+    temp_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=OUT.parent,
+            prefix=f".{OUT.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp:
+            temp_path = temp.name
+            temp.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+            temp.flush()
+            os.fsync(temp.fileno())
+        os.replace(temp_path, OUT)
+        temp_path = None
+    finally:
+        if temp_path is not None:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
+    print(f"wrote {OUT} ({len(payload['stocks'])} stocks, {len(INSTITUTIONS)} institutions)")
 
 
 if __name__ == "__main__":

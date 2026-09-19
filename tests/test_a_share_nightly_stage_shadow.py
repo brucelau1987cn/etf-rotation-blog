@@ -99,7 +99,7 @@ def test_successful_precheck_chain_persists_dated_ready_receipt(monkeypatch):
 
     class Completed:
         returncode = 0
-        stdout = ''
+        stdout = '{"trade_date":"2026-09-14","coverage":{"publishable":true,"failed":0}}'
         stderr = ''
 
     monkeypatch.setattr(module, 'now_iso', lambda: '2026-09-14T22:04:47+08:00')
@@ -122,6 +122,56 @@ def test_successful_precheck_chain_persists_dated_ready_receipt(monkeypatch):
     ]
 
 
+def test_chain_ready_schema_contains_contract_and_artifact_trade_date(monkeypatch):
+    module = load()
+    receipts = []
+
+    class Completed:
+        returncode = 0
+        stdout = '{"trade_date":"2026-09-13","coverage":{"publishable":true,"failed":0}}'
+        stderr = ''
+
+    monkeypatch.setattr(module, 'now_iso', lambda: '2026-09-14T00:04:47+08:00')
+    monkeypatch.setattr(module, 'write_status', lambda payload: None)
+    monkeypatch.setattr(module, 'write_log', lambda *args: None)
+    monkeypatch.setattr(module, 'write_json_atomic', lambda path, payload: receipts.append((path, payload)))
+    monkeypatch.setattr(module, 'run_command', lambda *args, **kwargs: Completed())
+    monkeypatch.setattr(module, 'stage_environment', lambda stage: None)
+
+    payload = module.run_stage('precheck-cache', 3600)
+    receipt = receipts[0][1]
+    assert receipt['version'] == 2
+    assert receipt['requested_stage'] == 'precheck-cache'
+    assert receipt['returncode'] == 0
+    assert receipt['trade_date'] == '2026-09-13'
+    assert receipt['fundamental']['trade_date'] == '2026-09-13'
+    assert receipt['fundamental']['coverage']['publishable'] is True
+    assert receipt['fundamental']['coverage']['failed'] == 0
+
+
+def test_fundamental_fallback_requires_expected_trade_date(monkeypatch, tmp_path):
+    module = load()
+    path = module.ROOT / 'data/local/a-share-fundamental-shadow-latest.json'
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    path = tmp_path / 'data/local/a-share-fundamental-shadow-latest.json'
+    path.parent.mkdir(parents=True)
+    path.write_text('{"trade_date":"2026-09-13","coverage":{"publishable":true,"failed":0}}')
+    assert module.fundamental_shadow_fallback('2026-09-14') is None
+    assert module.fundamental_shadow_fallback('2026-09-13')['trade_date'] == '2026-09-13'
+    assert module.fundamental_shadow_fallback(None) is None
+
+
+def test_expected_trade_date_extracts_latest_stage_artifact_only():
+    module = load()
+    results = [
+        {'stage': 'precheck', 'stdout_tail': ''},
+        {'stage': 'cache', 'stdout_tail': '{"trade_date":"2026-09-13"}'},
+        {'stage': 'other', 'stdout_tail': '{"trade_date":"2026-09-14"}'},
+    ]
+    assert module.expected_trade_date(results) == '2026-09-14'
+    assert module.expected_trade_date([{'stage': 'cache', 'stdout_tail': ''}]) is None
+
+
 def test_timeout_report_names_the_stage(monkeypatch):
     module = load()
 
@@ -131,7 +181,7 @@ def test_timeout_report_names_the_stage(monkeypatch):
     monkeypatch.setattr(module, 'write_status', lambda payload: None)
     monkeypatch.setattr(module, 'write_log', lambda *args: None)
     monkeypatch.setattr(module, 'stage_environment', lambda stage: {})
-    monkeypatch.setattr(module, 'fundamental_shadow_fallback', lambda: None)
+    monkeypatch.setattr(module, 'fundamental_shadow_fallback', lambda *args: None)
     monkeypatch.setattr(module, 'run_command', timeout)
     payload = module.run_stage('fundamental-shadow', 3600)
     assert payload['ok'] is False

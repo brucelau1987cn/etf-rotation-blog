@@ -10,15 +10,18 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import build_us_insider_ownership as ownership_builder  # noqa: E402
 from build_us_insider_ownership import (  # noqa: E402
     CODE_LABEL,
     UNIVERSE,
+    build_payload,
     fetch_insider_trades,
     fetch_institution_holdings,
     normalize_issuer,
     parse_13f_all,
     parse_form4,
     ticker_to_cik,
+    main,
 )
 
 F4_FIXTURE = Path("/tmp/f4.xml")
@@ -170,3 +173,88 @@ def test_fetch_institution_holdings_finds_targets():
     assert out["AAPL"]["value_usd"] == 65950296923
     assert out["AAPL"]["period_ending"] == "2026-06-30"
     assert out["AAPL"]["filed_at"] == "2026-08-14"
+
+
+def test_institution_failure_is_reported_in_errors_coverage_and_shadow_status(monkeypatch):
+    company_map = {"AAPL": {"cik": "0000320193", "name": "Apple Inc."}}
+    monkeypatch.setattr(
+        "build_us_insider_ownership.fetch_insider_trades", lambda client, cik: []
+    )
+
+    def fail_institution(client, name, cik, targets):
+        raise RuntimeError("SEC unavailable")
+
+    monkeypatch.setattr(
+        "build_us_insider_ownership.fetch_institution_holdings", fail_institution
+    )
+    payload = build_payload(
+        FakeClient({}),
+        company_map,
+        universe=["AAPL"],
+        institutions={"Broken Fund": "0000000001"},
+    )
+
+    assert payload["errors"] == [
+        {
+            "scope": "institution",
+            "institution": "Broken Fund",
+            "cik": "0000000001",
+            "error": "RuntimeError: SEC unavailable",
+        }
+    ]
+    assert payload["coverage"]["institutions"] == {
+        "requested": 1,
+        "succeeded": 0,
+        "failed": 1,
+    }
+    assert payload["shadow_status"] == "degraded"
+
+
+def test_complete_collection_has_ok_shadow_status(monkeypatch):
+    company_map = {"AAPL": {"cik": "0000320193", "name": "Apple Inc."}}
+    monkeypatch.setattr(
+        "build_us_insider_ownership.fetch_insider_trades", lambda client, cik: []
+    )
+    monkeypatch.setattr(
+        "build_us_insider_ownership.fetch_institution_holdings",
+        lambda client, name, cik, targets: {},
+    )
+    payload = build_payload(
+        FakeClient({}), company_map, universe=["AAPL"], institutions={"Fund": "1"}
+    )
+    assert payload["errors"] == []
+    assert payload["coverage"]["institutions"]["failed"] == 0
+    assert payload["shadow_status"] == "ok"
+
+
+def test_main_writes_ownership_atomically_and_cleans_temp_on_replace_failure(tmp_path, monkeypatch):
+    out = tmp_path / "us-insider-ownership.json"
+    out.write_text("old payload\n", encoding="utf-8")
+    monkeypatch.setattr("build_us_insider_ownership.OUT", out)
+    monkeypatch.setattr("build_us_insider_ownership.ticker_to_company", lambda client: {})
+    monkeypatch.setattr(
+        "build_us_insider_ownership.build_payload",
+        lambda client, company_map: {"stocks": {"AAPL": {}}, "marker": "new"},
+    )
+    fsync_calls = []
+    real_fsync = ownership_builder.os.fsync
+
+    def record_fsync(fd):
+        fsync_calls.append(fd)
+        return real_fsync(fd)
+
+    monkeypatch.setattr(ownership_builder.os, "fsync", record_fsync)
+
+    def fail_replace(source, destination):
+        assert Path(source).parent == out.parent
+        assert Path(destination) == out
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(ownership_builder.os, "replace", fail_replace)
+
+    with pytest.raises(OSError, match="simulated replace failure"):
+        main()
+
+    assert out.read_text(encoding="utf-8") == "old payload\n"
+    assert len(fsync_calls) == 1
+    assert list(tmp_path.glob(f".{out.name}.*.tmp")) == []

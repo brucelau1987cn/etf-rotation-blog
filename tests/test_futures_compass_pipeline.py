@@ -42,6 +42,7 @@ def test_each_maintenance_slot_refreshes_public_snapshot(monkeypatch):
     monkeypatch.setattr(maintenance, "fetch_daily_bars", lambda: {"rows": 6})
     monkeypatch.setattr(maintenance, "fetch_warehouse_receipts", lambda: {"rows": 3})
     monkeypatch.setattr(maintenance, "fetch_realtime", lambda: {"generated_at": "2026-07-28T08:30:00+08:00", "count": 9})
+    monkeypatch.setattr(maintenance, "validate_public_snapshot", lambda payload: [])
     monkeypatch.setattr(maintenance, "atomic_json", lambda path, payload: writes.append((path, payload)))
 
     for slot in ("preopen", "day-close", "night"):
@@ -57,7 +58,7 @@ def test_maintenance_exit_fails_when_any_required_stage_errors(monkeypatch, caps
     monkeypatch.setattr(maintenance, "run_slot", lambda slot: {
         "review": {"status": "ok"},
         "briefing": {"status": "error", "detail": "generator failed"},
-        "snapshot": {"ok": True},
+        "snapshot": {"ok": True, "count": 1, "expected_count": 1, "items": [{"code": "A"}]},
     })
     monkeypatch.setattr(sys, "argv", ["run_futures_compass_maintenance.py", "--slot", "preopen"])
 
@@ -69,9 +70,164 @@ def test_day_close_requires_daily_and_warehouse_stages(monkeypatch):
     result = {
         "review": {"status": "ok"}, "briefing": {"status": "ok"},
         "daily": {"status": "ok"}, "warehouse": {"status": "error"},
-        "snapshot": {"ok": True},
+        "snapshot": {"ok": True, "count": 1, "expected_count": 1, "items": [{"code": "A"}]},
     }
+    monkeypatch.setattr(maintenance, "validate_public_snapshot", lambda payload: [])
     assert maintenance.required_stage_errors("day-close", result) == ["warehouse"]
+
+
+def test_required_stage_errors_rejects_empty_or_short_snapshot():
+    base = {"review": {"status": "ok"}, "briefing": {"status": "ok"}}
+    assert maintenance.required_stage_errors("preopen", {
+        **base, "snapshot": {"ok": True, "count": 0, "expected_count": 11, "items": []},
+    }) == ["snapshot"]
+    assert maintenance.required_stage_errors("preopen", {
+        **base, "snapshot": {"ok": True, "count": 10, "expected_count": 11, "items": [{"code": "A"}]},
+    }) == ["snapshot"]
+
+
+def test_required_stage_errors_rejects_snapshot_items_count_mismatch():
+    result = {
+        "review": {"status": "ok"}, "briefing": {"status": "ok"},
+        "snapshot": {"ok": True, "count": 2, "expected_count": 2, "items": [{"code": "A"}]},
+    }
+    assert maintenance.required_stage_errors("preopen", result) == ["snapshot"]
+
+
+def test_required_stage_errors_uses_complete_snapshot_validator(monkeypatch):
+    snapshot = {"ok": True, "count": 1, "expected_count": 1, "items": [{"code": "A"}]}
+    calls = []
+    monkeypatch.setattr(maintenance, "validate_public_snapshot", lambda payload: calls.append(payload) or ["malformed item"])
+    result = {
+        "review": {"status": "ok"}, "briefing": {"status": "ok"}, "snapshot": snapshot,
+    }
+
+    assert maintenance.required_stage_errors("preopen", result) == ["snapshot"]
+    assert calls == [snapshot]
+
+
+class FakeReviewDB:
+    def execute(self, *args): pass
+    def commit(self): pass
+    def __enter__(self): return self
+    def __exit__(self, *args): pass
+
+
+def test_iwencai_review_fails_on_legal_empty_result(monkeypatch):
+    monkeypatch.setattr(data, "refresh_watchlist", lambda: [{"name": "螺纹钢", "code": "RB"}])
+    monkeypatch.setattr(data.subprocess, "run", lambda *args, **kwargs: data.subprocess.CompletedProcess(
+        args, 0, stdout=json.dumps({"code_count": 0, "returned_count": 0, "datas": []}), stderr=""
+    ))
+    class FakeDB:
+        def execute(self, *args): pass
+        def commit(self): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+    monkeypatch.setattr(data, "connect", lambda: FakeDB())
+    monkeypatch.setattr(data, "audit", lambda *args, **kwargs: None)
+
+    result = data.run_iwencai_review("preopen")
+
+    assert result["status"] == "error"
+    assert "empty" in result["error"]
+
+
+def test_iwencai_review_fails_on_insufficient_coverage(monkeypatch):
+    monkeypatch.setattr(data, "refresh_watchlist", lambda: [
+        {"name": "螺纹钢", "code": "RB"}, {"name": "白银", "code": "AG"},
+    ])
+    monkeypatch.setattr(data.subprocess, "run", lambda *args, **kwargs: data.subprocess.CompletedProcess(
+        args, 0, stdout=json.dumps({"code_count": 1, "returned_count": 1, "datas": [{"代码": "RB"}]}), stderr=""
+    ))
+    class FakeDB:
+        def execute(self, *args): pass
+        def commit(self): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+    monkeypatch.setattr(data, "connect", lambda: FakeDB())
+    monkeypatch.setattr(data, "audit", lambda *args, **kwargs: None)
+
+    result = data.run_iwencai_review("preopen")
+
+    assert result["status"] == "error"
+    assert "coverage" in result["error"]
+
+
+def run_review(monkeypatch, watchlist, payload):
+    monkeypatch.setattr(data, "refresh_watchlist", lambda: watchlist)
+    monkeypatch.setattr(data.subprocess, "run", lambda *args, **kwargs: data.subprocess.CompletedProcess(
+        args, 0, stdout=json.dumps(payload), stderr=""
+    ))
+    monkeypatch.setattr(data, "connect", lambda: FakeReviewDB())
+    monkeypatch.setattr(data, "audit", lambda *args, **kwargs: None)
+    return data.run_iwencai_review("preopen")
+
+
+def test_iwencai_review_uses_unique_payload_codes_when_code_count_exceeds_datas(monkeypatch):
+    result = run_review(monkeypatch, [
+        {"name": "螺纹钢", "code": "RB"}, {"name": "白银", "code": "AG"},
+    ], {"code_count": 2, "returned_count": 1, "datas": [{"品种代码": "RB"}]})
+
+    assert result["status"] == "error"
+    assert result["covered_codes"] == ["RB"]
+    assert result["missing_codes"] == ["AG"]
+
+
+def test_iwencai_review_deduplicates_rows_by_product_code(monkeypatch):
+    result = run_review(monkeypatch, [
+        {"name": "螺纹钢", "code": "RB"}, {"name": "白银", "code": "AG"},
+    ], {"code_count": 2, "returned_count": 2, "datas": [
+        {"品种代码": "RB", "合约代码": "RB2610.SHF"},
+        {"品种代码": "RB", "合约代码": "RB2701.SHF"},
+    ]})
+
+    assert result["status"] == "error"
+    assert result["covered_codes"] == ["RB"]
+    assert result["missing_codes"] == ["AG"]
+
+
+def test_iwencai_review_rejects_row_without_product_code(monkeypatch):
+    result = run_review(
+        monkeypatch,
+        [{"name": "螺纹钢", "code": "RB"}],
+        {"code_count": 1, "datas": [{"合约简称": "螺纹钢主力"}]},
+    )
+
+    assert result["status"] == "error"
+    assert result["invalid_rows"] == 1
+    assert result["missing_codes"] == ["RB"]
+
+
+def test_run_slot_preserves_public_snapshot_when_new_snapshot_is_invalid(monkeypatch):
+    writes = []
+    malformed = {"ok": True, "count": 1, "expected_count": 1, "items": [{"code": "RB"}]}
+    monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {"status": "ok"})
+    monkeypatch.setattr(maintenance, "refresh_briefing", lambda: {"status": "ok"})
+    monkeypatch.setattr(maintenance, "fetch_realtime", lambda: malformed)
+    monkeypatch.setattr(maintenance, "validate_public_snapshot", lambda payload: ["malformed item"])
+    monkeypatch.setattr(maintenance, "atomic_json", lambda path, payload: writes.append((path, payload)))
+
+    result = maintenance.run_slot("preopen")
+
+    assert writes == []
+    assert result["snapshot_validation_errors"] == ["malformed item"]
+
+
+def test_run_slot_preserves_public_snapshot_when_review_coverage_is_insufficient(monkeypatch):
+    writes = []
+    snapshot = {"ok": True, "count": 1, "expected_count": 1, "items": [{"code": "RB"}]}
+    monkeypatch.setattr(maintenance, "run_iwencai_review", lambda slot: {
+        "status": "error", "error": "iWenCai coverage insufficient: 0/1",
+    })
+    monkeypatch.setattr(maintenance, "refresh_briefing", lambda: {"status": "ok"})
+    monkeypatch.setattr(maintenance, "fetch_realtime", lambda: snapshot)
+    monkeypatch.setattr(maintenance, "validate_public_snapshot", lambda payload: [])
+    monkeypatch.setattr(maintenance, "atomic_json", lambda path, payload: writes.append((path, payload)))
+
+    result = maintenance.run_slot("preopen")
+
+    assert writes == []
+    assert result["snapshot_publication"]["status"] == "blocked"
 
 
 def test_futures_calendar_gate_uses_current_day_for_day_slots(monkeypatch):

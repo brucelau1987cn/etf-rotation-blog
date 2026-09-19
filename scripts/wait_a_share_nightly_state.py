@@ -16,6 +16,10 @@ MANIFEST = Path("/root/.hermes/state/a-share-nightly-pipeline.json")
 CHAIN_STAGES = ("precheck", "cache", "fundamental-shadow")
 
 
+class StaleStateError(RuntimeError):
+    """A terminal receipt belongs to an earlier trade date."""
+
+
 def load_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -31,12 +35,22 @@ def chain_ready(payload: dict, trade_date: str) -> bool:
     stage_results = {
         item.get("stage"): item for item in results if isinstance(item, dict)
     }
+    fundamental = payload.get("fundamental")
+    coverage = fundamental.get("coverage") if isinstance(fundamental, dict) else None
     return bool(
-        payload.get("trade_date") == trade_date
+        payload.get("version") == 2
+        and payload.get("requested_stage") == "precheck-cache"
+        and payload.get("returncode") == 0
+        and payload.get("trade_date") == trade_date
         and payload.get("status") == "ready"
         and str(payload.get("ready_at") or "")[:10] == trade_date
         and set(stage_results) == set(CHAIN_STAGES)
         and all(stage_results[name].get("ok") is True for name in CHAIN_STAGES)
+        and isinstance(fundamental, dict)
+        and fundamental.get("trade_date") == trade_date
+        and isinstance(coverage, dict)
+        and coverage.get("publishable") is True
+        and coverage.get("failed") == 0
     )
 
 
@@ -79,6 +93,14 @@ def wait_for_stage(
             last = load_json(manifest_path)
             if content_ready(last, trade_date):
                 return last
+            if (
+                last.get("status") in {"published", "blocked"}
+                and last.get("trade_date") != trade_date
+            ):
+                raise StaleStateError(
+                    f"stale content state for {trade_date}: "
+                    f"status={last.get('status')} trade_date={last.get('trade_date')}"
+                )
             detail = last.get("status") or "missing"
         if time.monotonic() >= deadline:
             raise TimeoutError(
@@ -99,6 +121,9 @@ def main() -> int:
         payload = wait_for_stage(
             args.stage, now=now, timeout=args.timeout, interval=args.interval,
         )
+    except StaleStateError as exc:
+        print(json.dumps({"status": "stale_state", "reason": str(exc)}, ensure_ascii=False))
+        return 76
     except TimeoutError as exc:
         print(json.dumps({"status": "waiting_timeout", "reason": str(exc)}, ensure_ascii=False))
         return 75

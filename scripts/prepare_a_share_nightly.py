@@ -204,7 +204,6 @@ def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
             if (
                 isinstance(existing, dict)
                 and existing.get("version") == 2
-                and existing.get("trade_date") == gate.get("qfq_date")
             ):
                 return existing
         payload = {

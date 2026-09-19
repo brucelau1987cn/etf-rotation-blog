@@ -19,13 +19,14 @@ def test_chain_ready_survives_later_running_status(tmp_path):
     ready = tmp_path / "ready.json"
     status = tmp_path / "status.json"
     write(ready, {
-        "version": 1,
+        "version": 2, "requested_stage": "precheck-cache", "returncode": 0,
         "trade_date": "2026-09-14",
         "status": "ready",
         "ready_at": "2026-09-14T22:04:47+08:00",
         "results": [{"stage": name, "ok": True} for name in (
             "precheck", "cache", "fundamental-shadow"
         )],
+        "fundamental": {"trade_date": "2026-09-14", "coverage": {"publishable": True, "failed": 0}},
     })
     write(status, {
         "version": 1,
@@ -52,11 +53,13 @@ def test_chain_waits_through_running_then_reads_ready(tmp_path, monkeypatch):
     def sleep(seconds):
         sleeps.append(seconds)
         write(ready, {
+            "version": 2, "requested_stage": "precheck-cache", "returncode": 0,
             "trade_date": "2026-09-14", "status": "ready",
             "ready_at": "2026-09-14T22:05:00+08:00",
             "results": [{"stage": name, "ok": True} for name in (
                 "precheck", "cache", "fundamental-shadow"
             )],
+            "fundamental": {"trade_date": "2026-09-14", "coverage": {"publishable": True, "failed": 0}},
         })
 
     monkeypatch.setattr(gate.time, "sleep", sleep)
@@ -104,3 +107,17 @@ def test_timeout_preserves_existing_manifest(tmp_path):
         )
 
     assert json.loads(manifest.read_text(encoding="utf-8")) == original
+
+
+@pytest.mark.parametrize("status", ["published", "blocked"])
+def test_stale_terminal_content_state_fails_immediately(tmp_path, status):
+    manifest = tmp_path / "manifest.json"
+    write(manifest, {
+        "version": 2, "status": status, "phase": status,
+        "trade_date": "2026-09-13", "prepared_at": "2026-09-13T22:05:00+08:00",
+    })
+
+    with pytest.raises(gate.StaleStateError, match=f"stale content state.*{status}"):
+        gate.wait_for_stage(
+            "content", now=NOW, timeout=1200, interval=10, manifest_path=manifest,
+        )

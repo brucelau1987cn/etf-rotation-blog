@@ -20,6 +20,7 @@ def test_previous_profit_fallback_refreshes_quote_without_changing_profit_ratios
         "assets": {"gold": {"ok": False, "error": "ths: no kline"}},
     }
     previous = {
+        "as_of": "2026-09-19",
         "assets": {
             "gold": {
                 "ok": True,

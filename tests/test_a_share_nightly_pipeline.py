@@ -217,6 +217,22 @@ def test_prepare_idempotent_preserves_same_day_v2_manifest(tmp_path, monkeypatch
     assert json.loads(state.read_text()) == existing
 
 
+def test_prepare_nontrading_day_preserves_any_valid_v2_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(prepare, "run_json", lambda command: {
+        "decision": "idempotent", "qfq_date": "2026-07-15",
+    })
+    state = tmp_path / "state.json"
+    existing = prepared_state()
+    state.write_text(json.dumps(existing))
+
+    result = prepare.prepare(
+        now=datetime(2026, 7, 15, 22, 5, tzinfo=CN), state_path=state,
+    )
+
+    assert result == existing
+    assert json.loads(state.read_text()) == existing
+
+
 def test_prepare_soft_checks_invalid_kronos_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
     monkeypatch.setattr(prepare, "generate_research_audit", lambda *_: (research_audit_fixture(), None))

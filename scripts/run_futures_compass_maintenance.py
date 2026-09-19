@@ -17,6 +17,7 @@ from futures_compass_data import (
     fetch_realtime,
     fetch_warehouse_receipts,
     run_iwencai_review,
+    validate_public_snapshot,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,7 +93,7 @@ def required_stage_errors(slot: str, result: dict[str, Any]) -> list[str]:
         if not isinstance(value, dict):
             errors.append(stage)
         elif stage == "snapshot":
-            if value.get("ok") is not True:
+            if validate_public_snapshot(value):
                 errors.append(stage)
         elif value.get("status") != "ok":
             errors.append(stage)
@@ -115,8 +116,18 @@ def run_slot(slot: str) -> dict:
         result["daily"] = fetch_daily_bars()
         result["warehouse"] = fetch_warehouse_receipts()
     snapshot = fetch_realtime()
-    atomic_json(PUBLIC_SNAPSHOT, snapshot)
     result["snapshot"] = snapshot
+    validation_errors = validate_public_snapshot(snapshot)
+    publication_errors = list(validation_errors)
+    if result["review"].get("status") != "ok":
+        publication_errors.append("iWenCai review coverage is insufficient")
+    if validation_errors:
+        result["snapshot_validation_errors"] = validation_errors
+    if publication_errors:
+        result["snapshot_publication"] = {"status": "blocked", "errors": publication_errors}
+    else:
+        atomic_json(PUBLIC_SNAPSHOT, snapshot)
+        result["snapshot_publication"] = {"status": "published"}
     return result
 
 

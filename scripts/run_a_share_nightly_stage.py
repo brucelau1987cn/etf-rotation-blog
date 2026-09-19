@@ -119,6 +119,19 @@ def last_json_object(text: str) -> dict:
     return {}
 
 
+def fundamental_artifact(results: list[dict]) -> dict:
+    item = next((x for x in results if x.get("stage") == "fundamental-shadow"), {})
+    return last_json_object(str(item.get("stdout_tail") or ""))
+
+
+def expected_trade_date(results: list[dict]) -> str | None:
+    for item in reversed(results):
+        value = last_json_object(str(item.get("stdout_tail") or "")).get("trade_date")
+        if value:
+            return str(value)
+    return None
+
+
 def format_report(payload: dict) -> str:
     ok = payload.get("ok") is True
     raw_results = payload.get("results") or []
@@ -203,13 +216,21 @@ def write_json_atomic(path: Path, payload: dict) -> None:
 def persist_chain_ready(payload: dict) -> None:
     if payload.get("requested_stage") != "precheck-cache" or payload.get("ok") is not True:
         return
-    finished_at = str(payload.get("finished_at") or "")
+    results = payload.get("results") or []
+    artifact = fundamental_artifact(results)
+    coverage = artifact.get("coverage") if isinstance(artifact.get("coverage"), dict) else {}
+    trade_date = artifact.get("trade_date")
+    if not trade_date or coverage.get("publishable") is not True or int(coverage.get("failed") or 0) != 0:
+        return
     write_json_atomic(CHAIN_READY_PATH, {
-        "version": 1,
-        "trade_date": finished_at[:10],
+        "version": 2,
+        "requested_stage": payload.get("requested_stage"),
+        "returncode": 0,
+        "trade_date": trade_date,
         "status": "ready",
-        "ready_at": finished_at,
-        "results": payload.get("results") or [],
+        "ready_at": payload.get("finished_at"),
+        "results": results,
+        "fundamental": artifact,
     })
 
 
@@ -253,8 +274,10 @@ def resolve_stages(stage: str) -> list[str]:
     return [stage]
 
 
-def fundamental_shadow_fallback() -> dict | None:
-    """Accept today's already-persisted complete shadow after a transient rerun fault."""
+def fundamental_shadow_fallback(expected_trade_date: str | None) -> dict | None:
+    """Reuse a complete persisted shadow only for the current target trade date."""
+    if not expected_trade_date:
+        return None
     path = ROOT / "data/local/a-share-fundamental-shadow-latest.json"
     if not path.is_file():
         return None
@@ -267,9 +290,8 @@ def fundamental_shadow_fallback() -> dict | None:
         observed = datetime.fromisoformat(str(payload.get("trade_date") or "")).date()
     except ValueError:
         return None
-    age_days = (datetime.now(CN).date() - observed).days
     if (
-        0 <= age_days <= 3
+        str(payload.get("trade_date")) == expected_trade_date
         and coverage.get("publishable") is True
         and int(coverage.get("failed") or 0) == 0
     ):
@@ -392,14 +414,14 @@ def run_stage(stage: str, timeout: int) -> dict:
                 "ok": proc.returncode == 0,
             }
             if name == "fundamental-shadow" and not item["ok"]:
-                fallback = fundamental_shadow_fallback()
+                fallback = fundamental_shadow_fallback(expected_trade_date(results))
                 if fallback is not None:
                     item["ok"] = True
                     item["degraded"] = True
                     item["stdout_tail"] = json.dumps(fallback, ensure_ascii=False)
                     item["stderr_tail"] = "transient refresh failed; reused today's complete persisted shadow"
         except subprocess.TimeoutExpired:
-            fallback = fundamental_shadow_fallback() if name == "fundamental-shadow" else None
+            fallback = fundamental_shadow_fallback(expected_trade_date(results)) if name == "fundamental-shadow" else None
             item = {
                 "stage": name,
                 "started_at": started,

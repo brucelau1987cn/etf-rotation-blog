@@ -128,6 +128,8 @@ def validate_public_snapshot(
     watchlist: list[dict[str, Any]] | None = None,
 ) -> list[str]:
     errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["futures snapshot must be an object"]
     current = (now or datetime.now(CN)).astimezone(CN)
     try:
         generated = datetime.fromisoformat(str(payload.get("generated_at") or "").replace("Z", "+00:00"))
@@ -142,7 +144,9 @@ def validate_public_snapshot(
         errors.append("futures snapshot generated_at is invalid")
 
     active = watchlist if watchlist is not None else load_watchlist()
-    expected = [item["code"] for item in active]
+    expected = [str(item.get("code") or "").strip().upper() for item in active if isinstance(item, dict)]
+    if not expected or any(not code for code in expected) or len(expected) != len(set(expected)):
+        errors.append("futures snapshot watchlist codes must be non-empty and unique")
     if payload.get("ok") is not True:
         errors.append("futures snapshot ok must be true")
     if payload.get("stale") is not False:
@@ -155,8 +159,11 @@ def validate_public_snapshot(
         errors.append("futures snapshot errors must be empty")
 
     items = payload.get("items")
-    actual = [str(item.get("code") or "") for item in items] if isinstance(items, list) else []
-    if actual != expected or payload.get("count") != len(expected):
+    if not isinstance(items, list):
+        errors.append("futures snapshot items must be an array")
+        items = []
+    actual = [str(item.get("code") or "").strip().upper() for item in items if isinstance(item, dict)]
+    if len(actual) != len(items) or len(actual) != len(set(actual)) or set(actual) != set(expected) or payload.get("count") != len(expected):
         errors.append(f"futures snapshot watchlist mismatch: expected={expected}, actual={actual}")
     summary = payload.get("summary")
     ranking = summary.get("ranking") if isinstance(summary, dict) else None
@@ -171,7 +178,7 @@ def validate_public_snapshot(
         "price", "open", "high", "low", "prev_close", "volume", "open_interest",
         "ma5", "ma10", "ma20", "atr14", "support", "resistance", "invalidation",
     )
-    for item in items if isinstance(items, list) else []:
+    for item in items:
         if not isinstance(item, dict):
             errors.append("futures snapshot item must be an object")
             continue
@@ -202,6 +209,19 @@ def validate_public_snapshot(
         ):
             errors.append(f"futures snapshot {code} known warehouse receipt lacks data")
     return errors
+
+
+def iwencai_product_code(row: Any) -> str | None:
+    """Read the futures product code from the real iWenCai row schema."""
+    if not isinstance(row, dict):
+        return None
+    for field in ("品种代码", "code", "代码"):
+        raw = str(row.get(field) or "").strip().upper()
+        if raw:
+            code = raw.split(".", 1)[0]
+            if code.isalpha():
+                return code
+    return None
 
 
 def now_iso() -> str:
@@ -442,7 +462,19 @@ def run_iwencai_review(slot: str) -> dict[str, Any]:
             status = "error"; error = str(exc)
     else:
         error = (proc.stderr or proc.stdout or "iWenCai failed").strip()[:500]
-    rows = payload.get("datas") or []
+    raw_rows = payload.get("datas")
+    rows = raw_rows if isinstance(raw_rows, list) else []
+    expected_codes = [item["code"] for item in watchlist]
+    parsed_codes = [iwencai_product_code(row) for row in rows]
+    covered_set = {code for code in parsed_codes if code in set(expected_codes)}
+    covered_codes = [code for code in expected_codes if code in covered_set]
+    missing_codes = [code for code in expected_codes if code not in covered_set]
+    invalid_rows = sum(code is None for code in parsed_codes)
+    if status == "ok":
+        if not rows:
+            status = "error"; error = "iWenCai returned empty result"
+        elif missing_codes:
+            status = "error"; error = f"iWenCai coverage insufficient: {len(covered_codes)}/{len(expected_codes)}; missing={missing_codes}"
     with connect() as db:
         db.execute(
             "INSERT INTO iwencai_reviews(reviewed_at,review_slot,query,code_count,row_count,payload_json,status,error) VALUES(?,?,?,?,?,?,?,?)",
@@ -450,7 +482,12 @@ def run_iwencai_review(slot: str) -> dict[str, Any]:
         )
         audit(db, "iwencai", "scheduled_review", status, len(rows), round((time.time() - started) * 1000), error)
         db.commit()
-    return {"status": status, "reviewed_at": reviewed_at, "slot": slot, "code_count": payload.get("code_count"), "rows": len(rows), "error": error}
+    return {
+        "status": status, "reviewed_at": reviewed_at, "slot": slot,
+        "code_count": payload.get("code_count"), "rows": len(rows),
+        "covered_codes": covered_codes, "missing_codes": missing_codes,
+        "invalid_rows": invalid_rows, "error": error,
+    }
 
 
 def fetch_warehouse_receipts(query_date: str | None = None) -> dict[str, Any]:

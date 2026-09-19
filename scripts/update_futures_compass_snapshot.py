@@ -9,6 +9,7 @@ from futures_compass_data import (
     fetch_daily_bars,
     fetch_realtime,
     fetch_warehouse_receipts,
+    validate_public_snapshot,
 )
 
 
@@ -16,6 +17,10 @@ def main() -> int:
     daily = fetch_daily_bars()
     warehouse = fetch_warehouse_receipts()
     payload = fetch_realtime()
+    errors = validate_public_snapshot(payload)
+    if errors:
+        print(json.dumps({"status": "error", "errors": errors}, ensure_ascii=False))
+        return 2
     atomic_json(PUBLIC_SNAPSHOT, payload)
     print(json.dumps({
         "status": "ok", "path": "public/data/futures-compass.json",

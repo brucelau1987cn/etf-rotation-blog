@@ -14,7 +14,9 @@ import json
 import os
 import re
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
@@ -263,19 +265,31 @@ def _fetch_tencent_etf_quote(symbol: str) -> dict | None:
         return None
 
 
+PREVIOUS_PROFIT_MAX_AGE_DAYS = 3
+
+
 def _merge_previous_etf_profit(etf_profit: dict, previous_profit: dict,
                                quote_fetcher=_fetch_tencent_etf_quote,
-                               asset_keys=('gold', 'silver')) -> dict:
+                               asset_keys=('gold', 'silver'), today=None,
+                               max_age_days=PREVIOUS_PROFIT_MAX_AGE_DAYS) -> dict:
     """Restore stale profit ratios while refreshing quote-only fields."""
     merged = etf_profit.setdefault('assets', {})
     previous_assets = previous_profit.get('assets') or {}
+    previous_as_of = previous_profit.get('as_of')
+    if today is None:
+        today = datetime.now(CN_TZ).date()
+    try:
+        previous_date = datetime.strptime(str(previous_as_of), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        previous_date = None
+    fresh = previous_date is not None and 0 <= (today - previous_date).days <= max_age_days
     restored = False
     for key in asset_keys:
         row = merged.get(key) or {}
         if row.get('ok') and row.get('day') is not None:
             continue
         previous_row = previous_assets.get(key) or {}
-        if not previous_row.get('ok'):
+        if not previous_row.get('ok') or not fresh:
             continue
         restored_row = dict(previous_row)
         symbol = str(restored_row.get('symbol') or '').removeprefix('169_')
@@ -284,6 +298,8 @@ def _merge_previous_etf_profit(etf_profit: dict, previous_profit: dict,
             restored_row['price'] = quote.get('price')
             restored_row['change_percent'] = quote.get('change_percent')
         restored_row['fallback'] = 'previous_publish'
+        if previous_as_of:
+            restored_row['as_of'] = previous_as_of
         merged[key] = restored_row
         restored = True
     if all((merged.get(key) or {}).get('ok') for key in asset_keys):
@@ -293,6 +309,46 @@ def _merge_previous_etf_profit(etf_profit: dict, previous_profit: dict,
             if 'partial_restore_from_previous_publish' not in warnings:
                 warnings.append('partial_restore_from_previous_publish')
     return etf_profit
+
+
+def build_output(shfe, lbma, fred, cme, lease, etf_profit):
+    mandatory = (shfe, lbma, fred)
+    return {
+        'status': 'ok' if all(item.get('ok') for item in mandatory) else 'error',
+        'fetched_at': datetime.now(timezone.utc).isoformat(),
+        'data': {'shfe': shfe, 'lbma': lbma, 'fred': fred, 'cme': cme,
+                 'implied_lease': lease, 'kitco': {**lease, 'legacy_key': 'kitco', 'alias_of': 'implied_lease'},
+                 'etf_profit': etf_profit},
+    }
+
+
+def write_output_atomic(path, payload, replace=True):
+    """Write beside the formal file, then optionally atomically publish it."""
+    path = os.fspath(path)
+    temporary = None
+    fd = None
+    completed = False
+    try:
+        fd, temporary = tempfile.mkstemp(
+            dir=os.path.dirname(path), prefix=f'.{os.path.basename(path)}.', suffix='.candidate'
+        )
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            fd = None
+            json.dump(payload, handle, ensure_ascii=False, indent=2, default=str)
+            handle.write('\n')
+            handle.flush()
+            os.fsync(handle.fileno())
+        if replace:
+            os.replace(temporary, path)
+            temporary = None
+            return Path(path)
+        completed = True
+        return Path(temporary)
+    finally:
+        if fd is not None:
+            os.close(fd)
+        if temporary is not None and os.path.exists(temporary) and not completed:
+            os.unlink(temporary)
 
 
 def _run_iwencai(query: str, limit: int = 2, timeout: int = 45) -> list[dict]:
@@ -526,28 +582,22 @@ def main():
     kitco_alias['legacy_key'] = 'kitco'
     kitco_alias['alias_of'] = 'implied_lease'
 
-    output = {
-        'status': 'ok',
-        'fetched_at': datetime.now(timezone.utc).isoformat(),
-        'data': {
-            'shfe': shfe,
-            'lbma': lbma,
-            'fred': fred,
-            'cme': cme,
-            'implied_lease': lease,
-            'kitco': kitco_alias,  # backward-compatible alias
-            'etf_profit': etf_profit,  # 日/周/月线获利比
-        },
-    }
+    output = build_output(shfe, lbma, fred, cme, lease, etf_profit)
 
     # 写入 public/data/
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.abspath(os.path.join(script_dir, '..'))
     out_path = os.path.join(project_dir, 'public', 'data', 'precious-inventory.json')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
-    print(f'  Written to {out_path}', flush=True)
+    candidate = write_output_atomic(out_path, output, replace=output['status'] == 'ok')
+    if output['status'] == 'ok':
+        print(f'  Written to {out_path}', flush=True)
+    else:
+        print(f'  Mandatory source failure; formal file preserved, candidate={candidate}', flush=True)
+        try:
+            os.unlink(candidate)
+        except OSError:
+            pass
 
     # 输出摘要
     ok_count = sum(1 for v in [shfe, lbma, fred, cme, lease] if v.get('ok'))
@@ -556,6 +606,7 @@ def main():
     print(f'  Result: {ok_count}/5 OK (SHFE+LBMA+FRED+CME+LEASE)', flush=True)
     if lease.get('ok'):
         print(f'  Lease 1M gold={g1} silver={s1}', flush=True)
+    return 0 if output['status'] == 'ok' else 1
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())
