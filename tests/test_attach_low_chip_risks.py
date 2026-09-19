@@ -203,6 +203,30 @@ def test_slow_adapter_is_hard_terminated(monkeypatch, tmp_path):
     assert "exceeded" in result["payload"]["enrichments"]["000001.SZ"]["risk"]["reasons"][0]
 
 
+def test_slow_price_phase_does_not_starve_event_sources(monkeypatch, tmp_path):
+    """Per-source budgets are consumed-time based, not wall-clock from run start.
+
+    A slow price phase previously exhausted the announcement/rating/news
+    deadlines and turned every later symbol into a false budget failure.
+    """
+    monkeypatch.setattr("scripts.attach_low_chip_risks.SOURCE_BUDGET_SECONDS", 0.6)
+    source = tmp_path / "stocks.json"
+    source.write_text(json.dumps({"data_as_of": "2026-09-21", "intersection": ["000001.SZ", "000002.SZ"]}), encoding="utf-8")
+
+    def slow_price(_code, _as_of=None, **_kwargs):
+        time.sleep(1.0)
+        return bars([100] * 20)
+
+    ok = lambda *_a, **_k: {"complete": True, "level": "none", "reasons": [], "source": "mock"}
+    result = attach_risks(source, dry_run=True, price_fetcher=slow_price,
+                          announcement_adapter=ok, rating_adapter=ok, news_adapter=ok)
+    assert result["status"] == "dry-run"
+    assert result["coverage"]["attached"] == 2
+    assert result["coverage"]["sources"]["announcement"]["failed"] == 0
+    assert result["coverage"]["sources"]["rating"]["failed"] == 0
+    assert result["coverage"]["sources"]["news"]["failed"] == 0
+
+
 def test_schema_semantics_reject_inconsistent_status_and_coverage():
     valid = aggregate_risk(complete_parts(), as_of="2026-09-21")
     with pytest.raises(ValueError, match="failed component"):

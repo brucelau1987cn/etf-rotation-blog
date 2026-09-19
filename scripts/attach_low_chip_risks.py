@@ -534,7 +534,6 @@ def attach_risks(path: str | Path = DATA, *, dry_run: bool = False,
     target = Path(path); original = json.loads(target.read_text(encoding="utf-8")); payload = copy.deepcopy(original)
     data_as_of = data_as_of or payload.get("data_as_of"); failed: list[str] = []; attached = 0
     started = time.monotonic(); overall_deadline = started + DRY_RUN_BUDGET_SECONDS
-    source_deadlines = {name: started + SOURCE_BUDGET_SECONDS for name in ("announcement", "rating", "news")}
     source_stats = {name: {"coverage": 0, "success": 0, "failed": 0, "elapsed_seconds": 0.0} for name in ("price", "announcement", "rating", "news")}
     for code in payload.get("intersection", []):
         parts: list[dict[str, Any]] = []
@@ -555,7 +554,13 @@ def attach_risks(path: str | Path = DATA, *, dry_run: bool = False,
         for name, adapter in zip(("announcement", "rating", "news"), (announcement_adapter, rating_adapter, news_adapter)):
             t = time.monotonic()
             try:
-                deadline = min(source_deadlines[name], overall_deadline)
+                # Each source gets its own consumed-time budget. Using a wall-clock
+                # deadline from run start let a slow price phase exhaust the event
+                # sources mid-run, turning later symbols into false failures.
+                spent = source_stats[name]["elapsed_seconds"]
+                budget_left = SOURCE_BUDGET_SECONDS - spent
+                if budget_left <= 0: raise TimeoutError(f"{name} source budget exhausted")
+                deadline = min(time.monotonic() + budget_left, overall_deadline)
                 remaining = deadline - time.monotonic()
                 if remaining <= 0: raise TimeoutError(f"{name} source budget exhausted")
                 part = _hard_call(_invoke_adapter, (adapter, code, data_as_of, deadline), {}, remaining)
