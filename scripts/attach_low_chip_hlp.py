@@ -7,9 +7,12 @@ import fcntl
 import io
 import json
 import math
+import multiprocessing
 import os
 import random
+import signal
 import tempfile
+import threading
 import time
 import urllib.request
 from datetime import datetime, timedelta
@@ -29,10 +32,79 @@ DATA = ROOT / 'public/data/a-low-chip-stocks.json'
 LOOKBACK_DAYS = 240
 THS_LOOKBACK_DAYS = 365
 CF_BATCH_SIZE = 5
+TOTAL_BUDGET_SECONDS = 2100
+LOCAL_BUDGET_SECONDS = 600
 LOCAL_LOCK = Path('/root/.hermes/state/baostock-local.lock')
 SERIES_CACHE = Path('/root/.hermes/state/low-chip-hlp-series.json')
 THS_CHIP_URL = 'https://dq.10jqka.com.cn/fuyao/chip_shape_stock_selection/stock/v1/chip_list'
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+_ACTIVE_STAGE = 'idle'
+
+
+class StageTimeout(RuntimeError):
+    """A named HLP stage exhausted its time budget."""
+
+
+class OverallBudgetTimeout(StageTimeout):
+    """The whole HLP run exhausted its hard deadline."""
+
+
+def _local_worker(connection, worker, symbols, start, end) -> None:
+    try:
+        connection.send(('ok', worker(symbols, start, end)))
+    except BaseException as exc:
+        connection.send(('error', f'{type(exc).__name__}: {exc}'))
+    finally:
+        connection.close()
+
+
+def run_local_batch_interruptible(symbols: list[str], start: str, end: str, *,
+                                  timeout: float, worker=None):
+    """Run local BaoStock out of process so socket/lock hangs are killable."""
+    worker = worker or fetch_local_batch
+    parent = child = process = None
+    startup_mask = None
+    if threading.current_thread() is threading.main_thread():
+        startup_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+    try:
+        try:
+            context = multiprocessing.get_context('fork')
+            parent, child = context.Pipe(duplex=False)
+            process = context.Process(
+                target=_local_worker, args=(child, worker, symbols, start, end)
+            )
+            process.start()
+            child.close()
+        finally:
+            if startup_mask is not None:
+                signal.pthread_sigmask(signal.SIG_SETMASK, startup_mask)
+
+        if not parent.poll(timeout):
+            raise StageTimeout(f'local-baostock timed out after {timeout:g}s')
+        status, result = parent.recv()
+    finally:
+        cleanup_mask = None
+        if threading.current_thread() is threading.main_thread():
+            cleanup_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+        try:
+            if parent is not None:
+                parent.close()
+            if child is not None:
+                child.close()
+            if process is not None and process.pid is not None:
+                if process.is_alive():
+                    process.terminate()
+                process.join(5)
+                if process.is_alive():
+                    process.kill()
+                    process.join(5)
+                process.close()
+        finally:
+            if cleanup_mask is not None:
+                signal.pthread_sigmask(signal.SIG_SETMASK, cleanup_mask)
+    if status == 'error':
+        raise RuntimeError(result)
+    return result
 
 
 def _frame(rows) -> pd.DataFrame:
@@ -244,13 +316,17 @@ def calc(df: pd.DataFrame) -> dict:
     return {'hlp': round(h, 4), 'hlp15': round(h15, 4), 'hlp60': round(h60, 4), 'hlp100': round(h100, 4), 'chip_signals': signals, 'source': str(df.attrs.get('source') or 'baostock-cyq')}
 
 
-def _baostock_fallback(codes: list[str], start: str, end: str, *, client=None) -> tuple[dict[str, pd.DataFrame], dict[str, str]]:
+def _baostock_fallback(codes: list[str], start: str, end: str, *, client=None,
+                       local_batch_runner=run_local_batch_interruptible,
+                       local_budget: float = LOCAL_BUDGET_SECONDS) -> tuple[dict[str, pd.DataFrame], dict[str, str]]:
     frames: dict[str, pd.DataFrame] = {}
     errors: dict[str, str] = {}
     try:
-        local_frames, local_errors = fetch_local_batch(codes, start, end)
+        local_frames, local_errors = local_batch_runner(codes, start, end, timeout=local_budget)
         frames.update(local_frames)
         errors.update(local_errors)
+    except OverallBudgetTimeout:
+        raise
     except Exception as exc:
         errors['local-baostock'] = f'{type(exc).__name__}: {exc}'
     missing = [symbol for symbol in codes if frames.get(symbol, pd.DataFrame()).empty]
@@ -260,13 +336,39 @@ def _baostock_fallback(codes: list[str], start: str, end: str, *, client=None) -
             batch = missing[offset:offset + CF_BATCH_SIZE]
             try:
                 frames.update(fetch_cf_batch(batch, start, end, client=gateway))
+            except OverallBudgetTimeout:
+                raise
             except Exception as exc:
                 for symbol in batch:
                     errors[symbol] = f'{type(exc).__name__}: {exc}'
     return frames, errors
 
 
-def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
+def _build_and_publish(path=DATA, history_loader=None, *, client=None,
+                       total_budget: float = TOTAL_BUDGET_SECONDS,
+                       local_budget: float = LOCAL_BUDGET_SECONDS,
+                       local_batch_runner=run_local_batch_interruptible,
+                       clock=time.monotonic) -> dict:
+    global _ACTIVE_STAGE
+    started = clock()
+    stage = 'initialize'
+    _ACTIVE_STAGE = stage
+
+    def finish_stage(name: str, stage_started: float, detail: str = '') -> None:
+        elapsed = clock() - stage_started
+        suffix = f' {detail}' if detail else ''
+        print(f'[hlp-stage] {name} done elapsed={elapsed:.1f}s total={clock() - started:.1f}s{suffix}', flush=True)
+
+    def require_budget(name: str) -> float:
+        elapsed = clock() - started
+        remaining = total_budget - elapsed
+        if remaining <= 0:
+            raise OverallBudgetTimeout(
+                f'HLP overall budget {total_budget:g}s exhausted at stage={name} elapsed={elapsed:.1f}s'
+            )
+        return remaining
+
+    print(f'[hlp] start total_budget={total_budget:g}s local_budget={local_budget:g}s', flush=True)
     original = json.loads(Path(path).read_text(encoding='utf-8'))
     payload = json.loads(json.dumps(original))
     end = payload['data_as_of']
@@ -284,7 +386,11 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
     series_cache = load_series_cache()
     cache_changed = False
     if history_loader is None:
+        stage = 'ths-chip'
+        _ACTIVE_STAGE = stage
+        stage_started = clock()
         for index, symbol in enumerate(codes, 1):
+            require_budget(stage)
             try:
                 fresh = fetch_ths_chip_profit_series(symbol, ths_start, end)
                 if not fresh:
@@ -298,6 +404,8 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
                 if len(rows) < 100:
                     raise RuntimeError(f'only {len(rows)} THS chip sessions')
                 ths_series[symbol] = rows
+            except OverallBudgetTimeout:
+                raise
             except Exception as exc:
                 errors[symbol] = f'THS {type(exc).__name__}: {exc}'
                 pending.append(symbol)
@@ -305,6 +413,7 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
                 print(f'[ths-chip] {index}/{len(codes)} ready={len(ths_series)} fallback={len(pending)}', flush=True)
             if index < len(codes):
                 time.sleep(0.12)
+        finish_stage(stage, stage_started, f'ready={len(ths_series)} fallback={len(pending)}')
     else:
         pending = list(codes)
 
@@ -313,17 +422,33 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
 
     fallback_frames: dict[str, pd.DataFrame] = {}
     if pending:
+        stage = 'history-loader' if history_loader is not None else 'local-baostock'
+        _ACTIVE_STAGE = stage
+        stage_started = clock()
+        remaining = require_budget(stage)
         if history_loader is not None:
             for symbol in pending:
                 try:
                     fallback_frames[symbol] = history_loader(symbol, bs_start, end)
+                except OverallBudgetTimeout:
+                    raise
                 except Exception as exc:
                     errors[symbol] = f'{type(exc).__name__}: {exc}'
         else:
-            fallback_frames, fallback_errors = _baostock_fallback(pending, bs_start, end, client=client)
+            fallback_frames, fallback_errors = _baostock_fallback(
+                pending, bs_start, end, client=client,
+                local_batch_runner=local_batch_runner,
+                local_budget=min(local_budget, remaining),
+            )
             errors.update(fallback_errors)
+        require_budget(stage)
+        finish_stage(stage, stage_started, f'ready={len(fallback_frames)}/{len(pending)}')
 
+    stage = 'calculate'
+    _ACTIVE_STAGE = stage
+    stage_started = clock()
     for symbol in codes:
+        require_budget(stage)
         try:
             if symbol in ths_series:
                 metrics = calc_profit_series(ths_series[symbol])
@@ -335,8 +460,11 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
             enrichments[symbol]['hlp_metrics'] = metrics
             computed += 1
             errors.pop(symbol, None)
+        except OverallBudgetTimeout:
+            raise
         except Exception as exc:
             errors[symbol] = f'{type(exc).__name__}: {exc}'
+    finish_stage(stage, stage_started, f'computed={computed}/{len(codes)}')
 
     coverage = {'requested': len(codes), 'computed': computed, 'failed': len([key for key in errors if key in codes])}
     payload['hlp_contract'] = {
@@ -345,17 +473,62 @@ def build_and_publish(path=DATA, history_loader=None, *, client=None) -> dict:
         'window_days': THS_LOOKBACK_DAYS, 'errors': errors, 'coverage': coverage,
     }
     if coverage['failed'] or computed != len(codes):
-        raise RuntimeError(f'hlp coverage incomplete: {coverage}')
+        raise RuntimeError(f'hlp coverage incomplete at stage={stage}: {coverage}; errors={errors}')
+    stage = 'publish'
+    _ACTIVE_STAGE = stage
+    stage_started = clock()
+    require_budget(stage)
     target = Path(path)
     fd, name = tempfile.mkstemp(prefix=f'.{target.name}.', dir=target.parent)
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as handle:
             json.dump(payload, handle, ensure_ascii=False, separators=(',', ':'))
             handle.write('\n'); handle.flush(); os.fsync(handle.fileno())
+        if threading.current_thread() is threading.main_thread():
+            # Publishing is the final operation. Once entered, commit the fully
+            # fsynced candidate and report that committed state as success.
+            previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+            try:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, signal.SIG_IGN)
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
         os.replace(name, target)
     finally:
         Path(name).unlink(missing_ok=True)
+    finish_stage(stage, stage_started, f'coverage={coverage}')
     return coverage
+
+
+def build_and_publish(path=DATA, history_loader=None, *, client=None,
+                      total_budget: float = TOTAL_BUDGET_SECONDS,
+                      local_budget: float = LOCAL_BUDGET_SECONDS,
+                      local_batch_runner=run_local_batch_interruptible,
+                      clock=time.monotonic) -> dict:
+    """Build under a process-level deadline that can interrupt blocked I/O."""
+    if threading.current_thread() is not threading.main_thread():
+        return _build_and_publish(
+            path, history_loader, client=client, total_budget=total_budget,
+            local_budget=local_budget, local_batch_runner=local_batch_runner, clock=clock,
+        )
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+
+    def deadline_handler(_signum, _frame):
+        raise OverallBudgetTimeout(
+            f'HLP overall budget {total_budget:g}s exhausted at stage={_ACTIVE_STAGE}'
+        )
+
+    signal.signal(signal.SIGALRM, deadline_handler)
+    signal.setitimer(signal.ITIMER_REAL, total_budget)
+    try:
+        return _build_and_publish(
+            path, history_loader, client=client, total_budget=total_budget,
+            local_budget=local_budget, local_batch_runner=local_batch_runner, clock=clock,
+        )
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def main() -> int:

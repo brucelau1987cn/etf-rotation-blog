@@ -616,7 +616,7 @@ def test_skip_build_requires_target_date_before_enrichment():
 
 def test_large_pool_timeouts_cover_verified_baostock_runtime():
     source = SCRIPT.read_text(encoding='utf-8')
-    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2400)" in source
+    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2250)" in source
     assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 2400)" in source
     assert "run([sys.executable, 'scripts/update_low_chip_tracking.py'], 2400)" in source
 
