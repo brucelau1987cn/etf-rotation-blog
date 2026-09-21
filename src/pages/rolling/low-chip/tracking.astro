@@ -327,6 +327,7 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
 
             <details class="tc-table-details" data-settled-days={rec.daily.length}>
               <summary>每日明细（{rec.daily.length} 天）</summary>
+              <p class="tc-missing-note">“暂无数据”表示该交易日未取得对应涨幅或获利盘数据。</p>
               <table class="tc-table">
                 <thead>
                   <tr><th>日期</th><th>收盘价</th><th>涨跌幅</th><th>获利盘 %</th></tr>
@@ -336,8 +337,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
                     <tr>
                       <td class="tc-date">{day.date}</td>
                       <td>¥{fmt(day.close)}</td>
-                      <td class:list={day.change_pct != null && day.change_pct >= 0 ? 'tc-up' : 'tc-down'}>{day.change_pct == null ? '—' : `${day.change_pct >= 0 ? '+' : ''}${fmt(day.change_pct)}%`}</td>
-                      <td>{day.profit_ratio == null ? '—' : `${fmt(day.profit_ratio)}%`}</td>
+                      <td class:list={day.change_pct != null && day.change_pct >= 0 ? 'tc-up' : day.change_pct != null ? 'tc-down' : 'tc-missing'} title={day.change_pct == null ? '该交易日暂无涨幅数据' : undefined}>{day.change_pct == null ? '暂无数据' : `${day.change_pct >= 0 ? '+' : ''}${fmt(day.change_pct)}%`}</td>
+                      <td class:list={day.profit_ratio == null && 'tc-missing'} title={day.profit_ratio == null ? '该交易日暂无获利盘数据' : undefined}>{day.profit_ratio == null ? '暂无数据' : `${fmt(day.profit_ratio)}%`}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -458,8 +459,9 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
         var charts = el('div', 'tc-charts'); append(charts, [chart('股价走势', '最高 ¥' + fmt(rec.maxClose) + ' / 最低 ¥' + fmt(rec.minClose), closes, up ? '#e04444' : '#0aa869', up, true, rec.joinClose), chart('获利盘指数', fmt(rec.firstProfit) + '% → ' + fmt(rec.lastProfit) + '%', profits, '#7c5cd6', true, false)]); article.appendChild(charts);
         var metrics = el('div', 'tc-metrics'); append(metrics, [metric('最高涨幅', (Number(rec.maxGain || 0) >= 0 ? '+' : '') + fmt(rec.maxGain) + '%', Number(rec.maxGain || 0) >= 0 ? 'tc-up' : 'tc-down'), metric('最大回撤', fmt(rec.maxDrawdown) + '%', 'tc-down'), metric('获利盘变化', (Number(rec.profitChange || 0) >= 0 ? '+' : '') + fmt(rec.profitChange) + 'pp', Number(rec.profitChange || 0) >= 0 ? 'tc-up' : 'tc-down'), metric('剩余天数', Math.max(0, 20 - daily.length) + '天')]); article.appendChild(metrics);
         var details = el('details', 'tc-table-details'); details.dataset.settledDays = String(daily.length); details.appendChild(el('summary', '', '每日明细（' + daily.length + ' 天）'));
+        details.appendChild(el('p', 'tc-missing-note', '“暂无数据”表示该交易日未取得对应涨幅或获利盘数据。'));
         var table = el('table', 'tc-table'), thead = document.createElement('thead'), hr = document.createElement('tr'); ['日期','收盘价','涨跌幅','获利盘 %'].forEach(function(text) { hr.appendChild(el('th', '', text)); }); thead.appendChild(hr); table.appendChild(thead);
-        var tbody = document.createElement('tbody'); tbody.dataset.liveTableBody = ''; daily.forEach(function(day) { var row = document.createElement('tr'); var dayUp = finite(day.change_pct) && Number(day.change_pct) >= 0; append(row, [el('td', 'tc-date', day.date || ''), el('td', '', '¥' + fmt(day.close)), el('td', finite(day.change_pct) ? (dayUp ? '+' : '') + fmt(day.change_pct) + '%' : '—'), el('td', finite(day.profit_ratio) ? fmt(day.profit_ratio) + '%' : '—')]); if (finite(day.change_pct)) row.children[2].className = dayUp ? 'tc-up' : 'tc-down'; tbody.appendChild(row); });
+        var tbody = document.createElement('tbody'); tbody.dataset.liveTableBody = ''; daily.forEach(function(day) { var row = document.createElement('tr'); var dayUp = finite(day.change_pct) && Number(day.change_pct) >= 0; var changeCell = el('td', finite(day.change_pct) ? (dayUp ? 'tc-up' : 'tc-down') : 'tc-missing', finite(day.change_pct) ? (dayUp ? '+' : '') + fmt(day.change_pct) + '%' : '暂无数据'); var profitCell = el('td', finite(day.profit_ratio) ? '' : 'tc-missing', finite(day.profit_ratio) ? fmt(day.profit_ratio) + '%' : '暂无数据'); if (!finite(day.change_pct)) changeCell.title = '该交易日暂无涨幅数据'; if (!finite(day.profit_ratio)) profitCell.title = '该交易日暂无获利盘数据'; append(row, [el('td', 'tc-date', day.date || ''), el('td', '', '¥' + fmt(day.close)), changeCell, profitCell]); tbody.appendChild(row); });
         table.appendChild(tbody); details.appendChild(table); article.appendChild(details); return article;
       }
       var records;
@@ -795,6 +797,8 @@ const UP = '#e04444', DOWN = '#0aa869', PROFIT = '#7c5cd6', GRID = '#eef1f5';
   .tc-table-details { font-size: .78rem; }
   .tc-table-details summary { cursor: pointer; color: rgb(var(--gray-dark)); font-weight: 700; padding: .3rem 0; font-size: .74rem; }
   .tc-table-details summary:hover { color: var(--accent, #2563eb); }
+  .tc-missing-note { margin: .15rem 0 .35rem; color: rgb(var(--gray-mid)); font-size: .68rem; }
+  .tc-missing { color: rgb(var(--gray-mid)); font-weight: 500; }
   .tc-table { width: 100%; border-collapse: collapse; margin-top: .3rem; }
   .tc-table th, .tc-table td { text-align: right; padding: .3rem .4rem; border-top: 1px solid var(--border); }
   .tc-table th:first-child, .tc-table td:first-child { text-align: left; }
