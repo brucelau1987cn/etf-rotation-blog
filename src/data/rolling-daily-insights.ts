@@ -62,7 +62,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
         buyPlan: '空方观察：跌破HK$21.52日内低或MA20 22.874下方2%（即HK$22.42附近确认）才纳入试错≤1/4。',
         sellPlan: '站回HK$22.10日内高上方则SELL失效；收盘站回MA5 21.824上方则降级为贴价失效。',
         evidence: ['D1 15m SELL@10:30 CST (no trigger_price)', 'D1 10m SELL@10:35 CST (no trigger_price)', '收盘HK$21.66 / 涨跌幅-2.08%', '日内高HK$22.10 / 低HK$21.52', '量比0.830 / 换手0.227%', 'MA5 21.824 / MA10 22.524 / MA20 22.874'] },
-      { name: '纽约白银期货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '10m空方', signalPrices: '$66.029', close: '$66.17', validation: 'watch', validationLabel: '现货白银上穿+0.34%但COMEX收盘前未确认，空方观察',
+      { name: '纽约白银期货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '10m空方', signalPrices: '$66.029', close: '$66.17', change: '+0.34%', validation: 'watch', validationLabel: '现货白银上穿+0.34%但COMEX收盘前未确认，空方观察',
         verdict: '13:50触发10m SELL@$66.029。COMEX收盘后现货白银Sina hf_XAG收66.25（+1.62% 前收65.196 18:32 CST）已上穿信号价+0.34%，国内白银连续nf_AG0收16136（-0.68% 前收16246）仍贴信号价下方（人民币计价差异）。美元指数DINIW 100.2301（前值100.3712）走弱-0.14%给贵金属提供正面背景。属于"盘中触发空方但现货端日内反弹"的失效概率较高场景，次日需COMEX收盘跌破$66.029下方1%（即$65.37）才算SELL升级。',
         support: '$66.029 10m信号价；DINIW 100.2301（前低）', pressure: '$66.25现货白银收盘；$66.91前Sina hf_XAG 18:31参考',
         buyPlan: '空方观察：COMEX收盘跌破$66.029下方1%（即$65.37）才纳入试错≤1/4。',
