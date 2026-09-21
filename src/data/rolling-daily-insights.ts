@@ -32,6 +32,44 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-09-21': {
+    tradeDate: '2026-09-21',
+    shortDate: '09/21',
+    title: '9月21日滚动信号收盘复盘',
+    subtitle: 'A股小盘科技BUY+港股/期货空方对冲：创新医疗BUY 1h@¥18.65收¥18.60贴价、东方明珠BUY 1h45m@¥8.81收¥8.84确认；港股中国宏桥SELL 15m+10m@10:30/10:35（无D1 trigger_price）收HK$21.66-2.08%贴价触发；期货白银SI=F SELL 10m@$66.029（13:50）收$66.17现货端微涨+1.62%。',
+    cutoff: '2026-09-21 收市（A股15:00 / 港股16:00 / COMEX 18:32）',
+    summary: '今日D1共5行覆盖5只信号（含A/港/期货3市场4只标的）：A股BUY 2窗（创新医疗1h@¥18.65、东方明珠1h45m@¥8.81）、港股SELL 2窗（中国宏桥15m+10m未带trigger_price）、期货SI=F SELL 1窗（10m@$66.029）。A股信号标的数2：确认1（东方明珠收盘¥8.84站上信号价上方0.34%）、贴价1（创新医疗收盘¥18.60低于信号价0.27%）。港股中国宏桥SELL簇收HK$21.66（-2.08%）低于前高22.10但高于MA20 22.874仍属贴价触发；期货SI=F SELL 10m@$66.029对应现货白银Sina hf_XAG收66.25（+1.62%，前收65.196）已上穿信号价+0.34%，盘中上穿但COMEX收盘前未确认。BUY/SELL同步触发表明A股小盘科技局部走强而港股+贵金属短期获利回吐，节奏对冲。',
+    buyRule: '今日A股BUY 2窗共振谨慎：创新医疗1h@¥18.65收盘¥18.60贴价-0.27%、东方明珠1h45m@¥8.81收盘¥8.84确认+0.34%。创新医疗日线突破MA20 18.269但收盘贴价，RSI6 51.083中性，换手9.31%量比1.541活跃，需次日重新站回¥18.65上方才升级；东方明珠已站上信号价+0.34%且RSI6 65.688（接近超买但未越限），主力净流入2484万元配合，纳入条件回踩¥8.81-8.52(MA5)区间不破MA5考虑试错≤1/4。同标的同日仅2窗分散，不构成共振；放量激活信号以东方明珠为主。',
+    sellRule: '今日SELL 3窗（港股+期货）作风险控制：中国宏桥15m+10m SELL@10:30/10:35收HK$21.66（-2.08%）仅贴价触发，15m/10m未携带trigger_price需后续以新浪/腾讯近价复核；白银期货SI=F SELL 10m@$66.029对应现货白银Sina hf_XAG已上穿+0.34%但COMEX未跟上，盘中失效概率高。空方观察位：中国宏桥若跌破MA20 22.874下方2%即HK$22.42附近才算空方确认；白银期货若跌破$66.029下方1%即$65.37才算SELL升级。所有BUY标的的回踩止损位统一看各自信号价下沿：创新医疗¥18.65、东方明珠¥8.81。',
+    discipline: '硬规则：D1 trigger_price为空（SELL簇的15m/10m节点未携带触发价）时仅作信号存在性证据，不得作为贴价判断锚；日内确认仍以iWenCai/新浪收盘价为准。A股小盘科技BUY不重仓：BUY+BUY不等于确定性，单簇试错≤1/4。RSI6 接近超买（东方明珠65.688）一律降级为观察而非追买。SELL/SELL同步出现时区分市场：港股贴价触发与期货盘中失效为不同节奏，不联动处理。D1同日同节点不重写，首发触发价作证据锚。期货必须以COMEX结算价定论，盘中价仅为指示。仓位不因共振就放大，多空同时存在的交易日优先观望等待收盘。',
+    sources: 'Cloudflare D1 REST（2026-09-21，5 rows：002173 1h BUY@¥18.65 trigger_time 2026-09-21T02:30:10Z/10:30 CST、01378 15m SELL 2026-09-21T02:30:24Z/10:30 CST trigger_price null、01378 10m SELL 2026-09-21T02:35:03Z/10:35 CST trigger_price null、600637 1h45m BUY@¥8.81 trigger_time 2026-09-21T03:15:11Z/11:15 CST、SI=F 10m SELL@$66.029 trigger_time 2026-09-21T05:50:00Z/13:50 CST）。iWenCai hithink-market-query：002173 创新医疗收¥18.60 +3.97%、开¥18.45/高¥18.87/低¥18.37、量比1.541/换手9.31%、MA5 17.976/MA10 17.905/MA20 18.269、DIF -0.374/DEA -0.4156、RSI6 51.083、主力净流入659.76万元；600637 东方明珠收¥8.84 +1.96%、开¥8.70/高¥8.87/低¥8.59、量比1.973/换手1.65%、MA5 8.52/MA10 8.541/MA20 8.489、DIF 0.103/DEA 0.0901、RSI6 65.688、主力净流入2483.72万元；01378 中国宏桥收HK$21.66 -2.08%、开HK$21.90/高HK$22.10/低HK$21.52、量比0.830/换手0.227%、MA5 21.824/MA10 22.524/MA20 22.874。期货SI=F Yahoo Finance 1d + Sina现货：Sina hf_XAG 现货白银收66.25（+1.62% 前收65.196 18:32 CST）、nf_AG0 白银连续16136（-0.68% 前收16246）、DINIW美元指数100.2301（前值100.3712）。',
+    signals: [
+      { name: '创新医疗', symbol: '002173', market: 'A股', direction: 'BUY', nodes: '1h多方', signalPrices: '¥18.65', close: '¥18.60', change: '+3.97%', validation: 'watch', validationLabel: '收盘低于信号价0.27%，贴价观察',
+        verdict: '10:30触发1h BUY@¥18.65。开盘¥18.45高走至¥18.87日内高（信号价上方0.22元即触），收盘¥18.60回落至信号价下方0.27%。量比1.541、换手9.31%（明显活跃）；MA5 17.976/MA10 17.905/MA20 18.269已被站上，价托形成；DIF -0.374高于DEA -0.4156、MACD零轴下方收敛中；RSI6 51.083中性偏强。主力资金净流入659.76万元（较东方明珠2484万少），属于"日内冲高触价但收盘回落"的弱信号表现，次日需重新站回¥18.65才算确认升级。',
+        support: '¥18.60收盘；¥18.269 MA20；¥17.976 MA5', pressure: '¥18.65信号价；¥18.87日内高',
+        buyPlan: '重新站回¥18.65上方且量比≥1.5再纳入观察试错≤1/4。',
+        sellPlan: '跌破¥18.269 MA20则BUY失效；收盘若站回¥18.65则升级确认。',
+        evidence: ['D1 1h BUY@¥18.65@10:30 CST', '收盘¥18.60 / 涨跌幅+3.97%', '日内高¥18.87 / 低¥18.37', '量比1.541 / 换手9.31% / RSI6=51.083', '主力净流入659.76万 / DIF=-0.374 / DEA=-0.4156'] },
+      { name: '东方明珠', symbol: '600637', market: 'A股', direction: 'BUY', nodes: '1h45m多方', signalPrices: '¥8.81', close: '¥8.84', change: '+1.96%', validation: 'confirmed', validationLabel: '收盘高于信号价0.34%，多方确认',
+        verdict: '11:15触发1h45m BUY@¥8.81。开盘¥8.70高走至¥8.87日内高（信号价上方0.06元即触），收盘¥8.84站上信号价上方0.34%。量比1.973（高度活跃）、换手1.65%；MA5 8.52/MA10 8.541/MA20 8.489已全部突破，价托完全形成；DIF 0.103高于DEA 0.0901、MACD零轴上方运行；RSI6 65.688接近超买但未越限。主力资金净流入2483.72万元（A股BUY两窗中较高），属于"日内冲高触价且收盘站上"的确认信号。同昨日9-18无相关SELL记录，无SELL→BUY轮转上下文。',
+        support: '¥8.81 1h45m信号价；¥8.52 MA5；¥8.489 MA20', pressure: '¥8.87日内高；RSI6=65.688接近超买区',
+        buyPlan: '已站上信号价上方，回踩¥8.81-8.52区间不破MA5可考虑跟随试错≤1/4。',
+        sellPlan: '跌破¥8.52 MA5则BUY失效；收盘跌破¥8.81则降级为贴价观察。',
+        evidence: ['D1 1h45m BUY@¥8.81@11:15 CST', '收盘¥8.84 / 涨跌幅+1.96%', '日内高¥8.87 / 低¥8.59', '量比1.973 / 换手1.65% / RSI6=65.688', '主力净流入2483.72万 / DIF=0.103 / DEA=0.0901'] },
+      { name: '中国宏桥', symbol: '01378', market: '港股', direction: 'SELL', nodes: '15m/10m空方', signalPrices: '未带trigger_price', close: 'HK$21.66', change: '-2.08%', validation: 'watch', validationLabel: '15m/10m未带trigger_price，贴价观察',
+        verdict: '10:30触发15m SELL、10:35触发10m SELL（同方向近价簇，但D1两行均未携带trigger_price，无法精确锁定信号价；候选价以新浪/腾讯近价为参考）。收盘HK$21.66（-2.08%），开HK$21.90、高HK$22.10、低HK$21.52、量比0.830、换手0.227%。MA5 21.824/MA10 22.524/MA20 22.874已全部失守（收盘价低于MA5 0.16元、低于MA20 1.21元），价托翻转；5日港股@均线21.824高于现价0.16表明短线仍受均线牵引。属于"日内冲高后回落、收盘贴MA5下方"的弱空方触发，次日需重新跌破MA5下方1%才算SELL升级。',
+        support: 'HK$21.66收盘；HK$21.52日内低', pressure: 'HK$22.10日内高；HK$21.824 MA5',
+        buyPlan: '空方观察：跌破HK$21.52日内低或MA20 22.874下方2%（即HK$22.42附近确认）才纳入试错≤1/4。',
+        sellPlan: '站回HK$22.10日内高上方则SELL失效；收盘站回MA5 21.824上方则降级为贴价失效。',
+        evidence: ['D1 15m SELL@10:30 CST (no trigger_price)', 'D1 10m SELL@10:35 CST (no trigger_price)', '收盘HK$21.66 / 涨跌幅-2.08%', '日内高HK$22.10 / 低HK$21.52', '量比0.830 / 换手0.227%', 'MA5 21.824 / MA10 22.524 / MA20 22.874'] },
+      { name: '纽约白银期货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '10m空方', signalPrices: '$66.029', close: '$66.17', validation: 'watch', validationLabel: '现货白银上穿+0.34%但COMEX收盘前未确认，空方观察',
+        verdict: '13:50触发10m SELL@$66.029。COMEX收盘后现货白银Sina hf_XAG收66.25（+1.62% 前收65.196 18:32 CST）已上穿信号价+0.34%，国内白银连续nf_AG0收16136（-0.68% 前收16246）仍贴信号价下方（人民币计价差异）。美元指数DINIW 100.2301（前值100.3712）走弱-0.14%给贵金属提供正面背景。属于"盘中触发空方但现货端日内反弹"的失效概率较高场景，次日需COMEX收盘跌破$66.029下方1%（即$65.37）才算SELL升级。',
+        support: '$66.029 10m信号价；DINIW 100.2301（前低）', pressure: '$66.25现货白银收盘；$66.91前Sina hf_XAG 18:31参考',
+        buyPlan: '空方观察：COMEX收盘跌破$66.029下方1%（即$65.37）才纳入试错≤1/4。',
+        sellPlan: '站回$66.50上方则SELL失效；现货白银上穿$66.91前高则降级为失效。',
+        evidence: ['D1 10m SELL@$66.029@13:50 CST', 'Sina hf_XAG 现货白银66.25（+1.62% 前收65.196）', '国内nf_AG0 白银连续16136（-0.68% 前收16246）', '美元指数DINIW 100.2301（前值100.3712）'] },
+    ],
+  },
   '2026-09-18': {
     tradeDate: '2026-09-18',
     shortDate: '09/18',
@@ -2075,7 +2113,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-18', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-21', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-18', href: '/rolling/insights/2026-09-18/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-17', href: '/rolling/insights/2026-09-17/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-15', href: '/rolling/insights/2026-09-15/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-14', href: '/rolling/insights/2026-09-14/' },
