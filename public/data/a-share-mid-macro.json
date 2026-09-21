@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-21 14:34:30 CST",
+  "generated_at": "2026-09-21 22:30:09 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": -0.94,
+          "value": -1.17,
           "unit": "pp",
-          "display": "-0.94pp",
+          "display": "-1.17pp",
           "as_of": "2026-09-21",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性-0.94pp",
+      "headline": "权益5日仍强于固收-1.17pp",
       "as_of": "2026-09-21"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": 2.53,
+          "value": 2.48,
           "unit": "%",
-          "display": "2.53%",
+          "display": "2.48%",
           "as_of": "2026-09-21",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 +0.84% · 汇率与溢折价会扰动",
+          "detail": "20日 +0.79% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -402,7 +402,7 @@
       ],
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日+2.53%",
+      "headline": "海外映射ETF 5日+2.48%",
       "as_of": "2026-09-21"
     },
     {
@@ -494,9 +494,9 @@
       "label": "固收相对权益强弱",
       "state": "中性",
       "score": 0.0,
-      "headline": "固收/权益5日相对中性-0.94pp",
+      "headline": "权益5日仍强于固收-1.17pp",
       "reasons": [
-        "固收/权益5日相对中性-0.94pp"
+        "权益5日仍强于固收-1.17pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -509,12 +509,12 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": 0.11,
-        "bond_ret20": 0.13,
-        "equity_ret5": 1.05,
-        "equity_ret20": -0.58,
-        "bond_vs_equity_5d_pp": -0.94,
-        "bond_vs_equity_20d_pp": 0.71
+        "bond_ret5": 0.1,
+        "bond_ret20": 0.12,
+        "equity_ret5": 1.27,
+        "equity_ret20": -0.37,
+        "bond_vs_equity_5d_pp": -1.17,
+        "bond_vs_equity_20d_pp": 0.49
       },
       "details": {
         "511260": {
@@ -524,9 +524,9 @@
           "date": "2026-09-21"
         },
         "511010": {
-          "ret5": 0.09,
-          "ret20": 0.01,
-          "last": 140.68,
+          "ret5": 0.08,
+          "ret20": 0.0,
+          "last": 140.67,
           "date": "2026-09-21"
         },
         "511110": {
@@ -536,9 +536,9 @@
           "date": "2026-09-21"
         },
         "510300": {
-          "ret5": 1.05,
-          "ret20": -0.58,
-          "last": 4.6,
+          "ret5": 1.27,
+          "ret20": -0.37,
+          "last": 4.61,
           "date": "2026-09-21"
         }
       },
@@ -549,9 +549,9 @@
       "label": "海外风险映射压力",
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日+2.53%",
+      "headline": "海外映射ETF 5日+2.48%",
       "reasons": [
-        "海外映射ETF 5日+2.53%",
+        "海外映射ETF 5日+2.48%",
         "海外相关池弱化占比88%（确认项）"
       ],
       "status": "ok",
@@ -565,8 +565,8 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": 2.53,
-        "proxy_ret20_avg": 0.84,
+        "proxy_ret5_avg": 2.48,
+        "proxy_ret20_avg": 0.79,
         "proxy_weak_count_5d": 0,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.875
@@ -579,15 +579,15 @@
           "date": "2026-09-21"
         },
         "513500": {
-          "ret5": 2.03,
-          "ret20": 1.42,
-          "last": 2.71,
+          "ret5": 1.28,
+          "ret20": 0.67,
+          "last": 2.69,
           "date": "2026-09-21"
         },
         "159502": {
-          "ret5": 2.36,
-          "ret20": -3.66,
-          "last": 1.605,
+          "ret5": 2.93,
+          "ret20": -3.12,
+          "last": 1.614,
           "date": "2026-09-21"
         },
         "513520": {
