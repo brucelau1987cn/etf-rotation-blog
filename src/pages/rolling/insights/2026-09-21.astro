@@ -1,0 +1,12 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+const report = rollingDailyReports['2026-09-21'];
+const title = `${report.title} | ${SITE_TITLE}`;
+---
+<!doctype html><html lang="zh-CN"><head><BaseHead title={title} description="2026年9月21日滚动信号收盘复盘：A股小盘科技BUY+港股/期货空方对冲：创新医疗BUY 1h@¥18.65收¥18.60贴价、东方明珠BUY 1h45m@¥8.81收¥8.84确认；港股中国宏桥SELL 15m+10m@10:30/10:35（无D1 trigger_price）收HK$21.66-2.08%贴价触发；期货白银SI=F SELL 10m@$66.029（13:50）收$66.17现货端微涨+1.62%。" /></head><body><Header /><main id="main-content" class="rolling-insights-main"><RollingSubnav active="insights" /><RollingDailyInsightReport report={report} /></main><Footer /></body></html>
