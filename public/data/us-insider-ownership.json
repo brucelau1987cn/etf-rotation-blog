@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-09-21T22:06:58.136706+00:00",
+  "generated_at": "2026-09-22T22:12:42.701131+00:00",
   "data_source": "SEC EDGAR",
   "schema_version": "us-insider-ownership-v2",
-  "shadow_status": "ok",
+  "shadow_status": "degraded",
   "coverage": {
     "stocks": {
       "requested": 13,
-      "succeeded": 13,
-      "failed": 0
+      "succeeded": 12,
+      "failed": 1
     },
     "institutions": {
       "requested": 20,
@@ -15,7 +15,14 @@
       "failed": 0
     }
   },
-  "errors": [],
+  "errors": [
+    {
+      "scope": "stock_insider",
+      "ticker": "TSLA",
+      "cik": "0001318605",
+      "error": "TimeoutError: The read operation timed out"
+    }
+  ],
   "universe": [
     "AAPL",
     "MSFT",
@@ -1056,6 +1063,46 @@
       "cik": "0001045810",
       "insider_transactions": [
         {
+          "owner_name": "STEVENS MARK A",
+          "owner_cik": "0001199039",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "NVDA",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1356000",
+          "price": "219.7219",
+          "date": "2026-09-18",
+          "shares_after": "980531",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "STEVENS MARK A",
+          "owner_cik": "0001199039",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "NVDA",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "10000",
+          "price": "220.4199",
+          "date": "2026-09-18",
+          "shares_after": "970531",
+          "kind": "direct"
+        },
+        {
           "owner_name": "GAWEL SCOTT",
           "owner_cik": "0001243821",
           "title": "Principal Accounting Officer",
@@ -1553,66 +1600,6 @@
           "price": "226.2704",
           "date": "2026-09-02",
           "shares_after": "3358770",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Teter Timothy S.",
-          "owner_cik": "0001696841",
-          "title": "EVP, General Counsel and Sec",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "NVDA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6692",
-          "price": "216.8411",
-          "date": "2026-08-31",
-          "shares_after": "2710968",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Teter Timothy S.",
-          "owner_cik": "0001696841",
-          "title": "EVP, General Counsel and Sec",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "NVDA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "13913",
-          "price": "217.9514",
-          "date": "2026-08-31",
-          "shares_after": "2697055",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Teter Timothy S.",
-          "owner_cik": "0001696841",
-          "title": "EVP, General Counsel and Sec",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "NVDA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "9395",
-          "price": "218.5265",
-          "date": "2026-08-31",
-          "shares_after": "2687660",
           "kind": "direct"
         }
       ],
@@ -4918,1288 +4905,7 @@
     },
     "TSLA": {
       "cik": "0001318605",
-      "insider_transactions": [
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6539",
-          "price": "0.0",
-          "date": "2026-09-05",
-          "shares_after": "28578",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2605.75",
-          "price": "360.134",
-          "date": "2026-09-08",
-          "shares_after": "25972.25",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6539",
-          "price": "0.000",
-          "date": "2026-09-05",
-          "shares_after": "52305",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "303960630",
-          "price": "23.34",
-          "date": "2026-06-16",
-          "shares_after": "727704534",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "17531857",
-          "price": "404.66",
-          "date": "2026-06-16",
-          "shares_after": "710172677",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "303960630",
-          "price": "0.00",
-          "date": "2026-06-16",
-          "shares_after": "0",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6538",
-          "price": "0.0",
-          "date": "2026-06-05",
-          "shares_after": "24644.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2605.5",
-          "price": "402.197",
-          "date": "2026-06-08",
-          "shares_after": "22039",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6538",
-          "price": "0.000",
-          "date": "2026-06-05",
-          "shares_after": "58844",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "1000",
-          "price": "18.440",
-          "date": "2026-05-13",
-          "shares_after": "19106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "2000",
-          "price": "18.220",
-          "date": "2026-05-13",
-          "shares_after": "21106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3000",
-          "price": "450",
-          "date": "2026-05-13",
-          "shares_after": "18106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "1000",
-          "price": "0.000",
-          "date": "2026-05-13",
-          "shares_after": "2390",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "2000",
-          "price": "0.000",
-          "date": "2026-05-13",
-          "shares_after": "711920",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40948",
-          "price": "14.99",
-          "date": "2026-04-30",
-          "shares_after": "74808",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "840",
-          "price": "369.010",
-          "date": "2026-04-30",
-          "shares_after": "73968",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1520",
-          "price": "369.769",
-          "date": "2026-04-30",
-          "shares_after": "72448",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1275",
-          "price": "370.929",
-          "date": "2026-04-30",
-          "shares_after": "71173",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1020",
-          "price": "371.881",
-          "date": "2026-04-30",
-          "shares_after": "70153",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "619",
-          "price": "372.819",
-          "date": "2026-04-30",
-          "shares_after": "69534",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "520",
-          "price": "374.402",
-          "date": "2026-04-30",
-          "shares_after": "69014",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "280",
-          "price": "375.149",
-          "date": "2026-04-30",
-          "shares_after": "68734",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1081",
-          "price": "376.689",
-          "date": "2026-04-30",
-          "shares_after": "67653",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3003",
-          "price": "377.487",
-          "date": "2026-04-30",
-          "shares_after": "64650",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3480",
-          "price": "378.573",
-          "date": "2026-04-30",
-          "shares_after": "61170",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1760",
-          "price": "379.427",
-          "date": "2026-04-30",
-          "shares_after": "59410",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1755",
-          "price": "380.756",
-          "date": "2026-04-30",
-          "shares_after": "57655",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6896",
-          "price": "381.607",
-          "date": "2026-04-30",
-          "shares_after": "50759",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "680",
-          "price": "382.414",
-          "date": "2026-04-30",
-          "shares_after": "50079",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1240",
-          "price": "383.612",
-          "date": "2026-04-30",
-          "shares_after": "48839",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "440",
-          "price": "384.284",
-          "date": "2026-04-30",
-          "shares_after": "48399",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40948",
-          "price": "0.000",
-          "date": "2026-04-30",
-          "shares_after": "0",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "D",
-          "code_label": "处置",
-          "acquired_disposed": "D",
-          "shares": "96000000",
-          "price": "0.00",
-          "date": "2026-04-21",
-          "shares_after": "423743904",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Zhu Xiaotong",
-          "owner_cik": "0001972928",
-          "title": "SVP",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "20000",
-          "price": "20.57",
-          "date": "2026-03-31",
-          "shares_after": "20000",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Zhu Xiaotong",
-          "owner_cik": "0001972928",
-          "title": "SVP",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "20000",
-          "price": "0.0",
-          "date": "2026-03-31",
-          "shares_after": "260650",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40000",
-          "price": "14.99",
-          "date": "2026-03-30",
-          "shares_after": "59669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2000",
-          "price": "352.833",
-          "date": "2026-03-30",
-          "shares_after": "57669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1640",
-          "price": "353.658",
-          "date": "2026-03-30",
-          "shares_after": "56029",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1800",
-          "price": "354.802",
-          "date": "2026-03-30",
-          "shares_after": "54229",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2481",
-          "price": "355.644",
-          "date": "2026-03-30",
-          "shares_after": "51748",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2360",
-          "price": "356.794",
-          "date": "2026-03-30",
-          "shares_after": "49388",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1120",
-          "price": "357.839",
-          "date": "2026-03-30",
-          "shares_after": "48268",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "520",
-          "price": "358.770",
-          "date": "2026-03-30",
-          "shares_after": "47748",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1880",
-          "price": "360.181",
-          "date": "2026-03-30",
-          "shares_after": "45868",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1000",
-          "price": "361.035",
-          "date": "2026-03-30",
-          "shares_after": "44868",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2320",
-          "price": "362.142",
-          "date": "2026-03-30",
-          "shares_after": "42548",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4001",
-          "price": "363.083",
-          "date": "2026-03-30",
-          "shares_after": "38547",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3927",
-          "price": "363.947",
-          "date": "2026-03-30",
-          "shares_after": "34620",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "560",
-          "price": "364.888",
-          "date": "2026-03-30",
-          "shares_after": "34060",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "120",
-          "price": "365.897",
-          "date": "2026-03-30",
-          "shares_after": "33940",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "80",
-          "price": "366.855",
-          "date": "2026-03-30",
-          "shares_after": "33860",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40000",
-          "price": "0.000",
-          "date": "2026-03-30",
-          "shares_after": "40948",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6538",
-          "price": "0.0",
-          "date": "2026-03-05",
-          "shares_after": "20371",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2264.5",
-          "price": "397.031",
-          "date": "2026-03-06",
-          "shares_after": "18106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6538",
-          "price": "0.000",
-          "date": "2026-03-05",
-          "shares_after": "65382",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40000",
-          "price": "14.99",
-          "date": "2026-02-25",
-          "shares_after": "45400",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "80",
-          "price": "412.460",
-          "date": "2026-02-25",
-          "shares_after": "45320",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4777",
-          "price": "413.952",
-          "date": "2026-02-25",
-          "shares_after": "40543",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "7501",
-          "price": "414.850",
-          "date": "2026-02-25",
-          "shares_after": "33042",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6825",
-          "price": "415.862",
-          "date": "2026-02-25",
-          "shares_after": "26217",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3148",
-          "price": "416.824",
-          "date": "2026-02-25",
-          "shares_after": "23069",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2960",
-          "price": "417.516",
-          "date": "2026-02-25",
-          "shares_after": "20109",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "440",
-          "price": "418.888",
-          "date": "2026-02-25",
-          "shares_after": "19669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40000",
-          "price": "0.000",
-          "date": "2026-02-25",
-          "shares_after": "80948",
-          "kind": "derivative"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -6353,7 +5059,8 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "AMD": {
       "cik": "0000002488",
@@ -12319,6 +11026,106 @@
       "cik": "0001050446",
       "insider_transactions": [
         {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "A",
+          "shares": "1425",
+          "price": "18.236",
+          "date": "2026-09-21",
+          "shares_after": "29831",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "165.984",
+          "date": "2026-09-21",
+          "shares_after": "29356",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "167",
+          "date": "2026-09-21",
+          "shares_after": "28881",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "169",
+          "date": "2026-09-21",
+          "shares_after": "28406",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "D",
+          "shares": "1425",
+          "price": "0",
+          "date": "2026-09-21",
+          "shares_after": "25325",
+          "kind": "derivative"
+        },
+        {
           "owner_name": "Chow Thomas C.",
           "owner_cik": "0001834012",
           "title": "EVP & General Counsel",
@@ -12997,66 +11804,6 @@
           "date": "2026-06-22",
           "shares_after": "11000",
           "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "1500",
-          "price": "18.236",
-          "date": "2026-06-17",
-          "shares_after": "29906",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1500",
-          "price": "121.310",
-          "date": "2026-06-17",
-          "shares_after": "28406",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "1500",
-          "price": "0",
-          "date": "2026-06-17",
-          "shares_after": "42750",
-          "kind": "derivative"
         }
       ],
       "institutional_holders": [
