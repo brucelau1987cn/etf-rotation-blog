@@ -1,0 +1,12 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+const report = rollingDailyReports['2026-09-22'];
+const title = `${report.title} | ${SITE_TITLE}`;
+---
+<!doctype html><html lang="zh-CN"><head><BaseHead title={title} description="2026年9月22日滚动信号收盘复盘：A股科创/科技共振BUY+期货白银SI=F四窗SELL：海光信息BUY 2.5h@¥256.01收¥256.00贴价微弱确认、创新医疗BUY 1h45m@¥18.68收¥18.68贴价触发；华天科技SELL 10m@¥18.18收¥18.28上方小幅收复；港股中国宏桥SELL 30m@10:45（无D1 trigger_price）收HK$21.36（-1.39%）；期货SI=F SELL 15m@$65.7955/10m@$66.1319/30m@$65.624/60m@$64.9518四窗空方收盘$65.59现货端hf_XAG（-0.62%）。" /></head><body><Header /><main id="main-content" class="rolling-insights-main"><RollingSubnav active="insights" /><RollingDailyInsightReport report={report} /></main><Footer /></body></html>
