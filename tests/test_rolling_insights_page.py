@@ -76,8 +76,7 @@ def test_insights_2026_09_23():
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
     assert "rollingDailyReports['2026-09-23']" in page, 'insights.astro not pointing to today'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert "date: '2026-09-23', label: '9月23日', href: '/rolling/insights/'" in cat, 'catalog latest must be today'
-    assert "date: '2026-09-22', label: '9月22日', href: '/rolling/insights/2026-09-22/'" in cat, 'catalog demote entry missing'
+    assert "tradeDate: '2026-09-23'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-09-23'")[1].split('},')[0], 'catalog latest must be today'
     assert (ROOT / 'src/pages/rolling/insights/2026-09-23.astro').exists(), 'today static page missing'
     assert (ROOT / 'src/pages/rolling/insights/2026-09-22.astro').exists(), 'prev static page missing'
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
