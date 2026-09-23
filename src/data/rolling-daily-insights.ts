@@ -2211,8 +2211,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
   }
 };
 
-export const rollingDailyArticleCatalog = [  { date: '2026-09-23', label: '9月23日', href: '/rolling/insights/' },
-  { date: '2026-09-22', label: '9月22日', href: '/rolling/insights/2026-09-22/' },
+export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-23', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-22', href: '/rolling/insights/2026-09-22/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-21', href: '/rolling/insights/2026-09-21/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-18', href: '/rolling/insights/2026-09-18/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-17', href: '/rolling/insights/2026-09-17/' },
