@@ -1,8 +1,8 @@
 {
   "schema_version": "us-compass-health-v1",
   "market": "US",
-  "model_date": "2026-09-22",
-  "generated_at": "2026-09-22T22:34:28.410176Z",
+  "model_date": "2026-09-23",
+  "generated_at": "2026-09-23T22:32:15.525877Z",
   "model_fingerprint": {
     "model_version": "US ETF Garden v3 · Flower Signals",
     "universe_count": 74,
@@ -27,7 +27,7 @@
   },
   "sample_maturity": {
     "status": "FRAGILE",
-    "observations": 45,
+    "observations": 46,
     "minimum_observations": 20,
     "mature": true,
     "reasons": [
@@ -37,19 +37,19 @@
   "horizons": {
     "t1": {
       "status": "FRAGILE",
-      "observations": 49,
+      "observations": 50,
       "minimum_required": 20,
       "maturity_ratio": 1.0,
-      "rank_ic_mean": -0.04698518367346939,
-      "rank_ic_median": -0.064898,
-      "rank_ic_std": 0.31544114963503056,
-      "icir": -0.14895071149668282,
-      "positive_rate": 0.42857142857142855,
-      "recent_5_mean": -0.092587,
+      "rank_ic_mean": -0.044615140000000005,
+      "rank_ic_median": -0.064446,
+      "rank_ic_std": 0.31265523878259976,
+      "icir": -0.14269756097393427,
+      "positive_rate": 0.44,
+      "recent_5_mean": -0.027917800000000003,
       "recent_5_count": 5,
-      "recent_10_mean": -0.036299000000000005,
+      "recent_10_mean": -0.06952140000000001,
       "recent_10_count": 10,
-      "trend": "WEAKENING",
+      "trend": "IMPROVING",
       "series": [
         {
           "signal_date": "2026-07-10",
@@ -295,22 +295,27 @@
           "signal_date": "2026-09-21",
           "date": "2026-09-22",
           "value": -0.213372
+        },
+        {
+          "signal_date": "2026-09-22",
+          "date": "2026-09-23",
+          "value": 0.071517
         }
       ]
     },
     "t5": {
       "status": "FRAGILE",
-      "observations": 45,
+      "observations": 46,
       "minimum_required": 20,
       "maturity_ratio": 1.0,
-      "rank_ic_mean": -0.031053355555555554,
-      "rank_ic_median": -0.037247,
-      "rank_ic_std": 0.25379616265842836,
-      "icir": -0.12235549675094466,
-      "positive_rate": 0.4,
-      "recent_5_mean": -0.07427740000000001,
+      "rank_ic_mean": -0.03346682608695652,
+      "rank_ic_median": -0.039842,
+      "rank_ic_std": 0.25149363034737565,
+      "icir": -0.13307226127648028,
+      "positive_rate": 0.391304347826087,
+      "recent_5_mean": -0.0775536,
       "recent_5_count": 5,
-      "recent_10_mean": 0.0281622,
+      "recent_10_mean": -0.0016937999999999981,
       "recent_10_count": 10,
       "trend": "WEAKENING",
       "series": [
@@ -538,22 +543,27 @@
           "signal_date": "2026-09-15",
           "date": "2026-09-22",
           "value": -0.336513
+        },
+        {
+          "signal_date": "2026-09-16",
+          "date": "2026-09-23",
+          "value": -0.142073
         }
       ]
     },
     "t20": {
       "status": "FRAGILE",
-      "observations": 30,
+      "observations": 31,
       "minimum_required": 12,
       "maturity_ratio": 1.0,
-      "rank_ic_mean": -0.0703839,
-      "rank_ic_median": -0.0525895,
-      "rank_ic_std": 0.16516591946435832,
-      "icir": -0.4261405756602733,
-      "positive_rate": 0.36666666666666664,
-      "recent_5_mean": 0.0763242,
+      "rank_ic_mean": -0.07041722580645161,
+      "rank_ic_median": -0.054959,
+      "rank_ic_std": 0.16238992995148224,
+      "icir": -0.4336304956070268,
+      "positive_rate": 0.3548387096774194,
+      "recent_5_mean": 0.08458639999999999,
       "recent_5_count": 5,
-      "recent_10_mean": 0.036934,
+      "recent_10_mean": 0.0341574,
       "recent_10_count": 10,
       "trend": "IMPROVING",
       "series": [
@@ -706,13 +716,18 @@
           "signal_date": "2026-08-21",
           "date": "2026-09-22",
           "value": 0.069372
+        },
+        {
+          "signal_date": "2026-08-24",
+          "date": "2026-09-23",
+          "value": -0.071417
         }
       ]
     }
   },
   "walk_forward": {
     "status": "FRAGILE",
-    "windows": 9,
+    "windows": 10,
     "evaluated_windows": 9,
     "positive_windows": 4,
     "positive_slice_rate": 0.4444444444444444,
@@ -818,6 +833,17 @@
         "status": "NON_POSITIVE",
         "mean": -0.07427740000000001,
         "positive_rate": 0.2
+      },
+      {
+        "index": 9,
+        "start_date": "2026-09-23",
+        "end_date": "2026-09-23",
+        "signal_start_date": "2026-09-16",
+        "signal_end_date": "2026-09-16",
+        "observations": 1,
+        "status": "INSUFFICIENT",
+        "mean": null,
+        "positive_rate": null
       }
     ],
     "reasons": [
@@ -826,22 +852,22 @@
   },
   "shadow_health": {
     "status": "FRAGILE",
-    "observations": 48,
+    "observations": 49,
     "initial_capital": 20000.0,
-    "return": -0.04057097242263641,
+    "return": -0.0408146673956411,
     "max_drawdown": 0.06110667578295337,
-    "score": 0.3347029511383711,
+    "score": 0.33163472697993845,
     "portfolios": {
       "benchmark": {
         "status": "STABLE",
-        "observations": 48,
-        "total_return": 0.027621971775034115,
-        "annualized_volatility": 0.11088892147327126,
+        "observations": 49,
+        "total_return": 0.025975721376250593,
+        "annualized_volatility": 0.10984046038297025,
         "max_drawdown": 0.026344379324194978,
-        "current_drawdown": 0.005792607607626676,
-        "longest_drawdown_duration": 25,
-        "rolling_20d_volatility": 0.09736053410267374,
-        "positive_period_rate": 0.5625,
+        "current_drawdown": 0.007385327850239265,
+        "longest_drawdown_duration": 26,
+        "rolling_20d_volatility": 0.09734399667159759,
+        "positive_period_rate": 0.5510204081632653,
         "excess_return_vs_benchmark": 0.0,
         "equity_series": [
           {
@@ -1083,20 +1109,25 @@
             "date": "2026-09-22",
             "equity": 20552.439435500684,
             "period_return": 0.010153
+          },
+          {
+            "date": "2026-09-23",
+            "equity": 20519.514427525013,
+            "period_return": -0.001602
           }
         ]
       },
       "timing": {
         "status": "FRAGILE",
-        "observations": 48,
-        "total_return": -0.026559951951136695,
-        "annualized_volatility": 0.07302783925307803,
-        "max_drawdown": 0.03270435735634192,
-        "current_drawdown": 0.03270435735634192,
-        "longest_drawdown_duration": 25,
-        "rolling_20d_volatility": 0.03908903416668428,
-        "positive_period_rate": 0.3125,
-        "excess_return_vs_benchmark": -0.05418192372617081,
+        "observations": 49,
+        "total_return": -0.027826397453648122,
+        "annualized_volatility": 0.07228318105647301,
+        "max_drawdown": 0.03396280898742121,
+        "current_drawdown": 0.03396280898742121,
+        "longest_drawdown_duration": 26,
+        "rolling_20d_volatility": 0.03908461519804113,
+        "positive_period_rate": 0.30612244897959184,
+        "excess_return_vs_benchmark": -0.053802118829898715,
         "equity_series": [
           {
             "date": "2026-07-14",
@@ -1337,20 +1368,25 @@
             "date": "2026-09-22",
             "equity": 19468.800960977267,
             "period_return": 0.0
+          },
+          {
+            "date": "2026-09-23",
+            "equity": 19443.472050927037,
+            "period_return": -0.001301
           }
         ]
       },
       "rotation": {
         "status": "MIXED",
-        "observations": 48,
-        "total_return": 0.0012619786106535802,
-        "annualized_volatility": 0.1813126029386933,
+        "observations": 49,
+        "total_return": 0.001154843578942133,
+        "annualized_volatility": 0.1794145467334559,
         "max_drawdown": 0.05700965659509061,
-        "current_drawdown": 0.04702946699084054,
-        "longest_drawdown_duration": 19,
-        "rolling_20d_volatility": 0.18115821666310888,
-        "positive_period_rate": 0.5208333333333334,
-        "excess_return_vs_benchmark": -0.026359993164380535,
+        "current_drawdown": 0.04713143483787252,
+        "longest_drawdown_duration": 20,
+        "rolling_20d_volatility": 0.17080238705493306,
+        "positive_period_rate": 0.5102040816326531,
+        "excess_return_vs_benchmark": -0.02482087779730846,
         "equity_series": [
           {
             "date": "2026-07-14",
@@ -1591,20 +1627,25 @@
             "date": "2026-09-22",
             "equity": 20025.23957221307,
             "period_return": 0.002679
+          },
+          {
+            "date": "2026-09-23",
+            "equity": 20023.096871578844,
+            "period_return": -0.000107
           }
         ]
       },
       "fusion": {
         "status": "FRAGILE",
-        "observations": 48,
-        "total_return": -0.04057097242263641,
-        "annualized_volatility": 0.1484153686060446,
+        "observations": 49,
+        "total_return": -0.0408146673956411,
+        "annualized_volatility": 0.14686683732746283,
         "max_drawdown": 0.06110667578295337,
-        "current_drawdown": 0.05737949086463623,
-        "longest_drawdown_duration": 19,
-        "rolling_20d_volatility": 0.12922656882745046,
-        "positive_period_rate": 0.2708333333333333,
-        "excess_return_vs_benchmark": -0.06819294419767052,
+        "current_drawdown": 0.05761891647395667,
+        "longest_drawdown_duration": 20,
+        "rolling_20d_volatility": 0.1247357879033667,
+        "positive_period_rate": 0.2653061224489796,
+        "excess_return_vs_benchmark": -0.0667903887718917,
         "equity_series": [
           {
             "date": "2026-07-14",
@@ -1845,6 +1886,11 @@
             "date": "2026-09-22",
             "equity": 19188.58055154727,
             "period_return": 0.0
+          },
+          {
+            "date": "2026-09-23",
+            "equity": 19183.706652087178,
+            "period_return": -0.000254
           }
         ]
       }
@@ -1856,7 +1902,7 @@
   "cost_sensitivity": {
     "status": "UNAVAILABLE",
     "baseline_cost": 0.001,
-    "observations": 48,
+    "observations": 49,
     "break_even_cost": null,
     "score": null,
     "scenarios": [
