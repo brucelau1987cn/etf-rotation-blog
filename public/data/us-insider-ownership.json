@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-09-23T22:07:02.061481+00:00",
+  "generated_at": "2026-09-24T22:06:59.016267+00:00",
   "data_source": "SEC EDGAR",
   "schema_version": "us-insider-ownership-v2",
-  "shadow_status": "ok",
+  "shadow_status": "degraded",
   "coverage": {
     "stocks": {
       "requested": 13,
-      "succeeded": 13,
-      "failed": 0
+      "succeeded": 12,
+      "failed": 1
     },
     "institutions": {
       "requested": 20,
@@ -15,7 +15,14 @@
       "failed": 0
     }
   },
-  "errors": [],
+  "errors": [
+    {
+      "scope": "stock_insider",
+      "ticker": "AVGO",
+      "cik": "0001730168",
+      "error": "TimeoutError: The read operation timed out"
+    }
+  ],
   "universe": [
     "AAPL",
     "MSFT",
@@ -3675,6 +3682,126 @@
           "code_label": "卖出",
           "acquired_disposed": "D",
           "shares": "20000",
+          "price": "700.4966",
+          "date": "2026-09-21",
+          "shares_after": "204516",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Cox Christopher K",
+          "owner_cik": "0001607459",
+          "title": "Chief Product Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "20000",
+          "price": "725.0164",
+          "date": "2026-09-21",
+          "shares_after": "184516",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Olivan Javier",
+          "owner_cik": "0001564475",
+          "title": "Chief Operating Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "946",
+          "price": "680.27",
+          "date": "2026-09-21",
+          "shares_after": "9770",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Olivan Javier",
+          "owner_cik": "0001564475",
+          "title": "Chief Operating Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "82",
+          "price": "680.27",
+          "date": "2026-09-21",
+          "shares_after": "5998",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Olivan Javier",
+          "owner_cik": "0001564475",
+          "title": "Chief Operating Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "57",
+          "price": "680.27",
+          "date": "2026-09-21",
+          "shares_after": "1175",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Olivan Javier",
+          "owner_cik": "0001564475",
+          "title": "Chief Operating Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "408",
+          "price": "680.27",
+          "date": "2026-09-21",
+          "shares_after": "77437",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Cox Christopher K",
+          "owner_cik": "0001607459",
+          "title": "Chief Product Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "META",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "20000",
           "price": "675.2278",
           "date": "2026-09-15",
           "shares_after": "224516",
@@ -4519,146 +4646,6 @@
           "date": "2026-08-18",
           "shares_after": "828",
           "kind": "direct"
-        },
-        {
-          "owner_name": "Powell Dina H.",
-          "owner_cik": "0002006664",
-          "title": "President and Vice Chairman",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "2024",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "8636",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Powell Dina H.",
-          "owner_cik": "0002006664",
-          "title": "President and Vice Chairman",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "5708",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "14344",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Powell Dina H.",
-          "owner_cik": "0002006664",
-          "title": "President and Vice Chairman",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "3518",
-          "price": "589.85",
-          "date": "2026-08-15",
-          "shares_after": "10826",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Powell Dina H.",
-          "owner_cik": "0002006664",
-          "title": "President and Vice Chairman",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "2024",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "26316",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Powell Dina H.",
-          "owner_cik": "0002006664",
-          "title": "President and Vice Chairman",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "5708",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "78014",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "White Dana",
-          "owner_cik": "0002051628",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "110",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "1504",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "White Dana",
-          "owner_cik": "0002051628",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "110",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "1095",
-          "kind": "derivative"
         }
       ],
       "institutional_holders": [
@@ -8336,728 +8323,7 @@
     },
     "AVGO": {
       "cik": "0001730168",
-      "insider_transactions": [
-        {
-          "owner_name": "O'Toole Amie Thuener",
-          "owner_cik": "0001738007",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "1554",
-          "price": "339.27",
-          "date": "2026-09-15",
-          "shares_after": "48597.036",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Brazeal Mark David",
-          "owner_cik": "0001627720",
-          "title": "Chief Legal & Corp Affairs Ofc",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "8059",
-          "price": "339.27",
-          "date": "2026-09-15",
-          "shares_after": "186930",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DELLY GAYLA J",
-          "owner_cik": "0001218358",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "500",
-          "price": "0",
-          "date": "2026-07-10",
-          "shares_after": "30826",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Brazeal Mark David",
-          "owner_cik": "0001627720",
-          "title": "Chief Legal & Corp Affairs Ofc",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "25000",
-          "price": "401.329",
-          "date": "2026-07-10",
-          "shares_after": "194989",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DELLY GAYLA J",
-          "owner_cik": "0001218358",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1890",
-          "price": "385.38",
-          "date": "2026-07-08",
-          "shares_after": "31326",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Brazeal Mark David",
-          "owner_cik": "0001627720",
-          "title": "Chief Legal & Corp Affairs Ofc",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "25000",
-          "price": "379.188",
-          "date": "2026-07-08",
-          "shares_after": "219989",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "PAGE JUSTINE",
-          "owner_cik": "0001359561",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1602",
-          "price": "373.855",
-          "date": "2026-06-29",
-          "shares_after": "17426",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Brazeal Mark David",
-          "owner_cik": "0001627720",
-          "title": "Chief Legal & Corp Affairs Ofc",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "25000",
-          "price": "387",
-          "date": "2026-06-25",
-          "shares_after": "244989",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "1602",
-          "price": "0",
-          "date": "2026-06-17",
-          "shares_after": "2754",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "A",
-          "shares": "1602",
-          "price": "0",
-          "date": "2026-06-17",
-          "shares_after": "30560086",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "1890",
-          "price": "0",
-          "date": "2026-06-18",
-          "shares_after": "864",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "A",
-          "shares": "1890",
-          "price": "0",
-          "date": "2026-06-18",
-          "shares_after": "30561976",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "23253",
-          "price": "377.61",
-          "date": "2026-06-24",
-          "shares_after": "36901123",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "33346",
-          "price": "378.51",
-          "date": "2026-06-24",
-          "shares_after": "36867777",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "30911",
-          "price": "379.76",
-          "date": "2026-06-24",
-          "shares_after": "36836866",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "48996",
-          "price": "380.57",
-          "date": "2026-06-24",
-          "shares_after": "36787870",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "36661",
-          "price": "381.68",
-          "date": "2026-06-24",
-          "shares_after": "36751209",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "26889",
-          "price": "382.63",
-          "date": "2026-06-24",
-          "shares_after": "36724320",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "36188",
-          "price": "383.69",
-          "date": "2026-06-24",
-          "shares_after": "36688132",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "43302",
-          "price": "384.58",
-          "date": "2026-06-24",
-          "shares_after": "36644830",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "53722",
-          "price": "385.57",
-          "date": "2026-06-24",
-          "shares_after": "36591108",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6280",
-          "price": "386.39",
-          "date": "2026-06-24",
-          "shares_after": "36584828",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "660",
-          "price": "388.01",
-          "date": "2026-06-24",
-          "shares_after": "36584168",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "69498",
-          "price": "0",
-          "date": "2026-06-24",
-          "shares_after": "36514670",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "21603",
-          "price": "377.64",
-          "date": "2026-06-24",
-          "shares_after": "30540373",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "30456",
-          "price": "378.50",
-          "date": "2026-06-24",
-          "shares_after": "30509917",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "24073",
-          "price": "379.69",
-          "date": "2026-06-24",
-          "shares_after": "30485844",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "49805",
-          "price": "380.57",
-          "date": "2026-06-24",
-          "shares_after": "30436039",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "34517",
-          "price": "381.67",
-          "date": "2026-06-24",
-          "shares_after": "30401522",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "25134",
-          "price": "382.62",
-          "date": "2026-06-24",
-          "shares_after": "30376388",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "32950",
-          "price": "383.69",
-          "date": "2026-06-24",
-          "shares_after": "30343438",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "41290",
-          "price": "384.63",
-          "date": "2026-06-24",
-          "shares_after": "30302148",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "47510",
-          "price": "385.61",
-          "date": "2026-06-24",
-          "shares_after": "30254638",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6478",
-          "price": "386.39",
-          "date": "2026-06-24",
-          "shares_after": "30248160",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "217",
-          "price": "388.17",
-          "date": "2026-06-24",
-          "shares_after": "30247943",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SAMUELI HENRY",
-          "owner_cik": "0001201633",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AVGO",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "263903",
-          "price": "0",
-          "date": "2026-06-24",
-          "shares_after": "29984040",
-          "kind": "direct"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -9211,7 +8477,8 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "MU": {
       "cik": "0000723125",
@@ -11268,6 +10535,106 @@
       "cik": "0001679788",
       "insider_transactions": [
         {
+          "owner_name": "HAAS ALESIA J",
+          "owner_cik": "0001668711",
+          "title": "Chief Financial Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "COIN",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "410",
+          "price": "203.6671",
+          "date": "2026-09-21",
+          "shares_after": "383996",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "HAAS ALESIA J",
+          "owner_cik": "0001668711",
+          "title": "Chief Financial Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "COIN",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "35840",
+          "price": "205.1436",
+          "date": "2026-09-21",
+          "shares_after": "348156",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "HAAS ALESIA J",
+          "owner_cik": "0001668711",
+          "title": "Chief Financial Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "COIN",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1409",
+          "price": "206.4181",
+          "date": "2026-09-21",
+          "shares_after": "346747",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "HAAS ALESIA J",
+          "owner_cik": "0001668711",
+          "title": "Chief Financial Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "COIN",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1371",
+          "price": "207.105",
+          "date": "2026-09-21",
+          "shares_after": "345376",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Andreessen Marc L",
+          "owner_cik": "0001160077",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "COIN",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "6838",
+          "price": "205.05",
+          "date": "2026-09-21",
+          "shares_after": "1129486",
+          "kind": "direct"
+        },
+        {
           "owner_name": "Andreessen Marc L",
           "owner_cik": "0001160077",
           "title": null,
@@ -11906,166 +11273,6 @@
           "date": "2026-08-20",
           "shares_after": "748",
           "kind": "derivative"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "5869",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "381797",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "4101",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "385898",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6847",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "392745",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "8339",
-          "price": "160.20",
-          "date": "2026-08-20",
-          "shares_after": "384406",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "5869",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "5869",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "4101",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "24607",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "HAAS ALESIA J",
-          "owner_cik": "0001668711",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6847",
-          "price": "0",
-          "date": "2026-08-20",
-          "shares_after": "68463",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Choi Emilie",
-          "owner_cik": "0001851658",
-          "title": "President & COO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "COIN",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "67353",
-          "price": "0",
-          "date": "2026-08-15",
-          "shares_after": "67353",
-          "kind": "derivative"
         }
       ],
       "institutional_holders": [
@@ -12218,6 +11425,166 @@
     "MSTR": {
       "cik": "0001050446",
       "insider_transactions": [
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "A",
+          "shares": "475",
+          "price": "18.236",
+          "date": "2026-09-22",
+          "shares_after": "28881",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "171",
+          "date": "2026-09-22",
+          "shares_after": "28406",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "0",
+          "date": "2026-09-22",
+          "shares_after": "24850",
+          "kind": "derivative"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "A",
+          "shares": "1425",
+          "price": "18.236",
+          "date": "2026-09-21",
+          "shares_after": "29831",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "165.984",
+          "date": "2026-09-21",
+          "shares_after": "29356",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "167",
+          "date": "2026-09-21",
+          "shares_after": "28881",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "475",
+          "price": "169",
+          "date": "2026-09-21",
+          "shares_after": "28406",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "D",
+          "shares": "1425",
+          "price": "0",
+          "date": "2026-09-21",
+          "shares_after": "25325",
+          "kind": "derivative"
+        },
         {
           "owner_name": "Chow Thomas C.",
           "owner_cik": "0001834012",
@@ -12876,86 +12243,6 @@
           "price": "0",
           "date": "2026-06-23",
           "shares_after": "41250",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Le Phong",
-          "owner_cik": "0001651669",
-          "title": "President & CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "P",
-          "code_label": "买入",
-          "acquired_disposed": "A",
-          "shares": "11000",
-          "price": "90.796",
-          "date": "2026-06-22",
-          "shares_after": "11000",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "1500",
-          "price": "18.236",
-          "date": "2026-06-17",
-          "shares_after": "29906",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1500",
-          "price": "121.310",
-          "date": "2026-06-17",
-          "shares_after": "28406",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "1500",
-          "price": "0",
-          "date": "2026-06-17",
-          "shares_after": "42750",
           "kind": "derivative"
         }
       ],
