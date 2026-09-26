@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-09-24T22:06:59.016267+00:00",
+  "generated_at": "2026-09-25T22:08:14.510402+00:00",
   "data_source": "SEC EDGAR",
   "schema_version": "us-insider-ownership-v2",
   "shadow_status": "degraded",
   "coverage": {
     "stocks": {
       "requested": 13,
-      "succeeded": 12,
-      "failed": 1
+      "succeeded": 9,
+      "failed": 4
     },
     "institutions": {
       "requested": 20,
@@ -18,8 +18,26 @@
   "errors": [
     {
       "scope": "stock_insider",
-      "ticker": "AVGO",
-      "cik": "0001730168",
+      "ticker": "GOOGL",
+      "cik": "0001652044",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "scope": "stock_insider",
+      "ticker": "META",
+      "cik": "0001326801",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "scope": "stock_insider",
+      "ticker": "TSLA",
+      "cik": "0001318605",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "scope": "stock_insider",
+      "ticker": "MU",
+      "cik": "0000723125",
       "error": "TimeoutError: The read operation timed out"
     }
   ],
@@ -64,6 +82,26 @@
     "AAPL": {
       "cik": "0000320193",
       "insider_transactions": [
+        {
+          "owner_name": "Newstead Jennifer",
+          "owner_cik": "0001780525",
+          "title": "SVP, GC and Government Affairs",
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AAPL",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "2399",
+          "price": "340.06",
+          "date": "2026-09-22",
+          "shares_after": "44391",
+          "kind": "direct"
+        },
         {
           "owner_name": "Newstead Jennifer",
           "owner_cik": "0001780525",
@@ -403,46 +441,6 @@
           "date": "2026-06-15",
           "shares_after": "1676",
           "kind": "derivative"
-        },
-        {
-          "owner_name": "LEVINSON ARTHUR D",
-          "owner_cik": "0001214128",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AAPL",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "50000",
-          "price": "311.02",
-          "date": "2026-05-27",
-          "shares_after": "3764576",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LEVINSON ARTHUR D",
-          "owner_cik": "0001214128",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "AAPL",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "65000",
-          "price": "0",
-          "date": "2026-05-27",
-          "shares_after": "3699576",
-          "kind": "direct"
         }
       ],
       "institutional_holders": [
@@ -1680,848 +1678,7 @@
     },
     "GOOGL": {
       "cik": "0001652044",
-      "insider_transactions": [
-        {
-          "owner_name": "ARNOLD FRANCES",
-          "owner_cik": "0001665419",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNOLD FRANCES",
-          "owner_cik": "0001665419",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "904",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNOLD FRANCES",
-          "owner_cik": "0001665419",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNOLD FRANCES",
-          "owner_cik": "0001665419",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "11",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Washington Robin L",
-          "owner_cik": "0001327145",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Washington Robin L",
-          "owner_cik": "0001327145",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Washington Robin L",
-          "owner_cik": "0001327145",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "903",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Washington Robin L",
-          "owner_cik": "0001327145",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Shriram Kavitark Ram",
-          "owner_cik": "0001295084",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Shriram Kavitark Ram",
-          "owner_cik": "0001295084",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Shriram Kavitark Ram",
-          "owner_cik": "0001295084",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "903",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Shriram Kavitark Ram",
-          "owner_cik": "0001295084",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Hennessy John L.",
-          "owner_cik": "0001198046",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "854",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Hennessy John L.",
-          "owner_cik": "0001198046",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1289",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Hennessy John L.",
-          "owner_cik": "0001198046",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "2047",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Hennessy John L.",
-          "owner_cik": "0001198046",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1343",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DOERR L JOHN",
-          "owner_cik": "0001032455",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DOERR L JOHN",
-          "owner_cik": "0001032455",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DOERR L JOHN",
-          "owner_cik": "0001032455",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "903",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "DOERR L JOHN",
-          "owner_cik": "0001032455",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Ferguson Roger W. Jr.",
-          "owner_cik": "0001487637",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Ferguson Roger W. Jr.",
-          "owner_cik": "0001487637",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Ferguson Roger W. Jr.",
-          "owner_cik": "0001487637",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "903",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Ferguson Roger W. Jr.",
-          "owner_cik": "0001487637",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "CHAVEZ R. MARTIN",
-          "owner_cik": "0001157983",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "597",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "CHAVEZ R. MARTIN",
-          "owner_cik": "0001157983",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "903",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "CHAVEZ R. MARTIN",
-          "owner_cik": "0001157983",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1433",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "CHAVEZ R. MARTIN",
-          "owner_cik": "0001157983",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "941",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1460",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "2",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "3648",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "3",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "4149",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1271",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1614",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "960",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "1",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "1156",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Saraci Marsida",
-          "owner_cik": "0002138895",
-          "title": "VP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "0.4",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "706",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "WALKER JOHN KENT",
-          "owner_cik": "0001238734",
-          "title": "President, Global Affairs, CLO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "37",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "57869",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "WALKER JOHN KENT",
-          "owner_cik": "0001238734",
-          "title": "President, Global Affairs, CLO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "12",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "19076",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "WALKER JOHN KENT",
-          "owner_cik": "0001238734",
-          "title": "President, Global Affairs, CLO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "33",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "51338",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Porat Ruth",
-          "owner_cik": "0001479258",
-          "title": "President and CIO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "37",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "57869",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Porat Ruth",
-          "owner_cik": "0001479258",
-          "title": "President and CIO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "12",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "19076",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Porat Ruth",
-          "owner_cik": "0001479258",
-          "title": "President and CIO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "GOOGL",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "33",
-          "price": "0",
-          "date": "2026-09-14",
-          "shares_after": "51338",
-          "kind": "direct"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -2683,7 +1840,8 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "AMZN": {
       "cik": "0001018724",
@@ -3666,988 +2824,7 @@
     },
     "META": {
       "cik": "0001326801",
-      "insider_transactions": [
-        {
-          "owner_name": "Cox Christopher K",
-          "owner_cik": "0001607459",
-          "title": "Chief Product Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "20000",
-          "price": "700.4966",
-          "date": "2026-09-21",
-          "shares_after": "204516",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Cox Christopher K",
-          "owner_cik": "0001607459",
-          "title": "Chief Product Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "20000",
-          "price": "725.0164",
-          "date": "2026-09-21",
-          "shares_after": "184516",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "946",
-          "price": "680.27",
-          "date": "2026-09-21",
-          "shares_after": "9770",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "82",
-          "price": "680.27",
-          "date": "2026-09-21",
-          "shares_after": "5998",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "57",
-          "price": "680.27",
-          "date": "2026-09-21",
-          "shares_after": "1175",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "408",
-          "price": "680.27",
-          "date": "2026-09-21",
-          "shares_after": "77437",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Cox Christopher K",
-          "owner_cik": "0001607459",
-          "title": "Chief Product Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "20000",
-          "price": "675.2278",
-          "date": "2026-09-15",
-          "shares_after": "224516",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "946",
-          "price": "657.73",
-          "date": "2026-09-14",
-          "shares_after": "10716",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "82",
-          "price": "657.73",
-          "date": "2026-09-14",
-          "shares_after": "6080",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "57",
-          "price": "657.73",
-          "date": "2026-09-14",
-          "shares_after": "1232",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "408",
-          "price": "657.73",
-          "date": "2026-09-14",
-          "shares_after": "77845",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Cox Christopher K",
-          "owner_cik": "0001607459",
-          "title": "Chief Product Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "18578",
-          "price": "650.2121",
-          "date": "2026-09-09",
-          "shares_after": "245938",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Cox Christopher K",
-          "owner_cik": "0001607459",
-          "title": "Chief Product Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1422",
-          "price": "651.1496",
-          "date": "2026-09-09",
-          "shares_after": "244516",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "258",
-          "price": "612.9883",
-          "date": "2026-09-08",
-          "shares_after": "14242",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "117",
-          "price": "614.2163",
-          "date": "2026-09-08",
-          "shares_after": "14125",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "262",
-          "price": "615.2329",
-          "date": "2026-09-08",
-          "shares_after": "13863",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "855",
-          "price": "616.3211",
-          "date": "2026-09-08",
-          "shares_after": "13008",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "555",
-          "price": "617.2823",
-          "date": "2026-09-08",
-          "shares_after": "12453",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "529",
-          "price": "618.1840",
-          "date": "2026-09-08",
-          "shares_after": "11924",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "120",
-          "price": "618.93",
-          "date": "2026-09-08",
-          "shares_after": "11804",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "78",
-          "price": "620.3697",
-          "date": "2026-09-08",
-          "shares_after": "11726",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "40",
-          "price": "621.0300",
-          "date": "2026-09-08",
-          "shares_after": "11686",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "24",
-          "price": "622.9900",
-          "date": "2026-09-08",
-          "shares_after": "11662",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "328",
-          "price": "616.06",
-          "date": "2026-09-08",
-          "shares_after": "6162",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "228",
-          "price": "616.06",
-          "date": "2026-09-08",
-          "shares_after": "1289",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "52",
-          "price": "612.2056",
-          "date": "2026-09-08",
-          "shares_after": "79833",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "40",
-          "price": "613.296",
-          "date": "2026-09-08",
-          "shares_after": "79793",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "200",
-          "price": "614.49",
-          "date": "2026-09-08",
-          "shares_after": "79593",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "354",
-          "price": "615.879",
-          "date": "2026-09-08",
-          "shares_after": "79239",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "473",
-          "price": "616.7869",
-          "date": "2026-09-08",
-          "shares_after": "78766",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "304",
-          "price": "618.0049",
-          "date": "2026-09-08",
-          "shares_after": "78462",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "157",
-          "price": "619.11",
-          "date": "2026-09-08",
-          "shares_after": "78305",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Olivan Javier",
-          "owner_cik": "0001564475",
-          "title": "Chief Operating Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "52",
-          "price": "620.2669",
-          "date": "2026-09-08",
-          "shares_after": "78253",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Anderson Aaron",
-          "owner_cik": "0001645073",
-          "title": "Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3240",
-          "price": "618.0579",
-          "date": "2026-09-03",
-          "shares_after": "6271",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Mahoney Curtis J.",
-          "owner_cik": "0002105423",
-          "title": "Chief Legal Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1559",
-          "price": "558",
-          "date": "2026-08-18",
-          "shares_after": "1957",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1845",
-          "price": "547.5143",
-          "date": "2026-08-18",
-          "shares_after": "20537",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1864",
-          "price": "548.1951",
-          "date": "2026-08-18",
-          "shares_after": "18673",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1219",
-          "price": "549.2492",
-          "date": "2026-08-18",
-          "shares_after": "17454",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "708",
-          "price": "550.1979",
-          "date": "2026-08-18",
-          "shares_after": "16746",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1031",
-          "price": "551.2472",
-          "date": "2026-08-18",
-          "shares_after": "15715",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "561",
-          "price": "552.4692",
-          "date": "2026-08-18",
-          "shares_after": "15154",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "768",
-          "price": "553.4182",
-          "date": "2026-08-18",
-          "shares_after": "14386",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "160",
-          "price": "554.3888",
-          "date": "2026-08-18",
-          "shares_after": "14226",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "40",
-          "price": "555.83",
-          "date": "2026-08-18",
-          "shares_after": "14186",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "720",
-          "price": "557.5686",
-          "date": "2026-08-18",
-          "shares_after": "13466",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "120",
-          "price": "558.1217",
-          "date": "2026-08-18",
-          "shares_after": "13346",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "40",
-          "price": "559.59",
-          "date": "2026-08-18",
-          "shares_after": "13306",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "LI SUSAN J",
-          "owner_cik": "0001739092",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "120",
-          "price": "560.63",
-          "date": "2026-08-18",
-          "shares_after": "13186",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Bosworth Andrew",
-          "owner_cik": "0001917373",
-          "title": "Chief Technology Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "META",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "7848",
-          "price": "558",
-          "date": "2026-08-18",
-          "shares_after": "828",
-          "kind": "direct"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -4801,1292 +2978,12 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "TSLA": {
       "cik": "0001318605",
-      "insider_transactions": [
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6539",
-          "price": "0.0",
-          "date": "2026-09-05",
-          "shares_after": "28578",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2605.75",
-          "price": "360.134",
-          "date": "2026-09-08",
-          "shares_after": "25972.25",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6539",
-          "price": "0.000",
-          "date": "2026-09-05",
-          "shares_after": "52305",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "303960630",
-          "price": "23.34",
-          "date": "2026-06-16",
-          "shares_after": "727704534",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "17531857",
-          "price": "404.66",
-          "date": "2026-06-16",
-          "shares_after": "710172677",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "303960630",
-          "price": "0.00",
-          "date": "2026-06-16",
-          "shares_after": "0",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6538",
-          "price": "0.0",
-          "date": "2026-06-05",
-          "shares_after": "24644.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2605.5",
-          "price": "402.197",
-          "date": "2026-06-08",
-          "shares_after": "22039",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6538",
-          "price": "0.000",
-          "date": "2026-06-05",
-          "shares_after": "58844",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "1000",
-          "price": "18.440",
-          "date": "2026-05-13",
-          "shares_after": "19106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "2000",
-          "price": "18.220",
-          "date": "2026-05-13",
-          "shares_after": "21106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3000",
-          "price": "450",
-          "date": "2026-05-13",
-          "shares_after": "18106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "1000",
-          "price": "0.000",
-          "date": "2026-05-13",
-          "shares_after": "2390",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "2000",
-          "price": "0.000",
-          "date": "2026-05-13",
-          "shares_after": "711920",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40948",
-          "price": "14.99",
-          "date": "2026-04-30",
-          "shares_after": "74808",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "840",
-          "price": "369.010",
-          "date": "2026-04-30",
-          "shares_after": "73968",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1520",
-          "price": "369.769",
-          "date": "2026-04-30",
-          "shares_after": "72448",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1275",
-          "price": "370.929",
-          "date": "2026-04-30",
-          "shares_after": "71173",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1020",
-          "price": "371.881",
-          "date": "2026-04-30",
-          "shares_after": "70153",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "619",
-          "price": "372.819",
-          "date": "2026-04-30",
-          "shares_after": "69534",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "520",
-          "price": "374.402",
-          "date": "2026-04-30",
-          "shares_after": "69014",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "280",
-          "price": "375.149",
-          "date": "2026-04-30",
-          "shares_after": "68734",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1081",
-          "price": "376.689",
-          "date": "2026-04-30",
-          "shares_after": "67653",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3003",
-          "price": "377.487",
-          "date": "2026-04-30",
-          "shares_after": "64650",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3480",
-          "price": "378.573",
-          "date": "2026-04-30",
-          "shares_after": "61170",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1760",
-          "price": "379.427",
-          "date": "2026-04-30",
-          "shares_after": "59410",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1755",
-          "price": "380.756",
-          "date": "2026-04-30",
-          "shares_after": "57655",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6896",
-          "price": "381.607",
-          "date": "2026-04-30",
-          "shares_after": "50759",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "680",
-          "price": "382.414",
-          "date": "2026-04-30",
-          "shares_after": "50079",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1240",
-          "price": "383.612",
-          "date": "2026-04-30",
-          "shares_after": "48839",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "440",
-          "price": "384.284",
-          "date": "2026-04-30",
-          "shares_after": "48399",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40948",
-          "price": "0.000",
-          "date": "2026-04-30",
-          "shares_after": "0",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Musk Elon",
-          "owner_cik": "0001494730",
-          "title": "CEO",
-          "relationship": {
-            "is_director": true,
-            "is_officer": true,
-            "is_ten_percent_owner": true,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "D",
-          "code_label": "处置",
-          "acquired_disposed": "D",
-          "shares": "96000000",
-          "price": "0.00",
-          "date": "2026-04-21",
-          "shares_after": "423743904",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Zhu Xiaotong",
-          "owner_cik": "0001972928",
-          "title": "SVP",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "20000",
-          "price": "20.57",
-          "date": "2026-03-31",
-          "shares_after": "20000",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Zhu Xiaotong",
-          "owner_cik": "0001972928",
-          "title": "SVP",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "20000",
-          "price": "0.0",
-          "date": "2026-03-31",
-          "shares_after": "260650",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40000",
-          "price": "14.99",
-          "date": "2026-03-30",
-          "shares_after": "59669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2000",
-          "price": "352.833",
-          "date": "2026-03-30",
-          "shares_after": "57669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1640",
-          "price": "353.658",
-          "date": "2026-03-30",
-          "shares_after": "56029",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1800",
-          "price": "354.802",
-          "date": "2026-03-30",
-          "shares_after": "54229",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2481",
-          "price": "355.644",
-          "date": "2026-03-30",
-          "shares_after": "51748",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2360",
-          "price": "356.794",
-          "date": "2026-03-30",
-          "shares_after": "49388",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1120",
-          "price": "357.839",
-          "date": "2026-03-30",
-          "shares_after": "48268",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "520",
-          "price": "358.770",
-          "date": "2026-03-30",
-          "shares_after": "47748",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1880",
-          "price": "360.181",
-          "date": "2026-03-30",
-          "shares_after": "45868",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1000",
-          "price": "361.035",
-          "date": "2026-03-30",
-          "shares_after": "44868",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2320",
-          "price": "362.142",
-          "date": "2026-03-30",
-          "shares_after": "42548",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4001",
-          "price": "363.083",
-          "date": "2026-03-30",
-          "shares_after": "38547",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3927",
-          "price": "363.947",
-          "date": "2026-03-30",
-          "shares_after": "34620",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "560",
-          "price": "364.888",
-          "date": "2026-03-30",
-          "shares_after": "34060",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "120",
-          "price": "365.897",
-          "date": "2026-03-30",
-          "shares_after": "33940",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "80",
-          "price": "366.855",
-          "date": "2026-03-30",
-          "shares_after": "33860",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40000",
-          "price": "0.000",
-          "date": "2026-03-30",
-          "shares_after": "40948",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "6538",
-          "price": "0.0",
-          "date": "2026-03-05",
-          "shares_after": "20371",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2264.5",
-          "price": "397.031",
-          "date": "2026-03-06",
-          "shares_after": "18106.5",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Taneja Vaibhav",
-          "owner_cik": "0001771340",
-          "title": "Chief Financial Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": true,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "6538",
-          "price": "0.000",
-          "date": "2026-03-05",
-          "shares_after": "65382",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "40000",
-          "price": "14.99",
-          "date": "2026-02-25",
-          "shares_after": "45400",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "80",
-          "price": "412.460",
-          "date": "2026-02-25",
-          "shares_after": "45320",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4777",
-          "price": "413.952",
-          "date": "2026-02-25",
-          "shares_after": "40543",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "7501",
-          "price": "414.850",
-          "date": "2026-02-25",
-          "shares_after": "33042",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6825",
-          "price": "415.862",
-          "date": "2026-02-25",
-          "shares_after": "26217",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3148",
-          "price": "416.824",
-          "date": "2026-02-25",
-          "shares_after": "23069",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2960",
-          "price": "417.516",
-          "date": "2026-02-25",
-          "shares_after": "20109",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "440",
-          "price": "418.888",
-          "date": "2026-02-25",
-          "shares_after": "19669",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Wilson-Thompson Kathleen",
-          "owner_cik": "0001331680",
-          "title": null,
-          "relationship": {
-            "is_director": true,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "TSLA",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "40000",
-          "price": "0.000",
-          "date": "2026-02-25",
-          "shares_after": "80948",
-          "kind": "derivative"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -6240,7 +3137,8 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "AMD": {
       "cik": "0000002488",
@@ -8323,7 +5221,508 @@
     },
     "AVGO": {
       "cik": "0001730168",
-      "insider_transactions": [],
+      "insider_transactions": [
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "22624",
+          "price": "354.75",
+          "date": "2026-09-23",
+          "shares_after": "29961416",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "22946",
+          "price": "355.55",
+          "date": "2026-09-23",
+          "shares_after": "29938470",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "10058",
+          "price": "356.59",
+          "date": "2026-09-23",
+          "shares_after": "29928412",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "6959",
+          "price": "357.66",
+          "date": "2026-09-23",
+          "shares_after": "29921453",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "4560",
+          "price": "358.47",
+          "date": "2026-09-23",
+          "shares_after": "29916893",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "2162",
+          "price": "359.48",
+          "date": "2026-09-23",
+          "shares_after": "29914731",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "397",
+          "price": "360.76",
+          "date": "2026-09-23",
+          "shares_after": "29914334",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "512",
+          "price": "361.48",
+          "date": "2026-09-23",
+          "shares_after": "29913822",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "186809",
+          "price": "354.71",
+          "date": "2026-09-23",
+          "shares_after": "36327861",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "230031",
+          "price": "355.5",
+          "date": "2026-09-23",
+          "shares_after": "36097830",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "85221",
+          "price": "356.58",
+          "date": "2026-09-23",
+          "shares_after": "36012609",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "50998",
+          "price": "357.52",
+          "date": "2026-09-23",
+          "shares_after": "35961611",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "44618",
+          "price": "358.42",
+          "date": "2026-09-23",
+          "shares_after": "35916993",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "22579",
+          "price": "359.44",
+          "date": "2026-09-23",
+          "shares_after": "35894414",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "407",
+          "price": "361.18",
+          "date": "2026-09-23",
+          "shares_after": "35894007",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "11309",
+          "price": "361.79",
+          "date": "2026-09-23",
+          "shares_after": "35882698",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "SAMUELI HENRY",
+          "owner_cik": "0001201633",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "G",
+          "code_label": "赠予",
+          "acquired_disposed": "D",
+          "shares": "72474",
+          "price": "0",
+          "date": "2026-09-23",
+          "shares_after": "35810224",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "O'Toole Amie Thuener",
+          "owner_cik": "0001738007",
+          "title": "Chief Financial Officer",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "F",
+          "code_label": "税扣",
+          "acquired_disposed": "D",
+          "shares": "1554",
+          "price": "339.27",
+          "date": "2026-09-15",
+          "shares_after": "48597.036",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Brazeal Mark David",
+          "owner_cik": "0001627720",
+          "title": "Chief Legal & Corp Affairs Ofc",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "F",
+          "code_label": "税扣",
+          "acquired_disposed": "D",
+          "shares": "8059",
+          "price": "339.27",
+          "date": "2026-09-15",
+          "shares_after": "186930",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "DELLY GAYLA J",
+          "owner_cik": "0001218358",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "G",
+          "code_label": "赠予",
+          "acquired_disposed": "D",
+          "shares": "500",
+          "price": "0",
+          "date": "2026-07-10",
+          "shares_after": "30826",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Brazeal Mark David",
+          "owner_cik": "0001627720",
+          "title": "Chief Legal & Corp Affairs Ofc",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "25000",
+          "price": "401.329",
+          "date": "2026-07-10",
+          "shares_after": "194989",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "DELLY GAYLA J",
+          "owner_cik": "0001218358",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1890",
+          "price": "385.38",
+          "date": "2026-07-08",
+          "shares_after": "31326",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Brazeal Mark David",
+          "owner_cik": "0001627720",
+          "title": "Chief Legal & Corp Affairs Ofc",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "25000",
+          "price": "379.188",
+          "date": "2026-07-08",
+          "shares_after": "219989",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "PAGE JUSTINE",
+          "owner_cik": "0001359561",
+          "title": null,
+          "relationship": {
+            "is_director": true,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1602",
+          "price": "373.855",
+          "date": "2026-06-29",
+          "shares_after": "17426",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Brazeal Mark David",
+          "owner_cik": "0001627720",
+          "title": "Chief Legal & Corp Affairs Ofc",
+          "relationship": {
+            "is_director": false,
+            "is_officer": true,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "AVGO",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "25000",
+          "price": "387",
+          "date": "2026-06-25",
+          "shares_after": "244989",
+          "kind": "direct"
+        }
+      ],
       "institutional_holders": [
         {
           "holder_name": "Vanguard Group",
@@ -8477,1913 +5876,11 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-14"
         }
-      ],
-      "insider_error": "The read operation timed out"
+      ]
     },
     "MU": {
       "cik": "0000723125",
-      "insider_transactions": [
-        {
-          "owner_name": "Bjorlin Alexis",
-          "owner_cik": "0001798757",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "25.00",
-          "price": "1132.33",
-          "date": "2026-06-26",
-          "shares_after": "235.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "144.00",
-          "price": "959.14",
-          "date": "2026-08-21",
-          "shares_after": "304359.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "823.00",
-          "price": "960.41",
-          "date": "2026-08-21",
-          "shares_after": "303536.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1586.00",
-          "price": "961.58",
-          "date": "2026-08-21",
-          "shares_after": "301950.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4305.00",
-          "price": "962.84",
-          "date": "2026-08-21",
-          "shares_after": "297645.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4227.00",
-          "price": "963.84",
-          "date": "2026-08-21",
-          "shares_after": "293418.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3434.00",
-          "price": "964.67",
-          "date": "2026-08-21",
-          "shares_after": "289984.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2930.00",
-          "price": "965.81",
-          "date": "2026-08-21",
-          "shares_after": "287054.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2938.00",
-          "price": "966.85",
-          "date": "2026-08-21",
-          "shares_after": "284116.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "5252.00",
-          "price": "967.75",
-          "date": "2026-08-21",
-          "shares_after": "278864.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2847.00",
-          "price": "968.77",
-          "date": "2026-08-21",
-          "shares_after": "276017.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "862.00",
-          "price": "970.08",
-          "date": "2026-08-21",
-          "shares_after": "275155.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1023.00",
-          "price": "970.71",
-          "date": "2026-08-21",
-          "shares_after": "274132.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1047.00",
-          "price": "971.78",
-          "date": "2026-08-21",
-          "shares_after": "273085.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "301.00",
-          "price": "972.78",
-          "date": "2026-08-21",
-          "shares_after": "272784.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "337.00",
-          "price": "974.17",
-          "date": "2026-08-21",
-          "shares_after": "272447.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "863.00",
-          "price": "975.75",
-          "date": "2026-08-21",
-          "shares_after": "271584.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1127.00",
-          "price": "976.80",
-          "date": "2026-08-21",
-          "shares_after": "270457.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "664.00",
-          "price": "978.02",
-          "date": "2026-08-21",
-          "shares_after": "269793.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1091.00",
-          "price": "979.20",
-          "date": "2026-08-21",
-          "shares_after": "268702.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "458.00",
-          "price": "980.00",
-          "date": "2026-08-21",
-          "shares_after": "268244.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "716.00",
-          "price": "981.92",
-          "date": "2026-08-21",
-          "shares_after": "267528.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1354.00",
-          "price": "983.11",
-          "date": "2026-08-21",
-          "shares_after": "266174.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "637.00",
-          "price": "984.12",
-          "date": "2026-08-21",
-          "shares_after": "265537.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "84.00",
-          "price": "985.40",
-          "date": "2026-08-21",
-          "shares_after": "265453.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "341.00",
-          "price": "986.24",
-          "date": "2026-08-21",
-          "shares_after": "265112.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "351.00",
-          "price": "988.10",
-          "date": "2026-08-21",
-          "shares_after": "264761.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "258.00",
-          "price": "989.59",
-          "date": "2026-08-21",
-          "shares_after": "264503.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Sadana Sumit",
-          "owner_cik": "0001311079",
-          "title": "EVP and Chief Business Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "15000.00",
-          "price": "934.29",
-          "date": "2026-08-18",
-          "shares_after": "191021.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1050.00",
-          "price": "942.87",
-          "date": "2026-07-24",
-          "shares_after": "312168.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "626.00",
-          "price": "944.99",
-          "date": "2026-07-24",
-          "shares_after": "311542.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "955.00",
-          "price": "945.87",
-          "date": "2026-07-24",
-          "shares_after": "310587.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "797.00",
-          "price": "946.78",
-          "date": "2026-07-24",
-          "shares_after": "309790.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1207.00",
-          "price": "948.24",
-          "date": "2026-07-24",
-          "shares_after": "308583.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "108.00",
-          "price": "950.77",
-          "date": "2026-07-24",
-          "shares_after": "308475.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1.00",
-          "price": "952.04",
-          "date": "2026-07-24",
-          "shares_after": "308474.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "725.00",
-          "price": "954.19",
-          "date": "2026-07-24",
-          "shares_after": "307749.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1523.00",
-          "price": "956.18",
-          "date": "2026-07-24",
-          "shares_after": "306226.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "405.00",
-          "price": "956.68",
-          "date": "2026-07-24",
-          "shares_after": "305821.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "316.00",
-          "price": "960.00",
-          "date": "2026-07-24",
-          "shares_after": "305505.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1002.00",
-          "price": "965.85",
-          "date": "2026-07-24",
-          "shares_after": "304503.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "808.00",
-          "price": "906.48",
-          "date": "2026-07-24",
-          "shares_after": "343695.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "393.00",
-          "price": "907.11",
-          "date": "2026-07-24",
-          "shares_after": "343302.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "604.00",
-          "price": "908.51",
-          "date": "2026-07-24",
-          "shares_after": "342698.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4.00",
-          "price": "909.37",
-          "date": "2026-07-24",
-          "shares_after": "342694.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "604.00",
-          "price": "910.47",
-          "date": "2026-07-24",
-          "shares_after": "342090.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "681.00",
-          "price": "911.67",
-          "date": "2026-07-24",
-          "shares_after": "341409.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "630.00",
-          "price": "913.25",
-          "date": "2026-07-24",
-          "shares_after": "340779.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3250.00",
-          "price": "914.17",
-          "date": "2026-07-24",
-          "shares_after": "337529.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "301.00",
-          "price": "915.47",
-          "date": "2026-07-24",
-          "shares_after": "337228.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1.00",
-          "price": "915.78",
-          "date": "2026-07-24",
-          "shares_after": "337227.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1446.00",
-          "price": "917.36",
-          "date": "2026-07-24",
-          "shares_after": "335781.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "589.00",
-          "price": "919.89",
-          "date": "2026-07-24",
-          "shares_after": "335192.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "55.00",
-          "price": "921.86",
-          "date": "2026-07-24",
-          "shares_after": "335137.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1328.00",
-          "price": "922.97",
-          "date": "2026-07-24",
-          "shares_after": "333809.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "6.00",
-          "price": "924.36",
-          "date": "2026-07-24",
-          "shares_after": "333803.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1396.00",
-          "price": "925.55",
-          "date": "2026-07-24",
-          "shares_after": "332407.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "445.00",
-          "price": "926.56",
-          "date": "2026-07-24",
-          "shares_after": "331962.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1008.00",
-          "price": "927.77",
-          "date": "2026-07-24",
-          "shares_after": "330954.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2199.00",
-          "price": "929.14",
-          "date": "2026-07-24",
-          "shares_after": "328755.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1337.00",
-          "price": "929.90",
-          "date": "2026-07-24",
-          "shares_after": "327418.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1578.00",
-          "price": "931.05",
-          "date": "2026-07-24",
-          "shares_after": "325840.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "779.00",
-          "price": "932.33",
-          "date": "2026-07-24",
-          "shares_after": "325061.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1903.00",
-          "price": "933.17",
-          "date": "2026-07-24",
-          "shares_after": "323158.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2628.00",
-          "price": "934.40",
-          "date": "2026-07-24",
-          "shares_after": "320530.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1277.00",
-          "price": "935.58",
-          "date": "2026-07-24",
-          "shares_after": "319253.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1009.00",
-          "price": "936.40",
-          "date": "2026-07-24",
-          "shares_after": "318244.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2572.00",
-          "price": "937.78",
-          "date": "2026-07-24",
-          "shares_after": "315672.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "970.00",
-          "price": "938.77",
-          "date": "2026-07-24",
-          "shares_after": "314702.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1248.00",
-          "price": "940.14",
-          "date": "2026-07-24",
-          "shares_after": "313454.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "MEHROTRA SANJAY",
-          "owner_cik": "0001242654",
-          "title": "President and CEO",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "236.00",
-          "price": "941.60",
-          "date": "2026-07-24",
-          "shares_after": "313218.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ALLEN SCOTT R.",
-          "owner_cik": "0001652149",
-          "title": "CVP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "879.00",
-          "price": "1000.00",
-          "date": "2026-07-23",
-          "shares_after": "34958.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ALLEN SCOTT R.",
-          "owner_cik": "0001652149",
-          "title": "CVP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "663.00",
-          "price": "983.12",
-          "date": "2026-07-15",
-          "shares_after": "36086.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ALLEN SCOTT R.",
-          "owner_cik": "0001652149",
-          "title": "CVP, Chief Accounting Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "F",
-          "code_label": "税扣",
-          "acquired_disposed": "D",
-          "shares": "249.00",
-          "price": "983.12",
-          "date": "2026-07-15",
-          "shares_after": "35837.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "4279.00",
-          "price": "1077.05",
-          "date": "2026-07-01",
-          "shares_after": "121458.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1247.00",
-          "price": "1078.47",
-          "date": "2026-07-01",
-          "shares_after": "120211.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "10497.00",
-          "price": "1079.99",
-          "date": "2026-07-01",
-          "shares_after": "109714.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3572.00",
-          "price": "1080.96",
-          "date": "2026-07-01",
-          "shares_after": "106142.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "929.00",
-          "price": "1082.28",
-          "date": "2026-07-01",
-          "shares_after": "105213.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "3593.00",
-          "price": "1083.31",
-          "date": "2026-07-01",
-          "shares_after": "101620.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "794.00",
-          "price": "1084.12",
-          "date": "2026-07-01",
-          "shares_after": "100826.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2944.00",
-          "price": "1085.27",
-          "date": "2026-07-01",
-          "shares_after": "97882.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2105.00",
-          "price": "1086.38",
-          "date": "2026-07-01",
-          "shares_after": "95777.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1328.00",
-          "price": "1087.21",
-          "date": "2026-07-01",
-          "shares_after": "94449.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "220.00",
-          "price": "1088.12",
-          "date": "2026-07-01",
-          "shares_after": "94229.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "267.00",
-          "price": "1089.04",
-          "date": "2026-07-01",
-          "shares_after": "93962.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "288.00",
-          "price": "1090.60",
-          "date": "2026-07-01",
-          "shares_after": "93674.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2317.00",
-          "price": "1091.71",
-          "date": "2026-07-01",
-          "shares_after": "91357.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2510.00",
-          "price": "1092.68",
-          "date": "2026-07-01",
-          "shares_after": "88847.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "705.00",
-          "price": "1093.92",
-          "date": "2026-07-01",
-          "shares_after": "88142.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "2125.00",
-          "price": "1095.25",
-          "date": "2026-07-01",
-          "shares_after": "86017.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "ARNZEN APRIL S",
-          "owner_cik": "0001632063",
-          "title": "EVP and Chief People Officer",
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "280.00",
-          "price": "1095.88",
-          "date": "2026-07-01",
-          "shares_after": "85737.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Dugle Lynn A",
-          "owner_cik": "0001453368",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "1300.00",
-          "price": "1150.43",
-          "date": "2026-06-30",
-          "shares_after": "17728.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Dugle Lynn A",
-          "owner_cik": "0001453368",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "G",
-          "code_label": "赠予",
-          "acquired_disposed": "D",
-          "shares": "700.00",
-          "price": "0.00",
-          "date": "2026-06-30",
-          "shares_after": "17028.00",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "SWAN ROBERT HOLMES",
-          "owner_cik": "0001218363",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MU",
-          "code": "A",
-          "code_label": "授予",
-          "acquired_disposed": "A",
-          "shares": "35.00",
-          "price": "0.00",
-          "date": "2026-06-30",
-          "shares_after": "35.00",
-          "kind": "derivative"
-        }
-      ],
+      "insider_transactions": [],
       "institutional_holders": [
         {
           "holder_name": "State Street",
@@ -10529,7 +6026,8 @@
           "period_ending": "2026-06-30",
           "filed_at": "2026-08-06"
         }
-      ]
+      ],
+      "insider_error": "The read operation timed out"
     },
     "COIN": {
       "cik": "0001679788",
@@ -11426,166 +6924,6 @@
       "cik": "0001050446",
       "insider_transactions": [
         {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "475",
-          "price": "18.236",
-          "date": "2026-09-22",
-          "shares_after": "28881",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "475",
-          "price": "171",
-          "date": "2026-09-22",
-          "shares_after": "28406",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "475",
-          "price": "0",
-          "date": "2026-09-22",
-          "shares_after": "24850",
-          "kind": "derivative"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "A",
-          "shares": "1425",
-          "price": "18.236",
-          "date": "2026-09-21",
-          "shares_after": "29831",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "475",
-          "price": "165.984",
-          "date": "2026-09-21",
-          "shares_after": "29356",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "475",
-          "price": "167",
-          "date": "2026-09-21",
-          "shares_after": "28881",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "S",
-          "code_label": "卖出",
-          "acquired_disposed": "D",
-          "shares": "475",
-          "price": "169",
-          "date": "2026-09-21",
-          "shares_after": "28406",
-          "kind": "direct"
-        },
-        {
-          "owner_name": "Patten Jarrod M",
-          "owner_cik": "0001309191",
-          "title": null,
-          "relationship": {
-            "is_director": false,
-            "is_officer": false,
-            "is_ten_percent_owner": false,
-            "is_other": false
-          },
-          "symbol": "MSTR",
-          "code": "M",
-          "code_label": "期权行权",
-          "acquired_disposed": "D",
-          "shares": "1425",
-          "price": "0",
-          "date": "2026-09-21",
-          "shares_after": "25325",
-          "kind": "derivative"
-        },
-        {
           "owner_name": "Chow Thomas C.",
           "owner_cik": "0001834012",
           "title": "EVP & General Counsel",
@@ -12243,6 +7581,86 @@
           "price": "0",
           "date": "2026-06-23",
           "shares_after": "41250",
+          "kind": "derivative"
+        },
+        {
+          "owner_name": "Le Phong",
+          "owner_cik": "0001651669",
+          "title": "President & CEO",
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "P",
+          "code_label": "买入",
+          "acquired_disposed": "A",
+          "shares": "11000",
+          "price": "90.796",
+          "date": "2026-06-22",
+          "shares_after": "11000",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "A",
+          "shares": "1500",
+          "price": "18.236",
+          "date": "2026-06-17",
+          "shares_after": "29906",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "S",
+          "code_label": "卖出",
+          "acquired_disposed": "D",
+          "shares": "1500",
+          "price": "121.310",
+          "date": "2026-06-17",
+          "shares_after": "28406",
+          "kind": "direct"
+        },
+        {
+          "owner_name": "Patten Jarrod M",
+          "owner_cik": "0001309191",
+          "title": null,
+          "relationship": {
+            "is_director": false,
+            "is_officer": false,
+            "is_ten_percent_owner": false,
+            "is_other": false
+          },
+          "symbol": "MSTR",
+          "code": "M",
+          "code_label": "期权行权",
+          "acquired_disposed": "D",
+          "shares": "1500",
+          "price": "0",
+          "date": "2026-06-17",
+          "shares_after": "42750",
           "kind": "derivative"
         }
       ],
