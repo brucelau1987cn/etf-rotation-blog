@@ -32,6 +32,32 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+'2026-09-28': {
+    tradeDate: '2026-09-28',
+    shortDate: '09/28',
+    title: '9月28日滚动信号收盘复盘',
+    subtitle: 'A股10标的+港股澜起科技+期货白银SI=F全线空方：8确认3贴价混合1待补信号价，德福科技-9.20%领跌',
+    cutoff: '2026-09-28 15:00 CST（港股16:08、期货18:00）',
+    summary: 'A股11只监控标的中10只触发SELL（东方明珠10m/15m/30m、国民技术15m/20m/30m/60m、海光信息15m/30m、深科技30m/60m、华天科技30m、三安光电30m/150m/210m、创新医疗30m/60m、民爆光电30m/60m/90m/120m/210m、德福科技60m/90m/120m/180m、长鑫科技30m），港股澜起科技30m，期货白银SI=F 30m延续空方。收盘分类：确认8、贴价混合3、待补价1；A股全线收跌（德福科技-9.20%、民爆光电-7.64%、三安光电-7.06%、深科技-5.21%、长鑫科技-4.27%、国民技术-4.26%、华天科技-3.36%、海光信息-3.14%、创新医疗-2.83%、东方明珠-2.59%），空方方向整体兑现。',
+    buyRule: '今日无多方信号，不做逆势抢反弹。次日仅在标的重回信号价上方且量能配合时，按观察窗（多方1h45m/1.75h）分批试仓，单标的不超过底仓1/3，跌破当日低点立即止损。',
+    sellRule: '空方以信号价为压力：反弹至信号价附近无法收复即减仓；跌破当日低点则延续减仓/持有空头节奏；收复信号价并站稳则空方失效，转为风险提示。',
+    discipline: '同标的同节点当日只认首次入库信号价，不因盘中波动修改；收盘后按确认/贴价混合/待补价分类执行；贴价标的次日以能否收复信号价为唯一判据；不追空、不加杠杆。',
+    signals: [
+      { name: '德福科技', symbol: '301511', market: 'A股', direction: 'SELL', nodes: '60m/90m/120m/180m', signalPrices: '¥95.50 / ¥94.07 / ¥93.80 / ¥93.88', close: '¥93.80', change: '-9.20%', validation: 'confirmed', validationLabel: '空方贴价确认', verdict: '四窗信号价93.80-95.50，收盘93.80贴120m信号价、跌破其余三窗，空方兑现但确认偏弱', support: '¥93.01（当日低点）', pressure: '¥95.50（60m信号价）', buyPlan: '无多方信号，暂不介入', sellPlan: '反弹至93.80-95.50无法收复继续减仓，跌破93.01延续', evidence: ['收盘93.80 -9.20%，换手7.12%，量比1.021', 'RSI6 25.3 超卖，主力净流出1.22亿', '获利盘19.4%、平均成本106.08，套牢盘压制'] },
+      { name: '民爆光电', symbol: '301362', market: 'A股', direction: 'SELL', nodes: '30m/60m/90m/120m/210m', signalPrices: '¥107.99 / ¥107.52 / ¥106.00 / ¥105.60 / ¥106.29', close: '¥106.02', change: '-7.64%', validation: 'mixed', validationLabel: '空方贴价混合确认', verdict: '五窗信号价105.60-107.99，收盘106.02站上90m/120m、跌破30m/60m/210m，混合贴价', support: '¥104.80（当日低点）', pressure: '¥107.99（30m信号价）', buyPlan: '不介入', sellPlan: '反抽106.00-107.99受阻继续减仓，跌破104.80延续', evidence: ['收盘106.02 -7.64%，换手6.35%，量比0.778', 'RSI6 31.5 偏弱，主力净流出1299万', '获利盘5.0%、平均成本116.20'] },
+      { name: '三安光电', symbol: '600703', market: 'A股', direction: 'SELL', nodes: '30m/150m/210m', signalPrices: '¥11.79 / ¥11.62 / ¥11.66', close: '¥11.59', change: '-7.06%', validation: 'confirmed', validationLabel: '空方确认', verdict: '收盘11.59同时跌破30m/150m/210m三窗信号价，空方强确认', support: '¥11.59（当日低点=收盘）', pressure: '¥11.79（30m信号价）', buyPlan: '不介入', sellPlan: '反抽11.66-11.79受阻继续减仓', evidence: ['收盘11.59 -7.06%，换手2.56%，量比1.460', 'RSI6 16.5 深度超卖，主力净流出4140万', '获利盘0.6%、平均成本13.40，几乎全线套牢'] },
+      { name: '深科技', symbol: '000021', market: 'A股', direction: 'SELL', nodes: '30m/60m', signalPrices: '¥34.45 / ¥34.12', close: '¥33.68', change: '-5.21%', validation: 'confirmed', validationLabel: '空方确认', verdict: '收盘33.68跌破30m/60m两窗信号价，空方兑现', support: '¥33.56（当日低点）', pressure: '¥34.45（30m信号价）', buyPlan: '不介入', sellPlan: '反抽34.12-34.45受阻继续减仓', evidence: ['收盘33.68 -5.21%，换手3.42%，量比0.731', 'RSI6 29.3 偏弱，主力净流出1.29亿', '获利盘0.8%、平均成本36.80'] },
+      { name: '长鑫科技', symbol: '688825', market: 'A股', direction: 'SELL', nodes: '30m', signalPrices: '¥54.83', close: '¥53.80', change: '-4.27%', validation: 'confirmed', validationLabel: '空方确认', verdict: '收盘53.80跌破30m信号价54.83，空方有效', support: '¥53.80（当日低点=收盘）', pressure: '¥54.83（信号价）', buyPlan: '不介入', sellPlan: '反抽54.83受阻继续减仓', evidence: ['收盘53.80 -4.27%，换手4.78%，量比0.936', 'RSI6 35.7，主力净流出19.83亿（次新解禁抛压）', '获利盘8.4%、平均成本56.60'] },
+      { name: '国民技术', symbol: '300077', market: 'A股', direction: 'SELL', nodes: '15m/20m/30m/60m', signalPrices: '¥21.83 / ¥21.66 / ¥21.23 / ¥21.21', close: '¥21.35', change: '-4.26%', validation: 'mixed', validationLabel: '空方贴价混合确认', verdict: '四窗信号价21.21-21.83，收盘21.35跌破15m/20m、站上30m/60m，短周期确认长周期收复', support: '¥21.00（当日低点）', pressure: '¥21.83（15m信号价）', buyPlan: '不介入', sellPlan: '反抽21.66-21.83受阻继续减仓，收复21.21上方空方转弱', evidence: ['收盘21.35 -4.26%，换手4.53%，量比0.480', 'RSI6 47.9 中性，主力净流出946万', '获利盘58.8%、平均成本20.76，浮盈盘仍厚'] },
+      { name: '华天科技', symbol: '002185', market: 'A股', direction: 'SELL', nodes: '30m', signalPrices: '¥17.03', close: '¥16.99', change: '-3.36%', validation: 'confirmed', validationLabel: '空方贴价确认', verdict: '收盘16.99贴于30m信号价17.03下方，弱确认', support: '¥16.72（当日低点）', pressure: '¥17.03（信号价）', buyPlan: '收复17.03并放量前不介入', sellPlan: '反抽17.03受阻继续减仓', evidence: ['收盘16.99 -3.36%，换手5.66%，量比0.496', 'RSI6 42.9，主力净流出1.20亿', '获利盘35.6%、平均成本17.61'] },
+      { name: '海光信息', symbol: '688041', market: 'A股', direction: 'SELL', nodes: '15m/30m', signalPrices: '¥242.95 / ¥241.15', close: '¥240.50', change: '-3.14%', validation: 'confirmed', validationLabel: '空方确认', verdict: '收盘240.50跌破15m/30m两窗信号价，空方兑现', support: '¥238.30（当日低点）', pressure: '¥241.15（30m信号价）', buyPlan: '不介入', sellPlan: '反抽241.15-242.95受阻继续减仓', evidence: ['收盘240.50 -3.14%，换手0.74%，量比0.665', 'RSI6 45.6 中性，主力净流入4134万（逆势流入需警惕）', '获利盘11.0%、平均成本292.23'] },
+      { name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '30m/60m', signalPrices: '¥17.40 / ¥17.19', close: '¥17.16', change: '-2.83%', validation: 'confirmed', validationLabel: '空方确认', verdict: '收盘17.16跌破30m/60m两窗信号价，空方兑现', support: '¥17.07（当日低点）', pressure: '¥17.19（60m信号价）', buyPlan: '收复17.19并放量前不介入', sellPlan: '反抽17.19-17.40受阻继续减仓', evidence: ['收盘17.16 -2.83%，换手3.36%，量比0.501', 'RSI6 31.7，主力净流出299万', '获利盘1.2%、平均成本18.45'] },
+      { name: '东方明珠', symbol: '600637', market: 'A股', direction: 'SELL', nodes: '10m/15m/30m', signalPrices: '¥8.68 / ¥8.67 / ¥8.64', close: '¥8.66', change: '-2.59%', validation: 'mixed', validationLabel: '空方贴价混合确认', verdict: '三窗信号价8.64-8.68，收盘8.66跌破10m/15m、贴30m上方0.02元，混合贴价', support: '¥8.61（当日低点）', pressure: '¥8.68（10m信号价）', buyPlan: '不介入', sellPlan: '反抽8.67-8.68受阻继续减仓', evidence: ['收盘8.66 -2.59%，换手1.24%，量比0.850', 'RSI6 48.9 中性，主力净流出1985万', '获利盘62.4%、平均成本8.43，浮盈盘厚'] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'SELL', nodes: '30m', signalPrices: 'HK$待补（信号价未入库）', close: 'HK$285.20', change: '-5.12%', validation: 'watch', validationLabel: '空方待补信号价', verdict: 'D1已入库30m SELL但信号价为空，当日收285.20跌5.12%，方向与空方一致，需补价后正式定性', support: 'HK$282.00（当日低点）', pressure: 'HK$299.40（当日高点）', buyPlan: '信号价缺失，暂不介入', sellPlan: '以285.20下方为空方延续，反弹至299.40附近受压则减仓', evidence: ['收盘HK$285.20 -5.12%，成交207.7万股', '当日高低299.40/282.00，振幅5.8%', 'D1 trigger_price 为空，待后台补价'] },
+      { name: '纽约白银期货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '30m', signalPrices: '$62.936', close: '$61.30', change: '-4.67%', validation: 'confirmed', validationLabel: '空方确认', verdict: '30m SELL触发于$62.936，现货端hf_XAG最新$61.30（前收$64.299）跌破信号价，空方确认', support: '$60.93（当日低点）', pressure: '$62.936（信号价）', buyPlan: '不介入', sellPlan: '反弹至62.94附近受阻继续持有空头，收复64.30则空方失效', evidence: ['现货hf_XAG $61.30，前收$64.299，-4.67%', '沪银连续nf_AG0 14985（前收15178）', '美元指数DINIW 101.15'] },
+    ],
+    sources: ['D1 rolling_signals (trade_date=2026-09-28)', 'iWenCai hithink-market-query 收盘/量比/MA/RSI/主力资金/筹码', '腾讯 qt.gtimg.cn 港股收盘', '新浪 hq.sinajs.cn 现货白银/沪银/美元指数'],
+  },
 '2026-09-24': {
     tradeDate: '2026-09-24',
     shortDate: '09/24',
@@ -2237,7 +2263,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
   }
 };
 
-export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-24', href: '/rolling/insights/' },
+export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-28', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-24', href: '/rolling/insights/2026-09-24/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-23', href: '/rolling/insights/2026-09-23/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-22', href: '/rolling/insights/2026-09-22/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-21', href: '/rolling/insights/2026-09-21/' },
