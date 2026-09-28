@@ -2,6 +2,7 @@
 
 import importlib.util
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,7 @@ def test_previous_profit_fallback_refreshes_quote_without_changing_profit_ratios
         previous,
         quote_fetcher=lambda symbol: {"price": 404.08, "change_percent": 1.09},
         asset_keys=("gold",),
+        today=date(2026, 9, 22),
     )
 
     row = merged["assets"]["gold"]
