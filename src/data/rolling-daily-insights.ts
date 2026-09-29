@@ -32,6 +32,23 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+'2026-09-29': {
+    tradeDate: '2026-09-29',
+    shortDate: '09/29',
+    title: '9月29日滚动信号收盘复盘',
+    subtitle: 'A股仅民爆光电180m SELL@¥105.06当日被收复（收¥106.08 +0.06%），美股特斯拉90m SELL@$357.80贴价弱确认；白银无新信号但空方格局延续',
+    cutoff: '2026-09-29 15:00 CST（港股16:08、美盘9月28日收盘、期货实时）',
+    summary: '当日滚动信号仅2条：民爆光电180m SELL触发于¥105.06，收盘¥106.08站回信号价上方0.97%，空方当日被收复，转为风险提示；特斯拉90m SELL@$357.80，美东9月28日收$357.45贴于信号价下方0.35美元，弱确认。A股其余10只监控标的当日无新信号，多数小幅震荡（长鑫科技+3.25%、德福科技+2.51%、东方明珠+1.62%），海光信息-1.92%、三安光电-1.55%偏弱。期货白银当日无新信号，但空方格局延续：现货hf_XAG最新$60.75（+0.21%），沪银连续nf_AG0 14848（-2.18%）。收盘分类：确认1（贴价）、收复1、观察0。',
+    buyRule: '今日无有效多方信号，且唯一A股空方信号已被收复，不追多。次日仅在民爆光电站稳105.06上方且量能配合时按多方观察窗（1h45m/1.75h）分批试仓，单标的不超过底仓1/3，跌破当日低点103.50立即止损。',
+    sellRule: '空方以信号价为压力：反弹至信号价附近无法收复即减仓；收复信号价并站稳则空方失效、转为风险提示（民爆光电即属此类）；跌破当日低点则延续减仓。',
+    discipline: '同标的同节点当日只认首次入库信号价，不因盘中波动修改；空方信号被收复时按风险提示处理而非追空；贴价标的次日以能否收复信号价为唯一判据；不追空、不加杠杆。',
+    signals: [
+      { name: '民爆光电', symbol: '301362', market: 'A股', direction: 'SELL', nodes: '180m', signalPrices: '¥105.06', close: '¥106.08', change: '+0.06%', validation: 'reclaimed', validationLabel: '空方收复', verdict: '180m SELL触发于¥105.06，收盘¥106.08站回信号价上方0.97%，空方当日被收复，转为风险提示（次日跌破105.06方重启空方）', support: '¥103.50（当日低点）', pressure: '¥105.06（180m信号价，已收复）', buyPlan: '站稳105.06上方且量能配合，按多方观察窗分批试仓，单标的≤底仓1/3', sellPlan: '跌破105.06回落则空方重启减仓，跌破103.50延续', evidence: ['收盘106.08 +0.06%，换手4.43%，量比0.576', 'RSI6 31.65 偏弱，主力净流入364.6万（由流出转正）', '获利盘10.2%、平均成本115.85，MA5 113.20/MA20 111.15 均线仍在上方压制'] },
+      { name: '特斯拉', symbol: 'TSLA', market: '美股', direction: 'SELL', nodes: '90m', signalPrices: '$357.80', close: '$357.45', change: '-3.94%', validation: 'confirmed', validationLabel: '空方贴价确认', verdict: '90m SELL触发于$357.80，美东9月28日收$357.45贴于信号价下方0.35美元，空方弱确认', support: '$356.80（9月28日低点）', pressure: '$357.80（90m信号价）', buyPlan: '收复357.80并放量前不介入', sellPlan: '反弹至357.80受阻继续减仓，收复站稳则空方失效', evidence: ['美东9月28日收357.45 -3.94%（前收372.11），当日低356.80', 'Yahoo日线：9月25日收372.11 → 9月28日收357.45', 'D1 90m SELL信号价357.80，触发时间2026-09-29 03:30 CST'] },
+      { name: '纽约白银期货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '90m', signalPrices: '$62.449', close: '$60.75', change: '+0.21%', validation: 'confirmed', validationLabel: '空方确认', verdict: '90m SELL触发于$62.449（D1 trade_date=2026-09-28 美盘时段），现货hf_XAG最新$60.75低于信号价2.7%，空方确认延续', support: '$60.28（当日低点）', pressure: '$62.449（90m信号价）', buyPlan: '不介入', sellPlan: '反弹至62.45受阻继续持有空头，收复62.45则空方失效', evidence: ['现货hf_XAG $60.75（+0.21%，前收$60.62），较信号价低2.7%', '沪银连续nf_AG0 14848（前收15178，-2.18%）', '美元指数DINIW 101.42'] },
+    ],
+    sources: ['D1 rolling_signals (trade_date=2026-09-29)', 'iWenCai hithink-market-query 收盘/换手/量比/MA/RSI/主力资金/筹码', '腾讯 qt.gtimg.cn A股与港股收盘', 'Yahoo Finance TSLA 日线', '新浪 hq.sinajs.cn 现货白银/沪银/美元指数'],
+  },
 '2026-09-28': {
     tradeDate: '2026-09-28',
     shortDate: '09/28',
@@ -2263,7 +2280,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
   }
 };
 
-export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-28', href: '/rolling/insights/' },
+export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-29', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-28', href: '/rolling/insights/2026-09-28/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-24', href: '/rolling/insights/2026-09-24/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-23', href: '/rolling/insights/2026-09-23/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-22', href: '/rolling/insights/2026-09-22/' },
