@@ -1,27 +1,27 @@
 {
   "version": 1,
-  "generated_at": "2026-10-06T00:05:22+00:00",
+  "generated_at": "2026-10-07T00:05:22+00:00",
   "mode": "shadow_research_only",
   "production_weights_changed": false,
   "point_in_time": "for A-share date D, every external component uses the latest completed observation strictly before D",
   "factor": {
     "name": "Korea Tech Factor",
-    "decision_date": "2026-10-06",
-    "score": 55.1984,
+    "decision_date": "2026-10-07",
+    "score": 53.1944,
     "regime": "neutral",
     "components": {
       "hynix_relative": 45.2381,
       "samsung_relative": 43.254,
-      "soxx_trend": 82.1429,
+      "soxx_trend": 76.1905,
       "kospi_trend": 45.6349,
-      "won_strength": 55.9524
+      "won_strength": 50.7937
     },
     "source_cutoffs": {
       "hynix_relative": "2026-10-02",
       "samsung_relative": "2026-10-02",
-      "soxx_trend": "2026-10-02",
+      "soxx_trend": "2026-10-05",
       "kospi_trend": "2026-10-02",
-      "won_strength": "2026-10-04"
+      "won_strength": "2026-10-05"
     },
     "weights": {
       "hynix_relative": 0.3,
@@ -64,9 +64,9 @@
   "backtest": {
     "horizons": {
       "t1": {
-        "basket_rank_ic": 0.064784,
-        "basket_pearson_ic": 0.038867,
-        "pooled_rank_ic": 0.05688,
+        "basket_rank_ic": 0.06465,
+        "basket_pearson_ic": 0.038765,
+        "pooled_rank_ic": 0.056776,
         "strong_minus_weak": 0.003643,
         "all": {
           "n": 7181,
@@ -76,9 +76,9 @@
         }
       },
       "t5": {
-        "basket_rank_ic": 0.127677,
-        "basket_pearson_ic": 0.073863,
-        "pooled_rank_ic": 0.106604,
+        "basket_rank_ic": 0.127485,
+        "basket_pearson_ic": 0.073605,
+        "pooled_rank_ic": 0.106468,
         "strong_minus_weak": 0.011943,
         "all": {
           "n": 7181,
@@ -88,9 +88,9 @@
         }
       },
       "t20": {
-        "basket_rank_ic": 0.052498,
-        "basket_pearson_ic": -0.01164,
-        "pooled_rank_ic": 0.061636,
+        "basket_rank_ic": 0.052369,
+        "basket_pearson_ic": -0.01186,
+        "pooled_rank_ic": 0.06153,
         "strong_minus_weak": -0.002395,
         "all": {
           "n": 7181,
@@ -1413,7 +1413,7 @@
     "Research-only; formal rankings, key levels, positions and ambush eligibility remain unchanged."
   ],
   "forward_test": {
-    "frozen_samples": 50,
+    "frozen_samples": 51,
     "history_path": "data/local/korea-tech-factor-forward.json"
   }
 }
