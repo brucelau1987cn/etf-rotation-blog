@@ -47,6 +47,25 @@ def is_ancestor(left: str, right: str) -> bool:
     return run(["git", "merge-base", "--is-ancestor", left, right], check=False).returncode == 0
 
 
+def _calendar_gate(stdout: str) -> dict | None:
+    """Extract the maintenance runner's ``calendar_gate`` from its JSON stdout.
+
+    The runner prints one JSON object; a closed-day run emits only the gate, so
+    scan lines and take the first parseable object carrying a gate.
+    """
+    for line in reversed((stdout or "").splitlines()):
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            payload = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(payload, dict) and isinstance(payload.get("calendar_gate"), dict):
+            return payload["calendar_gate"]
+    return None
+
+
 def foreign_dirty_paths(lines: list[str]) -> list[str]:
     paths: list[str] = []
     for line in lines:
@@ -94,7 +113,14 @@ def publish(slot: str) -> dict[str, str]:
     with site_publish_lock(), publish_lock():
         preflight()
         try:
-            run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
+            maintenance = run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
+            # A closed exchange calendar makes the maintenance run a no-op; the
+            # published snapshot then legitimately stays untouched (and may be
+            # older than the validator's freshness window). Honour the gate
+            # instead of failing the job on a stale-but-correct snapshot.
+            gate = _calendar_gate(maintenance.stdout)
+            if gate is not None and gate.get("status") == "skip":
+                return {"status": "idempotent", "reason": str(gate.get("reason") or "exchange calendar is closed"), "slot": slot}
             run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
             if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode == 0:
                 return {"status": "unchanged", "slot": slot}
