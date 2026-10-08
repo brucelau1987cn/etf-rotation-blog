@@ -619,8 +619,11 @@ def _main(argv: list[str] | None = None) -> int:
     )
     if using_production_inputs:
         try:
+            # sys.executable keeps the health regeneration on this script's own
+            # interpreter; a bare `python3` resolves to the Hermes tool python
+            # under cron and would miss project dependencies.
             run([
-                "python3", "scripts/generate_us_compass_health.py",
+                sys.executable, "scripts/generate_us_compass_health.py",
                 "--learning", str(args.learning),
                 "--shadow", str(args.shadow),
                 "--output", str(args.health),
