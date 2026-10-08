@@ -885,6 +885,30 @@ def test_weekly_publisher_deploys_research_archive():
     assert "using_production_inputs" in publisher
 
 
+def test_weekly_publisher_pins_child_interpreters():
+    """Under cron a bare `python3` is the Hermes tool python, which lacks jsonschema.
+
+    Every child that imports project dependencies must run on this script's own
+    interpreter instead.
+    """
+    publisher = (ROOT / "scripts" / "publish_us_compass_research.py").read_text(encoding="utf-8")
+    assert 'run(["python3"' not in publisher
+    assert 'sys.executable, "scripts/generate_us_compass_health.py"' in publisher
+    assert 'run([sys.executable, "scripts/generate_data_catalog.py"])' in publisher
+    assert 'run([sys.executable, "scripts/validate_public_data_contracts.py"])' in publisher
+
+
+@requires_local_hermes
+def test_weekly_wrapper_pins_project_interpreter():
+    """The cron entry wrapper must launch the publisher on the build venv."""
+    wrapper = Path("/root/.hermes/scripts/publish_us_compass_research.py")
+    source = wrapper.read_text(encoding="utf-8")
+    assert 'PROJECT_PYTHON = ROOT / ".build-venv/bin/python3"' in source
+    assert '[PYTHON, "scripts/check_us_compass_downstream_gate.py"]' in source
+    assert '[PYTHON, "scripts/publish_us_compass_research.py", "--iwencai", "--publish"]' in source
+    assert '["python3",' not in source
+
+
 def test_catalog_registers_research_archive():
     catalog = (ROOT / "scripts" / "generate_data_catalog.py").read_text(encoding="utf-8")
     assert 'DatasetSpec("us-compass-research"' in catalog
