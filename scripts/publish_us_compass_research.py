@@ -582,8 +582,11 @@ def publish_unlocked() -> str:
     except ModuleNotFoundError:
         from scripts.a_share_nightly_contract import site_publish_lock
         from scripts.pages_release import release_pages
-    run(["python3", "scripts/generate_data_catalog.py"])
-    run(["python3", "scripts/validate_public_data_contracts.py"])
+    # sys.executable, not bare `python3`: under cron a bare python3 resolves to
+    # the Hermes tool interpreter, which lacks the project dependencies
+    # (jsonschema) that the contract validator imports.
+    run([sys.executable, "scripts/generate_data_catalog.py"])
+    run([sys.executable, "scripts/validate_public_data_contracts.py"])
     run(["npm", "run", "build"])
     run(["git", "add", "public/data/us-compass-research.json", "public/data/catalog.json", "public/data/us-compass-health.json"])
     staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0

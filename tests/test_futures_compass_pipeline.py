@@ -339,6 +339,68 @@ def test_publisher_tracks_briefing_and_deploys_both_json_files():
     assert 'Path(BRIEFING)' in source
 
 
+def closed_day_gate_stdout():
+    return json.dumps({
+        "calendar_gate": {
+            "status": "skip", "reason": "exchange calendar is closed",
+            "calendar_date": "2026-10-05", "calendar_source": "d1_exchange_calendar",
+        },
+    })
+
+
+def test_publisher_calendar_gate_parser_reads_maintenance_receipt():
+    assert publisher._calendar_gate(closed_day_gate_stdout())["status"] == "skip"
+    assert publisher._calendar_gate("") is None
+    assert publisher._calendar_gate("noise\nnot json") is None
+    run_receipt = json.dumps({"review": {"status": "ok"}, "calendar_gate": {"status": "run"}})
+    assert publisher._calendar_gate(run_receipt)["status"] == "run"
+
+
+def test_publisher_skips_validation_and_release_on_closed_day(monkeypatch):
+    """A closed exchange calendar must not fail the job on a stale-but-correct snapshot."""
+    import contextlib
+
+    commands = []
+
+    def fake_run(command, check=True, **kwargs):
+        commands.append(" ".join(command))
+        return data.subprocess.CompletedProcess(command, 0, stdout=closed_day_gate_stdout(), stderr="")
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+    monkeypatch.setattr(publisher, "site_publish_lock", contextlib.nullcontext)
+    monkeypatch.setattr(publisher, "publish_lock", contextlib.nullcontext)
+
+    result = publisher.publish("preopen")
+
+    assert result["status"] == "idempotent"
+    assert commands == [
+        f"{publisher.FUTURES_PYTHON} scripts/run_futures_compass_maintenance.py --slot preopen",
+    ], commands
+
+
+def test_publisher_still_validates_when_calendar_is_open(monkeypatch):
+    import contextlib
+
+    receipt = json.dumps({"review": {"status": "ok"}, "calendar_gate": {"status": "run"}})
+    commands = []
+
+    def fake_run(command, check=True, **kwargs):
+        joined = " ".join(command)
+        commands.append(joined)
+        return data.subprocess.CompletedProcess(command, 0, stdout=receipt, stderr="")
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+    monkeypatch.setattr(publisher, "site_publish_lock", contextlib.nullcontext)
+    monkeypatch.setattr(publisher, "publish_lock", contextlib.nullcontext)
+
+    result = publisher.publish("preopen")
+
+    assert result["status"] == "unchanged"
+    assert any("validate_futures_compass" in command for command in commands), commands
+
+
 def test_futures_page_contains_event_briefing_sections():
     page = (ROOT / "src/pages/futures-compass/index.astro").read_text(encoding="utf-8")
     briefing = json.loads((ROOT / "public/data/futures-compass-briefing.json").read_text(encoding="utf-8"))
