@@ -40,12 +40,15 @@ def prev_trade_date_str():
         d -= timedelta(days=1)
     return d.strftime('%Y%m%d')
 
-def fetch(url, ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'):
-    req = Request(url, headers={
+def fetch(url, ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', extra_headers=None):
+    headers = {
         'User-Agent': ua,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9',
-    })
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+    req = Request(url, headers=headers)
     with urlopen(req, timeout=30) as resp:
         return resp.read().decode('utf-8', errors='replace')
 
@@ -89,10 +92,26 @@ def fetch_shfe():
     return {'ok': False, 'source': 'shfe', 'error': 'no data'}
 
 # ─── 2. LBMA 伦敦库存 ──────────────────────────────────
+LBMA_UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+           '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+LBMA_HEADERS = {
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'Origin': 'https://www.lbma.org.uk',
+    'Referer': 'https://www.lbma.org.uk/prices-and-data/lbma-vault-holdings',
+}
+
+
 def fetch_lbma():
     try:
         url = 'https://www.lbma.org.uk/vault-holdings-data/data.json'
-        raw = fetch(url, ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        # Cloudflare in front of lbma.org.uk 403s plain scripted requests; the
+        # browser fetch-metadata headers (Sec-Fetch-Site in particular) are what
+        # the edge rule keys on, so send the full same-origin XHR header set.
+        raw = fetch(url, ua=LBMA_UA, extra_headers=LBMA_HEADERS)
         rows = json.loads(raw)
         latest = rows[-1] if rows else None
         prev = rows[-2] if len(rows) > 1 else None
