@@ -1,0 +1,12 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import RollingDailyInsightReport from '../../../components/RollingDailyInsightReport.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import { rollingDailyReports } from '../../../data/rolling-daily-insights';
+const report = rollingDailyReports['2026-09-30'];
+const title = `${report.title} | ${SITE_TITLE}`;
+---
+<!doctype html><html lang="zh-CN"><head><BaseHead title={title} description="A股空方共振：华天科技60m/90m/120m/150m四窗SELL@¥16.46-16.60收¥16.46(-3.29%)全确认、海光信息三窗SELL@¥227.58-228.65收¥226.80(-3.85%)确认、民爆光电150m SELL@¥102.79收¥102.47(-3.40%)确认；上海电力1h BUY@¥13.27收¥13.25贴价未站稳转观察；白银现货10m/15m SELL@$60.99/$60.86收$60.85确认延续" /></head><body><Header /><main id="main-content" class="rolling-insights-main"><RollingSubnav active="insights" /><RollingDailyInsightReport report={report} /></main><Footer /></body></html>
