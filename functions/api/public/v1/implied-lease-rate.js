@@ -121,15 +121,84 @@ function pickContract(rows, targetDays, today) {
   return best;
 }
 
-function buildMetal(rows, usd, today) {
+// Spot-leg and cross-leg guards, mirroring scripts/implied_lease_rate.py.
+// Yahoo's front month is often a thin delivery-month print whose level is not a
+// usable spot proxy; the active month carries the real price. A thin or stale
+// spot leg feeds straight into ln(F/S) and shows up as an implausible rate.
+const SPOT_LOOKAHEAD_CONTRACTS = 4;
+const MIN_SPOT_VOLUME = 100;
+const MAX_LEG_AGE_DAYS = 4;
+const MAX_ABS_CARRY_PCT = { gold: 12.0, silver: 25.0 };
+const DEFAULT_MAX_ABS_CARRY_PCT = 25.0;
+
+function legAgeDays(row, today) {
+  if (row.marketTime == null) return null;
+  const observed = new Date(Number(row.marketTime) * 1000);
+  if (Number.isNaN(observed.getTime())) return null;
+  return daysBetween(observed, today);
+}
+
+function spotLegAcceptable(row, today) {
+  if (row.volume != null && row.volume < MIN_SPOT_VOLUME) return false;
+  const age = legAgeDays(row, today);
+  if (age != null && age > MAX_LEG_AGE_DAYS) return false;
+  return true;
+}
+
+function selectSpotLeg(rows, today) {
+  const candidates = rows
+    .filter((r) => r.price > 0 && r.expiry && daysBetween(today, r.expiry) > 3)
+    .sort((a, b) => a.expiry - b.expiry);
+  if (!candidates.length) return { leg: null, reason: 'no liquid COMEX curve', rejected: null };
+  const front = candidates[0];
+  let rejected = null;
+  if (candidates.length > 1) {
+    const reasons = [];
+    if (front.volume != null && front.volume < MIN_SPOT_VOLUME) {
+      reasons.push(`front volume ${front.volume} < ${MIN_SPOT_VOLUME}`);
+    }
+    const age = legAgeDays(front, today);
+    if (age != null && age > MAX_LEG_AGE_DAYS) reasons.push(`front print ${age}d old`);
+    if (reasons.length) {
+      rejected = { symbol: front.symbol, reasons };
+      for (const candidate of candidates.slice(1, SPOT_LOOKAHEAD_CONTRACTS + 1)) {
+        if (spotLegAcceptable(candidate, today)) {
+          return {
+            leg: candidate,
+            reason: `advanced spot leg past thin/stale front: ${reasons.join('; ')}`,
+            rejected,
+          };
+        }
+      }
+      return { leg: null, reason: `no acceptable spot leg: ${reasons.join('; ')}`, rejected };
+    }
+  }
+  return { leg: front, reason: 'front contract liquid and fresh', rejected };
+}
+
+function carryWithinBand(spot, forward, years, metal) {
+  if (!(spot > 0) || !(forward > 0) || !(years > 0)) return false;
+  const carryPct = (Math.abs(Math.log(forward / spot)) / years) * 100;
+  const limit = MAX_ABS_CARRY_PCT[metal] ?? DEFAULT_MAX_ABS_CARRY_PCT;
+  return carryPct <= limit;
+}
+
+function buildMetal(rows, usd, today, metal) {
   const liquid = filterLiquid(rows, today);
   if (!liquid.length) return null;
-  const spot = liquid[0];
+  const selection = selectSpotLeg(liquid, today);
+  const spot = selection.leg;
+  if (!spot) return null;
+  // Forward legs must sit strictly beyond the chosen spot leg.
+  const forwardPool = liquid.filter((r) => r.expiry > spot.expiry);
   const tenors = [];
   for (const t of TENORS) {
-    const fwd = pickContract(liquid, t.days, today);
+    const fwd = pickContract(forwardPool, t.days, today);
     if (!fwd) continue;
     const years = daysBetween(today, fwd.expiry) / 365.25;
+    // Reject a pair whose implied carry is implausible for this metal; a thin or
+    // stale leg otherwise surfaces as a distorted lease rate.
+    if (!carryWithinBand(spot.price, fwd.price, years, metal)) continue;
     const rUsd = interpolateUsd(usd, years);
     const rate = leaseProxy(spot.price, fwd.price, years, rUsd);
     if (rate == null) continue;
@@ -145,6 +214,7 @@ function buildMetal(rows, usd, today) {
       spot_symbol: spot.symbol,
       spot_name: spot.name,
       spot_price: spot.price,
+      spot_volume: spot.volume ?? null,
       forward_symbol: fwd.symbol,
       forward_name: fwd.name,
       forward_price: fwd.price,
@@ -161,6 +231,8 @@ function buildMetal(rows, usd, today) {
       price: spot.price,
       expiry: spot.expiry.toISOString().slice(0, 10),
     },
+    spot_leg_reason: selection.reason,
+    spot_leg_rejected: selection.rejected,
     tenors,
     rate_1m: by['1M'] ?? null,
     rate_3m: by['3M'] ?? null,
@@ -197,6 +269,9 @@ async function fetchYahooContract(symbol) {
     name,
     expiry,
     exchange: meta.fullExchangeName || 'COMEX',
+    // Leg freshness/liquidity evidence, used to reject a thin or stale spot leg.
+    volume: meta.regularMarketVolume,
+    marketTime: meta.regularMarketTime,
   };
 }
 
@@ -253,9 +328,14 @@ async function computeLive() {
     fetchComexCurve('silver'),
   ]);
   const usdRates = { '1M': usd['1M'], '3M': usd['3M'], '6M': usd['6M'], '1Y': usd['1Y'] };
-  const gold = buildMetal(goldRows, usdRates, today);
-  const silver = buildMetal(silverRows, usdRates, today);
+  const gold = buildMetal(goldRows, usdRates, today, 'gold');
+  const silver = buildMetal(silverRows, usdRates, today, 'silver');
   const ok = Boolean(gold || silver);
+  // A metal whose spot leg was rejected (thin/stale front) or whose curve
+  // yielded no in-band tenor is degraded: report it instead of hiding it.
+  const degradedMetals = [['gold', gold], ['silver', silver]]
+    .filter(([, block]) => !block)
+    .map(([name]) => name);
   let headline = null;
   let headlineMetal = null;
   if (gold?.rate_1m != null) {
@@ -267,6 +347,7 @@ async function computeLive() {
   }
   return {
     ok,
+    degraded_metals: degradedMetals,
     source: 'implied_lease',
     method: 'comex_forward_proxy',
     label: '隐含租赁利率（期货曲线估算）',
