@@ -2,13 +2,13 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-10-09T14:37:31.880617+08:00",
+  "generated_at": "2026-10-09T22:01:42.773172+08:00",
   "dataset": {
     "algorithm": "sha256",
-    "value": "1cb02accd982828190472cf1b4d0d401244e0e14ce48c60259249ac3700c0714",
+    "value": "9ce1bd6a91ee87e8849385090d56dca6917e1a9a4560c1e138fcaf40c7301288",
     "record_count": 401,
     "pool_row_count": 91,
-    "as_of": "2026-10-08",
+    "as_of": "2026-10-09",
     "components": {
       "historical_direction_records": {
         "algorithm": "sha256",
@@ -38,9 +38,9 @@
       },
       "current_action_pool": {
         "algorithm": "sha256",
-        "value": "b6b34764202b28ab9c84b53cb0df54d4373805d42885d44a7c8fd6387bdbf6c2",
+        "value": "bc62115dde089c0aef6d86a9e0e97308814b3a6121e8a1ffa46b3f1da5f65458",
         "row_count": 91,
-        "as_of": "2026-10-08",
+        "as_of": "2026-10-09",
         "canonical_scope": "complete_action_pool_rows",
         "volatile_fields_excluded": [
           "generated_at",
@@ -182,7 +182,7 @@
   },
   "execution_audit": {
     "row_count": 91,
-    "latest_trade_date": "2026-10-08",
+    "latest_trade_date": "2026-10-09",
     "blockers": {
       "invalid_levels": {
         "status": "known",
@@ -201,12 +201,12 @@
       },
       "ordering_violation": {
         "status": "known",
-        "count": 57,
+        "count": 47,
         "scope": "current_pool"
       },
       "model_not_applicable_for_trade_state": {
         "status": "known",
-        "count": 57,
+        "count": 47,
         "scope": "non_execution_rows"
       },
       "stale_rows": {
@@ -233,24 +233,22 @@
       }
     },
     "gate_failure_counts": {
-      "dual_momentum": 86,
+      "dual_momentum": 82,
       "ma20_above_ma60": 62,
-      "ma_rising": 83,
-      "momentum": 86,
-      "price_above_ma": 78,
-      "short_ok": 8
+      "ma_rising": 81,
+      "momentum": 85,
+      "price_above_ma": 68,
+      "short_ok": 10
     },
     "gate_unknown_counts": {},
     "risk_flag_counts": {
-      "收盘偏弱": 80,
-      "破位加速": 8,
-      "缩量冲高": 1,
-      "跌破20日线": 78
+      "收盘偏弱": 4,
+      "跌破20日线": 68
     },
     "trade_state_counts": {
-      "回踩候选": 3,
-      "观察": 7,
-      "退出": 81
+      "回踩候选": 1,
+      "观察": 15,
+      "退出": 75
     },
     "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
   },
