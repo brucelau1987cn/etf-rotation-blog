@@ -32,6 +32,28 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-09': {
+    tradeDate: '2026-10-09',
+    shortDate: '10/09',
+    title: '10月9日滚动信号收盘复盘',
+    subtitle: 'A股空方全面失效：上海电力10m/15m SELL@¥12.82/12.77收¥12.87(-0.85%)、三安光电10m/15m SELL@¥11.50/11.25收¥11.78(-0.84%)、创新医疗10m SELL@¥16.41收¥16.77(-1.93%)、深科技15m SELL@¥31.05收¥32.03(-3.29%)、民爆光电15m SELL@¥95.60收¥95.81(-7.85%)、国民技术120m SELL@¥18.36收¥18.99(-0.78%)六窗全部被收盘价收复；德福科技150m@85.70被收复但210m@87.16未收复（收¥87.00）多窗分歧；港股澜起科技1h45m BUY@261.20/2h BUY@266.60收HK$268.20多方确认，同时120m SELL@266.60被收复',
+    cutoff: '2026-10-09 15:00 CST（港股16:08、美盘10月8日收盘、期货实时）',
+    summary: '当日滚动信号覆盖8只标的共13条节点（A股7只、港股1只；方向SELL 11条、BUY 2条），整体呈空方失效格局。空方收复6只：上海电力10m@12.82/15m@12.77收¥12.87(-0.85%)、三安光电10m@11.50/15m@11.25收¥11.78(-0.84%)、创新医疗10m@16.41收¥16.77(-1.93%)、深科技15m@31.05收¥32.03(-3.29%)、民爆光电15m@95.60收¥95.81(-7.85%)贴价收复、国民技术120m@18.36收¥18.99(-0.78%)，收盘均站上信号价，空方未确认。多窗分歧2只：德福科技150m@85.70被收复但210m@87.16高于收盘0.16未收复；港股澜起科技1h45m BUY@261.20/2h BUY@266.60收HK$268.20位于两窗上方（多方确认），同时120m SELL@266.60被收复（空方失效）。收盘分类：空方收复6、多空分歧2、确认0。',
+    buyRule: '今日A股无独立多方信号，空方信号普遍被收复属空方失效而非做多依据，不主动追多。港股澜起科技双向信号中多方窗（1h45m/2h）收盘确认，可作次日多方观察依据。仅对收复信号价且量能放大的标的按多方观察窗小仓试探，单标的≤底仓1/3，跌破当日低点立即止损。',
+    sellRule: '空方以信号价为压力：上海电力12.77-12.82、三安光电11.25-11.50、创新医疗16.41、深科技31.05、民爆光电95.60、国民技术18.36、德福科技87.16。反弹至信号价受阻继续减仓；收复信号价并站稳（今日6只）则空方失效转风险提示；德福科技87.16未收复前仍视作压力位。',
+    discipline: '同标的同节点当日只认首次入库信号价，不因盘中波动修改；空方信号被收复时按风险提示处理而非追空；多空双向同现（澜起科技）以多方窗与空方窗分别对待、不混用；不追空、不加杠杆。',
+    signals: [
+      { name: '上海电力', symbol: '600021', market: 'A股', direction: 'SELL', nodes: '10m/15m', signalPrices: '¥12.77-12.82', close: '¥12.87', change: '-0.85%', validation: 'reclaimed', validationLabel: '空方微弱收复', verdict: '10m@12.82/15m@12.77两窗SELL，收¥12.87(-0.85%)略高于两窗信号价，空方未确认', support: '¥12.71（当日低点）', pressure: '¥12.77-12.82（信号价带）', buyPlan: '站稳12.82上方且量能配合可按观察窗小仓试探', sellPlan: '跌回12.77下方空方重启减仓，跌破12.71延续', evidence: ['收盘12.87 -0.85%，换手0.72%，量比0.967', 'RSI6 36.45 / MA20 13.381，主力净流出-1948万', '开12.92 / 高13.02 / 低12.71'] },
+      { name: '三安光电', symbol: '600703', market: 'A股', direction: 'SELL', nodes: '10m/15m', signalPrices: '¥11.25-11.50', close: '¥11.78', change: '-0.84%', validation: 'reclaimed', validationLabel: '空方收复', verdict: '10m@11.50/15m@11.25两窗SELL，收¥11.78(-0.84%)高于两窗信号价，空方失效', support: '¥11.24（当日低点）', pressure: '¥11.25-11.50（信号价带）', buyPlan: '收复11.50并放量前不介入', sellPlan: '反弹至11.25-11.50受阻继续减仓，站稳则空方失效', evidence: ['收盘11.78 -0.84%，量比1.049', 'RSI6 36.14 / MA20 12.499，主力净流出-8346万', '开11.80 / 高11.82 / 低11.24'] },
+      { name: '创新医疗', symbol: '002173', market: 'A股', direction: 'SELL', nodes: '10m', signalPrices: '¥16.41', close: '¥16.77', change: '-1.93%', validation: 'reclaimed', validationLabel: '空方收复', verdict: '10m SELL触发于¥16.41，收¥16.77(-1.93%)高于信号价2.2%，空方失效', support: '¥16.02（当日低点）', pressure: '¥16.41（10m信号价）', buyPlan: '回踩16.41不破可按观察窗小仓试探', sellPlan: '跌回16.41下方空方重启减仓，跌破16.02延续', evidence: ['收盘16.77 -1.93%，量比1.251', 'RSI6 27.52 / MA20 17.78，主力净流出-235万', '高16.98 / 低16.02'] },
+      { name: '深科技', symbol: '000021', market: 'A股', direction: 'SELL', nodes: '15m', signalPrices: '¥31.05', close: '¥32.03', change: '-3.29%', validation: 'reclaimed', validationLabel: '空方收复', verdict: '15m SELL触发于¥31.05，收¥32.03(-3.29%)高于信号价3.2%，空方失效', support: '¥30.34（当日低点）', pressure: '¥31.05（15m信号价）', buyPlan: '回踩31.05不破可按观察窗小仓试探', sellPlan: '跌回31.05下方空方重启减仓，跌破30.34延续', evidence: ['收盘32.03 -3.29%，量比1.39', 'RSI6 23.20 / MA20 34.989，主力净流出-8014万', '开31.87 / 高32.53 / 低30.34'] },
+      { name: '民爆光电', symbol: '301362', market: 'A股', direction: 'SELL', nodes: '15m', signalPrices: '¥95.60', close: '¥95.81', change: '-7.85%', validation: 'reclaimed', validationLabel: '空方贴价收复', verdict: '15m SELL@95.60，收¥95.81(-7.85%)仅高于信号价0.22%，贴价收复，空方未确认', support: '¥90.87（当日低点）', pressure: '¥95.60（15m信号价）', buyPlan: '站稳95.60上方且量能配合可按观察窗小仓试探', sellPlan: '回落跌破95.60则空方重启减仓，跌破90.87延续', evidence: ['收盘95.81 -7.85%，量比1.768', 'RSI6 21.28 / MA20 110.172，主力净流出-251万', '高104.00 / 低90.87，振幅10.8%'] },
+      { name: '国民技术', symbol: '300077', market: 'A股', direction: 'SELL', nodes: '120m', signalPrices: '¥18.36', close: '¥18.99', change: '-0.78%', validation: 'reclaimed', validationLabel: '空方收复', verdict: '120m SELL触发于¥18.36，收¥18.99(-0.78%)高于信号价3.4%，空方失效', support: '¥18.13（当日低点）', pressure: '¥18.36（120m信号价）', buyPlan: '回踩18.36不破可按观察窗小仓试探', sellPlan: '跌回18.36下方空方重启减仓，跌破18.13延续', evidence: ['收盘18.99 -0.78%，量比1.30', 'RSI6 21.43 / MA20 20.625，主力净流出-6132万', '高19.41 / 低18.13'] },
+      { name: '德福科技', symbol: '301511', market: 'A股', direction: 'SELL', nodes: '150m/210m', signalPrices: '¥85.70-87.16', close: '¥87.00', change: '-7.32%', validation: 'mixed', validationLabel: '空方部分确认', verdict: '150m@85.70被收盘¥87.00收复，210m@87.16仍高于收盘0.16未收复，多窗分歧', support: '¥82.69（当日低点）', pressure: '¥87.16（210m信号价）', buyPlan: '收复87.16并放量前不介入', sellPlan: '反弹至87.16受阻继续减仓，站稳87.16则空方失效', evidence: ['收盘87.00 -7.32%，换手7.68%，量比1.318', 'RSI6 20.21 / MA20 103.122，主力净流出-9840万', '开92.46 / 高92.83 / 低82.69，振幅10.8%'] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'MIXED', nodes: '1h45m/2h BUY + 120m SELL', signalPrices: 'BUY HK$261.20-266.60 / SELL HK$266.60', close: 'HK$268.20', change: '-1.90%', validation: 'mixed', validationLabel: '多空双向贴价', verdict: '1h45m BUY@261.20/2h BUY@266.60收HK$268.20位于两窗上方（多方确认），同时120m SELL@266.60被收复（空方失效）', support: 'HK$255.00（当日低点）', pressure: 'HK$272.40（当日高点）', buyPlan: '回踩266.60不破可持多，跌破则多方减弱', sellPlan: '跌破266.60多方失效，跌破255.00转防守', evidence: ['收盘268.20 -1.90%，当日高272.40 / 低255.00', 'BUY 261.20→266.60逐级抬高，收盘站上两窗', '120m SELL@266.60被收复，空方失效'] }
+    ],
+    sources: 'D1 rolling_signals（2026-10-09）+ 公开 API rolling-signals + 腾讯行情收盘 + iWenCai 收盘证据'
+  },
   '2026-10-08': {
     tradeDate: '2026-10-08',
     shortDate: '10/08',
@@ -2323,7 +2345,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
   }
 };
 
-export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-08', href: '/rolling/insights/' },
+export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-09', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-08', href: '/rolling/insights/2026-10-08/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-30', href: '/rolling/insights/2026-09-30/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-29', href: '/rolling/insights/2026-09-29/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-28', href: '/rolling/insights/2026-09-28/' },
