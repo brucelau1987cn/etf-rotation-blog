@@ -4,25 +4,13 @@ set -euo pipefail
 cd /root/projects/etf-rotation-blog
 # The same exchange calendar used by the publishing gate is authoritative.
 # Unavailable calendar fails closed before any cache or formal-pool writes.
-if python3 - <<'PY'
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from scripts.check_a_share_cron_gate import is_trading_day
-now = datetime.now(ZoneInfo('Asia/Shanghai'))
-opened, source = is_trading_day(now.date().isoformat())
-if opened is False:
-    print(f'{{"status":"idempotent","reason":"exchange calendar is closed","date":"{now.date()}","source":"{source}"}}')
-    raise SystemExit(0)
-if opened is None:
-    print(f'STAGING BLOCKER: exchange calendar unavailable for {now.date()} ({source})')
-    raise SystemExit(2)
-raise SystemExit(10)
-PY
-then
-    exit 0
-else
-    status=$?
-    if [ "$status" -ne 10 ]; then exit "$status"; fi
-fi
+# The gate loads the CF BaoStock credentials, retries each source, and allows a
+# bounded second attempt, so one transient blip no longer costs the whole
+# night's output (2026-10-08). A definite "closed" verdict is never retried.
+set +e
+python3 scripts/check_nightly_chain_calendar.py --attempts 2 --retry-delay 120
+status=$?
+set -e
+if [ "$status" -ne 10 ]; then exit "$status"; fi
 # Keep the scheduler-facing timeout above the runner's total budget.
 exec timeout 4500s python3 scripts/run_a_share_nightly_stage.py --stage precheck-cache --timeout 3900

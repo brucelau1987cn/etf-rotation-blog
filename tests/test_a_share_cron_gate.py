@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -117,8 +118,86 @@ def test_public_calendar_parses_open_and_closed_days(monkeypatch):
 
 def test_trading_day_falls_back_to_baostock(monkeypatch):
     monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "load_cf_credentials", lambda *a, **k: False)
     monkeypatch.setattr(cron_gate, "baostock_trading_day", lambda day: True)
     assert cron_gate.is_trading_day("2026-07-14") == (True, "baostock")
+
+
+# ── Calendar chain availability (2026-10-08 whole-night loss) ──
+# The fail-closed calendar gate silently had a single usable source under cron:
+# the CF credentials were never exported, and the local BaoStock fallback is
+# absent from the tool interpreter. One blip on the public calendar then cost
+# the entire period. These tests pin the multi-source contract.
+
+def test_calendar_chain_uses_cf_when_public_fails(monkeypatch):
+    monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "load_cf_credentials", lambda *a, **k: True)
+    monkeypatch.setattr(cron_gate, "cf_baostock_trading_day", lambda day: True)
+    assert cron_gate.is_trading_day("2026-10-08") == (True, "cf_baostock")
+
+
+def test_calendar_chain_loads_credentials_before_cf_attempt(monkeypatch):
+    """The CF source must be reachable without the caller exporting anything."""
+    calls = []
+
+    def fake_loader(*args, **kwargs):
+        calls.append(True)
+        return True
+
+    monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "load_cf_credentials", fake_loader)
+    monkeypatch.setattr(cron_gate, "cf_baostock_trading_day", lambda day: True)
+    monkeypatch.setattr(cron_gate, "baostock_trading_day", lambda day: None)
+    assert cron_gate.is_trading_day("2026-10-08") == (True, "cf_baostock")
+    assert calls == [True]
+
+
+def test_load_cf_credentials_reads_env_file(tmp_path, monkeypatch):
+    monkeypatch.delenv("CF_BAOSTOCK_DISABLE_CREDENTIAL_FILE", raising=False)
+    monkeypatch.delenv("CF_BAOSTOCK_BASE_URL", raising=False)
+    monkeypatch.delenv("CF_BAOSTOCK_TOKEN", raising=False)
+    env_file = tmp_path / "baostock-edge.env"
+    env_file.write_text(
+        "CF_BAOSTOCK_BASE_URL=https://example.invalid\nCF_BAOSTOCK_TOKEN=token-123\n",
+        encoding="utf-8",
+    )
+    assert cron_gate.load_cf_credentials(env_file) is True
+    assert os.environ["CF_BAOSTOCK_BASE_URL"] == "https://example.invalid"
+    assert os.environ["CF_BAOSTOCK_TOKEN"] == "token-123"
+
+
+def test_load_cf_credentials_is_disabled_in_tests(tmp_path):
+    """The suite must never reach a real provider through this helper."""
+    env_file = tmp_path / "baostock-edge.env"
+    env_file.write_text("CF_BAOSTOCK_BASE_URL=https://x\nCF_BAOSTOCK_TOKEN=t\n", encoding="utf-8")
+    assert cron_gate.load_cf_credentials(env_file) is False
+
+
+def test_calendar_chain_reports_every_source_when_all_fail(monkeypatch):
+    monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "load_cf_credentials", lambda *a, **k: True)
+    monkeypatch.setattr(cron_gate, "cf_baostock_trading_day", lambda day: None)
+    monkeypatch.setattr(cron_gate, "baostock_trading_day", lambda day: None)
+    value, source = cron_gate.is_trading_day("2026-10-08")
+    assert value is None
+    # The verdict stays fail-closed, but the reason names each source tried.
+    assert source.startswith("unavailable(")
+    for name in ("d1_exchange_calendar", "cf_baostock", "baostock"):
+        assert name in source
+
+
+def test_calendar_chain_skips_remaining_sources_after_budget(monkeypatch):
+    """A hung provider must not outlast the cron window."""
+    monkeypatch.setattr(cron_gate, "CALENDAR_TOTAL_BUDGET_S", 0.0)
+    monkeypatch.setattr(cron_gate, "public_calendar_trading_day", lambda day: None)
+    attempted = []
+    monkeypatch.setattr(cron_gate, "load_cf_credentials", lambda *a, **k: True)
+    monkeypatch.setattr(cron_gate, "cf_baostock_trading_day", lambda day: attempted.append("cf") or True)
+    monkeypatch.setattr(cron_gate, "baostock_trading_day", lambda day: attempted.append("baostock") or True)
+    value, source = cron_gate.is_trading_day("2026-10-08")
+    assert value is None
+    assert attempted == []
+    assert "budget" in source
 
 
 def test_stage_rank_prefers_0830_preopen():
