@@ -113,7 +113,14 @@ def publish(slot: str) -> dict[str, str]:
     with site_publish_lock(), publish_lock():
         preflight()
         try:
-            maintenance = run([FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot])
+            # check=False so the receipt is reachable on every exit path. With
+            # check=True a blocked calendar raised CalledProcessError before the
+            # gate was ever parsed, so the guard below only ever saw "skip" and
+            # the error case surfaced as a bare traceback (2026-10-08).
+            maintenance = run(
+                [FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", slot],
+                check=False,
+            )
             # A closed exchange calendar makes the maintenance run a no-op; the
             # published snapshot then legitimately stays untouched (and may be
             # older than the validator's freshness window). Honour the gate
@@ -121,6 +128,19 @@ def publish(slot: str) -> dict[str, str]:
             gate = _calendar_gate(maintenance.stdout)
             if gate is not None and gate.get("status") == "skip":
                 return {"status": "idempotent", "reason": str(gate.get("reason") or "exchange calendar is closed"), "slot": slot}
+            if maintenance.returncode != 0:
+                # Fail closed, but name the cause. An unresolvable calendar is
+                # UNAVAILABLE rather than a silent skip: it means the period's
+                # output cannot be recomputed, which the operator must see.
+                if gate is not None and gate.get("status") == "error":
+                    raise RuntimeError(
+                        f"STAGING BLOCKER: {gate.get('reason')} "
+                        f"({gate.get('calendar_source')}) for {gate.get('calendar_date')}"
+                    )
+                detail = (maintenance.stderr or maintenance.stdout or "").strip()
+                raise RuntimeError(
+                    f"futures maintenance failed for {slot} (exit {maintenance.returncode}): {detail[:400]}"
+                )
             run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
             if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode == 0:
                 return {"status": "unchanged", "slot": slot}

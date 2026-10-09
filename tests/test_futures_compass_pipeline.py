@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
@@ -377,6 +379,81 @@ def test_publisher_skips_validation_and_release_on_closed_day(monkeypatch):
     assert commands == [
         f"{publisher.FUTURES_PYTHON} scripts/run_futures_compass_maintenance.py --slot preopen",
     ], commands
+
+
+def error_gate_stdout():
+    return json.dumps({
+        "calendar_gate": {
+            "status": "error", "reason": "exchange calendar unavailable",
+            "calendar_date": "2026-10-08",
+            "calendar_source": "unavailable(d1_exchange_calendar: no verdict; cf_baostock: no verdict)",
+        },
+    })
+
+
+def test_publisher_reaches_gate_parser_on_nonzero_maintenance(monkeypatch):
+    """The maintenance call must not raise before the receipt is parsed.
+
+    On 2026-10-08 maintenance exited 2 and the publisher's check=True call
+    raised CalledProcessError immediately, so the gate guard added for the
+    closed-day case was unreachable and the job died on a bare traceback.
+    """
+    import contextlib
+
+    seen = {}
+
+    def fake_run(command, check=True, **kwargs):
+        joined = " ".join(command)
+        if "run_futures_compass_maintenance.py" in joined:
+            seen["check"] = check
+            return data.subprocess.CompletedProcess(
+                command, 2, stdout=error_gate_stdout(), stderr="",
+            )
+        return data.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+    monkeypatch.setattr(publisher, "site_publish_lock", contextlib.nullcontext)
+    monkeypatch.setattr(publisher, "publish_lock", contextlib.nullcontext)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        publisher.publish("night")
+
+    # The gate was reachable because the call no longer raises on exit 2.
+    assert seen["check"] is False
+    message = str(excinfo.value)
+    assert "STAGING BLOCKER" in message
+    assert "exchange calendar unavailable" in message
+    # The reason must carry the source detail, not a bare "unavailable".
+    assert "cf_baostock" in message
+
+
+def test_publisher_reports_generic_maintenance_failure_with_detail(monkeypatch):
+    """A non-calendar failure must still surface its own cause, not be skipped."""
+    import contextlib
+
+    def fake_run(command, check=True, **kwargs):
+        joined = " ".join(command)
+        if "run_futures_compass_maintenance.py" in joined:
+            return data.subprocess.CompletedProcess(
+                command, 1,
+                stdout=json.dumps({"calendar_gate": {"status": "run"}, "required_stage_errors": ["snapshot"]}),
+                stderr="snapshot fetch failed",
+            )
+        return data.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "preflight", lambda: None)
+    monkeypatch.setattr(publisher, "site_publish_lock", contextlib.nullcontext)
+    monkeypatch.setattr(publisher, "publish_lock", contextlib.nullcontext)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        publisher.publish("night")
+
+    message = str(excinfo.value)
+    assert "STAGING BLOCKER" not in message, "a stage failure is not a calendar block"
+    assert "exit 1" in message
+    assert "snapshot fetch failed" in message
 
 
 def test_publisher_still_validates_when_calendar_is_open(monkeypatch):
