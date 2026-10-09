@@ -56,14 +56,20 @@
   const renderCme = (d) => {
     if (!d.ok) { setTag('cme-tag', '不可用', 'down'); setStatus('cme-status', `CME 数据暂不可用`); return; }
     const g = d.gold, s = d.silver;
+    // One metal may be missing while the other is intact: render what exists
+    // instead of dereferencing a missing block.
+    const kpi = (label, block, field) => block && block[field] != null
+      ? `<div class="inv-kpi"><span>${label}</span><strong>${block[field]}<small>oz</small></strong></div>`
+      : '';
     setTag('cme-tag', `更新 ${d.date || ''}`);
     document.getElementById('cme-kpis').innerHTML = [
-      `<div class="inv-kpi"><span>黄金 Registered</span><strong>${g.registered}<small>oz</small></strong></div>`,
-      `<div class="inv-kpi"><span>黄金 Eligible</span><strong>${g.eligible}<small>oz</small></strong></div>`,
-      `<div class="inv-kpi"><span>白银 Registered</span><strong>${s.registered}<small>oz</small></strong></div>`,
-      `<div class="inv-kpi"><span>白银 Eligible</span><strong>${s.eligible}<small>oz</small></strong></div>`,
+      kpi('黄金 Registered', g, 'registered'),
+      kpi('黄金 Eligible', g, 'eligible'),
+      kpi('白银 Registered', s, 'registered'),
+      kpi('白银 Eligible', s, 'eligible'),
     ].join('');
-    setStatus('cme-status', `${d.note || ''} · 数据 ${d.date || ''}`);
+    const partialNote = (!g || !s) ? ` · ${!g ? '黄金' : '白银'}数据缺失` : '';
+    setStatus('cme-status', `${d.note || ''} · 数据 ${d.date || ''}${partialNote}`);
   };
 
   // ── FRED ─────────────────────────────────────────────

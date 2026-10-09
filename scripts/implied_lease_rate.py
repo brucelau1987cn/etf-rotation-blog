@@ -30,6 +30,17 @@ TENORS = (
     ("6M", 182, "6M"),
     ("1Y", 365, "1Y"),
 )
+# Spot-leg and cross-leg guards.
+# Yahoo's front month is often a thin delivery-month print (e.g. 13 lots) whose
+# level is not a usable spot proxy; the active month carries the real price.
+# A thin/stale spot leg feeds straight into ln(F/S), so it is rejected rather
+# than silently published as a distorted lease rate.
+SPOT_LOOKAHEAD_CONTRACTS = 4
+MIN_SPOT_VOLUME = 100
+MAX_LEG_AGE_DAYS = 4
+# Annualized |ln(F/S)| plausibility band per metal, in percent.
+MAX_ABS_CARRY_PCT = {"gold": 12.0, "silver": 25.0}
+DEFAULT_MAX_ABS_CARRY_PCT = 25.0
 
 
 def _fetch_text(url: str, timeout: int = 25) -> str:
@@ -67,6 +78,86 @@ def parse_contract_expiry(short_name: str | None, fallback_year: int | None = No
     # COMEX metals last-trade is late in the delivery month; use day 27 as stable proxy.
     day = min(27, monthrange(yr, mon)[1])
     return date(yr, mon, day)
+
+
+def _leg_age_days(row: dict[str, Any], today: date) -> int | None:
+    stamp = row.get("market_time")
+    if stamp is None:
+        return None
+    try:
+        observed = datetime.fromtimestamp(int(stamp), timezone.utc).astimezone(CN_TZ).date()
+    except (OSError, OverflowError, TypeError, ValueError):
+        return None
+    return (today - observed).days
+
+
+def _spot_leg_acceptable(row: dict[str, Any], today: date, min_volume: int) -> bool:
+    volume = row.get("volume")
+    if volume is not None and volume < min_volume:
+        return False
+    age_days = _leg_age_days(row, today)
+    if age_days is not None and age_days > MAX_LEG_AGE_DAYS:
+        return False
+    return True
+
+
+def select_spot_leg(
+    rows: list[dict[str, Any]],
+    today: date,
+    *,
+    min_volume: int = MIN_SPOT_VOLUME,
+    lookahead: int = SPOT_LOOKAHEAD_CONTRACTS,
+) -> dict[str, Any]:
+    """Pick the spot proxy leg and report why.
+
+    Prefers the front contract when it is liquid and fresh. When the front is a
+    thin or stale print, advances up to ``lookahead`` contracts to the active
+    month, because an illiquid front month distorts ln(F/S) directly and shows
+    up as an implausible lease rate. Returns ``{'leg', 'reason', 'rejected'}``;
+    ``leg`` is None when no candidate qualifies, which the caller must treat as
+    a degraded metal rather than publishing a distorted number.
+    """
+    candidates = [
+        r for r in rows
+        if r.get("price") and r.get("expiry") and r["expiry"] > today + timedelta(days=3)
+    ]
+    candidates.sort(key=lambda r: r["expiry"])
+    if not candidates:
+        return {"leg": None, "reason": "no liquid COMEX curve", "rejected": None}
+    front = candidates[0]
+    rejected: dict[str, Any] | None = None
+    if len(candidates) > 1:
+        reasons: list[str] = []
+        volume = front.get("volume")
+        if volume is not None and volume < min_volume:
+            reasons.append(f"front volume {volume} < {min_volume}")
+        age_days = _leg_age_days(front, today)
+        if age_days is not None and age_days > MAX_LEG_AGE_DAYS:
+            reasons.append(f"front print {age_days}d old")
+        if reasons:
+            rejected = {"symbol": front.get("symbol"), "reasons": reasons}
+            for candidate in candidates[1 : lookahead + 1]:
+                if _spot_leg_acceptable(candidate, today, min_volume):
+                    return {
+                        "leg": candidate,
+                        "reason": f"advanced spot leg past thin/stale front: {'; '.join(reasons)}",
+                        "rejected": rejected,
+                    }
+            return {
+                "leg": None,
+                "reason": f"no acceptable spot leg: {'; '.join(reasons)}",
+                "rejected": rejected,
+            }
+    return {"leg": front, "reason": "front contract liquid and fresh", "rejected": rejected}
+
+
+def carry_within_band(spot: float, forward: float, years: float, metal: str) -> bool:
+    """Reject an implausible annualized carry implied by a spot/forward pair."""
+    if spot <= 0 or forward <= 0 or years <= 0:
+        return False
+    carry_pct = abs(math.log(forward / spot)) / years * 100
+    limit = MAX_ABS_CARRY_PCT.get(metal, DEFAULT_MAX_ABS_CARRY_PCT)
+    return carry_pct <= limit
 
 
 def filter_liquid_curve(rows: list[dict[str, Any]], today: date) -> list[dict[str, Any]]:
@@ -138,17 +229,27 @@ def build_metal_tenors(
     rows: list[dict[str, Any]],
     usd: dict[str, float],
     today: date,
+    metal: str = "",
 ) -> dict[str, Any] | None:
     liquid = filter_liquid_curve(rows, today)
     if not liquid:
         return None
-    spot = liquid[0]
+    selection = select_spot_leg(liquid, today)
+    spot = selection.get("leg")
+    if spot is None:
+        return None
+    # Forward legs must sit strictly beyond the chosen spot leg.
+    forward_pool = [r for r in liquid if r["expiry"] > spot["expiry"]]
     tenors: list[dict[str, Any]] = []
     for label, target_days, usd_key in TENORS:
-        fwd = pick_contract(liquid, target_days, today)
+        fwd = pick_contract(forward_pool, target_days, today)
         if not fwd:
             continue
         years = (fwd["expiry"] - today).days / 365.25
+        # Reject a pair whose implied carry is implausible for this metal; a thin
+        # or stale leg otherwise surfaces as a distorted lease rate.
+        if not carry_within_band(spot["price"], fwd["price"], years, metal):
+            continue
         # Use actual-tenor interpolated USD rate; keep named bucket for display.
         r_named = usd[usd_key]
         r_usd = interpolate_usd_rate(usd, years)
@@ -167,6 +268,7 @@ def build_metal_tenors(
             "spot_symbol": spot["symbol"],
             "spot_name": spot.get("name"),
             "spot_price": spot["price"],
+            "spot_volume": spot.get("volume"),
             "forward_symbol": fwd["symbol"],
             "forward_name": fwd.get("name"),
             "forward_price": fwd["price"],
@@ -183,6 +285,8 @@ def build_metal_tenors(
             "price": spot["price"],
             "expiry": spot["expiry"].isoformat(),
         },
+        "spot_leg_reason": selection.get("reason"),
+        "spot_leg_rejected": selection.get("rejected"),
         "tenors": tenors,
         "rate_1m": by_tenor.get("1M"),
         "rate_3m": by_tenor.get("3M"),
@@ -210,6 +314,9 @@ def fetch_yahoo_contract(symbol: str) -> dict[str, Any] | None:
         "name": name,
         "expiry": expiry,
         "exchange": meta.get("fullExchangeName") or "COMEX",
+        # Leg freshness/liquidity evidence, used to reject a thin or stale spot leg.
+        "volume": meta.get("regularMarketVolume"),
+        "market_time": meta.get("regularMarketTime"),
     }
 
 
@@ -276,9 +383,12 @@ def compute_implied_lease(
         "6M": float(usd["6M"]),
         "1Y": float(usd["1Y"]),
     }
-    gold = build_metal_tenors(gold_rows, usd_rates, today)
-    silver = build_metal_tenors(silver_rows, usd_rates, today)
+    gold = build_metal_tenors(gold_rows, usd_rates, today, metal="gold")
+    silver = build_metal_tenors(silver_rows, usd_rates, today, metal="silver")
     ok = bool(gold or silver)
+    # A metal whose spot leg was rejected (thin/stale front) or whose curve
+    # yielded no in-band tenor is degraded: report it instead of hiding it.
+    degraded = [name for name, block in (("gold", gold), ("silver", silver)) if not block]
     headline = None
     if gold and gold.get("rate_1m") is not None:
         headline = gold["rate_1m"]
@@ -286,6 +396,7 @@ def compute_implied_lease(
         headline = silver["rate_1m"]
     return {
         "ok": ok,
+        "degraded_metals": degraded,
         "source": "implied_lease",
         "method": "comex_forward_proxy",
         "label": "隐含租赁利率（期货曲线估算）",

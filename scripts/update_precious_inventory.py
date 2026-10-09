@@ -177,61 +177,132 @@ def fetch_real_yield():
         return {'ok': False, 'source': 'fred', 'error': str(e)}
 
 # ─── 4. CME COMEX 库存 — 从 thevaultreport.com 解析 ──
+# thevaultreport.com/comex 的标记结构会随上游改版漂移（2026-10-09 改版后
+# `text-3xl font-black tabular-nums` 与 `Total</p>` 选择器双双失效 → 静默降级）。
+# 因此以正文段落为主解析路径：措辞稳定、且自带「总数 = 注册 + 合格」自校验；
+# 表格与 JSON-LD 作为兜底。全部路径都必须通过算术自校验才接受。
+CME_PROSE_GOLD = re.compile(
+    r'COMEX held\s+([\d.]+)M oz of registered gold and\s+([\d.]+)M oz of eligible gold,\s+'
+    r'([\d.]+)M oz in all'
+)
+CME_PROSE_SILVER = re.compile(
+    r'COMEX silver inventory on\s+([A-Z][a-z]+ \d+, 20\d\d):\s+([\d.]+)M oz registered and\s+'
+    r'([\d.]+)M oz eligible,\s+([\d.]+)M oz in all'
+)
+CME_LD_GOLD_REGISTERED = re.compile(r'COMEX held ([\d.]+)M oz of registered gold')
+CME_LD_GOLD_TOTAL = re.compile(r'COMEX warehouses held ([\d.]+)M oz')
+CME_SILVER_TABLE = re.compile(
+    r'aria-label="COMEX silver inventory by day, last 30 days"(.*?)</table>', re.DOTALL
+)
+CME_AS_OF = re.compile(r'as of ([A-Z][a-z]+ \d+, 20\d\d)')
+
+
+def _cme_inventory_ok(registered: float, eligible: float, total: float) -> bool:
+    """Registered + eligible must reconstruct the stated total."""
+    if min(registered, eligible, total) <= 0:
+        return False
+    return abs(total - (registered + eligible)) <= max(0.02, total * 0.005)
+
+
+def parse_cme_inventory(html: str) -> dict | None:
+    """Parse COMEX gold/silver inventory out of thevaultreport HTML.
+
+    Pure function (no network) so the selector contract is unit-testable.
+    Returns ``{'date', 'gold', 'silver'}`` with M-oz floats, or ``None``.
+    """
+    # Prose wraps arbitrarily in the served markup, so collapse whitespace once
+    # and match against the flattened text; otherwise a line break inside a
+    # phrase silently defeats the selector (the 2026-10-09 failure mode).
+    flat = re.sub(r'\s+', ' ', html)
+    gold = silver = None
+    date = None
+
+    # Each metal is resolved independently: one missing/drifted section must not
+    # discard the other, and fetch_cme already reports a partial payload.
+    prose_gold = CME_PROSE_GOLD.search(flat)
+    if prose_gold:
+        gold = tuple(parse_moz(value) for value in prose_gold.groups())
+
+    prose_silver = CME_PROSE_SILVER.search(flat)
+    if prose_silver:
+        date = prose_silver.group(1)
+        silver = tuple(parse_moz(prose_silver.group(i)) for i in (2, 3, 4))
+
+    if gold is None:
+        # Fallback: JSON-LD prose.
+        ld_registered = CME_LD_GOLD_REGISTERED.search(flat)
+        ld_total = CME_LD_GOLD_TOTAL.search(flat)
+        if ld_registered and ld_total:
+            registered = parse_moz(ld_registered.group(1))
+            total = parse_moz(ld_total.group(1))
+            gold = (registered, round(total - registered, 2), total)
+
+    if silver is None:
+        # Fallback: the silver daily table.
+        table = CME_SILVER_TABLE.search(html)
+        if table:
+            rows = re.findall(r'<tr data-date="([\d-]+)">(.*?)</tr>', table.group(1), re.DOTALL)
+            if rows:
+                cells = [
+                    re.sub(r'<[^>]+>', '', cell).strip()
+                    for cell in re.findall(r'<td[^>]*>(.*?)</td>', rows[0][1], re.DOTALL)
+                ]
+                values = [parse_moz(cell) for cell in cells[1:4]]
+                if len(values) == 3:
+                    silver = tuple(values)
+
+    if gold is None and silver is None:
+        return None
+    if gold is not None and not _cme_inventory_ok(*gold):
+        gold = None
+    if silver is not None and not _cme_inventory_ok(*silver):
+        silver = None
+    if gold is None and silver is None:
+        return None
+
+    if date is None:
+        as_of = CME_AS_OF.search(flat)
+        date = as_of.group(1) if as_of else 'unknown'
+    return {'date': date, 'gold': gold, 'silver': silver}
+
+
 def fetch_cme():
     try:
         url = 'https://thevaultreport.com/comex'
         html = fetch(url, ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        # 解析黄金/白银 registered + total
-        # 黄金: 14.19M oz (金色 #D4A017, text-3xl) | Total 26.60M oz
-        # 白银: 99.70M oz (text-3xl) | Total 333.97M oz
-        gold_reg = 0
-        gold_total = 0
-        silver_reg = 0
-        silver_total = 0
+        parsed = parse_cme_inventory(html)
+        if not parsed:
+            return {'ok': False, 'source': 'cme', 'error': 'parse failed'}
 
-        # 找所有大数字
-        big_nums = re.findall(r'text-3xl font-black tabular-nums[^>]*>([\d.]+M oz)', html)
-        # 找所有 total 数字
-        totals = re.findall(r'Total</p>.*?<p[^>]*>([\d.]+M oz)', html, re.DOTALL)
-
-        if big_nums:
-            gold_reg = parse_moz(big_nums[0])  # 14.19M oz (gold)
-            silver_reg = parse_moz(big_nums[1]) if len(big_nums) > 1 else 0  # 99.70M oz (silver)
-        if len(totals) >= 2:
-            gold_total = parse_moz(totals[0])  # 26.60M
-            silver_total = parse_moz(totals[1])  # 333.97M
-        elif len(totals) == 1:
-            gold_total = parse_moz(totals[0])
-
-        gold_eligible = round(gold_total - gold_reg, 2) if gold_total > gold_reg else 0
-        silver_eligible = round(silver_total - silver_reg, 2) if silver_total > silver_reg else 0
-
-        # 更新日期
-        date_match = re.search(r'as of (\w+ \d+, 202\d)', html)
-        cme_date = date_match.group(1) if date_match else 'unknown'
-
-        if gold_reg > 0 or silver_reg > 0:
+        def block(values):
+            if values is None:
+                return None
+            registered, eligible, total = values
             return {
-                'ok': True,
-                'source': 'cme',
-                'date': cme_date,
-                'gold': {
-                    'registered': f'{gold_reg}M oz',
-                    'eligible': f'{gold_eligible}M oz',
-                    'total': f'{gold_total}M oz',
-                    'registeredOz': gold_reg * 1_000_000,
-                    'totalOz': gold_total * 1_000_000,
-                },
-                'silver': {
-                    'registered': f'{silver_reg}M oz',
-                    'eligible': f'{silver_eligible}M oz',
-                    'total': f'{silver_total}M oz',
-                    'registeredOz': silver_reg * 1_000_000,
-                    'totalOz': silver_total * 1_000_000,
-                },
-                'note': 'Registered = 可交割（已注册仓单）；Eligible = 可注册（未注册仓单）',
+                'registered': f'{registered}M oz',
+                'eligible': f'{eligible}M oz',
+                'total': f'{total}M oz',
+                'registeredOz': registered * 1_000_000,
+                'totalOz': total * 1_000_000,
             }
-        return {'ok': False, 'source': 'cme', 'error': 'parse failed'}
+
+        gold_block = block(parsed['gold'])
+        silver_block = block(parsed['silver'])
+        if not gold_block and not silver_block:
+            return {'ok': False, 'source': 'cme', 'error': 'parse failed'}
+        result = {
+            'ok': True,
+            'source': 'cme',
+            'date': parsed['date'],
+            'note': 'Registered = 可交割（已注册仓单）；Eligible = 可注册（未注册仓单）',
+        }
+        if gold_block:
+            result['gold'] = gold_block
+        if silver_block:
+            result['silver'] = silver_block
+        if not gold_block or not silver_block:
+            result['partial'] = True
+        return result
     except Exception as e:
         return {'ok': False, 'source': 'cme', 'error': str(e)}
 

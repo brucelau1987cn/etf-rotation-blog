@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 import sys
 
@@ -10,10 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from implied_lease_rate import (  # noqa: E402
+    carry_within_band,
     compute_implied_lease,
     filter_liquid_curve,
     lease_proxy,
     parse_contract_expiry,
+    select_spot_leg,
 )
 
 
@@ -87,3 +89,103 @@ def test_compute_implied_lease_empty_fail():
     usd = {"date": "08/10/2026", "1M": 3.79, "3M": 3.89, "6M": 4.00, "1Y": 4.04}
     out = compute_implied_lease([], [], usd, today=today)
     assert out["ok"] is False
+
+
+# ── Spot-leg selection / cross-leg plausibility (2026-10-09 regression) ──
+# The thin front month (GCV26, 13 lots) printed a level inconsistent with the
+# active month, driving gold 1M to -1.202%. These tests pin the guards.
+
+def _row(symbol, price, expiry, volume=None, market_time=None):
+    row = {"symbol": symbol, "price": price, "name": symbol, "expiry": expiry}
+    if volume is not None:
+        row["volume"] = volume
+    if market_time is not None:
+        row["market_time"] = market_time
+    return row
+
+
+def test_select_spot_leg_advances_past_thin_front():
+    today = date(2026, 10, 9)
+    rows = [
+        _row("GCV26.CMX", 4176.6, date(2026, 10, 27), volume=13),
+        _row("GCZ26.CMX", 4210.0, date(2026, 12, 27), volume=55704),
+        _row("GCG27.CMX", 4243.7, date(2027, 2, 27), volume=1709),
+    ]
+    picked = select_spot_leg(rows, today)
+    assert picked["leg"]["symbol"] == "GCZ26.CMX"
+    assert picked["rejected"]["symbol"] == "GCV26.CMX"
+    assert "front volume 13" in picked["reason"]
+
+
+def test_select_spot_leg_keeps_liquid_front():
+    today = date(2026, 10, 9)
+    rows = [
+        _row("SIZ26.CMX", 60.645, date(2026, 12, 27), volume=10376),
+        _row("SIH27.CMX", 61.385, date(2027, 3, 27), volume=651),
+    ]
+    picked = select_spot_leg(rows, today)
+    assert picked["leg"]["symbol"] == "SIZ26.CMX"
+    assert picked["rejected"] is None
+
+
+def test_select_spot_leg_rejects_stale_front_print():
+    today = date(2026, 10, 9)
+    fresh = int(datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc).timestamp())
+    stale = int(datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc).timestamp())
+    rows = [
+        _row("GCV26.CMX", 4176.6, date(2026, 10, 27), volume=500, market_time=stale),
+        _row("GCZ26.CMX", 4210.0, date(2026, 12, 27), volume=55704, market_time=fresh),
+    ]
+    picked = select_spot_leg(rows, today)
+    assert picked["leg"]["symbol"] == "GCZ26.CMX"
+    assert "old" in picked["reason"]
+
+
+def test_select_spot_leg_returns_none_when_no_leg_qualifies():
+    today = date(2026, 10, 9)
+    rows = [
+        _row("GCV26.CMX", 4176.6, date(2026, 10, 27), volume=1),
+        _row("GCZ26.CMX", 4210.0, date(2026, 12, 27), volume=2),
+    ]
+    picked = select_spot_leg(rows, today)
+    assert picked["leg"] is None
+    assert "no acceptable spot leg" in picked["reason"]
+
+
+def test_carry_within_band_rejects_distorted_pair():
+    # 4176.6 → 4225.8 over 0.2163y is ~5.4%/yr, inside band;
+    # the same spot against a jumped forward is not.
+    assert carry_within_band(4176.6, 4225.8, 0.2163, "gold") is True
+    assert carry_within_band(4176.6, 4600.0, 0.2163, "gold") is False
+    assert carry_within_band(0, 100, 0.25, "gold") is False
+    # silver has a wider band than gold
+    assert carry_within_band(60.0, 62.0, 0.25, "silver") is True
+
+
+def test_thin_front_no_longer_produces_negative_gold_rate():
+    """End-to-end: the 2026-10-09 inputs must not reproduce -1.202%."""
+    today = date(2026, 10, 9)
+    usd = {"date": "10/08/2026", "1M": 4.14, "3M": 4.23, "6M": 4.30, "1Y": 4.44}
+    thin_front = [
+        _row("GCV26.CMX", 4176.6, date(2026, 10, 27), volume=13),
+        _row("GCZ26.CMX", 4225.8, date(2026, 12, 27), volume=55704),
+        _row("GCJ27.CMX", 4286.1, date(2027, 4, 27), volume=644),
+    ]
+    out = compute_implied_lease(thin_front, [], usd, today=today, fetched_at="2026-10-09T00:00:00Z")
+    gold = out["gold"]
+    assert gold is not None
+    # spot leg advanced to the liquid month
+    assert gold["front"]["symbol"] == "GCZ26.CMX"
+    assert gold["rate_1m"] is not None
+    assert gold["rate_1m"] > 0
+
+
+def test_degraded_metals_reported_when_spot_leg_unusable():
+    today = date(2026, 10, 9)
+    usd = {"date": "10/08/2026", "1M": 4.14, "3M": 4.23, "6M": 4.30, "1Y": 4.44}
+    all_thin = [
+        _row("GCV26.CMX", 4176.6, date(2026, 10, 27), volume=1),
+        _row("GCZ26.CMX", 4225.8, date(2026, 12, 27), volume=2),
+    ]
+    out = compute_implied_lease(all_thin, [], usd, today=today)
+    assert "gold" in out["degraded_metals"]
