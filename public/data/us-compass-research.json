@@ -1,8 +1,466 @@
 {
   "schema_version": "us-compass-research-v2",
-  "updated_at": "2026-10-03T01:32:41.204455+00:00",
-  "latest_week": "2026-W40",
+  "updated_at": "2026-10-10T01:00:27.366554+00:00",
+  "latest_week": "2026-W41",
   "reports": [
+    {
+      "schema_version": "us-compass-research-v2",
+      "week_key": "2026-W41",
+      "trade_date": "2026-10-09",
+      "generated_at": "2026-10-10T01:00:27.366554+00:00",
+      "model_fingerprint": {
+        "model_version": "US ETF Garden v3 · Flower Signals",
+        "universe_count": 74,
+        "symbols_sha256": "9daa451e79ff959692f7bae4788f159da2e709f87359ed3742dd2049aa3fd88a",
+        "config_sha256": "e75386939571c0419b00a6248d2d2515d340d3e27acc3bcb17b485b9e8aae86b",
+        "execution_basis": "T close signal; T+1 open execution; next-open rebalance",
+        "one_way_cost": 0.001,
+        "initial_capital": 20000.0,
+        "horizons": [
+          1,
+          5,
+          20
+        ],
+        "exposure_mapping": {
+          "values": {
+            "偏强": 1.0,
+            "震荡": 0.5,
+            "防御": 0.0
+          },
+          "default": 0.5
+        }
+      },
+      "health_summary": {
+        "status": "MIXED",
+        "score": 0.5454545454545454,
+        "reasons": [
+          "T+5 reached the 20-observation research gate; status is MIXED"
+        ],
+        "model_date": "2026-10-09",
+        "generated_at": "2026-10-10T01:00:18.607877Z"
+      },
+      "sample_maturity": {
+        "status": "MIXED",
+        "observations": 58,
+        "minimum_observations": 20,
+        "mature": true,
+        "reasons": [
+          "T+5 reached the 20-observation research gate; status is MIXED"
+        ]
+      },
+      "walk_forward_summary": {
+        "status": "MIXED",
+        "windows": 12,
+        "evaluated_windows": 11,
+        "positive_windows": 6,
+        "positive_slice_rate": 0.5454545454545454,
+        "score": 0.5454545454545454,
+        "reasons": [
+          "6 of 11 evaluated T+5 slices have positive mean RankIC"
+        ]
+      },
+      "shadow_health_summary": {
+        "status": "MIXED",
+        "observations": 61,
+        "return": 0.004130232071351658,
+        "max_drawdown": 0.08112083065613274,
+        "score": 0.39450705238427153,
+        "reasons": [
+          "fusion shadow performance rated from persisted net returns"
+        ],
+        "portfolios": {
+          "benchmark": {
+            "total_return": 0.030555036329894758,
+            "max_drawdown": 0.026344379324194978,
+            "annualized_volatility": 0.10601570849061574,
+            "positive_period_rate": 0.5081967213114754,
+            "excess_return_vs_benchmark": 0.0
+          },
+          "timing": {
+            "total_return": -0.037934084531137,
+            "max_drawdown": 0.04593961265154278,
+            "annualized_volatility": 0.07155548186622879,
+            "positive_period_rate": 0.29508196721311475,
+            "excess_return_vs_benchmark": -0.06848912086103176
+          },
+          "rotation": {
+            "total_return": 0.16839738845361096,
+            "max_drawdown": 0.06968086338108204,
+            "annualized_volatility": 0.46216998281361915,
+            "positive_period_rate": 0.4918032786885246,
+            "excess_return_vs_benchmark": 0.1378423521237162
+          },
+          "fusion": {
+            "total_return": 0.004130232071351658,
+            "max_drawdown": 0.08112083065613274,
+            "annualized_volatility": 0.260441810056479,
+            "positive_period_rate": 0.2786885245901639,
+            "excess_return_vs_benchmark": -0.0264248042585431
+          }
+        }
+      },
+      "cost_sensitivity_summary": {
+        "status": "UNAVAILABLE",
+        "baseline_cost": 0.001,
+        "observations": 61,
+        "break_even_cost": null,
+        "score": null,
+        "reasons": [
+          "turnover history unavailable; exact cost scenarios require persisted turnover"
+        ],
+        "scenarios": [
+          {
+            "one_way_cost": 0,
+            "value": null,
+            "annualized_return": null,
+            "max_drawdown": null
+          },
+          {
+            "one_way_cost": 0.0005,
+            "value": null,
+            "annualized_return": null,
+            "max_drawdown": null
+          },
+          {
+            "one_way_cost": 0.001,
+            "value": null,
+            "annualized_return": null,
+            "max_drawdown": null
+          },
+          {
+            "one_way_cost": 0.002,
+            "value": null,
+            "annualized_return": null,
+            "max_drawdown": null
+          },
+          {
+            "one_way_cost": 0.003,
+            "value": null,
+            "annualized_return": null,
+            "max_drawdown": null
+          }
+        ]
+      },
+      "data_quality": {
+        "status": "HEALTHY",
+        "reasons": [
+          "T+5 reached the 20-observation research gate; status is MIXED",
+          "turnover history unavailable; exact cost scenarios require persisted turnover"
+        ],
+        "health_model_date": "2026-10-09",
+        "pool_model_date": "2026-10-09",
+        "fingerprint_consistent": true,
+        "production_change_allowed": false
+      },
+      "signal_validation": {
+        "model_version": "US ETF Garden v3 · Flower Signals",
+        "production_change_allowed": false,
+        "horizons": [
+          {
+            "label": "D1",
+            "horizon": "t1",
+            "status": "EVALUATED",
+            "observations": 62,
+            "mean_return": 0.003424016129032258,
+            "benchmark_return": 0.0005783870967741935,
+            "excess_return": 0.002845629032,
+            "mfe": null,
+            "mae": null,
+            "unavailable_reasons": [
+              "MFE/MAE UNAVAILABLE：持久化快照缺少信号窗口内逐日高低价路径"
+            ]
+          },
+          {
+            "label": "5D",
+            "horizon": "t5",
+            "status": "EVALUATED",
+            "observations": 58,
+            "mean_return": 0.013217275862068965,
+            "benchmark_return": 0.0028766724137931033,
+            "excess_return": 0.010340603448,
+            "mfe": null,
+            "mae": null,
+            "unavailable_reasons": [
+              "MFE/MAE UNAVAILABLE：持久化快照缺少信号窗口内逐日高低价路径"
+            ]
+          },
+          {
+            "label": "20D",
+            "horizon": "t20",
+            "status": "EVALUATED",
+            "observations": 43,
+            "mean_return": 0.028883255813953485,
+            "benchmark_return": 0.010674441860465116,
+            "excess_return": 0.018208813953,
+            "mfe": null,
+            "mae": null,
+            "unavailable_reasons": [
+              "MFE/MAE UNAVAILABLE：持久化快照缺少信号窗口内逐日高低价路径"
+            ]
+          },
+          {
+            "label": "60D",
+            "horizon": "t60",
+            "status": "UNAVAILABLE",
+            "observations": 0,
+            "mean_return": null,
+            "benchmark_return": null,
+            "excess_return": null,
+            "mfe": null,
+            "mae": null,
+            "unavailable_reasons": [
+              "60D UNAVAILABLE：当前模型指纹仅声明1D、5D、20D周期"
+            ]
+          }
+        ]
+      },
+      "rotation_research_summary": {
+        "status": "PREFERRED_REACHED",
+        "signal": "RISK_ON_OBSERVATION",
+        "model_date": "2026-10-09",
+        "production_change_allowed": false,
+        "production_weights_changed": false,
+        "coverage": {
+          "requested": 74,
+          "evaluated": 74,
+          "unavailable": 0
+        },
+        "observation_gate": {
+          "minimum_completed_days": 10,
+          "preferred_completed_days": 20,
+          "completed_days": 38,
+          "status": "PREFERRED_REACHED"
+        },
+        "selection": [
+          {
+            "symbol": "HACK",
+            "theme": "网络安全",
+            "return_21d": 0.18334837,
+            "return_63d": 0.19655926,
+            "rotation_score": 0.18901018
+          },
+          {
+            "symbol": "IBIT",
+            "theme": "比特币",
+            "return_21d": 0.0657051,
+            "return_63d": 0.32169215,
+            "rotation_score": 0.17541384
+          },
+          {
+            "symbol": "SKYY",
+            "theme": "云计算",
+            "return_21d": 0.1166911,
+            "return_63d": 0.24926772,
+            "rotation_score": 0.17350965
+          },
+          {
+            "symbol": "ETHA",
+            "theme": "以太坊",
+            "return_21d": 0.00556755,
+            "return_63d": 0.39591126,
+            "rotation_score": 0.17285772
+          },
+          {
+            "symbol": "EWZ",
+            "theme": "巴西",
+            "return_21d": 0.12914936,
+            "return_63d": 0.23029109,
+            "rotation_score": 0.17249582
+          },
+          {
+            "symbol": "IGV",
+            "theme": "软件",
+            "return_21d": 0.11333994,
+            "return_63d": 0.21542613,
+            "rotation_score": 0.15709116
+          },
+          {
+            "symbol": "ARKK",
+            "theme": "创新成长",
+            "return_21d": 0.07897912,
+            "return_63d": 0.14544996,
+            "rotation_score": 0.10746662
+          },
+          {
+            "symbol": "XLK",
+            "theme": "科技",
+            "return_21d": 0.07446264,
+            "return_63d": 0.09781538,
+            "rotation_score": 0.08447096
+          },
+          {
+            "symbol": "USO",
+            "theme": "原油",
+            "return_21d": -0.06427584,
+            "return_63d": 0.25817129,
+            "rotation_score": 0.07391579
+          },
+          {
+            "symbol": "FDN",
+            "theme": "互联网",
+            "return_21d": 0.05541158,
+            "return_63d": 0.09646669,
+            "rotation_score": 0.07300663
+          }
+        ],
+        "reason": null
+      },
+      "verdict": "达到月度评估门槛",
+      "snapshot_count": 63,
+      "metrics": {
+        "t1": {
+          "observations": 62,
+          "rank_ic_pct": -2.36,
+          "positive_rate_pct": 48.39,
+          "deviation_pct": 33.1,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": -0.24
+        },
+        "t5": {
+          "observations": 58,
+          "rank_ic_pct": 3.07,
+          "positive_rate_pct": 50.0,
+          "deviation_pct": 32.2,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": -1.13
+        },
+        "t20": {
+          "observations": 43,
+          "rank_ic_pct": -1.23,
+          "positive_rate_pct": 51.16,
+          "deviation_pct": 32.97,
+          "random_reference_pct": 33.33,
+          "deviation_vs_random_pp": -0.36
+        }
+      },
+      "portfolios": {
+        "benchmark": {
+          "total_return_pct": 3.06,
+          "max_drawdown_pct": -2.63,
+          "equity": 20611.11
+        },
+        "timing": {
+          "total_return_pct": -3.79,
+          "max_drawdown_pct": -4.59,
+          "equity": 19241.32
+        },
+        "rotation": {
+          "total_return_pct": 16.84,
+          "max_drawdown_pct": -6.97,
+          "equity": 23367.9
+        },
+        "fusion": {
+          "total_return_pct": 0.41,
+          "max_drawdown_pct": -8.11,
+          "equity": 20082.58
+        }
+      },
+      "attribution": {
+        "timing_pp": -6.85,
+        "rotation_pp": 13.78,
+        "interaction_pp": -9.58,
+        "fusion_vs_benchmark_pp": -2.64
+      },
+      "risk_budget": {
+        "current_exposure_pct": 100.0,
+        "regime": "偏强",
+        "allocation": "60%-80%",
+        "allowed_budgets_pct": [
+          0,
+          50,
+          100
+        ]
+      },
+      "top10": [
+        {
+          "symbol": "EWZ",
+          "theme": "巴西",
+          "trend_score": 100,
+          "risk_score": 51.0,
+          "state": "回踩候选"
+        },
+        {
+          "symbol": "HACK",
+          "theme": "网络安全",
+          "trend_score": 100,
+          "risk_score": 24.8,
+          "state": "可持有"
+        },
+        {
+          "symbol": "SKYY",
+          "theme": "云计算",
+          "trend_score": 92.5,
+          "risk_score": 17.1,
+          "state": "可持有"
+        },
+        {
+          "symbol": "IGV",
+          "theme": "软件",
+          "trend_score": 86.6,
+          "risk_score": 17.4,
+          "state": "可持有"
+        },
+        {
+          "symbol": "ARKK",
+          "theme": "创新成长",
+          "trend_score": 76.7,
+          "risk_score": 22.0,
+          "state": "可持有"
+        },
+        {
+          "symbol": "XLK",
+          "theme": "科技",
+          "trend_score": 73.5,
+          "risk_score": 16.3,
+          "state": "可持有"
+        },
+        {
+          "symbol": "FDN",
+          "theme": "互联网",
+          "trend_score": 71.7,
+          "risk_score": 17.2,
+          "state": "可持有"
+        },
+        {
+          "symbol": "XLV",
+          "theme": "医疗",
+          "trend_score": 71.0,
+          "risk_score": 16.8,
+          "state": "可持有"
+        },
+        {
+          "symbol": "QQQ",
+          "theme": "科技成长",
+          "trend_score": 70.6,
+          "risk_score": 16.0,
+          "state": "可持有"
+        },
+        {
+          "symbol": "SMH",
+          "theme": "半导体",
+          "trend_score": 68.7,
+          "risk_score": 31.3,
+          "state": "可持有"
+        }
+      ],
+      "iwencai": {
+        "status": "ok",
+        "source": "同花顺问财",
+        "summary": "问财查询“美股 巴西 网络安全 云计算 软件 创新成长 近20日涨幅、成交额、行业，按涨幅排序”返回空结果，外部证据保持中性。"
+      },
+      "execution_basis": {
+        "signal": "T日收盘生成",
+        "execution": "T+1开盘执行",
+        "rebalance": "次日开盘再平衡",
+        "one_way_cost_pct": 0.1
+      },
+      "production_change_allowed": false,
+      "observations": [
+        "T+5样本已达到月度评估门槛，生产调整仍需人工授权。",
+        "继续观察T+20稳定性。",
+        "周报仅记录研究证据，不自动修改权重或仓位阈值。"
+      ]
+    },
     {
       "schema_version": "us-compass-research-v2",
       "week_key": "2026-W40",
