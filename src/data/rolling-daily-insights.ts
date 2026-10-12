@@ -32,6 +32,23 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-12': {
+    tradeDate: '2026-10-12',
+    shortDate: '10/12',
+    title: '10月12日滚动信号收盘复盘',
+    subtitle: '长鑫科技空方贴价；澜起科技多轮分歧、最新多方缺价；白银盘中收复待结算',
+    cutoff: '2026-10-12 18:40 北京时间；A股15:00收盘／港股16:08报价／美股10月9日完整收盘／期货未结算',
+    summary: '全市场16只监控标的已扫描（A股11、港股3、美股1、期货1）；当日8条首次入库节点落在3只标的，合并判读为贴价确认1、轮次分歧1、未收盘观察1。长鑫科技10m SELL与收盘同价48.34且15:05才接收，只能视作事后风险提醒；澜起科技早轮多方失守，15:45新6.5h多方覆盖旧空方，但新信号价UNAVAILABLE；白银10m空方60.53暂被未结算快照收复。其余13只当日无新D1信号，LKG不等同当日新信号。特斯拉10月12日美东正式交易尚未开盘，最新完整收盘为10月9日382.70美元。',
+    buyRule: '不把空方失效、低获利盘或同价多窗当作独立买入理由。长鑫科技先守48.34再观察50.23；澜起科技先核验最新6.5h价，再看260.60与266.00能否收复；白银等同合约完整结算。不自动调整生产权重、仓位或动作。',
+    sellRule: '长鑫科技跌破48.29且反抽失败转防守；澜起科技失守252.80或反抽260.60/266.00受阻按原纪律降低风险；白银回到60.53下方才恢复空方观察。收盘等于信号价仅贴价弱确认，禁止追空。',
+    discipline: '首次入库节点与event_id全部保留，同日同节点不覆盖。接收时刻不冒充K线触发时刻，盘后节点不虚算盘中收益；同价同方向窗合并为一簇，跨方向各自解释。正式多方重启后旧空方仅保留审计证据。缺价写UNAVAILABLE、未收盘写观察，绝不估算。所有解释只作研究影子，不修改生产信号。',
+    signals: [
+      { name: '长鑫科技', symbol: '688825', market: 'A股', direction: 'SELL', nodes: '10m SELL（15:05接收）', signalPrices: '¥48.34（D1首次写入，sina-m1）', close: '¥48.34', change: '-5.22%', validation: 'confirmed', validationLabel: '空方贴价确认', verdict: '收盘价与10m空方信号价完全相同，只是贴价而非进一步下跌确认。信号在15:05接收、晚于A股收盘，不能当作盘中提前预警，也不能用同日收盘证明可交易收益。', support: '¥48.29（当日低点）', pressure: '¥48.34（信号枢轴）／¥50.23（当日高点）／¥52.04（MA5）', buyPlan: '不因低获利盘直接抄底。先观察重新站稳48.34且回踩不破，再看收复50.23与新正式多方信号；量能未改善或仍在MA5下方时不追涨。', sellPlan: '已有仓位若次日跌破48.29且无法收回，按原风控计划减仓；若站稳48.34则将贴价空方降为风险提示，反抽50.23受阻继续防守，不追空。', evidence: ["收盘48.34；开49.99／高50.23／低48.29；成交量223306892股；换手4.959%；量比0.971", "MA5 52.040／MA10 54.356／MA20 55.202；DIF -1.103／DEA -0.231", "RSI6 23.375／RSI12 32.934；主力净流入-10.15亿元（净流出）", "日线获利盘0.20%／平均成本¥55.33／90%集中度9.20%；筹码值仅描述当前分布，不构成底部保证", "iWenCai trace_id=38f987045776da568e54fb20287ad85d0cdeee4d0a890dfc18dcb0fc1d378b30；腾讯16:14:51报价与iWenCai当日收盘一致", "首次入库 15:05:02 10m SELL；event_id=evt_1791788702642_ja5i8l；D1价=48.34；时间为接收时刻"] },
+      { name: '澜起科技', symbol: '06809', market: '港股', direction: 'MIXED', nodes: '10m/150m/180m SELL；2.5h/3h/6.5h BUY', signalPrices: 'SELL HK$253.80／260.60／266.00；BUY HK$260.60／266.00；6.5h价 UNAVAILABLE', close: 'HK$254.80', change: '-5.00%', validation: 'mixed', validationLabel: '多轮分歧 · 最新多方待验证', verdict: '收盘低于2.5h/3h多方价260.60/266.00，早轮多方未站稳；早轮150m/180m空方获价格侧确认，10m空方253.80被收复。15:45最新6.5h正式多方出现后，网页空方区应清掉此前全部空方；该新多方价缺失，不能判定确认。', support: 'HK$252.80（当日低点）／253.80（早轮空方枢轴）', pressure: 'HK$260.60／266.00（早轮多方价）／266.20（当日高点）', buyPlan: '最新6.5h信号点价UNAVAILABLE，先等待可核验价位，禁止用收盘价补填。收复260.60且回踩守住可恢复观察；进一步站稳266.00并有量能配合才升级多方验证，不将三个多方窗当作三个独立样本。', sellPlan: '原持仓若跌破252.80转防守；反抽260.60/266.00受阻按原计划降风险。此前空方只保留在复盘证据，不重新点亮已被新多方覆盖的旧空方轮次。', evidence: ["腾讯16:08:24：开265.00／高266.20／低252.80／收254.80；前收268.20；成交1718828股；成交额444356295.40港元", "公开批量API storage=d1、delivery=live；五条早轮节点由tencent-minute补得253.80/260.60/266.00，但本次直接D1读到其trigger_price均为空，须区分公开投影价与持久化价", "2.5h BUY与150m SELL同价260.60；3h BUY与180m SELL同价266.00：按方向分组、共享价位簇，不计算成独立统计样本", "6.5h BUY公开API仍无价格；分钟K线核验HTTP 503，故此字段UNAVAILABLE，未估算也未改写D1", "港股MA/RSI/筹码本次未获取，不引用A股同名公司的指标", "首次入库 10:05:08 10m SELL；event_id=evt_1791770708903_yrw66y；D1价=UNAVAILABLE；时间为接收时刻", "首次入库 11:45:26 150m SELL；event_id=evt_1791776726266_hmbsbw；D1价=UNAVAILABLE；时间为接收时刻", "首次入库 11:45:26 2.5h BUY；event_id=evt_1791776726272_ru2ucb；D1价=UNAVAILABLE；时间为接收时刻", "首次入库 12:22:00 3h BUY；event_id=evt_1791778920512_rfxgbe；D1价=UNAVAILABLE；时间为接收时刻", "首次入库 12:22:00 180m SELL；event_id=evt_1791778920528_blwk0s；D1价=UNAVAILABLE；时间为接收时刻", "首次入库 15:45:07 6.5h BUY；event_id=evt_1791791107336_45wfnm；D1价=UNAVAILABLE；时间为接收时刻"] },
+      { name: '白银现货', symbol: 'SI=F', market: '期货', direction: 'SELL', nodes: '10m SELL（16:50）', signalPrices: '$60.53（webhook首次入库价）', close: '$60.98（未收盘快照）', change: '+0.51%（对10月9日结算快照）', validation: 'watch', validationLabel: '盘中收复观察 · 未结算', verdict: 'Yahoo SI=F当日未完成日线快照$60.98高于10m空方点$60.53，暂为盘中收复观察，不作收盘失效定论；不用现货hf_XAG替代期货价格验收。', support: '$60.53（信号枢轴）／$60.76（未完成日线低点）', pressure: '$61.74（未完成日线高点）', buyPlan: '等待同合约完整结算与后续正式多方信号；当前高于60.53只说明空方未延续，不构成追多条件。禁止依据代理筹码或未收盘日K增加杠杆。', sellPlan: '重新跌破60.53且反抽不过时才恢复空方风控观察；维持其上方则不追空。正式确认留待美东完整交易时段结束。', evidence: ["Yahoo SI=F 10月12日未完成日线：开61.2900／高61.7450／低60.7600／最新60.9800；10月9日结算快照60.6700", "名称沿用监控名单白银现货，行情验收对象为SI=F期货合约；与hf_XAG现货代理分开，不混算收益", "期货原生获利盘、平均成本、90%集中度UNAVAILABLE，未用SLV或A股筹码冒充", "首次入库 16:50:01 10m SELL；event_id=evt_1791795001207_r0pxyw；webhook价$60.53；触发16:50:00、接收16:50:01北京时间"] }
+    ],
+    sources: 'BaoStock交易日回退核验；D1当日8行与16只rolling_instruments；Pages公开批量rolling-signals（storage=d1）；iWenCai多key包装器当日长鑫科技技术与筹码；腾讯A/港收盘报价；Yahoo SI=F未完成日线、TSLA10月9日完整日线。港股最新多方点价缺失，已显式UNAVAILABLE。',
+  },
   '2026-10-09': {
     tradeDate: '2026-10-09',
     shortDate: '10/09',
@@ -2345,7 +2362,9 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
   }
 };
 
-export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-09', href: '/rolling/insights/' },
+export const rollingDailyArticleCatalog = [
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-12', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-09', href: '/rolling/insights/2026-10-09/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-08', href: '/rolling/insights/2026-10-08/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-30', href: '/rolling/insights/2026-09-30/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-09-29', href: '/rolling/insights/2026-09-29/' },
@@ -2388,5 +2407,5 @@ export const rollingDailyArticleCatalog = [  { symbol: 'ROLLING', name: '滚动�
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-04', href: '/rolling/insights/2026-08-04/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-08-03', href: '/rolling/insights/2026-08-03/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-31', href: '/rolling/insights/2026-07-31/' },
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-30', href: '/rolling/insights/2026-07-30/' }
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-07-30', href: '/rolling/insights/2026-07-30/' },
 ];
