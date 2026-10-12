@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pytest
 
+from hermes_test_support import requires_local_script
+
 HERMES_SCRIPTS = Path("/root/.hermes/scripts")
 CRON_JOBS = Path(os.environ.get("HERMES_CRON_JOBS", "/root/.hermes/cron/jobs.json"))
 
@@ -68,6 +70,7 @@ def _script_wrappers() -> list[Path]:
     )
 
 
+@requires_local_script(CRON_JOBS)
 def test_active_cron_scripts_are_executable():
     """Every script an enabled cron job points at must be owner-executable."""
     jobs = _enabled_script_jobs()
@@ -82,6 +85,7 @@ def test_active_cron_scripts_are_executable():
     assert not missing, "cron wrappers lost the executable bit:\n" + "\n".join(missing)
 
 
+@requires_local_script(CRON_JOBS)
 def test_active_cron_scripts_exist():
     """A scheduled job pointing at a deleted wrapper is a silent no-op."""
     jobs = _enabled_script_jobs()
@@ -92,6 +96,7 @@ def test_active_cron_scripts_exist():
     assert not absent, "cron references missing wrappers:\n" + "\n".join(absent)
 
 
+@requires_local_script(HERMES_SCRIPTS)
 def test_hermes_script_wrappers_are_executable():
     """Hold the whole wrapper directory at 0755, matching the existing files."""
     wrappers = _script_wrappers()

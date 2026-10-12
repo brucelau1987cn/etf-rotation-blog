@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from scripts.check_a_share_nightly_publish_gate import check_publish_gate
+from hermes_test_support import requires_local_script
 
 
 CN = ZoneInfo("Asia/Shanghai")
@@ -59,6 +60,7 @@ def test_publish_gate_rejects_stale_manifest(tmp_path):
         check_publish_gate(state, datetime(2026, 7, 14, 22, 30, tzinfo=CN))
 
 
+@requires_local_script(PUBLISH_WRAPPER)
 def test_publish_wrapper_waits_for_content_handoff_before_publish_gate():
     wrapper = PUBLISH_WRAPPER.read_text(encoding="utf-8")
     wait = "wait_a_share_nightly_state.py --stage content"

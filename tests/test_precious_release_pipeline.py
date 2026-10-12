@@ -9,7 +9,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from hermes_test_support import require_local_script
+
 SCRIPT = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py")
+
+require_local_script(SCRIPT)
 SPEC = importlib.util.spec_from_file_location("precious_release", SCRIPT)
 assert SPEC and SPEC.loader
 release = importlib.util.module_from_spec(SPEC)

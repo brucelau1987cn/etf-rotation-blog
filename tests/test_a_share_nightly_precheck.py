@@ -4,7 +4,10 @@ import importlib.util
 import sqlite3
 from pathlib import Path
 
+from hermes_test_support import require_local_script
+
 SCRIPT = Path('/root/.hermes/scripts/precheck_a_share_nightly.py')
+require_local_script(SCRIPT)
 
 
 def load_module():

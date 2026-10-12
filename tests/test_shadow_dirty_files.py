@@ -5,6 +5,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+from hermes_test_support import requires_local_script
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 HERMES_SCRIPTS = Path("/root/.hermes/scripts")
@@ -38,11 +40,13 @@ def test_futures_external_dirty_supersets_shadow():
     assert sdf.SHADOW_DIRTY_FILES <= fc.EXTERNAL_DIRTY
 
 
+@requires_local_script(HERMES_SCRIPTS / "update_low_chip_and_release.py")
 def test_low_chip_allowlist_references_single_source():
     lc = _load(HERMES_SCRIPTS / "update_low_chip_and_release.py")
     assert lc.ALLOWED_DIRTY == set(sdf.SHADOW_DIRTY_FILES)
 
 
+@requires_local_script(HERMES_SCRIPTS / "update_precious_inventory_and_release.py")
 def test_precious_allowlist_references_single_source():
     pi = _load(HERMES_SCRIPTS / "update_precious_inventory_and_release.py")
     assert pi.ALLOWED_DIRTY == {"public/data/precious-inventory.json", *sdf.SHADOW_DIRTY_FILES}

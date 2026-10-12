@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from hermes_test_support import requires_local_script
+
 
 ROOT = Path(__file__).resolve().parents[1]
 NIGHTLY_STAGE = ROOT / 'scripts/run_a_share_nightly_stage.py'
@@ -264,9 +266,10 @@ def process_is_running(pid: int) -> bool:
     return stat_path.read_text(encoding='utf-8').split()[2] != 'Z'
 
 
+@requires_local_script(Path('/root/.hermes/scripts/update_a_share_cache_nightly.py'))
 def test_cache_validator_does_not_require_iwencai_source():
     validator = Path('/root/.hermes/scripts/update_a_share_cache_nightly.py').read_text(encoding='utf-8')
-    importer = Path('/root/projects/etf-rotation-blog/scripts/update_a_share_bar_cache.py').read_text(encoding='utf-8')
+    importer = (ROOT / 'scripts/update_a_share_bar_cache.py').read_text(encoding='utf-8')
     assert "source='iwencai'" not in validator
     assert 'source_counts' in importer
 
@@ -354,6 +357,6 @@ def test_malformed_coverage_shape_does_not_crash_report():
 
 
 def test_prepare_gate_enforces_pattern_research_isolation_contract():
-    source = Path('/root/projects/etf-rotation-blog/scripts/prepare_a_share_nightly.py').read_text(encoding='utf-8')
+    source = (ROOT / 'scripts/prepare_a_share_nightly.py').read_text(encoding='utf-8')
     assert 'pattern_research must remain research-only' in source
     assert 'pattern_research coverage below 82' in source
