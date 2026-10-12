@@ -19,6 +19,12 @@ requires_local_hermes = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def isolate_publisher_locks(monkeypatch):
+    monkeypatch.setattr(publisher, "publish_lock", nullcontext)
+    monkeypatch.setattr(publisher, "site_publish_lock", nullcontext)
+
+
 def result(stdout="", returncode=0):
     return SimpleNamespace(stdout=stdout, stderr="", returncode=returncode)
 

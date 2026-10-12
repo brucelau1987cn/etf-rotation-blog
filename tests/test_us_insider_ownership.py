@@ -24,8 +24,8 @@ from build_us_insider_ownership import (  # noqa: E402
     main,
 )
 
-F4_FIXTURE = Path("/tmp/f4.xml")
-F13F_FIXTURE = Path("/tmp/13f-infotable.xml")
+F4_FIXTURE = ROOT / "tests/fixtures/sec/form4.xml"
+F13F_FIXTURE = ROOT / "tests/fixtures/sec/brk-13f.xml"
 
 
 class FakeClient:
@@ -134,7 +134,7 @@ def test_normalize_issuer_strips_punctuation_and_suffixes():
 
 
 def test_parse_13f_all_parses_every_holding_and_sums_duplicates():
-    brk = Path("/tmp/brk-13f.xml").read_bytes()
+    brk = F13F_FIXTURE.read_bytes()
     holdings = parse_13f_all(brk)
     assert "APPLE" in holdings
     # Berkshire splits AAPL across 12 sub-accounts; parse_13f_all sums them.
@@ -160,7 +160,7 @@ def test_fetch_institution_holdings_finds_targets():
         '<a href="/Archives/edgar/data/1067983/000119312526352200/primary_doc.xml">p2</a>'
         '<a href="/Archives/edgar/data/1067983/000119312526352200/56757.xml">info</a></html>'
     )
-    info_table = Path("/tmp/brk-13f.xml").read_bytes()
+    info_table = F13F_FIXTURE.read_bytes()
     client = FakeClient({
         "submissions": json.dumps(submissions),
         "index.htm": index_html,

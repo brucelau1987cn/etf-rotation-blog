@@ -192,6 +192,7 @@ def test_timeout_report_names_the_stage(monkeypatch):
 
 def test_timeout_reaps_the_entire_stage_process_group(monkeypatch, tmp_path):
     module = load()
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
     leader_pid_path = tmp_path / 'leader.pid'
     child_pid_path = tmp_path / 'child.pid'
     script = (

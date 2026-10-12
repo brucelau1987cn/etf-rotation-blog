@@ -32,6 +32,29 @@ requires_local_hermes = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def isolate_research_publish_lock(monkeypatch):
+    from contextlib import nullcontext
+    from scripts import a_share_nightly_contract
+
+    monkeypatch.setattr(a_share_nightly_contract, "site_publish_lock", nullcontext)
+    real_run = subprocess.run
+
+    def run_with_mocked_lock(args, **kwargs):
+        if isinstance(args, list) and len(args) > 1 and args[1] == str(SCRIPT):
+            bootstrap = (
+                "import importlib.util,sys; from contextlib import nullcontext; "
+                "sys.path.insert(0, sys.argv[1]); "
+                "spec=importlib.util.spec_from_file_location('research_cli_test', sys.argv[2]); "
+                "module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module); "
+                "module.site_publish_lock=nullcontext; sys.exit(module.main(sys.argv[3:]))"
+            )
+            args = [args[0], "-c", bootstrap, str(ROOT), str(SCRIPT), *args[2:]]
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run_with_mocked_lock)
+
+
 def load_module():
     spec = importlib.util.spec_from_file_location("publish_us_compass_research", SCRIPT)
     assert spec and spec.loader

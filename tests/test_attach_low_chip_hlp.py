@@ -10,6 +10,12 @@ import pytest
 from scripts import attach_low_chip_hlp as module
 
 
+@pytest.fixture(autouse=True)
+def isolate_hlp_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(module, "SERIES_CACHE", tmp_path / "hlp-series.json")
+    monkeypatch.setattr(module, "LOCAL_LOCK", tmp_path / "baostock.lock")
+
+
 class CFClient:
     def __init__(self, rows):
         self.rows = rows
