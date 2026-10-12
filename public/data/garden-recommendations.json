@@ -1,42 +1,48 @@
 {
   "date": "2026-10-12",
-  "updated_at": "2026-10-12 14:53:24 CST",
+  "updated_at": "2026-10-12 22:30:12 CST",
   "applies_to": "2026-10-12",
-  "data_as_of": "2026-10-12尾盘腾讯指数及观察ETF14:34:47至14:35:01 CST；三候选直连腾讯14:40:42 CST二次核验；期货14:40:41至14:40:42 CST。完整qfq与关键位基线2026-10-09，覆盖91/91；非最终日K。",
-  "level_data_as_of": "2026-10-09",
-  "stage": "14:30尾盘操作版",
+  "data_as_of": "今日完整收盘腾讯指数及观察ETF 2026-10-12 16:14:00 至 16:15:00 CST；新二候选同窗口核对；中观完整基线 2026-10-12，覆盖91/91；qfq日线基线2026-10-09；上一完整交易日为2026-10-09。",
+  "level_data_as_of": "2026-10-12",
+  "stage": "22:00夜间最终版",
   "model_version": "a-compass-v1",
-  "idempotency_key": "CN+2026-10-12+14:30+a-compass-v1",
-  "market_state": "较11:30进一步退潮：上证3798.50🟢-0.40%、深证12403.58🟢-1.88%、创业板2971.33🟢-2.37%、科创50 1432.06🟢-1.73%、沪深300 4288.50🟢-0.67%。通信🟢-4.39%跌破上午0.572低位，科创50ETF日内低1.506低于上午1.512，半导体🟢-1.98%未收复0.920。红利低波🔴+1.74%、传媒🔴+0.99%仅为ETF价格相对强；电池🟢-1.97%，非全面修复。问财上证成分上涨488、下跌1668，创业板指成分上涨20、下跌80；不同样本不加总作全市场宽度。",
+  "idempotency_key": "CN+2026-10-12+22:00+a-compass-v1",
+  "market_state": "今日14:30后继续退潮，16:14收盘确认：上证3797.24🟢-0.43%、深证12384.87🟢-2.03%、创业板2963.82🟢-2.61%、科创50 1426.72🟢-2.10%、沪深300 4287.98🟢-0.68%。科技链集中受压：通信ETF国泰515880收盘0.562🟢-5.07%，半导体ETF国联安512480收盘0.888🟢-2.52%，科创50ETF华夏588000收盘1.506🟢-2.27%。防御/红利成全天赢家：红利低波ETF华泰柏瑞512890收盘1.230🔴+1.82%、银行ETF华宝512800收盘0.868🔴+2.12%、传媒ETF广发512980收盘0.819🔴+0.99%。问财与第一财经收盘要点均确认超过4300只个股飘绿、价值风格持续强势、银行板块涨幅居前；今日未取得全市场成交额、ETF主力资金及同口径宽度，统一UNAVAILABLE，不拿上日数值补写今日。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
-  "mainline": "相对午间：成长跌幅扩大，海外ETF冲高回落，物流新低1.025后仅回到1.026。红利低波和传媒相对强，不据此调整正式名单。权威中观仍2逆风，权益0%-10%、防御/现金90%-100%，禁止追高和新增进攻仓；所有候选仍watch_only。结论：15:00前仅记录回踩和失效，未确认不追、不把准备当成交。",
-  "summary": "14:30尾盘：指数与科技较午间再弱，纳指由红转微跌、日经转负，物流再创新低后仅回到1.026。最新三候选0正0平3负、完整确认0、可执行0；收益null。中观2逆风，权益0%-10%。结论：15:00前只观察及撤销失效候场，不追高、不新增进攻仓。",
+  "mainline": "22:00重选结果：候选由三只缩为二只【159941纳指ETF广发、512800银行ETF华宝】。516530物流因收盘1.023、信号34.93、双动量未通过不再具备资格；513520日经虽未收盘下跌但动量rank 7、信号分49.78被同期银行和纳指超越，正式让位。银行ETF华宝512800🔴+2.12%、动量rank 3、信号分55.4、趋势C、风险低、动量通过，新进入正式plant；中观逆风约束下，候场资格仍由其自身风控线决定，不因板块热门加塞。纳指ETF广发159941收1.768🟢-0.06%，全天区间1.748至1.795；尾盘转微跌与QDII溢价扰动相关，qfq 5日仍+4.12%、动量rank 1不变，继续保留。中观权威确认headwind_level=2逆风，权益0%-10%、防御/现金90%-100%全日不变；allow_chase=false、allow_new_offense=false，候选仍watch_only、不追高、不新增进攻仓。结论：今日准备2只、harvest=0、可执行0、收益null；22:00收官，把银行新候选的红利因子与纳指的海外修复作为下一交易日的两条潜在候场路径，但准入仍由价格+资金+中观三层门禁决定，红/海外ETF单日红盘不单独触发A股总仓上调。",
+  "summary": "22:00夜间最终版：今日沪指-0.43%、深证-2.03%、创业板-2.61%、科创50-2.10%、沪深300-0.68%；通信🟢-5.07%、半导体🟢-2.52%、科创50ETF🟢-2.27%为科技链压力点，银行🔴+2.12%、红利低波🔴+1.82%、传媒🔴+0.99%为相对强方向。正式plant经22:00重选由三只缩为二只【159941纳指ETF广发、512800银行ETF华宝】；日经、物流被同期超越/失效，移入watch。今日harvest=0、可执行0、最新方向0正0平2负、确认0；候选与执行均不持有，实现收益与持仓收益null、UNAVAILABLE。中观headwind_level=2逆风、权益0%-10%；不追高、不新增进攻仓。结论：今日不构成反转结构，下一交易日（10-13）候选路径由中观与价格同步验证，银行新候选的红利+防御因子须看次一交易日能否回踩0.849而不破。",
   "data_quality": {
-    "generated_at": "2026-10-12 14:50:33 CST",
-    "return_basis_disclosure": "历史趋势及MA20/ATR关键位使用2026-10-09完整qfq日线；盘中方向为腾讯报价相对昨收，OHLC为今日未完成日行情。候选未持有，持仓与实现收益null；分钟止跌路径和成交回执UNAVAILABLE。",
+    "generated_at": "2026-10-12 22:14:37 CST",
+    "return_basis_disclosure": "历史趋势、MA20/ATR关键位使用2026-10-09完整qfq日线（91/91覆盖）；今日盘中/收盘价使用腾讯16:14至16:15 CST实时报价相对昨收计算方向；OHLC为今日完整日行情，level_basis与盘中/收盘价基础不同；未触发完整准入则候选仍watch_only、持仓与实现收益null、UNAVAILABLE。",
     "latest_trade_date": "2026-10-12",
     "quote_date": "2026-10-12",
-    "level_data_as_of": "2026-10-09",
+    "level_data_as_of": "2026-10-12",
     "qfq_coverage": 91,
     "pool_count": 91,
     "pool_evaluation_date": "2026-10-12",
-    "quote_window": "14:34至14:35 CST指数/观察ETF，14:40:42 CST候选复核",
-    "baseline_source": "本地腾讯qfq日线SQLite与Pages公开腾讯行情；D1交易所日历门禁",
+    "quote_window": "2026-10-12 16:14:00 至 16:15:00 CST",
+    "baseline_source": "本地腾讯qfq日线SQLite；中观与正式池以本地缓存为准；D1交易所日历门禁",
     "premarket_window": "08:30-09:25 CST"
   },
   "source_audit": {
     "calendar_source": "d1_exchange_calendar",
     "calendar_fallback": "BaoStock仅在D1不可用时后备，本次未启用",
-    "pool_authority": "正式池91只，evaluation_date=2026-10-12，latest_trade_date=2026-10-09，qfq_count=91，market_regime=极弱；盘中价格不替代完整基线",
-    "selector_rule": "91池当前资格候场159941/513520/516530；物流双动量未通过，不将触价写成资格升级；名单由发布器重选",
-    "macro_engine": "尾盘预刷新headwind_level=2逆风，权益0%-10%，固收5日相对权益+1.39pp、海外映射5日+3.35%、两融5日-2.98%；禁止追高和新增进攻仓，不修改算法",
-    "iwencai_news": "多Key包装器两次检索10月12日午后科技/物流/红利/传媒：返回10-09/10-10及2025-10-22旧闻，今日命中均为11:33至11:35半日ETF播报。旧闻与午间播报均不作11:30后新增催化；未取得可核验午后新闻。",
-    "fallback": "日历D1；正式池与本地qfq91/91；问财三指数字段补成交及成分涨跌家数，腾讯Pages报价24条及直连三候选复核；腾讯期货返回none_match，降级Pages新浪连续合约3条成功。",
-    "mx_data": "未调用；价格来自腾讯、指数成分宽度来自问财。资金缺口如实标注UNAVAILABLE。",
-    "mx_search": "未调用；问财资讯完成日期筛选，缺可信午后新增催化。",
-    "news_urls": [],
-    "missing_fields": "全市场宽度与总成交额、ETF主力资金、同期量能、QDII实时IOPV/汇率拆分、分钟止跌确认路径、成交回执、近期策略D1/5D/20D收益和回撤UNAVAILABLE；空字段不填零。"
+    "pool_authority": "正式池91只，evaluation_date=2026-10-12，latest_trade_date=2026-10-12，qfq_count=91，market_regime=极弱；22:00重选以今日完整收盘qfq为准",
+    "selector_rule": "91池当前资格候场159941/512800；513520日经与516530物流因动量rank/资格/动量通过被让位；名单由发布器重选",
+    "macro_engine": "22:00刷新headwind_level=2逆风，权益0%-10%，固收5日相对权益+1.40pp、海外映射5日+3.27%、两融5日-2.98%；禁止追高和新增进攻仓，不修改算法",
+    "iwencai_news": "多Key包装器三次检索10月12日（1）银行/红利/科技主题；（2）沪指收盘/科技通信半导体；（3）512890红利低波：取得第一财经15:12收盘要点『沪指跌0.43% 银行板块涨幅居前』、百家号/越牛15:08『超4300只个股飘绿，三大指数集体收跌：光通信/PCB/CPO/贵金属/半导体下跌，文化传媒/银行/白酒飘红』、丽水网午评、网易17:24价值风格综述、同花顺6G/第三代半导体/光纤收跌表、金融界杠杆资金调仓『净买入贵金属/商用车/航海装备，净卖出半导体/通信设备/元件』、新浪12:14/13:00 ETF热点小时报。发布时间集中在10-12 09:34至17:24；统一作为22:00收盘前后新闻基线，未取得『政策原文/官方分红/逆回购决议具体额度』等可作新增催化的原文链接，仅新闻标题级别可作旁证。",
+    "fallback": "日历D1；正式池与本地qfq 91/91；问财三指数字段补成交及成分涨跌家数，腾讯Pages报价14条及直连候选复核；期货未调用",
+    "mx_data": "未调用；价格与收盘数据全部来自腾讯/问财/同花顺；资金缺口如实标注UNAVAILABLE",
+    "mx_search": "未调用；问财资讯完成日期筛选，新闻命中覆盖10-12全天价值/红利/科技对照",
+    "news_urls": [
+      "http://finance.sina.com.cn/roll/2026-10-12/doc-iniuyarc5303234.shtml",
+      "https://baijiahao.baidu.com/s?for=pc&id=1878827499776126788&wfr=spider",
+      "https://mp.weixin.qq.com/s?__biz=MjM5NjQyMDcwMg==&chksm=bcfe99f355046ec973140a22a01b15de23061fe9fa4cbe99079807d3b5c8a824de8b7b92a467&idx=3&mid=2651313203&sn=a6c7b4107242fdb94a5465e0f6fe1dbe",
+      "http://news.10jqka.com.cn/19700122/c680586633.shtml",
+      "http://news.10jqka.com.cn/19700122/c680601404.shtml"
+    ],
+    "missing_fields": "全市场成交额、ETF主力资金、融资融券当日变化、最新交易日分时止跌路径、成交回执、近期策略D1/5D/20D收益和回撤、QDII实时IOPV/汇率拆分 UN AVAILABLE；空字段不填零；新闻为标题/摘要级，官方原文（央行/财政部/上市公司公告）未核验。"
   },
   "harvest": [],
   "plant": [
@@ -45,36 +51,36 @@
       "code": "159941",
       "name": "纳指ETF广发",
       "priority": "高",
-      "trigger": "现价1.769，等待回踩1.732附近止跌确认；跌破1.682取消候场。",
-      "action": "现价1.769，等待回踩1.732附近止跌确认；跌破1.682取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "trigger": "现价1.768，等待回踩1.728附近止跌确认；跌破1.687取消候场。",
+      "action": "现价1.768，等待回踩1.728附近止跌确认；跌破1.687取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
-      "eligibility": "watch_only",
-      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 1.769,
-      "support": 1.732,
-      "target": 1.806,
-      "stop": 1.682,
-      "action_level": 1.732,
-      "trigger_level": 1.732,
+      "eligibility": "ok",
+      "eligibility_reason": "趋势B；信号得分66.7；动量排名1；距伏击位2.3%；风险低；动量通过",
+      "price": 1.768,
+      "support": 1.728,
+      "target": 1.808,
+      "stop": 1.687,
+      "action_level": 1.728,
+      "trigger_level": 1.728,
       "action_level_label": "伏击位",
-      "distance_pct": -2.14,
-      "trend_level": "C",
+      "distance_pct": -2.31,
+      "trend_level": "B",
       "risk_level": "低",
-      "price_date": "2026-10-09",
+      "price_date": "2026-10-12",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-10-12",
-      "selection_score": 75.26,
+      "selection_score": 82.57,
       "selection_rank": 1,
       "candidate_since": "2026-09-30",
       "last_qualified_date": "2026-10-12",
       "qualified_reason": [
-        "趋势C",
-        "信号得分62.0",
+        "趋势B",
+        "信号得分66.7",
         "动量排名1",
-        "距伏击位2.1%",
+        "距伏击位2.3%",
         "风险低",
         "动量通过"
       ],
@@ -83,81 +89,41 @@
     },
     {
       "status": "候场",
-      "code": "513520",
-      "name": "日经ETF华夏",
+      "code": "512800",
+      "name": "银行ETF华宝",
       "priority": "中",
-      "trigger": "现价2.394，等待回踩2.331附近止跌确认；跌破2.293取消候场。",
-      "action": "现价2.394，等待回踩2.331附近止跌确认；跌破2.293取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "trigger": "现价0.868，等待回踩0.849附近止跌确认；跌破0.843取消候场。",
+      "action": "现价0.868，等待回踩0.849附近止跌确认；跌破0.843取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "watch_only",
       "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 2.394,
-      "support": 2.331,
-      "target": 2.457,
-      "stop": 2.293,
-      "action_level": 2.331,
-      "trigger_level": 2.331,
+      "price": 0.868,
+      "support": 0.849,
+      "target": 0.887,
+      "stop": 0.843,
+      "action_level": 0.849,
+      "trigger_level": 0.849,
       "action_level_label": "伏击位",
-      "distance_pct": -2.7,
+      "distance_pct": -2.24,
       "trend_level": "C",
       "risk_level": "低",
-      "price_date": "2026-10-09",
+      "price_date": "2026-10-12",
       "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
       "model_version": "A ETF Garden Levels v1",
       "data_source": "tencent",
       "level_status": "ready",
       "selected_from_pool_date": "2026-10-12",
-      "selection_score": 73.79,
+      "selection_score": 66.96,
       "selection_rank": 2,
-      "candidate_since": "2026-10-09",
+      "candidate_since": "2026-10-12",
       "last_qualified_date": "2026-10-12",
       "qualified_reason": [
         "趋势C",
-        "信号得分61.7",
-        "动量排名2",
-        "距伏击位2.7%",
+        "信号得分55.4",
+        "动量排名3",
+        "距伏击位2.2%",
         "风险低",
         "动量通过"
-      ],
-      "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
-    },
-    {
-      "status": "候场",
-      "code": "516530",
-      "name": "物流ETF银华",
-      "priority": "中",
-      "trigger": "现价1.044，等待回踩1.026附近止跌确认；跌破1.001取消候场。",
-      "action": "现价1.044，等待回踩1.026附近止跌确认；跌破1.001取消候场；中观约束：禁止追高，只按伏击位分批。",
-      "signal_state": "当日正式池重选候场",
-      "eligibility": "watch_only",
-      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
-      "price": 1.044,
-      "support": 1.026,
-      "target": 1.076,
-      "stop": 1.001,
-      "action_level": 1.026,
-      "trigger_level": 1.026,
-      "action_level_label": "伏击位",
-      "distance_pct": -1.75,
-      "trend_level": "C",
-      "risk_level": "低",
-      "price_date": "2026-10-09",
-      "level_basis": "qfq日线：MA20与ATR14（支撑=max(MA20,现价-1.5ATR)，目标=现价+1.5ATR，失效=min(MA20,现价-2ATR)）",
-      "model_version": "A ETF Garden Levels v1",
-      "data_source": "tencent",
-      "level_status": "ready",
-      "selected_from_pool_date": "2026-10-12",
-      "selection_score": 61.2,
-      "selection_rank": 3,
-      "candidate_since": "2026-10-09",
-      "last_qualified_date": "2026-10-12",
-      "qualified_reason": [
-        "趋势C",
-        "信号得分55.2",
-        "动量排名6",
-        "距伏击位1.8%",
-        "风险低"
       ],
       "selection_rule_version": "a-candidate-v1",
       "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
@@ -405,10 +371,11 @@
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
-    "status": "not_published",
-    "quote_date": "2026-10-09",
+    "status": "complete",
+    "quote_date": "2026-10-12",
+    "quote_as_of": "2026-10-12 16:14:00 至 16:15:00 CST",
     "prepared": {
-      "plant": 3,
+      "plant": 2,
       "harvest": 0
     },
     "executable": {
@@ -419,11 +386,82 @@
       "upgrade_candidate": 0,
       "clear": 0
     },
-    "breadth": "待2026-10-12 22:00后更新：本日该窗口尚未发布，未发生可验证执行。",
-    "triggered_actions": []
+    "breadth": "今日完整收盘：上证3797.24🟢-0.43%、深证12384.87🟢-2.03%、创业板2963.82🟢-2.61%、科创50 1426.72🟢-2.10%、沪深300 4287.98🟢-0.68%。科技链集中受压：通信ETF🟢-5.07%、半导体ETF🟢-2.52%、科创50ETF🟢-2.27%；防御/红利相对强：银行ETF🔴+2.12%、红利低波🔴+1.82%、传媒ETF🔴+0.99%。问财收盘要点（百家号/越牛15:08）与第一财经15:12收盘『沪指跌0.43% 银行板块涨幅居前』均显示超过4300只个股飘绿、价值风格持续强势。今日未取得全市场成交额、ETF主力资金及同口径宽度，统一UNAVAILABLE，不补零。",
+    "evening_session_summary": "22:00重选后plant由三只缩为二只【159941纳指、512800银行】；日经、物流因动量/资格让位。今日所有候选均未触价/未通过完整准入；harvest=0、可执行0；候选与执行均不持有，实现收益与持仓收益null、UNAVAILABLE。中观2逆风、权益0%-10%全日不变。",
+    "scorecard": {
+      "prepared": 2,
+      "previous_prepared": 3,
+      "candidate_swap": {
+        "from": [
+          "513520",
+          "516530"
+        ],
+        "to": [
+          "512800"
+        ],
+        "reason": "516530物流收盘1.023🟢-2.01%、信号34.93、双动量未通过，不再具备资格；513520日经虽未收盘下跌但动量rank 7、信号分49.78被同期银行和纳指超越；512800银行ETF华宝收🔴+2.12%、动量rank 3、信号分55.4、趋势C、风险低、动量通过，新进plant；中观逆风约束下保留但需等待回踩0.849附近止跌确认。"
+      },
+      "price_touched": 0,
+      "confirmed_trigger": 0,
+      "trigger_path_status": "UNAVAILABLE：今日未触价/未通过完整准入，无分钟止跌路径",
+      "direction_positive": 0,
+      "direction_flat": 0,
+      "direction_negative": 2,
+      "executable": 0,
+      "execution_receipts": "UNAVAILABLE",
+      "position_return": null,
+      "realized_return": null,
+      "return_basis": "今日腾讯收盘价相对昨收；非候选触发价收益或账户收益",
+      "direction_returns": {
+        "159941": -0.06,
+        "512800": 2.12
+      },
+      "excess_hs300_pp": {
+        "159941": 0.62,
+        "512800": 2.8
+      },
+      "benchmark_quote_as_of": "2026-10-12T16:14:00+08:00"
+    },
+    "plans": [
+      {
+        "code": "159941",
+        "name": "纳指ETF广发",
+        "status": "候场未持有",
+        "quote_price": 1.768,
+        "quote_as_of": "2026-10-12T16:14:45+08:00",
+        "research_action": "仅观察1.728附近止跌与失效；当前准入关闭，不开仓；不追海外高位",
+        "observation_price": 1.728,
+        "allowed_entry_price": null,
+        "suggested_new_position_pct": 0,
+        "latest_condition": "下一交易日10-13回踩1.728附近止跌后才讨论升级；中观2逆风不变",
+        "invalidation": 1.687,
+        "realized_return": null
+      },
+      {
+        "code": "512800",
+        "name": "银行ETF华宝",
+        "status": "候场未持有",
+        "quote_price": 0.868,
+        "quote_as_of": "2026-10-12T16:14:44+08:00",
+        "research_action": "新进plant；仅观察0.849附近止跌；准入关闭，不开仓；红利风格继续观察中观约束",
+        "observation_price": 0.849,
+        "allowed_entry_price": null,
+        "suggested_new_position_pct": 0,
+        "latest_condition": "下一交易日10-13回踩0.849附近止跌后才讨论升级；防御底仓角色",
+        "invalidation": 0.843,
+        "realized_return": null
+      }
+    ],
+    "candidate_swap_note": "513520日经、516530物流让位出plant，移入watch为『替换出plant（历史候场）』；512800银行ETF华宝由watch调入plant，触发原因为动量通过+信号分55.4+风险低；不修改既有选择器权重或正式名单以外的成员。",
+    "triggered_actions": [
+      "159941纳指：收盘1.768🟢-0.06%，全天1.748-1.795；未触伏击位1.728，不开仓。",
+      "512800银行：收盘0.868🔴+2.12%，全天0.851-0.87；新进plant，候场未触0.849，不开仓。",
+      "513520日经：动量rank 7、信号49.78让位出plant，移入watch为『替换出plant（历史候场）』。",
+      "516530物流：收盘1.023🟢-2.01%、信号34.93、双动量未通过、跌破MA20，移入watch为『替换出plant（历史候场）』。"
+    ]
   },
   "mid_macro": {
-    "generated_at": "2026-10-12 14:53:24 CST",
+    "generated_at": "2026-10-12 22:30:12 CST",
     "headwind_level": 2,
     "label": "逆风",
     "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
@@ -436,14 +474,14 @@
         "label": "固收相对权益强弱",
         "state": "逆风",
         "score": 1.5,
-        "headline": "固收5日相对转强+1.41pp"
+        "headline": "固收5日相对转强+1.40pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
         "score": 0.25,
-        "headline": "海外映射ETF 5日+3.40%"
+        "headline": "海外映射ETF 5日+3.27%"
       },
       {
         "key": "margin_financing",
@@ -463,16 +501,14 @@
     "evaluation_date": "2026-10-12",
     "evaluated_count": 91,
     "eligible_count": 3,
-    "selected_count": 3,
+    "selected_count": 2,
     "selected_codes": [
       "159941",
-      "513520",
-      "516530"
+      "512800"
     ],
     "previous_codes": [
       "159941",
-      "513520",
-      "516530"
+      "512800"
     ],
     "unchanged_from_previous": true,
     "continuity_requires_current_qualification": true,
@@ -480,8 +516,7 @@
     "excluded_harvest_codes": [],
     "pre_macro_selected_codes": [
       "159941",
-      "513520",
-      "516530"
+      "512800"
     ],
     "macro_gate_removed_codes": [],
     "macro_headwind_level": 2
@@ -496,5 +531,5 @@
     "removed_codes": []
   },
   "category": "intraday",
-  "description": "尾盘科技再弱，海外候选转负，物流新低后回到1.026；三候选0正0平3负、可执行0。中观2逆风，权益0%-10%，15:00前只观察，不新增进攻仓。"
+  "description": "今日沪指-0.43%、深证-2.03%、创业板-2.61%、科创50-2.10%；通信-5.07%、半导体-2.52%、科创50ETF-2.27%。银行+2.12%、红利低波+1.82%为全天相对强。plant经22:00重选为二只【159941纳指、512800银行】，日经、物流让位；harvest=0、可执行0。中观2逆风、权益0%-10%，不追高、不新增进攻仓。"
 }
