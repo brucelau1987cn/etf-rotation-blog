@@ -32,6 +32,92 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-14': {
+    "tradeDate": "2026-10-14",
+    "shortDate": "10/14",
+    "title": "10月14日滚动信号收盘复盘",
+    "subtitle": "A股四只空方继续收复失败；港股缺价与白银未结算继续观察；期货空方单边回落",
+    "cutoff": "2026-10-14 18:38 北京时间；A股15:00收盘／港股16:08报价／美股10月13日完整收盘／期货盘中未结算",
+    "summary": "全市场16只已接入标的全部扫描（A股11、港股3、美股1、期货1）。当日D1首次写入4条节点覆盖3只标的：三安光电10m/30m SELL（1簇）、华天科技10m SELL、中国宏桥10m SELL；归纳为3个执行簇：观察2、收复0、确认0、分歧0。三安光电10m/30m空方信号点11.33/11.19，收盘11.19贴价在10m点上、低于30m点，未获收盘延续确认；华天科技10m空方14.87，收盘14.72位于信号价下方继续下行；中国宏桥10m空方缺价UNAVAILABLE，公开API尚未补齐。其余13只无当日新D1信号，静态LKG不当作新样本。",
+    "buyRule": "先保住信号枢轴，回踩不破后，再观察放量越过当日高点、均线与正式多方条件。空方失效不等于多方成立，低获利盘与超卖不等于底部；港股信号缺价、期货未结算时不升级交易确认。",
+    "sellRule": "跌回信号价带且反抽失败，按原纪律控制风险；失守当日低点进一步防守。贴价收复与未结算快照不追空；跨美东交易段分开验证，不用晚一段价格替代上一段结算。",
+    "discipline": "同日同节点仅认首次写入价及event_id。相邻同向价差≤1%合并执行簇，原始4条节点全部保留；接收时间不伪称K线触发时间。历史命中率、D1/3D/5D后续收益及信号后MFE/MAE因无完整路径UNAVAILABLE；独立历史样本INSUFFICIENT。新闻/行业因果未核验，仅报告observed/corroborated，不虚构催化。所有标签只作研究影子，不改生产权重、仓位与动作。",
+    "signals": [
+      {
+        "name": "三安光电",
+        "symbol": "600703",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m/30m SELL（1簇）",
+        "signalPrices": "¥11.33／¥11.19",
+        "close": "¥11.19",
+        "change": "-3.28%",
+        "validation": "watch",
+        "validationLabel": "空方贴价未延续",
+        "verdict": "收盘11.19正好落在30m空方点上（10m点11.33上方），10m空方被收盘收复、30m空方贴价未延续。低开11.50跌破10m点11.33，反抽最高11.52未越过10m点；MA5/MA10/MA20皆在信号价上方发散空头排列，量比0.584不足1。收盘获利0.10%、平均成本¥13.10、90%集中度27.70%——空头共振延续。",
+        "support": "¥11.19（30m点／收盘）／¥11.18（当日低点）",
+        "pressure": "¥11.33（10m空方点）／¥11.50（当日开盘）／MA5 ¥11.582／MA20 ¥12.254",
+        "buyPlan": "先守住11.19并回踩不破，再观察放量越过11.52及均线约束；需新正式多方与动量改善才升级确认。空方失效、低RSI和低获利盘均不单独构成买入理由。",
+        "sellPlan": "若跌回11.19下方且反抽不过11.33，按原持仓纪律降风险；失守11.18进一步防守。10m点11.33被收复但30m点贴价未延续，空方降为风险提示，不追空、不自动改仓位。",
+        "evidence": [
+          "observed：开11.50／高11.52／低11.19／收11.19；成交46770285股；换手0.938%；量比0.584",
+          "observed：MA5 11.582／MA10 11.769／MA20 12.254；DIF -0.474／DEA -0.394；RSI6 24.879／RSI12 31.805",
+          "observed：主力资金净流入-1.159亿元；日线获利盘0.10%／平均成本¥13.10／90%集中度27.70%",
+          "corroborated：iWenCai当日收盘与腾讯报价一致；trace_id=57acbfd99293888e2a4a08cd5c32b01bfe2924c559798ce57867417f2223f6c7",
+          "同日同向价差1.23%略超1%阈值，按节点独立保留原始2条",
+          "首次入库 10/14 14:15:13 10m SELL；event_id=evt_1791958513664_apdqfl；D1价=11.33；来源=sina-m1；触发时间为接收时刻，不冒充K线收盘时刻",
+          "首次入库 10/14 15:17:01 30m SELL；event_id=evt_1791962221726_96iod9；D1价=11.19；来源=tencent-minute；触发时间为接收时刻，不冒充K线收盘时刻"
+        ]
+      },
+      {
+        "name": "华天科技",
+        "symbol": "002185",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m SELL（1簇）",
+        "signalPrices": "¥14.87",
+        "close": "¥14.72",
+        "change": "-3.73%",
+        "validation": "watch",
+        "validationLabel": "空方贴价继续下行",
+        "verdict": "收盘14.72低于10m空方14.87，空方获日内延续但收盘未触及信号价下方支撑。量比0.737不足1，RSI6 17.6进入超卖区但无放量反转信号；MA5/MA10/MA20全部高于现价，趋势仍偏空。收盘获利0.30%、平均成本¥17.01、90%集中度10.60%——上方套牢盘较轻但下方承接不足。",
+        "support": "¥14.72（收盘）／¥14.70（当日低点）／¥14.65（前一日收盘）",
+        "pressure": "¥14.87（10m空方点）／¥15.20（当日开盘）／MA5 ¥15.422／MA20 ¥16.637",
+        "buyPlan": "先守住14.72并回踩不破，再观察放量越过15.20及均线约束；需新正式多方与动量改善才升级确认。空方失效、低RSI和低获利盘均不单独构成买入理由。",
+        "sellPlan": "若跌回14.87下方且反抽不过，按原持仓纪律降风险；失守14.70进一步防守。10m点被跌破后空方降为风险提示，不追空、不自动改仓位。",
+        "evidence": [
+          "observed：开15.20／高15.32／低14.70／收14.72；成交107032470股；换手3.218%；量比0.737",
+          "observed：MA5 15.422／MA10 16.353／MA20 16.637；DIF -0.453／DEA -0.201；RSI6 17.623／RSI12 31.055",
+          "observed：主力资金净流入-2.015亿元；日线获利盘0.30%／平均成本¥17.01／90%集中度10.60%",
+          "corroborated：iWenCai当日收盘与腾讯报价一致；trace_id=57acbfd99293888e2a4a08cd5c32b01bfe2924c559798ce57867417f2223f6c7",
+          "首次入库 10/14 14:15:18 10m SELL；event_id=evt_1791958518059_xyc1zj；D1价=14.87；来源=sina-m1；触发时间为接收时刻，不冒充K线收盘时刻"
+        ]
+      },
+      {
+        "name": "中国宏桥",
+        "symbol": "01378",
+        "market": "港股",
+        "direction": "SELL",
+        "nodes": "10m SELL（1簇）",
+        "signalPrices": "HK$UNAVAILABLE",
+        "close": "HK$20.90",
+        "change": "-2.15%",
+        "validation": "watch",
+        "validationLabel": "空方缺价观察",
+        "verdict": "10m空方D1价缺位UNAVAILABLE（未触发waitUntil回填），无法做贴价验证。收盘20.90跟随港股大市回落，跌破前收21.36。当前K线数据可获取但分钟级触发价未回填，公开API timeline 缺价不升级交易确认。",
+        "support": "HK$20.90（收盘）／HK$20.82（当日低点）",
+        "pressure": "HK$21.36（前收）／HK$21.48（当日高点）／HK$21.30（开盘）",
+        "buyPlan": "等分钟级D1价回填后再评估信号枢轴；缺价期间不升级买入确认，不基于缺口价作交易动作。",
+        "sellPlan": "若D1价回填后跌回该点下方且反抽不过，按原持仓纪律降风险；缺价期间不追空。",
+        "evidence": [
+          "observed：开21.30／高21.48／低20.82／收20.90；成交26523093股",
+          "observed：MACD/RSI数据未取（港股指标差异）",
+          "UNAVAILABLE：10m SELL D1价未回填，公开API timeline 缺价，贴价验证不可用",
+          "首次入库 10/14 14:55:05 10m SELL；event_id=evt_1791960905912_61xyc4；D1价=NULL；来源=缺价；触发时间为接收时刻，不冒充K线收盘时刻"
+        ]
+      }
+    ]
+  },
   '2026-10-13': {
   "tradeDate": "2026-10-13",
   "shortDate": "10/13",
@@ -2547,7 +2633,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-13', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-14', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-13', href: '/rolling/insights/2026-10-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-12', href: '/rolling/insights/2026-10-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-09', href: '/rolling/insights/2026-10-09/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-08', href: '/rolling/insights/2026-10-08/' },
