@@ -158,6 +158,28 @@ def now_cn() -> datetime:
     return datetime.now(CN)
 
 
+def resolve_run_moment() -> datetime:
+    """Honour GENERATED_AT_OVERRIDE for deterministic publish-after-midnight runs.
+
+    The 22:30 nightly publisher normally executes before midnight on the same
+    trading day, so the real wall-clock `now_cn()` is also the trade-date
+    prefix of `generated_at`. After midnight (catch-up recovery, manual reruns)
+    `date_prefix(generated_at)` flips to the next day and the batch validator
+    rejects the candidate with `A-share plan batch mismatch`. Operators can
+    pin the timestamp via `GENERATED_AT_OVERRIDE=YYYY-MM-DD HH:MM:00 CST` so
+    the late run still commits the correct trade date.
+    """
+    override = os.environ.get("GENERATED_AT_OVERRIDE")
+    if not override:
+        return now_cn()
+    text = override.strip()
+    try:
+        parsed = datetime.strptime(text, "%Y-%m-%d %H:%M:%S CST")
+    except ValueError:
+        return now_cn()
+    return parsed.replace(tzinfo=CN)
+
+
 def atomic_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
@@ -870,8 +892,10 @@ def main() -> None:
     constraint = build_constraint(factors, base_position if isinstance(base_position, str) else None, market_state if isinstance(market_state, str) else None)
     factor_dates = sorted(str(factor.get("as_of")) for factor in factors if factor.get("as_of"))
     model_date = str(pool.get("evaluation_date") or pool.get("latest_trade_date") or (factor_dates[-1] if factor_dates else now_cn().date().isoformat()))
-    # 真实生成时间（实际运行时刻），避免硬编码时间戳误导展示
-    generated_at = now_cn().strftime(f"%Y-%m-%d %H:%M:%S CST")
+    # 真实生成时间（实际运行时刻），避免硬编码时间戳误导展示。
+    # GENERATED_AT_OVERRIDE 仅供 22:30 跨午夜手动恢复使用；正常 22:30 窗口内不设该环境变量。
+    run_moment = resolve_run_moment()
+    generated_at = run_moment.strftime(f"%Y-%m-%d %H:%M:%S CST")
     factor_map = {factor["key"]: factor for factor in factors}
     framework = []
     for item in MACRO_FRAMEWORK:
