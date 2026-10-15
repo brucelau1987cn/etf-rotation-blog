@@ -1,27 +1,27 @@
 {
   "date": "2026-10-15",
-  "updated_at": "2026-10-15 08:35:43 CST",
+  "updated_at": "2026-10-15 11:43:19 CST",
   "applies_to": "2026-10-15",
   "data_as_of": "历史趋势与MA20/ATR使用2026-10-14收盘qfq完整基线(91/91)；隔夜美股(纳指-1.88%/标普-1.10%/费半大跌)及10-15晨间央行买断式逆回购公告已纳入",
   "level_data_as_of": "2026-10-14",
-  "stage": "08:30盘前版",
+  "stage": "11:30上午收盘修正版",
   "model_version": "a-compass-v1",
-  "idempotency_key": "CN+2026-10-15+08:30+a-compass-v1",
+  "idempotency_key": "CN+2026-10-15+11:30+glm-5-3-flash",
   "market_state": "上一交易日A股加速下挫，上证失守3800收报3767.23点(-0.88%)，创业板指跌3.10%创年内新低，科创50跌3.29%，超4400股下跌缩量退潮。隔夜美9月CPI超预期引发加息担忧，纳指跌1.88%、标普跌1.10%、芯片AI股普跌；晨间央行开展7000亿买断式逆回购操作净投放约2000亿提供流动性托底。结论：市场仍处弱势退潮与情绪冰点期，中观宏观逆风2级压制，严守纪律绝不盲目抄底，继续全额防御空仓观望。",
   "position": "权益0%-10%；防御/现金90%-100%",
   "position_base": "权益0%-10%；防御/现金90%-100%",
   "mainline": "外围通胀与科技杀估值压制A股风险偏好 vs 央行买断式逆回购净投放2000亿流动性支撑；结构上防守避险资源/红利抗跌，成长硬件深调消化估值。",
-  "summary": "08:30盘前版：上一日A股加速调整，创指跌3.10%创年内收盘新低，全市场超4400股下挫呈现极端退潮。隔夜美股全线收跌，纳指跌1.88%、标普跌1.10%，外围科技股承压；早间央行开展7000亿元买断式逆回购(净投放2000亿)呵护流动性。91池维持极弱状态，动量通过仅5只；候选唯一入选159941纳指ETF(趋势C/评分59.86/伏击位1.724/取消位1.696)，其余A股成长硬件均处于均线压制。中观宏观逆风2级(权益0%-10%/防御90%-100%)。结论：弱势格局严禁追高抢跑，严守空仓防御纪律，日内仅按伏击位纪律静待低吸机会。",
+  "summary": "11:30收盘：沪指-1.98%、创业板指-3.42%再创新低，全A上涨466/下跌5059，弱势加速；159941触及伏击位但无止跌信号，候场不升级。中观逆风2级不变。结论：空仓防御纪律继续，下午仅当159941回踩1.724且分时企稳、且不破1.696时才谈低吸观察，其余标的严禁抢跑。",
   "data_quality": {
-    "generated_at": "2026-10-15 08:31:00 CST",
+    "generated_at": "2026-10-15 11:45:00 CST",
     "return_basis_disclosure": "历史趋势、MA20/ATR及候选关键位均使用2026-10-14收盘全量qfq完整基线(91/91)；全天收盘点位与市场宽度经由Peekabo EdgeQuote、腾讯行情及同花顺问财复盘交叉校准；今日A股尚未开盘，实时数据UNAVAILABLE。",
     "latest_trade_date": "2026-10-14",
     "quote_date": "2026-10-14"
   },
   "source_audit": {
     "calendar_source": "d1_exchange_calendar",
-    "fallback": "D1交易所日历为主，本次未启用BaoStock；本地qfq与腾讯/问财行情交叉核验",
-    "iwencai_news": "多Key包装器调用IWENCAI_APIKEYS轮询池查询10-15盘前宏观流动性(央行买断式逆回购)、隔夜美股科技收盘与91池基线；Peekabo EdgeQuote提供基线核验",
+    "fallback": "D1交易日历为主，BaoStock备用（本阶段未启用）。",
+    "iwencai_news": "11:30经市场查询包装器(IWENCAI_APIKEYS轮询池)获取全A分时涨跌家数；指数与ETF行情经腾讯实时行情接口交叉核对。",
     "quote_source": "Tencent/EdgeQuote/iWenCai"
   },
   "harvest": [],
@@ -32,10 +32,10 @@
       "name": "纳指ETF广发",
       "priority": "高",
       "trigger": "现价1.767，等待回踩1.724附近止跌确认；跌破1.696取消候场。",
-      "action": "现价1.767，等待回踩1.724附近止跌确认；跌破1.696取消候场；中观约束：禁止追高，只按伏击位分批。",
+      "action": "现价1.767，等待回踩1.724附近止跌确认；跌破1.696取消候场；中观约束：停开新伏击。",
       "signal_state": "当日正式池重选候场",
-      "eligibility": "watch_only",
-      "eligibility_reason": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+      "eligibility": "blocked",
+      "eligibility_reason": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
       "price": 1.767,
       "support": 1.724,
       "target": 1.81,
@@ -65,7 +65,7 @@
         "动量通过"
       ],
       "selection_rule_version": "a-candidate-v1",
-      "mid_macro_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半"
+      "mid_macro_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法"
     }
   ],
   "watch": [
@@ -169,42 +169,49 @@
   },
   "intraday_1130": {
     "stage": "11:30上午收盘修正版",
-    "status": "not_published",
+    "status": "complete",
     "quote_date": "2026-10-15",
-    "quote_as_of": "待2026-10-15 11:30后更新",
+    "quote_as_of": "2026-10-15 11:30:00 CST",
     "prepared": {
       "plant": 1,
       "harvest": 0
     },
-    "breadth": "待2026-10-15 11:30后更新：上午收盘全市场涨跌统计与成交分布。"
+    "breadth": "全A上午收盘上涨466家、下跌5059家、涨停33家，弱势加速未改；未获取到可靠跌停家数，不作臆补。",
+    "executable": {
+      "plant": 0,
+      "harvest": 0,
+      "exit": 0,
+      "hold": 0,
+      "upgrade_candidate": 0,
+      "clear": 0
+    },
+    "morning_session_summary": "沪指-1.98%报3692.65，深成指-2.78%，创业板指-3.42%再创新低，科创50-3.02%；半天成交延续缩量，科技硬件领跌，防御资源局部抗跌。",
+    "triggered_actions": [
+      "159941纳指ETF：-2.49%报1.723，盘中最低1.715已触及伏击位1.724下方，但未现止跌确认，候场不升级、禁止接飞刀",
+      "515880通信：-4.56%继续领跌，均线压制加深，维持观察非候选",
+      "512480半导体：-3.38%，破位未修复，维持观察",
+      "588000科创50：-3.02%，贴新低运行，维持观察",
+      "512690酒：+0.48%相对抗跌，防御消费承接资金迹象，维持观察"
+    ]
   },
   "intraday_1430": {
-    "stage": "14:30尾盘操作版",
+    "stage": "14:30尾盘操作修正版",
     "status": "not_published",
     "quote_date": "2026-10-15",
     "quote_as_of": "待2026-10-15 14:30后更新",
-    "prepared": {
-      "plant": 1,
-      "harvest": 0
-    },
-    "breadth": "待2026-10-15 14:30后更新：尾盘全市场情绪演化与操作执行。"
+    "breadth": "待2026-10-15 14:30后更新：午后涨跌统计与成交分布。"
   },
   "nightly_2200": {
     "stage": "22:00夜间最终版",
     "status": "not_published",
     "quote_date": "2026-10-15",
-    "quote_as_of": "待2026-10-15 22:00后更新",
-    "prepared": {
-      "plant": 1,
-      "harvest": 0
-    },
-    "breadth": "待2026-10-15 22:00后更新：全天闭市复盘与夜间重选结果。"
+    "breadth": "待2026-10-15 22:00后更新：全天收盘与资金复盘。"
   },
   "mid_macro": {
-    "generated_at": "2026-10-15 08:35:43 CST",
-    "headwind_level": 2,
-    "label": "逆风",
-    "equity_constraint": "中观逆风：权益上限降2档，禁止追高，新增进攻仓减半",
+    "generated_at": "2026-10-15 11:43:19 CST",
+    "headwind_level": 3,
+    "label": "强逆风",
+    "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
     "allow_chase": false,
     "allow_new_offense": false,
     "base_position": "权益0%-10%；防御/现金90%-100%",
@@ -214,21 +221,21 @@
         "label": "固收相对权益强弱",
         "state": "逆风",
         "score": 2.0,
-        "headline": "固收5日相对沪深300超额+3.27pp"
+        "headline": "固收5日相对沪深300超额+4.31pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
-        "state": "中性",
-        "score": 0.25,
-        "headline": "海外映射ETF 5日-0.49%"
+        "state": "逆风",
+        "score": 2.25,
+        "headline": "海外映射ETF 5日均值-3.24%"
       },
       {
         "key": "margin_financing",
         "label": "市场资金与杠杆",
         "state": "逆风",
-        "score": 2.0,
-        "headline": "两融余额5日-2.46%"
+        "score": 2.5,
+        "headline": "两融余额5日-1.37%"
       }
     ]
   },
@@ -256,7 +263,7 @@
       "159941"
     ],
     "macro_gate_removed_codes": [],
-    "macro_headwind_level": 2
+    "macro_headwind_level": 3
   },
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
