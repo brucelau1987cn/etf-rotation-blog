@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Fetch profile, individual, and quality shareholder queries for low-chip stocks."""
+"""Fetch profile, individual, and quality shareholder queries for low-chip stocks.
+
+耗时说明：本脚本是整条低筹码发布链里最慢的一环（实测完整跑完约 146 分钟），
+成本来自 iWenCai 的逐只 fallback 链。FTShare 匿名额度为 500 次/天，
+198 只查询约占 40%；额度一旦耗尽，stock_float_holders 会持续返回 HTTP 429，
+因此 fetch_ftshare_holders 在检测到 429 时会立刻 fail-closed 中止，
+避免把 198 只全部推进 iWenCai fallback 白跑几个小时。
+
+若要根治速度问题，请注册 FTShare API Key（https://ftai.chat/ftshare），
+注册后不受匿名额度限制。
+"""
 from __future__ import annotations
 
 import json
@@ -46,10 +56,20 @@ FTSHARE_SDK_URL = "https://market.ft.tech/gateway/"
 
 
 def fetch_ftshare_holders(codes: list[str]) -> dict[str, dict]:
-    """用 FTShare SDK 查十大流通股东，构建 iWenCai 兼容字段（无每日配额）。
+    """用 FTShare SDK 查十大流通股东，构建 iWenCai 兼容字段。
 
     返回 {bare_code: {"前十大流通股东名称(报告期)[YYYYMMDD]": "name1, name2, ..."}}；
     失败返回空 dict（调用方 fallback iWenCai）。
+
+    FTShare 有两条重要的失败语义，必须分开处理：
+
+    * 匿名额度耗尽（HTTP 429 / "最多访问 500 次"）——继续重试只会延长封禁，
+      且后续每只都会失败。此时必须立刻中止并在 stdout 报告 blocked 状态，
+      让上游决定是否 STAGING BLOCKER，而不是静默跳过全部股票。
+    * 单只股票确实无十大流通股东数据——属于正常业务情况，跳过即可。
+
+    历史上 `except Exception: pass` 把两者混为一谈，导致限额耗尽后 198 只全部
+    落入 iWenCai 逐只 fallback 链，跑成 146 分钟且最终丢失 13 只的股东 badge。
     """
     if not codes:
         return {}
@@ -59,11 +79,14 @@ from ftshare.client import FtshareClient
 codes = json.loads(sys.stdin.read())
 client = FtshareClient(base_url="__URL__", timeout=60)
 out = {}
+empty = []
+errors = []
 for code in codes:
     try:
         rows = client.stock_float_holders(stock_code=code, all_pages=False, page_size=20, raw=True)
         items = ((rows or {}).get("data") or {}).get("items") or []
         if not items:
+            empty.append(code)
             continue
         item = items[0]
         period = str(item.get("publish_date") or "").replace("-", "")
@@ -71,10 +94,20 @@ for code in codes:
         names = [str(h.get("shareholder_name") or "").strip() for h in holders if str(h.get("shareholder_name") or "").strip()]
         if names and len(period) == 8:
             out[code.split(".")[0]] = {"前十大流通股东名称(报告期)[" + period + "]": ", ".join(names)}
-    except Exception:
-        pass
+        else:
+            empty.append(code)
+    except Exception as exc:
+        msg = f"{type(exc).__name__}: {exc}"
+        # 匿名额度耗尽：立刻中止，不要再消耗封禁时间
+        if "429" in msg or "最多访问" in msg or "rate_limited" in msg:
+            print(json.dumps({
+                "blocked": True, "reason": "ftshare_anonymous_rate_limited",
+                "detail": msg[:300], "holders": out, "empty": empty, "missing_after_block": len(codes) - len(out) - len(empty),
+            }, ensure_ascii=False))
+            sys.exit(0)
+        errors.append({"code": code, "error": msg[:200]})
     time.sleep(0.15)
-print(json.dumps(out, ensure_ascii=False))
+print(json.dumps({"holders": out, "empty": empty, "errors": errors}, ensure_ascii=False))
 '''.replace("__URL__", FTSHARE_SDK_URL)
     try:
         r = subprocess.run(
@@ -85,7 +118,23 @@ print(json.dumps(out, ensure_ascii=False))
         if r.returncode != 0:
             print(f"WARNING: FTShare holders query failed: {r.stderr[:200]}", file=sys.stderr)
             return {}
-        return json.loads(r.stdout)
+        payload = json.loads(r.stdout)
+        if payload.get("blocked"):
+            print(
+                f"STAGING BLOCKER: FTShare 匿名额度耗尽，无法获取 {payload.get('missing_after_block')} 只流通股东："
+                f"{payload.get('detail','')[:200]}",
+                file=sys.stderr,
+            )
+            raise SystemExit(
+                "FTShare anonymous quota exhausted; register an API key at https://ftai.chat/ftshare "
+                f"(missing after block: {payload.get('missing_after_block')} stocks)"
+            )
+        holders = payload.get("holders") or {}
+        for err in payload.get("errors") or []:
+            print(f"  {err.get('code')}: ftshare holder query error; {err.get('error','')[:120]}", flush=True)
+        return holders
+    except SystemExit:
+        raise
     except Exception as exc:  # noqa: BLE001
         print(f"WARNING: FTShare holders query failed: {exc}", file=sys.stderr)
         return {}

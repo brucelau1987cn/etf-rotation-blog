@@ -3,6 +3,8 @@ import json
 import types
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -157,7 +159,11 @@ def test_fetch_never_writes_synthetic_latest_shareholder_period_and_fails_closed
 
 def test_fetch_ftshare_holders_maps_to_iwencai_compatible_field(monkeypatch):
     fake_stdout = json.dumps({
-        "000157": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+        "holders": {
+            "000157": {"前十大流通股东名称(报告期)[20260630]": "香港中央结算, 湖南兴湘投资, 长沙中联和一盛"},
+        },
+        "empty": [],
+        "errors": [],
     }, ensure_ascii=False)
 
     def fake_run(_cmd, **kwargs):
@@ -195,3 +201,41 @@ def test_fetch_ftshare_holders_returns_empty_for_empty_codes(monkeypatch):
     monkeypatch.setattr(fetch.subprocess, "run", fake_run)
     assert fetch.fetch_ftshare_holders([]) == {}
     assert called == []  # 空输入不触发 subprocess
+
+
+def test_fetch_ftshare_holders_stops_on_anonymous_rate_limit(monkeypatch):
+    """匿名额度耗尽必须立刻 fail-closed，而不是静默跳过全部股票。
+
+    历史上 `except Exception: pass` 让 429 后 198 只全部落入 iWenCai 逐只
+    fallback 链，跑成 146 分钟且最终丢失 13 只的股东 badge。
+    """
+    fake_stdout = json.dumps({
+        "blocked": True,
+        "reason": "ftshare_anonymous_rate_limited",
+        "detail": "FtshareHTTPError: HTTP 429: 最近 1 天最多访问 500 次",
+        "holders": {},
+        "empty": [],
+        "missing_after_block": 2,
+    }, ensure_ascii=False)
+
+    def fake_run(_cmd, **kwargs):
+        return types.SimpleNamespace(returncode=0, stdout=fake_stdout, stderr="")
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    with pytest.raises(SystemExit):
+        fetch.fetch_ftshare_holders(["000157.SZ", "600519.SH"])
+
+
+def test_fetch_ftshare_holders_reports_per_stock_errors(monkeypatch):
+    fake_stdout = json.dumps({
+        "holders": {},
+        "empty": [],
+        "errors": [{"code": "000157.SZ", "error": "Timeout: read timeout"}],
+    }, ensure_ascii=False)
+
+    def fake_run(_cmd, **kwargs):
+        return types.SimpleNamespace(returncode=0, stdout=fake_stdout, stderr="")
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    # 单只瞬时错误不阻断：返回已拿到的部分（此处为空），由上游继续
+    assert fetch.fetch_ftshare_holders(["000157.SZ"]) == {}
