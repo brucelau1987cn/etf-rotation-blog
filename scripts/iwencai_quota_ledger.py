@@ -13,7 +13,7 @@
   2. `--report`    查看今日/近期用量
   3. `--check N`   预检：本次预计消耗 N 次，若会超出安全水位则非零退出
 
-额度口径：优先 key 1000 次/天，其余 key 各 100 次/天；10 keys 总计 1900 次/天。
+额度口径：优先 key 1000 次/天，其余 key 各 100 次/天；实际 key 数从 `IWENCAI_APIKEYS` 环境变量读取，缺失时 fail-closed 报错（不再 fallback 到硬编码 10）。
 """
 from __future__ import annotations
 
@@ -45,7 +45,10 @@ def key_count() -> int:
     declared = os.environ.get("IWENCAI_APIKEY_COUNT")
     if declared and declared.isdigit():
         return int(declared)
-    return 10
+    # fail-closed：既读不到 key 池变量、又没有 COUNT 声明时，绝不臆造 key 数。
+    # 返回 0 会让 key_limits() 得到空列表、daily_capacity()=0，
+    # 进而让 --check 预检在「剩余=0」下自然 BLOCKED，而不是虚报出一个大额度。
+    return 0
 
 
 def key_limits() -> list[int]:
