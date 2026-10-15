@@ -32,6 +32,197 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-15': {
+    "tradeDate": "2026-10-15",
+    "shortDate": "10/15",
+    "title": "10月15日滚动信号收盘复盘",
+    "subtitle": "A股五只空方全部收复失败；港股中国宏桥缺价继续观察；TSLA美东10/14收盘上穿60/90m空方点进入收复",
+    "cutoff": "2026-10-15 18:30 北京时间；A股15:00收盘／港股16:08报价／美股10月14日完整收盘／期货未结算",
+    "summary": "全市场16只已接入标的全部扫描（A股11、港股3、美股1、期货1）。当日D1首次写入13条节点覆盖7只标的：A股6只、港股1只、TSLA 3条美东10/14全部归入昨日通道。按同日同方向近价≤1%合并为8个执行簇，其中观察6、收复1（TSLA 60/90m归昨日通道）、确认0、分歧0。A股五只当日空方信号点（创新医疗10m/15m/国民技术10m/民爆光电10m/15m/德福科技10m/15m/东方明珠10m）收盘价均落在信号价下方，空方继续延展未现收复；中国宏桥15m/30m空方点公开kline与qt报价均UNAVAILABLE，无法回填。TSLA 60m/90m空方点364.93，美东10/14收盘367.16上穿0.61%形成收复；150m空方点365.96收盘仍下方空方未失。",
+    "buyRule": "空方收复失败不直接触发多方，港股缺价不升级为多；必须等到收盘站上当日高点与MA5、量比>1且不破信号价枢轴才升级。期货未结算与白银跨日切分时，不把上一段收盘价直接代入次日回测路径。",
+    "sellRule": "收盘继续落在信号价下方按原纪律控制；失守当日低点进一步防守。TSLA 60/90m被收盘上穿0.61%转入空方收复观察，若下段美东继续失守则失效；150m空方点仍为正式空方。港股缺价窗口不追空不转多。",
+    "discipline": "同日同节点仅认首次写入价及event_id。相邻同向价差≤1%合并执行簇，原始13条节点全部保留（A股6只：002173×2/300077×1/301362×2/301511×2/600637×1/01378×2；TSLA×3）。接收时间不伪称K线触发时间。历史命中率、D1/3D/5D后续收益及信号后MFE/MAE因无完整路径INSUFFICIENT。新闻/行业因果未核验，仅报告observed/corroborated，不虚构催化。所有标签只作研究影子，不改生产权重、仓位与动作。",
+    "signals": [
+      {
+        "name": "创新医疗",
+        "symbol": "002173",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m/15m SELL（1簇）",
+        "signalPrices": "¥16.27／¥16.19",
+        "close": "¥15.88",
+        "change": "-4.05%",
+        "validation": "watch",
+        "validationLabel": "空方延展收盘继续下行",
+        "verdict": "收盘15.88继续在10m/15m空方点（16.27/16.19）下方1.94%与1.91%；开15.99/低15.88全日未能反抽回信号价带。MA5 16.562/MA10 16.907/MA20 17.417全部在信号价上方发散空头排列；量比0.872不足1；RSI6 16.818进入超卖区。收盘获利-0.0%／平均成本¥18.12——空头延续但获利盘已极薄，等待收盘能否跌穿平均成本或放量反抽信号价带再分级处置。",
+        "support": "¥15.88（日内低）／¥15.80（前低）",
+        "pressure": "¥16.19（15m空方点）／¥16.27（10m空方点）／¥16.562（MA5）",
+        "buyPlan": "暂不升级：需收盘站稳16.562（MA5）且量比>1.0、不破16.19信号点再做第一步回踩确认。",
+        "sellPlan": "维持原纪律：收盘继续在16.27/16.19下方为空方延续；失守15.80（前低）进一步防守。",
+        "evidence": [
+          "observed：开15.99／高16.37／低15.88／收15.88；成交13975006股；换手3.32%；量比0.872",
+          "observed：MA5 16.562／MA10 16.907／MA20 17.417；DIF -0.587／DEA -0.483；RSI6 16.818／RSI12 29.001",
+          "observed：主力资金净流入-546.84万元；日线收盘获利0.0%／平均成本¥18.12",
+          "corroborated：iWenCai当日收盘与腾讯sz002173报价一致；trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269",
+          "首次入库 10/15 09:55:06 10m SELL；D1价=16.27；来源=tencent-minute；触发时间为接收时刻，不冒充K线收盘时刻",
+          "首次入库 10/15 10:00:23 15m SELL；D1价=16.19；来源=tencent-minute；触发时间为接收时刻，不冒充K线收盘时刻"
+        ]
+      },
+      {
+        "name": "国民技术",
+        "symbol": "300077",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m SELL（1簇）",
+        "signalPrices": "¥17.28",
+        "close": "¥17.00",
+        "change": "-4.97%",
+        "validation": "watch",
+        "validationLabel": "空方贴价微弱确认",
+        "verdict": "收盘17.00继续在10m空方点17.28下方1.62%；开17.31/低16.95/高17.69。量比0.876、MA5 18.092/MA10 19.546/MA20 20.221全部在信号价上方发散；RSI6 10.877已严重超卖。收盘获利0.10%／平均成本¥20.30——空头共振延续但获利盘与超卖同时压低进一步下行空间，等待收盘能否跌穿16.95/低或放量反抽17.28再分级。",
+        "support": "¥16.95（日内低）",
+        "pressure": "¥17.28（10m空方点）／¥17.31（开）／¥18.092（MA5）",
+        "buyPlan": "暂不升级：需收盘站稳18.092（MA5）且量比>1.0、不破17.28信号点再做第一步回踩确认。",
+        "sellPlan": "维持原纪律：收盘继续在17.28下方为空方延续；失守16.95（日内低）进一步防守。",
+        "evidence": [
+          "observed：开17.31／高17.69／低16.95／收17.00；成交23628423股；换手4.14%；量比0.876",
+          "observed：MA5 18.092／MA10 19.546／MA20 20.221；DIF -0.622／DEA -0.131；RSI6 10.877／RSI12 25.402",
+          "observed：主力资金净流入-2168.30万元；日线收盘获利0.10%／平均成本¥20.30",
+          "corroborated：iWenCai当日收盘与腾讯sz300077报价一致；trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269",
+          "首次入库 10/15 09:55:08 10m SELL；D1价=17.28；来源=tencent-minute；触发时间为接收时刻，不冒充K线收盘时刻"
+        ]
+      },
+      {
+        "name": "民爆光电",
+        "symbol": "301362",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m/15m SELL（1簇）",
+        "signalPrices": "¥89.62／¥88.99",
+        "close": "¥91.58",
+        "change": "-4.60%",
+        "validation": "watch",
+        "validationLabel": "空方贴价收复不延续",
+        "verdict": "收盘91.58站上10m/15m空方点（89.62/88.99）上方2.18%与2.91%，但开91.77/低88.50显示日内跌穿15m点后反抽收盘收复空方。MA5 95.478/MA10 101.072/MA20 107.834全部在信号价上方发散空头排列；量比0.768不足1；RSI6 24.084进入弱势区。收盘获利4.30%／平均成本¥108.00——贴价收复但未站上MA5，空方不追，下段关注91.58能否承接。",
+        "support": "¥88.50（日内低）／¥88.99（15m空方点）",
+        "pressure": "¥91.58（收）／¥95.478（MA5）／¥101.072（MA10）",
+        "buyPlan": "暂不升级：贴价收复不构成多方；需收盘站稳95.478（MA5）且量比>1.0、不破91.58再做第一步回踩。",
+        "sellPlan": "原空方纪律保留：收盘上穿91.58并放量收复视为空方失效；下段失守88.50进一步防守。",
+        "evidence": [
+          "observed：开91.77／高93.25／低88.50／收91.58；成交230291手；量比0.768",
+          "observed：MA5 95.478／MA10 101.072／MA20 107.834；RSI6 24.084／RSI12 31.476",
+          "observed：主力资金净流入-775.54万元；日线收盘获利4.30%／平均成本¥108.00",
+          "corroborated：iWenCai当日收盘与腾讯sz301362报价一致；trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269",
+          "首次入库 10/15 09:55:08 10m SELL；D1价=89.62；来源=tencent-minute",
+          "首次入库 10/15 10:00:29 15m SELL；D1价=88.99；来源=tencent-minute"
+        ]
+      },
+      {
+        "name": "德福科技",
+        "symbol": "301511",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m/15m SELL（1簇）",
+        "signalPrices": "¥76.27／¥75.61",
+        "close": "¥78.17",
+        "change": "-3.06%",
+        "validation": "watch",
+        "validationLabel": "空方贴价微弱收复",
+        "verdict": "收盘78.17站上10m/15m空方点（76.27/75.61）上方2.49%与3.39%，日内高81.79/低75.51一度跌穿15m点后反抽。MA5 81.936/MA10 89.205/MA20 99.591全部在信号价上方发散；量比1.056勉强及格；RSI6 15.611严重超卖。收盘获利5.00%／平均成本¥96.12——贴价微弱收复但未触及MA5，空方不追。",
+        "support": "¥75.51（日内低）／¥75.61（15m空方点）",
+        "pressure": "¥78.17（收）／¥81.936（MA5）／¥89.205（MA10）",
+        "buyPlan": "暂不升级：贴价微弱收复不构成多方；需收盘站稳81.936（MA5）且量比持续>1.0、不破78.17再做第一步回踩。",
+        "sellPlan": "原空方纪律保留：收盘上穿78.17并放量收复视为空方失效；下段失守75.51进一步防守。",
+        "evidence": [
+          "observed：开77.63／高81.79／低75.51／收78.17；成交250847手；量比1.056",
+          "observed：MA5 81.936／MA10 89.205／MA20 99.591；RSI6 15.611／RSI12 29.778",
+          "observed：主力资金净流入-8118.85万元；日线收盘获利5.00%／平均成本¥96.12",
+          "corroborated：iWenCai当日收盘与腾讯sz301511报价一致；trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269",
+          "首次入库 10/15 09:55:08 10m SELL；D1价=76.27；来源=tencent-minute",
+          "首次入库 10/15 10:00:29 15m SELL；D1价=75.61；来源=tencent-minute"
+        ]
+      },
+      {
+        "name": "东方明珠",
+        "symbol": "600637",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "10m SELL（1簇）",
+        "signalPrices": "¥8.71",
+        "close": "¥8.59",
+        "change": "-1.94%",
+        "validation": "watch",
+        "validationLabel": "空方延展收盘继续下行",
+        "verdict": "收盘8.59继续在10m空方点8.71下方1.38%；开8.58/低8.53/高8.77。量比1.153超过1；MA5 8.704/MA10 8.704/MA20 8.632与信号价交织。RSI6 42.691中性、RSI12 49.357中性。收盘获利56.80%／平均成本¥8.49——获利盘厚+量比>1是空方隐患，但价格已下穿MA20，需观察收盘能否反抽8.71。",
+        "support": "¥8.53（日内低）／¥8.49（平均成本）",
+        "pressure": "¥8.59（收）／¥8.71（10m空方点）／¥8.704（MA5/MA10）",
+        "buyPlan": "暂不升级：需收盘站稳8.71（10m空方点）且量比>1.0、不破8.59再做第一步回踩。",
+        "sellPlan": "维持原纪律：收盘继续在8.71下方为空方延续；失守8.53（日内低）进一步防守。",
+        "evidence": [
+          "observed：开8.58／高8.77／低8.53／收8.59；成交433500手；量比1.153",
+          "observed：MA5 8.704／MA10 8.704／MA20 8.632；RSI6 42.691／RSI12 49.357",
+          "observed：主力资金净流入-1673.07万元；日线收盘获利56.80%／平均成本¥8.49",
+          "corroborated：iWenCai当日收盘与腾讯sh600637报价一致；trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269",
+          "首次入库 10/15 10:25:05 10m SELL；D1价=8.71；来源=tencent-minute"
+        ]
+      },
+      {
+        "name": "中国宏桥",
+        "symbol": "01378",
+        "market": "港股",
+        "direction": "SELL",
+        "nodes": "15m/30m SELL（1簇）",
+        "signalPrices": "UNAVAILABLE（kline / qt均不可用）",
+        "close": "HK$19.51",
+        "change": "-6.65%",
+        "validation": "watch",
+        "validationLabel": "缺价无法对位，UNAVAILABLE",
+        "verdict": "D1已写入15m/30m两条空方节点（10/15 10:00/10:15），但edge kline及腾讯qt报价对01378均返回UNAVAILABLE，无信号点价可对比；港股收盘19.51（-6.65%）仅作宏观背景。结论：信号结构存在、价格证据缺失，按INSUFFICIENT处理，不升级。",
+        "support": "HK$19.35（低）",
+        "pressure": "HK$20.48（高）／HK$20.90（前收）",
+        "buyPlan": "暂不升级：缺价窗口不构成多方触发；待edge kline或qt报价恢复并回填15m/30m空方点后再分级。",
+        "sellPlan": "原空方纪律保留但缺乏价格证据；不追空。",
+        "evidence": [
+          "observed：港股qt报价 last 19.510／prev 20.900／chg -6.65%；高20.48／低19.35；成交61179224",
+          "UNAVAILABLE：edge kline 对 01378 at 10/15 10:00/10:15 返回 kline data unavailable；腾讯qt报价虽返回宏观收盘但未给出15m/30m空方点对应的K线回放",
+          "首次入库 10/15 10:00:36 15m SELL；D1价=NULL（kline fallback failed）",
+          "首次入库 10/15 10:15:21 30m SELL；D1价=NULL（kline fallback failed）",
+          "跨市场口径：港股日切按 Asia/Shanghai；D1写入按UTC，时间与A股一致"
+        ]
+      },
+      {
+        "name": "TSLA",
+        "symbol": "TSLA",
+        "market": "美股",
+        "direction": "SELL",
+        "nodes": "60m/90m SELL（收复观察） + 150m SELL（正式）",
+        "signalPrices": "US$364.93／US$364.93／US$365.96",
+        "close": "US$367.16",
+        "change": "-2.20%（vs prev 377.81）",
+        "validation": "reclaimed",
+        "validationLabel": "60/90m被收盘上穿进入收复观察；150m空方未失",
+        "verdict": "美东10/14完整收盘367.16，分别上穿60m/90m空方点364.93达0.61%、上穿150m空方点365.96达0.33%。60/90m空方进入收复观察（reclaimed），若下段美东继续上穿确认空方失效；150m空方未失仍为正式空方。Yahoo chart数据：last 2 bars close 375.23/367.16。",
+        "support": "US$367.16（10/14收）",
+        "pressure": "US$365.96（150m空方点）／US$364.93（60/90m空方点）／US$375.23（10/13收）",
+        "buyPlan": "暂不升级：60/90m收复为观察；下段美东需继续上穿并放量收复364.93才做第一步回踩。",
+        "sellPlan": "维持150m正式空方：收盘继续在365.96下方为空方延续；60/90m若下段失守则回到正式空方。",
+        "evidence": [
+          "observed：Yahoo chart TSLA last 2 bars 375.23/367.16；prev close 377.81",
+          "首次入库 10/14 12:00:21 150m SELL；D1价=365.96；来源=yahoo-daily；trigger_time_utc=2026-10-15T00:35:00Z vs received_at=2026-10-15T00:35:00.924Z",
+          "首次入库 10/14 12:30:03 60m SELL；D1价=364.93",
+          "首次入库 10/14 12:30:07 90m SELL；D1价=364.93",
+          "美东10/14收盘367.16上穿60/90m点364.93达0.61%——进入空方收复观察"
+        ]
+      }
+    ],
+    "sources": [
+      "D1 rolling_signals (Cloudflare REST API)",
+      "iWenCai hub 多 key 包装（trace_id=22d0121c4f52f77971ad0cba53228767aea19b7f4e3e859db791435fde255269）",
+      "腾讯 qt.gtimg.cn 实时报价（sz002173/sz300077/sz301362/sz301511/sh600637/hk01378）",
+      "Yahoo Finance daily chart（TSLA）",
+      "edge kline 公开API（01378 返回 UNAVAILABLE）"
+    ]
+  },
   '2026-10-14': {
     "tradeDate": "2026-10-14",
     "shortDate": "10/14",
@@ -2633,7 +2824,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-14', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-15', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-14', href: '/rolling/insights/2026-10-14/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-13', href: '/rolling/insights/2026-10-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-12', href: '/rolling/insights/2026-10-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-09', href: '/rolling/insights/2026-10-09/' },
