@@ -16,11 +16,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import fcntl
 import json
 import os
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -113,18 +115,29 @@ def publish_lock(timeout: int = 2400):
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     handle = lock_path.open("a+")
     deadline = time.time() + timeout
+    waited = False
+    next_report = 0.0
     try:
         while True:
             try:
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if waited:
+                    print(f"[{_stamp()}] LOCK 发布锁已获取", flush=True)
                 break
             except BlockingIOError:
                 if time.time() >= deadline:
                     raise SystemExit(
                         f"publish lock busy for {timeout}s; another chain run holds it"
                     )
-                print(f"[{_stamp()}] WAIT 发布锁被占用，等待中…", flush=True)
-                time.sleep(30)
+                now = time.time()
+                if now >= next_report:
+                    # 每 60s 报一次等待，避免刷屏，也保留可观测性
+                    print(f"[{_stamp()}] WAIT 发布锁被占用，等待中…", flush=True)
+                    next_report = now + 60
+                waited = True
+                # 短轮询：锁常在锁持有者提前结束时立刻可拿，长 sleep 会让
+                # 空闲的锁被白白干等（实测 30s 轮询多等了 22s）
+                time.sleep(2)
         yield
     finally:
         try:
@@ -162,16 +175,17 @@ def main() -> int:
 
     t_start = time.time()
 
-    # 1) 三周期原始池 + DATA 快照（实测 808s）
-    run([sys.executable, "scripts/build_low_chip_base.py", trade_date],
-        BUILD_TIMEOUT, env=env)
+    with publish_lock():
+        # 1) 三周期原始池 + DATA 快照（实测 808s）
+        run([sys.executable, "scripts/build_low_chip_base.py", trade_date],
+            BUILD_TIMEOUT, env=env)
 
-    # 2) 原始池落库，避免后续失败浪费已耗 iWenCai 配额
-    run([sys.executable, "scripts/sync_low_chip_raw_pool.py"], 300, env=env)
+        # 2) 原始池落库，避免后续失败浪费已耗 iWenCai 配额
+        run([sys.executable, "scripts/sync_low_chip_raw_pool.py"], 300, env=env)
 
-    # 3) enrichment（实测 2047s）产物即主链复用的 /tmp cache
-    run([sys.executable, "scripts/fetch_low_chip_enrichments.py"],
-        ENRICH_TIMEOUT, env=env)
+        # 3) enrichment（实测 2225s）产物即主链复用的 /tmp cache
+        run([sys.executable, "scripts/fetch_low_chip_enrichments.py"],
+            ENRICH_TIMEOUT, env=env)
 
     # 收尾自检：DATA 日期必须等于目标 trade_date
     payload = json.loads(DATA.read_text(encoding="utf-8"))
