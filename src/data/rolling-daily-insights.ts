@@ -32,6 +32,45 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-16': {
+    "tradeDate": "2026-10-16",
+    "shortDate": "10/16",
+    "title": "10月16日滚动信号收盘复盘",
+    "subtitle": "全市场16只已接入标的当日仅东方明珠1只产生D1首次写入，15m/30m/90m三节点SELL近价合并为1簇；收盘8.35贴90m空方点8.35，冲高回落收低位，其余15只标的当日无信号",
+    "cutoff": "2026-10-16 18:30 北京时间；A股15:00收盘；港股/美股/期货当日无D1写入。港股/美股/期货当日收盘证据UNAVAILABLE（当日无信号，不强制补齐）",
+    "summary": "全市场16只已接入标的（A股11、港股3、美股1、期货1）当日D1首次写入仅3条节点，全部来自东方明珠(600637)：15m/30m/90m SELL。按同日同方向近价≤1%合并为1个执行簇。收盘8.35对15m空方点8.41下方0.71%、对30m空方点8.37下方0.24%、对90m空方点8.35恰好贴价。开8.70/高8.82/低8.25，冲高回落收在低位，量比1.302放量下跌；MA5 8.622/MA10 8.65/MA20 8.625均在收盘价上方发散空头排列，收盘获利40.1%、平均成本¥8.49，收盘仍在成本下方。确认0/收复0/贴价观察1/分歧0。其余15只标的当日无D1信号。",
+    "buyRule": "空方簇收盘未收复信号价带(8.35-8.41)，不触发多方升级。须收盘站上15m空方点8.41并站稳MA20 8.625、量比维持>1，再分步回踩确认方转入多方观察。",
+    "sellRule": "收盘8.35贴90m空方点8.35，空方成立但属贴价确认偏弱。若次日补跌破8.25(日内低)空方延展、进一步防守；若收复8.41信号价带则转风险提示。",
+    "discipline": "同日同节点仅认首次写入价及event_id(3条节点全部保留：15m 8.41 sina-m1／30m 8.37 sina-m1／90m 8.35 tencent-minute)。相邻同向价差≤1%合并执行簇。A股webhook不发送触发时刻占位符，trigger_time_utc==received_at为接收时刻，不伪称K线触发时间。D1/3D/5D后续收益及命中率无完整路径INSUFFICIENT。新闻/行业因果未核验，仅报告observed/corroborated。其余15只标的当日D1收益及命中率INSUFFICIENT。所有标签只作研究影子，不改生产权重、仓位与动作。",
+    "signals": [
+      {
+        "name": "东方明珠",
+        "symbol": "600637",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "15m/30m/90m SELL（1簇）",
+        "signalPrices": "¥8.41／¥8.37／¥8.35",
+        "close": "¥8.35",
+        "change": "-2.79%",
+        "validation": "watch",
+        "validationLabel": "空方贴价确认",
+        "verdict": "收盘8.35对15m空方点8.41下方0.71%、对30m空方点8.37下方0.24%、对90m空方点8.35恰好贴价。开8.70/高8.82/低8.25，冲高回落收在低位；量比1.302放量下跌。MA5 8.622/MA10 8.65/MA20 8.625均在收盘价上方发散空头排列。收盘获利40.1%／平均成本¥8.49，收盘仍在平均成本下方。主力资金净流入-5351.89万元，卖方占优。三节点近价≤1%合并为1簇，收盘贴最低空方点，空方成立但确认偏弱。",
+        "support": "¥8.25（日内低）",
+        "pressure": "¥8.35（90m空方点/收盘）／¥8.37（30m空方点）／¥8.41（15m空方点）／¥8.625（MA20）",
+        "buyPlan": "暂不升级：需收盘站上8.41(15m空方点)并站稳MA20 8.625、量比维持>1且不破8.25，再做多方观察。",
+        "sellPlan": "维持原纪律：收盘8.35贴90m空方点8.35为空方成立；跌破8.25(日内低)空方延展进一步防守；收复8.41转风险提示。",
+        "evidence": [
+          "observed：开8.70／高8.82／低8.25／收8.35；成交51106804股；换手1.52%；量比1.302",
+          "observed：MA5 8.622／MA10 8.65／MA20 8.625；DIF 0.057／DEA 0.101；RSI6 30.641／RSI12 41.807",
+          "observed：主力资金净流入-5351.89万元；收盘获利40.1%／平均成本¥8.49／集中度90 15.6%",
+          "corroborated：iWenCai当日收盘8.35与D1信号点、腾讯行情一致；trace_id=1f2ef9cc576c61ea83e12d7d95f2fee0f236f25dbd7c6a2e6e02bd16cf6f5ee9",
+          "首次入库 10/16 14:00:24 15m SELL；D1价=8.41；来源=sina-m1；event_id=evt_1792130424099_xlqe50",
+          "首次入库 10/16 14:15:17 30m SELL；D1价=8.37；来源=sina-m1；event_id=evt_1792131317347_sxccbb",
+          "首次入库 10/16 15:17:00 90m SELL；D1价=8.35；来源=tencent-minute；event_id=evt_1792135020502_vd6j7p"
+        ]
+      }
+    ]
+  },
   '2026-10-15': {
     "tradeDate": "2026-10-15",
     "shortDate": "10/15",
@@ -2824,7 +2863,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-15', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-16', href: '/rolling/insights/' }
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-15', href: '/rolling/insights/2026-10-15/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-14', href: '/rolling/insights/2026-10-14/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-13', href: '/rolling/insights/2026-10-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-12', href: '/rolling/insights/2026-10-12/' },
