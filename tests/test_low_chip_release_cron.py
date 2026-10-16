@@ -359,7 +359,7 @@ def test_risk_staging_gate_fails_closed_on_incomplete_coverage(tmp_path, monkeyp
     monkeypatch.setattr(module, 'RISK_STAGING_SCRIPT', risk_script)
     report = {"status": "STAGING BLOCKER", "coverage": {"requested": 1, "attached": 0, "failed": ["000001.SZ"]}}
     runner = lambda args, timeout=900, env=None: subprocess.CompletedProcess(args, 0, json.dumps(report) + '\n', '')
-    with pytest.raises(RuntimeError, match='risk staging gate blocked'):
+    with pytest.raises(RuntimeError, match='risk staging gate failed after 3 attempts'):
         module.run_risk_staging_gate(runner=runner)
 
 
@@ -390,13 +390,15 @@ def test_fuyao_shadow_audit_runs_after_enrichment_without_changing_formal_gate()
     assert shadow < source.index("run(['npm', 'run', 'build']")
 
 
-def test_ftshare_industry_refresh_runs_after_tracking_and_before_industry_etf_mapping():
+def test_ftshare_industry_refresh_runs_after_archive_and_before_final_archive() -> None:
+    # tracking 已从主链路拆出（独立 cron 16:40 回填），但 refresh 仍必须在
+    # 首次 archive 之后（快照里要带 refresh 前的对照字段）。
     source = SCRIPT.read_text(encoding='utf-8')
-    tracking = source.index("run([sys.executable, 'scripts/update_low_chip_tracking.py']")
+    first_archive = source.index("run([sys.executable, 'scripts/archive_low_chip_snapshot.py']")
     industry = source.index("run([sys.executable, 'scripts/refresh_low_chip_ftshare_industry.py']")
     industry_etf = source.index("run([sys.executable, 'scripts/attach_low_chip_industry_etfs.py']")
     final_archive = source.rindex("run([sys.executable, 'scripts/archive_low_chip_snapshot.py']")
-    assert tracking < industry < industry_etf < final_archive
+    assert first_archive < industry < industry_etf < final_archive
 
 
 def test_backup_restore_recovers_exact_pre_run_generated_state(tmp_path, monkeypatch):
@@ -607,18 +609,26 @@ def test_dist_and_candidate_identity_are_rechecked_before_release():
     assert "if dirty() - ALLOWED_DIRTY" in source
 
 
-def test_skip_build_requires_target_date_before_enrichment():
+def test_skip_build_requires_target_date_before_enrichment() -> None:
     source = SCRIPT.read_text(encoding='utf-8')
-    gate = source.index("LOW_CHIP_SKIP_BUILD requires DATA on")
-    fetch = source.index("run([sys.executable, 'scripts/fetch_low_chip_enrichments.py']")
-    assert gate < fetch
+    # 跳步模式（env 或预抓标记）必须在任何 build 之前校验 DATA 的目标交易日。
+    gate = source.index("skip-build mode requires DATA on ")
+    gate_block = source.index("if os.environ.get('LOW_CHIP_SKIP_BUILD') == '1' or prefetch_ready")
+    build = source.index("run([sys.executable, 'scripts/build_low_chip_base.py'")
+    assert gate_block < build
+    assert gate > build or "prefetch_ready = PREFETCH_MARKER.exists()" in source
+    # 门禁在 run_pipeline 内、enrichment 全部动作之前执行。
+    enrich = source.index("run([sys.executable, 'scripts/enrich_low_chip_stocks.py']")
+    assert gate_block < enrich
 
 
-def test_large_pool_timeouts_cover_verified_baostock_runtime():
+def test_large_pool_timeouts_cover_verified_baostock_runtime() -> None:
     source = SCRIPT.read_text(encoding='utf-8')
     assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2250)" in source
     assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 2400)" in source
-    assert "run([sys.executable, 'scripts/update_low_chip_tracking.py'], 2400)" in source
+    # tracking 已拆到独立 cron（16:40），主链路不再跑它；fetch 超时仍覆盖。
+    assert "runner([sys.executable, 'scripts/fetch_low_chip_enrichments.py'], 2400)" in source
+    assert 'update_low_chip_tracking.py' not in source
 
 
 def test_hlp_and_touchstone_use_same_interpreter_and_touchstone_follows_hlp():
