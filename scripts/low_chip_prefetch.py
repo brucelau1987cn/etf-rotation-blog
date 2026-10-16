@@ -101,6 +101,38 @@ def _stamp() -> str:
     return dt.datetime.now(CN).strftime("%H:%M:%S")
 
 
+@contextmanager
+def publish_lock(timeout: int = 2400):
+    """Hold the same flock the 16:00 main chain takes.
+
+    预抓 15:30 跑约 50 分钟，主链 16:00 启动时会重叠。两者都消耗 iWenCai /
+    FTShare 配额，并发只会互相抢占；主链拿不到锁时阻塞等待，而不是并行
+    抢额度。timeout 后放弃（主链自己有 3600s 上限，不会无限等）。
+    """
+    lock_path = Path("/root/.hermes/state/etf-site-publish.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_path.open("a+")
+    deadline = time.time() + timeout
+    try:
+        while True:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.time() >= deadline:
+                    raise SystemExit(
+                        f"publish lock busy for {timeout}s; another chain run holds it"
+                    )
+                print(f"[{_stamp()}] WAIT 发布锁被占用，等待中…", flush=True)
+                time.sleep(30)
+        yield
+    finally:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+        finally:
+            handle.close()
+
+
 def main() -> int:
     trade_date = resolve_trade_date()
     keys = check_ftshare_keys()
