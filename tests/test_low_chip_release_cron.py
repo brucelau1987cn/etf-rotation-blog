@@ -622,6 +622,30 @@ def test_skip_build_requires_target_date_before_enrichment() -> None:
     assert gate_block < enrich
 
 
+def test_prefetch_marker_is_called_as_function_in_run_pipeline() -> None:
+    """prefetch_marker 是函数对象；误传函数（漏括号）会在 marker.get() 上炸 AttributeError。
+
+    2026-10-16 事故：run_pipeline 里 `_prefetch_marker_matches(prefetch_marker, ...)`
+    漏了调用括号，16:00 主链在第一个业务步骤（build）之前就崩溃，
+    cron 报 `'function' object has no attribute 'get'`。纯源码字符串检查抓不到，
+    必须真正调用验证函数对象行为 + 断言 run_pipeline 源码里是带括号的调用形态。
+    """
+    module = load_module()
+    # 契约1：prefetch_marker 可调用并返回 dict（单参/无参调用均可由 marker 形参支持）。
+    marker = module.prefetch_marker(Path('/tmp/definitely-missing-low-chip-prefetch.json'))
+    assert isinstance(marker, dict)
+    # 契约2：函数对象直接喂给 _prefetch_marker_matches 必须炸——锁定回归语义。
+    with pytest.raises(AttributeError):
+        module._prefetch_marker_matches(module.prefetch_marker, '2026-10-16')
+    # 契约3：正确的 dict 调用路径正常返回 bool，不抛。
+    verdict = module._prefetch_marker_matches({}, '2026-10-16')
+    assert verdict is False  # 空 marker 不匹配任何交易日
+    # 契约4：run_pipeline 源码必须调用 prefetch_marker()（带括号），而非传函数对象。
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert '_prefetch_marker_matches(prefetch_marker(), trade_date)' in source
+    assert '_prefetch_marker_matches(prefetch_marker, trade_date)' not in source
+
+
 def test_large_pool_timeouts_cover_verified_baostock_runtime() -> None:
     source = SCRIPT.read_text(encoding='utf-8')
     assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2250)" in source
