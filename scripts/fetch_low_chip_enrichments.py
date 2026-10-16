@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -53,6 +54,31 @@ def iwc(query, page=1, limit=50, timeout=90):
 
 FTSHARE_PY = "/root/.cache/ftshare-sdk/bin/python"
 FTSHARE_SDK_URL = "https://market.ft.tech/gateway/"
+FTSHARE_ENV_FILE = Path("/root/.hermes/credentials/ftshare-api.env")
+
+
+def ftshare_api_keys() -> list[str]:
+    """读取 FTShare API Keys（多 key，逗号分隔）。
+
+    带 key 访问不受 500 次/天的匿名额度限制。无 key 时走匿名访问，
+    此时 fetch_ftshare_holders 会在撞上匿名额度后 fail-closed。
+    """
+    raw = os.environ.get("FTSHARE_API_KEYS") or ""
+    if not raw and FTSHARE_ENV_FILE.exists():
+        for line in FTSHARE_ENV_FILE.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and line.startswith("FTSHARE_API_KEYS="):
+                raw = line.split("=", 1)[1].strip().strip('"').strip("'")
+                break
+    keys = [k.strip() for k in raw.split(",") if k.strip()]
+    # 去重且保持顺序
+    seen = set()
+    unique = []
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            unique.append(key)
+    return unique
 
 
 def fetch_ftshare_holders(codes: list[str]) -> dict[str, dict]:
@@ -73,14 +99,25 @@ def fetch_ftshare_holders(codes: list[str]) -> dict[str, dict]:
     """
     if not codes:
         return {}
+    api_keys = ftshare_api_keys()
     inline = r'''
 import json, sys, time
 from ftshare.client import FtshareClient
 codes = json.loads(sys.stdin.read())
-client = FtshareClient(base_url="__URL__", timeout=60)
+# __KEYS__ 被外层替换成一个 JSON 数组字面量（如 ["k1","k2"]），直接求值即可
+keys = __KEYS__
 out = {}
 empty = []
 errors = []
+switches = 0
+key_index = 0
+
+def make_client():
+    if keys:
+        return FtshareClient(base_url="__URL__", timeout=60, headers={"FTSHARE_API_KEY": keys[key_index]})
+    return FtshareClient(base_url="__URL__", timeout=60)
+
+client = make_client()
 for code in codes:
     try:
         rows = client.stock_float_holders(stock_code=code, all_pages=False, page_size=20, raw=True)
@@ -98,17 +135,40 @@ for code in codes:
             empty.append(code)
     except Exception as exc:
         msg = f"{type(exc).__name__}: {exc}"
-        # 匿名额度耗尽：立刻中止，不要再消耗封禁时间
-        if "429" in msg or "最多访问" in msg or "rate_limited" in msg:
+        rate_limited = ("429" in msg or "最多访问" in msg or "rate_limited" in msg)
+        key_malformed = ("401" in msg or "api_key_malformed" in msg)
+        # 单个 key 限流/损坏且还有备用 key：切换后重试同一只，不丢数据
+        if (rate_limited or key_malformed) and keys and key_index + 1 < len(keys):
+            key_index += 1
+            switches += 1
+            client = make_client()
+            try:
+                rows = client.stock_float_holders(stock_code=code, all_pages=False, page_size=20, raw=True)
+                items = ((rows or {}).get("data") or {}).get("items") or []
+                if items:
+                    item = items[0]
+                    period = str(item.get("publish_date") or "").replace("-", "")
+                    holders = item.get("fen_holders") or []
+                    names = [str(h.get("shareholder_name") or "").strip() for h in holders if str(h.get("shareholder_name") or "").strip()]
+                    if names and len(period) == 8:
+                        out[code.split(".")[0]] = {"前十大流通股东名称(报告期)[" + period + "]": ", ".join(names)}
+                        continue
+            except Exception as exc2:
+                msg = f"{type(exc2).__name__}: {exc2}"
+            empty.append(code)
+            continue
+        # 无备用 key 可切：额度耗尽立刻中止，不要再消耗封禁时间
+        if rate_limited:
             print(json.dumps({
-                "blocked": True, "reason": "ftshare_anonymous_rate_limited",
+                "blocked": True, "reason": "ftshare_anonymous_rate_limited" if not keys else "ftshare_rate_limited",
                 "detail": msg[:300], "holders": out, "empty": empty, "missing_after_block": len(codes) - len(out) - len(empty),
+                "keys_available": len(keys), "switches": switches,
             }, ensure_ascii=False))
             sys.exit(0)
         errors.append({"code": code, "error": msg[:200]})
     time.sleep(0.15)
-print(json.dumps({"holders": out, "empty": empty, "errors": errors}, ensure_ascii=False))
-'''.replace("__URL__", FTSHARE_SDK_URL)
+print(json.dumps({"holders": out, "empty": empty, "errors": errors, "keys_available": len(keys), "switches": switches}, ensure_ascii=False))
+'''.replace("__URL__", FTSHARE_SDK_URL).replace("__KEYS__", json.dumps(api_keys))
     try:
         r = subprocess.run(
             [FTSHARE_PY, "-c", inline],
