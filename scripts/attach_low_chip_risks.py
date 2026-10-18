@@ -33,8 +33,8 @@ _CIRCUIT_OPEN: set[str] = set()
 _LAST_REQUEST: dict[str, float] = {}
 RETRY_DELAYS = (1.0, 2.0, 5.0, 10.0)
 HTTP_TIMEOUT_SECONDS = 10.0
-SOURCE_BUDGET_SECONDS = 90.0
-DRY_RUN_BUDGET_SECONDS = 300.0
+SOURCE_BUDGET_SECONDS = 360.0
+DRY_RUN_BUDGET_SECONDS = 1500.0
 
 
 def _run_call(child_conn: Any, func: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
