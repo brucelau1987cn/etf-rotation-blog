@@ -95,8 +95,10 @@
       { re: /季调后CPI月率|CPI月率/i, q: 'cpi-mom' },
     ];
     const pmMatch = item.country === '美国' ? PM_KEYWORDS.find((k) => k.re.test(item.title)) : null;
+    // data-event-month 让前端能拒绝「事件月份与 Polymarket 结算月份不符」的概率：
+    // 10 月 CPI 的市场在 11 月结束，把它贴到 12 月的事件上就是错配。
     const pmProb = pmMatch
-      ? `<div class="pm-prob" data-slug="${pmMatch.q}"><span class="pm-label">Poly</span><span class="pm-value">…</span></div>`
+      ? `<div class="pm-prob" data-slug="${pmMatch.q}" data-event-month="${escapeHtml(String(item.time || '').slice(0, 7))}"><span class="pm-label">Poly</span><span class="pm-value">…</span></div>`
       : '';
     return `<article class="calendar-item" data-type="${escapeHtml(item.type)}">
       <div class="calendar-time">${escapeHtml(itemTime(item.time))}<small>${escapeHtml(itemDate(item.time))}</small></div>
@@ -106,25 +108,40 @@
   };
 
   // 加载 Polymarket 概率并填入 .pm-prob（通过自家端点代理 gamma-api）
+  // 每个 pill 独立结算，无论成功/失败都必须继续处理下一个——早期实现在
+  // `!resp.ok` 时直接 return，会让同一页剩余的 pill 永久停在「…」加载态。
   const loadPolymarket = async () => {
     const el = list.querySelector('.pm-prob:not([data-loaded])');
     if (!el) return;
     el.setAttribute('data-loaded', '1');
-    const slug = el.getAttribute('data-slug');
+    const q = el.getAttribute('data-slug');
+    const value = el.querySelector('.pm-value');
     try {
-      const resp = await fetch(`/api/public/v1/polymarket-prob?q=${slug}`, { credentials: 'omit' });
-      if (!resp.ok) { el.querySelector('.pm-value').textContent = 'N/A'; return; }
-      const d = await resp.json();
-      const v = el.querySelector('.pm-value');
-      if (d.ok && d.top) {
-        const q = d.top.question.replace(/^Will (?:annual |monthly |Core CPI )?inflation be /i, '').replace(/\?$/, '');
-        v.textContent = `${q}: ${d.top.yes_prob}%`;
-        v.title = `${d.event} · ${d.top.question}\nYes 概率 ${d.top.yes_prob}% · No ${d.top.no_prob}%`;
+      const resp = await fetch(`/api/public/v1/polymarket-prob?q=${q}`, { credentials: 'omit' });
+      const d = resp.ok ? await resp.json() : null;
+      const eventMonth = el.getAttribute('data-event-month');
+      // 日历事件是「发布日」，市场覆盖的是「数据月」，CPI 的 N 月数据在 N+1 月发布，
+      // 所以发布日月份必须恰好是覆盖月份的下一个月；否则就是拿别的月份的概率充数。
+      const nextMonth = (ym) => {
+        const m = /^(\d{4})-(\d{2})$/.exec(String(ym || ''));
+        if (!m) return null;
+        const year = Number(m[1]);
+        const month = Number(m[2]);
+        return month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
+      };
+      const monthMismatch = Boolean(
+        d && d.covered_month && eventMonth && nextMonth(d.covered_month) !== eventMonth,
+      );
+      if (d && d.ok && d.top && !monthMismatch) {
+        const outcome = d.top.question.replace(/^Will (?:annual |monthly |Core CPI )?inflation be /i, '').replace(/\?$/, '');
+        value.textContent = `${outcome}: ${d.top.yes_prob}%`;
+        value.title = `${d.event} · ${d.top.question}\nYes 概率 ${d.top.yes_prob}% · No ${d.top.no_prob}%`;
       } else {
-        v.textContent = 'N/A';
+        // 没有活跃市场（事件已结算）时不显示定格概率，直接隐藏该 pill
+        el.remove();
       }
     } catch (e) {
-      el.querySelector('.pm-value').textContent = 'N/A';
+      el.remove();
     }
     loadPolymarket(); // 继续下一项
   };
