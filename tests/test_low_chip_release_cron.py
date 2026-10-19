@@ -360,7 +360,8 @@ def test_risk_staging_gate_fails_closed_on_incomplete_coverage(tmp_path, monkeyp
     report = {"status": "STAGING BLOCKER", "coverage": {"requested": 1, "attached": 0, "failed": ["000001.SZ"]}}
     runner = lambda args, timeout=900, env=None: subprocess.CompletedProcess(args, 0, json.dumps(report) + '\n', '')
     with pytest.raises(RuntimeError, match='risk staging gate failed after 3 attempts'):
-        module.run_risk_staging_gate(runner=runner)
+        # 0 秒退避：避免 30+60=90 秒真实睡眠拖慢单测
+        module.run_risk_staging_gate(runner=runner, sleeper=lambda _seconds: None)
 
 
 def test_full_build_and_local_commit_precede_remote_side_effects():
