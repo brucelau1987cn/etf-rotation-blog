@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import sqlite3
 import subprocess
 import tempfile
+import urllib.request
 from pathlib import Path
 from typing import Iterable
 
@@ -72,7 +74,7 @@ def calculate_touchstone(closes: Iterable[float], dates: Iterable[str]) -> dict:
 
 
 def _empty_metrics(coverage):
-    return {"candidate_bottom_active": False, "candidate_anchor_date": None, "candidate_anchor_close": None, "candidate_rebound_pct": None, "touchstone_hit": False, "bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/CF BaoStock/local BaoStock)"}
+    return {"candidate_bottom_active": False, "candidate_anchor_date": None, "candidate_anchor_close": None, "candidate_rebound_pct": None, "touchstone_hit": False, "bottom_alert": False, "bottom_confirmed": False, "confirmation_date": None, "anchor_date": None, "anchor_close": None, "confirmation_close": None, "rise_pct": None, "last_confirmation_date": None, "coverage_bars": coverage, "model": "ZIG15-close-state-machine", "source": "qfq daily close (local cache/Tencent/THS qfq/CF BaoStock/local BaoStock)"}
 
 
 def _trough_event(anchor, confirmation, prices, dates, previous_trough):
@@ -100,6 +102,12 @@ def load_history(item, end, db_path=CACHE_DB):
         rows = fetch_tencent_history(item, HISTORY_BARS)
     except Exception:
         rows = []
+    if not rows:
+        # 同花顺前复权：腾讯被 WAF 501 时的第一顺位备源（0.03s，全市场）
+        try:
+            rows = fetch_ths_history(item, HISTORY_BARS, end)
+        except Exception:
+            rows = []
     if not rows:
         try:
             rows = fetch_cf_baostock_history(item, HISTORY_START, str(end)[:10])
@@ -137,6 +145,71 @@ def _normalize_history(rows, end):
 def fetch_tencent_history(item, count=HISTORY_BARS):
     from update_a_share_bar_cache import fetch_tencent_history as fetch
     return fetch(item, count)
+
+
+def fetch_ths_history(item, count=HISTORY_BARS, end=None):
+    """同花顺前复权日线（01=前复权，02=后复权，00=不复权）。
+
+    单次 0.03s，全市场覆盖；腾讯 WAF 501 与 BaoStock 挂死时的第一顺位备源。
+    按年份分段拉取（/YYYY.js）以覆盖长历史，年份端点偶发 502 限流，
+    因此每个年份重试一次，并始终合并 /last.js（近 140 根）作为兜底。
+    """
+    import datetime as _dt
+    import time as _time
+
+    code = item['code']
+    last_day = str(end or _dt.date.today().isoformat())[:10]
+    last_year = int(last_day[:4])
+    # 640 根日线 ≈ 2.6 年；多取一年保证覆盖，且不无谓多拉历史
+    years = list(range(last_year - 3, last_year + 1))
+    bars: dict[str, float] = {}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Referer': 'https://stockpage.10jqka.com.cn/',
+    }
+
+    def _fetch(url: str) -> str:
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    return resp.read().decode('gbk', errors='ignore')
+            except Exception:
+                if attempt == 0:
+                    _time.sleep(0.2)
+        return ''
+
+    def _absorb(text: str) -> None:
+        match = re.search(r'\((.*)\)', text, re.S)
+        if not match:
+            return
+        try:
+            payload = json.loads(match.group(1))
+        except Exception:
+            return
+        for entry in str(payload.get('data') or '').split(';'):
+            if not entry:
+                continue
+            parts = entry.split(',')
+            if len(parts) < 5 or len(parts[0]) != 8:
+                continue
+            raw = parts[0]
+            day = f'{raw[:4]}-{raw[4:6]}-{raw[6:]}'
+            try:
+                close = float(parts[4])
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(close) and close > 0:
+                bars[day] = close
+
+    for year in years:
+        _absorb(_fetch(f'http://d.10jqka.com.cn/v6/line/hs_{code}/01/{year}.js'))
+    # 年份端点全部 502 时仍能拿到近 140 根，避免单只股票整体掉成 0 根
+    if len(bars) < count:
+        _absorb(_fetch(f'http://d.10jqka.com.cn/v6/line/hs_{code}/01/last.js'))
+
+    ordered = sorted(bars.items())[-count:]
+    return [{'trade_date': day, 'close': close} for day, close in ordered]
 
 
 def fetch_cf_baostock_history(item, start=HISTORY_START, end='2099-12-31', *, client=None):
@@ -225,7 +298,7 @@ def build_and_publish(path=DATA, history_loader=load_history):
         except Exception as exc:
             errors[code] = f'{type(exc).__name__}: {exc}'
     coverage = {'requested': len(codes), 'computed': computed, 'failed': len(errors)}
-    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'timeframe': 'daily', 'signal_field': 'touchstone_hit', 'candidate_field': 'candidate_bottom_active', 'formal_field': 'bottom_alert', 'filter_rule': 'candidate_bottom_active OR bottom_alert', 'candidate_definition': 'lowest close anchor on the active down leg after any rebound and before 15% confirmation', 'source': 'local qfq cache → Tencent qfq daily → CF BaoStock qfq daily → local BaoStock qfq daily → stock-api Tencent', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
+    payload['touchstone_contract'] = {'model': 'ZIG15-close-state-machine', 'timeframe': 'daily', 'signal_field': 'touchstone_hit', 'candidate_field': 'candidate_bottom_active', 'formal_field': 'bottom_alert', 'filter_rule': 'candidate_bottom_active OR bottom_alert', 'candidate_definition': 'lowest close anchor on the active down leg after any rebound and before 15% confirmation', 'source': 'local qfq cache → Tencent qfq daily → THS qfq daily → CF BaoStock qfq daily → local BaoStock qfq daily → stock-api Tencent', 'history_start': HISTORY_START, 'bars_requested': HISTORY_BARS, 'minimum_bars': 1, 'errors': errors, 'coverage': coverage}
     if errors or computed != len(codes):
         raise RuntimeError(f'touchstone coverage incomplete: {coverage}')
     target = Path(path)

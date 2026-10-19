@@ -118,6 +118,7 @@ def test_tencent_history_is_clipped_sorted_deduped_and_validated(tmp_path, monke
 
 def test_cf_baostock_history_receives_same_normalization(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
+    monkeypatch.setattr(module, 'fetch_ths_history', lambda *a, **k: [])
     monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [
         {'date': '2025-01-09', 'close': 9},
         {'date': '2025-01-10', 'close': 10},
@@ -130,6 +131,7 @@ def test_cf_baostock_history_receives_same_normalization(tmp_path, monkeypatch):
 
 def test_tencent_exception_falls_back_to_baostock_and_normalizes(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: (_ for _ in ()).throw(OSError('HTTP 501')))
+    monkeypatch.setattr(module, 'fetch_ths_history', lambda *a, **k: [])
     monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [
         {'date': '2025-01-11', 'close': 11},
         {'date': '2025-01-09', 'close': 9},
@@ -149,6 +151,7 @@ def test_cache_exception_continues_to_network(tmp_path, monkeypatch):
 
 def test_stock_api_is_bounded_last_resort(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
+    monkeypatch.setattr(module, 'fetch_ths_history', lambda *a, **k: [])
     monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: [])
     monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [])
     monkeypatch.setattr(module, 'fetch_stock_api_history', lambda *_: [{'date': '2025-01-09', 'close': 9}])
@@ -158,6 +161,7 @@ def test_stock_api_is_bounded_last_resort(tmp_path, monkeypatch):
 
 def test_cf_baostock_failure_falls_back_to_local_baostock(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'fetch_tencent_history', lambda *_: [])
+    monkeypatch.setattr(module, 'fetch_ths_history', lambda *a, **k: [])
     monkeypatch.setattr(module, 'fetch_cf_baostock_history', lambda *_: (_ for _ in ()).throw(RuntimeError('gateway down')))
     monkeypatch.setattr(module, 'fetch_baostock_history', lambda *_: [{'date': '2025-01-09', 'close': 9}])
     monkeypatch.setattr(module, 'fetch_stock_api_history', lambda *_: (_ for _ in ()).throw(AssertionError('stock-api used')))
