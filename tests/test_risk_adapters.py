@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 import sys
 import urllib.error
@@ -177,12 +178,19 @@ def test_news_accepts_code_in_title_or_body(monkeypatch):
 
 
 # --- Live probes: hit the real endpoints for one code and confirm shape ---
+#
+# The Eastmoney endpoints keep only a rolling window per keyword/code, so a
+# hardcoded past as_of silently rots out of that window and the adapter then
+# raises "no verifiable records" even though the endpoint is healthy — that is
+# how the 2026-10-19 nightly publish gate was blocked. Probe against the
+# current date so these track the live window instead of a stale date.
 
 
 @pytest.mark.network
 def test_live_probe_announcement_returns_owned_rows():
     m._CIRCUIT_OPEN.clear()
-    result = m.fetch_announcements('000157.SZ', as_of='2026-09-18')
+    as_of = dt.date.today().isoformat()
+    result = m.fetch_announcements('000157.SZ', as_of=as_of)
     assert result['complete'] is True
     assert result['coverage_count'] >= 1
     assert result['source'] == 'Eastmoney announcements'
@@ -191,7 +199,8 @@ def test_live_probe_announcement_returns_owned_rows():
 @pytest.mark.network
 def test_live_probe_ratings_returns_rows():
     m._CIRCUIT_OPEN.clear()
-    result = m.fetch_ratings('000157.SZ', as_of='2026-09-18')
+    as_of = dt.date.today().isoformat()
+    result = m.fetch_ratings('000157.SZ', as_of=as_of)
     assert result['complete'] is True
     assert result['coverage_count'] >= 1
     assert result['source'] == 'Eastmoney analyst ratings'
@@ -200,7 +209,8 @@ def test_live_probe_ratings_returns_rows():
 @pytest.mark.network
 def test_live_probe_news_returns_owned_rows():
     m._CIRCUIT_OPEN.clear()
-    result = m.fetch_news('000157.SZ', as_of='2026-09-18')
+    as_of = dt.date.today().isoformat()
+    result = m.fetch_news('000157.SZ', as_of=as_of)
     assert result['complete'] is True
     assert result['coverage_count'] >= 1
     assert result['source'] == 'Eastmoney news'
