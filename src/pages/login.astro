@@ -82,7 +82,13 @@ const contactPhone = '189188XX888';
     (() => {
       const $ = (id) => document.getElementById(id);
       const params = new URLSearchParams(location.search);
-      const next = params.get('next') || '/';
+      // Only same-origin, absolute-path targets are honoured. An open
+      // redirect via ?next=https://evil.example would let an attacker
+      // bounce a freshly authenticated user off-site.
+      const rawNext = params.get('next') || '/';
+      const next = (rawNext.startsWith('/') && !rawNext.startsWith('//'))
+        ? rawNext
+        : '/';
 
       // 设备指纹：localStorage 持久（换浏览器/清除缓存才变），登录时上报
       let deviceId = localStorage.getItem('etf_device_id');
@@ -126,7 +132,11 @@ const contactPhone = '189188XX888';
               : `✔ 验证成功，订阅至 ${data.expires_at ? String(data.expires_at).slice(0, 10) : ''}${data.device_count ? ` · 已绑定 ${data.device_count}/${data.device_limit ?? 5} 台设备` : ''}`;
             msgEl.className = 'login-msg ok';
             setTimeout(() => {
-              location.href = data.kind === 'admin' ? '/admin/' : next;
+              // Admins land on the admin console by default, but an explicit
+              // ?next= target (e.g. /buy-stock/) must win — otherwise the
+              // requested page is unreachable after an admin login.
+              const adminDefault = '/admin/';
+              location.href = (data.kind === 'admin' && next === '/') ? adminDefault : next;
             }, 600);
           } else {
             msgEl.textContent = data.error || '登录失败';

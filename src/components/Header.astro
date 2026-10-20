@@ -39,6 +39,7 @@ const isHome = Astro.url.pathname === '/';
               <span class="user-sub" id="user-sub">—</span>
             </div>
             <a href="/account/" class="user-item" role="menuitem"><span class="menu-icon">👤</span> 个人信息</a>
+            <a href="/buy-stock/" class="user-item admin-only" id="user-buy-stock-link" role="menuitem" hidden><span class="menu-icon">📈</span> 我的持仓</a>
             <a href="/admin/" class="user-item admin-only" id="user-admin-link" role="menuitem" hidden><span class="menu-icon">🛠</span> 账号开通</a>
             <a href="/admin/futures/" class="user-item admin-only" id="user-futures-admin-link" role="menuitem" hidden><span class="menu-icon">📈</span> 期货管理</a>
             <a href="/admin/rolling/" class="user-item admin-only" id="user-rolling-admin-link" role="menuitem" hidden><span class="menu-icon">📡</span> 滚动管理</a>
@@ -63,6 +64,7 @@ const isHome = Astro.url.pathname === '/';
     const adminLink = document.getElementById('user-admin-link');
     const futuresAdminLink = document.getElementById('user-futures-admin-link');
     const rollingAdminLink = document.getElementById('user-rolling-admin-link');
+    const buyStockLink = document.getElementById('user-buy-stock-link');
     const avatarEl = document.getElementById('user-avatar');
     const onlineCountEl = document.getElementById('site-online-count');
 
@@ -108,6 +110,7 @@ const isHome = Astro.url.pathname === '/';
           adminLink.hidden = false;
           if (futuresAdminLink) futuresAdminLink.hidden = false;
           if (rollingAdminLink) rollingAdminLink.hidden = false;
+          if (buyStockLink) buyStockLink.hidden = false;
         } else {
           // 有账号密码的订阅 = VIP 用户；纯密码订阅 = 订阅用户
           const roleName = d.vip ? 'VIP用户' : '订阅用户';
@@ -118,6 +121,7 @@ const isHome = Astro.url.pathname === '/';
           adminLink.hidden = true;
           if (futuresAdminLink) futuresAdminLink.hidden = true;
           if (rollingAdminLink) rollingAdminLink.hidden = true;
+          if (buyStockLink) buyStockLink.hidden = true;
         }
       })
       .catch(() => {});

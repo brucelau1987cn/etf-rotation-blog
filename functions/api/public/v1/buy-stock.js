@@ -16,7 +16,7 @@
 // place (public/js/buy-stock-fees.js) instead of being duplicated in a
 // Pages Function.
 
-import { isSubscribed, isAdmin } from '../../../_lib/subscription-auth.js';
+import { isAdmin } from '../../../_lib/subscription-auth.js';
 import { ensureBuyStockTable, listPositions, normalizePosition } from '../../../_lib/buy-stock.js';
 
 function json(data, status = 200) {
@@ -57,9 +57,9 @@ async function respondWithPositions(db) {
 export async function onRequestGet(context) {
   const { request, env } = context;
 
-  const subscribed = await isSubscribed(request, env);
   const admin = await isAdmin(request, env);
-  if (!subscribed && !admin) {
+  if (!admin) {
+    // 持仓与成本是站长本人的私人数据，只有管理员可读。
     return json({ ok: false, error: '需要登录' }, 401);
   }
   if (!env.DB) {

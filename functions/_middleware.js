@@ -11,6 +11,13 @@ const PROTECTED_PREFIXES = [
   '/buy-stock',
 ];
 
+// 仅管理员可访问的页面前缀。
+// 买入持仓页记录的是站长本人的真实仓位与成本，属于个人隐私数据，
+// 订阅用户无权读取 —— 否则每个付费订阅者都能拉到同一份持仓与收益。
+const ADMIN_ONLY_PREFIXES = [
+  '/buy-stock',
+];
+
 // 静态资源扩展名（CSS/JS/图片/字体等）
 const STATIC_RE = /\.(css|js|mjs|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|eot|map|txt|json|xml|webmanifest)$/i;
 const PRIVATE_LOW_CHIP_DATA = [
@@ -57,6 +64,10 @@ function isProtectedPath(pathname) {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+function isAdminOnlyPath(pathname) {
+  return ADMIN_ONLY_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 export async function onRequest(context) {
   const { request, env, next } = context;
   const url = new URL(request.url);
@@ -76,8 +87,13 @@ export async function onRequest(context) {
   if (!isProtectedPath(pathname)) return next();
 
   // 滚动罗盘页面：订阅或管理员可访问
-  if (await isSubscribed(request, env)) return next();
   if (await isAdmin(request, env)) return next();
+  if (isAdminOnlyPath(pathname)) {
+    // 持仓页是站长本人的私人仓位，只有管理员能看；订阅用户重定向到登录页
+    // 而不是显示内容。
+    return Response.redirect(`${url.origin}/login/?next=${encodeURIComponent(pathname)}`, 302);
+  }
+  if (await isSubscribed(request, env)) return next();
 
   return Response.redirect(`${url.origin}/login/?next=${encodeURIComponent(pathname)}`, 302);
 }

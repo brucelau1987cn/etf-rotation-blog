@@ -101,14 +101,11 @@ test('an admin can create a position', async () => {
   assert.ok(insert.args.includes('2026-10-15 09:32'));
 });
 
-test('a non-admin cannot write', async () => {
+test('a non-admin cannot read the positions', async () => {
+  // The holdings are the owner's private positions; subscribers are excluded.
   const token = await signToken({ role: 'subscriber', exp: new Date(Date.now() + 3600_000).toISOString() }, SECRET);
-  const response = await onRequestPost({
-    request: new Request('https://etf.peekabo.cc/api/public/v1/buy-stock', {
-      method: 'POST',
-      headers: { Cookie: `etf_sub=${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: '002368', buy_price: 11.92, shares: 5000, buy_time: '2026-10-15 09:32' }),
-    }),
+  const response = await onRequestGet({
+    request: new Request('https://etf.peekabo.cc/api/public/v1/buy-stock', { headers: { Cookie: `etf_sub=${token}` } }),
     env: { DB: mockDb(POSITION_ROWS), SUBSCRIBE_SECRET: SECRET, ADMIN_SECRET: SECRET },
   });
   assert.equal(response.status, 401);

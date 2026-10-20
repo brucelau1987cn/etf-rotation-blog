@@ -13,6 +13,34 @@ const config = await readFile(new URL('../astro.config.mjs', import.meta.url), '
 const migration = await readFile(new URL('../migrations/0022_buy_stock_positions.sql', import.meta.url), 'utf8');
 
 const endpoint = await readFile(new URL('../functions/api/public/v1/buy-stock.js', import.meta.url), 'utf8');
+const header = await readFile(new URL('../src/components/Header.astro', import.meta.url), 'utf8');
+const login = await readFile(new URL('../src/pages/login.astro', import.meta.url), 'utf8');
+
+test('the admin login honours an explicit next target', () => {
+  // The admin console is the default landing page, but an explicit
+  // ?next=/buy-stock/ must win — otherwise the holdings page is unreachable
+  // for an admin who signs in through the redirect.
+  assert.match(login, /data\.kind === 'admin' && next === '\/'/);
+  assert.doesNotMatch(login, /data\.kind === 'admin' \? '\/admin\/' : next/);
+});
+
+test('the login page rejects off-site next targets', () => {
+  // Open-redirect guard: ?next=https://evil.example must not be honoured.
+  assert.match(login, /rawNext\.startsWith\('\/'\)/);
+  assert.match(login, /!rawNext\.startsWith\('\/\/'\)/);
+});
+
+test('the user menu carries the buy-stock entry point', () => {
+  // The owner asked for a link called buy-stock. Without an entry point in
+  // the site chrome, the page is unreachable by navigation.
+  assert.match(header, /href="\/buy-stock\/"/);
+  assert.match(header, /user-buy-stock-link/);
+});
+
+test('the holdings API only serves admins', () => {
+  assert.doesNotMatch(endpoint, /isSubscribed/);
+  assert.match(endpoint, /if \(!admin\)/);
+});
 
 test('the page exists at /buy-stock/ and is excluded from search engines', () => {
   assert.match(page, /<BaseHead/);
@@ -75,7 +103,9 @@ test('an admin can open the holdings page', async () => {
   assert.equal(nextCalled, true);
 });
 
-test('a subscriber with a live device session can open the holdings page', async () => {
+test('a subscriber with a live device session is redirected away from the holdings page', async () => {
+  // The holdings are the owner's private positions and cost basis. A paid
+  // subscriber must not be able to read them.
   const token = await signToken({
     role: 'subscriber',
     sid: 'session-abc',
@@ -95,6 +125,34 @@ test('a subscriber with a live device session can open the holdings page', async
   let nextCalled = false;
   const response = await middleware({
     request: new Request('https://etf.peekabo.cc/buy-stock/', { headers: { Cookie: `etf_sub=${token}` } }),
+    env: { SUBSCRIBE_SECRET: SECRET, DB: db },
+    next: async () => { nextCalled = true; return new Response('page'); },
+  });
+  assert.equal(response.status, 302);
+  assert.match(response.headers.get('Location') || '', /\/login\/\?next=/);
+  assert.equal(nextCalled, false);
+});
+
+test('a subscriber still reaches the other protected boards', async () => {
+  const token = await signToken({
+    role: 'subscriber',
+    sid: 'session-abc',
+    exp: new Date(Date.now() + 3600_000).toISOString(),
+  }, SECRET);
+  const db = {
+    prepare(sql) {
+      return {
+        sql,
+        bind(...args) { this.args = args; return this; },
+        async first() { return this.sql.includes('sub_sessions') ? { '1': 1 } : null; },
+        async all() { return { results: [] }; },
+        async run() { return { meta: { changes: 0 } }; },
+      };
+    },
+  };
+  let nextCalled = false;
+  const response = await middleware({
+    request: new Request('https://etf.peekabo.cc/rolling/', { headers: { Cookie: `etf_sub=${token}` } }),
     env: { SUBSCRIBE_SECRET: SECRET, DB: db },
     next: async () => { nextCalled = true; return new Response('page'); },
   });
