@@ -1,27 +1,27 @@
 {
   "version": 1,
-  "generated_at": "2026-10-19T00:05:18+00:00",
+  "generated_at": "2026-10-20T00:05:17+00:00",
   "mode": "shadow_research_only",
   "production_weights_changed": false,
   "point_in_time": "for A-share date D, every external component uses the latest completed observation strictly before D",
   "factor": {
     "name": "Korea Tech Factor",
-    "decision_date": "2026-10-19",
-    "score": 21.5278,
+    "decision_date": "2026-10-20",
+    "score": 21.7262,
     "regime": "weak",
     "components": {
       "hynix_relative": 8.7302,
       "samsung_relative": 34.9206,
       "soxx_trend": 10.3175,
       "kospi_trend": 7.5397,
-      "won_strength": 82.1429
+      "won_strength": 84.127
     },
     "source_cutoffs": {
       "hynix_relative": "2026-10-16",
       "samsung_relative": "2026-10-16",
       "soxx_trend": "2026-10-16",
       "kospi_trend": "2026-10-16",
-      "won_strength": "2026-10-15"
+      "won_strength": "2026-10-18"
     },
     "weights": {
       "hynix_relative": 0.3,
@@ -64,81 +64,81 @@
   "backtest": {
     "horizons": {
       "t1": {
-        "basket_rank_ic": 0.062846,
-        "basket_pearson_ic": 0.03712,
-        "pooled_rank_ic": 0.055459,
-        "strong_minus_weak": 0.00367,
+        "basket_rank_ic": 0.062452,
+        "basket_pearson_ic": 0.03695,
+        "pooled_rank_ic": 0.055183,
+        "strong_minus_weak": 0.003652,
         "all": {
-          "n": 7200,
-          "mean": 0.00126,
+          "n": 7195,
+          "mean": 0.001263,
           "median": 0.0,
-          "win_rate": 0.489028
+          "win_rate": 0.489229
         }
       },
       "t5": {
-        "basket_rank_ic": 0.129044,
-        "basket_pearson_ic": 0.073538,
-        "pooled_rank_ic": 0.107572,
-        "strong_minus_weak": 0.01187,
+        "basket_rank_ic": 0.128894,
+        "basket_pearson_ic": 0.073273,
+        "pooled_rank_ic": 0.107432,
+        "strong_minus_weak": 0.011806,
         "all": {
-          "n": 7200,
-          "mean": 0.003098,
-          "median": 0.000808,
-          "win_rate": 0.5025
+          "n": 7195,
+          "mean": 0.003102,
+          "median": 0.000814,
+          "win_rate": 0.502571
         }
       },
       "t20": {
-        "basket_rank_ic": 0.049894,
-        "basket_pearson_ic": -0.015351,
-        "pooled_rank_ic": 0.060967,
-        "strong_minus_weak": -0.002299,
+        "basket_rank_ic": 0.048441,
+        "basket_pearson_ic": -0.016568,
+        "pooled_rank_ic": 0.059863,
+        "strong_minus_weak": -0.002196,
         "all": {
-          "n": 7200,
-          "mean": 0.01178,
+          "n": 7195,
+          "mean": 0.011849,
           "median": 0.0,
-          "win_rate": 0.49875
+          "win_rate": 0.499097
         }
       }
     },
     "regimes": {
       "strong": {
         "t1": {
-          "n": 1441,
-          "mean": 0.002603,
-          "median": 0.002187,
-          "win_rate": 0.545455
+          "n": 1446,
+          "mean": 0.002585,
+          "median": 0.002151,
+          "win_rate": 0.544952
         },
         "t5": {
-          "n": 1441,
-          "mean": 0.011804,
-          "median": 0.009569,
-          "win_rate": 0.59542
+          "n": 1446,
+          "mean": 0.011741,
+          "median": 0.009478,
+          "win_rate": 0.594053
         },
         "t20": {
-          "n": 1441,
-          "mean": 0.007969,
-          "median": 0.01127,
-          "win_rate": 0.548924
+          "n": 1446,
+          "mean": 0.008073,
+          "median": 0.011463,
+          "win_rate": 0.550484
         }
       },
       "neutral": {
         "t1": {
-          "n": 4110,
-          "mean": 0.001723,
-          "median": -0.000555,
-          "win_rate": 0.480292
+          "n": 4100,
+          "mean": 0.001733,
+          "median": -0.000473,
+          "win_rate": 0.480732
         },
         "t5": {
-          "n": 4110,
-          "mean": 0.001315,
+          "n": 4100,
+          "mean": 0.00133,
           "median": 0.0,
-          "win_rate": 0.496837
+          "win_rate": 0.497317
         },
         "t20": {
-          "n": 4110,
-          "mean": 0.013723,
+          "n": 4100,
+          "mean": 0.013817,
           "median": 0.002615,
-          "win_rate": 0.511192
+          "win_rate": 0.51122
         }
       },
       "weak": {
@@ -166,16 +166,16 @@
       "512480": {
         "t1": {
           "all": {
-            "n": 1111,
-            "mean": 0.000688,
+            "n": 1110,
+            "mean": 0.000695,
             "median": 0.0,
-            "win_rate": 0.484248
+            "win_rate": 0.484685
           },
           "strong": {
-            "n": 217,
-            "mean": 0.0025,
-            "median": 0.001944,
-            "win_rate": 0.539171
+            "n": 218,
+            "mean": 0.002434,
+            "median": 0.001941,
+            "win_rate": 0.536697
           },
           "weak": {
             "n": 262,
@@ -186,16 +186,16 @@
         },
         "t5": {
           "all": {
-            "n": 1111,
-            "mean": 0.001732,
-            "median": -0.00185,
-            "win_rate": 0.482448
+            "n": 1110,
+            "mean": 0.00174,
+            "median": -0.001833,
+            "win_rate": 0.482883
           },
           "strong": {
-            "n": 217,
-            "mean": 0.010435,
-            "median": 0.007847,
-            "win_rate": 0.580645
+            "n": 218,
+            "mean": 0.010358,
+            "median": 0.007511,
+            "win_rate": 0.577982
           },
           "weak": {
             "n": 262,
@@ -206,16 +206,16 @@
         },
         "t20": {
           "all": {
-            "n": 1111,
-            "mean": 0.006574,
-            "median": -0.005507,
-            "win_rate": 0.469847
+            "n": 1110,
+            "mean": 0.006636,
+            "median": -0.005483,
+            "win_rate": 0.47027
           },
           "strong": {
-            "n": 217,
-            "mean": -0.00045,
-            "median": -0.004162,
-            "win_rate": 0.451613
+            "n": 218,
+            "mean": -0.000159,
+            "median": -0.003746,
+            "win_rate": 0.454128
           },
           "weak": {
             "n": 262,
@@ -290,16 +290,16 @@
       "515880": {
         "t1": {
           "all": {
-            "n": 1111,
-            "mean": 0.000977,
-            "median": 0.000924,
-            "win_rate": 0.512151
+            "n": 1110,
+            "mean": 0.000973,
+            "median": 0.000923,
+            "win_rate": 0.511712
           },
           "strong": {
-            "n": 217,
-            "mean": 0.000191,
-            "median": 0.003467,
-            "win_rate": 0.557604
+            "n": 218,
+            "mean": 0.000195,
+            "median": 0.003458,
+            "win_rate": 0.559633
           },
           "weak": {
             "n": 262,
@@ -310,16 +310,16 @@
         },
         "t5": {
           "all": {
-            "n": 1111,
-            "mean": 0.002635,
-            "median": 0.005855,
-            "win_rate": 0.547255
+            "n": 1110,
+            "mean": 0.002627,
+            "median": 0.005777,
+            "win_rate": 0.546847
           },
           "strong": {
-            "n": 217,
-            "mean": -0.000919,
-            "median": 0.015348,
-            "win_rate": 0.631336
+            "n": 218,
+            "mean": -0.00095,
+            "median": 0.01506,
+            "win_rate": 0.62844
           },
           "weak": {
             "n": 262,
@@ -330,16 +330,16 @@
         },
         "t20": {
           "all": {
-            "n": 1111,
-            "mean": 0.010822,
-            "median": 0.011412,
-            "win_rate": 0.542754
+            "n": 1110,
+            "mean": 0.010943,
+            "median": 0.011524,
+            "win_rate": 0.543243
           },
           "strong": {
-            "n": 217,
-            "mean": -0.024823,
-            "median": 0.038212,
-            "win_rate": 0.631336
+            "n": 218,
+            "mean": -0.024526,
+            "median": 0.038995,
+            "win_rate": 0.633028
           },
           "weak": {
             "n": 262,
@@ -352,16 +352,16 @@
       "515000": {
         "t1": {
           "all": {
-            "n": 1111,
-            "mean": 0.000657,
+            "n": 1110,
+            "mean": 0.00066,
             "median": 0.0,
-            "win_rate": 0.478848
+            "win_rate": 0.479279
           },
           "strong": {
-            "n": 217,
-            "mean": 0.002361,
-            "median": 0.002351,
-            "win_rate": 0.552995
+            "n": 218,
+            "mean": 0.002328,
+            "median": 0.00234,
+            "win_rate": 0.550459
           },
           "weak": {
             "n": 262,
@@ -372,16 +372,16 @@
         },
         "t5": {
           "all": {
-            "n": 1111,
-            "mean": 0.000832,
-            "median": 0.0,
-            "win_rate": 0.49955
+            "n": 1110,
+            "mean": 0.000837,
+            "median": 0.000386,
+            "win_rate": 0.5
           },
           "strong": {
-            "n": 217,
-            "mean": 0.011207,
-            "median": 0.010519,
-            "win_rate": 0.62212
+            "n": 218,
+            "mean": 0.011089,
+            "median": 0.01009,
+            "win_rate": 0.619266
           },
           "weak": {
             "n": 262,
@@ -392,16 +392,16 @@
         },
         "t20": {
           "all": {
-            "n": 1111,
-            "mean": 0.001908,
-            "median": -0.004587,
-            "win_rate": 0.475248
+            "n": 1110,
+            "mean": 0.002012,
+            "median": -0.004524,
+            "win_rate": 0.475676
           },
           "strong": {
-            "n": 217,
-            "mean": 0.024975,
-            "median": 0.017241,
-            "win_rate": 0.585253
+            "n": 218,
+            "mean": 0.024926,
+            "median": 0.017069,
+            "win_rate": 0.587156
           },
           "weak": {
             "n": 262,
@@ -476,16 +476,16 @@
       "159995": {
         "t1": {
           "all": {
-            "n": 1111,
-            "mean": 0.000224,
-            "median": -0.0008,
-            "win_rate": 0.474347
+            "n": 1110,
+            "mean": 0.00023,
+            "median": -0.000768,
+            "win_rate": 0.474775
           },
           "strong": {
-            "n": 217,
-            "mean": 0.002508,
-            "median": 0.001677,
-            "win_rate": 0.529954
+            "n": 218,
+            "mean": 0.002454,
+            "median": 0.001666,
+            "win_rate": 0.527523
           },
           "weak": {
             "n": 262,
@@ -496,16 +496,16 @@
         },
         "t5": {
           "all": {
-            "n": 1111,
+            "n": 1110,
             "mean": 0.001477,
-            "median": -0.003215,
-            "win_rate": 0.473447
+            "median": -0.003247,
+            "win_rate": 0.472973
           },
           "strong": {
-            "n": 217,
-            "mean": 0.012325,
-            "median": 0.008272,
-            "win_rate": 0.580645
+            "n": 218,
+            "mean": 0.012183,
+            "median": 0.008268,
+            "win_rate": 0.577982
           },
           "weak": {
             "n": 262,
@@ -516,16 +516,16 @@
         },
         "t20": {
           "all": {
-            "n": 1111,
-            "mean": 0.005528,
-            "median": -0.005794,
-            "win_rate": 0.468947
+            "n": 1110,
+            "mean": 0.005582,
+            "median": -0.00577,
+            "win_rate": 0.469369
           },
           "strong": {
-            "n": 217,
-            "mean": 0.012413,
+            "n": 218,
+            "mean": 0.012581,
             "median": 0.0,
-            "win_rate": 0.493088
+            "win_rate": 0.495413
           },
           "weak": {
             "n": 262,
@@ -538,16 +538,16 @@
       "588000": {
         "t1": {
           "all": {
-            "n": 1111,
-            "mean": 0.000473,
+            "n": 1110,
+            "mean": 0.000477,
             "median": 0.0,
-            "win_rate": 0.479748
+            "win_rate": 0.48018
           },
           "strong": {
-            "n": 217,
-            "mean": 0.002005,
-            "median": 0.001348,
-            "win_rate": 0.543779
+            "n": 218,
+            "mean": 0.002053,
+            "median": 0.001585,
+            "win_rate": 0.545872
           },
           "weak": {
             "n": 262,
@@ -558,16 +558,16 @@
         },
         "t5": {
           "all": {
-            "n": 1111,
-            "mean": 0.00262,
-            "median": -0.002674,
-            "win_rate": 0.473447
+            "n": 1110,
+            "mean": 0.002636,
+            "median": -0.002629,
+            "win_rate": 0.473874
           },
           "strong": {
-            "n": 217,
-            "mean": 0.009087,
-            "median": 0.006009,
-            "win_rate": 0.571429
+            "n": 218,
+            "mean": 0.00911,
+            "median": 0.00626,
+            "win_rate": 0.573394
           },
           "weak": {
             "n": 262,
@@ -578,16 +578,16 @@
         },
         "t20": {
           "all": {
-            "n": 1111,
-            "mean": 0.009909,
-            "median": -0.014286,
-            "win_rate": 0.430243
+            "n": 1110,
+            "mean": 0.009996,
+            "median": -0.014279,
+            "win_rate": 0.430631
           },
           "strong": {
-            "n": 217,
-            "mean": 0.004389,
-            "median": -0.013295,
-            "win_rate": 0.43318
+            "n": 218,
+            "mean": 0.004474,
+            "median": -0.012378,
+            "win_rate": 0.43578
           },
           "weak": {
             "n": 262,
@@ -600,10 +600,10 @@
     }
   },
   "coverage": {
-    "factor_start": "2022-02-15",
+    "factor_start": "2022-02-16",
     "factor_end": "2026-10-16",
-    "factor_days": 1131,
-    "observation_rows": 7200
+    "factor_days": 1130,
+    "observation_rows": 7195
   },
   "history_tail": [
     {
@@ -1413,7 +1413,7 @@
     "Research-only; formal rankings, key levels, positions and ambush eligibility remain unchanged."
   ],
   "forward_test": {
-    "frozen_samples": 59,
+    "frozen_samples": 60,
     "history_path": "data/local/korea-tech-factor-forward.json"
   }
 }
