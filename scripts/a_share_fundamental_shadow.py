@@ -177,15 +177,39 @@ BAOSTOCK_FIELDS = "date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM"
 
 
 def load_universe(path: Path = DEFAULT_POOL) -> list[dict[str, str]]:
+    """Resolve the shadow universe from the published low-chip candidate set.
+
+    The screened ``intersection`` is authoritative: it is exactly what the site and
+    D1 publish, and it keeps one BaoStock session per candidate inside the stage
+    budget. The union of all period pools stays as the legacy fallback only when
+    the snapshot carries no intersection.
+    """
     payload = json.loads(path.read_text(encoding="utf-8"))
+    names: dict[str, str] = {}
+    if isinstance(payload.get("periods"), dict):
+        for rows in payload["periods"].values():
+            for row in rows or []:
+                raw = str(row.get("symbol") or "").upper()
+                code = raw.split(".")[0]
+                if len(code) == 6 and code.isdigit():
+                    names.setdefault(code, str(row.get("name") or ""))
     unique: dict[str, dict[str, str]] = {}
-    for rows in (payload.get("periods") or {}).values():
-        for row in rows or []:
-            raw = str(row.get("symbol") or "").upper()
-            code = raw.split(".")[0]
-            suffix = raw.split(".")[-1] if "." in raw else ""
+    selection = payload.get("intersection")
+    if isinstance(selection, (list, tuple)):
+        for raw in selection:
+            code, _, suffix = str(raw or "").upper().partition(".")
             if len(code) == 6 and code.isdigit() and suffix in {"SH", "SZ"}:
-                unique[code] = {"code": code, "name": str(row.get("name") or ""), "market": suffix}
+                unique[code] = {"code": code, "name": names.get(code, ""), "market": suffix}
+        return [unique[code] for code in sorted(unique)]
+    for code in sorted(names):
+        raw = next(
+            (str(row.get("symbol") or "").upper() for rows in payload["periods"].values()
+             for row in rows or [] if str(row.get("symbol") or "").upper().startswith(code)),
+            "",
+        )
+        suffix = raw.split(".")[-1] if "." in raw else ""
+        if suffix in {"SH", "SZ"}:
+            unique[code] = {"code": code, "name": names[code], "market": suffix}
     return [unique[code] for code in sorted(unique)]
 
 
@@ -446,12 +470,12 @@ def run(
     )
     payload: dict[str, Any] = {
         "schema_version": 1, "mode": "shadow_research_only", "trade_date": trade_date,
+        "universe_source": "low_chip_published_intersection",
         "production_weights_changed": False, "formal_signal_logic_changed": False,
         "production_role": "audit_only", "observation_sessions": sessions,
         "coverage": coverage, "failures": failures,
         "metrics": metrics,
     }
-    atomic_write(output_path, payload)
     if not coverage["publishable"]:
         raise RuntimeError(f"STAGING BLOCKER fundamental coverage {coverage}")
     sync_token = token or os.environ.get("LOW_CHIP_SYNC_TOKEN", "")

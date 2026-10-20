@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from scripts.a_share_fundamental_shadow import (
@@ -134,6 +137,37 @@ def test_low_chip_universe_deduplicates_periods_and_excludes_bse(tmp_path):
         {"code": "000001", "name": "平安银行", "market": "SZ"},
         {"code": "600021", "name": "上海电力", "market": "SH"},
     ]
+
+
+def test_shadow_universe_prefers_published_intersection_over_period_union(tmp_path):
+    path = tmp_path / "pool.json"
+    path.write_text(
+        '{"periods":{"week":[{"symbol":"600021.SH","name":"上海电力"},{"symbol":"000001.SZ","name":"平安银行"}],'
+        '"month":[{"symbol":"300257.SZ","name":"开山股份"}]},'
+        '"intersection":["000001.SZ","600021.SH","920086.BJ","bad-symbol"]}'
+    )
+    assert load_universe(path) == [
+        {"code": "000001", "name": "平安银行", "market": "SZ"},
+        {"code": "600021", "name": "上海电力", "market": "SH"},
+    ]
+
+
+def test_shadow_universe_keeps_intersection_symbols_without_period_names(tmp_path):
+    path = tmp_path / "pool.json"
+    path.write_text('{"periods":{"week":[]},"intersection":["002713.SZ"]}')
+    assert load_universe(path) == [{"code": "002713", "name": "", "market": "SZ"}]
+
+
+def test_shadow_universe_uses_published_snapshot_intersection():
+    snapshot = Path(__file__).resolve().parent.parent / "public/data/a-low-chip-stocks.json"
+    payload = json.loads(snapshot.read_text(encoding="utf-8"))
+    universe = load_universe(snapshot)
+    assert [item["code"] for item in universe] == sorted(
+        str(symbol).split(".")[0].upper()
+        for symbol in payload["intersection"]
+        if str(symbol).split(".")[-1].upper() in {"SH", "SZ"}
+    )
+    assert universe, "published intersection must not be empty"
 
 
 def test_baostock_work_is_partitioned_into_at_most_four_persistent_sessions():
@@ -275,3 +309,38 @@ def test_observation_sessions_are_idempotent_for_same_market_trade_date(tmp_path
     state.write_text('{"observation_dates":["2026-08-13"]}')
     assert observation_sessions(state, "2026-08-13") == 1
     assert observation_sessions(state, "2026-08-14") == 2
+
+
+def test_failed_coverage_keeps_the_previous_persisted_shadow(tmp_path, monkeypatch):
+    import scripts.a_share_fundamental_shadow as shadow
+
+    pool = tmp_path / "pool.json"
+    pool.write_text('{"intersection":["600021.SH","000001.SZ"]}')
+    output = tmp_path / "shadow-latest.json"
+    previous = {"trade_date": "2026-10-16", "coverage": {"publishable": True}, "metrics": []}
+    output.write_text(json.dumps(previous), encoding="utf-8")
+
+    good = {
+        "stock_code": "600021", "stock_name": "上海电力",
+        "valuation_rows": [
+            ["2026-08-12", "sh.600021", "14.00", "12", "1", "0.8", "9"],
+            ["2026-08-13", "sh.600021", "15.40", "13", "1.1", "0.9", "10"],
+        ],
+        "share_rows": [{"date": "2026-08-13", "total_share": 1_000_000_000}],
+    }
+
+    def fetch(items, sessions):
+        return [
+            (item["code"], "succeeded", dict(good, stock_code=item["code"]), None)
+            if item["code"] == "600021"
+            else (item["code"], "failed", None, "no reliable share observation")
+            for item in items
+        ]
+
+    monkeypatch.setattr(shadow, "_fetch_partition", fetch)
+    with pytest.raises(RuntimeError, match="STAGING BLOCKER fundamental coverage"):
+        shadow.run(
+            pool_path=pool, state_path=tmp_path / "state.json", output_path=output,
+            workers=1, write_d1=False,
+        )
+    assert json.loads(output.read_text(encoding="utf-8")) == previous
