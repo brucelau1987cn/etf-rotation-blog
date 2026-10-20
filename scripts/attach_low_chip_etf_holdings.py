@@ -1,134 +1,106 @@
 #!/usr/bin/env python3
-"""Attach ETF-holding data per low-chip stock via mx-data (Eastmoney Miaoxiang).
+"""Attach ETF-holding data per low-chip stock via Eastmoney F10 (基金持股).
 
-Replace iWenCai's holding-ETF query. mx-data returns fund-holdings table
-with 基金代码/简称/持股数量/持股市值; filter by suffix .SH/.SZ (ETF)
-vs .OF (off-exchange fund, skip).
+Data source: Eastmoney F10 shareholder research page
+(`PC_HSF10/ShareholderResearch/PageAjax`, field `jjcg` = 基金持股).
 
-Failure-soft: HTTP/query error -> etf_holdings=[] + etf_top_category=null.
+This replaced the mx-data (东财妙想) "持有ETF 基金持股统计" query on
+2026-10-20: mx-data meters calls per API key per day, so a dormant key
+returned code=113 and the stage produced empty holdings while the pipeline
+still reported success. The Eastmoney route is unauthenticated and
+quota-free, and it carries NETVALUE_RATIO (持仓市值占基金资产净值比) which is
+the weight figure the old query exposed.
+
+Failure-soft per stock (a stock may genuinely hold no ETF), but transport
+failures are counted and reported so a broken source is never confused with
+"no ETF holdings".
 Outputs atomic JSON write with separators=(",", ":") + ensure_ascii=False.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
 import sys
-import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
 TOP_N_HOLDINGS = 5
-MAX_WORKERS = 1   # mx-data 限额 code=112: 并发>1 触发限流
-MX_QUERY = "{code} 持有ETF 基金持股统计"
-RATE_LIMIT_CODES = (112,)
-MAX_RETRIES = 2
-RETRY_BACKOFF_S = 5.0
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from mx_data_client import MXPoolClient, MXQuotaExhausted  # noqa: E402
+from em_data_client import EastmoneyClient, EastmoneyError, get_client  # noqa: E402
 
-_mx_client = None
+_client: EastmoneyClient | None = None
 
 
-def _get_mx():
-    """Shared mx-data client with API-key pool rotation.
+def _get_client() -> EastmoneyClient:
+    """Shared Eastmoney client (serial + paced requests)."""
+    global _client
+    if _client is None:
+        _client = get_client()
+    return _client
 
-    A single MX_APIKEY hits its per-key daily quota (code=113) and then every
-    optional enrichment stage silently returns empty. MXPoolClient rotates to
-    the next key in MX_APIKEYS whenever a key is refused.
+
+def _is_exchange_listed(fund_code: str, derivecode: str) -> bool:
+    """Exchange-listed funds only (.SH / .SZ derive codes).
+
+    Eastmoney's `jjcg` mixes ETF/LOF with ordinary (场外) funds. The old
+    mx-data parser kept only `.SH` / `.SZ` codes; keep the same rule.
     """
-    global _mx_client
-    if _mx_client is None:
-        _mx_client = MXPoolClient()
-    return _mx_client
+    return derivecode.endswith(".SH") or derivecode.endswith(".SZ")
 
 
-def _to_yi(value_str: str) -> float | None:
-    if not value_str:
-        return None
-    s = str(value_str).strip()
-    m = re.match(r'^([\d.]+)\s*亿', s)
-    if m:
-        return float(m.group(1))
-    m = re.match(r'^([\d.]+)\s*万', s)
-    if m:
-        return float(m.group(1)) / 10000.0
-    m = re.match(r'^([\d.]+)$', s)
-    if m:
-        v = float(m.group(1))
-        if v >= 1e9:
-            return v / 1e8
-        return v
-    return None
+def parse_em_etf_holdings(rows: list[dict]) -> list[dict]:
+    """Map Eastmoney `jjcg` rows into the existing etf_holdings contract.
 
-
-def _to_shares(value_str: str) -> float | None:
-    if not value_str:
-        return None
-    s = str(value_str).strip()
-    m = re.match(r'^([\d.]+)\s*亿', s)
-    if m:
-        return float(m.group(1)) * 1e8
-    m = re.match(r'^([\d.]+)\s*万', s)
-    if m:
-        return float(m.group(1)) * 1e4
-    m = re.match(r'^([\d.]+)$', s)
-    if m:
-        return float(m.group(1))
-    return None
-
-
-def parse_mx_etf_holdings(tables: list[dict], full_code: str) -> list[dict]:
-    target_sheet = None
-    for t in tables:
-        if f"({full_code})" in t.get("sheet_name", ""):
-            target_sheet = t
-            break
-    if not target_sheet:
-        return []
-
-    rows = target_sheet["rows"]
-    if not rows or len(rows) < 3:
-        return []
-    name_row = rows[0]
-    shares_row = rows[1] if len(rows) > 1 else {}
-    value_row = rows[2] if len(rows) > 2 else {}
-
+    Contract fields kept identical to the mx-data version:
+      code / name / full_name / weight_pct / rank / holding_value /
+      holding_qty / is_heavy / etf_category_l1 / etf_category_l2 /
+      fund_manager
+    """
     etf_rows: list[dict] = []
-    for fund_code, fund_name in name_row.items():
-        if fund_code == "date":
+    for row in rows:
+        fund_code = str(row.get("fund_code") or "").strip()
+        fund_name = str(row.get("fund_name") or "").strip()
+        derive = str(row.get("fund_derivecode") or "")
+        if not _is_exchange_listed(fund_code, derive):
             continue
-        if not (fund_code.endswith(".SH") or fund_code.endswith(".SZ")):
+        try:
+            nav_ratio = float(row.get("nav_ratio"))
+        except (TypeError, ValueError):
+            nav_ratio = None
+        try:
+            shares = float(row.get("shares"))
+        except (TypeError, ValueError):
+            shares = None
+        try:
+            hold_value = float(row.get("hold_value"))
+        except (TypeError, ValueError):
+            hold_value = None
+        if shares is None and hold_value is None:
             continue
-        shares = _to_shares(shares_row.get(fund_code, ""))
-        value_yi = _to_yi(value_row.get(fund_code, ""))
-        if shares is None or value_yi is None:
-            continue
-        etf_rows.append({
-            "code": fund_code,
-            "name": str(fund_name),
-            "full_name": str(fund_name),
-            "weight_pct": None,
-            "rank": None,
-            "holding_value": value_yi,
-            "holding_qty": shares,
-            "is_heavy": None,
-            "etf_category_l1": "ETF",
-            "etf_category_l2": None,
-            "fund_manager": None,
-            "_market_value_yi": value_yi,
-        })
+        etf_rows.append(
+            {
+                "code": derive or fund_code,
+                "name": fund_name,
+                "full_name": fund_name,
+                # 持仓市值占基金资产净值比 (%) — the "weight in the fund" figure.
+                "weight_pct": round(nav_ratio, 4) if nav_ratio is not None else None,
+                "rank": None,
+                "holding_value": (hold_value / 1e8) if hold_value is not None else None,
+                "holding_qty": shares,
+                "is_heavy": None,
+                "etf_category_l1": "ETF",
+                "etf_category_l2": None,
+                "fund_manager": None,
+                "_sort_value": hold_value if hold_value is not None else 0.0,
+            }
+        )
 
-    etf_rows.sort(key=lambda x: x["_market_value_yi"], reverse=True)
+    etf_rows.sort(key=lambda x: x["_sort_value"], reverse=True)
     for i, row in enumerate(etf_rows, 1):
         row["rank"] = i
-        del row["_market_value_yi"]
+        del row["_sort_value"]
     return etf_rows[:TOP_N_HOLDINGS]
 
 
@@ -138,36 +110,16 @@ def top_category(holdings: list[dict]) -> str | None:
     return "ETF"
 
 
-def attach_for_one(full_code: str) -> tuple[list[dict], str | None, int]:
-    bare = full_code.split(".")[0]
-    mx = _get_mx()
-    q = MX_QUERY.format(code=bare)
-    last_err: str | None = None
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            r = mx.query(q)
-        except MXQuotaExhausted as exc:
-            # 整个 key 池额度用尽：显式降级，调用方写 degraded 状态。
-            print(f"[{full_code}] mx-data pool exhausted: {exc}", file=sys.stderr)
-            return [], None, 0
-        except Exception as exc:
-            last_err = f"exception: {exc}"
-            time.sleep(RETRY_BACKOFF_S)
-            continue
-        tables, _, _, err = mx.parse_result(r)
-        if err is None:
-            holdings = parse_mx_etf_holdings(tables, full_code)
-            return holdings, top_category(holdings), len(holdings)
-        # 检查是否为限流错误
-        if any(f"状态码 {c}" in err for c in RATE_LIMIT_CODES):
-            last_err = err
-            print(f"[{full_code}] rate-limited (attempt {attempt+1}/{MAX_RETRIES+1}): {err}", file=sys.stderr)
-            time.sleep(RETRY_BACKOFF_S * (attempt + 1))
-            continue
-        print(f"[{full_code}] mx-data parse error: {err}", file=sys.stderr)
-        return [], None, 0
-    print(f"[{full_code}] gave up after {MAX_RETRIES+1} attempts: {last_err}", file=sys.stderr)
-    return [], None, 0
+def attach_for_one(full_code: str) -> tuple[list[dict], str | None, int, bool]:
+    """Returns (holdings, category, raw_count, source_ok)."""
+    client = _get_client()
+    try:
+        rows = client.fund_holdings(full_code)
+    except EastmoneyError as exc:
+        print(f"[{full_code}] eastmoney fund holdings failed: {exc}", file=sys.stderr)
+        return [], None, 0, False
+    holdings = parse_em_etf_holdings(rows)
+    return holdings, top_category(holdings), len(holdings), True
 
 
 def main() -> int:
@@ -189,12 +141,21 @@ def main() -> int:
 
     success = 0
     empty = 0
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        results = list(ex.map(attach_for_one, symbols))
-    for i, (code, (holdings, cat, raw_n)) in enumerate(zip(symbols, results), 1):
+    failed = 0
+    # Sequential on purpose: the client paces requests to stay under
+    # Eastmoney's throttling thresholds. A parallel fan-out risks 403/empty
+    # bodies that look like missing data.
+    results = [attach_for_one(symbol) for symbol in symbols]
+    for i, (code, (holdings, cat, raw_n, source_ok)) in enumerate(
+        zip(symbols, results), 1
+    ):
         rec = enrichments.setdefault(code, {})
         rec["etf_holdings"] = holdings
         rec["etf_top_category"] = cat
+        if not source_ok:
+            failed += 1
+            print(f"[{i}/{len(symbols)}] {code}: SOURCE FAILED")
+            continue
         if raw_n == 0:
             empty += 1
             print(f"[{i}/{len(symbols)}] {code}: 0 ETFs")
@@ -207,17 +168,18 @@ def main() -> int:
         tmp = src.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         tmp.replace(src)
-    # 显式降级状态：key 池额度耗尽时不能只报「0 empty」——调用方和发布摘要
-    # 需要知道这是数据源不可用，而非「这些股票真的没有持仓 ETF」。
-    pool_state = _mx_client.usage() if _mx_client is not None else {}
-    degraded = bool(pool_state.get("exhausted"))
+    # 显式降级状态：数据源不可用时不能只报「0 empty」——调用方和发布摘要
+    # 需要知道这是数据源挂了，而非「这些股票真的没有持仓 ETF」。
+    usage = _get_client().usage()
+    degraded = bool(failed) or bool(usage.get("failures"))
     print(json.dumps({
         "status": "degraded" if degraded else "ok",
-        "source": "mx-data",
+        "source": "eastmoney-direct",
         "success": success,
         "empty": empty,
+        "failed": failed,
         "total": len(symbols),
-        "mx_pool": pool_state,
+        "client": usage,
     }, ensure_ascii=False))
     return 0
 

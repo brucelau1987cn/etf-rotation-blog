@@ -153,18 +153,42 @@ def test_usage_reports_pool_state():
     assert usage["calls_by_key"]["k2"] == 1
 
 
-# ============ attach scripts use the pool ============
+# ============ attach scripts use a quota-free source ============
+#
+# On 2026-10-20 mx-data was replaced entirely by the Eastmoney F10 direct
+# routes (see scripts/em_data_client.py): mx-data meters calls per API key per
+# day, and a dormant key made every enrichment stage silently return empty.
+# The mx_data_client module stays for reference and for other consumers, but
+# the three low-chip attach scripts must no longer depend on it.
 
 @pytest.mark.parametrize(
-    "script_name,attr",
+    "script_name",
     [
-        ("attach_low_chip_theme_concepts.py", "_get_mx"),
-        ("attach_low_chip_technical.py", "_get_mx"),
-        ("attach_low_chip_etf_holdings.py", "_get_mx"),
+        "attach_low_chip_theme_concepts.py",
+        "attach_low_chip_technical.py",
+        "attach_low_chip_etf_holdings.py",
     ],
 )
-def test_attach_scripts_build_pool_client(script_name, attr):
-    """Each attach script must go through the shared pool client, not a single key."""
+def test_attach_scripts_no_longer_depend_on_mx_data(script_name):
+    """The three attach scripts must not read a single MX_APIKEY any more."""
+    path = ROOT / "scripts" / script_name
+    source = path.read_text(encoding="utf-8")
+    assert 'os.getenv("MX_APIKEY")' not in source
+    assert "mx_data_client" not in source, (
+        f"{script_name} still imports the mx-data client"
+    )
+
+
+@pytest.mark.parametrize(
+    "script_name",
+    [
+        "attach_low_chip_theme_concepts.py",
+        "attach_low_chip_technical.py",
+        "attach_low_chip_etf_holdings.py",
+    ],
+)
+def test_attach_scripts_use_eastmoney_client(script_name):
+    """Each attach script must go through the shared Eastmoney client."""
     import importlib.util as _util
 
     path = ROOT / "scripts" / script_name
@@ -173,10 +197,6 @@ def test_attach_scripts_build_pool_client(script_name, attr):
     sys.modules[path.stem] = module
     spec.loader.exec_module(module)
 
-    assert hasattr(module, "MXPoolClient")
-    assert hasattr(module, "MXQuotaExhausted")
-    # The single-key constructor must be gone: it was the root cause.
-    source = path.read_text(encoding="utf-8")
-    assert 'os.getenv("MX_APIKEY")' not in source, (
-        f"{script_name} still reads a single MX_APIKEY — the pool is bypassed"
-    )
+    assert hasattr(module, "EastmoneyClient")
+    assert hasattr(module, "EastmoneyError")
+    assert hasattr(module, "_get_client")

@@ -1,7 +1,9 @@
-"""Contract tests for attach_low_chip_etf_holdings.py (mx-data 替代 iWenCai 后的版本).
+"""Contract tests for attach_low_chip_etf_holdings.py.
 
-Mock mx_data.MXData.query + parse_result, verify schema, sorting, fail-soft,
-per-record atomic write contract.
+The data source changed on 2026-10-20: mx-data (东财妙想) was replaced by the
+unauthenticated Eastmoney F10 route `PC_HSF10/ShareholderResearch/PageAjax`
+(field `jjcg` = 基金持股). The contract under test is unchanged: schema,
+sorting, off-exchange filtering, fail-soft behaviour and the atomic write.
 """
 from __future__ import annotations
 
@@ -14,78 +16,84 @@ from unittest import mock
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts/attach_low_chip_etf_holdings.py"
+SCRIPTS = ROOT / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+import em_data_client  # noqa: E402
+
+SCRIPT = SCRIPTS / "attach_low_chip_etf_holdings.py"
 SPEC = importlib.util.spec_from_file_location("attach_low_chip_etf_holdings", SCRIPT)
 mod = importlib.util.module_from_spec(SPEC)
 sys.modules["attach_low_chip_etf_holdings"] = mod
 SPEC.loader.exec_module(mod)
 
 
-def _fake_mx_tables(stock_code: str, rows_data: list[tuple[str, str, float, float]]) -> list[dict]:
-    """rows_data: list of (fund_code, fund_name, shares_wan, value_yi) tuples."""
-    fund_codes = [r[0] for r in rows_data]
-    sheet_name = f"恒瑞医药({stock_code})基金持股统计(2026-06-30)"
-    return [{
-        "sheet_name": sheet_name,
-        "rows": [
-            {"date": "基金简称", **dict(zip(fund_codes, [r[1] for r in rows_data]))},
-            {"date": "持流通股数量(股)", **dict(zip(fund_codes, [f"{r[2]}万" for r in rows_data]))},
-            {"date": "持流通股市值(元)", **dict(zip(fund_codes, [f"{r[3]}亿" for r in rows_data]))},
-        ],
-    }]
+def _em_rows(rows_data: list[tuple[str, str, float, float, float]]) -> list[dict]:
+    """rows_data: (fund_code, name, shares, hold_value_yuan, nav_ratio)."""
+    return [
+        {
+            "fund_code": code,
+            "fund_derivecode": code,
+            "fund_name": name,
+            "report_date": "2026-06-30",
+            "shares": shares,
+            "hold_value": value,
+            "total_share_ratio": 0.05,
+            "free_float_ratio": 0.07,
+            "nav_ratio": nav,
+            "org_type": "01",
+        }
+        for code, name, shares, value, nav in rows_data
+    ]
 
 
-def _mock_mx_client(tables_per_code: dict[str, list[dict]] | None = None,
-                    err: str | None = None):
-    """Build a fake MXData mock."""
-    mock_mx = mock.MagicMock()
-    tables_per_code = tables_per_code or {}
-
-    def fake_parse_result(r):
-        if err is not None:
-            return [], [], 0, err
-        first_key = next(iter(tables_per_code), "")
-        return tables_per_code.get(first_key, []), [], 0, None
-
-    mock_mx.parse_result = fake_parse_result
-    mock_mx.query = mock.MagicMock(return_value={"status": 0})
-    return mock_mx
+def _fake_client(rows: list[dict] | None = None, error: Exception | None = None):
+    fake = mock.MagicMock()
+    if error is not None:
+        fake.fund_holdings = mock.MagicMock(side_effect=error)
+    else:
+        fake.fund_holdings = mock.MagicMock(return_value=rows or [])
+    # main() serialises usage() into its JSON summary, so it must be a real dict.
+    fake.usage = mock.MagicMock(
+        return_value={"requests": 1, "retries": 0, "failures": 0,
+                      "source": "eastmoney-direct"}
+    )
+    return fake
 
 
-def _install_fake_mx(tables_per_code: dict[str, list[dict]] | None = None,
-                     err: str | None = None):
-    """Patch mod._get_mx to return a fake client."""
-    fake = _mock_mx_client(tables_per_code, err)
-    return mock.patch.object(mod, "_get_mx", return_value=fake)
+# ============ parse_em_etf_holdings ============
 
-
-# ============ parse_mx_etf_holdings ============
-
-def test_parse_mx_etf_holdings_sorts_by_value_desc():
-    tables = _fake_mx_tables("000157.SZ", [
-        ("1.SH", "A", 1.0, 5.0),
-        ("2.SZ", "B", 2.0, 10.0),
-        ("3.SH", "C", 3.0, 7.0),
-    ])
-    out = mod.parse_mx_etf_holdings(tables, "000157.SZ")
+def test_parse_sorts_by_value_desc():
+    out = mod.parse_em_etf_holdings(_em_rows([
+        ("1.SH", "A", 1.0, 5e8, 1.0),
+        ("2.SZ", "B", 2.0, 10e8, 1.0),
+        ("3.SH", "C", 3.0, 7e8, 1.0),
+    ]))
     assert [h["code"] for h in out] == ["2.SZ", "3.SH", "1.SH"]
     assert [h["rank"] for h in out] == [1, 2, 3]
 
 
-def test_parse_mx_etf_holdings_skips_of_funds():
-    tables = _fake_mx_tables("000157.SZ", [
-        ("1.SH", "ETF1", 1.0, 5.0),
-        ("2.OF", "主动基金", 2.0, 10.0),  # 场外, skip
-        ("3.SZ", "ETF3", 3.0, 7.0),
-    ])
-    out = mod.parse_mx_etf_holdings(tables, "000157.SZ")
+def test_parse_skips_off_exchange_funds():
+    out = mod.parse_em_etf_holdings(_em_rows([
+        ("1.SH", "ETF1", 1.0, 5e8, 1.0),
+        ("2.OF", "主动基金", 2.0, 10e8, 1.0),
+        ("3.SZ", "ETF3", 3.0, 7e8, 1.0),
+    ]))
     assert [h["code"] for h in out] == ["3.SZ", "1.SH"]
 
 
-def test_parse_mx_etf_holdings_returns_empty_when_no_matching_sheet():
-    tables = _fake_mx_tables("999999.SH", [])  # different stock
-    out = mod.parse_mx_etf_holdings(tables, "000157.SZ")
-    assert out == []
+def test_parse_returns_empty_when_no_rows():
+    assert mod.parse_em_etf_holdings([]) == []
+
+
+def test_parse_maps_nav_ratio_to_weight_pct():
+    out = mod.parse_em_etf_holdings(_em_rows([("510300.SH", "沪深300ETF", 1.0, 5e8, 0.13)]))
+    assert out[0]["weight_pct"] == 0.13
+
+
+def test_parse_converts_holding_value_to_yi():
+    out = mod.parse_em_etf_holdings(_em_rows([("510300.SH", "沪深300ETF", 1.0, 5.5e8, 1.0)]))
+    assert out[0]["holding_value"] == pytest.approx(5.5, rel=1e-6)
 
 
 # ============ top_category ============
@@ -101,36 +109,36 @@ def test_top_category_returns_none_when_empty():
 # ============ attach_for_one ============
 
 def test_attach_for_one_returns_top_n():
-    tables = _fake_mx_tables("000157.SZ", [
-        (f"{i}.SH", f"ETF{i}", float(i), 10.0 - i * 0.1) for i in range(1, 11)
+    rows = _em_rows([
+        (f"{i}.SH", f"ETF{i}", float(i), (10.0 - i * 0.1) * 1e8, 1.0)
+        for i in range(1, 11)
     ])
-    mod._get_mx = lambda: _mock_mx_client({"000157": tables})  # key is bare code
-    holdings, cat, raw_n = mod.attach_for_one("000157.SZ")
-    assert len(holdings) == mod.TOP_N_HOLDINGS  # top N
-    assert raw_n == 5  # attach_for_one reports after top-N truncation
+    mod._get_client = lambda: _fake_client(rows)
+    holdings, cat, raw_n, source_ok = mod.attach_for_one("000157.SZ")
+    assert len(holdings) == mod.TOP_N_HOLDINGS
+    assert raw_n == mod.TOP_N_HOLDINGS
     assert cat == "ETF"
+    assert source_ok is True
 
 
-def test_attach_for_one_failsoft_on_parse_error():
-    mod._get_mx = lambda: _mock_mx_client(err="解析失败")
-    holdings, cat, raw_n = mod.attach_for_one("000958.SZ")
+def test_attach_for_one_failsoft_on_source_error():
+    """A transport failure must be reported, not silently turned into "no ETF"."""
+    mod._get_client = lambda: _fake_client(
+        error=em_data_client.EastmoneyError("gave up after 4 attempts (HTTP 403)")
+    )
+    holdings, cat, raw_n, source_ok = mod.attach_for_one("000958.SZ")
     assert holdings == []
     assert cat is None
     assert raw_n == 0
+    assert source_ok is False, "必须区分「数据源挂了」与「该股无 ETF 持仓」"
 
 
-def test_attach_for_one_retries_on_rate_limit():
-    """code=112 限流应触发退避重试."""
-    fake = mock.MagicMock()
-    fake.parse_result = mock.MagicMock(side_effect=[
-        ([], [], 0, "状态码 112 - 请求频率过高"),
-        (_fake_mx_tables("000157.SZ", [("1.SH", "X", 1.0, 5.0)]), [], 1, None),
-    ])
-    mod._get_mx = lambda: fake
-    with mock.patch("time.sleep"):  # 跳过实际等待
-        holdings, cat, raw_n = mod.attach_for_one("000157.SZ")
-    assert len(holdings) == 1
-    assert fake.parse_result.call_count == 2
+def test_attach_for_one_empty_but_source_ok():
+    """Genuinely no ETF holding: source_ok stays True."""
+    mod._get_client = lambda: _fake_client([])
+    holdings, cat, raw_n, source_ok = mod.attach_for_one("000958.SZ")
+    assert holdings == []
+    assert source_ok is True
 
 
 # ============ main() ============
@@ -148,26 +156,17 @@ def test_main_writes_atomic_json(tmp_path):
     test_data = tmp_path / "data.json"
     test_data.write_text(json.dumps(payload), encoding="utf-8")
 
-    tables_157 = _fake_mx_tables("000157.SZ", [("510300.SH", "沪深300ETF", 100.0, 5.5)])
-    tables_958: list = []
-
-    fake = mock.MagicMock()
-    def fake_parse_result(_r):
-        import re
-        return tables_157, [], 0, None  # 第一个有数据，后续覆盖不到——简化逻辑：永远返回 157 表
-    fake.parse_result = lambda r: (tables_157, [], 0, None)
-    mod._get_mx = lambda: fake
+    rows = _em_rows([("510300.SH", "沪深300ETF", 1.0, 5.5e8, 0.13)])
+    mod._get_client = lambda: _fake_client(rows)
 
     import sys as _sys
     _sys.argv = ["attach_low_chip_etf_holdings.py", "--input", str(test_data)]
-    with mock.patch("time.sleep"):
-        mod.main()
+    mod.main()
 
     result = json.loads(test_data.read_text(encoding="utf-8"))
     e157 = result["enrichments"]["000157.SZ"]
     assert "etf_holdings" in e157
     e958 = result["enrichments"]["000958.SZ"]
-    # 第二次会重复拿同一份 mock 数据，写入也有 holdings
     assert "etf_holdings" in e958
 
 
@@ -180,19 +179,15 @@ def test_dry_run_does_not_write(tmp_path):
     }
     test_data = tmp_path / "data.json"
     test_data.write_text(json.dumps(payload), encoding="utf-8")
-    tables = _fake_mx_tables("000157.SZ", [("510300.SH", "X", 1.0, 5.0)])
 
-    fake = mock.MagicMock()
-    fake.parse_result = lambda r: (tables, [], 0, None)
-    mod._get_mx = lambda: fake
+    rows = _em_rows([("510300.SH", "X", 1.0, 5.0e8, 1.0)])
+    mod._get_client = lambda: _fake_client(rows)
 
     import sys as _sys
     _sys.argv = ["x", "--input", str(test_data), "--dry-run"]
-    with mock.patch("time.sleep"):
-        mod.main()
+    mod.main()
 
     result = json.loads(test_data.read_text(encoding="utf-8"))
-    # dry-run: etf_holdings 不应被写入
     assert "etf_holdings" not in result["enrichments"]["000157.SZ"]
 
 

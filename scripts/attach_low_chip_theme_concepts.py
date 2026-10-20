@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""Attach theme/concept fit labels for low-chip stocks (同花顺所属概念).
+"""Attach theme/concept fit labels for low-chip stocks (东财 F10 核心题材).
 
 Picks up to 3 non-industry "why it's moving" concepts for display, e.g.
   LED（小米概念、无人机、比亚迪概念）
+
+Data source: Eastmoney F10 core-theme boards (RPT_F10_CORETHEME_BOARDTYPE).
+This replaced the mx-data (东财妙想) query on 2026-10-20: mx-data meters
+calls per API key per day, a dormant key returned code=113 and every stage
+produced empty data while the pipeline still reported success. The Eastmoney
+route is unauthenticated and quota-free.
 
 Usage:
   python3 scripts/attach_low_chip_theme_concepts.py
@@ -12,38 +18,31 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
-import subprocess
 import sys
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
-MX_QUERY = "{code} 所属概念板块"
-RATE_LIMIT_CODES = (112,)
-MAX_RETRIES = 2
-RETRY_BACKOFF_S = 5.0
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from mx_data_client import MXPoolClient, MXQuotaExhausted  # noqa: E402
+from em_data_client import EastmoneyClient, EastmoneyError, get_client  # noqa: E402
 
-_mx_client = None
+_client: EastmoneyClient | None = None
 
 
-def _get_mx():
-    """Shared mx-data client with API-key pool rotation.
+def _get_client() -> EastmoneyClient:
+    """Shared Eastmoney client.
 
-    A single MX_APIKEY hits its per-key daily quota (code=113) and then every
-    optional enrichment stage silently returns empty. MXPoolClient rotates to
-    the next key in MX_APIKEYS whenever a key is refused.
+    The client paces its own requests (serial, min interval, jittered backoff)
+    so the stage stays far below Eastmoney's throttling thresholds.
     """
-    global _mx_client
-    if _mx_client is None:
-        _mx_client = MXPoolClient()
-    return _mx_client
+    global _client
+    if _client is None:
+        _client = get_client()
+    return _client
+
+
 IWENCAI = Path("/root/.hermes/scripts/iwencai-market-query")
 
 GENERIC_CONCEPTS = {
@@ -113,68 +112,23 @@ def pick_theme(concepts: list[str], industry: str, sector: str, limit: int = 3) 
     return top, filtered[:5]
 
 
-def _parse_mx_concepts(tables: list[dict], full_code: str) -> list[str]:
-    """Extract concept list from mx-data sheets.
-
-    mx-data sheet "恒瑞医药(600276.SH)的所属概念板块":
-      row 0: {date: '2026-09-02', '所属概念板块': 'AH股,HS300_,创新药,...'}
-    """
-    target_sheet = None
-    for t in tables:
-        sn = t.get("sheet_name", "")
-        if f"({full_code})" in sn and "所属概念" in sn:
-            target_sheet = t
-            break
-    if not target_sheet or not target_sheet["rows"]:
-        return []
-    # 取首行的「所属概念板块」字段
-    first_row = target_sheet["rows"][0]
-    concepts_str = ""
-    for k, v in first_row.items():
-        if k == "date":
-            continue
-        if "所属概念板块" in k or "概念板块" in k:
-            concepts_str = str(v).strip()
-            break
-    if not concepts_str:
-        return []
-    return [c.strip() for c in re.split(r"[,，、/|;；\s]+", concepts_str) if c.strip()]
-
-
 def query_concepts_for_one(full_code: str) -> list[str]:
-    """Per-stock mx-data query with retry on rate-limit."""
-    bare = full_code.split(".")[0]
-    mx = _get_mx()
-    q = MX_QUERY.format(code=bare)
-    last_err = None
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            r = mx.query(q)
-        except MXQuotaExhausted as exc:
-            # 整个 key 池都被拒绝（每个 key 的当日额度用尽）。
-            # 这是显式降级，不是静默空结果：调用方据此写 degraded 状态。
-            print(f"[{full_code}] mx-data pool exhausted: {exc}", file=sys.stderr)
-            return []
-        except Exception as exc:
-            last_err = f"exception: {exc}"
-            time.sleep(RETRY_BACKOFF_S)
-            continue
-        tables, _, _, err = mx.parse_result(r)
-        if err is None:
-            return _parse_mx_concepts(tables, full_code)
-        if any(f"状态码 {c}" in err for c in RATE_LIMIT_CODES):
-            last_err = err
-            print(f"[{full_code}] rate-limited (attempt {attempt+1}/{MAX_RETRIES+1}): {err}", file=sys.stderr)
-            time.sleep(RETRY_BACKOFF_S * (attempt + 1))
-            continue
-        print(f"[{full_code}] mx-data parse error: {err}", file=sys.stderr)
+    """Per-stock concept query against Eastmoney F10.
+
+    Failure is explicit: a transport error raises, so the caller can report
+    a degraded stage instead of writing an empty concept list that would look
+    like "this stock has no themes".
+    """
+    client = _get_client()
+    try:
+        return client.concepts(full_code)
+    except EastmoneyError as exc:
+        print(f"[{full_code}] eastmoney concepts failed: {exc}", file=sys.stderr)
         return []
-    print(f"[{full_code}] gave up: {last_err}", file=sys.stderr)
-    return []
 
 
 def query_concepts(symbols: list[str]) -> dict[str, list[str]]:
-    """Per-stock mx-data query (sequential to avoid code=112 rate-limit)."""
+    """Per-stock concept query (sequential; the client paces the requests)."""
     out: dict[str, list[str]] = {}
     for s in symbols:
         concepts = query_concepts_for_one(s)
@@ -213,7 +167,7 @@ def attach(data: dict, concept_map: dict[str, list[str]] | None = None) -> dict:
             enr["sector_with_theme"] = f"{sector}（{'、'.join(themes)}）"
         else:
             enr["sector_with_theme"] = sector
-    data["theme_source"] = "mx-data (东财妙想) 所属概念板块"
+    data["theme_source"] = "eastmoney F10 核心题材 (RPT_F10_CORETHEME_BOARDTYPE)"
     return data
 
 
@@ -236,9 +190,9 @@ def main() -> int:
             print(s, e.get("sector_with_theme"), e.get("theme_concepts"))
         return 0
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
-    # 显式降级状态：key 池额度耗尽时必须可区分「数据源不可用」与「该股无概念」。
-    pool_state = _mx_client.usage() if _mx_client is not None else {}
-    degraded = bool(pool_state.get("exhausted"))
+    # 显式降级状态：数据源不可用时必须可区分「数据源挂了」与「该股无概念」。
+    usage = _get_client().usage()
+    degraded = bool(usage.get("failures"))
     covered = sum(
         1 for s in (data.get("intersection") or [])
         if (data.get("enrichments") or {}).get(s, {}).get("theme_concepts")
@@ -246,11 +200,11 @@ def main() -> int:
     print(json.dumps({
         "ok": True,
         "status": "degraded" if degraded else "ok",
-        "source": "mx-data",
+        "source": "eastmoney-direct",
         "path": str(path),
         "symbols": len(data.get("intersection") or []),
         "themes_covered": covered,
-        "mx_pool": pool_state,
+        "client": usage,
         "sample": {
             s: (data.get("enrichments") or {}).get(s, {}).get("sector_with_theme")
             for s in (data.get("intersection") or [])[:5]
