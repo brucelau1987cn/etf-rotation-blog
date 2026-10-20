@@ -95,17 +95,63 @@ def build_industry_mapping(industry_hints: dict[str, str]) -> dict[str, dict[str
     return mapping
 
 
+def industry_path_from_levels(enrichment: dict[str, Any]) -> str:
+    """Rebuild a `L1--L2--L3` path from the structured level fields.
+
+    Why this is needed (2026-10-20): `enrichment["industry"]` holds only the
+    SW level-2 NAME (e.g. 玻璃玻纤), not a path. `load_industry_hints` used to
+    read that field alone, `split_industry_path` saw a 1-segment value, dropped
+    it, and the refresh then rewrote 81/88 published rows to 待补充 — the
+    published dataset's own industry classification was ignored in favour of
+    the tracking pool's empty strings.
+
+    The structured fields (`industry_level1/2/3`) survive the refresh, so they
+    are the reliable source for rebuilding the path.
+    """
+    names = []
+    for key in ("industry_level1", "industry_level2", "industry_level3"):
+        node = enrichment.get(key)
+        name = ""
+        if isinstance(node, dict):
+            name = str(node.get("name") or "").strip()
+        elif isinstance(node, str):
+            name = node.strip()
+        if name and name != "待补充":
+            names.append(name)
+    return "--".join(names)
+
+
 def load_industry_hints(current: dict[str, Any], tracking: dict[str, Any]) -> dict[str, str]:
+    """Collect candidate SW industry paths, published rows taking priority.
+
+    Priority matters: the published `current` enrichment is the authoritative
+    classification for today's pool. Tracking entries (especially ones just
+    backfilled) often carry no industry yet, and letting them overwrite a good
+    published path is what degraded 81/88 rows to 待补充 on 2026-10-20.
+    """
     hints: dict[str, str] = {}
     for symbol, rec in (tracking.get("stocks") or {}).items():
         value = str(rec.get("industry") or "")
         if len(split_industry_path(value)) < 2:
+            # Fall back to the structured levels the tracking record may carry.
+            value = industry_path_from_levels(rec)
+        if len(split_industry_path(value)) < 2:
             first_seen = str(rec.get("first_seen") or "")
-            snapshot = json.loads((HISTORY / f"{first_seen}.json").read_text(encoding="utf-8"))
-            value = str(((snapshot.get("enrichments") or {}).get(symbol) or {}).get("industry") or "")
+            try:
+                snapshot = json.loads((HISTORY / f"{first_seen}.json").read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                snapshot = {}
+            entry = (snapshot.get("enrichments") or {}).get(symbol) or {}
+            value = str(entry.get("industry") or "")
+            if len(split_industry_path(value)) < 2:
+                value = industry_path_from_levels(entry)
         hints[symbol] = value
+    # Published rows override tracking-derived hints: they are today's truth.
     for symbol in current.get("intersection") or []:
-        value = str(((current.get("enrichments") or {}).get(symbol) or {}).get("industry") or "")
+        enrichment = (current.get("enrichments") or {}).get(symbol) or {}
+        value = str(enrichment.get("industry") or "")
+        if len(split_industry_path(value)) < 2:
+            value = industry_path_from_levels(enrichment)
         if len(split_industry_path(value)) >= 2:
             hints[symbol] = value
     return hints
