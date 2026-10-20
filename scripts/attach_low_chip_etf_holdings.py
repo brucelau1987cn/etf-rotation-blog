@@ -30,18 +30,22 @@ RATE_LIMIT_CODES = (112,)
 MAX_RETRIES = 2
 RETRY_BACKOFF_S = 5.0
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mx_data_client import MXPoolClient, MXQuotaExhausted  # noqa: E402
+
 _mx_client = None
 
 
 def _get_mx():
+    """Shared mx-data client with API-key pool rotation.
+
+    A single MX_APIKEY hits its per-key daily quota (code=113) and then every
+    optional enrichment stage silently returns empty. MXPoolClient rotates to
+    the next key in MX_APIKEYS whenever a key is refused.
+    """
     global _mx_client
     if _mx_client is None:
-        sys.path.insert(0, "/root/.hermes/skills/mx-data")
-        from mx_data import MXData
-        api_key = os.getenv("MX_APIKEY")
-        if not api_key:
-            raise RuntimeError("MX_APIKEY env var not set")
-        _mx_client = MXData(api_key=api_key)
+        _mx_client = MXPoolClient()
     return _mx_client
 
 
@@ -142,6 +146,10 @@ def attach_for_one(full_code: str) -> tuple[list[dict], str | None, int]:
     for attempt in range(MAX_RETRIES + 1):
         try:
             r = mx.query(q)
+        except MXQuotaExhausted as exc:
+            # 整个 key 池额度用尽：显式降级，调用方写 degraded 状态。
+            print(f"[{full_code}] mx-data pool exhausted: {exc}", file=sys.stderr)
+            return [], None, 0
         except Exception as exc:
             last_err = f"exception: {exc}"
             time.sleep(RETRY_BACKOFF_S)
@@ -199,7 +207,18 @@ def main() -> int:
         tmp = src.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         tmp.replace(src)
-    print(f"\nETF holdings attach (mx-data): {success} ok, {empty} empty, total {len(symbols)}")
+    # 显式降级状态：key 池额度耗尽时不能只报「0 empty」——调用方和发布摘要
+    # 需要知道这是数据源不可用，而非「这些股票真的没有持仓 ETF」。
+    pool_state = _mx_client.usage() if _mx_client is not None else {}
+    degraded = bool(pool_state.get("exhausted"))
+    print(json.dumps({
+        "status": "degraded" if degraded else "ok",
+        "source": "mx-data",
+        "success": success,
+        "empty": empty,
+        "total": len(symbols),
+        "mx_pool": pool_state,
+    }, ensure_ascii=False))
     return 0
 
 

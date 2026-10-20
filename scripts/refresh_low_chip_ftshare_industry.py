@@ -258,9 +258,13 @@ def main() -> int:
         "standard": "SW2021", "source": "iWenCai 所属申万行业", "as_of": as_of,
         "display": "申万二级行业（最多三个业务/题材标签）", "coverage": len(mapping),
     }
-    tracking["generated_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+    # generated_at 属于回填脚本 update_low_chip_tracking.py 的字段（表示 K 线回填时刻）。
+    # 行业刷新只改行业字段，不改 K 线；重写 generated_at 会污染 16:40 追踪 cron 的
+    # 幂等判据（它把「文件被写过」误当成「数据覆盖到今天」，导致当天 K 线不回填）。
+    # data_through 才是真实覆盖日，回填脚本写入，这里不覆盖。
+    tracking["industry_refreshed_at"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     cache_payload = {
-        "schema_version": "ftshare-sw-industry-map-v1", "generated_at": tracking["generated_at"],
+        "schema_version": "ftshare-sw-industry-map-v1", "generated_at": tracking["industry_refreshed_at"],
         "as_of": as_of, "source": "iWenCai 所属申万行业", "coverage": len(mapping), "items": mapping,
         "validation_scope": "iWenCai 所属申万行业三级路径（无申万行业代码）落地为 level1/2/3 名称。不提供行业代码。",
     }

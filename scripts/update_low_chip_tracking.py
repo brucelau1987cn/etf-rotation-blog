@@ -615,7 +615,22 @@ def main() -> int:
     for sym, r in stocks.items():
         r["year_profit"] = current_year_profit.get(sym)
 
-    atomic_write_json(DATA, {"schema_version": "low-chip-tracking-v1", "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"), "stocks": stocks})
+    # generated_at 只表示「本文件被写出的时刻」，不等于「数据覆盖到哪个交易日」。
+    # 16:00 主链的 refresh_low_chip_ftshare_industry.py 会重写 tracking 的
+    # generated_at（它做行业字段刷新，不碰 K 线），于是 16:40 追踪 cron 用
+    # generated_at 判断幂等时会误判「已回填到今天」→ 当天 K 线永不落库
+    # （2026-10-20 事故：追踪最新 bar 停在 10-19）。
+    # data_through = 实际写入的最后一根 K 线日期，才是幂等判据。
+    data_through = max(
+        (d["date"] for rec in stocks.values() for d in (rec.get("daily") or []) if d.get("date")),
+        default="",
+    )
+    atomic_write_json(DATA, {
+        "schema_version": "low-chip-tracking-v1",
+        "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "data_through": data_through,
+        "stocks": stocks,
+    })
     print(json.dumps({"stocks": len(stocks), "total_bars": sum(len(r["daily"]) for r in stocks.values())}, ensure_ascii=False))
     return 0
 
