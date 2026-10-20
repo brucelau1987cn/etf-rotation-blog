@@ -116,7 +116,8 @@ const description = '记录买入的股票、买入价、股数与买入时间�
     </section>
   </main>
   <Footer />
-  <script is:inline src="/js/buy-stock-app.js"></script>
+  <!-- The app is an ES module: it imports the shared fee model. -->
+  <script type="module" src="/js/buy-stock-app.js"></script>
 </body>
 
 <style is:global>

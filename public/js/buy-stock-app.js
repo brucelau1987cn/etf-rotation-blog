@@ -1,15 +1,122 @@
-// buy-stock page controller: loads holdings, pulls live quotes, and renders
-// fee-adjusted P&L.
-//
-// The fee model lives in ./buy-stock-fees.js — one canonical copy, imported
-// by this file, the Astro page, and the node test suite.
+/**
+ * buy-stock page controller: loads holdings, pulls live quotes, and renders
+ * fee-adjusted P&L.
+ *
+ * Classic script (no ESM import) on purpose: the site's version injector
+ * stamps `?v=<hash>` onto /js/*.js URLs and serves them with a one-year
+ * immutable cache, and it does NOT rewrite imports inside those files. A
+ * sibling `import './buy-stock-fees.js'` would therefore be pinned to the
+ * first build that shipped it. Keeping the fee model in this one file
+ * avoids that trap — the whole page app ships under a single versioned URL.
+ *
+ * The fee model is also exported as an ES module for the node test suite
+ * (tests/buy_stock_fees.test.mjs) and mirrored by src/lib/buy-stock-fees.mjs.
+ */
 
-import {
-  DEFAULT_FEES,
-  computeBuyFees,
-  computeSellFees,
-  round2,
-} from './buy-stock-fees.js';
+// ── A-share trading cost model ────────────────────────────────────────────
+// Canonical copy. Fee rules (A-share ordinary accounts, 2026):
+//   券商佣金 0.025% of turnover, buy+sell, minimum ¥5 per order.
+//   印花税   0.05% of turnover, sell only (halved since 2023-08-28).
+//   过户费   0.001% of turnover, buy+sell, both exchanges
+//            (unified to 0.01‰ bidirectional since 2022-04-29).
+
+export const DEFAULT_FEES = Object.freeze({
+  commission_rate: 0.00025,
+  commission_min: 5,
+  stamp_duty_rate: 0.0005,
+  transfer_fee_rate: 0.00001,
+});
+
+export const FEE_LABELS = Object.freeze({
+  commission: '佣金',
+  stamp_duty: '印花税',
+  transfer_fee: '过户费',
+});
+
+export function round2(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+/** Round UP to 2 decimals — a break-even price must never understate the fees. */
+export function ceil2(value) {
+  return Math.ceil((Number(value) - Number.EPSILON) * 100) / 100;
+}
+
+export function computeBuyFees(turnover, fees = DEFAULT_FEES) {
+  const amount = Number(turnover) || 0;
+  const commission = round2(Math.max(amount * fees.commission_rate, fees.commission_min));
+  const transferFee = round2(amount * fees.transfer_fee_rate);
+  // Total is the sum of the ROUNDED components so the breakdown always adds up.
+  return {
+    commission,
+    stamp_duty: 0,
+    transfer_fee: transferFee,
+    total: round2(commission + transferFee),
+  };
+}
+
+export function computeSellFees(turnover, fees = DEFAULT_FEES) {
+  const amount = Number(turnover) || 0;
+  const commission = round2(Math.max(amount * fees.commission_rate, fees.commission_min));
+  const stampDuty = round2(amount * fees.stamp_duty_rate);
+  const transferFee = round2(amount * fees.transfer_fee_rate);
+  return {
+    commission,
+    stamp_duty: stampDuty,
+    transfer_fee: transferFee,
+    total: round2(commission + stampDuty + transferFee),
+  };
+}
+
+export function computeRoundTripFees(buyTurnover, sellTurnover, fees = DEFAULT_FEES) {
+  const buy = computeBuyFees(buyTurnover, fees);
+  const sell = computeSellFees(sellTurnover, fees);
+  return {
+    buy: buy.total,
+    sell: sell.total,
+    total: round2(buy.total + sell.total),
+  };
+}
+
+/**
+ * Break-even sell price: the price at which the position nets zero P&L
+ * after both sides' fees.
+ */
+export function breakEvenPrice(position, fees = DEFAULT_FEES) {
+  const shares = Number(position.shares) || 0;
+  const buyPrice = Number(position.buy_price) || 0;
+  if (shares <= 0 || buyPrice <= 0) return 0;
+  const buyTurnover = buyPrice * shares;
+  const buyFees = computeBuyFees(buyTurnover, fees);
+  const cost = buyTurnover + buyFees.total;
+
+  // Solve p*shares - sellFees(p*shares) = cost for p. The sell-side
+  // commission is max(turnover * rate, floor), so it has two regimes and
+  // each yields an analytic solution:
+  //   proportional: p*shares*(1 - rate - stamp - transfer) = cost
+  //   floor:        p*shares*(1 - stamp - transfer) = cost + floor
+  // Each candidate is kept only when its own regime assumption holds.
+  const proportionalRate = fees.commission_rate + fees.stamp_duty_rate + fees.transfer_fee_rate;
+  const floorRate = fees.stamp_duty_rate + fees.transfer_fee_rate;
+  const candidates = [];
+
+  const pProportional = cost / (shares * (1 - proportionalRate));
+  if (pProportional * shares * fees.commission_rate >= fees.commission_min) {
+    candidates.push(pProportional);
+  }
+
+  const pFloor = (cost + fees.commission_min) / (shares * (1 - floorRate));
+  if (pFloor * shares * fees.commission_rate < fees.commission_min) {
+    candidates.push(pFloor);
+  }
+
+  // At least one regime must hold; taking the max keeps the figure
+  // conservative (never understates what the fees require).
+  const raw = candidates.length > 0 ? Math.max(...candidates) : Math.max(pProportional, pFloor);
+  return ceil2(raw);
+}
+
+// ── Page controller ───────────────────────────────────────────────────────
 
 const HOLDINGS_URL = '/api/public/v1/buy-stock';
 const QUOTE_URL = '/api/public/v1/quote';
@@ -48,9 +155,7 @@ const dirClass = (value) => {
   return Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : '';
 };
 
-/**
- * Compute the fee-aware economics of one position.
- */
+/** Compute the fee-aware economics of one position. */
 function computePosition(position) {
   const shares = Number(position.shares) || 0;
   const buyPrice = Number(position.buy_price) || 0;
@@ -99,6 +204,7 @@ function renderSummary(rows) {
   set('bs-stat-cost', `¥${money(totalCost)}`);
   set('bs-stat-value', `¥${money(totalMarketValue)}`);
   set('bs-stat-pnl', `¥${signed(totalPnl)}`);
+
   const pnlNode = el('bs-stat-pnl');
   if (pnlNode) pnlNode.className = `bs-stat-value ${dirClass(totalPnl)}`;
   const pctNode = el('bs-stat-pnl-pct');
@@ -106,10 +212,6 @@ function renderSummary(rows) {
     pctNode.textContent = pct(totalPnlPct);
     pctNode.className = `bs-stat-sub ${dirClass(totalPnl)}`;
   }
-  const costNode = el('bs-stat-cost');
-  if (costNode) costNode.className = 'bs-stat-value';
-  const valueNode = el('bs-stat-value');
-  if (valueNode) valueNode.className = 'bs-stat-value';
 }
 
 function positionRow(row) {
@@ -237,8 +339,12 @@ function init() {
   });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+// The bootstrap only runs in a browser. The node test suite imports this
+// file for the fee model, and there is no document there.
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }

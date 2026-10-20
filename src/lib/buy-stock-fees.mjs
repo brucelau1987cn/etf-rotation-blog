@@ -1,9 +1,9 @@
 /**
- * Canonical A-share fee model. See public/js/buy-stock-fees.js for the rules.
+ * Build-time re-export of the canonical A-share fee model.
  *
- * This module re-exports the browser copy so build-time code (Astro pages)
- * and the node test suite share one implementation. Keep the two files in
- * sync — tests/buy_stock_fees.test.mjs asserts they match.
+ * The canonical copy lives in public/js/buy-stock-app.js, which the browser
+ * loads as an ES module. This module lets Astro build-time code and the
+ * node test suite import the same implementation.
  */
 export {
   DEFAULT_FEES,
@@ -14,4 +14,4 @@ export {
   computeSellFees,
   computeRoundTripFees,
   breakEvenPrice,
-} from '../../public/js/buy-stock-fees.js';
+} from '../../public/js/buy-stock-app.js';

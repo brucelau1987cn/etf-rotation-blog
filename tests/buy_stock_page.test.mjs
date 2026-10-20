@@ -38,6 +38,13 @@ test('the page loads the holdings API and the shared quote API', () => {
   assert.doesNotMatch(endpoint, /fetchQuote/);
 });
 
+test('the page loads the app as an ES module', () => {
+  // The app uses `export` for the fee model, so it must be a module script.
+  // A classic script would throw a SyntaxError and the page would never
+  // render any rows.
+  assert.match(page, /<script type="module" src="\/js\/buy-stock-app\.js"><\/script>/);
+});
+
 test('the page states the fee rules it applies', () => {
   assert.match(page, /0\.025%/);
   assert.match(page, /0\.05%/);

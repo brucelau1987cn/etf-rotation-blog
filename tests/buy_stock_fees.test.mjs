@@ -9,17 +9,18 @@ import {
   computeRoundTripFees,
   breakEvenPrice,
   round2,
-} from '../public/js/buy-stock-fees.js';
+} from '../public/js/buy-stock-app.js';
 
-const canonical = await readFile(new URL('../public/js/buy-stock-fees.js', import.meta.url), 'utf8');
+const canonical = await readFile(new URL('../public/js/buy-stock-app.js', import.meta.url), 'utf8');
 const buildCopy = await readFile(new URL('../src/lib/buy-stock-fees.mjs', import.meta.url), 'utf8');
 
-test('the build-time re-export points at the canonical browser copy', () => {
-  assert.match(buildCopy, /public\/js\/buy-stock-fees\.js/);
+test('the build-time re-export points at the canonical app copy', () => {
+  assert.match(buildCopy, /public\/js\/buy-stock-app\.js/);
   for (const name of [
     'DEFAULT_FEES',
     'FEE_LABELS',
     'round2',
+    'ceil2',
     'computeBuyFees',
     'computeSellFees',
     'computeRoundTripFees',
@@ -28,6 +29,14 @@ test('the build-time re-export points at the canonical browser copy', () => {
     assert.ok(canonical.includes(name), `canonical copy must export ${name}`);
     assert.ok(buildCopy.includes(name), `build copy must re-export ${name}`);
   }
+});
+
+test('the fee model lives in one file so the immutable JS cache cannot pin it', () => {
+  // The site serves /js/*.js with a one-year immutable cache and the version
+  // injector does not rewrite imports inside those files. A sibling
+  // `import './buy-stock-fees.js'` would therefore never pick up a change.
+  assert.doesNotMatch(canonical, /from '\.\/buy-stock-fees\.js'/);
+  assert.doesNotMatch(canonical, /from '\.\//, 'the app must not import a sibling module');
 });
 
 test('fee rates follow the current A-share rules', () => {
