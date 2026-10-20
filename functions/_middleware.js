@@ -4,9 +4,11 @@
 // - /api/ 由各端点自行鉴权；静态资源直接放行
 import { isSubscribed, isAdmin } from './_lib/subscription-auth.js';
 
-// 需要登录才能访问的页面前缀（滚动罗盘全系）
+// 需要登录才能访问的页面前缀（滚动罗盘全系 + 买入持仓页）
 const PROTECTED_PREFIXES = [
   '/rolling',
+  // 真实持仓与成本属于私密数据，页面与数据接口都必须登录后才能访问。
+  '/buy-stock',
 ];
 
 // 静态资源扩展名（CSS/JS/图片/字体等）

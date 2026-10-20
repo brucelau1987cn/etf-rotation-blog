@@ -1,0 +1,183 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+
+const title = `买入持仓 | ${SITE_TITLE}`;
+const description = '记录买入的股票、买入价、股数与买入时间，并按佣金、印花税、过户费计算实时收益。';
+---
+
+<BaseHead title={title} description={description} />
+<meta name="robots" content="noindex, nofollow" />
+<body class="bs-body">
+  <Header />
+  <main class="bs-main site-shell">
+    <header class="bs-heading">
+      <div>
+        <p class="bs-kicker">BUY STOCK</p>
+        <h1>买入持仓</h1>
+        <p>记录买入的股票、买入价、股数与买入时间，收益已扣除佣金、印花税与过户费。</p>
+      </div>
+      <div class="bs-identity">
+        <span class="bs-status" id="bs-status">正在加载…</span>
+      </div>
+    </header>
+
+    <section class="bs-overview">
+      <article class="bs-stat">
+        <span>持仓只数</span>
+        <strong id="bs-stat-count">—</strong>
+        <small>当前持有</small>
+      </article>
+      <article class="bs-stat">
+        <span>持仓成本</span>
+        <strong id="bs-stat-cost" class="bs-stat-value">—</strong>
+        <small>含买入费用</small>
+      </article>
+      <article class="bs-stat">
+        <span>当前市值</span>
+        <strong id="bs-stat-value" class="bs-stat-value">—</strong>
+        <small>按最新价</small>
+      </article>
+      <article class="bs-stat bs-stat-primary">
+        <span>浮动盈亏</span>
+        <strong id="bs-stat-pnl" class="bs-stat-value">—</strong>
+        <small id="bs-stat-pnl-pct" class="bs-stat-sub">—</small>
+      </article>
+    </section>
+
+    <section class="bs-card">
+      <div class="bs-card-head">
+        <h2>当前持仓</h2>
+        <p class="bs-hint">买入费用含佣金与过户费；卖出费用另含印花税（仅卖出收取）。</p>
+      </div>
+      <div class="bs-table-wrap">
+        <table class="bs-table">
+          <thead>
+            <tr>
+              <th>股票</th>
+              <th>买入价</th>
+              <th>股数</th>
+              <th>买入金额</th>
+              <th>费用</th>
+              <th>现价</th>
+              <th>市值</th>
+              <th>持仓成本</th>
+              <th>浮动盈亏</th>
+              <th>收益率</th>
+              <th>买入时间</th>
+            </tr>
+          </thead>
+          <tbody id="bs-tbody">
+            <tr><td colspan="11" class="bs-empty">正在加载持仓…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bs-card" id="bs-closed-section" hidden>
+      <div class="bs-card-head">
+        <h2>已卖出</h2>
+        <p class="bs-hint">已实现盈亏按卖出价与双边费用计算。</p>
+      </div>
+      <div class="bs-table-wrap">
+        <table class="bs-table">
+          <thead>
+            <tr>
+              <th>股票</th>
+              <th>买入价</th>
+              <th>股数</th>
+              <th>买入金额</th>
+              <th>费用</th>
+              <th>现价</th>
+              <th>市值</th>
+              <th>持仓成本</th>
+              <th>浮动盈亏</th>
+              <th>收益率</th>
+              <th>买入时间</th>
+            </tr>
+          </thead>
+          <tbody id="bs-tbody-closed"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bs-card bs-fee-card">
+      <div class="bs-card-head">
+        <h2>费用口径</h2>
+      </div>
+      <dl class="bs-fee-list">
+        <div><dt>佣金</dt><dd>成交额 0.025%，买卖双向，单笔最低 ¥5</dd></div>
+        <div><dt>印花税</dt><dd>成交额 0.05%，仅卖出收取</dd></div>
+        <div><dt>过户费</dt><dd>成交额 0.001%，买卖双向</dd></div>
+      </dl>
+      <p class="bs-hint">浮动盈亏 = 最新价 × 股数 − （买入金额 + 买入费用）；收益率以持仓成本为基数。</p>
+    </section>
+  </main>
+  <Footer />
+  <script is:inline src="/js/buy-stock-app.js"></script>
+</body>
+
+<style is:global>
+  .bs-body {
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 420px at 12% -10%, rgba(37, 99, 235, .10), transparent 60%),
+      radial-gradient(900px 360px at 90% 0%, rgba(14, 165, 233, .08), transparent 55%),
+      #f6f8fc;
+  }
+  .bs-main { padding: 2.2rem 0 4rem; }
+
+  .bs-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.35rem; }
+  .bs-kicker { margin: 0 0 .35rem; color: #2563eb; font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+  .bs-heading h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+  .bs-heading > div > p:last-child { margin: .45rem 0 0; color: #64748b; font-size: .88rem; max-width: 46rem; }
+  .bs-identity { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+  .bs-status { color: #64748b; font-size: .78rem; font-weight: 700; }
+  .bs-status.bs-error { color: #b42318; }
+
+  .bs-overview { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: .9rem; }
+  .bs-stat { display: grid; gap: .28rem; padding: 1rem 1.1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, .03); }
+  .bs-stat span, .bs-stat small { color: #64748b; font-size: .72rem; font-weight: 700; }
+  .bs-stat strong { color: #0f172a; font-size: 1.35rem; line-height: 1.1; }
+  .bs-stat-primary { background: #eff6ff; border-color: #bfdbfe; }
+  .bs-stat-primary strong { color: #1d4ed8; }
+  .bs-stat-sub { color: #64748b; }
+  .bs-stat-value.up { color: var(--market-up); }
+  .bs-stat-value.down { color: var(--market-down); }
+  .bs-stat-sub.up { color: var(--market-up); }
+  .bs-stat-sub.down { color: var(--market-down); }
+
+  .bs-card { margin-bottom: .9rem; padding: 1.1rem 1.2rem; background: rgba(255, 255, 255, .96); border: 1px solid #e6ebf2; border-radius: 18px; box-shadow: 0 12px 30px rgba(15, 23, 42, .05); }
+  .bs-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .8rem; }
+  .bs-card-head h2 { margin: 0; font-size: 1.05rem; }
+  .bs-hint { margin: 0; color: #94a3b8; font-size: .75rem; }
+
+  .bs-table-wrap { overflow-x: auto; }
+  .bs-table { width: 100%; min-width: 1080px; border-collapse: collapse; font-size: .84rem; }
+  .bs-table th { padding: .55rem .6rem; text-align: left; color: #64748b; background: #f6f8fb; border-bottom: 1px solid #e6ebf2; font-size: .72rem; font-weight: 850; white-space: nowrap; }
+  .bs-table td { padding: .6rem; border-bottom: 1px solid #eef2f7; vertical-align: middle; }
+  .bs-table tbody tr:last-child td { border-bottom: 0; }
+  .bs-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bs-strong { font-weight: 900; }
+  .bs-muted { color: #94a3b8; }
+  .bs-empty { padding: 1.6rem; text-align: center; color: #94a3b8; }
+  .bs-code { display: block; color: #1d4ed8; font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .8rem; font-weight: 800; }
+  .bs-name { display: block; margin-top: .15rem; color: #0f172a; font-size: .82rem; font-weight: 800; }
+  .bs-note { display: block; margin-top: .15rem; color: #94a3b8; font-size: .7rem; }
+  .bs-price { display: block; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .bs-change { display: block; font-size: .72rem; font-weight: 800; }
+  .bs-time { font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .74rem; }
+  .up { color: var(--market-up); }
+  .down { color: var(--market-down); }
+
+  .bs-fee-list { display: grid; gap: .4rem; margin: 0 0 .7rem; }
+  .bs-fee-list > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: .6rem; align-items: baseline; }
+  .bs-fee-list dt { color: #334155; font-size: .78rem; font-weight: 850; }
+  .bs-fee-list dd { margin: 0; color: #64748b; font-size: .78rem; }
+
+  @media (max-width: 860px) {
+    .bs-overview { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>

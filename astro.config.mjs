@@ -7,6 +7,13 @@ import { unified } from '@astrojs/markdown-remark';
 import { defineConfig, fontProviders } from 'astro/config';
 import { sanitizePublicText } from './src/lib/sanitizePublicText.mjs';
 
+/**
+ * 隐藏页不进 sitemap：/buy-stock/ 是私密持仓页，noindex 且不应被搜索引擎发现。
+ */
+function sitemapFilter(page) {
+  return !page.includes('/buy-stock');
+}
+
 function rehypePublicText() {
   /** @param {any} tree */
   return (tree) => {
@@ -41,7 +48,7 @@ function rehypePublicText() {
 // https://astro.build/config
 export default defineConfig({
   site: 'https://etf.peekabo.cc',
-  integrations: [mdx(), react(), sitemap()],
+  integrations: [mdx(), react(), sitemap({ filter: sitemapFilter })],
   markdown: {
     processor: unified({ rehypePlugins: [rehypePublicText] }),
   },
