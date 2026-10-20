@@ -76,7 +76,9 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  const { url } = request;
+  // request.url is a STRING on the Workers runtime, so parse it before
+  // touching searchParams — reading .searchParams on the string throws.
+  const url = new URL(request.url);
 
   if (!(await isAdmin(request, env))) {
     return json({ ok: false, error: '需要管理员权限' }, 401);
