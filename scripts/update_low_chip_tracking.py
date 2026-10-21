@@ -113,16 +113,34 @@ def chip_list_profit_ratios(symbol: str) -> dict[str, float | None]:
 
 
 def load_history_dates() -> dict[str, list[str]]:
-    """Map symbol -> sorted list of dates it appeared in low-chip snapshots."""
+    """Map symbol -> sorted list of dates it appeared in low-chip snapshots.
+
+    阈值变体快照（`YYYY-MM-DD.threshold-X.json`）同样计入：同日阈值收窄时
+    原快照会被 canonical 全集替换，旧阈值成员只存在于变体文件里。只 glob
+    canonical 会让这些成员从追踪池"失联"——它们留在 stocks 里但永远不会
+    再被遍历回填，卡在加入日一根 bar（2026-10-21 实测 002705.SZ 只有
+    2026-09-03 一根，K 线回填永远轮不到它）。变体的日期取其文件名里的日期。
+    """
     seen: dict[str, list[str]] = {}
-    for path in sorted(HISTORY_DIR.glob("????-??-??.json")):
+    paths = sorted(HISTORY_DIR.glob("????-??-??.json")) + sorted(
+        HISTORY_DIR.glob("????-??-??.threshold-*.json")
+    )
+    for path in paths:
         try:
             snap = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        day = path.stem
+        day = path.stem[:10]
+        try:
+            datetime.date.fromisoformat(day)
+        except ValueError:
+            continue
         for code in snap.get("intersection") or []:
-            seen.setdefault(code, []).append(day)
+            dates = seen.setdefault(code, [])
+            if day not in dates:
+                dates.append(day)
+    for dates in seen.values():
+        dates.sort()
     return seen
 
 
