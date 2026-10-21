@@ -2,13 +2,13 @@
   "schema_version": "research_audit_v1",
   "mode": "shadow_research_only",
   "production_rules_changed": false,
-  "generated_at": "2026-10-21T17:40:29.322801+08:00",
+  "generated_at": "2026-10-21T23:33:11.334379+08:00",
   "dataset": {
     "algorithm": "sha256",
-    "value": "aa132b288e0162f453bd872543616a7dd4e84aaeed4b905f7863ded7b4bd405e",
+    "value": "55b7dde5f6192f39d2f0718939c93a2efb0ecc60da31de8db63e0c78ef5caee1",
     "record_count": 401,
     "pool_row_count": 91,
-    "as_of": "2026-10-20",
+    "as_of": "2026-10-21",
     "components": {
       "historical_direction_records": {
         "algorithm": "sha256",
@@ -38,9 +38,9 @@
       },
       "current_action_pool": {
         "algorithm": "sha256",
-        "value": "769591686f2427ebfde7137ba6c61a2694da558c0f6a150b709486eb2f7a894a",
+        "value": "1a4600aea25450632bf7df85aa2bef12e53d3f7508cf9446ad424ea00ff9abb6",
         "row_count": 91,
-        "as_of": "2026-10-20",
+        "as_of": "2026-10-21",
         "canonical_scope": "complete_action_pool_rows",
         "volatile_fields_excluded": [
           "generated_at",
@@ -182,7 +182,7 @@
   },
   "execution_audit": {
     "row_count": 91,
-    "latest_trade_date": "2026-10-20",
+    "latest_trade_date": "2026-10-21",
     "blockers": {
       "invalid_levels": {
         "status": "known",
@@ -233,23 +233,23 @@
       }
     },
     "gate_failure_counts": {
-      "dual_momentum": 85,
+      "dual_momentum": 88,
       "ma20_above_ma60": 75,
-      "ma_rising": 84,
-      "momentum": 88,
-      "price_above_ma": 77,
+      "ma_rising": 83,
+      "momentum": 89,
+      "price_above_ma": 81,
       "short_ok": 1
     },
     "gate_unknown_counts": {},
     "risk_flag_counts": {
-      "收盘偏弱": 62,
+      "收盘偏弱": 79,
       "破位加速": 1,
-      "缩量冲高": 1,
-      "跌破20日线": 77
+      "缩量冲高": 3,
+      "跌破20日线": 81
     },
     "trade_state_counts": {
-      "观察": 3,
-      "退出": 88
+      "观察": 4,
+      "退出": 87
     },
     "policy": "unknown保持unknown；只有当前静态池可核验字段计入已知数量。"
   },
