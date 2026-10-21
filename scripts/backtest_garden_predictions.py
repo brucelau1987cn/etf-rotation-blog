@@ -188,25 +188,27 @@ def fetch_klines(code: str, count: int = 180) -> list[dict[str, Any]]:
         time.sleep(0.5 * (attempt + 1))
     # Direct Tencent fallback avoids losing the public scorecard when the CLI's
     # provider auto-detection or one upstream source is temporarily degraded.
+    # `web.ifzq.gtimg.cn` 间歇性返 HTTP 501（WAF），`ifzq.gtimg.cn` 同一时刻正常。
     symbol = stock_code.lower()
-    url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?" + urllib.parse.urlencode({"param": f"{symbol},day,,,{count},qfq"})
-    for attempt in range(3):
-        try:
-            request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"})
-            with urllib.request.urlopen(request, timeout=25) as response:
-                payload = json.load(response)
-            block = payload.get("data", {}).get(symbol, {})
-            rows = block.get("qfqday") or block.get("day") or []
-            parsed = []
-            for row in rows:
-                if len(row) < 5:
-                    continue
-                parsed.append({"date": str(row[0]), "open": safe_float(row[1]), "close": safe_float(row[2]), "high": safe_float(row[3]), "low": safe_float(row[4])})
-            parsed = sorted([x for x in parsed if math.isfinite(x["close"])], key=lambda x: x["date"])
-            if parsed:
-                return parsed
-        except Exception:
-            time.sleep(0.6 * (attempt + 1))
+    for host in ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn"):
+        url = f"https://{host}/appstock/app/fqkline/get?" + urllib.parse.urlencode({"param": f"{symbol},day,,,{count},qfq"})
+        for attempt in range(3):
+            try:
+                request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"})
+                with urllib.request.urlopen(request, timeout=25) as response:
+                    payload = json.load(response)
+                block = payload.get("data", {}).get(symbol, {})
+                rows = block.get("qfqday") or block.get("day") or []
+                parsed = []
+                for row in rows:
+                    if len(row) < 5:
+                        continue
+                    parsed.append({"date": str(row[0]), "open": safe_float(row[1]), "close": safe_float(row[2]), "high": safe_float(row[3]), "low": safe_float(row[4])})
+                parsed = sorted([x for x in parsed if math.isfinite(x["close"])], key=lambda x: x["date"])
+                if parsed:
+                    return parsed
+            except Exception:
+                time.sleep(0.6 * (attempt + 1))
     return []
 
 

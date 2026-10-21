@@ -185,28 +185,37 @@ def parse_stock_api_rows(payload: Any, item: dict[str, str], now: datetime | Non
 
 def fetch_tencent_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
     symbol = ("sh" if item["market"] == "XSHG" else "sz") + item["code"]
-    url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count},qfq"
-    for attempt in range(3):
-        try:
-            request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(request, timeout=30) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-            data = payload.get("data") or {}
-            if not data or data == "":
+    last_error: Exception | None = None
+    parsed_empty = False
+    # `web.ifzq.gtimg.cn` 间歇性返 HTTP 501（WAF），`ifzq.gtimg.cn` 同一时刻正常。
+    for host in ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn"):
+        url = f"https://{host}/appstock/app/fqkline/get?param={symbol},day,,,{count},qfq"
+        for attempt in range(3):
+            try:
+                request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                data = payload.get("data") or {}
+                if not data or data == "":
+                    if attempt < 2:
+                        time.sleep(1 * (attempt + 1))
+                        continue
+                    parsed_empty = True
+                    break
+                node = data.get(symbol) or {}
+                raw_rows = node.get("qfqday") or node.get("day") or []
+                normalized = [{"date": row[0], "open": row[1], "close": row[2], "high": row[3], "low": row[4], "volume": row[5]}
+                              for row in raw_rows if isinstance(row, list) and len(row) >= 6]
+                return parse_stock_api_rows(normalized, item, source="tencent")
+            except Exception as exc:  # noqa: BLE001 - host fallback below
+                last_error = exc
                 if attempt < 2:
                     time.sleep(1 * (attempt + 1))
-                    continue
-                return []
-            node = data.get(symbol) or {}
-            raw_rows = node.get("qfqday") or node.get("day") or []
-            normalized = [{"date": row[0], "open": row[1], "close": row[2], "high": row[3], "low": row[4], "volume": row[5]}
-                          for row in raw_rows if isinstance(row, list) and len(row) >= 6]
-            return parse_stock_api_rows(normalized, item, source="tencent")
-        except Exception:
-            if attempt < 2:
-                time.sleep(1 * (attempt + 1))
-            else:
-                raise
+    if parsed_empty:
+        # 业务级空响应 = 该标的当前无 K 线，不是传输故障；保持调用方原有的空列表语义。
+        return []
+    if last_error:
+        raise last_error
     return []
 
 

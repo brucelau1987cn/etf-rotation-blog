@@ -273,29 +273,54 @@ def fetch_macro_observations() -> dict[str, list[dict[str, Any]]]:
     return output
 
 
+TENCENT_KLINE_HOSTS = ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn")
+
+
 def fetch_tencent_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
-    url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={symbol},day,,,{count},qfq"
-    payload = fetch_json(url)
-    node = (payload.get("data") or {}).get(symbol) or {}
-    rows = node.get("qfqday") or node.get("day") or []
-    bars = []
-    for row in rows:
-        if not isinstance(row, (list, tuple)) or len(row) < 5:
-            continue
+    """QFQ daily bars from Tencent, trying both known hosts.
+
+    Host note (2026-10-21): `web.ifzq.gtimg.cn` answers HTTP 501 (WAF) for
+    stretches of the day while `ifzq.gtimg.cn` keeps serving the same payload.
+    A single hardcoded host turns an intermittent WAF into a total factor
+    outage: every rates/overseas proxy fails at once and headwind_level silently
+    collapses (3 -> 1) mid-stage. Try the working host first, fall back to the
+    legacy one.
+    """
+    last_error: Any = "unknown"
+    parsed_payload = False
+    for host in TENCENT_KLINE_HOSTS:
+        url = f"https://{host}/appstock/app/fqkline/get?param={symbol},day,,,{count},qfq"
         try:
-            bars.append(
-                {
-                    "date": str(row[0])[:10],
-                    "open": float(row[1]),
-                    "close": float(row[2]),
-                    "high": float(row[3]),
-                    "low": float(row[4]),
-                    "volume": float(row[5]) if len(row) > 5 else None,
-                }
-            )
-        except (TypeError, ValueError):
+            payload = fetch_json(url)
+        except Exception as exc:  # noqa: BLE001 - host fallback, not a hard failure
+            last_error = f"{type(exc).__name__}: {exc}"
             continue
-    return bars
+        parsed_payload = True
+        node = (payload.get("data") or {}).get(symbol) or {}
+        rows = node.get("qfqday") or node.get("day") or []
+        bars = []
+        for row in rows:
+            if not isinstance(row, (list, tuple)) or len(row) < 5:
+                continue
+            try:
+                bars.append(
+                    {
+                        "date": str(row[0])[:10],
+                        "open": float(row[1]),
+                        "close": float(row[2]),
+                        "high": float(row[3]),
+                        "low": float(row[4]),
+                        "volume": float(row[5]) if len(row) > 5 else None,
+                    }
+                )
+            except (TypeError, ValueError):
+                continue
+        if bars:
+            return bars
+        last_error = f"empty bars from {host}"
+    if parsed_payload:
+        return []
+    raise RuntimeError(f"tencent fqkline unavailable for {symbol}: {last_error}")
 
 
 def ret_from_bars(bars: list[dict[str, Any]], days: int) -> float | None:

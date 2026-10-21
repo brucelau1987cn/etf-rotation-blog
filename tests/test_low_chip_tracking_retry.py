@@ -113,7 +113,7 @@ def test_tencent_daily_fails_with_explicit_upstream_error_after_retry_budget():
             sleeper=sleeps.append,
         )
 
-    assert sleeps == [1.0, 2.0, 5.0]
+    assert sleeps == [1.0, 2.0, 5.0, 1.0, 2.0, 5.0]
 
 
 def test_tencent_daily_retries_empty_or_malformed_bar_payload():
@@ -541,8 +541,9 @@ def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypa
 
 
 def test_tencent_daily_fails_fast_on_gateway_rejection():
-    """501/403 是网关/WAF 拒绝，不是瞬时故障：必须立刻失败并交给备用源，
-    不能按 1s/2s/5s 空转三轮（否则 200+ 只标的的追踪步骤必然超时）。"""
+    """501/403 是网关/WAF 拒绝，不是瞬时故障：每个 host 只撞一次就换下一个，
+    两个 host 都拒后立刻失败交给备用源，不能按 1s/2s/5s 空转三轮
+    （否则 200+ 只标的的追踪步骤必然超时）。"""
     module = load_module()
     calls = []
     sleeps = []
@@ -556,8 +557,11 @@ def test_tencent_daily_fails_fast_on_gateway_rejection():
             "000012.SZ", "2026-08-19", "2026-08-20",
             opener=opener, sleeper=sleeps.append,
         )
-    assert len(calls) == 1
+    # 双 host 各一次；WAF 拒绝不做退避空转
+    assert len(calls) == 2
     assert sleeps == []
+    assert any("web.ifzq.gtimg.cn" in url for url in calls)
+    assert any("web.ifzq.gtimg.cn" not in url for url in calls)
 
 
 def test_tencent_daily_still_retries_transient_transport_error():
@@ -575,5 +579,5 @@ def test_tencent_daily_still_retries_transient_transport_error():
             "000012.SZ", "2026-08-19", "2026-08-20",
             opener=opener, sleeper=sleeps.append,
         )
-    assert len(calls) == 4
-    assert sleeps == [1.0, 2.0, 5.0]
+    assert len(calls) == 8
+    assert sleeps == [1.0, 2.0, 5.0, 1.0, 2.0, 5.0]

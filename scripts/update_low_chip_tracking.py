@@ -53,6 +53,11 @@ MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记�
 MAX_TRACK_BARS = 20  # 加入后统计窗口：最多 20 个交易日；不足按实际天数
 MAX_STORED_BARS = MAX_TRACK_BARS + 1  # 加入日基准 + 加入后的 20 个交易日
 
+# 腾讯 fqkline 双 host：`web.ifzq.gtimg.cn` 会间歇性返 HTTP 501（WAF），
+# `ifzq.gtimg.cn` 同一时刻仍正常。单 host 硬编码会把间歇 WAF 变成整步失败
+# （追踪 K 线全池回退 BaoStock，慢一个量级）。
+TENCENT_KLINE_HOSTS = ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn")
+
 _SSL_CTX = ssl.create_default_context()
 _SSL_CTX.check_hostname = False
 _SSL_CTX.verify_mode = ssl.CERT_NONE
@@ -160,51 +165,54 @@ def tencent_daily(
     retry_delays = (1.0, 2.0, 5.0)
     last_error = "unknown response"
     payload = None
-    for attempt in range(len(retry_delays) + 1):
-        try:
-            # Empty end is required for latest-bar inclusion; count caps payload size.
-            # 640 keeps full history since first_seen for any reasonable tracking window.
-            r_nonce = f"{random.random():.6f}"
-            url = (
-                f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
-                f"r={r_nonce}&param={ex}{code},day,{start},,640,qfq"
-            )
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with open_request(req, timeout=20) as response:
-                raw_bytes = response.read()
-                if b"=" in raw_bytes and raw_bytes.strip().startswith((b"v_", b"kline_")):
-                    raw_bytes = raw_bytes.split(b"=", 1)[1]
-                decoded = json.loads(raw_bytes)
-            business_code = decoded.get("code") if isinstance(decoded, dict) else None
-            message = decoded.get("msg") if isinstance(decoded, dict) else "invalid JSON root"
-            raw_data = decoded.get("data") if isinstance(decoded, dict) else None
-            symbol_data = raw_data.get(f"{ex}{code}") if isinstance(raw_data, dict) else None
-            candidate_bars = None
-            if isinstance(symbol_data, dict):
-                candidate_bars = symbol_data.get("qfqday") or symbol_data.get("day")
-            valid_rows = [row for row in candidate_bars if _valid_tencent_row(row)] if isinstance(candidate_bars, list) else []
-            in_window_rows = [
-                row for row in valid_rows
-                if (not start or str(row[0]) >= start) and (not end or str(row[0]) <= end)
-            ]
-            valid_bars = bool(in_window_rows)
-            if business_code == 0 and valid_bars:
-                payload = symbol_data
-                break
-            last_error = (
-                f"code={business_code}, msg={message!s}, data_type={type(raw_data).__name__}, "
-                f"bars_type={type(candidate_bars).__name__}"
-            )
-        except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, http.client.HTTPException, OSError) as exc:
-            last_error = f"{type(exc).__name__}: {exc}"
-            # 网关/WAF 直接拒绝（非瞬时故障，重试无意义且每次 8s）：立即让出给
-            # BaoStock 备用源，避免 200+ 只标的逐个空转把整条追踪步骤拖到超时。
-            if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403, 405, 501):
-                break
-        if attempt < len(retry_delays):
-            sleeper(retry_delays[attempt])
+    for host in TENCENT_KLINE_HOSTS:
+        for attempt in range(len(retry_delays) + 1):
+            try:
+                # Empty end is required for latest-bar inclusion; count caps payload size.
+                # 640 keeps full history since first_seen for any reasonable tracking window.
+                r_nonce = f"{random.random():.6f}"
+                url = (
+                    f"https://{host}/appstock/app/fqkline/get?"
+                    f"r={r_nonce}&param={ex}{code},day,{start},,640,qfq"
+                )
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with open_request(req, timeout=20) as response:
+                    raw_bytes = response.read()
+                    if b"=" in raw_bytes and raw_bytes.strip().startswith((b"v_", b"kline_")):
+                        raw_bytes = raw_bytes.split(b"=", 1)[1]
+                    decoded = json.loads(raw_bytes)
+                business_code = decoded.get("code") if isinstance(decoded, dict) else None
+                message = decoded.get("msg") if isinstance(decoded, dict) else "invalid JSON root"
+                raw_data = decoded.get("data") if isinstance(decoded, dict) else None
+                symbol_data = raw_data.get(f"{ex}{code}") if isinstance(raw_data, dict) else None
+                candidate_bars = None
+                if isinstance(symbol_data, dict):
+                    candidate_bars = symbol_data.get("qfqday") or symbol_data.get("day")
+                valid_rows = [row for row in candidate_bars if _valid_tencent_row(row)] if isinstance(candidate_bars, list) else []
+                in_window_rows = [
+                    row for row in valid_rows
+                    if (not start or str(row[0]) >= start) and (not end or str(row[0]) <= end)
+                ]
+                valid_bars = bool(in_window_rows)
+                if business_code == 0 and valid_bars:
+                    payload = symbol_data
+                    break
+                last_error = (
+                    f"{host}: code={business_code}, msg={message!s}, data_type={type(raw_data).__name__}, "
+                    f"bars_type={type(candidate_bars).__name__}"
+                )
+            except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, http.client.HTTPException, OSError) as exc:
+                last_error = f"{host}: {type(exc).__name__}: {exc}"
+                # 网关/WAF 直接拒绝（非瞬时故障，重试无意义且每次 8s）：立即换 host，
+                # 两个 host 都被拒再让出给 BaoStock 备用源，避免 200+ 只标的逐个空转。
+                if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403, 405, 501):
+                    break
+            if attempt < len(retry_delays):
+                sleeper(retry_delays[attempt])
+        if payload is not None:
+            break
     if payload is None:
-        raise RuntimeError(f"Tencent fqkline unavailable for {symbol} after 4 attempts: {last_error}")
+        raise RuntimeError(f"Tencent fqkline unavailable for {symbol} on all hosts: {last_error}")
 
     kl = payload.get("qfqday") or payload.get("day") or []
     bars = []
