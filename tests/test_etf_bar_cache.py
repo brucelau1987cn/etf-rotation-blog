@@ -273,15 +273,18 @@ def test_cf_baostock_batch_requests_complete_contract_and_maps_rows():
     )
 
     assert len(client.calls) == 1
+    # `turn` is deliberately absent from the requested fields: BaoStock reports
+    # an empty turnover on a symbol's first trading day, the CF gateway rejects
+    # empty numeric fields, and `turn` is not a column in daily_bars anyway.
     assert client.calls[0] == (
         ["510050.SH", "159915.SZ"], "2026-09-09", "2026-09-15",
-        ["date", "open", "high", "low", "close", "volume", "amount", "turn", "tradestatus"],
+        ["date", "open", "high", "low", "close", "volume", "amount", "tradestatus"],
     )
     assert result["159915"] == []
     assert result["510050"] == [{
         "market": "XSHG", "symbol": "510050", "trade_date": "2026-09-14",
         "open": 2.8, "high": 2.9, "low": 2.75, "close": 2.88,
-        "volume": 1000.0, "amount": 2880.0, "turn": 1.2, "tradestatus": "1",
+        "volume": 1000.0, "amount": 2880.0, "tradestatus": "1",
         "adjustment": "qfq", "source": "cf-baostock", "is_final": True,
     }]
 
@@ -311,10 +314,16 @@ def test_cf_baostock_rejects_incomplete_or_nonfinite_active_rows():
 
     complete = {
         "date": "2026-09-14", "open": "2.8", "high": "2.9", "low": "2.7",
-        "close": "2.85", "volume": "100", "amount": "285", "turn": "1",
+        "close": "2.85", "volume": "100", "amount": "285",
         "tradestatus": "1",
     }
-    for bad in ({k: v for k, v in complete.items() if k != "amount"}, {**complete, "turn": "nan"}):
+    # `turn` is no longer requested (BaoStock leaves it empty on a symbol's
+    # first trading day and the CF gateway rejects empty numerics), so the
+    # non-finite case is exercised on a field the cache does persist.
+    for bad in (
+        {k: v for k, v in complete.items() if k != "amount"},
+        {**complete, "close": "nan"},
+    ):
         with pytest.raises(RuntimeError, match="invalid row"):
             importer.fetch_cf_baostock_batch(
                 [item], 3, client=Client(bad),
@@ -327,7 +336,7 @@ def test_cf_baostock_backfill_splits_at_five_and_repairs_failed_batch(monkeypatc
     items = [{"code": f"1599{index:02d}", "market": "XSHE"} for index in range(6)]
     calls = []
 
-    def fetch(batch, count, *, client=None, now=None):
+    def fetch(batch, count, *, client=None, now=None, db=None):
         calls.append([item["code"] for item in batch])
         if len(batch) > 1:
             raise RuntimeError("batch failed")
@@ -354,7 +363,7 @@ def test_backfill_uses_local_baostock_for_symbols_cf_cannot_fill(monkeypatch):
     local_rows = [{"symbol": "159915", "source": "local-baostock"}]
     monkeypatch.setattr(
         importer, "fetch_cf_baostock_backfill",
-        lambda items, count, client=None: (cf_rows, {"510050"}, ["singleton 159915: CF down"]),
+        lambda items, count, client=None, db=None: (cf_rows, {"510050"}, ["singleton 159915: CF down"]),
     )
     calls = []
 
@@ -421,3 +430,192 @@ def test_short_history_symbols_are_selected_for_backfill(tmp_path):
                           "close": 3.0, "adjustment": "qfq", "source": "iwencai", "is_final": True}])
         selected = importer.symbols_needing_backfill(db, universe, minimum=2)
     assert [item["code"] for item in selected] == ["510050", "159915"]
+
+
+def test_newly_listed_symbol_is_exempt_from_impossible_backfill_minimum(tmp_path):
+    """A symbol listed after the minimum window can never satisfy it.
+
+    560710 listed 2026-02-06 and can reach at most ~180 trading days, so a
+    260-bar minimum is structurally impossible for it. Selecting it every night
+    re-enters the backfill branch forever.
+    """
+    importer = load_importer(); db_path = tmp_path / "bars.db"
+    universe = [{"code": "560710", "market": "XSHG"}, {"code": "600021", "market": "XSHG"}]
+    with connect(db_path) as db:
+        upsert_bars(db, [
+            {"market": "XSHG", "symbol": "560710", "trade_date": "2026-02-06",
+             "close": 0.99, "adjustment": "qfq", "source": "tencent", "is_final": True},
+            # 600021 has traded for years; its stored history is only a stub.
+            {"market": "XSHG", "symbol": "600021", "trade_date": "2015-01-05",
+             "close": 19.5, "adjustment": "qfq", "source": "tencent", "is_final": True},
+        ])
+        selected = importer.symbols_needing_backfill(
+            db, universe, minimum=260, today="2026-10-21",
+        )
+    # 560710 listed 2026-02-06, only ~257 calendar days ago: it cannot reach
+    # 260 trading days yet, so requiring a backfill is impossible.
+    assert [item["code"] for item in selected] == ["600021"]
+
+
+def test_backfill_minimum_still_applies_to_established_symbols(tmp_path):
+    """A long-listed symbol with too few bars is still selected for backfill."""
+    importer = load_importer(); db_path = tmp_path / "bars.db"
+    universe = [{"code": "600021", "market": "XSHG"}]
+    with connect(db_path) as db:
+        upsert_bars(db, [{"market": "XSHG", "symbol": "600021", "trade_date": "2015-01-05",
+                          "close": 19.5, "adjustment": "qfq", "source": "tencent", "is_final": True}])
+        selected = importer.symbols_needing_backfill(
+            db, universe, minimum=260, today="2026-10-21",
+        )
+    assert [item["code"] for item in selected] == ["600021"]
+
+
+def test_stale_calendar_does_not_exempt_a_thin_cache_symbol(tmp_path):
+    """A calendar that stopped days ago must not mark sparse symbols complete.
+
+    The completeness test compares a symbol's stored bars against the trading
+    calendar the cache itself records. When that calendar is stale, the
+    comparison would be made against a window that ended weeks ago, so a
+    symbol with one stored bar would look "complete" and be exempted from the
+    backfill it needs. This is the failure mode that let the nightly chain
+    silently stop repairing thin histories.
+
+    A symbol listed only a few days ago is still exempt: it structurally
+    cannot reach the minimum (trading days never exceed calendar days).
+    """
+    importer = load_importer()
+    db_path = tmp_path / "bars.db"
+    universe = [
+        {"code": "600021", "market": "XSHG"},   # long listed, thin cache
+        {"code": "560710", "market": "XSHG"},   # listed 5 days ago
+    ]
+    with connect(db_path) as db:
+        upsert_bars(db, [
+            {"market": "XSHG", "symbol": "600021", "trade_date": "2015-01-05",
+             "close": 19.5, "adjustment": "qfq", "source": "tencent", "is_final": True},
+            {"market": "XSHG", "symbol": "560710", "trade_date": "2026-10-16",
+             "close": 0.99, "adjustment": "qfq", "source": "tencent", "is_final": True},
+        ])
+        selected = importer.symbols_needing_backfill(
+            db, universe, minimum=260, today="2026-10-21",
+        )
+    codes = [item["code"] for item in selected]
+    assert "600021" in codes, "陈旧日历不能把稀疏标的豁免掉"
+    assert "560710" not in codes, "上市仅数日的标的仍然应当豁免"
+
+
+def test_fresh_calendar_exempts_a_symbol_holding_every_trading_day(tmp_path):
+    """With a fresh calendar, a symbol complete for all its days is exempt."""
+    importer = load_importer()
+    db_path = tmp_path / "bars.db"
+    universe = [{"code": "600021", "market": "XSHG"}]
+    days = ["2026-10-16", "2026-10-19", "2026-10-20", "2026-10-21"]
+    with connect(db_path) as db:
+        upsert_bars(db, [
+            {"market": "XSHG", "symbol": "600021", "trade_date": day,
+             "close": 19.5, "adjustment": "qfq", "source": "tencent", "is_final": True}
+            for day in days
+        ])
+        selected = importer.symbols_needing_backfill(
+            db, universe, minimum=2, today="2026-10-21",
+        )
+    assert selected == [], "已覆盖全部交易日的标的不应再回填"
+
+
+def test_cf_window_never_reaches_before_the_first_known_trading_day(tmp_path):
+    """The CF gateway 502s on pre-listing windows, so the request must start
+    at the first day the symbol actually traded."""
+    importer = load_importer(); db_path = tmp_path / "bars.db"
+    item = {"code": "560710", "market": "XSHG"}
+    with connect(db_path) as db:
+        upsert_bars(db, [{"market": "XSHG", "symbol": "560710", "trade_date": "2026-02-06",
+                          "close": 0.99, "adjustment": "qfq", "source": "tencent", "is_final": True}])
+        start, end = importer._cf_date_range_for(
+            320, datetime(2026, 10, 21, tzinfo=ZoneInfo("Asia/Shanghai")), db=db, items=[item],
+        )
+    assert start == "2026-02-06"
+    assert end == "2026-10-21"
+
+
+def test_cf_window_falls_back_to_calendar_window_without_db_hint(tmp_path):
+    importer = load_importer(); db_path = tmp_path / "bars.db"
+    item = {"code": "560710", "market": "XSHG"}
+    with connect(db_path) as db:
+        start, end = importer._cf_date_range_for(
+            320, datetime(2026, 9, 15, tzinfo=ZoneInfo("Asia/Shanghai")), db=db, items=[item],
+        )
+    assert start == "2024-12-14"
+    assert end == "2026-09-15"
+
+
+def test_local_baostock_socket_has_a_finite_timeout(monkeypatch):
+    """A blocking socket can hang the whole 480s stage budget on upstream wobble."""
+    importer = load_importer()
+    captured = {}
+
+    class FakeSocket:
+        def settimeout(self, value):
+            captured["timeout"] = value
+
+        def gettimeout(self):
+            return captured.get("timeout")
+
+    fake_context = types.SimpleNamespace(default_socket=FakeSocket())
+
+    class Result:
+        error_code = "0"
+        error_msg = ""
+
+        def __init__(self):
+            self.rows = iter([["2026-09-14", "sh.510050", "2.8", "2.9", "2.7", "2.85", "100", "285"]])
+
+        def next(self):
+            try:
+                self.row = next(self.rows)
+                return True
+            except StopIteration:
+                return False
+
+        def get_row_data(self):
+            return self.row
+
+    fake = types.SimpleNamespace(
+        login=lambda: types.SimpleNamespace(error_code="0", error_msg=""),
+        logout=lambda: None,
+        query_history_k_data_plus=lambda *a, **k: Result(),
+    )
+    monkeypatch.setitem(sys.modules, "baostock", fake)
+    monkeypatch.setitem(sys.modules, "baostock.common.context", fake_context)
+    rows = importer.fetch_baostock_history({"code": "510050", "market": "XSHG"}, 5)
+    assert rows[0]["source"] == "local-baostock"
+    assert captured["timeout"] is not None
+    assert captured["timeout"] > 0
+
+
+def test_cache_stage_loads_cf_credentials_from_credential_file(monkeypatch, tmp_path):
+    """The cache stage runs with a bare environment, so it must load the
+    CF BaoStock credentials itself or the edge gateway is unreachable."""
+    importer = load_importer()
+    env_file = tmp_path / "baostock-edge.env"
+    env_file.write_text(
+        "CF_BAOSTOCK_BASE_URL=https://example.test\n"
+        "CF_BAOSTOCK_TOKEN=secret-token\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("CF_BAOSTOCK_BASE_URL", raising=False)
+    monkeypatch.delenv("CF_BAOSTOCK_TOKEN", raising=False)
+    monkeypatch.delenv("CF_BAOSTOCK_DISABLE_CREDENTIAL_FILE", raising=False)
+    assert importer.load_cf_credentials(env_file) is True
+    assert importer.os.environ["CF_BAOSTOCK_BASE_URL"] == "https://example.test"
+    assert importer.os.environ["CF_BAOSTOCK_TOKEN"] == "secret-token"
+
+
+def test_cache_stage_credential_loader_keeps_unit_tests_offline(monkeypatch, tmp_path):
+    importer = load_importer()
+    env_file = tmp_path / "baostock-edge.env"
+    env_file.write_text("CF_BAOSTOCK_BASE_URL=https://example.test\n", encoding="utf-8")
+    monkeypatch.delenv("CF_BAOSTOCK_BASE_URL", raising=False)
+    monkeypatch.delenv("CF_BAOSTOCK_TOKEN", raising=False)
+    monkeypatch.setenv("CF_BAOSTOCK_DISABLE_CREDENTIAL_FILE", "1")
+    assert importer.load_cf_credentials(env_file) is False
+    assert "CF_BAOSTOCK_BASE_URL" not in importer.os.environ

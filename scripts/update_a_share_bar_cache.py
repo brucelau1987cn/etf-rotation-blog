@@ -9,12 +9,14 @@ import importlib.util
 import io
 import json
 import math
+import os
 import re
 import sqlite3
 import subprocess
+import sys
 import time
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -33,7 +35,50 @@ FIELD_RE = re.compile(r"^(?:基金@)?(开盘价|最高价|最低价|收盘价|�
 FIELD_MAP = {"开盘价": "open", "最高价": "high", "最低价": "low", "收盘价": "close", "成交量": "volume", "成交额": "amount"}
 CN = ZoneInfo("Asia/Shanghai")
 STOCK_API_PACKAGE = "stock-api@2.7.3"
-CF_BAR_FIELDS = "date,open,high,low,close,volume,amount,turn,tradestatus"
+CF_BAR_FIELDS = "date,open,high,low,close,volume,amount,tradestatus"
+CF_BAOSTOCK_ENV = Path("/root/.hermes/credentials/baostock-edge.env")
+CF_CREDENTIAL_KEYS = ("CF_BAOSTOCK_BASE_URL", "CF_BAOSTOCK_TOKEN")
+# BaoStock's own socket has no timeout, so a stuck upstream read would block
+# forever and burn the whole nightly stage budget. Keep it finite.
+LOCAL_BAOSTOCK_SOCKET_TIMEOUT = 30.0
+# The completeness test compares a symbol's stored bars against the trading
+# calendar the cache itself records. That calendar is only meaningful while
+# it is fresh; a calendar that stopped days ago would exempt the very
+# thin-cache symbols the nightly backfill exists to repair.
+MAX_CALENDAR_STALENESS_DAYS = 7
+# The CF gateway rejects a row whose numeric field is empty, and BaoStock
+# reports an empty `turn` on a symbol's very first trading day. `turn` is not
+# persisted in daily_bars, so the cache does not need it from the gateway.
+
+
+def load_cf_credentials(path: Path = CF_BAOSTOCK_ENV) -> bool:
+    """Export the CF BaoStock credentials the edge gateway depends on.
+
+    The nightly cache stage runs with a bare environment, so without this the
+    edge gateway is unreachable and every backfill falls through to the local
+    BaoStock client, whose socket has no timeout.
+
+    ``CF_BAOSTOCK_DISABLE_CREDENTIAL_FILE`` keeps host credentials out of unit
+    tests, which must never reach a real provider through this helper.
+    """
+    if os.environ.get(CF_CREDENTIAL_KEYS[0]) and os.environ.get(CF_CREDENTIAL_KEYS[1]):
+        return True
+    if os.environ.get("CF_BAOSTOCK_DISABLE_CREDENTIAL_FILE") == "1":
+        return False
+    if not path.exists():
+        return False
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.removeprefix("export ").split("=", 1)
+            key = key.strip()
+            if key in CF_CREDENTIAL_KEYS:
+                os.environ[key] = value.strip().strip('"').strip("'")
+    except OSError:
+        return False
+    return bool(os.environ.get(CF_CREDENTIAL_KEYS[0]) and os.environ.get(CF_CREDENTIAL_KEYS[1]))
 
 
 def valid_ohlc(bar: dict[str, Any]) -> bool:
@@ -165,7 +210,7 @@ def fetch_tencent_history(item: dict[str, str], count: int) -> list[dict[str, An
     return []
 
 
-def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, Any]]:
+def fetch_baostock_history(item: dict[str, Any], count: int) -> list[dict[str, Any]]:
     """Fetch qfq history from a local BaoStock installation."""
     import baostock as bs  # type: ignore[import-not-found]
 
@@ -175,6 +220,7 @@ def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, A
         if getattr(login, "error_code", "1") != "0":
             raise RuntimeError(f"BaoStock login failed: {getattr(login, 'error_msg', 'unknown error')}")
         try:
+            _apply_local_baostock_socket_timeout(bs)
             rs = bs.query_history_k_data_plus(
                 market_code,
                 "date,code,open,high,low,close,volume,amount",
@@ -196,6 +242,32 @@ def fetch_baostock_history(item: dict[str, str], count: int) -> list[dict[str, A
             bs.logout()
 
 
+def _apply_local_baostock_socket_timeout(bs: Any) -> None:
+    """Give the local BaoStock socket a finite timeout.
+
+    BaoStock opens its socket without a timeout, so a stalled upstream read
+    blocks forever. In the nightly chain that consumes the entire stage
+    budget and fails the whole publish. Bound it and let the caller observe a
+    normal timeout error instead.
+    """
+    context_module = sys.modules.get("baostock.common.context")
+    if context_module is None:
+        try:
+            from baostock.common import context as context_module
+        except ImportError:
+            return
+    socket_obj = getattr(context_module, "default_socket", None)
+    if socket_obj is None:
+        return
+    setter = getattr(socket_obj, "settimeout", None)
+    if not callable(setter):
+        return
+    try:
+        setter(LOCAL_BAOSTOCK_SOCKET_TIMEOUT)
+    except OSError:
+        pass
+
+
 def cf_symbol(item: dict[str, str]) -> str:
     suffix = "SH" if item["market"] == "XSHG" else "SZ"
     return f"{item['code']}.{suffix}"
@@ -205,6 +277,67 @@ def _cf_date_range(count: int, end: datetime) -> tuple[str, str]:
     if count < 1:
         raise ValueError("history count must be positive")
     return (end.date() - timedelta(days=count * 2)).isoformat(), end.date().isoformat()
+
+
+def first_known_trading_day(db: sqlite3.Connection, items: list[dict[str, Any]]) -> str | None:
+    """Earliest qfq trading day already stored for the given symbols."""
+    codes = [str(item["code"]) for item in items]
+    if not codes:
+        return None
+    placeholders = ",".join("?" for _ in codes)
+    row = db.execute(
+        f"SELECT min(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 "
+        f"AND symbol IN ({placeholders})",
+        tuple(codes),
+    ).fetchone()
+    if not row or not row[0]:
+        return None
+    return str(row[0])
+
+
+def first_known_bar_day(db: sqlite3.Connection, items: list[dict[str, Any]]) -> str | None:
+    """Earliest stored bar of any adjustment for the given symbols.
+
+    This approximates the listing date: a symbol whose whole recorded history
+    starts recently cannot possibly have the long history the backfill
+    minimum demands.
+    """
+    codes = [str(item["code"]) for item in items]
+    if not codes:
+        return None
+    placeholders = ",".join("?" for _ in codes)
+    row = db.execute(
+        f"SELECT min(trade_date) FROM daily_bars WHERE symbol IN ({placeholders})",
+        tuple(codes),
+    ).fetchone()
+    if not row or not row[0]:
+        return None
+    return str(row[0])
+
+
+def _cf_date_range_for(
+    count: int, end: datetime, *, db: sqlite3.Connection | None = None,
+    items: list[dict[str, Any]] | None = None,
+) -> tuple[str, str]:
+    """Resolve the CF request window without reaching before the listing date.
+
+    The edge gateway rejects (502) any window that starts before a symbol
+    listed, so a blind ``count * 2`` look-back makes every newly listed symbol
+    fail its first CF window and fall back to the local BaoStock client.
+    Clamp the window to the first day the symbol actually traded.
+    """
+    start, end_date = _cf_date_range(count, end)
+    if db is None or not items:
+        return start, end_date
+    try:
+        first_day = first_known_trading_day(db, items)
+    except sqlite3.Error:
+        return start, end_date
+    if not first_day:
+        return start, end_date
+    if first_day > start:
+        return first_day, end_date
+    return start, end_date
 
 
 def _map_cf_rows(
@@ -231,14 +364,14 @@ def _map_cf_rows(
                 continue
             numeric: dict[str, float] = {}
             try:
-                for field in ("open", "high", "low", "close", "volume", "amount", "turn"):
+                for field in ("open", "high", "low", "close", "volume", "amount"):
                     numeric[field] = float(row[field])
             except (KeyError, TypeError, ValueError) as exc:
                 raise CFBaoStockError(f"CF BaoStock invalid row for {item['code']}") from exc
             if (
                 not all(math.isfinite(value) for value in numeric.values())
                 or any(numeric[field] <= 0 for field in ("open", "high", "low", "close"))
-                or any(numeric[field] < 0 for field in ("volume", "amount", "turn"))
+                or any(numeric[field] < 0 for field in ("volume", "amount"))
                 or numeric["high"] < max(numeric["open"], numeric["close"])
                 or numeric["low"] > min(numeric["open"], numeric["close"])
             ):
@@ -252,8 +385,8 @@ def _map_cf_rows(
 
 
 def fetch_cf_baostock_batch(
-    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
-    now: datetime | None = None,
+    items: list[dict[str, Any]], count: int, *, client: CFBaoStockClient | None = None,
+    now: datetime | None = None, db: sqlite3.Connection | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     if not items or len(items) > MAX_KLINE_SYMBOLS:
         raise ValueError(f"CF BaoStock batch requires 1 to at most {MAX_KLINE_SYMBOLS} symbols")
@@ -261,7 +394,7 @@ def fetch_cf_baostock_batch(
     gateway = client or CFBaoStockClient.from_env()
     symbols = [cf_symbol(item) for item in items]
     fields = [str(field) for field in CF_BAR_FIELDS.split(",")]
-    start, end = _cf_date_range(count, current)
+    start, end = _cf_date_range_for(count, current, db=db, items=items)
     rows_by_symbol = gateway.klines(symbols, start, end, fields=fields)
     return _map_cf_rows(rows_by_symbol, items, current)
 
@@ -273,17 +406,18 @@ def fetch_cf_baostock_history(
 
 
 def fetch_cf_baostock_backfill(
-    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
+    items: list[dict[str, Any]], count: int, *, client: CFBaoStockClient | None = None,
+    db: sqlite3.Connection | None = None,
 ) -> tuple[list[dict[str, Any]], set[str], list[str]]:
     gateway = client or CFBaoStockClient.from_env()
     bars: list[dict[str, Any]] = []
     succeeded: set[str] = set()
     errors: list[str] = []
-    failed_batches: list[list[dict[str, str]]] = []
+    failed_batches: list[list[dict[str, Any]]] = []
     for start in range(0, len(items), MAX_KLINE_SYMBOLS):
         batch = items[start:start + MAX_KLINE_SYMBOLS]
         try:
-            result = fetch_cf_baostock_batch(batch, count, client=gateway)
+            result = fetch_cf_baostock_batch(batch, count, client=gateway, db=db)
             for item in batch:
                 rows = result[item["code"]]
                 if rows:
@@ -295,7 +429,7 @@ def fetch_cf_baostock_backfill(
     for batch in failed_batches:
         for item in batch:
             try:
-                rows = fetch_cf_baostock_batch([item], count, client=gateway)[item["code"]]
+                rows = fetch_cf_baostock_batch([item], count, client=gateway, db=db)[item["code"]]
                 if rows:
                     bars.extend(rows)
                     succeeded.add(item["code"])
@@ -305,12 +439,12 @@ def fetch_cf_baostock_backfill(
 
 
 def fetch_baostock_backfill(
-    items: list[dict[str, str]], count: int, *, client: CFBaoStockClient | None = None,
-    workers: int = 4,
+    items: list[dict[str, Any]], count: int, *, client: CFBaoStockClient | None = None,
+    workers: int = 4, db: sqlite3.Connection | None = None,
 ) -> tuple[list[dict[str, Any]], set[str], list[str]]:
     """Backfill through CF first, then repair every unresolved symbol locally."""
     try:
-        bars, succeeded, errors = fetch_cf_baostock_backfill(items, count, client=client)
+        bars, succeeded, errors = fetch_cf_baostock_backfill(items, count, client=client, db=db)
         bars = list(bars)
         succeeded = set(succeeded)
         errors = list(errors)
@@ -375,11 +509,119 @@ def fetch_stock_api_history(item: dict[str, str], count: int) -> list[dict[str, 
     return rows or fetch_tencent_history(item, count)
 
 
-def symbols_needing_backfill(db: sqlite3.Connection, universe: list[dict[str, str]], minimum: int) -> list[dict[str, str]]:
+def symbols_needing_backfill(
+    db: sqlite3.Connection, universe: list[dict[str, Any]], minimum: int,
+    today: str | None = None,
+) -> list[dict[str, Any]]:
+    """Select symbols whose stored history is shorter than the minimum.
+
+    A symbol listed after the minimum-history window can never satisfy that
+    minimum (560710 listed 2026-02-06 and can reach at most ~166 trading
+    days against a 260-bar minimum). Selecting it every night re-enters the
+    backfill branch forever, which is what pushed the nightly chain into its
+    480s timeout.
+
+    Completeness is judged against the trading calendar the cache itself
+    records: the set of distinct qfq trading days present in the database. A
+    symbol is exempt only when it holds a bar for EVERY trading day on or
+    after its first stored day. That is an exact test of "this symbol's
+    history is complete for every day it has existed" — it cannot be
+    satisfied by a long-listed symbol whose cache is merely thin, and it
+    does not depend on an assumed trading-day density.
+    """
     counts = {row[0]: int(row[1]) for row in db.execute(
         "SELECT symbol,count(distinct trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 GROUP BY symbol"
     )}
-    return [item for item in universe if counts.get(item["code"], 0) < minimum]
+    short = [item for item in universe if counts.get(item["code"], 0) < minimum]
+    if not short or not today:
+        return short
+    try:
+        reference = datetime.fromisoformat(str(today)).date()
+    except ValueError:
+        return short
+    calendar = trading_calendar(db)
+    if not calendar:
+        return short
+    # The calendar is the union of the trading days the cache knows about. It
+    # can only judge completeness while it is fresh: a stale calendar would
+    # make every symbol look "complete" against a window that stopped weeks
+    # ago, which silently exempts exactly the thin-cache symbols we need to
+    # repair. When the calendar is stale we fall back to the rigorous bound
+    # below, which needs no calendar at all.
+    calendar_is_fresh = (reference - calendar[-1]).days <= MAX_CALENDAR_STALENESS_DAYS
+    first_days = {row[0]: row[1] for row in db.execute(
+        "SELECT symbol,min(trade_date) FROM daily_bars WHERE adjustment='qfq' AND is_final=1 GROUP BY symbol"
+    )}
+    eligible: list[dict[str, Any]] = []
+    for item in short:
+        code = str(item["code"])
+        first_day = first_days.get(code)
+        if not first_day:
+            eligible.append(item)
+            continue
+        try:
+            listed_on = datetime.fromisoformat(str(first_day)).date()
+        except ValueError:
+            eligible.append(item)
+            continue
+        if listed_on > reference:
+            eligible.append(item)
+            continue
+        # The "minimum is structurally impossible" exemption needs a calendar
+        # that actually spans the symbol's lifetime AND enough trading days in
+        # it to tell "the symbol is too young" from "the calendar is too
+        # short". Otherwise the count UNDERCOUNTS and a symbol gets exempted
+        # because the calendar is sparse rather than because its lifetime is
+        # genuinely too short — which is how a thin cache silently stopped
+        # being repaired.
+        #
+        # The number of trading days a symbol could possibly have is bounded
+        # by the days in the calendar that follow its listing date, but that
+        # bound is only tight when the calendar covers the whole span. A
+        # calendar-day bound is always safe: trading days never exceed
+        # calendar days. Use the calendar-day bound first, and only trust the
+        # trading-day count when the calendar demonstrably covers the symbol's
+        # whole life.
+        if (reference - listed_on).days < minimum:
+            # Listed fewer than `minimum` calendar days ago: structurally
+            # impossible to reach `minimum` trading days.
+            continue
+        if calendar_is_fresh and listed_on <= calendar[0] and len(calendar) >= minimum:
+            expected = sum(1 for day in calendar if day >= listed_on)
+            if expected < minimum:
+                # Even every trading day since listing falls short of the
+                # minimum: it is structurally impossible for this symbol.
+                continue
+            if counts.get(code, 0) >= expected:
+                # Holds a bar for every trading day on or after its first
+                # stored day: its history is complete for every day it has
+                # existed.
+                continue
+        eligible.append(item)
+    return eligible
+
+
+def trading_calendar(db: sqlite3.Connection) -> list[date]:
+    """Distinct qfq trading days already recorded in the cache, as dates.
+
+    The cache stores a bar for every formal symbol on every trading day, so
+    the distinct date set is the exchange trading calendar the cache knows
+    about. It is used to tell a genuinely short history (a recent listing)
+    apart from a merely thin cache.
+
+    Returns ``date`` objects, not strings: the caller compares these against a
+    symbol's first stored day, which is parsed to ``date``. Returning strings
+    raised ``TypeError: '>=' not supported between 'str' and 'datetime.date'``.
+    """
+    days: list[date] = []
+    for row in db.execute(
+        "SELECT DISTINCT trade_date FROM daily_bars WHERE adjustment='qfq' AND is_final=1"
+    ):
+        try:
+            days.append(datetime.fromisoformat(str(row[0])).date())
+        except (TypeError, ValueError):
+            continue
+    return sorted(days)
 
 
 def main() -> int:
@@ -395,6 +637,10 @@ def main() -> int:
                         help="qfq data source (default: tencent)")
     parser.add_argument("--workers", type=int, default=4, help="parallel workers for tencent source")
     args = parser.parse_args()
+    # The nightly stage runs with a bare environment, so the CF BaoStock edge
+    # gateway credentials must be loaded here or every backfill falls through
+    # to the local BaoStock client (whose socket has no timeout).
+    cf_credentials_ready = load_cf_credentials()
     full_universe = load_universe()
     wanted = {x.strip() for x in (args.symbols or "").split(",") if x.strip()}
     universe = [x for x in full_universe if not wanted or x["code"] in wanted]
@@ -462,10 +708,13 @@ def main() -> int:
     backfill_symbols: list[str] = []
     if args.backfill_days > 0 and args.source == "tencent":
         with connect(args.db) as db:
-            short_history = symbols_needing_backfill(db, universe, args.minimum_history)
-        backfill_bars, backfill_succeeded, backfill_errors = fetch_baostock_backfill(
-            short_history, args.backfill_days, workers=args.backfill_workers,
-        )
+            short_history = symbols_needing_backfill(
+                db, universe, args.minimum_history,
+                today=datetime.now(CN).date().isoformat(),
+            )
+            backfill_bars, backfill_succeeded, backfill_errors = fetch_baostock_backfill(
+                short_history, args.backfill_days, workers=args.backfill_workers, db=db,
+            )
         backfill_symbols = sorted(backfill_succeeded)
         all_bars.extend(backfill_bars)
 
@@ -500,6 +749,7 @@ def main() -> int:
               "failed": len(universe) - len(succeeded), "failed_symbols": failed_symbols,
               "bars_written": len(all_bars),
               "backfill_symbols": len(backfill_symbols), "backfill_errors": backfill_errors,
+              "cf_credentials_ready": cf_credentials_ready,
               "latency_ms": elapsed, "errors": errors}
     print(json.dumps(result, ensure_ascii=False))
     required = math.ceil(len(universe) * 0.90)
