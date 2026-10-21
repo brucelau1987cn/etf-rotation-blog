@@ -595,7 +595,7 @@ def symbols_needing_backfill(
             # Listed fewer than `minimum` calendar days ago: structurally
             # impossible to reach `minimum` trading days.
             continue
-        if calendar_is_fresh and listed_on <= calendar[0] and len(calendar) >= minimum:
+        if calendar_is_fresh and calendar[0] <= listed_on and len(calendar) >= minimum:
             expected = sum(1 for day in calendar if day >= listed_on)
             if expected < minimum:
                 # Even every trading day since listing falls short of the
