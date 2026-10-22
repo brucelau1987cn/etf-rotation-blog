@@ -344,3 +344,58 @@ def test_failed_coverage_keeps_the_previous_persisted_shadow(tmp_path, monkeypat
             workers=1, write_d1=False,
         )
     assert json.loads(output.read_text(encoding="utf-8")) == previous
+
+
+def test_post_metrics_chunks_at_the_server_limit(monkeypatch):
+    """The endpoint rejects more than MAX_METRICS (198) rows per request. This
+    module chunked at 250, so once the low-chip pool passed 198 rows every push
+    failed with HTTP 400 — on 2026-10-22 that broke the fundamental-shadow stage
+    and blocked the whole nightly chain plus the 22:30 publish."""
+    from scripts import a_share_fundamental_shadow as mod
+
+    assert mod.D1_MAX_METRICS == 198
+    sent = []
+
+    class _Resp:
+        def __init__(self, body):
+            self._body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return json.dumps(self._body).encode()
+
+    def fake_urlopen(request, timeout=120):
+        body = json.loads(request.data.decode())
+        sent.append(len(body["metrics"]))
+        assert len(body["metrics"]) <= 198, "chunk exceeds the endpoint limit"
+        assert body["preserve_existing"] is True
+        return _Resp({"ok": True, "inserted": len(body["metrics"])})
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+
+    metrics = [{"stock_code": f"{i:06d}", "trade_date": "20261022"} for i in range(291)]
+    assert mod.post_metrics("https://example.test/api", "tok", metrics) == 291
+    assert sent == [198, 93]
+
+
+def test_post_metrics_still_fails_closed_on_a_short_write(monkeypatch):
+    from scripts import a_share_fundamental_shadow as mod
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return json.dumps({"ok": True, "inserted": 1}).encode()
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda request, timeout=120: _Resp())
+    with pytest.raises(RuntimeError, match="D1 metric write incomplete"):
+        mod.post_metrics("https://example.test/api", "tok", [{"stock_code": "000001"}] * 5)

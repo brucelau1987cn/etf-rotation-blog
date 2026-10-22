@@ -173,6 +173,9 @@ DEFAULT_POOL = ROOT / "public/data/a-low-chip-stocks.json"
 DEFAULT_STATE = ROOT / "data/local/a-share-fundamental-shadow-state.json"
 DEFAULT_OUTPUT = ROOT / "data/local/a-share-fundamental-shadow-latest.json"
 DEFAULT_ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
+# Mirrors MAX_METRICS in functions/api/public/v1/low-chip-metrics.js: a D1 batch
+# holds at most 100 statements, and a replace batch reserves one for DELETE.
+D1_MAX_METRICS = 198
 BAOSTOCK_FIELDS = "date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM"
 
 
@@ -421,16 +424,22 @@ def observation_sessions(path: Path, trade_date: str) -> int:
 
 
 def post_metrics(endpoint: str, token: str, metrics: list[dict[str, Any]]) -> int:
+    # The endpoint rejects more than MAX_METRICS (198) rows per request because a
+    # D1 batch holds at most 100 statements. Chunking at 250 made every push fail
+    # once the low-chip pool grew past 198 (2026-10-22: 291 rows broke the
+    # fundamental-shadow stage with HTTP 400, which blocked the whole nightly
+    # chain and the 22:30 publish). Stay at the server's own limit.
     inserted = 0
-    for start in range(0, len(metrics), 250):
-        body = json.dumps({"metrics": metrics[start:start + 250], "preserve_existing": True}, ensure_ascii=False).encode("utf-8")
+    for start in range(0, len(metrics), D1_MAX_METRICS):
+        chunk = metrics[start:start + D1_MAX_METRICS]
+        body = json.dumps({"metrics": chunk, "preserve_existing": True}, ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(endpoint, data=body, headers={
             "Authorization": f"Bearer {token}", "Content-Type": "application/json",
             "User-Agent": "a-share-fundamental-shadow/1.0",
         })
         with urllib.request.urlopen(request, timeout=120) as response:
             payload = json.loads(response.read().decode("utf-8"))
-        expected = len(metrics[start:start + 250])
+        expected = len(chunk)
         confirmed = int(payload.get("inserted") or 0)
         if payload.get("ok") is not True or confirmed != expected:
             raise RuntimeError(f"D1 metric write incomplete: {confirmed}/{expected}")
