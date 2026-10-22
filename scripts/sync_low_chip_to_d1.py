@@ -27,7 +27,13 @@ DATA = ROOT / "public/data/a-low-chip-stocks.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
-BATCH_LIMIT = 198
+# The D1 endpoint chunks rows server-side (ROWS_PER_STMT=2 rows per statement,
+# STMTS_PER_BATCH=100 statements per batch, first batch gives one slot to the
+# DELETE), so it has no practical row ceiling. 198 was a client-side guess that
+# rejected a legitimate 291-row day before the request was even sent
+# (2026-10-22: broad selloff pushed the pool from 52 to 291). Keep a ceiling
+# only as a runaway guard, far above any real pool.
+BATCH_LIMIT = 5000
 
 
 def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> dict:
