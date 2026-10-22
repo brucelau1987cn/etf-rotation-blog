@@ -98,3 +98,68 @@ def test_max_pages_is_far_above_any_real_result_set():
     """The cap only bounds a runaway loop; a real selloff exceeds 1000 rows."""
     module = load_module()
     assert module.MAX_PAGES >= 100
+
+
+# ============ transient upstream failures are retried ============
+
+def test_fetch_retries_transient_ssl_failure_then_succeeds(monkeypatch, tmp_path):
+    """2026-10-22: iWenCai returned SSL DECRYPTION_FAILED_OR_BAD_RECORD_MAC
+    mid-pagination and killed the whole release. Per-page calls are idempotent."""
+    module = load_module()
+    attempts = []
+
+    class _Result:
+        def __init__(self, ok):
+            self.returncode = 0 if ok else 1
+            self.stdout = '{"datas": [], "has_more": false}' if ok else ""
+            self.stderr = "" if ok else '{"error": "[SSL: DECRYPTION_FAILED_OR_BAD_RECORD_MAC]"}'
+
+    def fake_run(*a, **k):
+        attempts.append(1)
+        return _Result(len(attempts) >= 3)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module.time, "sleep", lambda *_: None)
+    assert module.fetch("q", 1) == {"datas": [], "has_more": False}
+    assert len(attempts) == 3
+
+
+def test_fetch_does_not_retry_quota_exhaustion(monkeypatch):
+    """Quota/auth errors are terminal — retrying them just burns the key pool."""
+    module = load_module()
+    attempts = []
+
+    class _Result:
+        returncode = 1
+        stdout = ""
+        stderr = '{"error": "quota exhausted: code=113"}'
+
+    def fake_run(*a, **k):
+        attempts.append(1)
+        return _Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module.time, "sleep", lambda *_: None)
+    with pytest.raises(SystemExit):
+        module.fetch("q", 1)
+    assert len(attempts) == 1
+
+
+def test_fetch_gives_up_after_the_attempt_budget(monkeypatch):
+    module = load_module()
+    attempts = []
+
+    class _Result:
+        returncode = 1
+        stdout = ""
+        stderr = '{"error": "timed out"}'
+
+    def fake_run(*a, **k):
+        attempts.append(1)
+        return _Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module.time, "sleep", lambda *_: None)
+    with pytest.raises(SystemExit):
+        module.fetch("q", 1)
+    assert len(attempts) == module.FETCH_ATTEMPTS

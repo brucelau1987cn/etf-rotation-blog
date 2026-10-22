@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -56,25 +57,53 @@ PERIODS = [
 ]
 
 
+# Transient upstream failures seen from iWenCai: SSL DECRYPTION_FAILED_OR_BAD_RECORD_MAC,
+# "Remote end closed connection without response", and bare 429s. The per-page
+# call is idempotent, so retrying costs nothing but time. Quota exhaustion and
+# auth errors are terminal — retrying them just burns the pool.
+TRANSIENT_MARKERS = (
+    "DECRYPTION_FAILED",
+    "Remote end closed connection",
+    "Connection reset",
+    "timed out",
+    "Timeout",
+    "429",
+    "502",
+    "503",
+    "504",
+)
+FETCH_ATTEMPTS = 4
+FETCH_BACKOFF_S = 3.0
+
+
+def _is_transient(detail: str) -> bool:
+    return any(marker in detail for marker in TRANSIENT_MARKERS)
+
+
 def fetch(query, page):
     safe = query.replace("/", "_").replace(" ", "_")
     out = Path(f"/tmp/lc_q_{safe}_p{page}.json")
-    r = subprocess.run(
-        [
-            "/root/.hermes/scripts/iwencai-market-query",
-            "-q", query,
-            "--page", str(page),
-            "--limit", "100",
-            "--timeout", "90",
-        ],
-        capture_output=True, text=True, check=False,
-    )
-    if r.returncode != 0:
-        detail = (r.stderr or r.stdout or '').strip()
+    detail = ""
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        r = subprocess.run(
+            [
+                "/root/.hermes/scripts/iwencai-market-query",
+                "-q", query,
+                "--page", str(page),
+                "--limit", "100",
+                "--timeout", "90",
+            ],
+            capture_output=True, text=True, check=False,
+        )
+        if r.returncode == 0:
+            out.write_text(r.stdout, encoding="utf-8")
+            return json.loads(r.stdout)
+        detail = (r.stderr or r.stdout or "").strip()
         # 输出完整的短错误分类，便于区分额度耗尽、鉴权、限流和瞬时故障。
-        raise SystemExit(f"iWenCai error: {detail[:500]}")
-    out.write_text(r.stdout, encoding="utf-8")
-    return json.loads(r.stdout)
+        if not _is_transient(detail) or attempt == FETCH_ATTEMPTS:
+            raise SystemExit(f"iWenCai error: {detail[:500]}")
+        time.sleep(FETCH_BACKOFF_S * attempt)
+    raise SystemExit(f"iWenCai error: {detail[:500]}")
 
 
 def paginate(query):
