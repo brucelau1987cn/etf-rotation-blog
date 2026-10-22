@@ -193,7 +193,9 @@ def push(payload: dict, *, dry_run: bool = False) -> int:
         print(f"no metrics to push ({source})", flush=True)
         return 0
     replace_trade_date = "".join(ch for ch in str(payload.get("data_as_of") or "") if ch.isdigit())[:8]
-    # A date replacement is one API request: DELETE plus full INSERT is atomic.
+    # post_metrics() splits this into 198-row chunks; the first chunk carries the
+    # date replacement, later chunks append. BATCH_LIMIT is only a runaway guard,
+    # so this check must not be mistaken for the endpoint's per-request cap.
     if len(metrics) > BATCH_LIMIT:
         raise ValueError(f"trade date {replace_trade_date} has {len(metrics)} rows; atomic replacement supports at most {BATCH_LIMIT}")
     if dry_run:
