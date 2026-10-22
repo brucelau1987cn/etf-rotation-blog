@@ -43,6 +43,12 @@ CUTOFF = (datetime.date.fromisoformat(DATE) - datetime.timedelta(days=MIN_LISTIN
 
 PROFIT_THRESHOLD = 1.5
 
+# iWenCai returns 100 rows per page. The cap exists only to bound a runaway
+# loop; it must be far above any real result set. A broad selloff can put well
+# over 1000 stocks under the profit threshold, and silently stopping at the cap
+# publishes a truncated pool that looks complete.
+MAX_PAGES = 200
+
 PERIODS = [
     ("week", "周线收盘获利", f"A股 周线收盘获利小于{PROFIT_THRESHOLD:g}%，非ST，非退市，上市日期早于{CUTOFF}"),
     ("month", "月线收盘获利", f"A股 月线收盘获利小于{PROFIT_THRESHOLD:g}%，非ST，非退市，上市日期早于{CUTOFF}"),
@@ -72,17 +78,30 @@ def fetch(query, page):
 
 
 def paginate(query):
+    """Fetch every page iWenCai reports as having more rows.
+
+    The old version stopped at page 10 (1000 rows) and returned silently, so a
+    broad market selloff — where far more than 1000 stocks fall under the 1.5%
+    profit threshold — produced a truncated pool that looked complete. On
+    2026-10-22 week/month both hit exactly 1000 and the intersection ballooned
+    to 214 with 22 BJ codes, while page 11 still reported has_more=True.
+
+    Raise instead of returning a partial list: a truncated screen is worse than
+    a failed stage, because it silently publishes a wrong pool.
+    """
     rows = []
     p = 1
     while True:
         d = fetch(query, p)
         rows.extend(d.get("datas") or [])
         if not d.get("has_more"):
-            break
+            return rows, len(rows)
         p += 1
-        if p > 10:
-            break
-    return rows, len(rows)
+        if p > MAX_PAGES:
+            raise SystemExit(
+                f"iWenCai pagination exceeded {MAX_PAGES} pages ({len(rows)} rows) "
+                f"for query: {query}. Refusing to screen on a truncated pool."
+            )
 
 
 def period_field(rows, prefix):
