@@ -782,3 +782,22 @@ def test_rollback_refusal_does_not_reset_a_foreign_commit():
     guard = source.index("if current_head not in allowed_heads:")
     reset = source.index("run(['git', 'reset', '--mixed', base_head], 60)")
     assert guard < reset, 'HEAD must be validated before any reset'
+
+
+def test_missing_contract_field_names_the_owning_stage():
+    """A bare 'contract missing' line is what made the 2026-10-22 22:33 failure
+    take hours to trace. technical_filters is written only at the END of
+    attach_low_chip_technical.py, so its absence means that stage died before
+    its final write — the message must say so."""
+    module = load_module()
+    payload = {
+        'data_as_of': '2026-10-22', 'intersection': [],
+        'intersection_before_filters': [], 'filters': {}, 'enrichments': {},
+    }
+    with pytest.raises(RuntimeError) as exc:
+        module.validate_payload(payload)
+    message = str(exc.value)
+    assert 'technical_filters' in message
+    assert 'attach_low_chip_technical.py' in message
+    assert 'killed mid-run' in message
+    assert 'attach_low_chip_financials.py' in message
