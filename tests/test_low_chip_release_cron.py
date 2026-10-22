@@ -714,3 +714,46 @@ def test_hlp_and_touchstone_use_same_interpreter_and_touchstone_follows_hlp():
 
     source = SCRIPT.read_text(encoding='utf-8')
     assert "'tests/test_low_chip_tracking_retry.py'" in source
+
+
+def test_verify_d1_api_requests_include_all_so_writes_are_counted():
+    """The default GET applies the UI membership filter, so a complete 291-row
+    write reads back as 93 and looks like a failure (2026-10-22)."""
+    module = load_module()
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return json.dumps({
+                'ok': True, 'trade_date': '20261022', 'count': 291,
+                'results': [{}] * 291,
+            }).encode()
+
+    def opener(request, timeout=30):
+        captured['url'] = request.full_url
+        return Response()
+
+    module.verify_d1_api('2026-10-22', 291, 'token', opener=opener)
+    assert 'include_all=1' in captured['url']
+
+
+def test_preopen_runs_refuse_to_stamp_the_previous_session_with_a_new_date():
+    """A catch-up run that crosses midnight would label the prior session's
+    closes with the new trading day. On 2026-10-23 a 00:52 run published 291
+    rows dated 10-23 from 10-22 closes, and D1 accepted them."""
+    module = load_module()
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert 'PREOPEN_HOUR' in source
+    assert 'refusing to publish before' in source
+    # The guard must sit before the calendar gate so nothing is written first.
+    guard = source.index('refusing to publish before')
+    gate = source.index('calendar_gate = release_calendar_gate(trade_date)')
+    assert guard < gate
+    # An explicit override must still allow a historical backfill.
+    assert 'if not TRADE_DATE_OVERRIDE and now.hour < PREOPEN_HOUR' in source
