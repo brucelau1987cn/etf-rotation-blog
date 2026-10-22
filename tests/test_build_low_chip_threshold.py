@@ -124,6 +124,35 @@ def test_fetch_retries_transient_ssl_failure_then_succeeds(monkeypatch, tmp_path
     assert len(attempts) == 3
 
 
+@pytest.mark.parametrize("detail", [
+    '{"error": "网络错误: TLS/SSL connection has been closed (EOF) (_ssl.c:992)"}',
+    '{"error": "发生错误: Remote end closed connection without response"}',
+    '{"error": "HTTP 502 Bad Gateway"}',
+    '{"error": "connection reset by peer"}',
+    '{"error": "read timed out"}',
+])
+def test_fetch_retries_every_unclassified_transient_variant(monkeypatch, detail):
+    """Enumerating TLS failure strings loses — a new variant silently kills the
+    release. Only known-terminal errors may skip the retry."""
+    module = load_module()
+    attempts = []
+
+    class _Result:
+        returncode = 1
+        stdout = ""
+        stderr = detail
+
+    def fake_run(*a, **k):
+        attempts.append(1)
+        return _Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module.time, "sleep", lambda *_: None)
+    with pytest.raises(SystemExit):
+        module.fetch("q", 1)
+    assert len(attempts) == module.FETCH_ATTEMPTS
+
+
 def test_fetch_does_not_retry_quota_exhaustion(monkeypatch):
     """Quota/auth errors are terminal — retrying them just burns the key pool."""
     module = load_module()

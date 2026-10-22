@@ -57,27 +57,30 @@ PERIODS = [
 ]
 
 
-# Transient upstream failures seen from iWenCai: SSL DECRYPTION_FAILED_OR_BAD_RECORD_MAC,
-# "Remote end closed connection without response", and bare 429s. The per-page
-# call is idempotent, so retrying costs nothing but time. Quota exhaustion and
-# auth errors are terminal — retrying them just burns the pool.
-TRANSIENT_MARKERS = (
-    "DECRYPTION_FAILED",
-    "Remote end closed connection",
-    "Connection reset",
-    "timed out",
-    "Timeout",
-    "429",
-    "502",
-    "503",
-    "504",
+# iWenCai fails in many transient ways — SSL DECRYPTION_FAILED_OR_BAD_RECORD_MAC,
+# "TLS/SSL connection has been closed (EOF)", "Remote end closed connection",
+# bare 429/502/503/504. Enumerating them is a losing game: every new TLS variant
+# silently kills the release. Invert the test — only known-terminal failures
+# (quota exhaustion, auth) skip retrying, because those burn the key pool.
+# The per-page call is idempotent, so a retry costs nothing but time.
+TERMINAL_MARKERS = (
+    "code=113",       # mx-data daily quota exhausted
+    "额度",
+    "quota",
+    "未授权",
+    "unauthorized",
+    "401",
+    "403",
+    "invalid key",
+    "key pool",
 )
 FETCH_ATTEMPTS = 4
 FETCH_BACKOFF_S = 3.0
 
 
 def _is_transient(detail: str) -> bool:
-    return any(marker in detail for marker in TRANSIENT_MARKERS)
+    lowered = detail.lower()
+    return not any(marker.lower() in lowered for marker in TERMINAL_MARKERS)
 
 
 def fetch(query, page):
