@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import sys
 from unittest import mock
 
@@ -165,7 +166,10 @@ def test_push_replaces_the_entire_trade_date_membership():
     assert kwargs["replace_trade_date"] == "20260903"
 
 
-def test_push_rejects_oversized_date_instead_of_partial_replace():
+def test_push_splits_oversized_date_into_ordered_chunks():
+    """199 rows cannot fit one D1 batch (server caps at 198). It must be split
+    into ordered chunks rather than rejected — a broad selloff legitimately
+    screens more stocks than a single batch holds (291 on 2026-10-22)."""
     module = __import__("sync_low_chip_to_d1")
     payload = {
         "data_as_of": "2026-09-03",
@@ -173,18 +177,61 @@ def test_push_rejects_oversized_date_instead_of_partial_replace():
         "periods": {"week": [{"symbol": f"{i:06d}.SZ", "name": "n", "value": 1.0} for i in range(199)], "month": [], "quarter": []},
         "enrichments": {f"{i:06d}.SZ": {"shareholder_metrics": {}} for i in range(199)},
     }
-    calls = []
+    batches = []
+
     def fake_post(metrics, replace_trade_date=None):
-        calls.append((len(metrics), replace_trade_date))
+        batches.append((len(metrics), replace_trade_date))
         return {"ok": True, "inserted": len(metrics), "total": len(metrics)}
+
     with mock.patch.object(module, "post_metrics", side_effect=fake_post):
-        try:
-            module.push(payload)
-        except ValueError as exc:
-            assert "atomic replacement" in str(exc)
-        else:
-            raise AssertionError("oversized trade date must fail closed")
-    assert calls == []
+        assert module.push(payload) == 0
+
+    # push() hands the whole list to post_metrics, which does the chunking.
+    assert batches == [(199, "20260903")]
+
+
+def test_post_metrics_only_first_chunk_replaces_the_date():
+    """Later chunks must append; replacing on every chunk would wipe the rows
+    the previous chunk just inserted."""
+    module = __import__("sync_low_chip_to_d1")
+    sent = []
+
+    class _Result:
+        returncode = 0
+        stderr = ""
+        stdout = '{"ok": true, "inserted": 1, "deleted": 0, "total": 1}'
+
+    def fake_run(args, input=None, **kwargs):
+        sent.append(json.loads(input))
+        return _Result()
+
+    metrics = [{"stock_code": f"{i:06d}", "trade_date": "20261022"} for i in range(400)]
+    with mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+        result = module.post_metrics(metrics, replace_trade_date="20261022")
+
+    assert result["ok"] is True
+    assert result["chunks"] == 3
+    assert [len(body["metrics"]) for body in sent] == [198, 198, 4]
+    assert [body.get("chunk_index") for body in sent] == [0, 1, 2]
+    assert all(body.get("chunk_total") == 3 for body in sent)
+    assert all(body.get("replace_trade_date") == "20261022" for body in sent)
+
+
+def test_post_metrics_reports_which_chunk_failed():
+    module = __import__("sync_low_chip_to_d1")
+
+    class _Result:
+        returncode = 0
+        stderr = ""
+        stdout = '{"ok": false, "error": "boom"}'
+
+    with mock.patch.object(module.subprocess, "run", return_value=_Result()):
+        result = module.post_metrics(
+            [{"stock_code": f"{i:06d}", "trade_date": "20261022"} for i in range(200)],
+            replace_trade_date="20261022",
+        )
+    assert result.get("ok") is not True
+    assert "chunk 0/" in result["error"]
 
 
 def test_push_dry_run_never_posts():

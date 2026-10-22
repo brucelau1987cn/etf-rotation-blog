@@ -27,38 +27,65 @@ DATA = ROOT / "public/data/a-low-chip-stocks.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
 TOKEN = os.environ.get("LOW_CHIP_SYNC_TOKEN") or ""
 ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
-# The D1 endpoint chunks rows server-side (ROWS_PER_STMT=2 rows per statement,
-# STMTS_PER_BATCH=100 statements per batch, first batch gives one slot to the
-# DELETE), so it has no practical row ceiling. 198 was a client-side guess that
-# rejected a legitimate 291-row day before the request was even sent
-# (2026-10-22: broad selloff pushed the pool from 52 to 291). Keep a ceiling
-# only as a runaway guard, far above any real pool.
+# The D1 endpoint chunks rows server-side, but caps ONE request at 198 metrics
+# because a D1 batch holds at most 100 statements (1 DELETE + 99 INSERTs x 2
+# rows). A broad selloff screens far more than that (291 stocks on 2026-10-22
+# vs 52 the day before), so the client sends ordered chunks and the server
+# replaces the date only on chunk 0. BATCH_LIMIT stays as a runaway guard.
 BATCH_LIMIT = 5000
+CHUNK_ROWS = 198
 
 
 def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> dict:
-    """POST metrics array to the D1 API endpoint."""
+    """POST metrics array to the D1 API endpoint, chunked to the server's limit.
+
+    The server caps one request at MAX_METRICS because a D1 batch holds at most
+    100 statements (1 DELETE + 99 INSERTs x 2 rows = 198). A broad selloff can
+    screen far more stocks than that (291 on 2026-10-22), so the payload is split
+    into ordered chunks and only chunk 0 performs the date replacement — later
+    chunks append, otherwise each one would wipe the previous chunk's rows.
+    """
     if len(metrics) > BATCH_LIMIT:
         raise ValueError(f"D1 batch exceeds limit {BATCH_LIMIT}: {len(metrics)}")
-    body: dict[str, object] = {"metrics": metrics}
-    if replace_trade_date:
-        body["replace_trade_date"] = replace_trade_date
-    payload = json.dumps(body, ensure_ascii=False)
-    # Send the JSON body through stdin. Passing the full metrics payload as a
-    # command-line argument hits Linux ARG_MAX once the daily pool grows.
-    r = subprocess.run(
-        ["curl", "-s", "-X", "POST", ENDPOINT,
-         "-H", f"Authorization: Bearer {TOKEN}",
-         "-H", "Content-Type: application/json",
-         "--data-binary", "@-"],
-        input=payload, capture_output=True, text=True, timeout=30,
-    )
-    if r.returncode:
-        return {"error": f"curl exit {r.returncode}: {(r.stderr or r.stdout)[:200]}"}
-    try:
-        return json.loads(r.stdout)
-    except json.JSONDecodeError:
-        return {"error": r.stdout[:200], "raw": True}
+
+    chunks = [metrics[i:i + CHUNK_ROWS] for i in range(0, len(metrics), CHUNK_ROWS)] or [metrics]
+    results: list[dict] = []
+    for index, chunk in enumerate(chunks):
+        body: dict[str, object] = {"metrics": chunk}
+        if replace_trade_date:
+            body["replace_trade_date"] = replace_trade_date
+        if len(chunks) > 1:
+            body["chunk_index"] = index
+            body["chunk_total"] = len(chunks)
+        payload = json.dumps(body, ensure_ascii=False)
+        # Send the JSON body through stdin. Passing the full metrics payload as a
+        # command-line argument hits Linux ARG_MAX once the daily pool grows.
+        r = subprocess.run(
+            ["curl", "-s", "-X", "POST", ENDPOINT,
+             "-H", f"Authorization: Bearer {TOKEN}",
+             "-H", "Content-Type: application/json",
+             "--data-binary", "@-"],
+            input=payload, capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode:
+            return {"error": f"curl exit {r.returncode} on chunk {index}/{len(chunks)}: {(r.stderr or r.stdout)[:200]}"}
+        try:
+            result = json.loads(r.stdout)
+        except json.JSONDecodeError:
+            return {"error": r.stdout[:200], "raw": True}
+        if not result.get("ok"):
+            return {"error": f"chunk {index}/{len(chunks)} rejected: {result.get('error')}"}
+        results.append(result)
+
+    if len(results) == 1:
+        return results[0]
+    return {
+        "ok": True,
+        "inserted": sum(int(item.get("inserted") or 0) for item in results),
+        "deleted": sum(int(item.get("deleted") or 0) for item in results),
+        "total": len(metrics),
+        "chunks": len(results),
+    }
 
 
 def snapshot_metrics(payload: dict) -> list[dict]:

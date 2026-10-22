@@ -165,6 +165,21 @@ export async function onRequest(context) {
     if (metrics.length > MAX_METRICS) {
       return json({ ok: false, error: `metrics array exceeds maximum of ${MAX_METRICS}` }, 400);
     }
+    // A pool larger than MAX_METRICS must arrive in ordered chunks: the caller
+    // sends chunk_index 0,1,2,… and only chunk 0 clears the date. Without this
+    // a broad-selloff day (291 stocks on 2026-10-22 vs 52 the day before) simply
+    // could not be published — MAX_METRICS is a D1 batch-size limit, not a
+    // business limit on how many stocks may be screened.
+    const chunkIndex = Number(body?.chunk_index ?? 0);
+    const chunkTotal = Number(body?.chunk_total ?? 1);
+    if (!Number.isInteger(chunkIndex) || chunkIndex < 0
+        || !Number.isInteger(chunkTotal) || chunkTotal < 1
+        || chunkIndex >= chunkTotal) {
+      return json({ ok: false, error: 'chunk_index/chunk_total must be integers with 0 <= chunk_index < chunk_total' }, 400);
+    }
+    // Only the first chunk replaces the date; later chunks append so they do not
+    // wipe the rows chunk 0 just inserted.
+    const replaceOnThisChunk = replaceTradeDate && chunkIndex === 0;
 
     await ensureTable();
     // Ensure new columns exist on pre-existing tables (fail silently if present)
@@ -270,10 +285,10 @@ export async function onRequest(context) {
     }
     let deleted = 0;
     for (let i = 0; i < stmts.length;) {
-      const batchLimit = replaceTradeDate && i === 0 ? STMTS_PER_BATCH - 1 : STMTS_PER_BATCH;
+      const batchLimit = replaceOnThisChunk && i === 0 ? STMTS_PER_BATCH - 1 : STMTS_PER_BATCH;
       const part = stmts.slice(i, i + batchLimit);
       let results;
-      if (replaceTradeDate && i === 0) {
+      if (replaceOnThisChunk && i === 0) {
         const deleteStmt = env.DB.prepare('DELETE FROM stock_metrics WHERE trade_date = ?').bind(replaceTradeDate);
         results = await env.DB.batch([deleteStmt, ...part]);
         const deletion = results.shift();
