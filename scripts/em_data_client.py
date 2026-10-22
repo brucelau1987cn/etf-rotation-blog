@@ -261,19 +261,34 @@ class EastmoneyClient:
     # ---------------- daily bars (for RSI) ----------------
 
     def daily_closes(self, full_code: str, count: int = 120) -> list[float]:
-        """QFQ daily closes from Tencent, used to compute RSI locally.
+        """QFQ daily closes, used to compute RSI locally.
 
         Eastmoney's push2his kline route returns empty bodies on weekends, so
         the RSI input deliberately comes from Tencent.
 
-        Host note (2026-10-20): `web.ifzq.gtimg.cn` answers HTTP 501 for every
-        request; the working host is `ifzq.gtimg.cn` (no `web.` prefix). Keep
-        the old host only as a fallback in case the routing changes back.
+        Source order (each step only runs if the previous returned nothing):
+          1. THS (10jqka) qfq daily — ~0.13s per stock, full market coverage,
+             carries the current session's bar. Promoted to first place because
+             Tencent's fqkline route went behind a WAF that answers every
+             request with the 501 interstitial page (2026-10-22); waiting out
+             that block's 4-attempt backoff cost 47s per stock.
+          2. Tencent fqkline, both hosts. Kept as an independent second opinion
+             in case THS changes its JSONP shape.
+          3. CF BaoStock — slowest (~5s per 5-symbol batch) and lags by a day.
+
+        Never return a partial/empty list on a source failure: raising is what
+        lets the caller mark the stage degraded instead of silently screening
+        on stale RSI.
         """
         code = full_code.split(".")[0]
         ex = "sh" if code.startswith(("6", "5", "9")) else "sz"
+        errors: list[str] = []
+
+        closes = self._ths_daily_closes(code, count, errors)
+        if closes:
+            return closes
+
         hosts = ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn")
-        last_error: str | None = None
         for host in hosts:
             url = (
                 "https://" + host + "/appstock/app/fqkline/get?"
@@ -282,11 +297,11 @@ class EastmoneyClient:
             try:
                 payload = self._get_json(url, referer="https://gu.qq.com/")
             except EastmoneyError as exc:
-                last_error = str(exc)
+                errors.append(f"{host}: {exc}")
                 continue
             node = ((payload or {}).get("data") or {}).get(f"{ex}{code}") or {}
             bars = node.get("qfqday") or node.get("day") or []
-            closes: list[float] = []
+            closes = []
             for bar in bars:
                 try:
                     closes.append(float(bar[2]))
@@ -294,7 +309,34 @@ class EastmoneyClient:
                     continue
             if closes:
                 return closes
-        raise EastmoneyError(f"no daily bars for {full_code}: {last_error}")
+            errors.append(f"{host}: empty bars")
+        raise EastmoneyError(f"no daily bars for {full_code}: {'; '.join(errors)}")
+
+    def _ths_daily_closes(self, code: str, count: int, errors: list[str]) -> list[float]:
+        """QFQ daily closes from 10jqka (THS).
+
+        The 01 series is qfq, market-wide, and answers in ~0.13s. Sina was
+        rejected for this path: it returns unadjusted prices (600519 differs
+        from qfq by ~134 CNY), so mixing it in would silently corrupt RSI.
+
+        Any failure returns [] and appends to `errors`; the caller falls through
+        to the next source. This never raises, so a THS outage alone cannot
+        fail the stage.
+        """
+        market = "XSHG" if code.startswith(("6", "5", "9")) else "XSHE"
+        try:
+            from attach_low_chip_touchstone import fetch_ths_history
+        except ImportError:  # imported as a package (scripts.attach_...)
+            from scripts.attach_low_chip_touchstone import fetch_ths_history
+        try:
+            rows = fetch_ths_history({"code": code, "market": market}, count)
+        except Exception as exc:  # noqa: BLE001 - source shape varies
+            errors.append(f"ths: {type(exc).__name__}: {exc}")
+            return []
+        if not rows:
+            errors.append("ths: no rows")
+            return []
+        return [float(row["close"]) for row in rows if row.get("close") is not None]
 
     def usage(self) -> dict:
         return {

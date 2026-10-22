@@ -209,6 +209,85 @@ def test_technical_failure_returns_empty_and_not_ok(monkeypatch):
     assert ok is False
 
 
+# ============ daily_closes source order ============
+
+def _client(monkeypatch, ths, tencent):
+    """Build a real EastmoneyClient with both sources stubbed."""
+    client = client_mod.EastmoneyClient()
+    monkeypatch.setattr(client, "_ths_daily_closes", ths)
+    monkeypatch.setattr(client, "_get_json", tencent)
+    return client
+
+
+def test_daily_closes_prefers_ths_and_never_touches_tencent(monkeypatch):
+    """THS answers in ~0.13s; Tencent's fqkline sits behind a WAF that burns
+    47s of backoff per stock before failing. THS must short-circuit it."""
+    def tencent(*a, **k):
+        raise AssertionError("Tencent fqkline must not be called when THS answers")
+
+    client = _client(monkeypatch, lambda code, count, errors: [10.0, 11.0], tencent)
+    assert client.daily_closes("600519.SH", count=120) == [10.0, 11.0]
+
+
+def test_daily_closes_falls_back_to_tencent_when_ths_is_empty(monkeypatch):
+    def tencent(url, referer=None):
+        assert "fqkline" in url
+        return {"data": {"sh600519": {"qfqday": [["2026-10-21", "0", "1309.69"]]}}}
+
+    client = _client(monkeypatch, lambda code, count, errors: [], tencent)
+    assert client.daily_closes("600519.SH", count=120) == [1309.69]
+
+
+def test_daily_closes_raises_with_every_source_error(monkeypatch):
+    """A total outage must raise (stage goes degraded), never return []."""
+    def tencent(url, referer=None):
+        raise client_mod.EastmoneyError("HTTP 501")
+
+    def ths(code, count, errors):
+        errors.append("ths: no rows")
+        return []
+
+    client = _client(monkeypatch, ths, tencent)
+    with pytest.raises(client_mod.EastmoneyError) as excinfo:
+        client.daily_closes("600519.SH", count=120)
+    message = str(excinfo.value)
+    assert "ths: no rows" in message
+    assert "501" in message
+
+
+def test_ths_daily_closes_returns_empty_instead_of_raising(monkeypatch):
+    """THS alone failing must not fail the stage — it degrades to []."""
+    import attach_low_chip_touchstone as touchstone
+
+    def boom(*a, **k):
+        raise OSError("connection reset")
+
+    monkeypatch.setattr(touchstone, "fetch_ths_history", boom)
+    errors: list[str] = []
+    client = client_mod.EastmoneyClient()
+    assert client._ths_daily_closes("600519", 120, errors) == []
+    assert errors and "connection reset" in errors[0]
+
+
+def test_ths_daily_closes_maps_market_and_drops_null_closes(monkeypatch):
+    import attach_low_chip_touchstone as touchstone
+
+    seen = {}
+
+    def fake(item, count):
+        seen.update(item)
+        return [
+            {"trade_date": "2026-10-21", "close": 11.4},
+            {"trade_date": "2026-10-22", "close": None},
+            {"trade_date": "2026-10-23", "close": 11.6},
+        ]
+
+    monkeypatch.setattr(touchstone, "fetch_ths_history", fake)
+    client = client_mod.EastmoneyClient()
+    assert client._ths_daily_closes("600519", 120, []) == [11.4, 11.6]
+    assert seen == {"code": "600519", "market": "XSHG"}
+
+
 # ============ theme picking keeps its contract ============
 
 def test_theme_pick_filters_generic_and_industry_overlap():
