@@ -599,6 +599,48 @@ def test_commit_gate_revalidates_head_dirty_and_exact_staged_set():
     assert "staged paths differ from release scope" in source
 
 
+def test_build_quarantines_external_dirty_files_so_catalog_matches():
+    """2026-10-22: a concurrent job rewrote 3 ALLOWED_DIRTY shadow files while the
+    low-chip chain ran. `npm run build` regenerated catalog.json from those dirty
+    bytes, the contract validator disagreed, and build exited 2 — rolling back a
+    fully successful 291-stock pipeline. Reset-to-HEAD before build fixes it."""
+    module = load_module()
+    assert hasattr(module, 'quarantine_external_dirty')
+    assert hasattr(module, 'restore_quarantined')
+    source = SCRIPT.read_text(encoding='utf-8')
+    quarantine = source.index('quarantined = quarantine_external_dirty()')
+    build = source.index("run(['npm', 'run', 'build'], 900)")
+    restore = source.index('restore_quarantined(quarantined)')
+    assert quarantine < build < restore
+
+
+def test_quarantine_only_touches_allowed_dirty_and_restores_bytes(tmp_path, monkeypatch):
+    """Release-scope files must never be quarantined, and the saved bytes must
+    round-trip exactly — the owning job's snapshot cannot be lost."""
+    module = load_module()
+    allowed = tmp_path / 'public/data/shadow.json'
+    foreign = tmp_path / 'public/data/a-low-chip-stocks.json'
+    for path, body in ((allowed, b'{"dirty": true}'), (foreign, b'{"release": true}')):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    monkeypatch.setattr(module, 'ALLOWED_DIRTY', {'public/data/shadow.json'})
+    monkeypatch.setattr(module, 'dirty', lambda: {'public/data/shadow.json', 'public/data/a-low-chip-stocks.json'})
+    monkeypatch.setattr(
+        module.subprocess, 'run',
+        lambda *a, **k: type('R', (), {'stdout': b'{"head": true}'})(),
+    )
+
+    saved = module.quarantine_external_dirty()
+    assert set(saved) == {'public/data/shadow.json'}, 'release-scope file must not be quarantined'
+    assert allowed.read_bytes() == b'{"head": true}'
+    assert foreign.read_bytes() == b'{"release": true}'
+
+    module.restore_quarantined(saved)
+    assert allowed.read_bytes() == b'{"dirty": true}'
+
+
 def test_dist_and_candidate_identity_are_rechecked_before_release():
     source = SCRIPT.read_text(encoding='utf-8')
     canonical = source.index('run([sys.executable, \'-c\', canonicalize_dist]')
@@ -652,7 +694,9 @@ def test_large_pool_timeouts_cover_verified_baostock_runtime() -> None:
     assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2250)" in source
     assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 2400)" in source
     # tracking 已拆到独立 cron（16:40），主链路不再跑它；fetch 超时仍覆盖。
-    assert "runner([sys.executable, 'scripts/fetch_low_chip_enrichments.py'], 2400)" in source
+    # 2026-10-22: 池子从 52 只扩到 291 只（普跌），enrichment 是 67+67 批次，
+    # 2400s 在 47 个 profile 分页处超时，预算提到 5400s。
+    assert "runner([sys.executable, 'scripts/fetch_low_chip_enrichments.py'], 5400)" in source
     assert 'update_low_chip_tracking.py' not in source
 
 
