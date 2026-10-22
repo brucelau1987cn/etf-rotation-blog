@@ -757,3 +757,28 @@ def test_preopen_runs_refuse_to_stamp_the_previous_session_with_a_new_date():
     assert guard < gate
     # An explicit override must still allow a historical backfill.
     assert 'if not TRADE_DATE_OVERRIDE and now.hour < PREOPEN_HOUR' in source
+
+
+def test_rollback_refusal_reports_leftovers_instead_of_vanishing():
+    """When another job commits mid-run, refusing to roll back is correct — but
+    the run must name the paths it left behind. On 2026-10-22 the rolling-compass
+    18:46 commit blocked a rollback and only one line was printed, leaving a
+    dirty worktree that blocks the next run."""
+    module = load_module()
+    source = SCRIPT.read_text(encoding='utf-8')
+    assert 'rollback refused: concurrent HEAD' in source
+    assert '需人工清理的残留' in source
+    # The diagnostic must run inside the rollback-failure handler, not elsewhere.
+    handler = source.index('低筹码股回滚失败')
+    leftovers = source.index('需人工清理的残留')
+    assert handler < leftovers
+
+
+def test_rollback_refusal_does_not_reset_a_foreign_commit():
+    """The guard exists so a low-chip failure can never destroy another job's
+    commit; it must stay fail-closed rather than force-resetting HEAD."""
+    module = load_module()
+    source = SCRIPT.read_text(encoding='utf-8')
+    guard = source.index("if current_head not in allowed_heads:")
+    reset = source.index("run(['git', 'reset', '--mixed', base_head], 60)")
+    assert guard < reset, 'HEAD must be validated before any reset'
