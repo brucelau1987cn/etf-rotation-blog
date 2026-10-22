@@ -129,16 +129,25 @@ export async function onRequest(context) {
       : rawTradeDate;
     const code = url.searchParams.get('code');
     if (!/^\d{8}$/.test(tradeDate)) return json({ ok: false, error: 'date parameter must be YYYY-MM-DD or YYYYMMDD' }, 400);
+    // Membership filtering (all three period profits non-null) is a UI concern:
+    // the page only shows rows it can screen on. The sync verifier must instead
+    // see every row it just wrote, otherwise a legitimate 291-row day looks like
+    // a 93-row failure (2026-10-22). include_all is service-token only.
+    const includeAll = url.searchParams.get('include_all') === '1';
+    if (includeAll && !serviceAuthenticated) {
+      return json({ ok: false, error: 'include_all requires the service token' }, 403);
+    }
+    const membership = includeAll ? '1 = 1' : LOW_CHIP_MEMBERSHIP_SQL;
     await ensureTable();
     let results;
     if (code) {
       const r = await env.DB.prepare(
-        `SELECT * FROM stock_metrics WHERE trade_date = ? AND stock_code = ? AND ${LOW_CHIP_MEMBERSHIP_SQL}`
+        `SELECT * FROM stock_metrics WHERE trade_date = ? AND stock_code = ? AND ${membership}`
       ).bind(tradeDate, code).all();
       results = (r.results || []).map(clientMetric);
     } else {
       const r = await env.DB.prepare(
-        `SELECT * FROM stock_metrics WHERE trade_date = ? AND ${LOW_CHIP_MEMBERSHIP_SQL} ORDER BY main_force DESC`
+        `SELECT * FROM stock_metrics WHERE trade_date = ? AND ${membership} ORDER BY main_force DESC`
       ).bind(tradeDate).all();
       results = (r.results || []).map(clientMetric);
     }
