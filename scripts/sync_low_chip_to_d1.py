@@ -228,11 +228,11 @@ def main() -> int:
         for snap in snapshots:
             payload = json.loads(snap.read_text(encoding="utf-8"))
             payload["_source"] = snap.name
-            failures += push(payload)
+            failures += push(payload, dry_run=args.dry_run)
         # also current file
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
-        failures += push(payload)
+        failures += push(payload, dry_run=args.dry_run)
     elif args.day:
         snap = HISTORY_DIR / f"{args.day}.json"
         if not snap.exists():
@@ -240,11 +240,11 @@ def main() -> int:
             return 1
         payload = json.loads(snap.read_text(encoding="utf-8"))
         payload["_source"] = snap.name
-        failures += push(payload)
+        failures += push(payload, dry_run=args.dry_run)
     else:
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
-        failures += push(payload)
+        failures += push(payload, dry_run=args.dry_run)
 
     return 1 if failures else 0
 
