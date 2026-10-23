@@ -276,6 +276,36 @@ def fetch_macro_observations() -> dict[str, list[dict[str, Any]]]:
 TENCENT_KLINE_HOSTS = ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn")
 
 
+def fetch_ths_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
+    """QFQ daily closes from 10jqka (THS) for a Tencent-style symbol (sh510300).
+
+    Fallback only. Host note (2026-10-22): both Tencent fqkline hosts answered
+    HTTP 501 (Tencent WAF) for the whole 22:00 window, which blocked prepare and
+    the 22:30 publish. THS 01-series is qfq and serves the same ETFs. Only
+    `close` is consumed downstream (ret_from_bars / score_*), so OHLC fields are
+    left out instead of being invented.
+    """
+    try:
+        from attach_low_chip_touchstone import fetch_ths_history  # type: ignore
+    except ImportError:
+        from scripts.attach_low_chip_touchstone import fetch_ths_history  # type: ignore
+    code = symbol[2:] if symbol[:2] in ("sh", "sz") else symbol
+    rows = fetch_ths_history({"code": code, "market": "XSHG" if symbol.startswith("sh") else "XSHE"}, count)
+    bars = []
+    for row in rows or []:
+        close = row.get("close")
+        day = str(row.get("trade_date") or "")[:10]
+        if not day or close is None:
+            continue
+        try:
+            value = float(close)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value) and value > 0:
+            bars.append({"date": day, "open": None, "close": value, "high": None, "low": None, "volume": None})
+    return bars
+
+
 def fetch_tencent_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
     """QFQ daily bars from Tencent, trying both known hosts.
 
@@ -284,7 +314,8 @@ def fetch_tencent_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
     A single hardcoded host turns an intermittent WAF into a total factor
     outage: every rates/overseas proxy fails at once and headwind_level silently
     collapses (3 -> 1) mid-stage. Try the working host first, fall back to the
-    legacy one.
+    legacy one. When both hosts are unreachable (2026-10-22 WAF 501 on both),
+    fall back to THS closes instead of failing the whole factor set.
     """
     last_error: Any = "unknown"
     parsed_payload = False
@@ -320,7 +351,15 @@ def fetch_tencent_bars(symbol: str, count: int = 60) -> list[dict[str, Any]]:
         last_error = f"empty bars from {host}"
     if parsed_payload:
         return []
-    raise RuntimeError(f"tencent fqkline unavailable for {symbol}: {last_error}")
+    try:
+        ths_bars = fetch_ths_bars(symbol, count)
+    except Exception as exc:  # noqa: BLE001 - both sources down is reported below
+        raise RuntimeError(
+            f"tencent fqkline unavailable for {symbol}: {last_error}; ths fallback failed: {type(exc).__name__}: {exc}"
+        ) from exc
+    if len(ths_bars) < 25:
+        raise RuntimeError(f"tencent fqkline unavailable for {symbol}: {last_error}; ths short bars {len(ths_bars)}")
+    return ths_bars
 
 
 def ret_from_bars(bars: list[dict[str, Any]], days: int) -> float | None:

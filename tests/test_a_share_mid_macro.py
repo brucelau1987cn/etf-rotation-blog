@@ -6,6 +6,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -176,6 +177,80 @@ class MidMacroConstraintTests(unittest.TestCase):
         self.assertTrue(all(item["primary_source"] for item in dimensions))
         self.assertTrue(all(item.get("links") for item in dimensions))
         self.assertTrue(all(link["url"].startswith("https://") for item in dimensions for link in item["links"]))
+
+
+class TencentThsFallbackTests(unittest.TestCase):
+    """fetch_tencent_bars must fall back to THS only when both Tencent hosts fail. All network is mocked."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mod = load_module()
+
+    def _payload(self, symbol: str, n: int = 30) -> dict:
+        rows = [[f"2026-10-{i + 1:02d}", "1", str(1.0 + i * 0.01), "1", "1", "1"] for i in range(n)]
+        return {"data": {symbol: {"qfqday": rows}}}
+
+    def test_primary_host_used_without_ths(self) -> None:
+        calls: list[str] = []
+
+        def fake_fetch(url: str, timeout: int = 20):
+            calls.append(url)
+            return self._payload("sh510300")
+
+        ths = unittest.mock.Mock(side_effect=AssertionError("THS must not be called"))
+        with unittest.mock.patch.object(self.mod, "fetch_json", side_effect=fake_fetch), \
+                unittest.mock.patch.object(self.mod, "fetch_ths_bars", ths):
+            bars = self.mod.fetch_tencent_bars("sh510300", 30)
+        self.assertEqual(len(bars), 30)
+        self.assertIn("ifzq.gtimg.cn", calls[0])
+        ths.assert_not_called()
+
+    def test_both_hosts_501_falls_back_to_ths(self) -> None:
+        def fake_fetch(url: str, timeout: int = 20):
+            raise RuntimeError("HTTP Error 501: Not Implemented")
+
+        ths_bars = [{"date": "2026-10-01", "open": None, "close": 1.0, "high": None, "low": None, "volume": None}] * 30
+        with unittest.mock.patch.object(self.mod, "fetch_json", side_effect=fake_fetch), \
+                unittest.mock.patch.object(self.mod, "fetch_ths_bars", return_value=ths_bars) as ths:
+            bars = self.mod.fetch_tencent_bars("sh510300", 60)
+        ths.assert_called_once_with("sh510300", 60)
+        self.assertEqual(bars, ths_bars)
+
+    def test_both_sources_down_raises_with_both_reasons(self) -> None:
+        def fake_fetch(url: str, timeout: int = 20):
+            raise RuntimeError("HTTP Error 501")
+
+        with unittest.mock.patch.object(self.mod, "fetch_json", side_effect=fake_fetch), \
+                unittest.mock.patch.object(self.mod, "fetch_ths_bars", side_effect=OSError("ths down")):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.mod.fetch_tencent_bars("sh510300", 60)
+        message = str(ctx.exception)
+        self.assertIn("501", message)
+        self.assertIn("ths down", message)
+
+    def test_ths_short_bars_treated_as_failure(self) -> None:
+        def fake_fetch(url: str, timeout: int = 20):
+            raise RuntimeError("HTTP Error 501")
+
+        short = [{"date": "2026-10-01", "open": None, "close": 1.0, "high": None, "low": None, "volume": None}] * 5
+        with unittest.mock.patch.object(self.mod, "fetch_json", side_effect=fake_fetch), \
+                unittest.mock.patch.object(self.mod, "fetch_ths_bars", return_value=short):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.mod.fetch_tencent_bars("sh510300", 60)
+        self.assertIn("ths short bars 5", str(ctx.exception))
+
+    def test_fetch_ths_bars_maps_symbol_and_keeps_close_only(self) -> None:
+        seen: dict = {}
+
+        def fake_ths(item, count=0, end=None):
+            seen.update(item)
+            return [{"trade_date": "2026-10-22", "close": 4.177}, {"trade_date": "2026-10-23", "close": float("nan")}]
+
+        fake_mod = unittest.mock.Mock(fetch_ths_history=fake_ths)
+        with unittest.mock.patch.dict("sys.modules", {"attach_low_chip_touchstone": fake_mod}):
+            bars = self.mod.fetch_ths_bars("sz159915", 60)
+        self.assertEqual(seen, {"code": "159915", "market": "XSHE"})
+        self.assertEqual(bars, [{"date": "2026-10-22", "open": None, "close": 4.177, "high": None, "low": None, "volume": None}])
 
 
 if __name__ == "__main__":
