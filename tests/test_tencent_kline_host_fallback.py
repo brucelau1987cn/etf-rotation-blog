@@ -72,12 +72,24 @@ def test_mid_macro_falls_back_to_second_host(monkeypatch):
 
 
 def test_mid_macro_raises_only_when_both_hosts_fail(monkeypatch):
+    """双腾讯 host 都失败且同花顺兜底也不可用时必须抛错，不得返回空 K 线。
+
+    2026-10-23：df8b83a 给 `fetch_tencent_bars` 加了同花顺收盘兜底
+    （两个腾讯 host 都 501 时启用），这个旧断言没有 mock 兜底，
+    于是真去请求同花顺并拿到 60 根 K 线，断言失效并在 22:30
+    夜间发布的候选全量 pytest 中失败，阻塞了整条发布链。
+    兜底本身在 tests/test_a_share_mid_macro.py 已有覆盖。
+    """
     mod = _load("generate_a_share_mid_macro_2", "scripts/generate_a_share_mid_macro.py")
 
     def boom(url, timeout=20):
         raise urllib.error.HTTPError(url, 501, "Not Implemented", None, None)
 
+    def boom_ths(symbol, count=60):
+        raise OSError("ths unavailable")
+
     monkeypatch.setattr(mod, "fetch_json", boom)
+    monkeypatch.setattr(mod, "fetch_ths_bars", boom_ths)
     try:
         mod.fetch_tencent_bars("sh511260", 60)
     except RuntimeError as exc:
