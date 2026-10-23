@@ -77,3 +77,48 @@ def test_previous_fallback_preserves_as_of_and_rejects_stale_data():
         today=date(2026, 9, 19), max_age_days=2,
     )
     assert rejected["assets"]["gold"]["ok"] is False
+
+
+def _release_gate():
+    """Load the release orchestrator from ~/.hermes/scripts (not the repo)."""
+    import importlib.util
+
+    path = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py")
+    if not path.exists():
+        pytest.skip("release orchestrator not present")
+    spec = importlib.util.spec_from_file_location("precious_release", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_concurrent_producer_dirt_does_not_block_the_release():
+    """Blocking on ANY foreign dirty path failed this job three times in ten runs
+    (2026-10-19 scripts/*.py, 2026-10-21 src/content/blog/2026-10-21.md,
+    2026-10-22 low-chip data), and the 10-19/10-21 days lost their refresh.
+    The candidate commit only ever contains our own data file, so concurrent
+    producers editing their own paths must not block."""
+    module = _release_gate()
+    for dirty in (
+        {"scripts/attach_low_chip_technical.py"},
+        {"src/content/blog/2026-10-21.md"},
+        {"public/data/a-low-chip-stocks.json"},
+        {"src/content/blog/2026-10-22.md", "public/data/a-low-chip-stocks.json"},
+    ):
+        blocking = sorted(p for p in dirty if p.startswith(module.BLOCKING_PREFIXES))
+        assert blocking == [], f"{dirty} must not block release"
+
+
+def test_our_own_dirty_data_file_still_blocks():
+    """Ambiguous provenance on the file we are about to publish stays fatal."""
+    module = _release_gate()
+    dirty = {"public/data/precious-inventory.json"}
+    blocking = sorted(p for p in dirty if p.startswith(module.BLOCKING_PREFIXES))
+    assert blocking == ["public/data/precious-inventory.json"]
+
+
+def test_ignored_paths_are_reported_not_silent():
+    """An unexpected path must still show up in the run output."""
+    source = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py").read_text()
+    assert "concurrent dirty paths ignored" in source
+    assert "staged paths block release" in source
