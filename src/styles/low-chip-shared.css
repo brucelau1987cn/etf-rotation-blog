@@ -1,0 +1,145 @@
+/* Shared low-chip UI (stocks + ETF pool). Extracted verbatim from rolling/low-chip.astro. */
+  .low-chip-main{padding-bottom:3rem;color:#14243b}
+  .low-chip-hero,.chip-section,.data-note{border:1px solid #dbe3ec;border-radius:14px;background:#fff}
+  .low-chip-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1.25rem;padding:1.35rem}
+  .eyebrow{margin:0 0 .35rem;color:#64748b;font-size:.75rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+  h1,h2,p{margin-top:0}.low-chip-hero h1{margin-bottom:.45rem;font-size:2rem}.low-chip-hero p:last-child{max-width:720px;margin-bottom:0;color:#526176;line-height:1.7}
+  .low-chip-hero dl{display:grid;grid-template-columns:repeat(2,minmax(82px,1fr));gap:.5rem;margin:0}
+  .low-chip-hero dl div{padding:.65rem .8rem;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}
+  dt{color:#64748b;font-size:.72rem;font-weight:800}dd{margin:.2rem 0 0;font-size:1rem;font-weight:900}
+
+  .chip-section{margin-top:1rem;overflow:visible}
+  .chip-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.75rem 1rem;padding:1rem 1.2rem;border-left:4px solid #d97706;border-bottom:1px solid #e2e8f0}
+  .chip-toolbar-left{grid-column:1;grid-row:1;align-self:center}
+  .chip-toolbar h2{margin:0;font-size:1.15rem;line-height:2.1rem}
+  .chip-toolbar-right{display:contents}
+  .chip-top-actions{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;grid-column:2;grid-row:1}
+  .chip-search-wrap{display:flex;align-items:center;justify-content:flex-start;gap:.5rem;height:2.1rem}
+  .chip-history{margin-top:0;height:2.1rem}
+  .chip-pager{grid-column:1 / -1;grid-row:2;justify-self:end}
+  .chip-search-label{color:#64748b;font-size:.82rem;font-weight:800}
+  .chip-search-box{position:relative}
+  .chip-search-suggestions{position:absolute;z-index:40;top:calc(100% + .35rem);right:0;width:280px;max-height:22rem;overflow:auto;padding:.3rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 14px 32px rgba(15,23,42,.16)}
+  .chip-search-suggestions[hidden]{display:none!important}
+  .chip-search-option{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem .6rem;width:100%;padding:.55rem .65rem;border:0;border-radius:8px;background:#fff;color:#14243b;text-align:left;cursor:pointer}
+  .chip-search-option:hover,.chip-search-option.is-active{background:#eff6ff}
+  .chip-search-option strong{font-size:.82rem}
+  .chip-search-option span,.chip-search-option small{color:#64748b;font-size:.7rem}
+  .chip-search-option small{grid-column:1 / -1;color:#94a3b8}
+  .chip-history{display:flex;align-items:center;flex-wrap:nowrap;gap:.45rem;margin:0;height:2.1rem}
+  .chip-history-label{display:inline-flex;align-items:center;height:2.1rem;color:#64748b;font-size:.78rem;font-weight:800;line-height:1;white-space:nowrap}
+  .chip-history-status{display:inline-flex;align-items:center;height:2.1rem;line-height:1;white-space:nowrap}
+  .chip-calendar-wrap{position:relative}
+  .chip-history-calendar-btn{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-width:190px;height:2.1rem;padding:0 .7rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:.86rem;font-weight:750;cursor:pointer}
+  .chip-history-calendar-btn i{color:#64748b;font-size:.7rem;font-style:normal}
+  .chip-history-calendar-btn:focus-visible{outline:0;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+  .chip-history-calendar-btn:disabled{opacity:.5;cursor:not-allowed}
+  .chip-history-calendar{position:absolute;z-index:30;top:calc(100% + .45rem);left:0;width:310px;padding:.8rem;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 16px 42px rgba(15,23,42,.18)}
+  .chip-history-calendar[hidden]{display:none!important}
+  .chip-calendar-head{display:grid;grid-template-columns:2rem 1fr 2rem;align-items:center;margin-bottom:.55rem}
+  .chip-calendar-head strong{text-align:center;color:#14243b;font-size:.9rem}
+  .chip-calendar-head button{width:2rem;height:2rem;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#334155;font-size:1rem;cursor:pointer}
+  .chip-calendar-head button:disabled{opacity:.28;cursor:default}
+  .chip-calendar-weekdays,.chip-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem}
+  .chip-calendar-weekdays{margin-bottom:.25rem;color:#94a3b8;font-size:.64rem;font-weight:800;text-align:center}
+  .chip-calendar-day{display:flex;min-width:0;height:2.45rem;flex-direction:column;align-items:center;justify-content:center;border:1px solid transparent;border-radius:8px;background:transparent;color:#94a3b8;font:inherit}
+  button.chip-calendar-day{cursor:pointer}
+  .chip-calendar-day b{font-size:.76rem;line-height:1}
+  .chip-calendar-day small{margin-top:.22rem;font-size:.57rem;line-height:1}
+  .chip-calendar-day.has-snapshot{border-color:#e2e8f0;background:#f8fafc;color:#64748b}
+  .chip-calendar-day.has-results{border-color:#fde68a;background:#fffbeb;color:#92400e}
+  .chip-calendar-day.has-snapshot:hover{border-color:#f59e0b;background:#fef3c7}
+  .chip-calendar-day.is-zero small{color:#94a3b8}
+  .chip-calendar-day.is-selected{border-color:#2563eb;background:#2563eb;color:#fff;box-shadow:0 3px 9px rgba(37,99,235,.2)}
+  .chip-calendar-day.is-empty{visibility:hidden}
+  .chip-calendar-legend{display:flex;align-items:center;gap:.35rem;margin-top:.65rem;padding-top:.6rem;border-top:1px solid #eef2f7;color:#64748b;font-size:.62rem;font-weight:650}
+  .chip-calendar-legend i{width:.55rem;height:.55rem;border:1px solid #f59e0b;border-radius:3px;background:#fffbeb}
+  .chip-history-btn{width:2.1rem;height:2.1rem;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a;font-size:1rem;line-height:1;cursor:pointer}
+  .chip-history-btn:disabled{opacity:.45;cursor:not-allowed}
+  .chip-history-status{color:#64748b;font-size:.78rem;font-weight:700}
+  .chip-history-status.is-error{color:#b91c1c}
+  .low-chip-hero dl{grid-template-columns:repeat(3,minmax(82px,1fr))}
+  .chip-search-input{width:180px;height:2.1rem;padding:0 .9rem;border:1px solid #dbe3ec;border-radius:999px;font-size:.82rem;font-weight:650;outline:0;transition:border-color .15s}
+  .chip-search-input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+
+  .chip-pager{display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+  .chip-page-btn,.chip-page-num{min-width:2rem;height:1.95rem;padding:0 .7rem;border:1px solid #dbe3ec;border-radius:999px;background:#fff;color:#334155;font-size:.74rem;font-weight:750;cursor:pointer;transition:all .12s}
+  .chip-page-btn:hover:not(:disabled),.chip-page-num:hover:not(.is-active){background:#f0f2f5;border-color:#b0bec5}
+  .chip-page-btn:disabled{opacity:.4;cursor:default}
+  .chip-page-nums{display:inline-flex;align-items:center;gap:.25rem}
+  .chip-page-num{display:inline-flex;align-items:center;justify-content:center;padding:0 .35rem}
+  .chip-page-num.is-active{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}
+  .chip-page-ellipsis{display:inline-flex;align-items:center;justify-content:center;min-width:1rem;color:#64748b;font-size:.8rem}
+  .chip-page-meta{margin-left:.15rem;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
+  .chip-pager[hidden],.chip-row[hidden]{display:none!important}
+  .chip-financial-filters{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.65rem 1.2rem;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+  .chip-filter-btn,.chip-filter-reset{height:1.95rem;padding:0 .7rem;border:1px solid #fcd34d;border-radius:999px;background:#fffbeb;color:#b45309;font-size:.72rem;font-weight:750;cursor:pointer;transition:all .15s ease}
+  .chip-filter-btn.is-active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  .chip-filter-reset{border-color:#e2e8f0;color:#94a3b8}
+  .chip-filter-reset:hover{border-color:#fca5a5;color:#dc2626;background:#fef2f2}
+  .chip-filter-meta{margin-left:auto;color:#64748b;font-size:.72rem;font-weight:700;white-space:nowrap}
+
+  .chip-list{display:flex;flex-direction:column}
+  .chip-row{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.2rem;border-bottom:1px solid #edf1f5;transition:background .1s}
+  .chip-row:hover{background:#f8fafc}
+  .chip-row:last-child{border-bottom:0}
+  .chip-row-top{display:grid;grid-template-columns:minmax(210px,1.25fr) minmax(150px,auto) auto;align-items:center;gap:.9rem;width:100%}
+  .chip-row-main{display:flex;align-items:center;gap:.45rem;min-width:0;flex-wrap:wrap}
+  .chip-identity{display:flex;align-items:baseline;gap:.4rem}
+  .chip-row-name{font-size:.95rem;color:#14243b}
+  .chip-row-code{color:#64748b;font-size:.78rem}
+  .chip-occurrence{padding:.16rem .42rem;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.64rem;font-weight:850;white-space:nowrap;line-height:1.2}
+  .chip-occurrence.is-new{border-color:#bbf7d0;background:#f0fdf4;color:#047857}
+  .chip-occurrence.is-reentry{border-color:#fde68a;background:#fffbeb;color:#b45309}
+  .chip-reco{display:inline-flex;align-items:center;padding:.14rem .42rem;border-radius:999px;font-size:.64rem;font-weight:850;line-height:1.2;white-space:nowrap}
+  .chip-reco.is-高{border:1px solid #fecaca;background:#fef2f2;color:#b91c1c}
+  .chip-reco.is-中{border:1px solid #fde68a;background:#fffbeb;color:#b45309}
+  .chip-reco.is-低{border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
+  .chip-quality,.chip-institutional{padding:.18rem .45rem;border:1px solid #dbe3ec;border-radius:999px;background:#f8fafc;color:#475569;font-size:.66rem;font-weight:750;white-space:normal;max-width:min(420px,100%);line-height:1.25}
+  .chip-hlp-badge{padding:.18rem .45rem;border:1px solid #fca5a5;border-radius:999px;background:#fff1f2;color:#be123c;font-size:.66rem;font-weight:800;white-space:nowrap}
+  .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
+  .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
+  .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
+  .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:64px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
+  .chip-metric:first-child{border-left:0}
+  .chip-metric-asof{min-width:92px}
+  .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
+  .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
+  .chip-asof-val{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .chip-row-footer{display:flex;align-items:center;gap:.55rem;margin-left:auto}
+  .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
+  .chip-change{font-size:.8rem;font-weight:800;min-width:56px;padding:.22rem .5rem;border-radius:999px;text-align:center;background:#f1f5f9}
+  .chip-up{color:#b91c1c}
+  .chip-down{color:#047857}
+  .chip-up{background:#fdecec}.chip-down{background:#e7f5f0}
+  .chip-row-shareholders{width:100%;padding-top:.5rem;border-top:1px dashed #e2e8f0}
+  .chip-shr-toggle{display:none}
+  .chip-shr-head,.chip-shr-body{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.15fr 1fr 1fr;gap:.45rem;width:100%}
+  .chip-shr-head span{color:#8b98a9;font-size:.62rem;font-weight:750;letter-spacing:.03em;padding:0 .45rem;white-space:nowrap}
+  .chip-shr-body span{display:flex;align-items:center;min-width:0;padding:.3rem .45rem 0;border-top:0}
+  .chip-shr-body strong{color:#14243b;font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chip-shr-body .is-concentrating{color:#047857}
+  .chip-shr-body .is-dispersing{color:#b91c1c}
+  .chip-row.chip-row-empty{justify-content:center;padding:1.5rem;border-bottom:0;color:#64748b}
+  .chip-row.chip-row-empty strong{display:block;margin-bottom:.2rem;color:#14243b}
+
+  .data-note{margin-top:1rem;padding:1rem 1.1rem;color:#526176;font-size:.82rem;line-height:1.65}
+  .data-note strong,.data-note span{display:block}.data-note strong{color:#14243b}.data-note p{margin:.35rem 0 0}
+
+  @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
+  @media(max-width:900px){.chip-toolbar{grid-template-columns:1fr}.chip-toolbar-left{grid-column:1;grid-row:1}.chip-toolbar-right,.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;grid-row:2;justify-content:flex-start}.chip-history{grid-column:1;grid-row:3}.chip-pager{grid-column:1;grid-row:4;justify-self:start}.chip-search-input{width:min(100%,20rem)}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+
+/* 对应ETF (2026-09-07: 直接显示ETF名称+代码, 无标签无池说明) */
+.chip-row-etf{margin-top:.4rem;display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap;padding:.3rem .4rem;background:rgba(241,245,249,.42);border-radius:7px;border:1px solid rgba(148,163,184,.14)}
+.chip-etf-list{display:flex;flex-wrap:wrap;gap:.35rem;flex:1;min-width:0}
+.chip-etf-pill{display:inline-flex;flex-direction:column;align-items:stretch;gap:.22rem;width:10.2rem;padding:.3rem .38rem;background:#f5f9ff;border:1px solid #cbdcf6;border-radius:8px;color:#1d4ed8;text-decoration:none;transition:all .15s;line-height:1.1;box-shadow:0 1px 2px rgba(29,78,216,.04)}
+.chip-etf-head{display:flex;align-items:center;justify-content:space-between;gap:.3rem;min-width:0;padding:0 .05rem}
+.chip-etf-code{flex-shrink:0;color:#7c8a9e;font-size:.57rem;font-weight:650}
+.chip-etf-profit{display:flex;align-items:center;gap:.26rem;width:100%;box-sizing:border-box;color:#1d4ed8;font-weight:750;font-variant-numeric:tabular-nums;background:transparent;border:0;border-top:1px solid #d6e4f7;border-radius:0;padding:.24rem .08rem .02rem;font-size:.65rem;box-shadow:none}
+.chip-etf-profit small{font-size:inherit;font-weight:inherit;opacity:.78}
+.chip-etf-profit strong{margin-left:auto;font-size:inherit;font-weight:800;letter-spacing:.01em}
+.chip-etf-profit-icon{display:none}
+.chip-etf-pill:hover{background:#eef5ff;border-color:#93b8ef;color:#1e40af;transform:translateY(-1px)}
+.chip-etf-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.67rem;font-weight:700}
+.chip-etf-meta{color:#64748b;font-weight:400;font-variant-numeric:tabular-nums}
