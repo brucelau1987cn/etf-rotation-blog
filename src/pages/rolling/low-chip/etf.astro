@@ -7,19 +7,36 @@ import RollingSubnav from '../../../components/RollingSubnav.astro';
 import { SITE_TITLE } from '../../../consts';
 import etfPool from '../../../../public/data/etf-low-chip-pool.json';
 import '../../../styles/low-chip-shared.css';
+import { stockNameInitials } from '../../../lib/stockNameInitials.mjs';
 
 const title = `低筹码ETF | ${SITE_TITLE}`;
 const description = '股票型ETF 周/月/季线收盘获利低于1.5%，并满足规模与成交额下限的研究观察池。';
 
 const PERIOD_LABEL: Record<string, string> = { week: '周', month: '月', quarter: '季' };
-const fmtProfit = (value: number | null | undefined) => value == null ? '—' : `${Number(value).toFixed(2)}%`;
-const fmtPct = (value: number | null | undefined) => value == null ? '—' : `${Math.abs(Number(value)).toFixed(2)}%`;
+const fmtProfit = (value: number | null | undefined) => (value == null ? '—' : `${Number(value).toFixed(2)}%`);
 const fmtYi = (value: number) => `${Number(value).toFixed(2)}亿`;
-const fmtWan = (value: number) => value >= 10000
-  ? `${(value / 10000).toFixed(2)}亿`
-  : `${Math.round(value).toLocaleString('zh-CN')}万`;
+const fmtWan = (value: number) =>
+  value >= 10000 ? `${(value / 10000).toFixed(2)}亿` : `${Math.round(value).toLocaleString('zh-CN')}万`;
+const fmtPrice = (value: number | null | undefined) => (value == null ? '—' : Number(value).toFixed(3));
+const fmtChange = (value: number | null | undefined) => {
+  if (value == null) return '—';
+  const n = Number(value);
+  return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+};
 
-const rows = etfPool.rows || [];
+const PAGE_SIZE = 6;
+const asOfLabel = String(etfPool.data_as_of || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1/$2/$3');
+
+const rows = (etfPool.rows || []).map((row: any) => {
+  const initials = [stockNameInitials(row.name), stockNameInitials(row.short_name)].filter(Boolean).join(' ');
+  return {
+    ...row,
+    initials,
+    hasWeek: (row.periods_hit || []).includes('week'),
+    hasMonth: (row.periods_hit || []).includes('month'),
+    hasQuarter: (row.periods_hit || []).includes('quarter'),
+  };
+});
 const counts = etfPool.counts || {};
 const gate = etfPool.gate || {};
 const unknown = etfPool.liquidity_unknown || [];
@@ -43,9 +60,8 @@ const unknown = etfPool.liquidity_unknown || [];
           <p>股票型ETF 周/月/季线收盘获利低于 1.5%，并满足规模与成交额下限。仅作研究观察，不改变罗盘权重、仓位或交易动作。</p>
         </div>
         <dl>
-          <div><dt>数据日</dt><dd>{etfPool.data_as_of}</dd></div>
-          <div><dt>入池</dt><dd>{rows.length}只</dd></div>
-          <div><dt>股票ETF</dt><dd>{counts.universe_etf ?? '—'}只</dd></div>
+          <div><dt>数据日</dt><dd id="chip-as-of">{etfPool.data_as_of}</dd></div>
+          <div><dt>过滤后标的</dt><dd id="chip-count">{rows.length}只</dd></div>
           <div><dt>三周期同时</dt><dd>{counts.pool_triple ?? 0}只</dd></div>
         </dl>
       </header>
@@ -57,54 +73,352 @@ const unknown = etfPool.liquidity_unknown || [];
           </div>
           <div class="chip-toolbar-right">
             <div class="chip-top-actions">
-              <span class="chip-filter-meta">规模 ≥ {gate.scale_min_yi ?? 1} 亿 · 近20日均额 ≥ {gate.amount_avg_20d_min_wan ?? 1000} 万</span>
+              <div class="chip-search-wrap">
+                <span class="chip-search-label">检索</span>
+                <div class="chip-search-box">
+                  <input
+                    id="chip-search-input"
+                    class="chip-search-input"
+                    type="search"
+                    inputmode="search"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="代码 / 名称 / 首字母"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="chip-search-suggestions"
+                    aria-expanded="false"
+                  />
+                  <div id="chip-search-suggestions" class="chip-search-suggestions" role="listbox" aria-label="匹配标的" hidden></div>
+                </div>
+              </div>
+            </div>
+            <div class="chip-pager" id="chip-pager" data-page-size={PAGE_SIZE}>
+              <button type="button" class="chip-page-btn" id="chip-page-prev" aria-label="上一页">上一页</button>
+              <div class="chip-page-nums" id="chip-page-nums" role="navigation" aria-label="页码"></div>
+              <button type="button" class="chip-page-btn" id="chip-page-next" aria-label="下一页">下一页</button>
+              <span class="chip-page-meta" id="chip-page-meta">第 1 页</span>
             </div>
           </div>
         </div>
 
-        {rows.length === 0 ? (
-          <p class="chip-empty">当前无满足条件的ETF</p>
-        ) : (
-          <div class="chip-list" id="chip-list">
-            {rows.map((row) => (
-              <div class="chip-row">
-                <div class="chip-row-top">
-                  <div class="chip-row-main">
-                    <div class="chip-identity">
-                      <strong class="chip-row-name">{row.name}</strong>
-                      <span class="chip-row-code">{row.code}</span>
-                    </div>
-                    {row.type ? <span class="chip-hlp-badge">{row.type}</span> : null}
-                    {row.periods_hit.map((key: string) => (
-                      <span class="chip-occurrence">{PERIOD_LABEL[key]}线命中</span>
-                    ))}
+        <div class="chip-financial-filters" id="chip-financial-filters" aria-label="周期命中条件筛选">
+          <button type="button" class="chip-filter-btn" data-filter="week" aria-pressed="false">周线命中</button>
+          <button type="button" class="chip-filter-btn" data-filter="month" aria-pressed="false">月线命中</button>
+          <button type="button" class="chip-filter-btn" data-filter="quarter" aria-pressed="false">季线命中</button>
+          <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
+          <span class="chip-filter-meta" id="chip-filter-meta">未启用筛选</span>
+        </div>
+
+        <div class="chip-list" id="chip-list">
+          {rows.map((row, index) => (
+            <div
+              class="chip-row"
+              data-symbol={row.code}
+              data-name={row.name}
+              data-short-name={row.short_name || ''}
+              data-initials={row.initials}
+              data-week={row.hasWeek ? '1' : '0'}
+              data-month={row.hasMonth ? '1' : '0'}
+              data-quarter={row.hasQuarter ? '1' : '0'}
+              data-board-index={index}
+              hidden={index >= PAGE_SIZE}
+            >
+              <div class="chip-row-top">
+                <div class="chip-row-main">
+                  <div class="chip-identity">
+                    <strong class="chip-row-name">{row.name}</strong>
+                    <span class="chip-row-code">{row.code}</span>
                   </div>
-                  <div class="chip-row-metrics" aria-label="数据日">
-                    <span class="chip-metric chip-metric-asof" title="数据日"><em class="chip-val chip-asof-val">{etfPool.data_as_of}</em><small>日期</small></span>
-                  </div>
-                  <div class="chip-row-footer">
-                    <span class="chip-price">¥{row.price == null ? '—' : Number(row.price).toFixed(3)}</span>
-                    <span class:list={['chip-change', (row.change_percent ?? 0) >= 0 ? 'chip-up' : 'chip-down']}>{(row.change_percent ?? 0) >= 0 ? '+' : '−'}{fmtPct(row.change_percent)}</span>
-                  </div>
+                  {row.type ? <span class="chip-institutional">{row.type}</span> : null}
+                  {row.periods_hit.map((key: string) => (
+                    <span class="chip-occurrence">{PERIOD_LABEL[key]}线命中</span>
+                  ))}
                 </div>
-                <div class="chip-row-shareholders" aria-label={`${row.name}获利盘与流动性`}>
-                  <div class="chip-metric"><small>周线获利</small><em class="chip-val">{fmtProfit(row.profit.week)}</em></div>
-                  <div class="chip-metric"><small>月线获利</small><em class="chip-val">{fmtProfit(row.profit.month)}</em></div>
-                  <div class="chip-metric"><small>季线获利</small><em class="chip-val">{fmtProfit(row.profit.quarter)}</em></div>
-                  <div class="chip-metric"><small>规模</small><em class="chip-val">{fmtYi(row.scale_yi)}</em></div>
-                  <div class="chip-metric"><small>近20日均额</small><em class="chip-val">{fmtWan(row.amount_avg_20d_wan)}</em></div>
+                <div class="chip-row-metrics" aria-label="数据日">
+                  <span class="chip-metric chip-metric-asof" title="数据日">
+                    <em class="chip-val chip-asof-val">{asOfLabel || etfPool.data_as_of}</em>
+                    <small>日期</small>
+                  </span>
+                </div>
+                <div class="chip-row-footer">
+                  <span class="chip-price">¥{fmtPrice(row.price)}</span>
+                  <span class:list={['chip-change', (row.change_percent ?? 0) >= 0 ? 'chip-up' : 'chip-down']}>
+                    {fmtChange(row.change_percent)}
+                  </span>
                 </div>
               </div>
-            ))}
+              <div class="chip-row-shareholders" aria-label={`${row.name}获利盘与流动性`}>
+                <button type="button" class="chip-shr-toggle" aria-expanded="false">
+                  <span>获利盘与流动性</span><i class="chip-shr-chev" aria-hidden="true">▾</i>
+                </button>
+                <div class="chip-shr-head" aria-hidden="true">
+                  <span>周线获利</span><span>月线获利</span><span>季线获利</span><span>基金规模</span><span>近20日均额</span><span>基金类型</span>
+                </div>
+                <div class="chip-shr-body">
+                  <span><small class="chip-shr-lbl">周线获利</small><strong>{fmtProfit(row.profit.week)}</strong></span>
+                  <span><small class="chip-shr-lbl">月线获利</small><strong>{fmtProfit(row.profit.month)}</strong></span>
+                  <span><small class="chip-shr-lbl">季线获利</small><strong>{fmtProfit(row.profit.quarter)}</strong></span>
+                  <span><small class="chip-shr-lbl">基金规模</small><strong>{fmtYi(row.scale_yi)}</strong></span>
+                  <span><small class="chip-shr-lbl">近20日均额</small><strong>{fmtWan(row.amount_avg_20d_wan)}</strong></span>
+                  <span><small class="chip-shr-lbl">基金类型</small><strong>{row.type || '—'}</strong></span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {rows.length === 0 && (
+            <div class="chip-row chip-row-empty">
+              <strong>当前无满足条件的ETF</strong>
+              <span>股票型ETF周/月/季线收盘获利低于1.5%且满足流动性门槛的标的将在此列出。</span>
+            </div>
+          )}
+          <div class="chip-row chip-row-empty" id="chip-search-empty" hidden>
+            <strong>没有匹配标的</strong>
+            <span>换个代码、名称或重置筛选条件试试</span>
           </div>
-        )}
+        </div>
       </section>
 
-      <p class="chip-empty">
-        口径：收盘获利比例取 iWenCai 原生字段，本地严格 &lt;1.5% 复核；规模取当日基金规模，成交额取近 20 日均值。
-        {unknown.length > 0 ? ` 流动性数据缺失未入池：${unknown.join('、')}。` : ''}
-      </p>
+      <footer class="data-note">
+        <strong>数据来源：同花顺 iWenCai</strong>
+        <span id="chip-data-note">数据日：{etfPool.data_as_of} · 门槛：规模 ≥ {gate.scale_min_yi ?? 1} 亿 · 近20日均额 ≥ {gate.amount_avg_20d_min_wan ?? 1000} 万</span>
+        <p>口径：收盘获利比例取 iWenCai 原生字段，本地严格 &lt;1.5% 复核；规模取当日基金规模，成交额取近 20 日均值。仅作研究观察，不改变罗盘权重、仓位或交易动作。{unknown.length > 0 ? ` 流动性数据缺失未入池：${unknown.join('、')}。` : ''}</p>
+      </footer>
     </main>
     <Footer />
+
+    <script is:inline define:vars={{ pageSize: PAGE_SIZE }}>
+    (function() {
+      var list = document.getElementById('chip-list');
+      var pager = document.getElementById('chip-pager');
+      var nums = document.getElementById('chip-page-nums');
+      var meta = document.getElementById('chip-page-meta');
+      var prevBtn = document.getElementById('chip-page-prev');
+      var nextBtn = document.getElementById('chip-page-next');
+      var searchInput = document.getElementById('chip-search-input');
+      var searchSuggestions = document.getElementById('chip-search-suggestions');
+      var empty = document.getElementById('chip-search-empty');
+      var filterButtons = Array.from(document.querySelectorAll('.chip-filter-btn'));
+      var filterReset = document.getElementById('chip-filter-reset');
+      var filterMeta = document.getElementById('chip-filter-meta');
+      var countEl = document.getElementById('chip-count');
+
+      if (!list || !pager || !nums || !meta || !prevBtn || !nextBtn) return;
+
+      var PAGE_SIZE = Math.max(1, Number(pageSize || 6));
+      var page = 1;
+      var query = '';
+      var activeFilters = new Set();
+      var suggestionIndex = -1;
+
+      function normalize(v) { return String(v || '').trim().toLowerCase().replace(/\s+/g, ''); }
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function rowsEls() {
+        return Array.from(list.querySelectorAll('.chip-row:not(.chip-row-empty)'));
+      }
+
+      function bindShareholderToggles() {
+        Array.from(list.querySelectorAll('.chip-shr-toggle')).forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var row = btn.closest('.chip-row');
+            if (!row) return;
+            var open = row.classList.toggle('is-shr-open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          });
+        });
+      }
+
+      function closeSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        searchSuggestions.hidden = true;
+        searchInput.setAttribute('aria-expanded', 'false');
+        suggestionIndex = -1;
+      }
+
+      function renderSuggestions() {
+        if (!searchSuggestions || !searchInput) return;
+        var matches = !query ? [] : rowsEls().filter(function(c) {
+          var values = [c.dataset.symbol, c.dataset.name, c.dataset.shortName, c.dataset.initials].map(normalize);
+          return values.some(function(value) { return value.indexOf(query) !== -1; });
+        }).slice(0, 8);
+        searchSuggestions.replaceChildren();
+        suggestionIndex = -1;
+        if (!matches.length) { closeSuggestions(); return; }
+        matches.forEach(function(row) {
+          var option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'chip-search-option';
+          option.setAttribute('role', 'option');
+          option.innerHTML = '<strong>' + esc(row.dataset.name) + '</strong><span>' + esc(row.dataset.symbol) + '</span><small>' + esc(row.dataset.initials) + '</small>';
+          option.addEventListener('mousedown', function(event) { event.preventDefault(); });
+          option.addEventListener('click', function() {
+            searchInput.value = row.dataset.symbol || row.dataset.name;
+            query = normalize(searchInput.value);
+            closeSuggestions();
+            page = 1;
+            renderPager();
+            searchInput.focus();
+          });
+          searchSuggestions.appendChild(option);
+        });
+        searchSuggestions.hidden = false;
+        searchInput.setAttribute('aria-expanded', 'true');
+      }
+
+      function filtered() {
+        return rowsEls().filter(function(c) {
+          var sym = String(c.dataset.symbol || '').toLowerCase();
+          var name = String(c.dataset.name || '').toLowerCase();
+          var shortName = String(c.dataset.shortName || '').toLowerCase();
+          var initials = String(c.dataset.initials || '').toLowerCase();
+          var searchMatched = !query ||
+            sym.indexOf(query) !== -1 ||
+            name.indexOf(query) !== -1 ||
+            shortName.indexOf(query) !== -1 ||
+            initials.indexOf(query) !== -1;
+          if (!searchMatched) return false;
+
+          if (activeFilters.has('week') && c.dataset.week !== '1') return false;
+          if (activeFilters.has('month') && c.dataset.month !== '1') return false;
+          if (activeFilters.has('quarter') && c.dataset.quarter !== '1') return false;
+
+          return true;
+        });
+      }
+
+      function renderPager() {
+        var matched = filtered();
+        var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
+        if (page > totalPages) page = totalPages;
+        if (page < 1) page = 1;
+        var start = (page - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+        var visible = matched.slice(start, end);
+        rowsEls().forEach(function(c) { c.hidden = true; });
+        visible.forEach(function(c) { c.hidden = false; });
+        if (empty) empty.hidden = matched.length > 0;
+        var showPager = matched.length > PAGE_SIZE;
+        pager.hidden = !showPager;
+        meta.textContent = matched.length ? ('第 ' + page + '/' + totalPages + ' 页 · ' + matched.length + ' 只') : '无匹配';
+        if (filterMeta) filterMeta.textContent = activeFilters.size ? ('已启用 ' + activeFilters.size + ' 项 · ' + matched.length + ' 只') : '未启用筛选';
+        if (countEl) countEl.textContent = matched.length + '只';
+
+        nums.replaceChildren();
+        if (showPager) {
+          var pageItems = [1, 2, page - 1, page, page + 1, totalPages - 1, totalPages]
+            .filter(function(value) { return value >= 1 && value <= totalPages; })
+            .filter(function(value, index, values) { return values.indexOf(value) === index; })
+            .sort(function(a, b) { return a - b; });
+          pageItems.forEach(function(item, index) {
+            if (index > 0 && item - pageItems[index - 1] > 1) {
+              var dots = document.createElement('span');
+              dots.className = 'chip-page-ellipsis';
+              dots.textContent = '…';
+              nums.appendChild(dots);
+            }
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chip-page-num' + (item === page ? ' is-active' : '');
+            btn.textContent = String(item);
+            btn.setAttribute('aria-label', '第 ' + item + ' 页');
+            if (item === page) btn.setAttribute('aria-current', 'page');
+            btn.addEventListener('click', function() { page = item; renderPager(); });
+            nums.appendChild(btn);
+          });
+        }
+        prevBtn.disabled = page <= 1 || matched.length === 0;
+        nextBtn.disabled = page >= totalPages || matched.length === 0;
+      }
+
+      prevBtn.addEventListener('click', function() { if (page > 1) { page--; renderPager(); } });
+      nextBtn.addEventListener('click', function() { page++; renderPager(); });
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          query = normalize(searchInput.value);
+          page = 1;
+          renderPager();
+          renderSuggestions();
+        });
+        searchInput.addEventListener('focus', renderSuggestions);
+        searchInput.addEventListener('keydown', function(event) {
+          var options = searchSuggestions ? Array.from(searchSuggestions.querySelectorAll('.chip-search-option')) : [];
+          if (event.key === 'Escape') { closeSuggestions(); return; }
+          if (!options.length || searchSuggestions.hidden) return;
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            suggestionIndex = (suggestionIndex + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+            options.forEach(function(option, index) {
+              option.classList.toggle('is-active', index === suggestionIndex);
+              option.setAttribute('aria-selected', index === suggestionIndex ? 'true' : 'false');
+            });
+          } else if (event.key === 'Enter' && suggestionIndex >= 0) {
+            event.preventDefault();
+            options[suggestionIndex].click();
+          }
+        });
+      }
+
+      filterButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var key = btn.dataset.filter;
+          if (!key) return;
+          if (activeFilters.has(key)) activeFilters.delete(key);
+          else activeFilters.add(key);
+          btn.classList.toggle('is-active', activeFilters.has(key));
+          btn.setAttribute('aria-pressed', activeFilters.has(key) ? 'true' : 'false');
+          page = 1;
+          renderPager();
+        });
+      });
+
+      if (filterReset) {
+        filterReset.addEventListener('click', function() {
+          activeFilters.clear();
+          filterButtons.forEach(function(btn) {
+            btn.classList.remove('is-active');
+            btn.setAttribute('aria-pressed', 'false');
+          });
+          page = 1;
+          renderPager();
+        });
+      }
+
+      document.addEventListener('click', function(event) {
+        if (searchSuggestions && !searchSuggestions.contains(event.target) && event.target !== searchInput) {
+          closeSuggestions();
+        }
+      });
+
+      bindShareholderToggles();
+      renderPager();
+    })();
+    </script>
   </body>
 </html>
+
+<style>
+  .low-chip-hero dl dd {
+    white-space: nowrap;
+    font-size: clamp(0.76rem, 2.8vw, 1rem);
+  }
+  .chip-shr-lbl {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .chip-shr-lbl {
+      display: inline-block;
+      color: #8b98a9;
+      font-size: .65rem;
+      font-weight: 700;
+      margin-right: .3rem;
+    }
+  }
+</style>
