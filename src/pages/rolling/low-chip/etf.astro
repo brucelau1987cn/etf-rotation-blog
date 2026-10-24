@@ -10,7 +10,7 @@ import '../../../styles/low-chip-shared.css';
 import { stockNameInitials } from '../../../lib/stockNameInitials.mjs';
 
 const title = `低筹码ETF | ${SITE_TITLE}`;
-const description = '股票型ETF 周/月/季线收盘获利低于1.5%，并满足规模与成交额下限的研究观察池。';
+const description = '股票型ETF 周/月/季线收盘获利低于1.5%，并满足规模下限（≥ 1 亿）的研究观察池。';
 
 const PERIOD_LABEL: Record<string, string> = { week: '周', month: '月', quarter: '季' };
 const fmtProfit = (value: number | null | undefined) => (value == null ? '—' : `${Number(value).toFixed(2)}%`);
@@ -57,7 +57,7 @@ const unknown = etfPool.liquidity_unknown || [];
         <div>
           <p class="eyebrow">A股滚动 · ETF 研究观察</p>
           <h1>低筹码ETF</h1>
-          <p>股票型ETF 周/月/季线收盘获利低于 1.5%，并满足规模与成交额下限。仅作研究观察，不改变罗盘权重、仓位或交易动作。</p>
+          <p>股票型ETF 周/月/季线收盘获利低于 1.5%，并满足规模下限（≥ 1 亿）。仅作研究观察，不改变罗盘权重、仓位或交易动作。</p>
         </div>
         <dl>
           <div><dt>数据日</dt><dd id="chip-as-of">{etfPool.data_as_of}</dd></div>
@@ -181,8 +181,8 @@ const unknown = etfPool.liquidity_unknown || [];
 
       <footer class="data-note">
         <strong>数据来源：同花顺 iWenCai</strong>
-        <span id="chip-data-note">数据日：{etfPool.data_as_of} · 门槛：规模 ≥ {gate.scale_min_yi ?? 1} 亿 · 近20日均额 ≥ {gate.amount_avg_20d_min_wan ?? 1000} 万</span>
-        <p>口径：收盘获利比例取 iWenCai 原生字段，本地严格 &lt;1.5% 复核；规模取当日基金规模，成交额取近 20 日均值。仅作研究观察，不改变罗盘权重、仓位或交易动作。{unknown.length > 0 ? ` 流动性数据缺失未入池：${unknown.join('、')}。` : ''}</p>
+        <span id="chip-data-note">数据日：{etfPool.data_as_of} · 门槛：规模 ≥ {gate.scale_min_yi ?? 1} 亿</span>
+        <p>口径：收盘获利比例取 iWenCai 原生字段，本地严格 &lt;1.5% 复核；规模取当日基金规模。仅作研究观察，不改变罗盘权重、仓位或交易动作。{unknown.length > 0 ? ` 规模数据缺失未入池：${unknown.join('、')}。` : ''}</p>
       </footer>
     </main>
     <Footer />

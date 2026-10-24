@@ -30,12 +30,10 @@ def test_etf_pool_snapshot_contract_when_present():
     gate = data["gate"]
     assert gate["profit_threshold_pct"] == 1.5
     assert gate["scale_min_yi"] == 1.0
-    assert gate["amount_avg_20d_min_wan"] == 1000.0
     assert data["counts"]["pool"] == len(data["rows"])
     for row in data["rows"]:
         assert row["periods_hit"], row["code"]
         assert row["scale_yi"] >= gate["scale_min_yi"]
-        assert row["amount_avg_20d_wan"] >= gate["amount_avg_20d_min_wan"]
         for key in row["periods_hit"]:
             assert 0 <= row["profit"][key] < gate["profit_threshold_pct"]
     assert not set(data["liquidity_unknown"]) & {r["code"] for r in data["rows"]}

@@ -4,8 +4,8 @@
 Gate (mirrors the A-share low-chip stock pool):
   - 股票型ETF universe from iWenCai
   - 周/月/季线收盘获利 strictly < 1.5% (local re-check, not the server boundary)
-  - liquidity floor: 基金规模 >= SCALE_MIN and 近20日成交额均值 >= AMOUNT_MIN
-  - ETF with unknown scale or turnover is excluded and listed explicitly
+  - liquidity floor: 基金规模 >= SCALE_MIN (1亿元)
+  - ETF with unknown scale is excluded and listed explicitly
 
 Output: public/data/etf-low-chip-pool.json (research observation only; does not
 feed compass weights, positions or actions).
@@ -33,7 +33,6 @@ CN = timezone(timedelta(hours=8))
 PROFIT_THRESHOLD = 0.015  # strict: value < 1.5%
 PERIODS = (("week", "周"), ("month", "月"), ("quarter", "季"))
 SCALE_MIN = 1e8  # 基金规模 >= 1 亿元
-AMOUNT_MIN = 1e7  # 近20日成交额均值 >= 1000 万元
 PAGE_SIZE = 100
 MAX_PAGES = 30
 PERIOD_QUERY = "股票ETF {label}线收盘获利不超过1.5%"
@@ -231,10 +230,10 @@ def build_payload(
         scale = scale_of(row)
         amount = amount_avg_of(row)
         liquidity_source[code] = "per_code"
-        if scale is None or amount is None:
+        if scale is None:
             unknown.append(code)
             continue
-        if scale < SCALE_MIN or amount < AMOUNT_MIN:
+        if scale < SCALE_MIN:
             continue
         base: dict = names.get(code) or row
 
@@ -252,7 +251,7 @@ def build_payload(
             "price": _float(base.get("最新收盘价")),
             "change_percent": _float(base.get("最新涨跌幅")),
             "scale_yi": round(scale / 1e8, 2),
-            "amount_avg_20d_wan": round(amount / 1e4, 1),
+            "amount_avg_20d_wan": round(amount / 1e4, 1) if amount is not None else None,
             "profit": {k: _get_profit(k, l) for k, l in PERIODS},
             "periods_hit": [k for k, _ in PERIODS if code in profit_hits[k]],
         })
@@ -279,8 +278,6 @@ def build_payload(
             "profit_threshold_pct": PROFIT_THRESHOLD * 100,
             "periods": [k for k, _ in PERIODS],
             "scale_min_yi": SCALE_MIN / 1e8,
-            "amount_avg_20d_min_wan": AMOUNT_MIN / 1e4,
-            "amount_window": "近20日成交额均值",
         },
         "counts": counts,
         "liquidity_unknown": unknown,

@@ -73,11 +73,12 @@ def test_liquidity_floor_and_triple_hit():
     assert payload["data_as_of"] == "2026-10-23"
 
 
-def test_amount_floor_is_enforced():
+def test_scale_floor_is_enforced_regardless_of_turnover():
     period = {"week": [period_row("777777.SZ", "G", "周", 0.01)], "month": [], "quarter": []}
-    liquidity = {"777777.SZ": liq_row("777777.SZ", "G", 2e8, 5e6)}  # 500万 < 1000万
+    liquidity = {"777777.SZ": liq_row("777777.SZ", "G", 2e8, 5e6)}  # 500万成交额 < 1000万，但规模 2亿 >= 1亿，入池
     payload = mod.build_payload(call=fake_call_factory(period, liquidity), now=NOW)
-    assert payload["rows"] == []
+    assert len(payload["rows"]) == 1
+    assert payload["rows"][0]["code"] == "777777.SZ"
     assert payload["liquidity_unknown"] == []
 
 
