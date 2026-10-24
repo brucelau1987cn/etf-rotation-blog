@@ -1,0 +1,284 @@
+{
+ "schema_version": 1,
+ "data_as_of": "2026-10-23",
+ "generated_at": "2026-10-24T16:19:38+08:00",
+ "source": "iWenCai",
+ "metric": "股票型ETF 周/月/季线收盘获利比例（iWenCai 原生字段，本地严格 <1.5% 复核）",
+ "gate": {
+  "profit_threshold_pct": 1.5,
+  "periods": [
+   "week",
+   "month",
+   "quarter"
+  ],
+  "scale_min_yi": 1.0,
+  "amount_avg_20d_min_wan": 1000.0,
+  "amount_window": "近20日成交额均值"
+ },
+ "counts": {
+  "universe_etf": 1308,
+  "period_hits": {
+   "week": 11,
+   "month": 18,
+   "quarter": 35
+  },
+  "candidates_union": 53,
+  "liquidity_unknown": 0,
+  "pool": 10,
+  "pool_triple": 0
+ },
+ "liquidity_unknown": [],
+ "liquidity_source": {
+  "158001.SZ": "per_code",
+  "159059.SZ": "per_code",
+  "159085.SZ": "per_code",
+  "159087.SZ": "per_code",
+  "159106.SZ": "per_code",
+  "159122.SZ": "per_code",
+  "159123.SZ": "per_code",
+  "159129.SZ": "per_code",
+  "159133.SZ": "per_code",
+  "159157.SZ": "per_code",
+  "159162.SZ": "per_code",
+  "159163.SZ": "per_code",
+  "159171.SZ": "per_code",
+  "159183.SZ": "per_code",
+  "159190.SZ": "per_code",
+  "159192.SZ": "per_code",
+  "159219.SZ": "per_code",
+  "159287.SZ": "per_code",
+  "159288.SZ": "per_code",
+  "159642.SZ": "per_code",
+  "159686.SZ": "per_code",
+  "159766.SZ": "per_code",
+  "159885.SZ": "per_code",
+  "159905.SZ": "per_code",
+  "159916.SZ": "per_code",
+  "159944.SZ": "per_code",
+  "159975.SZ": "per_code",
+  "510670.SH": "per_code",
+  "512090.SH": "per_code",
+  "512200.SH": "per_code",
+  "515370.SH": "per_code",
+  "515640.SH": "per_code",
+  "515730.SH": "per_code",
+  "515770.SH": "per_code",
+  "516370.SH": "per_code",
+  "516950.SH": "per_code",
+  "517000.SH": "per_code",
+  "517200.SH": "per_code",
+  "517360.SH": "per_code",
+  "517880.SH": "per_code",
+  "560230.SH": "per_code",
+  "560290.SH": "per_code",
+  "560410.SH": "per_code",
+  "560550.SH": "per_code",
+  "560820.SH": "per_code",
+  "560930.SH": "per_code",
+  "560970.SH": "per_code",
+  "561250.SH": "per_code",
+  "561500.SH": "per_code",
+  "562510.SH": "per_code",
+  "563620.SH": "per_code",
+  "563960.SH": "per_code",
+  "589960.SH": "per_code"
+ },
+ "period_meta": {
+  "week": {
+   "code_count": 12,
+   "chunks_info": "[\"基金类型包含股票ETF (1308)\",\"周线周期的收盘获利<=0.015 (80)\"]"
+  },
+  "month": {
+   "code_count": 21,
+   "chunks_info": "[\"基金类型包含股票ETF (1308)\",\"月线周期的收盘获利<=0.015 (121)\"]"
+  },
+  "quarter": {
+   "code_count": 36,
+   "chunks_info": "[\"基金类型包含股票ETF (1308)\",\"季线周期的收盘获利<=0.015 (127)\"]"
+  }
+ },
+ "rows": [
+  {
+   "code": "589960.SH",
+   "name": "易方达上证科创板新能源etf",
+   "short_name": "科创新能源ETF易方达",
+   "type": "主题指数ETF",
+   "price": 0.707,
+   "change_percent": 2.463768,
+   "scale_yi": 1.33,
+   "amount_avg_20d_wan": 2428.1,
+   "profit": {
+    "week": null,
+    "month": 1.0,
+    "quarter": 1.0
+   },
+   "periods_hit": [
+    "month",
+    "quarter"
+   ]
+  },
+  {
+   "code": "159766.SZ",
+   "name": "富国中证旅游主题etf",
+   "short_name": "旅游ETF富国",
+   "type": "主题指数ETF",
+   "price": 0.518,
+   "change_percent": 0.9746589999999999,
+   "scale_yi": 27.54,
+   "amount_avg_20d_wan": 10412.2,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 0.3
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "159129.SZ",
+   "name": "嘉实中证细分化工产业主题etf",
+   "short_name": "化工ETF嘉实",
+   "type": "主题指数ETF",
+   "price": 0.911,
+   "change_percent": 2.015677,
+   "scale_yi": 10.09,
+   "amount_avg_20d_wan": 1516.1,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 0.4
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "512200.SH",
+   "name": "南方中证全指房地产etf",
+   "short_name": "房地产ETF南方",
+   "type": "行业指数ETF",
+   "price": 1.166,
+   "change_percent": 1.479547,
+   "scale_yi": 49.55,
+   "amount_avg_20d_wan": 27981.1,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 0.4
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "159133.SZ",
+   "name": "天弘中证细分化工产业主题etf",
+   "short_name": "化工ETF天弘",
+   "type": "主题指数ETF",
+   "price": 0.933,
+   "change_percent": 1.9672129999999999,
+   "scale_yi": 14.34,
+   "amount_avg_20d_wan": 3083.7,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 0.8999999999999999
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "562510.SH",
+   "name": "华夏中证旅游主题etf",
+   "short_name": "旅游ETF华夏",
+   "type": "主题指数ETF",
+   "price": 0.527,
+   "change_percent": 0.764818,
+   "scale_yi": 5.9,
+   "amount_avg_20d_wan": 3597.2,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 0.8999999999999999
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "159157.SZ",
+   "name": "天弘中证工业有色金属主题etf",
+   "short_name": "有色金属ETF天弘",
+   "type": "行业指数ETF",
+   "price": 0.698,
+   "change_percent": 1.601164,
+   "scale_yi": 56.23,
+   "amount_avg_20d_wan": 7811.5,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 1.0
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "515370.SH",
+   "name": "华夏中证光伏产业etf",
+   "short_name": "光伏ETF华夏",
+   "type": "主题指数ETF",
+   "price": 0.686,
+   "change_percent": 1.329394,
+   "scale_yi": 6.76,
+   "amount_avg_20d_wan": 1312.8,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 1.0999999999999999
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "159905.SZ",
+   "name": "红利etf工银",
+   "short_name": "红利ETF工银",
+   "type": "策略指数ETF",
+   "price": 1.504,
+   "change_percent": 2.312925,
+   "scale_yi": 15.35,
+   "amount_avg_20d_wan": 3247.7,
+   "profit": {
+    "week": null,
+    "month": null,
+    "quarter": 1.3
+   },
+   "periods_hit": [
+    "quarter"
+   ]
+  },
+  {
+   "code": "512090.SH",
+   "name": "易方达msci中国a股国际通etf",
+   "short_name": "MSCIA股ETF易方达",
+   "type": "规模指数ETF",
+   "price": 1.772,
+   "change_percent": 1.257143,
+   "scale_yi": 5.85,
+   "amount_avg_20d_wan": 5267.9,
+   "profit": {
+    "week": null,
+    "month": 1.4000000000000001,
+    "quarter": null
+   },
+   "periods_hit": [
+    "month"
+   ]
+  }
+ ],
+ "scope": "研究观察；不改变罗盘权重、仓位或交易动作"
+}

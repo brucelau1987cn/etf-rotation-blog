@@ -1,0 +1,113 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+import LowChipModeNav from '../../../components/LowChipModeNav.astro';
+import RollingSubnav from '../../../components/RollingSubnav.astro';
+import { SITE_TITLE } from '../../../consts';
+import etfPool from '../../../../public/data/etf-low-chip-pool.json';
+
+const title = `低筹码ETF | ${SITE_TITLE}`;
+const description = '股票型ETF 周/月/季线收盘获利低于1.5%，并满足规模与成交额下限的研究观察池。';
+
+const PERIOD_LABEL: Record<string, string> = { week: '周', month: '月', quarter: '季' };
+const fmtProfit = (value: number | null | undefined) => value == null ? '—' : `${Number(value).toFixed(2)}%`;
+const fmtYi = (value: number) => `${Number(value).toFixed(2)}亿`;
+const fmtWan = (value: number) => value >= 10000
+  ? `${(value / 10000).toFixed(2)}亿`
+  : `${Math.round(value).toLocaleString('zh-CN')}万`;
+
+const rows = (etfPool.rows || []).map((row) => ({
+  ...row,
+  periodLabel: row.periods_hit.map((key: string) => PERIOD_LABEL[key]).join('·'),
+}));
+const counts = etfPool.counts || {};
+const gate = etfPool.gate || {};
+const unknown = etfPool.liquidity_unknown || [];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={title} description={description} />
+    <style is:global>
+      .etf-low-chip-main { max-width: 1120px; margin: 0 auto; padding: 1rem .75rem 2.5rem; }
+      .etf-low-chip-meta { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 .75rem; color: rgb(var(--gray-mid)); font-size: .8rem; }
+      .etf-low-chip-meta span { padding: .25rem .6rem; border: 1px solid var(--border); border-radius: 999px; background: #fff; }
+      .etf-low-chip-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+      .etf-low-chip-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+      .etf-low-chip-table th, .etf-low-chip-table td { padding: .55rem .6rem; border-bottom: 1px solid #eef2f7; text-align: right; white-space: nowrap; }
+      .etf-low-chip-table th:first-child, .etf-low-chip-table td:first-child { text-align: left; }
+      .etf-low-chip-table th { color: rgb(var(--gray-mid)); font-size: .72rem; font-weight: 800; background: #f8fafc; }
+      .etf-low-chip-name strong { display: block; font-weight: 850; }
+      .etf-low-chip-name small { color: rgb(var(--gray-mid)); font-size: .72rem; }
+      .etf-low-chip-profit { color: #1d4ed8; font-weight: 850; }
+      .etf-low-chip-note { margin: .85rem 0; color: rgb(var(--gray-mid)); font-size: .78rem; line-height: 1.6; }
+      .etf-low-chip-empty { padding: 1.5rem; text-align: center; color: rgb(var(--gray-mid)); }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main id="main-content" class="etf-low-chip-main site-shell">
+      <RollingSubnav active="low-chip" />
+      <LowChipModeNav active="etf" />
+
+      <h1>低筹码ETF</h1>
+      <div class="etf-low-chip-meta">
+        <span>数据日 {etfPool.data_as_of}</span>
+        <span>股票ETF {counts.universe_etf ?? '—'} 只</span>
+        <span>入池 {counts.pool ?? rows.length} 只</span>
+        <span>三周期同时 {counts.pool_triple ?? 0} 只</span>
+        <span>规模 ≥ {gate.scale_min_yi ?? 1} 亿</span>
+        <span>近20日均额 ≥ {gate.amount_avg_20d_min_wan ?? 1000} 万</span>
+      </div>
+
+      {rows.length === 0 ? (
+        <div class="etf-low-chip-table-wrap">
+          <p class="etf-low-chip-empty">当前无满足条件的ETF</p>
+        </div>
+      ) : (
+        <div class="etf-low-chip-table-wrap">
+          <table class="etf-low-chip-table">
+            <thead>
+              <tr>
+                <th>ETF</th>
+                <th>命中周期</th>
+                <th>周线获利</th>
+                <th>月线获利</th>
+                <th>季线获利</th>
+                <th>规模</th>
+                <th>近20日均额</th>
+                <th>收盘</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr>
+                  <td class="etf-low-chip-name">
+                    <strong>{row.name}</strong>
+                    <small>{row.code}{row.type ? ` · ${row.type}` : ''}</small>
+                  </td>
+                  <td>{row.periodLabel}</td>
+                  <td class="etf-low-chip-profit">{fmtProfit(row.profit.week)}</td>
+                  <td class="etf-low-chip-profit">{fmtProfit(row.profit.month)}</td>
+                  <td class="etf-low-chip-profit">{fmtProfit(row.profit.quarter)}</td>
+                  <td>{fmtYi(row.scale_yi)}</td>
+                  <td>{fmtWan(row.amount_avg_20d_wan)}</td>
+                  <td>{row.price == null ? '—' : Number(row.price).toFixed(3)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p class="etf-low-chip-note">
+        口径：股票型ETF的周/月/季线收盘获利比例（iWenCai）严格低于1.5%，并在三个周期中至少命中一个；规模不低于1亿元，近20日成交额均值不低于1000万元。
+        {unknown.length > 0 ? ` 流动性数据缺失未入池：${unknown.join('、')}。` : ''}
+        本页为研究观察，不改变罗盘权重、仓位或交易动作。
+      </p>
+    </main>
+    <Footer />
+  </body>
+</html>
