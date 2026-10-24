@@ -29,6 +29,12 @@ def fake_call_factory(period_data, liquidity=None):
     liquidity = liquidity or {}
 
     def call(query, page=1, limit=100):
+        # per-code liquidity lookup: query starts with the full suffixed code
+        head = query.replace("，", " ").split()[0]
+        if "." in head and head[:6].isdigit():
+            row = liquidity.get(head)
+            return {"success": True, "code_count": 1 if row else 0, "has_more": False,
+                    "datas": [row] if row else []}
         if "收盘获利" in query:
             for key, label in mod.PERIODS:
                 if f"{label}线" in query:
@@ -37,12 +43,6 @@ def fake_call_factory(period_data, liquidity=None):
                             "datas": rows if page == 1 else []}
         if query == "股票ETF":
             return {"success": True, "code_count": 1308, "has_more": False, "datas": []}
-        # per-code liquidity lookup: query starts with the full suffixed code
-        head = query.replace("，", " ").split()[0]
-        if "." in head and head[:6].isdigit():
-            row = liquidity.get(head)
-            return {"success": True, "code_count": 1 if row else 0, "has_more": False,
-                    "datas": [row] if row else []}
         raise AssertionError(f"unexpected query {query!r}")
     return call
 
@@ -235,3 +235,20 @@ def test_liquidity_cache_resumes_after_failure_and_never_caches_errors(tmp_path)
     before = attempts["n"]
     mod.build_payload(call=flaky, now=NOW, cache_path=cache_path)
     assert attempts["n"] == before
+
+
+def test_non_hit_periods_populate_from_per_code_row(tmp_path):
+    # Only quarter hits < 1.5%
+    period = {"week": [], "month": [], "quarter": [period_row("123456.SZ", "T", "季", 0.003)]}
+    # Per-code row contains week and month profit as well (> 1.5%)
+    liq = liq_row("123456.SZ", "T", 2e8, 3e7)
+    liq["周线收盘获利[20261023]"] = 0.115
+    liq["月线收盘获利[20261023]"] = 0.059
+    payload = mod.build_payload(call=fake_call_factory(period, {"123456.SZ": liq}), now=NOW, cache_path=tmp_path / "liq.json")
+    assert len(payload["rows"]) == 1
+    r = payload["rows"][0]
+    assert r["periods_hit"] == ["quarter"]
+    assert r["profit"]["quarter"] == 0.3
+    assert r["profit"]["week"] == 11.5
+    assert r["profit"]["month"] == 5.9
+

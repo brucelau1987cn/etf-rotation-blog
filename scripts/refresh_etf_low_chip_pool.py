@@ -124,7 +124,7 @@ def lookup_liquidity(code: str, call: Callable[..., dict[str, Any]] = iwencai_ca
     """Per-code liquidity lookup. The full suffixed code is required: the bare
     six-digit form returns no 基金规模/成交额 fields for several ETFs."""
     # Comma-separated phrasing is the form that reliably returns the flat fields.
-    data = call(f"{code}，基金规模，成交额，近一个月日均成交额", page=1, limit=10)
+    data = call(f"{code}，基金规模，成交额，近一个月日均成交额，周线收盘获利，月线收盘获利，季线收盘获利", page=1, limit=10)
     for row in data.get("datas") or []:
         if row.get("基金代码") == code:
             return row
@@ -236,7 +236,14 @@ def build_payload(
             continue
         if scale < SCALE_MIN or amount < AMOUNT_MIN:
             continue
-        base = names.get(code) or row
+        base: dict = names.get(code) or row
+
+        def _get_profit(p_key: str, p_label: str) -> float | None:
+            if code in profit_hits[p_key]:
+                return round(profit_hits[p_key][code]["value"] * 100, 2)
+            f = profit_field(row, p_label) or profit_field(base, p_label)
+            return round(f[1] * 100, 2) if f is not None else None
+
         rows_out.append({
             "code": code,
             "name": base.get("基金简称") or row.get("基金简称") or "",
@@ -246,8 +253,7 @@ def build_payload(
             "change_percent": _float(base.get("最新涨跌幅")),
             "scale_yi": round(scale / 1e8, 2),
             "amount_avg_20d_wan": round(amount / 1e4, 1),
-            "profit": {k: profit_hits[k][code]["value"] * 100 if code in profit_hits[k] else None
-                       for k, _ in PERIODS},
+            "profit": {k: _get_profit(k, l) for k, l in PERIODS},
             "periods_hit": [k for k, _ in PERIODS if code in profit_hits[k]],
         })
 
