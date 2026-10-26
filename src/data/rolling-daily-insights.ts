@@ -32,6 +32,114 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-10-26': {
+      "tradeDate": "2026-10-26",
+      "shortDate": "10/26",
+      "title": "10月26日滚动信号收盘复盘",
+      "subtitle": "全市场5条D1首次入库覆盖4只标的：A股002185/301511各1条空方10m、港股06809 1条空方10m（webhook未带价）、TIPS同节点30m多空3分钟翻转（标的身份未核实）；指数分化上证+0.19%、深成-1.19%、创业板-1.71%，成长中小盘杀跌；收盘验证确认2、观察2",
+      "cutoff": "2026-10-26 18:30 北京时间；A股个股以腾讯16:14收盘快照为准、港股以腾讯16:08收盘为准；指数为腾讯指数快照；iWenCai收盘获利/平均成本/90%集中度/量比/换手/DIF/DEA/RSI为10/26口径；美股10/26尚未开盘",
+      "summary": "今日D1首次入库5行、涉及4只标的：A股002185空方10m@15.30（09:40）、301511空方10m@67.09（09:50）、港股06809空方10m（14:25，webhook未带价）、TIPS同节点30m先多方@53.7542（10:46）后空方@53.956（10:49）。指数分化：上证3697.52 +0.19%、深成11534.38 -1.19%、创业板2638.23 -1.71%、沪深300 4103.54 -0.04%，成长中小盘明显杀跌。收盘验证：002185收14.92低于信号价15.30（-2.48%）判空方确认；301511收66.36低于信号价67.09（-1.09%）判空方确认但RSI6 12.73、收盘获利0.4%已超卖；06809收205.80高于14:25参考价203.60判空方贴价未确认且点位存疑；TIPS标的身份未核实、收盘不可得判观察。合计确认2、收复0、混合0、观察2。",
+      "buyRule": "今日无可执行的多头节点：TIPS的30m多方（10:46 @53.7542）已被同节点空方（10:49 @53.956）在3分钟内覆盖，按最新写入方向作空方处理，多方观察撤销。002185/301511的空方已兑现，超跌反弹只作观察不做左侧多：301511 RSI6 12.73、收盘获利0.4%、平均成本85.36（现价66.36），须先站回MA5 72.68再谈反弹；002185须站回MA5 15.05与信号价15.30才谈修复。",
+      "sellRule": "空方保留两条已确认单：002185收盘14.92低于15.30，延续条件为收盘继续低于15.30且失守MA10 14.74（跌破后不追空，等反抽MA5 15.05不破再减）；301511收盘66.36低于67.09但已超卖（RSI6 12.73、收盘获利0.4%），只做减不加，反抽MA5 72.68不破为减仓位、跌破日低65.51再破位才追空。06809空方未确认（收盘205.80高于14:25参考价203.60），须收盘跌破日低203.40才恢复空方；跌破203.60仅作风险提示，不以盘中价下单。TIPS空方因标的身份未核实不给出可执行价位。",
+      "discipline": "同日同节点只认D1首次写入价与event_id，今日5行全部保留：002185 1条、301511 1条、06809 1条、TIPS 2条（30m BUY/SELL为不同signal，属D1主键trade_date+symbol+cycle_code+signal各自独立行）。A股与港股webhook不含trigger_time_utc，其值等于received_at，是接收时刻而非K线触发时刻，因此06809的信号价只能另取腾讯1m 14:25收盘203.60作参考，标UNAVAILABLE（不可把参考价当D1写入价）。TIPS不在rolling_instruments登记，exchange标记为SSE、instrument_name为“绿色三角被触发/紫色三角被触发”，标识歧义：Yahoo TIPS为天润互联（$0.0006）、TIP为iShares TIPS ETF（$106.24），均与53.75/53.96不符，标UNAVAILABLE（身份与收盘均不可核实）。主力资金净流入仅002185（-6.03亿）与301511（-5451万）取得，06809/TIPS标INSUFFICIENT，不估算。01378、SI=F、TSLA今日无D1新写入，仅作背景不作今日信号。",
+      "signals": [
+        {
+          "name": "华天科技",
+          "symbol": "002185",
+          "market": "A股",
+          "direction": "SELL",
+          "nodes": "10m",
+          "signalPrices": "15.30",
+          "close": "¥14.92",
+          "change": "-7.84%（前收16.19，-1.27）",
+          "validation": "confirmed",
+          "validationLabel": "空方确认",
+          "verdict": "10m空方09:40入库@15.30，收盘14.92低于信号价2.48%，且为当日最低价，全天单边下行，方向确认；但收盘仅略高于MA10 14.74，下方空间依赖MA10失守而非加速。",
+          "support": "14.92（日低/收盘） / 14.74（MA10）",
+          "pressure": "15.05（MA5） / 15.30（信号价） / 15.89（MA20）",
+          "buyPlan": "无多方节点，反弹只在站回MA5 15.05后观察；收盘重回15.30上方前不做多、不抄底。",
+          "sellPlan": "收盘继续低于15.30且失守MA10 14.74为空方延展确认；反抽15.05–15.30不破为减仓位；不追盘中急跌。",
+          "evidence": [
+            "D1首次入库1节点（10m SELL@15.30，接收时刻09:40:06，event_id evt_1792978806700_65q29n），来源sina-m1",
+            "收盘¥14.92，前收¥16.19，-7.84%（-1.27）；开15.60 / 高15.70 / 低14.92（腾讯收盘快照）",
+            "MA5 15.052 / MA10 14.736 / MA20 15.886；DIF -0.532 / DEA -0.567 / RSI6 46.098 / RSI12 43.886（iWenCai前复权日K）",
+            "iWenCai：量比1.338，换手8.615%，收盘获利17.8%，平均成本16.04，90%集中度13.3%，主力资金净流入-6.03亿"
+          ]
+        },
+        {
+          "name": "德福科技",
+          "symbol": "301511",
+          "market": "A股",
+          "direction": "SELL",
+          "nodes": "10m",
+          "signalPrices": "67.09",
+          "close": "¥66.36",
+          "change": "-8.08%（前收72.19，-5.83）",
+          "validation": "confirmed",
+          "validationLabel": "空方确认（已超卖）",
+          "verdict": "10m空方09:50入库@67.09，收盘66.36低于信号价1.09%，方向确认；但RSI6 12.73、RSI12 23.54、收盘获利0.4%为极端超卖，获利盘几乎清空，属确认但延续动能衰减，不宜追加空头。",
+          "support": "65.51（日低） / 66.36（收盘）",
+          "pressure": "67.09（信号价） / 72.68（MA5） / 75.50（MA10） / 87.01（MA20）",
+          "buyPlan": "暂不左侧多；须先站回MA5 72.68且不破MA10 75.50再谈反弹参与，66元下方不接。",
+          "sellPlan": "空方已确认，只做减不加：反抽MA5 72.68不破为减仓位；收盘跌破日低65.51才算破位延续，破位当日不追。",
+          "evidence": [
+            "D1首次入库1节点（10m SELL@67.09，接收时刻09:50:08，event_id evt_1792979408238_8dfsrj），来源sina-m1",
+            "收盘¥66.36，前收¥72.19，-8.08%（-5.83）；开71.00 / 高71.21 / 低65.51（腾讯收盘快照）",
+            "MA5 72.676 / MA10 75.504 / MA20 87.011；DIF -7.546 / DEA -5.479 / RSI6 12.73 / RSI12 23.543（iWenCai前复权日K）",
+            "iWenCai：量比1.162，换手6.04%，收盘获利0.4%，平均成本85.36，90%集中度24.4%，主力资金净流入-5451万",
+            "口径差：前收采用腾讯未复权72.19，iWenCai前复权10/23收盘为71.84，跨源复权口径不同，信号价比对以未复权口径为准"
+          ]
+        },
+        {
+          "name": "澜起科技",
+          "symbol": "06809",
+          "market": "港股",
+          "direction": "SELL",
+          "nodes": "10m",
+          "signalPrices": "UNAVAILABLE（D1未带trigger_price；公开API投影253.80与当日区间不符，判陈旧缓存）｜腾讯1m 14:25参考价203.60",
+          "close": "HK$205.80",
+          "change": "-4.19%（前收214.80，-9.00）",
+          "validation": "watch",
+          "validationLabel": "空方贴价未确认（点位存疑）",
+          "verdict": "10m空方14:25入库但webhook未带价格，D1 trigger_price为NULL。腾讯1m显示14:25收203.60、14:26回升204.40，全天区间203.40–217.00，收盘205.80高于信号参考价1.08%，属尾盘贴价反抽、空方未确认。公开批量API把该节点投影为253.80，与当日203.40–217.00区间完全不符，判为陈旧缓存，不予采用。",
+          "support": "203.40（日低） / 203.60（14:25参考价）",
+          "pressure": "214.80（前收） / 217.00（日高）",
+          "buyPlan": "空方未确认，不做多；仅在收盘站回214.80前收后按无信号处理，不据未确认信号建仓。",
+          "sellPlan": "收盘跌破日低203.40才恢复空方确认；跌破203.60仅作风险提示，不以盘中价下单；价格口径待下一交易日复核。",
+          "evidence": [
+            "D1首次入库1节点（10m SELL，trigger_price=NULL，接收时刻14:25:15，event_id evt_1792995915170_b1rem0）",
+            "腾讯1m：14:24 204.00 / 14:25 203.60 / 14:26 204.40 / 14:30 204.40（2026-10-26全天332根分钟线）",
+            "收盘HK$205.80，前收HK$214.80，-4.19%（-9.00）；开214.40 / 高217.00 / 低203.40（腾讯16:08快照）",
+            "公开批量API /rolling-signals?symbols=06809 投影价253.80（tencent-minute），与当日区间不符，标UNAVAILABLE",
+            "iWenCai港股筹码与主力资金未取得，标INSUFFICIENT"
+          ]
+        },
+        {
+          "name": "TIPS（未识别标的）",
+          "symbol": "TIPS",
+          "market": "未识别",
+          "direction": "MIXED",
+          "nodes": "30m（多方→空方翻转）",
+          "signalPrices": "53.7542（多方） / 53.956（空方）",
+          "close": "UNAVAILABLE（标的标识歧义，无法取得可信收盘）",
+          "change": "UNAVAILABLE",
+          "validation": "watch",
+          "validationLabel": "身份未核实·多空3分钟翻转",
+          "verdict": "同节点30m在3分钟内先多方@53.7542（10:46:18）后空方@53.956（10:49:02），D1两行均已入库；按最新写入方向作空方处理，多方观察撤销。但该标的不在rolling_instruments登记，instrument_name为“绿色三角被触发/紫色三角被触发”、exchange标记SSE，标识歧义导致收盘无法核实，方向与价位均不可执行，仅作记录。",
+          "support": "UNAVAILABLE",
+          "pressure": "53.956（空方信号价，身份未核实，仅记录）",
+          "buyPlan": "不操作。多方已被同节点空方覆盖，且标的身份未核实，禁止建仓。",
+          "sellPlan": "不操作。无可信收盘与量价证据，禁止下单；须先完成标的身份映射后再纳入操盘计划。",
+          "evidence": [
+            "D1首次入库2节点（30m BUY@53.7542 10:46:18 event_id evt_1792982778496_4m85g4；30m SELL@53.956 10:49:02 event_id evt_1792982942307_1vuu0r）",
+            "两行instrument_name分别为“绿色三角被触发”“紫色三角被触发”，exchange=SSE，trigger_price来源webhook",
+            "标识歧义：Yahoo TIPS=天润互联（$0.0006，OID），TIP=iShares TIPS Bond ETF（$106.24），新浪usTIPS为空，腾讯usTIP为$106.24，均与53.75/53.96不符",
+            "iWenCai查询TIPS返回0行，收盘与筹码证据INSUFFICIENT，标UNAVAILABLE"
+          ]
+        }
+      ],
+      "sources": "D1 rolling_signals（Cloudflare REST SELECT，当日5行）+ 腾讯 qt.gtimg.cn 个股/港股收盘快照（16:08–16:14）+ 腾讯1m分钟线（06809 14:25）+ 腾讯指数快照 + iWenCai（收盘获利/平均成本/90%集中度/量比/换手/DIF/DEA/RSI/主力资金）。UNAVAILABLE：06809 D1信号价、TIPS标的身份与收盘。INSUFFICIENT：06809/TIPS筹码与主力资金。不估算。"
+  },
   '2026-10-23': {
     "tradeDate": "2026-10-23",
     "shortDate": "10/23",
@@ -3549,7 +3657,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-23', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-26', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-23', href: '/rolling/insights/2026-10-23/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-22', href: '/rolling/insights/2026-10-22/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-21', href: '/rolling/insights/2026-10-21/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-20', href: '/rolling/insights/2026-10-20/' },
