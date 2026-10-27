@@ -59,7 +59,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "9.58（15m信号价） / 9.65（10m信号价） / 11.01（MA20）",
                   "buyPlan": "无多方节点。MA20 11.01 距现价约20%，量比1.386、换手1.78%属恐慌盘释放但不构成左侧买点；只有站回9.65以上才谈修复。",
                   "sellPlan": "已确认空方：延续条件为收盘继续低于9.18且无法收复9.58；次日高开回抽9.58–9.65不破为减仓区，跌破9.18后再破位才追空。",
-                  "evidence": "iWenCai 10/27：收盘9.18、-6.13%、量比1.386、换手1.78%、MA20 11.007、主力净流出1.37亿、收盘获利0.0%；与腾讯16:14收盘快照一致。"
+                  "evidence": ["iWenCai 10/27：收盘9.18、-6.13%、量比1.386、换手1.78%、MA20 11.007、主力净流出1.37亿、收盘获利0.0%；与腾讯16:14收盘快照一致。"]
             },
             {
                   "name": "海光信息",
@@ -77,7 +77,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "191.71（10m信号价） / 198.00（前收） / 213.21（MA20）",
                   "buyPlan": "无多方节点。换手仅0.718%、量比0.778属缩量下跌，不左侧接；需先收复191.71再谈反弹。",
                   "sellPlan": "空方确认：次日反抽191.71不破为减仓/加空观察位；收盘跌破187.03延续，收复191.71以上则空方降级观察。",
-                  "evidence": "iWenCai 10/27：收盘187.03、-5.54%、量比0.778、换手0.718%、MA20 213.214、主力净流出1.24亿、收盘获利0.0%。"
+                  "evidence": ["iWenCai 10/27：收盘187.03、-5.54%、量比0.778、换手0.718%、MA20 213.214、主力净流出1.24亿、收盘获利0.0%。"]
             },
             {
                   "name": "国民技术",
@@ -95,7 +95,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "16.06（20m信号价） / 16.15（15m） / 16.43（10m） / 18.77（MA20）",
                   "buyPlan": "无多方节点。放量下跌不接左侧；需先收复16.06并站回MA20 18.77才谈趋势修复。",
                   "sellPlan": "空方确认：延续条件为收盘继续低于16.06；反抽16.06–16.15不破为减仓区，跌破15.85再追空。",
-                  "evidence": "iWenCai 10/27：收盘15.86、-4.92%、量比1.017、换手4.363%、MA20 18.774、主力净流出0.33亿、主力增仓占比-7.96%、收盘获利0.0%。"
+                  "evidence": ["iWenCai 10/27：收盘15.86、-4.92%、量比1.017、换手4.363%、MA20 18.774、主力净流出0.33亿、主力增仓占比-7.96%、收盘获利0.0%。"]
             },
             {
                   "name": "民爆光电",
@@ -113,7 +113,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "79.40（信号价） / 81.26（前收） / 96.87（MA20）",
                   "buyPlan": "无多方节点。MA20 96.87远高于现价，趋势仍空；主力小幅净流入仅作观察，不构成买点。",
                   "sellPlan": "空方确认：反抽79.40不破继续维持空方；收复79.40并站稳则降级观察；跌破76.93延续。",
-                  "evidence": "iWenCai 10/27：收盘76.93、-5.33%、量比1.034、换手5.928%、MA20 96.87、主力净流入0.09亿、收盘获利0.4%。"
+                  "evidence": ["iWenCai 10/27：收盘76.93、-5.33%、量比1.034、换手5.928%、MA20 96.87、主力净流入0.09亿、收盘获利0.4%。"]
             },
             {
                   "name": "上海电力",
@@ -131,7 +131,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "11.75（信号价） / 11.89（前收） / 12.47（MA20）",
                   "buyPlan": "无多方节点。缩量阴跌缺方向，等收复11.75再看。",
                   "sellPlan": "空方微弱确认：次日收盘若收复11.75则空方失效转观察；继续低于11.75则维持。",
-                  "evidence": "iWenCai 10/27：收盘11.67、-1.85%、量比0.941、换手0.48%、MA20 12.469、主力净流出0.18亿、收盘获利0.2%。"
+                  "evidence": ["iWenCai 10/27：收盘11.67、-1.85%、量比0.941、换手0.48%、MA20 12.469、主力净流出0.18亿、收盘获利0.2%。"]
             },
             {
                   "name": "创新医疗",
@@ -149,7 +149,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "15.84（信号价） / 16.39（前收） / 16.75（MA20）",
                   "buyPlan": "无多方节点。获利盘6.4%未清洗完，不接。",
                   "sellPlan": "空方确认：反抽15.84不破为减仓区；收盘跌破15.72延续。",
-                  "evidence": "iWenCai 10/27：收盘15.73、-4.03%、量比0.689、换手3.466%、MA20 16.751、主力净流出0.06亿、收盘获利6.4%。"
+                  "evidence": ["iWenCai 10/27：收盘15.73、-4.03%、量比0.689、换手3.466%、MA20 16.751、主力净流出0.06亿、收盘获利6.4%。"]
             },
             {
                   "name": "东方明珠",
@@ -167,7 +167,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "8.38（前收） / 8.56（MA20）",
                   "buyPlan": "无多方节点。获利盘23.2%意味着上方套牢少但浮盈兑现压力大，不接。",
                   "sellPlan": "空方贴价确认：次日收盘跌破8.15则空方延续；收复8.15以上（尤其站上8.38）则空方失效。",
-                  "evidence": "iWenCai 10/27：收盘8.15、-2.74%、量比0.74、换手0.761%、MA20 8.558、主力净流出0.35亿、收盘获利23.2%。"
+                  "evidence": ["iWenCai 10/27：收盘8.15、-2.74%、量比0.74、换手0.761%、MA20 8.558、主力净流出0.35亿、收盘获利23.2%。"]
             },
             {
                   "name": "澜起科技",
@@ -185,7 +185,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "210.80（收盘）",
                   "buyPlan": "空方已被收复，但无多方节点，不反向追多，只作观察。",
                   "sellPlan": "空方失效：仅在收盘重新跌破205.80时恢复空方观点，否则本轮回撤信号作废。",
-                  "evidence": "腾讯港股16:08收盘快照：210.800，前收205.800，+2.43%；D1 10m 行 trigger_price 为 NULL（A股/港股 webhook 不含 trigger_time_utc，无法回填触发价）。"
+                  "evidence": ["腾讯港股16:08收盘快照：210.800，前收205.800，+2.43%；D1 10m 行 trigger_price 为 NULL（A股/港股 webhook 不含 trigger_time_utc，无法回填触发价）。"]
             },
             {
                   "name": "多晶硅PS2611",
@@ -203,7 +203,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "37,395（日高） / 36,735（收盘）",
                   "buyPlan": "多方确认：回踩36,415不破为多单持仓/加仓观察区，跌破则多方降级。",
                   "sellPlan": "无空方节点；多方止盈参考37,395日高。",
-                  "evidence": "新浪 nf_PS0（多晶硅连续）10/27：收盘36,735、昨结36,415、日高37,395、日低35,425；D1 两条 BUY 行 trigger_price 为空。"
+                  "evidence": ["新浪 nf_PS0（多晶硅连续）10/27：收盘36,735、昨结36,415、日高37,395、日低35,425；D1 两条 BUY 行 trigger_price 为空。"]
             },
             {
                   "name": "沪银AG2612",
@@ -221,7 +221,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "12,986（昨结） / 13,168（日高）",
                   "buyPlan": "多方已被同节点空方覆盖，多方观察撤销。",
                   "sellPlan": "终态空方：反抽12,986不破维持空方；收复昨结则翻多观察。",
-                  "evidence": "新浪 nf_AG0（白银连续）10/27：收盘12,763、昨结12,986、日高13,168、日低12,720；D1 06:24 BUY、06:33 SELL。"
+                  "evidence": ["新浪 nf_AG0（白银连续）10/27：收盘12,763、昨结12,986、日高13,168、日低12,720；D1 06:24 BUY、06:33 SELL。"]
             },
             {
                   "name": "现货白银XAG-USDT-SWAP",
@@ -239,7 +239,7 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
                   "pressure": "53.95（前收） / 54.20（日高）",
                   "buyPlan": "多方已被覆盖，撤销。",
                   "sellPlan": "终态空方：收复53.95则翻多观察。",
-                  "evidence": "新浪 hf_XAG 18:30 快照：53.14，前收53.95，日高54.20、日低52.65（伦敦银现货，非纽约期货）；D1 06:24 BUY、06:39 SELL。"
+                  "evidence": ["新浪 hf_XAG 18:30 快照：53.14，前收53.95，日高54.20、日低52.65（伦敦银现货，非纽约期货）；D1 06:24 BUY、06:39 SELL。"]
             }
       ],
       "sources": [
