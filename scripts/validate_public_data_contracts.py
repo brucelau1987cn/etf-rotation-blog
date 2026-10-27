@@ -50,6 +50,7 @@ SCHEMA_FILES = (
     "data-catalog.schema.json", "a-compass-dashboard.schema.json",
     "forward-evidence-ledger.schema.json", "decision-thesis.schema.json", "decision-drift.schema.json",
     "investment-research-layer.schema.json",
+    "a-han-precise-signals.schema.json",
     "us-compass-health.schema.json", "us-compass-rotation-map.schema.json", "us-compass-risk.schema.json",
 )
 ROLES = {"production", "shadow", "history", "runtime", "export"}

@@ -1,8 +1,8 @@
 {
   "schema_version": "data-catalog-v1",
-  "batch_id": "4687d73256c35c371bae698ef5fda2d6ab26abd2691fb5f978fa0d28344ab30a",
+  "batch_id": "8a0a416203266f08f297cfe6254a4d736dba114700ffa30ad3b879036884f31a",
   "contract_url": "/schemas/data-catalog.schema.json",
-  "generated_at": "2026-10-27T04:40:38Z",
+  "generated_at": "2026-10-27T04:40:44Z",
   "datasets": [
     {
       "dataset_id": "garden-recommendations",
@@ -86,6 +86,34 @@
       "sha256": "2dc75070d30438b6f94bce7efbe6aacf4e9373cb6de0690ab8efa9aa2e796131",
       "bytes": 455734,
       "public_url": "/data/etf-garden-pool.json"
+    },
+    {
+      "dataset_id": "a-han-precise-signals",
+      "role": "production",
+      "market": "CN",
+      "schema_version": "a-han-precise-signals-v1",
+      "observation_date": "2026-10-26",
+      "generated_at": "2026-10-27T12:40:44+08:00",
+      "completeness": {
+        "status": "known",
+        "ratio": 1.0,
+        "observed": 91,
+        "expected": 91,
+        "reason": null
+      },
+      "degradation": {
+        "status": "normal",
+        "reasons": []
+      },
+      "source_categories": [
+        "market_data",
+        "derived_research",
+        "model_output"
+      ],
+      "semantic_sha256": "617f4cbbed8526e8d765c383348977bf522a6c3d9fffa023288a6a4b910300e7",
+      "sha256": "c7ddc33df2c0b6b55bf601450dba45e45c64e7d099891c6b92239853958afdcf",
+      "bytes": 92358,
+      "public_url": "/data/a-han-precise-signals.json"
     },
     {
       "dataset_id": "a-share-mid-macro",

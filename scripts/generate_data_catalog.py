@@ -33,6 +33,7 @@ DATASETS = (
     DatasetSpec("garden-recommendations", "garden-recommendations.json", "production", "CN", "legacy-unversioned", ("market_data", "derived_research"), ("date", "applies_to", "level_data_as_of"), ("updated_at",)),
     DatasetSpec("a-compass-dashboard", "a-compass-dashboard.json", "export", "CN", "a-compass-dashboard-v1", ("market_data", "derived_research"), ("latest_trade_date", "evaluation_date", "run_date"), ("generated_at",)),
     DatasetSpec("etf-garden-pool", "etf-garden-pool.json", "runtime", "CN", "legacy-unversioned", ("market_data", "derived_research"), ("latest_trade_date", "evaluation_date", "run_date"), ("generated_at",)),
+    DatasetSpec("a-han-precise-signals", "a-han-precise-signals.json", "production", "CN", "a-han-precise-signals-v1", ("market_data", "derived_research", "model_output"), ("observation_date",), ("generated_at",)),
     DatasetSpec("a-share-mid-macro", "a-share-mid-macro.json", "production", "CN", "a-share-mid-macro-v2", ("market_data", "official_statistics", "derived_research"), ("__latest_as_of__",), ("generated_at",)),
     DatasetSpec("a-share-research-audit", "model-lab/a-share-research-audit.json", "shadow", "CN", "research-audit-v1", ("historical_market_data", "derived_research"), ("dataset.as_of",), ("generated_at",)),
     DatasetSpec("investment-research-layer", "research/investment-research-layer.json", "shadow", "MULTI", "investment-research-layer-v1", ("derived_research",), ("as_of",), ("generated_at",)),
