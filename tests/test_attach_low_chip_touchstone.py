@@ -236,6 +236,39 @@ def test_stock_api_uses_canonical_symbol_and_explicit_tencent_source(monkeypatch
     assert seen[0][-1] == 'tencent'
 
 
+def test_ths_history_uses_https_endpoints(monkeypatch):
+    """The THS qfq fallback must fetch over HTTPS.
+
+    Plaintext HTTP was the odd one out versus every other THS client in the
+    repo, and the endpoint serves market data either way; pinning the scheme
+    keeps the transport consistent and the fallback auditable.
+    """
+    seen = []
+
+    class Resp:
+        def __init__(self, payload):
+            self.payload = payload
+        def read(self):
+            return self.payload
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        url = request.full_url if hasattr(request, 'full_url') else request
+        seen.append(url)
+        body = 'quotebridge_v6_line_hs_600021_01_2026({"data":"20260101,10.0,10.5,10.2,10.4,100;"})'
+        return Resp(body.encode('gbk'))
+
+    monkeypatch.setattr(module.urllib.request, 'urlopen', fake_urlopen)
+    rows = module.fetch_ths_history({'code': '600021', 'market': 'XSHG'}, 5)
+    assert seen, 'expected at least one THS request'
+    assert all(url.startswith('https://d.10jqka.com.cn/v6/line/') for url in seen), seen
+    assert rows and rows[-1]['trade_date'] == '2026-01-01'
+    assert rows[-1]['close'] == 10.4
+
+
 def test_incomplete_coverage_fails_closed_and_does_not_write(tmp_path):
     original = {'data_as_of': '2025-01-09', 'intersection': ['000001.SZ', '000002.SZ'], 'enrichments': {
         '000001.SZ': {'touchstone_metrics': {'stale': True}}, '000002.SZ': {'touchstone_metrics': {'stale': True}}

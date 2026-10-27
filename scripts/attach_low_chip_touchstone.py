@@ -202,11 +202,14 @@ def fetch_ths_history(item, count=HISTORY_BARS, end=None):
             if math.isfinite(close) and close > 0:
                 bars[day] = close
 
+    # 传输协议统一走 HTTPS（2026-10-27）：与仓库内其它同花顺客户端
+    # （functions/api/public/v1/_ths.js、public/js/price-volume-tag.js、
+    # scripts/update_precious_inventory.py）保持一致，避免明文 HTTP 传输行情数据。
     for year in years:
-        _absorb(_fetch(f'http://d.10jqka.com.cn/v6/line/hs_{code}/01/{year}.js'))
+        _absorb(_fetch(f'https://d.10jqka.com.cn/v6/line/hs_{code}/01/{year}.js'))
     # 年份端点全部 502 时仍能拿到近 140 根，避免单只股票整体掉成 0 根
     if len(bars) < count:
-        _absorb(_fetch(f'http://d.10jqka.com.cn/v6/line/hs_{code}/01/last.js'))
+        _absorb(_fetch(f'https://d.10jqka.com.cn/v6/line/hs_{code}/01/last.js'))
 
     ordered = sorted(bars.items())[-count:]
     return [{'trade_date': day, 'close': close} for day, close in ordered]
