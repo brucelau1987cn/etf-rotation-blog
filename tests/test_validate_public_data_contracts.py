@@ -61,6 +61,7 @@ def prepare_tree(tmp_path: Path) -> tuple[Path, Path]:
         payload = {
             "date": "2026-07-20", "generated_at": "2026-07-20T22:00:00+08:00",
             "updated_at": "2026-07-20T22:00:00+08:00", "trade_date": "2026-07-20",
+            "observation_date": "2026-07-20",
             "latest_trade_date": "2026-07-20", "evaluation_date": "2026-07-20", "run_date": "2026-07-20",
             "model_date": "2026-07-20", "quote_trade_date": "2026-07-20",
             "as_of": "2026-07-20",

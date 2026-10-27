@@ -1,0 +1,251 @@
+---
+/**
+ * 韩精准制导 signal strip for one ETF.
+ *
+ * Renders the four-colour background, the four-quadrant state, the recent
+ * trading signals and the key levels produced by the Pine-faithful replicate.
+ * A missing row renders an explicit unavailable note instead of silence.
+ */
+type SignalRow = {
+  code: string;
+  name: string;
+  status: 'ok' | 'unavailable';
+  reason: string | null;
+  bar_count: number;
+  background: string;
+  state: string;
+  state_color: string;
+  signal_date: string | null;
+  signals: Array<{ name: string; date: string; close: number | null }>;
+  key_levels: {
+    support: number | null;
+    pressure: number | null;
+    ema15_support: number | null;
+    ema15_resistance: number | null;
+  } | null;
+  metrics: Record<string, number | null> | null;
+};
+
+type Props = {
+  row: SignalRow | undefined;
+  code: string;
+  name: string;
+  /** Distinguishes the same code rendered in two page sections. */
+  scope?: string;
+};
+
+const { row, code, name, scope = 'main' } = Astro.props;
+
+const BACKGROUND_CLASS: Record<string, string> = {
+  绿色: 'bg-green',
+  橙色: 'bg-amber',
+  红色: 'bg-red',
+  蓝色: 'bg-blue',
+  无背景: 'bg-none',
+};
+
+const STATE_CLASS: Record<string, string> = {
+  做多: 'st-red',
+  做空: 'st-green',
+  强洗: 'st-amber',
+  弱升: 'st-cyan',
+  无状态: 'st-none',
+};
+
+const formatNumber = (value: number | null | undefined, digits = 3) =>
+  typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—';
+
+const formatPercent = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)}%` : '—';
+
+const bgClass = row ? BACKGROUND_CLASS[row.background] ?? 'bg-none' : 'bg-none';
+const stClass = row ? STATE_CLASS[row.state] ?? 'st-none' : 'st-none';
+const levels = row?.key_levels ?? null;
+const metrics = row?.metrics ?? null;
+---
+
+<article class={`han-strip card ${bgClass}`} id={`han-${scope}-${code}`} data-han-code={code}>
+  <div class="han-head">
+    <div class="han-id">
+      <code>{code}</code>
+      <strong>{name}</strong>
+    </div>
+    {row && row.status === 'ok' ? (
+      <div class="han-tags">
+        <span class={`han-tag ${bgClass}`}>背景 {row.background}</span>
+        <span class={`han-tag ${stClass}`}>{row.state}</span>
+      </div>
+    ) : (
+      <div class="han-tags"><span class="han-tag st-none">信号待更新</span></div>
+    )}
+  </div>
+
+  {
+    !row || row.status !== 'ok' ? (
+      <p class="han-empty">
+        {row?.reason ? `韩精准制导信号不可用：${row.reason}` : '韩精准制导信号不可用：暂无该标的信号数据'}
+      </p>
+    ) : (
+      <>
+        <div class="han-levels">
+          <div>
+            <span>支撑</span>
+            <b>{formatNumber(levels?.support)}</b>
+          </div>
+          <div>
+            <span>压力</span>
+            <b>{formatNumber(levels?.pressure)}</b>
+          </div>
+          <div>
+            <span>EMA15支撑</span>
+            <b>{formatNumber(levels?.ema15_support)}</b>
+          </div>
+          <div>
+            <span>EMA15阻力</span>
+            <b>{formatNumber(levels?.ema15_resistance)}</b>
+          </div>
+        </div>
+        <div class="han-metrics">
+          <span>MA89 {formatNumber(metrics?.ma89)}</span>
+          <span>BIAS05 {formatPercent(metrics?.bias05)}</span>
+          <span>BB30 {formatNumber(metrics?.bb30, 1)}°</span>
+          <span>X_TREND {formatNumber(metrics?.x_trend, 1)}</span>
+          <span>DX {formatNumber(metrics?.dx, 1)}</span>
+          <span>信号日 {row.signal_date ?? '—'}</span>
+        </div>
+        {row.signals.length > 0 ? (
+          <ul class="han-signals" aria-label={`${name}近期韩精准制导信号`}>
+            {row.signals.slice(-4).map((signal) => (
+              <li>
+                <b>{signal.name}</b>
+                <span>{signal.date}</span>
+                <em>{formatNumber(signal.close)}</em>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="han-empty">近10日无韩精准制导买卖信号。</p>
+        )}
+      </>
+    )
+  }
+</article>
+
+<style>
+  .han-strip {
+    padding: .85rem;
+    border-left: 4px solid var(--border);
+    min-width: 0;
+  }
+  .han-strip.bg-green { border-left-color: #159447; }
+  .han-strip.bg-amber { border-left-color: #dd7a00; }
+  .han-strip.bg-red { border-left-color: #d63d2e; }
+  .han-strip.bg-blue { border-left-color: #0075de; }
+  .han-strip.bg-none { border-left-color: var(--border); }
+
+  .han-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem;
+  }
+  .han-id { min-width: 0; }
+  .han-id code {
+    font-size: .78rem;
+    font-weight: 900;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .han-id strong {
+    display: block;
+    margin-top: .1rem;
+    font-size: .92rem;
+    line-height: 1.25;
+  }
+  .han-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .25rem;
+  }
+  .han-tag {
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: .16rem .42rem;
+    font-size: .68rem;
+    font-weight: 900;
+    background: var(--warm);
+    border: 1px solid var(--border);
+  }
+  .han-tag.bg-green { background: #ecf8f0; color: #137547; border-color: rgba(19,117,71,.2); }
+  .han-tag.bg-amber { background: #fff7e8; color: #8a5a00; border-color: rgba(217,154,0,.22); }
+  .han-tag.bg-red { background: #fff1ee; color: #9f241b; border-color: rgba(214,61,46,.2); }
+  .han-tag.bg-blue { background: #f2f9ff; color: #1d4f91; border-color: rgba(0,117,222,.2); }
+  .han-tag.st-red { background: #fff1ee; color: #9f241b; border-color: rgba(214,61,46,.2); }
+  .han-tag.st-green { background: #ecf8f0; color: #137547; border-color: rgba(19,117,71,.2); }
+  .han-tag.st-amber { background: #fff7e8; color: #8a5a00; border-color: rgba(217,154,0,.22); }
+  .han-tag.st-cyan { background: #eef6ff; color: #1d4f91; border-color: #cfe2fa; }
+  .han-tag.st-none { background: var(--warm); color: rgb(var(--gray)); }
+
+  .han-levels {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    margin: .6rem 0 .45rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .han-levels > div {
+    padding: .4rem .3rem;
+    text-align: center;
+    background: var(--warm-2);
+    border-right: 1px solid var(--border);
+  }
+  .han-levels > div:last-child { border-right: 0; }
+  .han-levels span {
+    display: block;
+    font-size: .62rem;
+    color: rgb(var(--gray));
+    white-space: nowrap;
+  }
+  .han-levels b { font-size: .82rem; }
+
+  .han-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem .55rem;
+    font-size: .7rem;
+    color: rgb(var(--gray));
+  }
+
+  .han-signals {
+    list-style: none;
+    margin: .5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: .22rem;
+  }
+  .han-signals li {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    font-size: .72rem;
+    padding: .2rem .35rem;
+    border-radius: 8px;
+    background: var(--warm-2);
+  }
+  .han-signals b { font-weight: 900; }
+  .han-signals span { color: rgb(var(--gray)); }
+  .han-signals em {
+    margin-left: auto;
+    font-style: normal;
+    font-weight: 800;
+  }
+
+  .han-empty {
+    margin: .5rem 0 0;
+    font-size: .74rem;
+    color: rgb(var(--gray));
+  }
+</style>

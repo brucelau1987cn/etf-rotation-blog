@@ -30,6 +30,7 @@ SHADOW_DIRTY_FILES = frozenset({
     "public/data/a-share-nightly-deployment.json",
     "public/data/a-share-mid-macro.json",
     "public/data/a-compass-dashboard.json",
+    "public/data/a-han-precise-signals.json",
     "public/data/catalog.json",
     "public/data/garden-recommendations.json",
 

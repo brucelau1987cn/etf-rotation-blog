@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://etf.peekabo.cc/schemas/a-han-precise-signals.schema.json",
+  "title": "A-share 韩精准制导 signal rows",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_url", "generated_at", "model_version", "source", "observation_date", "universe_count", "valid_count", "unavailable_codes", "rows"],
+  "properties": {
+    "schema_version": {"const": "a-han-precise-signals-v1"},
+    "contract_url": {"const": "/schemas/a-han-precise-signals.schema.json"},
+    "generated_at": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}[ T].+"},
+    "model_version": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "minLength": 1},
+    "observation_date": {"type": ["string", "null"], "format": "date"},
+    "universe_count": {"type": "integer", "minimum": 1},
+    "valid_count": {"type": "integer", "minimum": 0},
+    "unavailable_codes": {"type": "array", "items": {"type": "string", "pattern": "^[0-9]{6}$"}},
+    "rows": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["code", "name", "status", "reason", "bar_count", "background", "state", "state_color", "signal_date", "signals", "key_levels", "metrics"],
+        "properties": {
+          "code": {"type": "string", "pattern": "^[0-9]{6}$"},
+          "name": {"type": "string", "minLength": 1},
+          "status": {"enum": ["ok", "unavailable"]},
+          "reason": {"type": ["string", "null"]},
+          "bar_count": {"type": "integer", "minimum": 0},
+          "background": {"enum": ["绿色", "橙色", "红色", "蓝色", "无背景"]},
+          "state": {"enum": ["做多", "做空", "强洗", "弱升", "无状态"]},
+          "state_color": {"enum": ["红色", "绿色", "橙色", "青色", "灰色"]},
+          "signal_date": {"type": ["string", "null"], "format": "date"},
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["name", "date", "close"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "date": {"type": "string", "format": "date"},
+                "close": {"type": ["number", "null"]}
+              }
+            }
+          },
+          "key_levels": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["support", "pressure", "ema15_support", "ema15_resistance"],
+            "properties": {
+              "support": {"type": ["number", "null"]},
+              "pressure": {"type": ["number", "null"]},
+              "ema15_support": {"type": ["number", "null"]},
+              "ema15_resistance": {"type": ["number", "null"]}
+            }
+          },
+          "metrics": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["close", "day_change_pct", "ma89", "ma03", "bias05", "bias30", "bb05", "bb10", "bb30", "k", "d", "macd", "x_trend", "gdx_qs", "dx"],
+            "properties": {
+              "close": {"type": ["number", "null"]},
+              "day_change_pct": {"type": ["number", "null"]},
+              "ma89": {"type": ["number", "null"]},
+              "ma03": {"type": ["number", "null"]},
+              "bias05": {"type": ["number", "null"]},
+              "bias30": {"type": ["number", "null"]},
+              "bb05": {"type": ["number", "null"]},
+              "bb10": {"type": ["number", "null"]},
+              "bb30": {"type": ["number", "null"]},
+              "k": {"type": ["number", "null"]},
+              "d": {"type": ["number", "null"]},
+              "macd": {"type": ["number", "null"]},
+              "x_trend": {"type": ["number", "null"]},
+              "gdx_qs": {"type": ["number", "null"]},
+              "dx": {"type": ["number", "null"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

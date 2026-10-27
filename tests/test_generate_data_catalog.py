@@ -47,6 +47,7 @@ def test_build_catalog_is_deterministic_and_complete(tmp_path):
     for spec_item in module.DATASETS:
         payload = {
             "date": "2026-07-20",
+            "observation_date": "2026-07-20",
             "generated_at": "2026-07-20T22:00:00+08:00",
             "updated_at": "2026-07-20T22:00:00+08:00",
             "trade_date": "2026-07-20",

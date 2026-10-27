@@ -27,10 +27,12 @@ DEPLOYMENT_MARKER_FILE = "public/data/a-share-nightly-deployment.json"
 RECOMMENDATIONS_FILE = "public/data/garden-recommendations.json"
 MID_MACRO_FILE = "public/data/a-share-mid-macro.json"
 COMPACT_DASHBOARD_FILE = "public/data/a-compass-dashboard.json"
+HAN_PRECISE_SIGNALS_FILE = "public/data/a-han-precise-signals.json"
 DATA_CATALOG_FILE = "public/data/catalog.json"
 PUBLIC_SCHEMA_FILES = (
     "public/schemas/data-catalog.schema.json",
     "public/schemas/a-compass-dashboard.schema.json",
+    "public/schemas/a-han-precise-signals.schema.json",
     "public/schemas/forward-evidence-ledger.schema.json",
     "public/schemas/decision-thesis.schema.json",
     "public/schemas/decision-drift.schema.json",
@@ -57,7 +59,7 @@ SNAPSHOT_FILES = (
     DEPLOYMENT_MARKER_FILE,
 )
 
-GENERATED_PUBLIC_FILES = (COMPACT_DASHBOARD_FILE, DATA_CATALOG_FILE)
+GENERATED_PUBLIC_FILES = (COMPACT_DASHBOARD_FILE, HAN_PRECISE_SIGNALS_FILE, DATA_CATALOG_FILE)
 PUBLIC_VERIFY_FILES = SNAPSHOT_FILES + (
     RECOMMENDATIONS_FILE,
     MID_MACRO_FILE,

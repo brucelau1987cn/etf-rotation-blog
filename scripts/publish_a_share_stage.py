@@ -121,6 +121,7 @@ def refresh_derived_artifacts(generated_at: str) -> None:
     atomic_write_json(ROOT / RESEARCH_AUDIT_FILE, audit)
     run([PROJECT_PYTHON, "scripts/enrich_garden_recommendations.py", "--validate"], env=env)
     run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
+    run([PROJECT_PYTHON, "scripts/generate_a_han_precise_signals.py"], env=env, timeout=600)
     run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
     run([BUILD_PYTHON, "scripts/generate_data_catalog.py"], env=env)
     run([BUILD_PYTHON, "scripts/validate_public_data_contracts.py"], env=env)

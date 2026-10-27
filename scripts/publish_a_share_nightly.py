@@ -491,6 +491,7 @@ def publish(state_path: Path = STATE, dry_run: bool = False, now: datetime | Non
     refresh_nightly_recommendations(env)
     batch = run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
     run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
+    run([PROJECT_PYTHON, "scripts/generate_a_han_precise_signals.py"], env=env, timeout=600)
     run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
     run([BUILD_PYTHON, "scripts/generate_data_catalog.py"], env=env)
     run([BUILD_PYTHON, "scripts/validate_public_data_contracts.py"], env=env)

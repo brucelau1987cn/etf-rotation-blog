@@ -140,6 +140,15 @@
   gap: .75rem;
 }
 
+/* A signal card plus its 韩精准制导 strip travel as one column so the
+   indicator context stays attached to the action it explains. */
+.signal-stack {
+  display: grid;
+  gap: .55rem;
+  align-content: start;
+  min-width: 0;
+}
+
 .signal-card {
   position: relative;
   overflow: hidden;
