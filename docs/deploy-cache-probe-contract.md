@@ -57,9 +57,9 @@ cd /path/to/etf-rotation-blog
 npm test
 npm run build
 
-# 2) 部署（token 本机约定路径）
+# 2) 部署（token 本机约定路径；wrangler 版本必须固定，bare `npx wrangler` 会重新解析 latest）
 source ~/.hermes/credentials/cloudflare-pages.env
-npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
+npx --yes wrangler@4.153.0 pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
 
 # 3) 探针（含 Worker 次路径）
 npm run verify:pages

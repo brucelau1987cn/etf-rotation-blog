@@ -24,5 +24,5 @@ Operational notes for maintainers. Product surface lives in root `README.md`.
 1. Update root `README.md` (quick links, pages, APIs, structure).
 2. Update this file + `references/site-map.md` if routes/APIs change.
 3. Page-only: `rm -rf dist && npx astro build && node scripts/inject_public_js_version.mjs dist`.
-4. Deploy: `npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true`.
+4. Deploy: `npx --yes wrangler@4.153.0 pages deploy dist --project-name etf-rotation-blog --commit-dirty=true` (pin the version — bare `npx wrangler` re-resolves latest and the npm mirror can lag on its miniflare dep).
 5. Probe custom domain with unique `?bust=` and versioned JS hash.

@@ -250,8 +250,8 @@ npm run build   # 或页面-only: npx astro build + inject
 # 2) 凭证
 set -a; . ~/.hermes/credentials/cloudflare-pages.env; set +a
 
-# 3) 部署（shadow 脏树需 --commit-dirty=true）
-npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
+# 3) 部署（shadow 脏树需 --commit-dirty=true；固定 wrangler 版本，避免 npm 镜像滞后导致 miniflare notarget）
+npx --yes wrangler@4.153.0 pages deploy dist --project-name etf-rotation-blog --commit-dirty=true
 
 # 4) 探针
 npm run verify:pages
