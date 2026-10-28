@@ -51,10 +51,14 @@ def resolve_trade_date() -> str:
 
 def check_ftshare_keys() -> int:
     """预抓前确认 API Key 可用数。0 个 key 时 enrichment 会退化成 147 分钟。"""
-    if not FTSHARE_ENV.exists():
+    try:
+        content = FTSHARE_ENV.read_text(encoding="utf-8")
+    except OSError:
+        # Unreadable host credential file (non-root user, CI, sandbox) means
+        # "no keys configured", never a crash.
         return 0
     count = 0
-    for line in FTSHARE_ENV.read_text(encoding="utf-8").splitlines():
+    for line in content.splitlines():
         line = line.strip()
         if line.startswith("#") or not line or "=" not in line:
             continue

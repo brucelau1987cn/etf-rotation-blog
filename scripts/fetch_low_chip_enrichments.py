@@ -57,6 +57,23 @@ FTSHARE_SDK_URL = "https://market.ft.tech/gateway/"
 FTSHARE_ENV_FILE = Path("/root/.hermes/credentials/ftshare-api.env")
 
 
+def _read_ftshare_keys_file() -> str:
+    """从 host 凭据文件读 FTSHARE_API_KEYS；文件不可读时视为未配置。
+
+    非 root 用户 / CI / 沙箱里 `/root/...` 连 exists() 都会抛 PermissionError，
+    所以这里只能吞 OSError，绝不能让它冒泡成调用方的致命错误。
+    """
+    try:
+        content = FTSHARE_ENV_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    for line in content.splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and line.startswith("FTSHARE_API_KEYS="):
+            return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
 def ftshare_api_keys() -> list[str]:
     """读取 FTShare API Keys（多 key，逗号分隔）。
 
@@ -64,12 +81,8 @@ def ftshare_api_keys() -> list[str]:
     此时 fetch_ftshare_holders 会在撞上匿名额度后 fail-closed。
     """
     raw = os.environ.get("FTSHARE_API_KEYS") or ""
-    if not raw and FTSHARE_ENV_FILE.exists():
-        for line in FTSHARE_ENV_FILE.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and line.startswith("FTSHARE_API_KEYS="):
-                raw = line.split("=", 1)[1].strip().strip('"').strip("'")
-                break
+    if not raw:
+        raw = _read_ftshare_keys_file()
     keys = [k.strip() for k in raw.split(",") if k.strip()]
     # 去重且保持顺序
     seen = set()

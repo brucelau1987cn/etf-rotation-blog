@@ -29,6 +29,8 @@ from pathlib import Path
 
 import pytest
 
+from hermes_test_support import local_script_available
+
 ROOT = Path(__file__).resolve().parents[1]
 TRACKING_SCRIPT = ROOT / "scripts" / "update_low_chip_tracking.py"
 REFRESH_SCRIPT = ROOT / "scripts" / "refresh_low_chip_ftshare_industry.py"
@@ -145,7 +147,7 @@ def test_backfill_writes_data_through_matching_newest_bar(tmp_path, monkeypatch)
 
 def _load_cron():
     cron = Path("/root/.hermes/scripts/update_low_chip_tracking_and_release.py")
-    if not cron.exists():
+    if not local_script_available(cron):
         pytest.skip("host-local tracking cron script not present on this machine")
     return _load(cron, "update_low_chip_tracking_release_probe")
 

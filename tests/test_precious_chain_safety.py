@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from hermes_test_support import requires_local_script
+
 ROOT = Path(__file__).resolve().parents[1]
+RELEASE_SCRIPT = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py")
 sys.path.insert(0, str(ROOT / "scripts"))
 import update_precious_inventory as collector
 
@@ -83,15 +86,14 @@ def _release_gate():
     """Load the release orchestrator from ~/.hermes/scripts (not the repo)."""
     import importlib.util
 
-    path = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py")
-    if not path.exists():
-        pytest.skip("release orchestrator not present")
+    path = RELEASE_SCRIPT
     spec = importlib.util.spec_from_file_location("precious_release", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
+@requires_local_script(RELEASE_SCRIPT)
 def test_concurrent_producer_dirt_does_not_block_the_release():
     """Blocking on ANY foreign dirty path failed this job three times in ten runs
     (2026-10-19 scripts/*.py, 2026-10-21 src/content/blog/2026-10-21.md,
@@ -109,6 +111,7 @@ def test_concurrent_producer_dirt_does_not_block_the_release():
         assert blocking == [], f"{dirty} must not block release"
 
 
+@requires_local_script(RELEASE_SCRIPT)
 def test_our_own_dirty_data_file_still_blocks():
     """Ambiguous provenance on the file we are about to publish stays fatal."""
     module = _release_gate()
@@ -117,8 +120,9 @@ def test_our_own_dirty_data_file_still_blocks():
     assert blocking == ["public/data/precious-inventory.json"]
 
 
+@requires_local_script(RELEASE_SCRIPT)
 def test_ignored_paths_are_reported_not_silent():
     """An unexpected path must still show up in the run output."""
-    source = Path("/root/.hermes/scripts/update_precious_inventory_and_release.py").read_text()
+    source = RELEASE_SCRIPT.read_text()
     assert "concurrent dirty paths ignored" in source
     assert "staged paths block release" in source

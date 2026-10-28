@@ -47,15 +47,15 @@ def fake_call_factory(period_data, liquidity=None):
     return call
 
 
-def test_strict_threshold_excludes_exact_1_5_percent():
+def test_strict_threshold_excludes_exact_1_5_percent(tmp_path):
     period = {"week": [period_row("111111.SZ", "A", "周", 0.015)], "month": [], "quarter": []}
     call = fake_call_factory(period, {"111111.SZ": liq_row("111111.SZ", "A", 2e8, 3e7)})
-    payload = mod.build_payload(call=call, now=NOW)
+    payload = mod.build_payload(call=call, now=NOW, cache_path=tmp_path / "liq.json")
     assert payload["counts"]["period_hits"]["week"] == 0
     assert payload["rows"] == []
 
 
-def test_liquidity_floor_and_triple_hit():
+def test_liquidity_floor_and_triple_hit(tmp_path):
     period = {
         "week": [period_row("222222.SZ", "B", "周", 0.01), period_row("333333.SZ", "C", "周", 0.005)],
         "month": [period_row("222222.SZ", "B", "月", 0.012), period_row("333333.SZ", "C", "月", 0.009)],
@@ -65,7 +65,7 @@ def test_liquidity_floor_and_triple_hit():
         "222222.SZ": liq_row("222222.SZ", "B", 2e8, 3e7),  # passes
         "333333.SZ": liq_row("333333.SZ", "C", 5e7, 3e7),  # fails scale (<1亿)
     }
-    payload = mod.build_payload(call=fake_call_factory(period, liquidity), now=NOW)
+    payload = mod.build_payload(call=fake_call_factory(period, liquidity), now=NOW, cache_path=tmp_path / "liq.json")
     assert [r["code"] for r in payload["rows"]] == ["222222.SZ"]
     row = payload["rows"][0]
     assert row["periods_hit"] == ["week", "month", "quarter"]
@@ -73,24 +73,24 @@ def test_liquidity_floor_and_triple_hit():
     assert payload["data_as_of"] == "2026-10-23"
 
 
-def test_scale_floor_is_enforced_regardless_of_turnover():
+def test_scale_floor_is_enforced_regardless_of_turnover(tmp_path):
     period = {"week": [period_row("777777.SZ", "G", "周", 0.01)], "month": [], "quarter": []}
     liquidity = {"777777.SZ": liq_row("777777.SZ", "G", 2e8, 5e6)}  # 500万成交额 < 1000万，但规模 2亿 >= 1亿，入池
-    payload = mod.build_payload(call=fake_call_factory(period, liquidity), now=NOW)
+    payload = mod.build_payload(call=fake_call_factory(period, liquidity), now=NOW, cache_path=tmp_path / "liq.json")
     assert len(payload["rows"]) == 1
     assert payload["rows"][0]["code"] == "777777.SZ"
     assert payload["liquidity_unknown"] == []
 
 
-def test_missing_liquidity_is_listed_unknown_not_silently_dropped():
+def test_missing_liquidity_is_listed_unknown_not_silently_dropped(tmp_path):
     period = {"week": [period_row("444444.SZ", "D", "周", 0.01)], "month": [], "quarter": []}
-    payload = mod.build_payload(call=fake_call_factory(period, {"444444.SZ": None}), now=NOW)
+    payload = mod.build_payload(call=fake_call_factory(period, {"444444.SZ": None}), now=NOW, cache_path=tmp_path / "liq.json")
     assert payload["liquidity_unknown"] == ["444444.SZ"]
     assert payload["liquidity_source"]["444444.SZ"] == "missing"
     assert payload["rows"] == []
 
 
-def test_every_candidate_uses_per_code_lookup_not_batch_universe():
+def test_every_candidate_uses_per_code_lookup_not_batch_universe(tmp_path):
     period = {"week": [period_row("555555.SZ", "E", "周", 0.01)], "month": [], "quarter": []}
     calls = []
 
@@ -98,7 +98,7 @@ def test_every_candidate_uses_per_code_lookup_not_batch_universe():
         calls.append(query)
         return fake_call_factory(period, {"555555.SZ": liq_row("555555.SZ", "E", 3e8, 2e7)})(query, page, limit)
 
-    payload = mod.build_payload(call=call, now=NOW)
+    payload = mod.build_payload(call=call, now=NOW, cache_path=tmp_path / "liq.json")
     assert payload["liquidity_source"]["555555.SZ"] == "per_code"
     assert [r["code"] for r in payload["rows"]] == ["555555.SZ"]
     assert not any(q.startswith("股票ETF 基金规模") for q in calls)
@@ -177,7 +177,7 @@ def test_flat_field_schema_is_accepted():
     assert mod.amount_avg_of(row) == 2e7
 
 
-def test_universe_size_comes_from_single_unpaginated_call():
+def test_universe_size_comes_from_single_unpaginated_call(tmp_path):
     period = {"week": [period_row("999999.SZ", "H", "周", 0.02)], "month": [], "quarter": []}
     seen = []
 
@@ -185,7 +185,7 @@ def test_universe_size_comes_from_single_unpaginated_call():
         seen.append(query)
         return fake_call_factory(period, {"999999.SZ": liq_row("999999.SZ", "H", 2e8, 3e7)})(query, page, limit)
 
-    payload = mod.build_payload(call=call, now=NOW)
+    payload = mod.build_payload(call=call, now=NOW, cache_path=tmp_path / "liq.json")
     assert payload["counts"]["universe_etf"] == 1308
     assert seen.count("股票ETF") == 1
 

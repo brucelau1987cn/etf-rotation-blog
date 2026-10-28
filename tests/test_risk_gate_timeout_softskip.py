@@ -12,7 +12,10 @@ from pathlib import Path
 
 import pytest
 
+from hermes_test_support import require_local_script
+
 SCRIPTS = Path.home() / '.hermes/scripts'
+require_local_script(SCRIPTS / 'update_low_chip_and_release.py')
 
 
 @pytest.fixture(scope='module')
