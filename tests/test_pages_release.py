@@ -88,6 +88,131 @@ def test_wrangler_spec_rejects_unpinned_values(monkeypatch, bad):
         assert pages_release.wrangler_spec() == pages_release.WRANGLER_SPEC_DEFAULT
 
 
+def test_deploy_retries_a_transient_wrkler_failure(monkeypatch):
+    """A flaky upload socket must not kill the publish.
+
+    2026-10-28 17:39: the precious-inventory publisher died at the deploy step
+    with `TypeError: fetch failed` while api.cloudflare.com was unreachable
+    over the direct path (7.0s, then a socket error). The upload had already
+    committed locally, so a single transient failure cost the whole publish.
+    """
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(kwargs.get("env", {}))
+        if len(calls) == 1:
+            return SimpleNamespace(stdout="", stderr="TypeError: fetch failed", returncode=1)
+        return SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0)
+
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(pages_release, "DEPLOY_ATTEMPTS", 3)
+
+    output = pages_release.deploy_pages()
+
+    assert "Deployment complete" in output
+    assert len(calls) == 2
+
+
+def test_deploy_gives_up_after_the_retry_budget(monkeypatch):
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return SimpleNamespace(stdout="", stderr="fetch failed", returncode=1)
+
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(pages_release, "DEPLOY_ATTEMPTS", 2)
+
+    with pytest.raises(RuntimeError, match="failed after 2 attempts"):
+        pages_release.deploy_pages()
+
+    assert len(calls) == 2
+
+
+def test_deploy_routes_cloudflare_traffic_through_the_proxy_bridge(monkeypatch):
+    """Wrangler must reach Cloudflare over the local SOCKS bridge when it exists."""
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(pages_release, "proxy_bridge_available", lambda *_a, **_kw: True)
+
+    envs = []
+
+    def fake_run(command, **kwargs):
+        envs.append(kwargs.get("env", {}))
+        return SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0)
+
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    pages_release.deploy_pages()
+
+    assert envs[0]["HTTPS_PROXY"] == pages_release.PROXY_BRIDGE
+    assert envs[0]["HTTP_PROXY"] == pages_release.PROXY_BRIDGE
+    assert envs[0]["NODE_USE_ENV_PROXY"] == "1"
+
+
+def test_deploy_falls_back_to_direct_when_the_bridge_is_down(monkeypatch):
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(pages_release, "proxy_bridge_available", lambda *_a, **_kw: False)
+
+    envs = []
+
+    def fake_run(command, **kwargs):
+        envs.append(kwargs.get("env", {}))
+        return SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0)
+
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    pages_release.deploy_pages()
+
+    assert "HTTPS_PROXY" not in envs[0]
+    assert "NODE_USE_ENV_PROXY" not in envs[0]
+
+
+def test_cloudflare_api_request_retries_transient_transport_errors(monkeypatch):
+    """api.cloudflare.com over the direct path failed with a socket error on
+    2026-10-28; the purge must retry instead of killing the publish."""
+    attempts = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({"success": True, "result": []}).encode()
+
+    def fake_open(request, timeout=30):
+        attempts.append(request)
+        if len(attempts) == 1:
+            raise OSError(99, "Cannot assign requested address")
+        return Response()
+
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {
+        "CLOUDFLARE_EMAIL": "a@b.c", "CLOUDFLARE_API_KEY": "k",
+    })
+    monkeypatch.setattr(pages_release, "proxy_bridge_available", lambda *_a, **_kw: False)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(pages_release.urllib.request, "build_opener", lambda *_a, **_kw: SimpleNamespace(open=fake_open))
+
+    payload = pages_release.cloudflare_request("https://api.cloudflare.com/client/v4/zones")
+
+    assert payload["success"] is True
+    assert len(attempts) == 2
+
+
 def test_npm_deploy_entrypoint_uses_the_same_pinned_spec():
     """`npm run deploy:pages` (used by release_dual_live.sh) must not re-resolve latest."""
     scripts = json.loads((Path(__file__).resolve().parents[1] / "package.json").read_text(encoding="utf-8"))["scripts"]

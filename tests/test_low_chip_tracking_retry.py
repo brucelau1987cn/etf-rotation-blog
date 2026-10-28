@@ -1,8 +1,10 @@
+import datetime
 import importlib.util
 import json
 import urllib.error
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -219,6 +221,7 @@ def test_tracking_tests_never_hit_live_iwencai(tmp_path, monkeypatch):
         {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0},
     ])
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
@@ -496,7 +499,7 @@ def test_baostock_daily_raises_when_runner_reports_failure(monkeypatch):
 
 
 def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypatch):
-    """Regression 2026-09-15：腾讯 fqkline 被网关 501 拦截时改走 BaoStock，"
+    """Regression 2026-09-15：腾讯 fqkline 被网关 501 拦截时改走 BaoStock，
     不能让当日行情整段缺失。"""
     module = load_module()
     history = tmp_path / "low-chip-history"
@@ -521,16 +524,21 @@ def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypa
 
     calls = {"baostock": 0}
 
-    def fallback(*_a, **_kw):
+    def fallback_batch(specs, end, **_kwargs):
         calls["baostock"] += 1
-        return [
-            {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0},
-            {"date": "2026-01-05", "close": 10.4, "change_pct": 4.0},
-        ]
+        return {
+            symbol: [
+                {"date": "2026-01-02", "close": 10.0, "change_pct": 0.0},
+                {"date": "2026-01-05", "close": 10.4, "change_pct": 4.0},
+            ]
+            for symbol, _start in specs
+        }
 
     monkeypatch.setattr(module, "tencent_daily", tencent_blocked)
-    monkeypatch.setattr(module, "baostock_daily", fallback)
+    monkeypatch.setattr(module, "baostock_daily_batch", fallback_batch)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
+    monkeypatch.setattr(module, "chip_list_profit_ratios", lambda *_a, **_kw: {})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
@@ -538,6 +546,53 @@ def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypa
     daily = json.loads(module.DATA.read_text(encoding="utf-8"))["stocks"]["000012.SZ"]["daily"]
     assert [row["date"] for row in daily] == ["2026-01-02", "2026-01-05"]
     assert daily[1]["close"] == 10.4
+
+
+def test_tracking_main_batches_the_baostock_fallback(tmp_path, monkeypatch):
+    """腾讯被 WAF 拦截的标的必须一次批量取，不能逐只登录 BaoStock。
+
+    2026-10-28: 377 只标的逐只取 K 线，每次重新登录 BaoStock ≈ 1.4s，
+    总计 8.5 分钟；批量取（一次登录 20 只）≈ 70s。
+    """
+    module = load_module()
+    history = tmp_path / "low-chip-history"
+    history.mkdir()
+    (history / "2026-01-02.json").write_text(json.dumps({
+        "enrichments": {
+            f"{code}.SZ": {"quality_shareholder": False, "quality_shareholder_names": [],
+                           "institutional_shareholder": False, "institutional_shareholder_names": []}
+            for code in ("000012", "000013", "000014")
+        },
+        "periods": {},
+    }))
+    monkeypatch.setattr(module, "HISTORY_DIR", history)
+    monkeypatch.setattr(module, "DATA", tmp_path / "tracking.json")
+
+    def tencent_blocked(*_a, **_kw):
+        raise RuntimeError("Tencent fqkline unavailable: HTTP Error 501: Not Implemented")
+
+    batches = []
+
+    def fallback_batch(specs, end, **_kwargs):
+        batches.append([symbol for symbol, _start in specs])
+        return {
+            symbol: [{"date": "2026-01-02", "close": 10.0, "change_pct": 0.0}]
+            for symbol, _start in specs
+        }
+
+    monkeypatch.setattr(module, "tencent_daily", tencent_blocked)
+    monkeypatch.setattr(module, "baostock_daily_batch", fallback_batch)
+    monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
+    monkeypatch.setattr(module, "chip_list_profit_ratios", lambda *_a, **_kw: {})
+    monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
+    monkeypatch.setattr(module, "load_history_dates", lambda: {
+        "000012.SZ": ["2026-01-02"], "000013.SZ": ["2026-01-02"], "000014.SZ": ["2026-01-02"],
+    })
+
+    assert module.main() == 0
+    assert len(batches) == 1
+    assert sorted(batches[0]) == ["000012.SZ", "000013.SZ", "000014.SZ"]
 
 
 def test_tencent_daily_fails_fast_on_gateway_rejection():
@@ -581,3 +636,124 @@ def test_tencent_daily_still_retries_transient_transport_error():
         )
     assert len(calls) == 8
     assert sleeps == [1.0, 2.0, 5.0, 1.0, 2.0, 5.0]
+
+
+def test_iwencai_batch_query_answers_many_symbols_in_one_call(monkeypatch):
+    """iWenCai accepts "CODE1、CODE2 … 收盘获利[YYYYMMDD]"。
+
+    2026-10-28: the tracking publisher resolved 获利盘 with one iWenCai call
+    per (symbol, date). 340 symbols × ~6s per call blew the 1800s budget and
+    the 16:40 publish died with a timeout. One batched call must serve many
+    symbols for the same date.
+    """
+    module = load_module()
+    queries = []
+
+    def fake_run(command, **_kwargs):
+        queries.append(command[command.index("-q") + 1])
+        codes = command[command.index("-q") + 1].split(" 收盘获利")[0].split("、")
+        date = command[command.index("-q") + 1].split("[")[1].rstrip("]")
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                "datas": [
+                    {"股票代码": f"{code}.SZ", f"收盘获利[{date}]": index + 1.5}
+                    for index, code in enumerate(codes)
+                ],
+            }),
+            stderr="",
+        )
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    values = module._iwencai_batch_query(["000012", "600000", "600519"], "2026-10-27")
+
+    assert values == {"000012": 1.5, "600000": 2.5, "600519": 3.5}
+    assert len(queries) == 1
+    assert "、" in queries[0]
+
+
+def test_iwencai_batch_query_retries_an_empty_answer(monkeypatch):
+    """The upstream sometimes answers a batch query with an empty result set."""
+    module = load_module()
+    attempts = []
+
+    def fake_run(command, **_kwargs):
+        attempts.append(command)
+        if len(attempts) == 1:
+            return SimpleNamespace(returncode=0, stdout=json.dumps({"datas": []}), stderr="")
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({"datas": [{"股票代码": "000012.SZ", "收盘获利[20261027]": 3.5}]}),
+            stderr="",
+        )
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    values = module._iwencai_batch_query(["000012"], "2026-10-27")
+
+    assert values == {"000012": 3.5}
+    assert len(attempts) == 2
+
+
+def test_iwencai_profit_ratios_groups_pairs_by_date(monkeypatch):
+    module = load_module()
+    seen = []
+
+    def fake_batch(codes, date):
+        seen.append((tuple(codes), date))
+        return {code: 1.0 for code in codes}
+
+    monkeypatch.setattr(module, "_iwencai_batch_query", fake_batch)
+
+    result = module.iwencai_profit_ratios([
+        ("000012.SZ", "2026-10-27"),
+        ("600000.SH", "2026-10-27"),
+        ("600519.SH", "2026-10-28"),
+    ])
+
+    assert result[("000012.SZ", "2026-10-27")] == 1.0
+    assert result[("600519.SH", "2026-10-28")] == 1.0
+    assert seen == [(("000012", "600000"), "2026-10-27"), (("600519",), "2026-10-28")]
+
+
+def test_chip_list_window_is_anchored_to_first_seen(monkeypatch):
+    """同花顺 chip_list only returns the most recent ~40 trading days of the
+    requested window. Anchoring the window to first_seen keeps the early bars
+    of a long-tracked symbol reachable, so the iWenCai fallback is not needed.
+    """
+    module = load_module()
+    urls = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            payload = {
+                "data": {
+                    "list": {
+                        "20261027": {
+                            "summary": {"close_price": 10.0},
+                            "curve_data": {"list": [{"price": 1.0, "jeton": 100}]},
+                        }
+                    }
+                }
+            }
+            return json.dumps(payload).encode()
+
+    def fake_open(request, **_kwargs):
+        urls.append(request.full_url)
+        return Response()
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_open)
+
+    values = module.chip_list_profit_ratios("000012.SZ", start="2026-07-31")
+
+    assert values == {"20261027": 100.0}
+    assert "start_date=" in urls[0]
+    anchor = urls[0].split("start_date=")[1].split("&")[0]
+    assert int(anchor) == int(datetime.datetime(2026, 7, 31).timestamp() * 1000)

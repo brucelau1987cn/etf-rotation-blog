@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
 import subprocess
 import time
 import urllib.error
@@ -53,6 +54,51 @@ URL_PROBE_DELAY_SECONDS = 2
 # validated so a bare `wrangler` (which would re-resolve "latest") cannot creep back.
 WRANGLER_SPEC_DEFAULT = "wrangler@4.153.0"
 WRANGLER_SPEC_PATTERN = re.compile(r"^wrangler@\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$")
+
+# This host reaches Cloudflare's API and the Pages upload endpoint over a
+# flaky public path. Measured on 2026-10-28: a direct api.cloudflare.com
+# request took 7.0s and the 17:39 precious-inventory publish died with
+# `TypeError: fetch failed`, while the same request through the local
+# HTTP-CONNECT bridge (which tunnels through the 206 jump host's SOCKS5)
+# took 0.9s and succeeded.
+#
+# Wrangler honours HTTP_PROXY/HTTPS_PROXY (and needs NODE_USE_ENV_PROXY=1 on
+# Node 22+ so the built-in fetch picks them up), so pointing it at the local
+# bridge removes the flakiness without touching a single caller.
+PROXY_BRIDGE = "http://127.0.0.1:8899"
+DEPLOY_ATTEMPTS = 3
+DEPLOY_RETRY_DELAY_SECONDS = 20
+CLOUDFLARE_REQUEST_ATTEMPTS = 3
+CLOUDFLARE_REQUEST_DELAY_SECONDS = 5
+
+
+def proxy_bridge_available(bridge: str | None = None) -> bool:
+    """True when the local HTTP-CONNECT bridge is listening."""
+    target = bridge or os.environ.get("HERMES_PROXY_BRIDGE", PROXY_BRIDGE)
+    if not target:
+        return False
+    try:
+        host, _, port = target.rpartition(":")
+        with socket.create_connection((host or "127.0.0.1", int(port or 80)), timeout=3):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
+def proxy_env(base: dict[str, str] | None = None) -> dict[str, str]:
+    """Environment for wrangler: route Cloudflare traffic through the bridge.
+
+    The bridge is optional — when it is not listening, fall back to the direct
+    path rather than failing the deploy outright.
+    """
+    env = dict(base or os.environ)
+    bridge = env.get("HERMES_PROXY_BRIDGE", PROXY_BRIDGE)
+    if not bridge or not proxy_bridge_available(bridge):
+        return env
+    env["HTTP_PROXY"] = bridge
+    env["HTTPS_PROXY"] = bridge
+    env["NODE_USE_ENV_PROXY"] = "1"
+    return env
 
 
 def wrangler_spec() -> str:
@@ -121,11 +167,28 @@ def deploy_pages() -> str:
     if not env.get("CLOUDFLARE_API_TOKEN"):
         raise RuntimeError("CLOUDFLARE_API_TOKEN is missing")
     command = ["npx", "--yes", wrangler_spec(), "pages", "deploy", "dist", "--project-name", PROJECT, "--commit-dirty=true"]
-    result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=True)
-    output = (getattr(result, "stdout", "") or "") + "\n" + (getattr(result, "stderr", "") or "")
-    if "pages.dev" not in output and "Deployment complete" not in output:
-        raise RuntimeError("Wrangler output lacks deployment completion evidence")
-    return output.strip()
+    # A deploy is a single-shot upload: a flaky socket halfway through leaves
+    # no deployment behind, so a transient failure must not be fatal. Retry
+    # through the bridge, which turns the 2026-10-28 `TypeError: fetch failed`
+    # kills into a success.
+    last_error = ""
+    for attempt in range(1, DEPLOY_ATTEMPTS + 1):
+        attempt_env = proxy_env(env)
+        result = subprocess.run(command, cwd=ROOT, env=attempt_env, text=True, capture_output=True)
+        output = (getattr(result, "stdout", "") or "") + "\n" + (getattr(result, "stderr", "") or "")
+        if result.returncode == 0:
+            if "pages.dev" not in output and "Deployment complete" not in output:
+                raise RuntimeError("Wrangler output lacks deployment completion evidence")
+            return output.strip()
+        last_error = output.strip()[-800:]
+        if attempt < DEPLOY_ATTEMPTS:
+            print(
+                f"wrangler pages deploy attempt {attempt}/{DEPLOY_ATTEMPTS} failed "
+                f"(rc={result.returncode}); retrying in {DEPLOY_RETRY_DELAY_SECONDS}s",
+                flush=True,
+            )
+            time.sleep(DEPLOY_RETRY_DELAY_SECONDS)
+    raise RuntimeError(f"wrangler pages deploy failed after {DEPLOY_ATTEMPTS} attempts: {last_error}")
 
 
 def cloudflare_request(url: str, *, method: str = "GET", body: dict | None = None) -> dict:
@@ -140,8 +203,30 @@ def cloudflare_request(url: str, *, method: str = "GET", body: dict | None = Non
         },
         data=json.dumps(body).encode("utf-8") if body is not None else None,
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        payload = json.load(response)
+    # api.cloudflare.com is reachable over the local SOCKS bridge far more
+    # reliably than over the direct path (7.0s vs 0.9s on 2026-10-28), and a
+    # purge that fails after a successful upload leaves the custom domain
+    # serving stale assets. When the bridge is down, fall back to direct.
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": PROXY_BRIDGE, "https": PROXY_BRIDGE})
+        if proxy_bridge_available()
+        else urllib.request.ProxyHandler({})
+    )
+    last_error: Exception | None = None
+    for attempt in range(1, CLOUDFLARE_REQUEST_ATTEMPTS + 1):
+        try:
+            with opener.open(request, timeout=30) as response:
+                payload = json.load(response)
+            break
+        except (urllib.error.URLError, OSError, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt >= CLOUDFLARE_REQUEST_ATTEMPTS:
+                raise RuntimeError(
+                    f"Cloudflare API request failed after {CLOUDFLARE_REQUEST_ATTEMPTS} attempts: {exc}"
+                ) from exc
+            time.sleep(CLOUDFLARE_REQUEST_DELAY_SECONDS)
+    else:  # pragma: no cover - loop always breaks or raises
+        raise RuntimeError(f"Cloudflare API request failed: {last_error}")
     if not payload.get("success"):
         raise RuntimeError(f"Cloudflare API request failed: {payload.get('errors')}")
     return payload

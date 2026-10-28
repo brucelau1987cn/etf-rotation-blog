@@ -63,17 +63,33 @@ _SSL_CTX.check_hostname = False
 _SSL_CTX.verify_mode = ssl.CERT_NONE
 
 
-def chip_list_profit_ratios(symbol: str) -> dict[str, float | None]:
+def chip_list_profit_ratios(symbol: str, start: str | None = None) -> dict[str, float | None]:
     """拉同花顺 chip_list 筹码曲线，复算逐日获利盘（无鉴权、无每日配额）。
 
     返回 {date(YYYYMMDD): profit_ratio}；失败/无数据返回空 dict，调用方 fallback iWenCai。
     复算公式（skill 证实与官方 closing_profit 吻合 0.002pp）：
         sum(jeton where price <= close) / sum(jeton)
+
+    `start`（YYYY-MM-DD）把查询窗口锚定到追踪起点。同花顺的 chip_list 只返回
+    **窗口内最近 40 个交易日**：固定 90 天窗口时，追踪池里 2026-08-26 之前
+    入池的标的拿不到早期 bar，只能逐 (标的, 日期) 回退 iWenCai（2026-10-28
+    实测需要 300+ 次调用 ≈ 30 分钟，直接撞穿 1800s 超时）。按 first_seen 锚定
+    窗口后，同一只标的的早期 bar 一次请求即可覆盖。
+
+    窗口超过 40 个交易日时，同花顺会从窗口尾部截断，所以 start 传早于 40 个
+    交易日的值时同样只能拿到最近 40 天——追踪窗口本身就是 21 根 bar，锚定
+    first_seen 后始终落在覆盖范围内。
     """
     code = symbol.split(".")[0]
     market = "17" if symbol.endswith(".SH") else "33"
     ms_now = int(time.time() * 1000)
-    ms_start = ms_now - 90 * 86400 * 1000  # 90 天窗口，覆盖 20 交易日追踪窗口
+    if start:
+        try:
+            ms_start = int(datetime.datetime.fromisoformat(start).timestamp() * 1000)
+        except ValueError:
+            ms_start = ms_now - 90 * 86400 * 1000
+    else:
+        ms_start = ms_now - 90 * 86400 * 1000  # 90 天窗口，覆盖 20 交易日追踪窗口
     url = (
         f"https://dq.10jqka.com.cn/fuyao/chip_shape_stock_selection/stock/v1/chip_list"
         f"?chip_type=all&stock_code={code}&stock_market={market}"
@@ -291,6 +307,118 @@ else:
 print(json.dumps(out))
 '''
 
+# Batched BaoStock: one login for many symbols. The per-symbol variant pays a
+# login + connection setup for every stock; measured 2026-10-28 that is ~1.4s
+# each, so 377 blocked symbols cost ~8.5 minutes. One login for 20 symbols
+# answers the same 80 bars each in ~1.5s total.
+_BAOSTOCK_BATCH_QUERY = r'''
+import json, sys
+import baostock as bs
+payload = json.loads(sys.stdin.read())
+out = {"ok": False, "results": {}, "error": ""}
+login = bs.login()
+if login.error_code != "0":
+    out["error"] = f"login: {login.error_msg}"
+else:
+    try:
+        for code in payload["codes"]:
+            rows = []
+            rs = bs.query_history_k_data_plus(
+                code, "date,close,tradestatus",
+                start_date=payload["start"], end_date=payload["end"],
+                frequency="d", adjustflag="2",
+            )
+            if rs.error_code == "0":
+                fields = list(rs.fields)
+                while rs.next():
+                    rows.append(dict(zip(fields, rs.get_row_data())))
+            out["results"][code] = rows
+        out["ok"] = True
+    except Exception as exc:
+        out["error"] = f"{type(exc).__name__}: {exc}"
+    finally:
+        bs.logout()
+print(json.dumps(out))
+'''
+
+BAOSTOCK_BATCH_SIZE = 20
+
+
+def baostock_daily_batch(
+    specs: list[tuple[str, str]], end: str, *, batch_size: int = BAOSTOCK_BATCH_SIZE,
+) -> dict[str, list[dict]]:
+    """BaoStock 前复权日K for many symbols with one login per batch.
+
+    `specs` is [(symbol, start_date)]. Every symbol shares one wide query
+    window (the earliest start minus the lookback); each symbol's own start
+    filters its rows client-side. Grouping by window instead would give every
+    symbol its own login — measured 2026-10-28 that is 377 logins ≈ 8.5
+    minutes instead of one login per 20 symbols ≈ 70s.
+
+    Returns {symbol: [{date, close, change_pct}]}. A symbol with no usable row
+    maps to an empty list — the caller decides whether that is fatal.
+    """
+    result: dict[str, list[dict]] = {symbol: [] for symbol, _start in specs}
+    if not specs:
+        return result
+    earliest = min(start for _symbol, start in specs)
+    window_start = (datetime.date.fromisoformat(earliest) - datetime.timedelta(days=30)).isoformat()
+    codes: list[str] = []
+    for symbol, _start in specs:
+        code = symbol.split(".")[0]
+        market = "sh" if symbol.endswith(".SH") else "sz"
+        codes.append(f"{market}.{code}")
+    start_by_code = {
+        f"{'sh' if symbol.endswith('.SH') else 'sz'}.{symbol.split('.')[0]}": start
+        for symbol, start in specs
+    }
+
+    for offset in range(0, len(codes), batch_size):
+        chunk = codes[offset:offset + batch_size]
+        proc = subprocess.run(
+            [BAOSTOCK_PY, "-c", _BAOSTOCK_BATCH_QUERY],
+            input=json.dumps({"codes": chunk, "start": window_start, "end": end}),
+            capture_output=True, text=True, check=False, timeout=300,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"baostock runner failed ({proc.returncode}): {(proc.stderr or '')[:200]}")
+        try:
+            payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        except (IndexError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"baostock output unparseable: {exc}") from exc
+        if not payload.get("ok"):
+            raise RuntimeError(f"baostock unavailable: {payload.get('error') or 'unknown'}")
+        for code, rows in (payload.get("results") or {}).items():
+            start = start_by_code.get(code)
+            if start is None:
+                continue
+            for symbol, symbol_start in specs:
+                bare = symbol.split(".")[0]
+                market = "sh" if symbol.endswith(".SH") else "sz"
+                if f"{market}.{bare}" == code:
+                    result[symbol] = _baostock_rows_to_bars(rows, symbol_start)
+                    break
+    return result
+
+
+def _baostock_rows_to_bars(rows: list[dict], start: str) -> list[dict]:
+    bars: list[dict] = []
+    prev_close = None
+    for row in rows or []:
+        date = str(row.get("date") or "")
+        close = row.get("close")
+        if not date or str(row.get("tradestatus") or "1") != "1":
+            continue
+        try:
+            close_f = float(close)
+        except (TypeError, ValueError):
+            continue
+        if not start or date >= start:
+            chg = round((close_f - prev_close) / prev_close * 100, 2) if prev_close else None
+            bars.append({"date": date, "close": close_f, "change_pct": chg})
+        prev_close = close_f
+    return bars
+
 
 def baostock_daily(symbol: str, start: str, end: str) -> list[dict]:
     """BaoStock 前复权日K（腾讯 fqkline 被网关 WAF 拦截时的备用源）。
@@ -381,6 +509,83 @@ def iwencai_profit_ratio(symbol: str, date: str) -> float | None:
                 except (TypeError, ValueError):
                     return None
     return None
+
+
+IWENCAI_BATCH_CODES = 30
+IWENCAI_BATCH_RETRIES = 3
+
+
+def iwencai_profit_ratios(pairs: list[tuple[str, str]]) -> dict[tuple[str, str], float | None]:
+    """Fetch 收盘获利 for many (symbol, date) pairs with batched queries.
+
+    iWenCai accepts "CODE1、CODE2 … 收盘获利[YYYYMMDD]" and returns one row per
+    code, so a whole date's missing bars cost one call instead of one per
+    symbol. Measured 2026-10-28: 30 codes resolve in ~7s, while the per-symbol
+    fallback cost ~6s each — 340 symbols × 1 missing date was 30+ minutes and
+    blew the 1800s budget.
+
+    Returns {(symbol, date): ratio} with None for anything the upstream did
+    not answer, so the caller can decide what to do about it.
+    """
+    result: dict[tuple[str, str], float | None] = {pair: None for pair in pairs}
+    if not pairs:
+        return result
+
+    by_date: dict[str, list[str]] = {}
+    for symbol, date in pairs:
+        by_date.setdefault(date, []).append(symbol)
+
+    for date, symbols in by_date.items():
+        unique = sorted({s.split(".")[0] for s in symbols})
+        for start in range(0, len(unique), IWENCAI_BATCH_CODES):
+            chunk = unique[start:start + IWENCAI_BATCH_CODES]
+            values = _iwencai_batch_query(chunk, date)
+            for symbol in symbols:
+                code = symbol.split(".")[0]
+                if code in values:
+                    result[(symbol, date)] = values[code]
+    return result
+
+
+def _iwencai_batch_query(codes: list[str], date: str) -> dict[str, float]:
+    """One iWenCai query for many codes at one date; {} when it cannot answer."""
+    ymd = date.replace("-", "")
+    query = "、".join(codes) + f" 收盘获利[{ymd}]"
+    for attempt in range(IWENCAI_BATCH_RETRIES):
+        try:
+            r = subprocess.run(
+                ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--limit", str(max(10, len(codes) * 2)), "--timeout", "90"],
+                capture_output=True, text=True, check=False, timeout=150,
+            )
+        except subprocess.TimeoutExpired:
+            continue
+        if r.returncode != 0:
+            continue
+        try:
+            payload = json.loads(r.stdout)
+        except json.JSONDecodeError:
+            continue
+        rows = payload.get("datas") or []
+        if not rows:
+            # The upstream occasionally answers a batch query with an empty
+            # result set; retry once before giving up on this chunk.
+            continue
+        values: dict[str, float] = {}
+        for row in rows:
+            code = str(row.get("股票代码") or "").split(".")[0]
+            if not code:
+                continue
+            for key, value in row.items():
+                if "收盘获利" not in key:
+                    continue
+                try:
+                    values[code] = round(float(value), 2)
+                except (TypeError, ValueError):
+                    continue
+                break
+        if values:
+            return values
+    return {}
 
 
 def resolve_entry_snapshot(history_dir: Path, first_seen: str, symbol: str) -> Path:
@@ -538,6 +743,14 @@ def main() -> int:
     existing = load_existing()
     stocks = existing.get("stocks", {})
     today = datetime.date.today().isoformat()
+    # (symbol, date) pairs that 同花顺 could not answer; resolved in one
+    # batched iWenCai pass after the loop.
+    pending_iwencai: list[tuple[str, str]] = []
+    # (symbol, first_seen) pairs whose K-line came from the Tencent WAF
+    # fallback; resolved in one batched BaoStock pass after the loop.
+    pending_baostock: list[tuple[str, str]] = []
+    # symbol -> resolved daily bars
+    bar_source: dict[str, list[dict]] = {}
 
     for symbol, dates in sorted(seen.items()):
         first = min(dates)
@@ -556,49 +769,88 @@ def main() -> int:
         try:
             bars = tencent_daily(symbol, rec["first_seen"], today)
         except RuntimeError as exc:
-            print(f"  {symbol}: tencent daily unavailable ({exc}), trying CF baostock fallback", flush=True)
-            try:
-                bars = cf_baostock_daily(symbol, rec["first_seen"], today)
-                print(f"  {symbol}: CF baostock fallback bars={len(bars)}", flush=True)
-            except Exception as cf_exc:  # noqa: BLE001
-                print(f"  {symbol}: CF baostock unavailable ({type(cf_exc).__name__}: {cf_exc}), trying local baostock", flush=True)
-                try:
-                    bars = baostock_daily(symbol, rec["first_seen"], today)
-                    print(f"  {symbol}: local baostock fallback bars={len(bars)}", flush=True)
-                except Exception as fallback_exc:  # noqa: BLE001
-                    print(
-                        f"  {symbol}: local baostock fallback unavailable "
-                        f"({type(fallback_exc).__name__}: {fallback_exc}), "
-                        f"preserving {len(rec.get('daily', []))} existing rows",
-                        flush=True,
-                    )
-                    bars = []
+            # 腾讯 fqkline 被网关 WAF 拦截（HTTP 501）。备用源在下面统一批量取，
+            # 逐只调用每次都要重新登录 BaoStock，377 只约 8.5 分钟。
+            print(f"  {symbol}: tencent daily unavailable ({exc}), queued for batched fallback", flush=True)
+            pending_baostock.append((symbol, rec["first_seen"]))
+            bars = []
+        if bars:
+            bar_source[symbol] = bars
         time.sleep(0.2)
-        target_bars = bars[:MAX_STORED_BARS]
-        if not target_bars:
+
+    # 腾讯被 WAF 拦截的标的统一批量取 BaoStock：一次登录覆盖 20 只，
+    # 实测 377 只 ≈ 70s；逐只调用（每次重新登录）需要 ≈ 8.5 分钟。
+    if pending_baostock:
+        try:
+            batched = baostock_daily_batch(pending_baostock, today)
+        except Exception as exc:  # noqa: BLE001
+            print(f"batch baostock fallback failed for {len(pending_baostock)} symbols: {exc}", flush=True)
+            batched = {}
+        resolved_count = 0
+        for symbol, bars in batched.items():
+            if not bars:
+                continue
+            bar_source[symbol] = bars
+            resolved_count += 1
+        print(
+            f"batched baostock fallback: {resolved_count}/{len(pending_baostock)} 只取到 K 线",
+            flush=True,
+        )
+
+    for symbol, dates in sorted(seen.items()):
+        rec = stocks.get(symbol)
+        if rec is None:
+            continue
+        bars = bar_source.get(symbol)
+        if not bars:
             # 上游无有效数据，保留已有行，下次重试
             rec["daily"] = sorted(rec.get("daily", []), key=lambda x: x["date"])[:MAX_STORED_BARS]
             rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
-            print(f"  {symbol}: tencent returned no bars, preserving {len(rec['daily'])} existing rows", flush=True)
+            print(f"  {symbol}: no bars from any source, preserving {len(rec['daily'])} existing rows", flush=True)
             continue
+        target_bars = bars[:MAX_STORED_BARS]
         have = {d["date"] for d in rec["daily"]}
         new_rows = []
-        # 获利盘优先走同花顺 chip_list 曲线复算（无鉴权、无每日配额），失败 fallback iWenCai
-        profit_map = chip_list_profit_ratios(symbol)
+        # 获利盘优先走同花顺 chip_list 曲线复算（无鉴权、无每日配额），失败 fallback iWenCai。
+        # 窗口锚定 first_seen：同花顺只返回窗口内最近 40 个交易日，固定 90 天窗口
+        # 会漏掉早期入池标的的 bar，导致逐 (标的, 日期) 回退 iWenCai，
+        # 2026-10-28 实测 300+ 次调用 ≈ 30 分钟，直接撞穿 1800s 超时。
+        profit_map = chip_list_profit_ratios(symbol, start=rec.get("first_seen") or None)
         for bar in target_bars:
             if bar["date"] in have:
                 continue
             pr = profit_map.get(bar["date"].replace("-", ""))
             if pr is None:
-                pr = iwencai_profit_ratio(symbol, bar["date"])
+                # Queue the gap; the whole batch is resolved after the loop
+                # below. A per-symbol call here is what blew the time budget.
+                pending_iwencai.append((symbol, bar["date"]))
             new_rows.append({**bar, "profit_ratio": pr})
             have.add(bar["date"])
-            print(f"  {symbol} {bar['date']}: close={bar['close']} chg={bar['change_pct']} profit={pr}", flush=True)
         rec["daily"].extend(new_rows)
         rec["daily"].sort(key=lambda x: x["date"])
         # 固定首段窗口，禁止滚动成“最近 20 日”而改变加入以来口径
         rec["daily"] = rec["daily"][:MAX_STORED_BARS]
         rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
+
+    # 同花顺覆盖不到的 (标的, 日期) 用 iWenCai 批量补齐：一次查询覆盖同一天的
+    # 全部标的（实测 30 只 ≈ 7s），逐只查询则是每只 ≈ 6s。
+    if pending_iwencai:
+        resolved = iwencai_profit_ratios(pending_iwencai)
+        still_missing = 0
+        for sym, day in pending_iwencai:
+            value = resolved.get((sym, day))
+            if value is None:
+                still_missing += 1
+                continue
+            for row in stocks.get(sym, {}).get("daily", []):
+                if row.get("date") == day:
+                    row["profit_ratio"] = value
+                    break
+        print(
+            f"iWenCai batch: {len(pending_iwencai) - still_missing}/{len(pending_iwencai)} 补齐，"
+            f"{still_missing} 仍缺失",
+            flush=True,
+        )
 
     # 清理：少于 MIN_TRACK_DAYS 天数的股票（刚加入、数据不足）
     for sym in [s for s, r in stocks.items() if len(r.get("daily", [])) < MIN_TRACK_DAYS]:
