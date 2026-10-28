@@ -482,7 +482,7 @@ if [[ "$fail" -ne 0 ]]; then
   echo "Production probe failed. If git push already happened, run:"
   echo "  npm run build"
   echo "  source ~/.hermes/credentials/cloudflare-pages.env"
-  echo "  npx wrangler pages deploy dist --project-name etf-rotation-blog --commit-dirty=true"
+  echo "  npx --yes wrangler@4.153.0 pages deploy dist --project-name etf-rotation-blog --commit-dirty=true"
   echo "  # quote worker secondary:"
   echo "  cd ../edge-quote-api && npm run deploy:dual"
   echo "  # if CSS still looks unstyled on custom domain, purge CF cache for peekabo.cc"

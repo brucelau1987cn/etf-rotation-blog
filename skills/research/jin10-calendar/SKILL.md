@@ -154,7 +154,7 @@ Pages Function 对外暴露：
 ```bash
 npm run build
 set -a; source ~/.hermes/credentials/cloudflare-pages.env; set +a
-npx wrangler pages deploy dist --project-name etf-rotation-blog
+npx --yes wrangler@4.153.0 pages deploy dist --project-name etf-rotation-blog
 ```
 
 ## Verification
