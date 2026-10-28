@@ -127,6 +127,7 @@ def test_backfill_writes_data_through_matching_newest_bar(tmp_path, monkeypatch)
     )
     monkeypatch.setattr(mod, "chip_list_profit_ratios", lambda symbol, **_kwargs: {})
     monkeypatch.setattr(mod, "iwencai_profit_ratio", lambda symbol, date: 1.0)
+    monkeypatch.setattr(mod, "iwencai_profit_ratios", lambda pairs: {pair: 1.0 for pair in pairs})
     monkeypatch.setattr(mod, "fetch_current_year_profit", lambda symbols: {})
     monkeypatch.setattr(mod, "MIN_TRACK_DAYS", 1)
     monkeypatch.setattr(mod, "atomic_write_json", lambda path, payload: Path(path).write_text(

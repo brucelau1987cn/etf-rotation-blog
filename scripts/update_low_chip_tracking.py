@@ -486,29 +486,12 @@ def cf_baostock_daily(
 
 
 def iwencai_profit_ratio(symbol: str, date: str) -> float | None:
-    """收盘获利盘 ratio for one symbol at one date (iWenCai historical query)."""
-    ymd = date.replace("-", "")
-    q = f"{symbol.split('.')[0]} 收盘获利[{ymd}]"
-    r = subprocess.run(
-        ["/root/.hermes/scripts/iwencai-market-query", "-q", q, "--limit", "2", "--timeout", "45"],
-        capture_output=True, text=True, check=False,
-    )
-    if r.returncode != 0:
-        return None
-    try:
-        d = json.loads(r.stdout)
-    except json.JSONDecodeError:
-        return None
-    for row in d.get("datas") or []:
-        if str(row.get("股票代码") or "").split(".")[0] != symbol.split(".")[0]:
-            continue
-        for k, v in row.items():
-            if "收盘获利" in k:
-                try:
-                    return round(float(v), 2)
-                except (TypeError, ValueError):
-                    return None
-    return None
+    """收盘获利盘 ratio for one symbol at one date (iWenCai historical query).
+
+    Kept as the single-symbol entry point for ad-hoc use; the tracking main
+    path goes through iwencai_profit_ratios() so a whole date costs one query.
+    """
+    return iwencai_profit_ratios([(symbol, date)]).get((symbol, date))
 
 
 IWENCAI_BATCH_CODES = 30

@@ -222,6 +222,7 @@ def test_tracking_tests_never_hit_live_iwencai(tmp_path, monkeypatch):
     ])
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
     monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
@@ -252,6 +253,7 @@ def test_tracking_main_preserves_existing_bars_when_tencent_returns_nothing(tmp_
         return []
     monkeypatch.setattr(module, "tencent_daily", fake_no_bars)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **__kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
     rc = module.main()
     result = json.loads(module.DATA.read_text())
@@ -312,6 +314,7 @@ def test_tracking_main_preserves_dates_missing_from_partial_tencent_reply(tmp_pa
         {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
     ])
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
@@ -342,6 +345,7 @@ def test_duplicate_daily_dates_do_not_mark_tracking_complete(tmp_path, monkeypat
         {"date": "2026-01-02", "close": 10.1, "change_pct": 1.0},
     ] * 21)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     assert module.main() == 0
@@ -538,6 +542,7 @@ def test_tracking_main_uses_baostock_when_tencent_unavailable(tmp_path, monkeypa
     monkeypatch.setattr(module, "baostock_daily_batch", fallback_batch)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
     monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "chip_list_profit_ratios", lambda *_a, **_kw: {})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
@@ -583,6 +588,7 @@ def test_tracking_main_batches_the_baostock_fallback(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "tencent_daily", tencent_blocked)
     monkeypatch.setattr(module, "baostock_daily_batch", fallback_batch)
     monkeypatch.setattr(module, "iwencai_profit_ratio", lambda *_a, **_kw: None)
+    monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "iwencai_profit_ratios", lambda pairs: {pair: None for pair in pairs})
     monkeypatch.setattr(module, "chip_list_profit_ratios", lambda *_a, **_kw: {})
     monkeypatch.setattr(module, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
