@@ -159,6 +159,41 @@ def test_deploy_routes_cloudflare_traffic_through_the_proxy_bridge(monkeypatch):
     assert envs[0]["NODE_USE_ENV_PROXY"] == "1"
 
 
+def test_proxy_bridge_target_parsing_handles_the_scheme():
+    """The bridge URL carries an http:// scheme; a naive rpartition(':') would
+    resolve the host as 'http://127.0.0.1' and the check would always fail, so
+    wrangler would silently keep using the flaky direct path.
+    """
+    assert pages_release._split_proxy_target("http://127.0.0.1:8899") == ("127.0.0.1", 8899)
+    assert pages_release._split_proxy_target("127.0.0.1:8899") == ("127.0.0.1", 8899)
+    assert pages_release._split_proxy_target("https://proxy.example:443") == ("proxy.example", 443)
+
+
+def test_proxy_bridge_availability_uses_the_parsed_host(monkeypatch):
+    seen = []
+
+    class FakeSocket:
+        def __init__(self, address, *args, **kwargs):
+            seen.append(address)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(pages_release.socket, "create_connection", FakeSocket)
+
+    assert pages_release.proxy_bridge_available("http://127.0.0.1:8899") is True
+    assert seen == [("127.0.0.1", 8899)]
+
+    def refuse(*_args, **_kwargs):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(pages_release.socket, "create_connection", refuse)
+    assert pages_release.proxy_bridge_available("http://127.0.0.1:8899") is False
+
+
 def test_deploy_falls_back_to_direct_when_the_bridge_is_down(monkeypatch):
     monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
     monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)

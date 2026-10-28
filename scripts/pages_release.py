@@ -77,12 +77,22 @@ def proxy_bridge_available(bridge: str | None = None) -> bool:
     target = bridge or os.environ.get("HERMES_PROXY_BRIDGE", PROXY_BRIDGE)
     if not target:
         return False
+    host, port = _split_proxy_target(target)
+    if not host:
+        return False
     try:
-        host, _, port = target.rpartition(":")
-        with socket.create_connection((host or "127.0.0.1", int(port or 80)), timeout=3):
+        with socket.create_connection((host, port), timeout=3):
             return True
     except (OSError, ValueError):
         return False
+
+
+def _split_proxy_target(target: str) -> tuple[str, int]:
+    """Split "http://host:port" into ("host", port)."""
+    parsed = urllib.parse.urlsplit(target if "://" in target else f"http://{target}")
+    host = parsed.hostname or ""
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    return host, int(port)
 
 
 def proxy_env(base: dict[str, str] | None = None) -> dict[str, str]:

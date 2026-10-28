@@ -125,7 +125,7 @@ def test_backfill_writes_data_through_matching_newest_bar(tmp_path, monkeypatch)
             {"date": "2026-10-20", "close": 10.5, "change_pct": 5.0},
         ],
     )
-    monkeypatch.setattr(mod, "chip_list_profit_ratios", lambda symbol: {})
+    monkeypatch.setattr(mod, "chip_list_profit_ratios", lambda symbol, **_kwargs: {})
     monkeypatch.setattr(mod, "iwencai_profit_ratio", lambda symbol, date: 1.0)
     monkeypatch.setattr(mod, "fetch_current_year_profit", lambda symbols: {})
     monkeypatch.setattr(mod, "MIN_TRACK_DAYS", 1)
