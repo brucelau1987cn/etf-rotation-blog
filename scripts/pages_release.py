@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.error
@@ -42,6 +43,25 @@ JSON_PROBE_ATTEMPTS = 65
 JSON_PROBE_DELAY_SECONDS = 5
 URL_PROBE_ATTEMPTS = 5
 URL_PROBE_DELAY_SECONDS = 2
+# `npx wrangler` resolves the newest published version, and the configured npm
+# mirror (registry.npmmirror.com) lags the upstream registry by a patch. On
+# 2026-10-28 the resolved wrangler@4.154.0 required miniflare@5.20261023.1-beta,
+# which the mirror had not synced yet, so every publisher died at the deploy step
+# with `npm error notarget No matching version found for miniflare@...`.
+# Pin a known-good spec (4.153.0 -> miniflare@5.20261023.0-beta, present on the
+# mirror). `WRANGLER_SPEC` may override the pin for a future upgrade; the value is
+# validated so a bare `wrangler` (which would re-resolve "latest") cannot creep back.
+WRANGLER_SPEC_DEFAULT = "wrangler@4.153.0"
+WRANGLER_SPEC_PATTERN = re.compile(r"^wrangler@\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$")
+
+
+def wrangler_spec() -> str:
+    spec = (os.environ.get("WRANGLER_SPEC") or "").strip() or WRANGLER_SPEC_DEFAULT
+    if not WRANGLER_SPEC_PATTERN.match(spec):
+        raise RuntimeError(
+            f"WRANGLER_SPEC must pin an explicit version like wrangler@4.153.0 (got {spec!r})"
+        )
+    return spec
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -100,7 +120,7 @@ def deploy_pages() -> str:
     env = {**os.environ, **load_env_file(PAGES_ENV)}
     if not env.get("CLOUDFLARE_API_TOKEN"):
         raise RuntimeError("CLOUDFLARE_API_TOKEN is missing")
-    command = ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", PROJECT, "--commit-dirty=true"]
+    command = ["npx", "--yes", wrangler_spec(), "pages", "deploy", "dist", "--project-name", PROJECT, "--commit-dirty=true"]
     result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=True)
     output = (getattr(result, "stdout", "") or "") + "\n" + (getattr(result, "stderr", "") or "")
     if "pages.dev" not in output and "Deployment complete" not in output:

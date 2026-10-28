@@ -30,3 +30,6 @@ def test_d1_migration_entrypoint_is_explicit_and_dry_run_only_by_default():
     assert '"d1", "migrations", "apply", DATABASE' in source
     assert '"--config", "wrangler.toml"' in source
     assert '"--dry-run"' in source
+    # Same mirror-lag guard as the deploy path: never let npx resolve wrangler "latest".
+    assert "wrangler_spec()" in source
+    assert '"npx", "wrangler"' not in source

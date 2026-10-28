@@ -8,14 +8,19 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = "etf-compass-auth"
 
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
+from pages_release import wrangler_spec  # noqa: E402  (single source for the pinned wrangler spec)
+
 
 def command(apply: bool = False) -> list[str]:
-    args = ["npx", "wrangler", "d1", "migrations", "apply", DATABASE, "--config", "wrangler.toml"]
+    args = ["npx", "--yes", wrangler_spec(), "d1", "migrations", "apply", DATABASE, "--config", "wrangler.toml"]
     if not apply:
         args.append("--dry-run")
     return args

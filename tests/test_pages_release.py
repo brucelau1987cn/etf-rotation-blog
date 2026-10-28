@@ -29,10 +29,71 @@ def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
         {"https://etf.peekabo.cc/data/etf-garden-pool.json": Path("public/data/etf-garden-pool.json")},
     )
 
-    assert calls[0] == ["npx", "wrangler", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
+    assert calls[0] == ["npx", "--yes", "wrangler@4.153.0", "pages", "deploy", "dist", "--project-name", "etf-rotation-blog", "--commit-dirty=true"]
     assert calls[1] == ["purge"]
     assert calls[2] == ["probe", "https://etf.peekabo.cc/a-compass/"]
     assert calls[3] == ["json", "https://etf.peekabo.cc/data/etf-garden-pool.json"]
+
+
+def test_deploy_command_pins_wrangler_version(monkeypatch):
+    """`npx wrangler` resolves the newest release, which the npm mirror may not have.
+
+    2026-10-28: latest wrangler required miniflare@5.20261023.1-beta that
+    registry.npmmirror.com had not synced, so every publisher's deploy step died.
+    The command must name an explicit version spec, never bare `wrangler`.
+    """
+    calls = []
+    monkeypatch.delenv("WRANGLER_SPEC", raising=False)
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(
+        pages_release.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command) or SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0),
+    )
+
+    output = pages_release.deploy_pages()
+
+    assert "Deployment complete" in output
+    assert calls[0][:3] == ["npx", "--yes", "wrangler@4.153.0"]
+    assert "wrangler" not in calls[0]
+
+
+def test_deploy_command_honours_wrangler_spec_override(monkeypatch):
+    calls = []
+    monkeypatch.setenv("WRANGLER_SPEC", "wrangler@9.9.9")
+    monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda: None)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: None)
+    monkeypatch.setattr(
+        pages_release.subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command) or SimpleNamespace(stdout="Deployment complete! https://test.pages.dev", returncode=0),
+    )
+
+    pages_release.deploy_pages()
+
+    assert calls[0][2] == "wrangler@9.9.9"
+
+
+@pytest.mark.parametrize("bad", ["wrangler", "wrangler@latest", "  ", "wrangler@4", "evil-pkg@1.2.3"])
+def test_wrangler_spec_rejects_unpinned_values(monkeypatch, bad):
+    monkeypatch.setenv("WRANGLER_SPEC", bad)
+    if bad.strip():
+        with pytest.raises(RuntimeError, match="WRANGLER_SPEC"):
+            pages_release.wrangler_spec()
+    else:
+        # Empty/whitespace override falls back to the pin instead of failing.
+        assert pages_release.wrangler_spec() == pages_release.WRANGLER_SPEC_DEFAULT
+
+
+def test_npm_deploy_entrypoint_uses_the_same_pinned_spec():
+    """`npm run deploy:pages` (used by release_dual_live.sh) must not re-resolve latest."""
+    scripts = json.loads((Path(__file__).resolve().parents[1] / "package.json").read_text(encoding="utf-8"))["scripts"]
+    deploy = scripts["deploy:pages"]
+    assert "npx --yes wrangler@4.153.0 pages deploy" in deploy
+    assert "npx wrangler pages deploy" not in deploy
 
 
 def test_release_scope_allows_only_known_external_shadow_snapshots():
