@@ -40,6 +40,15 @@ def project_subprocess_env() -> dict[str, str]:
     """Keep project commands out of the Hermes gateway virtualenv."""
     env = dict(os.environ)
     env.pop("VIRTUAL_ENV", None)
+    # PYTHONPATH points at the gateway's Python 3.14 site-packages. The build
+    # venv is Python 3.11, so those packages shadow the venv's own copies: the
+    # gateway's jsonschema 4.2x needs `rpds`, whose native extension is built
+    # for 3.14 and cannot load in 3.11 (ImportError: No module named
+    # 'rpds.rpds'). That crashed validate_public_data_contracts.py and failed
+    # the 22:30 nightly publish on 2026-10-29. Strip PYTHONPATH for the same
+    # reason VIRTUAL_ENV is stripped: project commands must resolve imports
+    # from the venv they were invoked with.
+    env.pop("PYTHONPATH", None)
     env["PATH"] = f"{PROJECT_NODE_BIN}:/usr/bin:" + env.get("PATH", "")
     return env
 
