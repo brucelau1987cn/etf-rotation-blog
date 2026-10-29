@@ -691,13 +691,60 @@ def test_prefetch_marker_is_called_as_function_in_run_pipeline() -> None:
 
 def test_large_pool_timeouts_cover_verified_baostock_runtime() -> None:
     source = SCRIPT.read_text(encoding='utf-8')
-    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 2250)" in source
-    assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 2400)" in source
+    # 2026-10-29: the pool jumped from 169 to 442 stocks (broad selloff). The
+    # budgets below were raised together with the host script, but this test was
+    # left on the old numbers — the mismatch failed the 22:30 A-share nightly
+    # publish (the candidate-commit pytest gate), which has nothing to do with
+    # the live data. Keep both sides in sync.
+    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 4200)" in source
+    assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 4500)" in source
     # tracking 已拆到独立 cron（16:40），主链路不再跑它；fetch 超时仍覆盖。
     # 2026-10-22: 池子从 52 只扩到 291 只（普跌），enrichment 是 67+67 批次，
-    # 2400s 在 47 个 profile 分页处超时，预算提到 5400s。
-    assert "runner([sys.executable, 'scripts/fetch_low_chip_enrichments.py'], 5400)" in source
+    # 2400s 在 47 个 profile 分页处超时，预算先提到 5400s。
+    # 2026-10-29: 池子再扩到 442 只（89+89 批次），预算提到 10800s。
+    assert "runner([sys.executable, 'scripts/fetch_low_chip_enrichments.py'], 10800)" in source
     assert 'update_low_chip_tracking.py' not in source
+
+
+def test_enrichment_fan_out_is_bounded_and_scales_with_pool_size() -> None:
+    """The enrichment stage must not fan out without bound as the pool grows.
+
+    2026-10-29 root cause: the pool grew 169 -> 442 stocks, which made the
+    iWenCai batch stage 178 serial calls (~54 min) and left FTShare's hardcoded
+    900s subprocess timeout just below the measured runtime for 442 stocks.
+    When that timeout fired, the exception was swallowed into an empty dict and
+    all 442 stocks fell into the per-stock iWenCai fallback chain — the
+    multiplication that exhausted the 5400s budget.
+    """
+    script = Path('/root/projects/etf-rotation-blog/scripts/fetch_low_chip_enrichments.py')
+    source = script.read_text(encoding='utf-8')
+    # Batches run concurrently instead of one at a time.
+    assert 'ThreadPoolExecutor' in source
+    assert 'max_workers=IWENCAI_WORKERS' in source
+    # The FTShare subprocess timeout scales with the number of codes.
+    assert 'FTSHARE_SECONDS_PER_CODE' in source
+    assert 'timeout=ftshare_timeout' in source
+    assert 'timeout=900' not in source
+    # A timeout must be a loud failure, never an empty dict that pushes the
+    # whole pool into the per-stock fallback chain.
+    assert 'except subprocess.TimeoutExpired' in source
+
+
+def test_main_force_query_covers_the_whole_pool() -> None:
+    """main_force must not silently truncate the pool.
+
+    2026-10-29: pageSize=100 returned only the 100 newest rows of a 442-stock
+    pool, so 342 stocks lost their 机构参与度/主力控盘 label without any error.
+    """
+    script = Path('/root/projects/etf-rotation-blog/scripts/query_low_chip_main_force.py')
+    source = script.read_text(encoding='utf-8')
+    # The request must not pin pageSize to 100 (the value that truncated the
+    # pool). Assert on the request line itself, not on prose in the comments.
+    assert 'pageSize=100&' not in source
+    assert 'pageSize={PAGE_SIZE}' in source
+    assert 'CODE_CHUNK' in source
+    # Coverage is verified, so a partial fetch fails loudly.
+    assert 'main force coverage incomplete' in source
 
 
 def test_hlp_and_touchstone_use_same_interpreter_and_touchstone_follows_hlp():

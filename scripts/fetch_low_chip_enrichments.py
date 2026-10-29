@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
 """Fetch profile, individual, and quality shareholder queries for low-chip stocks.
 
-耗时说明：本脚本是整条低筹码发布链里最慢的一环（实测完整跑完约 146 分钟），
-成本来自 iWenCai 的逐只 fallback 链。FTShare 匿名额度为 500 次/天，
-198 只查询约占 40%；额度一旦耗尽，stock_float_holders 会持续返回 HTTP 429，
-因此 fetch_ftshare_holders 在检测到 429 时会立刻 fail-closed 中止，
-避免把 198 只全部推进 iWenCai fallback 白跑几个小时。
+耗时说明：本脚本是整条低筹码发布链里最慢的一环。成本主要来自两处：
 
-若要根治速度问题，请注册 FTShare API Key（https://ftai.chat/ftshare），
-注册后不受匿名额度限制。
+1. iWenCai 分批查询（profile + individual）。每批 5 只，442 只 = 89+89 = 178 次
+   调用。串行执行时实测每次 15-21s，合计约 54 分钟，必然撞穿外层预算。
+   这里改成并发执行（实测 4 并发稳定，单次 15s 墙钟内返回全部 4 个结果）。
+2. iWenCai 逐只 fallback 链。批量响应经常缺少「前十大流通股东名称」聚合字段，
+   缺字段的股票会逐只回退查询，每只最多 3 次调用。FTShare 一次查询即可覆盖全部
+   十大流通股东，是首选来源。
+
+FTShare 匿名额度为 500 次/天；带 API Key（/root/.hermes/credentials/ftshare-api.env，
+FTSHARE_API_KEYS 逗号分隔）不受匿名额度限制。额度一旦耗尽，stock_float_holders 会
+持续返回 HTTP 429，因此 fetch_ftshare_holders 在检测到 429 时会立刻 fail-closed 中止，
+避免把整个股票池推进 iWenCai fallback 白跑几个小时。
+
+关键：FTShare 子进程的超时必须随股票池规模增长。硬编码 900s 在 442 只时
+（实测 1.64s/只 ≈ 725s）会踩线超时，异常被 except 吞掉后返回空 dict，
+结果 442 只全部涌入逐只 fallback 链——这正是 2026-10-29 enrichment 5400s
+超时的放大机制。现在按 4s/只 + 120s 余量动态计算。
 """
 from __future__ import annotations
 
@@ -18,12 +28,18 @@ import re
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
 
 PROFILE_BATCH_SIZE = 5  # iWenCai batch size per /tmp/lc_p{n}.json
+# 并发度：iWenCai 实测 4 并发无 429；保守取 4，避免触发风控。
+IWENCAI_WORKERS = int(os.environ.get("LOW_CHIP_IWENCAI_WORKERS", "4"))
+# FTShare 子进程超时：按每只 4s + 120s 余量随池规模增长。
+FTSHARE_SECONDS_PER_CODE = 4.0
+FTSHARE_TIMEOUT_FLOOR = 900
 SHAREHOLDER_PERIOD_RE = re.compile(r"^前十大流通股东名称(?:\(报告期\))?\[(\d{8})\]$")
 
 QUALITY_QUERY = " 前十大流通股东名称包含全国社保基金或基本养老保险基金或国家集成电路产业投资基金或国新投资或深圳市创新投资集团或科威特政府投资局或澳门金融管理局"
@@ -113,6 +129,14 @@ def fetch_ftshare_holders(codes: list[str]) -> dict[str, dict]:
     if not codes:
         return {}
     api_keys = ftshare_api_keys()
+    # 超时必须随池规模增长。实测 1.64s/只：442 只 ≈ 725s，硬编码 900s 必然踩线。
+    # 踩线后的异常被 except Exception 吞掉、返回空 dict，会把 442 只全部推进
+    # iWenCai 逐只回退链（每只最多 3 次调用），这正是 2026-10-29 enrichment
+    # 5400s 超时的放大机制。按 4s/只 + 120s 余量给足空间。
+    ftshare_timeout = max(
+        FTSHARE_TIMEOUT_FLOOR,
+        int(len(codes) * FTSHARE_SECONDS_PER_CODE) + 120,
+    )
     inline = r'''
 import json, sys, time
 from ftshare.client import FtshareClient
@@ -186,7 +210,7 @@ print(json.dumps({"holders": out, "empty": empty, "errors": errors, "keys_availa
         r = subprocess.run(
             [FTSHARE_PY, "-c", inline],
             input=json.dumps(codes, ensure_ascii=False),
-            capture_output=True, text=True, check=False, timeout=900,
+            capture_output=True, text=True, check=False, timeout=ftshare_timeout,
         )
         if r.returncode != 0:
             print(f"WARNING: FTShare holders query failed: {r.stderr[:200]}", file=sys.stderr)
@@ -208,6 +232,15 @@ print(json.dumps({"holders": out, "empty": empty, "errors": errors, "keys_availa
         return holders
     except SystemExit:
         raise
+    except subprocess.TimeoutExpired:
+        # 超时与"额度耗尽"是两种不同的失败：额度耗尽已在上游 fail-closed；
+        # 超时意味着这批规模本身跑不完。此时必须显式失败，不能返回空 dict，
+        # 否则整池会涌入 iWenCai 逐只回退链把预算烧光（2026-10-29 的放大机制）。
+        raise SystemExit(
+            f"FTShare holders query timed out after {ftshare_timeout}s for {len(codes)} stocks "
+            f"(budget scales at {FTSHARE_SECONDS_PER_CODE}s/code); refusing to fall back to "
+            f"per-stock iWenCai queries for the whole pool"
+        )
     except Exception as exc:  # noqa: BLE001
         print(f"WARNING: FTShare holders query failed: {exc}", file=sys.stderr)
         return {}
@@ -309,32 +342,54 @@ def main() -> int:
         stale.unlink(missing_ok=True)
 
     # /tmp/lc_p{n}.json — per-stock profile query (industry, top10, shareholders)
-    # 5 codes per batch
+    # 5 codes per batch. Batches run concurrently: 442 stocks = 89 batches, and
+    # each call measures 15-21s. Serial execution burns ~54 minutes on the two
+    # batch stages alone, which is what exhausted the enrichment budget on
+    # 2026-10-29. iWenCai handles 4 concurrent queries without 429.
     batches = [bare_codes[i:i + PROFILE_BATCH_SIZE] for i in range(0, len(bare_codes), PROFILE_BATCH_SIZE)]
     if not batches:
         batches = [[]]
-    for idx, batch in enumerate(batches, start=1):
-        if not batch:
-            continue
+
+    def fetch_profile_batch(item: tuple[int, list[str]]) -> tuple[int, dict]:
+        idx, batch = item
         q = "、".join(batch) + " 所属申万行业、最新报告期前十大流通股东名称、最新报告期流通股东名称、流通股东类型、持股数量、持股比例、流通股东持股变动类型、公告日期、所属概念"
-        d = iwc(q)
-        out = Path(f"/tmp/lc_p{idx}.json")
-        out.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
-        print(f"  lc_p{idx}: rows={len(d.get('datas') or [])}", flush=True)
+        return idx, iwc(q)
+
+    started = time.monotonic()
+    with ThreadPoolExecutor(max_workers=IWENCAI_WORKERS) as pool:
+        for idx, d in pool.map(fetch_profile_batch, list(enumerate(batches, start=1))):
+            out = Path(f"/tmp/lc_p{idx}.json")
+            out.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            print(f"  lc_p{idx}: rows={len(d.get('datas') or [])}", flush=True)
+    print(f"  profile batches: {len(batches)} in {time.monotonic() - started:.1f}s "
+          f"(workers={IWENCAI_WORKERS})", flush=True)
 
     # /tmp/low_chip_individual.json — per-stock current shareholding row with industry/concept
     rows = []
     INDIV_BATCH = 5
     batch_cache: dict[str, dict] = {}
-    for start in range(0, len(codes), INDIV_BATCH):
-        batch = codes[start:start + INDIV_BATCH]
+
+    def fetch_individual_batch(batch: list[str]) -> dict[str, dict]:
         bare_batch = [c.split(".")[0] for c in batch]
         q = "、".join(bare_batch) + " 最新价、最新涨跌幅、所属申万行业、所属概念、最新完整报告期十大流通股东明细、前十大流通股东名称、股东名称、股东类型、持股比例、排名、持股变动类型、公告日期、上市地点、所属同花顺行业、上市板块"
         d = iwc(q, limit=max(50, len(batch) * 20))
+        # Each batch owns its codes exclusively, so the local dict needs no lock:
+        # a stock code appears in exactly one batch, and the merge below happens
+        # after the pool has joined.
+        local: dict[str, dict] = {}
         for r in d.get("datas") or []:
             row_code = str(r.get("股票代码", "")).upper().split(".")[0]
-            if row_code in bare_batch and row_code not in batch_cache:
-                batch_cache[row_code] = r
+            if row_code in bare_batch and row_code not in local:
+                local[row_code] = r
+        return local
+
+    indiv_batches = [codes[i:i + INDIV_BATCH] for i in range(0, len(codes), INDIV_BATCH)]
+    started = time.monotonic()
+    with ThreadPoolExecutor(max_workers=IWENCAI_WORKERS) as pool:
+        for local in pool.map(fetch_individual_batch, indiv_batches):
+            batch_cache.update(local)
+    print(f"  individual batches: {len(indiv_batches)} in {time.monotonic() - started:.1f}s "
+          f"(workers={IWENCAI_WORKERS}, cached={len(batch_cache)})", flush=True)
     ftshare_holders = fetch_ftshare_holders(codes)
     for code in codes:
         matched = batch_cache.get(code.split(".")[0])
