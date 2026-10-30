@@ -37,9 +37,9 @@ def test_tracking_data_contract():
             "main_force",
             "main_force_label",
         }
-        assert isinstance(features["quality_shareholder"], bool)
+        assert features["quality_shareholder"] is None or isinstance(features["quality_shareholder"], bool)
         assert isinstance(features["quality_shareholder_names"], list)
-        assert isinstance(features["institutional_shareholder"], bool)
+        assert features["institutional_shareholder"] is None or isinstance(features["institutional_shareholder"], bool)
         assert isinstance(features["institutional_shareholder_names"], list)
         financials = rec.get("entry_financials")
         assert isinstance(financials, dict)

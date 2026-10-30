@@ -861,9 +861,9 @@ def main() -> int:
         entry_snapshot = resolve_entry_snapshot(HISTORY_DIR, r["first_seen"], sym)
         entry_enrichment, entry_metrics = load_entry_enrichment(entry_snapshot, sym)
         r["entry_features"] = {
-            "quality_shareholder": bool(entry_enrichment.get("quality_shareholder")),
+            "quality_shareholder": None if entry_enrichment.get("quality_shareholder") is None else bool(entry_enrichment["quality_shareholder"]),
             "quality_shareholder_names": list(entry_enrichment.get("quality_shareholder_names") or []),
-            "institutional_shareholder": bool(entry_enrichment.get("institutional_shareholder")),
+            "institutional_shareholder": None if entry_enrichment.get("institutional_shareholder") is None else bool(entry_enrichment["institutional_shareholder"]),
             "institutional_shareholder_names": list(entry_enrichment.get("institutional_shareholder_names") or []),
             "chip_focus": entry_metrics.get("chip_focus") or "",
             "main_force": entry_metrics.get("main_force"),
