@@ -138,23 +138,35 @@ def paginate(query):
     p = 1
     declared_total = None
     while True:
-        d = fetch(query, p)
-        page_total = d.get('code_count')
-        if type(page_total) is not int or page_total < 0:
-            raise SystemExit('STAGING BLOCKER: pagination code_count must be a nonnegative integer')
-        if declared_total is not None and page_total != declared_total:
-            raise SystemExit(f'STAGING BLOCKER: pagination total changed {declared_total}->{page_total}')
-        declared_total = page_total
-        rows.extend(d.get("datas") or [])
-        if not d.get("has_more"):
-            if declared_total is not None:
-                codes = [row.get('股票代码') for row in rows]
-                if len(rows) != declared_total or len(set(codes)) != declared_total or any(not c for c in codes):
-                    raise SystemExit(
-                        f'STAGING BLOCKER: pagination incomplete: expected {declared_total}, '
-                        f'rows={len(rows)}, unique={len(set(codes))}'
+        # Separate integrity budget: each attempt re-fetches this page while
+        # accepted rows and their declared total remain unchanged.
+        for attempt in range(1, 4):
+            d = fetch(query, p)
+            page_total = d.get('code_count')
+            page_rows = d.get('datas') or []
+            blocker = None
+            if type(page_total) is not int or page_total < 0:
+                blocker = 'STAGING BLOCKER: pagination code_count must be a nonnegative integer'
+            elif declared_total is not None and page_total != declared_total:
+                blocker = f'STAGING BLOCKER: pagination total changed {declared_total}->{page_total}'
+            elif not page_rows and (d.get('has_more') or len(rows) < page_total):
+                blocker = f'STAGING BLOCKER: pagination empty page {p} before expected {page_total}'
+            elif not d.get('has_more'):
+                candidate = rows + page_rows
+                codes = [row.get('股票代码') for row in candidate]
+                if len(candidate) != page_total or len(set(codes)) != page_total or any(not c for c in codes):
+                    blocker = (
+                        f'STAGING BLOCKER: pagination incomplete: expected {page_total}, '
+                        f'rows={len(candidate)}, unique={len(set(codes))}'
                     )
-            return rows, len(rows)
+            if blocker is None:
+                declared_total = page_total
+                rows.extend(page_rows)
+                if not d.get('has_more'):
+                    return rows, len(rows)
+                break
+            if attempt == 3:
+                raise SystemExit(blocker)
         p += 1
         if p > MAX_PAGES:
             raise SystemExit(

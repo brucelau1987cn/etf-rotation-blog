@@ -168,6 +168,47 @@ def test_optional_listing_audit_failure_preserves_core_result(monkeypatch, tmp_p
     assert data['filters']['new_listing_audit']['status'] == 'UNAVAILABLE'
 
 
+@pytest.mark.parametrize('bad_page', [
+    {'datas': [], 'has_more': False, 'code_count': 0},
+    {'datas': [], 'has_more': False, 'code_count': '3'},
+    {'datas': [], 'has_more': False, 'code_count': 3},
+    {'datas': [], 'has_more': True, 'code_count': 3},
+    {'datas': [{'股票代码': '000002.SZ'}], 'has_more': False, 'code_count': 3},
+])
+def test_pagination_retries_same_invalid_page_before_accepting(monkeypatch, bad_page):
+    module = load_module()
+    calls = []
+    first = {'datas': [{'股票代码': '000001.SZ'}], 'has_more': True, 'code_count': 3}
+    final = {'datas': [{'股票代码': '000002.SZ'}, {'股票代码': '000003.SZ'}],
+             'has_more': False, 'code_count': 3}
+
+    def fetch(query, page):
+        calls.append(page)
+        return first if page == 1 else (bad_page if calls.count(2) < 3 else final)
+
+    monkeypatch.setattr(module, 'fetch', fetch)
+    rows, count = module.paginate('q')
+    assert calls == [1, 2, 2, 2]
+    assert count == 3
+    assert [r['股票代码'] for r in rows] == ['000001.SZ', '000002.SZ', '000003.SZ']
+
+
+@pytest.mark.parametrize('bad_total', [0, 4, None, True])
+def test_pagination_integrity_budget_exhaustion_blocks_without_restart(monkeypatch, bad_total):
+    module = load_module()
+    calls = []
+
+    def fetch(query, page):
+        calls.append(page)
+        return {'datas': [{'股票代码': f'{page:06d}.SZ'}],
+                'has_more': page == 1, 'code_count': 3 if page == 1 else bad_total}
+
+    monkeypatch.setattr(module, 'fetch', fetch)
+    with pytest.raises(SystemExit, match='STAGING BLOCKER.*pagination'):
+        module.paginate('q')
+    assert calls == [1, 2, 2, 2]
+
+
 # ============ transient upstream failures are retried ============
 
 def test_fetch_retries_transient_ssl_failure_then_succeeds(monkeypatch, tmp_path):
