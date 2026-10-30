@@ -9,6 +9,7 @@ import datetime
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -103,7 +104,7 @@ def fetch(query, page):
             payload = json.loads(r.stdout)
             expected = next((prefix for _, prefix, _ in PERIODS if prefix in query), None)
             rows = payload.get('datas') or []
-            if expected and any(
+            if expected and isinstance(rows, list) and all(isinstance(row, dict) for row in rows) and any(
                 not any(str(key).startswith(expected + '[') for key in row)
                 for row in rows
             ):
@@ -149,6 +150,16 @@ def paginate(query):
                 blocker = 'STAGING BLOCKER: pagination code_count must be a nonnegative integer'
             elif declared_total is not None and page_total != declared_total:
                 blocker = f'STAGING BLOCKER: pagination total changed {declared_total}->{page_total}'
+            elif not isinstance(page_rows, list) or any(
+                not isinstance(row, dict) or not isinstance(row.get('股票代码'), str)
+                or not re.fullmatch(r'[0-9]{6}(?:\.(?:SH|SZ|BJ))?', row['股票代码'])
+                for row in page_rows
+            ):
+                blocker = 'STAGING BLOCKER: pagination invalid stock code'
+            elif len({row['股票代码'] for row in page_rows}) != len(page_rows) or (
+                {row['股票代码'] for row in page_rows} & {row['股票代码'] for row in rows}
+            ):
+                blocker = 'STAGING BLOCKER: pagination duplicate stock code'
             elif not page_rows and (d.get('has_more') or len(rows) < page_total):
                 blocker = f'STAGING BLOCKER: pagination empty page {p} before expected {page_total}'
             elif not d.get('has_more'):

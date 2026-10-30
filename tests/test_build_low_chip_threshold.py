@@ -116,7 +116,7 @@ def test_paginate_raises_instead_of_returning_a_truncated_pool(monkeypatch):
     silently publish a wrong pool."""
     module = load_module()
     monkeypatch.setattr(module, "MAX_PAGES", 3)
-    monkeypatch.setattr(module, "fetch", lambda q, p: {"datas": [{}], "has_more": True, 'code_count': 1000})
+    monkeypatch.setattr(module, "fetch", lambda q, p: {"datas": [{'股票代码': f'{p:06d}.SZ'}], "has_more": True, 'code_count': 1000})
 
     with pytest.raises(SystemExit) as excinfo:
         module.paginate("q")
@@ -193,6 +193,27 @@ def test_pagination_retries_same_invalid_page_before_accepting(monkeypatch, bad_
     assert [r['股票代码'] for r in rows] == ['000001.SZ', '000002.SZ', '000003.SZ']
 
 
+@pytest.mark.parametrize('bad_rows', [
+    [{'股票代码': '000001.SZ'}],
+    [{'股票代码': '000002.SZ'}, {'股票代码': '000002.SZ'}],
+    [{}], [None], [{'股票代码': '000002.BAD'}],
+])
+def test_intermediate_invalid_codes_retry_same_page_without_pollution(monkeypatch, bad_rows):
+    module = load_module()
+    calls = []
+    def fetch(query, page):
+        calls.append(page)
+        rows = [{'股票代码': f'{page:06d}.SZ'}]
+        if page == 2 and calls.count(2) == 1:
+            rows = bad_rows
+        return {'datas': rows, 'has_more': page < 3, 'code_count': 3}
+    monkeypatch.setattr(module, 'fetch', fetch)
+    rows, count = module.paginate('q')
+    assert calls == [1, 2, 2, 3]
+    assert count == 3
+    assert [r['股票代码'] for r in rows] == ['000001.SZ', '000002.SZ', '000003.SZ']
+
+
 @pytest.mark.parametrize('bad_total', [0, 4, None, True])
 def test_pagination_integrity_budget_exhaustion_blocks_without_restart(monkeypatch, bad_total):
     module = load_module()
@@ -207,6 +228,32 @@ def test_pagination_integrity_budget_exhaustion_blocks_without_restart(monkeypat
     with pytest.raises(SystemExit, match='STAGING BLOCKER.*pagination'):
         module.paginate('q')
     assert calls == [1, 2, 2, 2]
+
+
+@pytest.mark.parametrize('recovers', [True, False])
+def test_real_fetch_non_dictionary_row_reaches_same_page_retry(monkeypatch, recovers):
+    import json
+    import subprocess
+    module = load_module()
+    calls = []
+    def response(args, **kwargs):
+        calls.append(args[args.index('--page') + 1])
+        rows = [None]
+        if recovers and len(calls) == 3:
+            rows = [{'股票代码': '000001.SZ', '季线收盘获利[20261030]': 0.1}]
+        return subprocess.CompletedProcess(args, 0, json.dumps({
+            'datas': rows, 'code_count': 1, 'has_more': False,
+        }), '')
+    monkeypatch.setattr(module.subprocess, 'run', response)
+    monkeypatch.setattr(module.Path, 'write_text', lambda *a, **kw: None)
+    monkeypatch.setattr(module.time, 'sleep', lambda *a: None)
+    if recovers:
+        rows, count = module.paginate('A股 季线收盘获利小于1.5%')
+        assert count == 1 and rows[0]['股票代码'] == '000001.SZ'
+    else:
+        with pytest.raises(SystemExit, match='STAGING BLOCKER.*invalid stock code'):
+            module.paginate('A股 季线收盘获利小于1.5%')
+    assert calls == ['1', '1', '1']
 
 
 # ============ transient upstream failures are retried ============
