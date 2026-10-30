@@ -62,6 +62,35 @@ def test_published_threshold_is_one_point_five_percent(monkeypatch, tmp_path):
     assert all(item["symbol"] != "000002.SZ" for item in payload["periods"]["week"])
 
 
+def test_missing_quarter_metric_blocks_instead_of_synthesizing_zero(monkeypatch, tmp_path):
+    module = load_module()
+    module.DATA = tmp_path / 'snapshot.json'
+    def paginate(query):
+        prefix = next((p for _, p, _ in module.PERIODS if p in query), '周线收盘获利')
+        field = '收盘获利' if prefix == '季线收盘获利' else prefix
+        return [{'股票代码': '000001.SZ', '股票简称': '样本', field + '[20261030]': 0.141}], 1
+    monkeypatch.setattr(module, 'paginate', paginate)
+    with pytest.raises(SystemExit, match='STAGING BLOCKER.*季线收盘获利'):
+        module.main()
+    assert not module.DATA.exists()
+
+
+def test_fetch_retries_metric_drift_before_accepting_page(monkeypatch):
+    module = load_module()
+    attempts = []
+    def fake_run(*args, **kwargs):
+        import json
+        import subprocess
+        attempts.append(1)
+        field = '收盘获利' if len(attempts) == 1 else '季线收盘获利'
+        return subprocess.CompletedProcess([], 0, json.dumps({'datas': [{field + '[20261030]': 0.1}]}), '')
+    monkeypatch.setattr(module.subprocess, 'run', fake_run)
+    monkeypatch.setattr(module.time, 'sleep', lambda *_: None)
+    result = module.fetch('A股 季线收盘获利小于1.5%', 1)
+    assert len(attempts) == 2
+    assert '季线收盘获利[20261030]' in result['datas'][0]
+
+
 # ============ pagination must never silently truncate ============
 
 def test_paginate_walks_past_ten_pages_while_has_more_is_true(monkeypatch):
@@ -69,7 +98,7 @@ def test_paginate_walks_past_ten_pages_while_has_more_is_true(monkeypatch):
     `if p > 10: break` returned 1000 rows with no signal, and the published
     pool looked complete while being truncated."""
     module = load_module()
-    pages = {n: {"datas": [{"股票代码": f"{n:03d}000.SZ"}], "has_more": n < 12} for n in range(1, 13)}
+    pages = {n: {"datas": [{"股票代码": f"{n:03d}000.SZ"}], "has_more": n < 12, 'code_count': 12} for n in range(1, 13)}
     seen = []
 
     def fake_fetch(query, page):
@@ -87,7 +116,7 @@ def test_paginate_raises_instead_of_returning_a_truncated_pool(monkeypatch):
     silently publish a wrong pool."""
     module = load_module()
     monkeypatch.setattr(module, "MAX_PAGES", 3)
-    monkeypatch.setattr(module, "fetch", lambda q, p: {"datas": [{}], "has_more": True})
+    monkeypatch.setattr(module, "fetch", lambda q, p: {"datas": [{}], "has_more": True, 'code_count': 1000})
 
     with pytest.raises(SystemExit) as excinfo:
         module.paginate("q")
@@ -98,6 +127,45 @@ def test_max_pages_is_far_above_any_real_result_set():
     """The cap only bounds a runaway loop; a real selloff exceeds 1000 rows."""
     module = load_module()
     assert module.MAX_PAGES >= 100
+
+
+def test_pagination_blocks_early_empty_page_with_declared_total(monkeypatch):
+    module = load_module()
+    pages = {
+        1: {'datas': [{'股票代码': '000001.SZ'}], 'has_more': True, 'code_count': 3},
+        2: {'datas': [], 'has_more': False, 'code_count': 3},
+    }
+    monkeypatch.setattr(module, 'fetch', lambda q, p: pages[p])
+    with pytest.raises(SystemExit, match='STAGING BLOCKER.*pagination'):
+        module.paginate('q')
+
+
+@pytest.mark.parametrize('total', [None, 1.9, True, -1, 'bad'])
+def test_pagination_requires_nonnegative_integer_total(monkeypatch, total):
+    module = load_module()
+    monkeypatch.setattr(module, 'fetch', lambda q, p: {
+        'datas': [{'股票代码': '000001.SZ'}], 'has_more': False, 'code_count': total,
+    })
+    with pytest.raises(SystemExit, match='STAGING BLOCKER.*pagination'):
+        module.paginate('q')
+
+
+def test_optional_listing_audit_failure_preserves_core_result(monkeypatch, tmp_path):
+    import json
+    module = load_module()
+    monkeypatch.setattr(module, 'DATA', tmp_path / 'snapshot.json')
+    calls = []
+    def paginate(query):
+        calls.append(query)
+        if len(calls) > 3:
+            raise SystemExit('STAGING BLOCKER: optional audit metric drift')
+        prefix = next(p for _, p, _ in module.PERIODS if p in query)
+        return [{'股票代码': '000001.SZ', prefix + '[20261030]': 0.1}], 1
+    monkeypatch.setattr(module, 'paginate', paginate)
+    assert module.main() == 0
+    data = json.loads(getattr(module, 'DATA').read_text())
+    assert data['intersection'] == ['000001.SZ']
+    assert data['filters']['new_listing_audit']['status'] == 'UNAVAILABLE'
 
 
 # ============ transient upstream failures are retried ============

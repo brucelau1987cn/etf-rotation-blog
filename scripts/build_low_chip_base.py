@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import os
 import subprocess
 import sys
@@ -99,8 +100,20 @@ def fetch(query, page):
             capture_output=True, text=True, check=False,
         )
         if r.returncode == 0:
+            payload = json.loads(r.stdout)
+            expected = next((prefix for _, prefix, _ in PERIODS if prefix in query), None)
+            rows = payload.get('datas') or []
+            if expected and any(
+                not any(str(key).startswith(expected + '[') for key in row)
+                for row in rows
+            ):
+                detail = f'STAGING BLOCKER: missing explicit {expected} on page {page}'
+                if attempt == FETCH_ATTEMPTS:
+                    raise SystemExit(detail)
+                time.sleep(FETCH_BACKOFF_S * attempt)
+                continue
             out.write_text(r.stdout, encoding="utf-8")
-            return json.loads(r.stdout)
+            return payload
         detail = (r.stderr or r.stdout or "").strip()
         # 输出完整的短错误分类，便于区分额度耗尽、鉴权、限流和瞬时故障。
         if not _is_transient(detail) or attempt == FETCH_ATTEMPTS:
@@ -123,10 +136,24 @@ def paginate(query):
     """
     rows = []
     p = 1
+    declared_total = None
     while True:
         d = fetch(query, p)
+        page_total = d.get('code_count')
+        if type(page_total) is not int or page_total < 0:
+            raise SystemExit('STAGING BLOCKER: pagination code_count must be a nonnegative integer')
+        if declared_total is not None and page_total != declared_total:
+            raise SystemExit(f'STAGING BLOCKER: pagination total changed {declared_total}->{page_total}')
+        declared_total = page_total
         rows.extend(d.get("datas") or [])
         if not d.get("has_more"):
+            if declared_total is not None:
+                codes = [row.get('股票代码') for row in rows]
+                if len(rows) != declared_total or len(set(codes)) != declared_total or any(not c for c in codes):
+                    raise SystemExit(
+                        f'STAGING BLOCKER: pagination incomplete: expected {declared_total}, '
+                        f'rows={len(rows)}, unique={len(set(codes))}'
+                    )
             return rows, len(rows)
         p += 1
         if p > MAX_PAGES:
@@ -202,6 +229,11 @@ def main() -> int:
     for label, prefix, query in PERIODS:
         rows, count = paginate(query)
         field = period_field(rows, prefix)
+        if rows and field is None:
+            raise SystemExit(
+                f"STAGING BLOCKER: missing explicit {prefix} field; "
+                "upstream may have changed the metric; refusing to substitute zero"
+            )
         counts[label] = count
         seen = set()
         period_rows = []
@@ -211,11 +243,13 @@ def main() -> int:
             if not symbol or symbol in seen:
                 continue
             seen.add(symbol)
-            v = r.get(field) if field else 0
+            v = r.get(field)
             try:
                 v = float(v)
             except (TypeError, ValueError):
-                continue
+                raise SystemExit(f"STAGING BLOCKER: invalid {prefix} for {symbol}") from None
+            if not math.isfinite(v):
+                raise SystemExit(f"STAGING BLOCKER: non-finite {prefix} for {symbol}")
             # 服务端查询负责初筛，本地门禁再次保证严格小于阈值。
             if not 0 <= v < PROFIT_THRESHOLD:
                 continue
@@ -245,12 +279,14 @@ def main() -> int:
 
     # 审计：无上市日期过滤的周线查询，识别被 cutoff 排除的新股（上市不足 90 天）
     excluded_new_listing = []
+    new_listing_audit = {'status': 'AVAILABLE'}
     try:
         raw_rows, _ = paginate(f"A股 周线收盘获利小于{PROFIT_THRESHOLD:g}%，非ST，非退市")
         raw_week_codes = {r.get("股票代码") or "" for r in raw_rows} - {""}
         excluded_new_listing = sorted(raw_week_codes - week_codes)
-    except Exception as exc:  # 审计失败不阻塞主流程
-        print(f"new-listing audit skipped: {exc}", flush=True)
+    except (Exception, SystemExit) as exc:  # 独立审计失败保持核心名单有效
+        new_listing_audit = {'status': 'UNAVAILABLE', 'reason': str(exc)[:300]}
+        print(f"new-listing audit UNAVAILABLE: {exc}", flush=True)
     print(f"excluded_new_listing: {excluded_new_listing}", flush=True)
     print(f"intersection_raw: {inter_raw}", flush=True)
     print(f"excluded_bj: {excluded_bj_initial}", flush=True)
@@ -275,6 +311,7 @@ def main() -> int:
             "listing_cutoff": CUTOFF,
             "exclude_new_listing": True,
             "excluded_new_listing": excluded_new_listing,
+            "new_listing_audit": new_listing_audit,
             "unlock_window": "未来3个月",
             "exclude_unlock_risk": True,
             "excluded_unlock_risk": [],
