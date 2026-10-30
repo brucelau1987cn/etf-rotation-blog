@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -37,6 +38,7 @@ DATA = ROOT / "public/data/a-low-chip-stocks.json"
 PROFILE_BATCH_SIZE = 5  # iWenCai batch size per /tmp/lc_p{n}.json
 # 并发度：iWenCai 实测 4 并发无 429；保守取 4，避免触发风控。
 IWENCAI_WORKERS = int(os.environ.get("LOW_CHIP_IWENCAI_WORKERS", "4"))
+OPTIONAL_IWENCAI_MAX_CALLS = 12  # Shared by industry, shareholder and quality fallbacks.
 # FTShare 子进程超时：按每只 4s + 120s 余量随池规模增长。
 FTSHARE_SECONDS_PER_CODE = 4.0
 FTSHARE_TIMEOUT_FLOOR = 900
@@ -45,26 +47,50 @@ SHAREHOLDER_PERIOD_RE = re.compile(r"^前十大流通股东名称(?:\(报告期\
 QUALITY_QUERY = " 前十大流通股东名称包含全国社保基金或基本养老保险基金或国家集成电路产业投资基金或国新投资或深圳市创新投资集团或科威特政府投资局或澳门金融管理局"
 
 
-def iwc(query, page=1, limit=50, timeout=90):
+def iwc(query, page=1, limit=50, timeout=90, attempts=3):
     last_err = ""
-    for attempt in range(3):
-        r = subprocess.run(
+    for attempt in range(attempts):
+        process = subprocess.Popen(
             ["/root/.hermes/scripts/iwencai-market-query", "-q", query, "--page", str(page),
              "--limit", str(limit), "--timeout", str(timeout)],
-            capture_output=True, text=True, check=False,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            start_new_session=True,
         )
+        try:
+            stdout, stderr = process.communicate(timeout=timeout + 5)
+        except subprocess.TimeoutExpired:
+            # The wrapper launches Python descendants. Signal its isolated group,
+            # including descendants that outlive the wrapper or close its pipes.
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                pass
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()  # Drain pipes and reap the direct child.
+            raise
+        r = subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
         if r.returncode == 0:
             try:
                 return json.loads(r.stdout)
             except json.JSONDecodeError as exc:
                 last_err = f"JSON decode error: {exc}"
-                time.sleep(5 * (attempt + 1))
+                if attempt + 1 < attempts:
+                    time.sleep(5 * (attempt + 1))
                 continue
         # quota 耗尽不可恢复，立即失败（不重试）；瞬时失败（超时/服务端）重试。
         if any(x in (r.stdout or "") for x in ("已达上限", "次数已用完", "额度已用完")):
             raise SystemExit(f"iWenCai quota exhausted: {(r.stdout or '')[:200]}")
         last_err = (r.stderr or r.stdout or "")[:200]
-        time.sleep(5 * (attempt + 1))
+        if attempt + 1 < attempts:
+            time.sleep(5 * (attempt + 1))
     raise SystemExit(f"iWenCai error after retries: {last_err}")
 
 
@@ -247,8 +273,9 @@ print(json.dumps({"holders": out, "empty": empty, "errors": errors, "keys_availa
 
 
 def has_top10_names(row: dict | None) -> bool:
+    """Require holder names tied to an explicit report period for every source."""
     return bool(row and any(
-        key.startswith("前十大流通股东名称") and value
+        SHAREHOLDER_PERIOD_RE.fullmatch(key) and value
         for key, value in row.items()
     ))
 
@@ -391,12 +418,44 @@ def main() -> int:
     print(f"  individual batches: {len(indiv_batches)} in {time.monotonic() - started:.1f}s "
           f"(workers={IWENCAI_WORKERS}, cached={len(batch_cache)})", flush=True)
     ftshare_holders = fetch_ftshare_holders(codes)
+    # Optional network failures must remain distinguishable from a valid empty result.
+    # One failed query opens the circuit for the rest of this run.
+    optional_failures = []
+    optional_blocked = False
+    optional_calls = 0
+
+    def optional_iwc(query, **kwargs):
+        nonlocal optional_blocked, optional_calls
+        if optional_blocked:
+            return {"datas": [], "status": "degraded", "availability": "UNAVAILABLE"}
+        if optional_calls >= OPTIONAL_IWENCAI_MAX_CALLS:
+            optional_blocked = True
+            optional_failures.append({"query": query, "error": "optional query budget exhausted"})
+            return {"datas": [], "status": "degraded", "availability": "UNAVAILABLE"}
+        optional_calls += 1
+        try:
+            result = iwc(query, timeout=20, attempts=1, **kwargs)
+            if (
+                not isinstance(result, dict)
+                or "text_response" in result
+                or result.get("success") is False
+                or not isinstance(result.get("datas"), list)
+                or any(not isinstance(row, dict) for row in result["datas"])
+            ):
+                raise ValueError("invalid optional iWenCai payload")
+            return result
+        except (SystemExit, OSError, subprocess.SubprocessError, ValueError) as exc:
+            optional_blocked = True
+            optional_failures.append({"query": query, "error": str(exc)[:300]})
+            print(f"  optional enrichment UNAVAILABLE: {exc}", flush=True)
+            return {"datas": [], "status": "degraded", "availability": "UNAVAILABLE"}
+
     for code in codes:
         matched = batch_cache.get(code.split(".")[0])
         # Batch-style shareholder fields can return an incomplete row set.
         # Retry the industry/quote identity query per symbol before fail-closed validation.
         if matched is None or not (matched.get("所属申万行业") or matched.get("所属同花顺行业")):
-            fallback = iwc(
+            fallback = optional_iwc(
                 f"{code.split('.')[0]} 所属申万行业、所属同花顺行业、股票简称、最新价、最新涨跌幅",
                 limit=10,
             )
@@ -422,16 +481,16 @@ def main() -> int:
                     matched = {"股票代码": code}
         if not has_top10_names(matched):
             fts = ftshare_holders.get(code.split(".")[0])
-            if fts:
+            if fts is not None and has_top10_names(fts):
                 # FTShare 已拿到完整十大流通股东明细，直接填充，省 iWenCai fallback 链
                 if matched is None:
                     matched = fts
                 else:
                     for key, value in fts.items():
-                        if key.startswith("前十大流通股东名称") and value:
+                        if SHAREHOLDER_PERIOD_RE.fullmatch(key) and value:
                             matched[key] = value
             else:
-                holder_detail = iwc(
+                holder_detail = optional_iwc(
                     f"{code.split('.')[0]} 最新完整报告期十大流通股东明细、前十大流通股东名称、公告日期",
                     limit=30,
                 )
@@ -446,7 +505,7 @@ def main() -> int:
                         code, detail_rows, report_period_from_rows([matched] if matched else [])
                     )
                 if detail is None:
-                    period_payload = iwc(
+                    period_payload = optional_iwc(
                         f"{code.split('.')[0]} 前十大流通股东报告期、截止日期",
                         limit=10,
                     )
@@ -456,7 +515,7 @@ def main() -> int:
                 if detail is None:
                     period = report_period_from_rows(detail_rows) or report_period_from_rows([matched] if matched else [])
                     query = f"{code.split('.')[0]} 前十大流通股东名称" + (f"[{period}]" if period else "")
-                    holder_names = iwc(query, limit=20)
+                    holder_names = optional_iwc(query, limit=20)
                     name_rows = holder_names.get("datas") or []
                     names = []
                     for item in name_rows:
@@ -467,32 +526,33 @@ def main() -> int:
                             names.append(name)
                     if names:
                         if not period:
-                            # 股东名称已拿到但报告期缺失：不再中断整条发布，
-                            # 该股 badge 默认 false（evidence fail-closed），继续下一只。
+                            # Undated names remain unknown evidence for this run.
                             print(
                                 f"  {code}: shareholder names without report period; "
-                                f"badge defaults to false",
+                                f"shareholder evidence UNAVAILABLE",
                                 flush=True,
                             )
                             detail = None
                         else:
                             detail = {"股票代码": code, f"前十大流通股东名称(报告期)[{period}]": ", ".join(names)}
                 if detail is None:
-                    # Some stocks have no currently published top-10 holder names.
-                    # Shareholder badges are evidence-based and therefore fail closed;
-                    # industry/concept enrichment remains valid and must continue.
+                    # Missing names carry an explicit availability marker.
                     print(
                         f"  {code}: top10 shareholder names unavailable; "
-                        f"badges default to false (returned={len(detail_rows)})",
+                        f"evidence UNAVAILABLE (returned={len(detail_rows)})",
                         flush=True,
                     )
                 if matched is None:
                     matched = detail
                 elif detail is not None:
                     for key, value in detail.items():
-                        if key.startswith("前十大流通股东名称") and value:
+                        if SHAREHOLDER_PERIOD_RE.fullmatch(key) and value:
                             matched[key] = value
         if matched is not None:
+            matched["_enrichment_availability"] = {
+                "industry": "AVAILABLE" if (matched.get("所属申万行业") or matched.get("所属同花顺行业")) else "UNAVAILABLE",
+                "top10_shareholders": "AVAILABLE" if has_top10_names(matched) else "UNAVAILABLE",
+            }
             rows.append(matched)
     Path("/tmp/low_chip_individual.json").write_text(
         json.dumps(rows, ensure_ascii=False), encoding="utf-8")
@@ -500,10 +560,30 @@ def main() -> int:
 
     # /tmp/low_chip_quality.json — quality shareholders check
     q = "、".join(bare_codes) + QUALITY_QUERY
-    d = iwc(q, limit=max(20, len(bare_codes) * 3))
+    d = optional_iwc(q, limit=max(20, len(bare_codes) * 3))
     Path("/tmp/low_chip_quality.json").write_text(
         json.dumps(d, ensure_ascii=False), encoding="utf-8")
     print(f"  quality rows: {len(d.get('datas') or [])}", flush=True)
+
+    coverage = {
+        field: sum(row["_enrichment_availability"][field] == "AVAILABLE" for row in rows)
+        for field in ("industry", "top10_shareholders")
+    }
+    unavailable = {
+        field: [row["股票代码"] for row in rows if row["_enrichment_availability"][field] == "UNAVAILABLE"]
+        for field in coverage
+    }
+    degraded = bool(optional_failures or any(unavailable.values()))
+    status = {
+        "status": "degraded" if degraded else "ok",
+        "availability": "UNAVAILABLE" if degraded else "AVAILABLE",
+        "total": len(codes), "coverage": coverage, "unavailable": unavailable,
+        "failures": optional_failures,
+        "quality_query": d.get("availability", "AVAILABLE"),
+    }
+    Path("/tmp/low_chip_enrichment_status.json").write_text(
+        json.dumps(status, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps(status, ensure_ascii=False), flush=True)
 
     # 财务指标已改为 Fuyao 接口（attach_low_chip_financials.py 直接查 Fuyao），
     # 此处不再用 iWenCai 查财务（省 1 次配额）。

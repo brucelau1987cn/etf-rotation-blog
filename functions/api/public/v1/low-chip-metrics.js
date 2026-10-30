@@ -251,7 +251,7 @@ export async function onRequest(context) {
       m.theme_concepts ? JSON.stringify(m.theme_concepts) : null,
       m.industry_etfs ? JSON.stringify(m.industry_etfs) : null,
       m.industry_etf_status || null, m.industry_etf_pool_count ?? null,
-      m.quality_shareholder ? 1 : 0,
+      m.quality_shareholder == null ? null : (m.quality_shareholder ? 1 : 0),
       m.shareholder_nature ? JSON.stringify(m.shareholder_nature) : null,
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
       m.hlp_metrics ? JSON.stringify(m.hlp_metrics) : null,

@@ -174,13 +174,15 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             "risk_advisory": risk.get("advisory"),
             "risk_coverage": risk.get("coverage"),
             "risk_freshness": risk.get("freshness"),
-            "quality_shareholder": 1 if enr.get("quality_shareholder") else 0,
+            "quality_shareholder": None if enr.get("quality_shareholder") is None else int(bool(enr["quality_shareholder"])),
             "shareholder_nature": {
                 "report_period": enr.get("shareholder_nature_report_period"),
-                "quality_shareholder": bool(enr.get("quality_shareholder")),
+                "quality_shareholder": enr.get("quality_shareholder"),
                 "quality_shareholder_names": enr.get("quality_shareholder_names") or [],
-                "institutional_shareholder": bool(enr.get("institutional_shareholder")),
+                "institutional_shareholder": enr.get("institutional_shareholder"),
                 "institutional_shareholder_names": enr.get("institutional_shareholder_names") or [],
+                "availability": enr.get("enrichment_availability"),
+                "status": enr.get("enrichment_status"),
             },
         })
     return metrics
