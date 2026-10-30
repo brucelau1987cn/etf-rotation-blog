@@ -65,6 +65,55 @@ def test_backfill_contract_semantics():
     })
 
 
+def assert_financial_period_contract(data):
+    if data['financial_filters']['report_period']:
+        return
+    assert data['financial_filters']['report_period'] is None
+    coverage = data['financial_coverage']
+    codes = data['intersection']
+    assert coverage['covered'] == 0
+    assert coverage['requested'] == coverage['failed'] == len(codes)
+    for code in codes:
+        fin = data['enrichments'][code]['financials']
+        assert fin['status'] == 'UNAVAILABLE' and fin.get('reason')
+        assert fin['report_period'] is None
+        assert all(fin[key] is None for key in ('roe', 'net_margin', 'cash_profit_ratio', 'gross_margin', 'debt_ratio'))
+
+
+def test_financial_period_contract_accepts_explicit_unavailable_only():
+    import copy
+    import pytest
+    sample = {
+        'intersection': ['000001.SZ'],
+        'financial_filters': {'report_period': None},
+        'financial_coverage': {'covered': 0, 'requested': 1, 'failed': 1},
+        'enrichments': {'000001.SZ': {'financials': {
+            'status': 'UNAVAILABLE', 'reason': 'budget_exhausted', 'report_period': None,
+            **{key: None for key in ('roe', 'net_margin', 'cash_profit_ratio', 'gross_margin', 'debt_ratio')},
+        }}},
+    }
+    assert_financial_period_contract(sample)
+    for invalid_period in ('', False, 0):
+        bad = copy.deepcopy(sample)
+        bad['financial_filters']['report_period'] = invalid_period
+        with pytest.raises(AssertionError):
+            assert_financial_period_contract(bad)
+    for mutation in ('missing_coverage', 'bad_count', 'available', 'fake_value', 'missing_reason'):
+        bad = copy.deepcopy(sample)
+        if mutation == 'missing_coverage':
+            bad.pop('financial_coverage')
+        elif mutation == 'bad_count':
+            bad['financial_coverage']['failed'] = 0
+        elif mutation == 'available':
+            bad['enrichments']['000001.SZ']['financials']['status'] = 'AVAILABLE'
+        elif mutation == 'fake_value':
+            bad['enrichments']['000001.SZ']['financials']['roe'] = 0
+        else:
+            bad['enrichments']['000001.SZ']['financials'].pop('reason')
+        with pytest.raises((AssertionError, KeyError)):
+            assert_financial_period_contract(bad)
+
+
 def test_low_chip_page_hides_private_screening_strategy():
     page = PAGE.read_text(encoding="utf-8")
     public_source = page + MODE_NAV.read_text(encoding="utf-8")
@@ -118,7 +167,7 @@ def test_low_chip_page_hides_private_screening_strategy():
     assert len(data["intersection_before_filters"]) >= len(data["intersection"])
     assert all(not code.endswith(".BJ") for code in data["intersection"])
     assert all(data["enrichments"][code]["industry"] != "待补充" for code in data["intersection"])
-    assert data["financial_filters"]["report_period"]
+    assert_financial_period_contract(data)
     assert data["financial_filters"]["roe_min"] == 15
     assert data["financial_filters"]["net_margin_min"] == 15
     assert data["financial_filters"]["cash_profit_ratio_min"] == 20

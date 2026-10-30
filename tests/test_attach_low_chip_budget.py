@@ -52,6 +52,35 @@ def test_budget_saves_complete_payload_and_preserves_existing(tmp_path):
     assert clock.now == 2
 
 
+def test_truncated_response_preserves_partial_success_and_saves(tmp_path):
+    import http.client
+    clock = Clock()
+    codes = ['000001.SZ', '000002.SZ']
+    payload = {'intersection': codes, 'enrichments': {c: {} for c in codes}}
+    response = Mock()
+    response.__enter__ = Mock(return_value=response)
+    response.__exit__ = Mock(return_value=False)
+    response.read.side_effect = [
+        json.dumps({'code': 0, 'data': {'abilities': [{'indicators': [
+            {'index_id': 'index_weighted_avg_roe', 'value': 20}
+        ]}]}}).encode(),
+        http.client.IncompleteRead(b'partial'),
+        http.client.IncompleteRead(b'partial'),
+        http.client.IncompleteRead(b'partial'),
+    ]
+    client = FuyaoClient('offline', opener=Mock(return_value=response),
+                         sleeper=clock.sleep, monotonic=clock)
+    attach.attach_financials(payload, client, '2026-2', monotonic=clock)
+    attach._write_atomic(tmp_path / 'result.json', payload)
+    saved = json.loads((tmp_path / 'result.json').read_text())
+    assert saved['enrichments'][codes[0]]['financials']['roe'] == 20
+    assert saved['enrichments'][codes[1]]['financials']['status'] == 'UNAVAILABLE'
+    assert saved['enrichments'][codes[1]]['financials']['reason'] == 'IncompleteRead'
+    assert saved['financial_coverage']['covered'] == 1
+    assert saved['financial_coverage']['failed'] == 1
+    assert saved['intersection'] == codes
+
+
 def test_atomic_replace_failure_preserves_previous_payload(tmp_path, monkeypatch):
     path = tmp_path / 'result.json'
     path.write_text('{"previous":true}')

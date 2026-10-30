@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import http.client
 import json
 import os
 import sys
@@ -65,7 +66,7 @@ def attach_financials(payload, client, target, *, budget_seconds=180.0, monotoni
                 if any(fin.get(field) is not None for field in FINANCIAL_FIELDS):
                     break
                 fin = {}
-            except (RuntimeError, OSError, ValueError) as exc:
+            except (RuntimeError, OSError, ValueError, http.client.HTTPException) as exc:
                 reason = type(exc).__name__
             report = _prev_report(report)
         if fin:
