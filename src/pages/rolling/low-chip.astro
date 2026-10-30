@@ -135,9 +135,11 @@ const rows = intersectionRows.map((row) => {
     sectorWithTheme: enr.sector_with_theme || (themeText ? `${sector}（${themeText}）` : sector),
     themeConcept: themeText,
     themeConcepts: themes,
-    qualityShareholder: Boolean(enr.quality_shareholder),
+    qualityShareholder: enr.quality_shareholder == null ? null : Boolean(enr.quality_shareholder),
+    enrichmentAvailability: enr.enrichment_availability || {},
+    enrichmentStatus: enr.enrichment_status || null,
     qualityShareholderNames: enr.quality_shareholder_names || [],
-    institutionalShareholder: Boolean(enr.institutional_shareholder),
+    institutionalShareholder: enr.institutional_shareholder == null ? null : Boolean(enr.institutional_shareholder),
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     hlpMetrics: enr.hlp_metrics || null,
     touchstoneMetrics: enr.touchstone_metrics || null,
@@ -287,6 +289,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                     <span class="chip-quality" title={`优质股东：${row.qualityShareholderNames.join('、')}`}>优质股东 ✓</span>
                   ) : row.institutionalShareholder ? (
                     <span class="chip-institutional" title={`机构股东：${row.institutionalShareholderNames.join('、')}`}>机构股东 ●</span>
+                  ) : (row.enrichmentAvailability?.top10_shareholders === 'UNAVAILABLE' || (row.qualityShareholder == null || row.institutionalShareholder == null)) ? (
+                    <span class="chip-institutional" title="十大流通股东数据待补">股东数据待补</span>
                   ) : null}
                 </div>
                 <div class="chip-row-metrics" aria-label="观察日期">
@@ -489,6 +493,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           badge += '<span class="chip-quality" title="优质股东：' + esc((row.qualityShareholderNames || []).join('、')) + '">优质股东 ✓</span>';
         } else if (row.institutionalShareholder) {
           badge += '<span class="chip-institutional" title="机构股东：' + esc((row.institutionalShareholderNames || []).join('、')) + '">机构股东 ●</span>';
+        } else if (row.enrichmentAvailability?.top10_shareholders === 'UNAVAILABLE' || (row.qualityShareholder == null || row.institutionalShareholder == null)) {
+          badge += '<span class="chip-institutional" title="十大流通股东数据待补">股东数据待补</span>';
         }
         var themes = Array.isArray(row.themeConcepts)
           ? row.themeConcepts.filter(Boolean).slice(0, 3)
@@ -835,9 +841,11 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   industryEtfPoolCount: row.industry_etf_pool_count ?? null,
                   yearProfit: row.year_profit ?? null,
                   occurrence: occurrenceLookup[day]?.[code] || null,
-                  qualityShareholder: Boolean(row.shareholder_nature?.quality_shareholder ?? row.quality_shareholder),
+                  qualityShareholder: (Object.hasOwn(row.shareholder_nature || {}, 'quality_shareholder') ? row.shareholder_nature.quality_shareholder : row.quality_shareholder) == null ? null : Boolean(Object.hasOwn(row.shareholder_nature || {}, 'quality_shareholder') ? row.shareholder_nature.quality_shareholder : row.quality_shareholder),
+                  enrichmentAvailability: row.shareholder_nature?.availability || row.enrichment_availability || {},
+                  enrichmentStatus: row.shareholder_nature?.status || row.enrichment_status || null,
                   qualityShareholderNames: row.shareholder_nature?.quality_shareholder_names || [],
-                  institutionalShareholder: Boolean(row.shareholder_nature?.institutional_shareholder),
+                  institutionalShareholder: row.shareholder_nature?.institutional_shareholder == null ? null : Boolean(row.shareholder_nature.institutional_shareholder),
                   institutionalShareholderNames: row.shareholder_nature?.institutional_shareholder_names || [],
                   shareholderMetrics: {
                     shareholder_count: row.shareholder_count,
