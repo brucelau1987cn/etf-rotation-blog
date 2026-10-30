@@ -6,6 +6,9 @@ import argparse
 import datetime as dt
 import json
 import os
+import signal
+import threading
+from contextlib import contextmanager
 import time
 import urllib.error
 import urllib.parse
@@ -52,6 +55,30 @@ def load_api_key(env_file: Path = DEFAULT_ENV_FILE, environ: dict[str, str] | No
     raise RuntimeError("HITHINK_FINANCE_API_KEY is missing")
 
 
+@contextmanager
+def _request_wall_timeout(seconds: float, enabled: bool):
+    """Bound the entire open/read on the Linux CLI main thread (including trickle reads)."""
+    if not enabled:
+        yield
+        return
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError("deadline-enabled Fuyao requests require the main thread")
+    previous = signal.getsignal(signal.SIGALRM)
+
+    def expired(signum, frame):
+        raise TimeoutError("Fuyao request wall-clock timeout")
+
+    signal.signal(signal.SIGALRM, expired)
+    old_timer = signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+        if old_timer[0]:
+            signal.setitimer(signal.ITIMER_REAL, *old_timer)
+
+
 class FuyaoClient:
     def __init__(
         self,
@@ -61,11 +88,17 @@ class FuyaoClient:
         opener: Callable[..., Any] = urllib.request.urlopen,
         sleeper: Callable[[float], None] = time.sleep,
         monotonic: Callable[[], float] = time.monotonic,
+        request_timeout: float = 30.0,
+        deadline: float | None = None,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required")
         if qps <= 0 or qps > 5:
             raise ValueError("qps must be within (0, 5]")
+        if request_timeout <= 0:
+            raise ValueError("request_timeout must be positive")
+        self.request_timeout = request_timeout
+        self.deadline = deadline
         self._api_key = api_key
         self._min_interval = 1.0 / qps
         self._opener = opener
@@ -73,12 +106,23 @@ class FuyaoClient:
         self._monotonic = monotonic
         self._last_request_at: float | None = None
 
+    def _remaining(self) -> float:
+        remaining = float("inf") if self.deadline is None else self.deadline - self._monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Fuyao total budget exhausted")
+        return remaining
+
+    def _bounded_sleep(self, seconds: float) -> None:
+        self._sleep(min(seconds, self._remaining()))
+        self._remaining()
+
     def _pace(self) -> None:
+        self._remaining()
         now = self._monotonic()
         if self._last_request_at is not None:
             remaining = self._min_interval - (now - self._last_request_at)
             if remaining > 0:
-                self._sleep(remaining)
+                self._bounded_sleep(remaining)
                 now = self._monotonic()
         self._last_request_at = now
 
@@ -95,17 +139,19 @@ class FuyaoClient:
                 },
             )
             try:
-                with self._opener(request, timeout=30) as response:
-                    payload = json.loads(response.read())
+                timeout = min(self.request_timeout, self._remaining())
+                with _request_wall_timeout(timeout, self.deadline is not None):
+                    with self._opener(request, timeout=timeout) as response:
+                        payload = json.loads(response.read())
             except urllib.error.HTTPError as exc:
-                body = exc.read().decode("utf-8", "replace")
+                body = str(exc.reason)
                 if exc.code in (429, 500, 502, 503, 504) and attempt < len(BACKOFFS):
-                    self._sleep(BACKOFFS[attempt])
+                    self._bounded_sleep(BACKOFFS[attempt])
                     continue
                 raise RuntimeError(f"Fuyao HTTP {exc.code}: {body[:300]}") from exc
             code = payload.get("code")
             if code in (429, 4001, 5001, 5002, 5003) and attempt < len(BACKOFFS):
-                self._sleep(BACKOFFS[attempt])
+                self._bounded_sleep(BACKOFFS[attempt])
                 continue
             if code != 0:
                 raise RuntimeError(f"Fuyao business error {code}: {payload.get('message')}")

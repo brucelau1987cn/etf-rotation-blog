@@ -47,7 +47,7 @@ def test_main_writes_financials_from_fuyao(tmp_path, monkeypatch):
                 "debt_ratio": 40.0, "cash_profit_ratio": 50.0,
             }
 
-    monkeypatch.setattr(mod, "FuyaoClient", lambda api_key, qps=2.0: FakeClient())
+    monkeypatch.setattr(mod, "FuyaoClient", lambda api_key, qps=2.0, request_timeout=5.0: FakeClient())
     monkeypatch.setattr(mod, "load_api_key", lambda: "fake-key")
     monkeypatch.setattr(mod, "_latest_report", lambda now: "2026-2")
     monkeypatch.setattr(sys, "argv", ["attach_low_chip_financials.py"])
@@ -61,7 +61,7 @@ def test_main_writes_financials_from_fuyao(tmp_path, monkeypatch):
     assert fin["cash_profit_ratio"] == 50.0  # Fuyao 现成，非自算
     assert fin["report_period"] == "20260630"
     assert out["financial_filters"]["report_period"] == "20260630"
-    assert set(fin) == {"report_period", "roe", "net_margin", "gross_margin", "debt_ratio", "cash_profit_ratio"}
+    assert set(fin) == {"status", "report_period", "roe", "net_margin", "gross_margin", "debt_ratio", "cash_profit_ratio"}
 
 
 def test_main_fails_soft_when_no_fuyao_data(tmp_path, monkeypatch):
@@ -77,7 +77,7 @@ def test_main_fails_soft_when_no_fuyao_data(tmp_path, monkeypatch):
         def financials(self, code, report):
             return {}
 
-    monkeypatch.setattr(mod, "FuyaoClient", lambda api_key, qps=2.0: EmptyClient())
+    monkeypatch.setattr(mod, "FuyaoClient", lambda api_key, qps=2.0, request_timeout=5.0: EmptyClient())
     monkeypatch.setattr(mod, "load_api_key", lambda: "fake-key")
     monkeypatch.setattr(mod, "_latest_report", lambda now: "2026-2")
     monkeypatch.setattr(sys, "argv", ["attach_low_chip_financials.py"])
@@ -85,4 +85,5 @@ def test_main_fails_soft_when_no_fuyao_data(tmp_path, monkeypatch):
     mod.main()  # 不崩溃，fail-soft
 
     out = json.loads(data_file.read_text(encoding="utf-8"))
-    assert out["enrichments"]["000001.SZ"]["financials"] == {}
+    assert out["enrichments"]["000001.SZ"]["financials"]["status"] == "UNAVAILABLE"
+    assert out["enrichments"]["000001.SZ"]["financials"]["roe"] is None
