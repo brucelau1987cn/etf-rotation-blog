@@ -2,9 +2,22 @@
 """Enrich the low-chip intersection with board, industry, unlock and shareholder labels."""
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import re
 from pathlib import Path
+
+if __package__:
+    from .query_low_chip_unlocks import blocked, validate_cache
+else:
+    _unlock_path = Path(__file__).resolve().with_name("query_low_chip_unlocks.py")
+    _unlock_spec = importlib.util.spec_from_file_location("_low_chip_unlock_gate", _unlock_path)
+    if _unlock_spec is None or _unlock_spec.loader is None:
+        raise ImportError(f"cannot load unlock gate from {_unlock_path}")
+    _unlock_module = importlib.util.module_from_spec(_unlock_spec)
+    _unlock_spec.loader.exec_module(_unlock_module)
+    blocked, validate_cache = _unlock_module.blocked, _unlock_module.validate_cache
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/a-low-chip-stocks.json"
@@ -15,6 +28,7 @@ PROFILE_FILES = sorted(Path("/tmp").glob("lc_p*.json"))
 INDIVIDUAL = Path("/tmp/low_chip_individual.json")
 QUALITY = Path("/tmp/low_chip_quality.json")
 UNLOCK = Path("/tmp/low_chip_unlock.json")
+ENRICHMENT_STATUS = Path("/tmp/low_chip_enrichment_status.json")
 
 QUALITY_TERMS = (
     "全国社保基金", "社保基金", "基本养老保险基金", "国家集成电路产业投资基金",
@@ -72,7 +86,13 @@ def merge_profile_rows(batch: dict | None, individual: dict | None) -> dict:
     merged = dict(batch or {})
     current = dict(individual or {})
     if current:
+        availability = {
+            **(merged.get("_enrichment_availability") or {}),
+            **(current.get("_enrichment_availability") or {}),
+        }
         merged.update({key: value for key, value in current.items() if value not in (None, "", [])})
+        if availability:
+            merged["_enrichment_availability"] = availability
         current_key, current_value = latest_shareholder_field(current)
         if current_key and current_value:
             for key in list(merged):
@@ -114,16 +134,24 @@ def main() -> None:
 
 
     unlocks: dict[str, dict] = {}
-    if UNLOCK.exists():
-        for row in load(UNLOCK).get("datas", []):
-            code = str(row.get("股票代码") or "")
-            date = str(row.get("变动日期") or "")
-            if code and date:
-                unlocks[code] = {
-                    "date": f"{date[:4]}-{date[4:6]}-{date[6:8]}",
-                    "type": str(row.get("股份来源") or "限售股"),
-                    "ratio": round(float(row.get("占总股本比例") or 0), 2),
-                }
+    cache_path = os.environ.get("LOW_CHIP_UNLOCK_CACHE")
+    run_id = os.environ.get("LOW_CHIP_RUN_ID")
+    if not cache_path or not run_id:
+        blocked("current run id and cache path required at consumer")
+    try:
+        cache = load(Path(cache_path))
+    except (OSError, ValueError) as exc:
+        blocked(f"cache unavailable: {exc}")
+    for row in validate_cache(cache, payload, run_id):
+        code, free_date = row["股票代码"], row["变动日期"]
+        batch = {
+            "date": f"{free_date[:4]}-{free_date[4:6]}-{free_date[6:8]}",
+            "type": row["股份来源"], "ratio": row["占总股本比例"],
+            "float_ratio": row["占流通股比例"],
+        }
+        if code not in unlocks:
+            unlocks[code] = {**batch, "batches": []}
+        unlocks[code]["batches"].append(batch)
 
     rows_by_symbol = {}
     for period_rows in payload.get("periods", {}).values():
@@ -137,14 +165,22 @@ def main() -> None:
         levels = [item for item in industry.split("--") if item]
         sector = levels[-1] if levels else "待补充"
         shareholders = shareholders_from_row(row)
-        quality, institutional = classify_shareholders(shareholders)
+        availability = row.get("_enrichment_availability") or {}
+        availability = {
+            field: "AVAILABLE" if evidence and availability.get(field) != "UNAVAILABLE" else "UNAVAILABLE"
+            for field, evidence in (("industry", industry), ("top10_shareholders", shareholders))
+        }
+        shareholders_available = availability["top10_shareholders"] == "AVAILABLE"
+        quality, institutional = classify_shareholders(shareholders if shareholders_available else [])
         unlock = unlocks.get(code)
         enrichments[code] = {
             "industry": industry or "待补充",
             "sector": sector,
-            "quality_shareholder": bool(quality),
+            "enrichment_availability": availability,
+            "enrichment_status": "degraded" if "UNAVAILABLE" in availability.values() else "ok",
+            "quality_shareholder": bool(quality) if shareholders_available else None,
             "quality_shareholder_names": quality,
-            "institutional_shareholder": bool(institutional),
+            "institutional_shareholder": bool(institutional) if shareholders_available else None,
             "institutional_shareholder_names": institutional,
             "unlock_risk": bool(unlock),
             "unlock": unlock,
@@ -155,6 +191,7 @@ def main() -> None:
     payload["intersection_before_filters"] = original
     payload["intersection"] = [code for code in filtered if code not in unlocks]
     payload["filters"] = {
+        **payload.get("filters", {}),
         "exclude_bj": True,
         "excluded_bj": excluded_bj,
         "listing_min_days": payload.get("filters", {}).get("listing_min_days", 90),
@@ -168,6 +205,24 @@ def main() -> None:
         "institutional_shareholder_definition": "十大流通股东中的公募基金、保险资金、阳光私募、QFII/外资机构、香港中央结算及产业资本；与长期资本型优质股东分级展示",
     }
     payload["enrichments"] = enrichments
+    unavailable = {
+        field: [code for code in filtered if enrichments[code]["enrichment_availability"][field] == "UNAVAILABLE"]
+        for field in ("industry", "top10_shareholders")
+    }
+    source_status = load(ENRICHMENT_STATUS) if ENRICHMENT_STATUS.exists() else {}
+    degraded = (
+        any(unavailable.values())
+        or source_status.get("status") == "degraded"
+        or source_status.get("availability") == "UNAVAILABLE"
+    )
+    payload["enrichment_status"] = {
+        **source_status,
+        "status": "degraded" if degraded else "ok",
+        "availability": "UNAVAILABLE" if degraded else "AVAILABLE",
+        "total": len(filtered),
+        "coverage": {field: len(filtered) - len(codes) for field, codes in unavailable.items()},
+        "unavailable": unavailable,
+    }
     payload["screened_count"] = len(payload["intersection"])
     DATA.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({
@@ -175,7 +230,7 @@ def main() -> None:
         "excluded_bj": excluded_bj,
         "excluded_unlock": payload["filters"]["excluded_unlock_risk"],
         "after": len(payload["intersection"]),
-        "quality_count": sum(enrichments[c]["quality_shareholder"] for c in payload["intersection"]),
+        "quality_count": sum(enrichments[c]["quality_shareholder"] is True for c in payload["intersection"]),
     }, ensure_ascii=False))
 
 
