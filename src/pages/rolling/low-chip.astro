@@ -514,11 +514,12 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var etfHoldings = Array.isArray(row.etfHoldings) ? row.etfHoldings : [];
         var etfTopCategory = row.etfTopCategory || null;
         var profits = row.profits || {};
-        var composite = row.composite != null ? row.composite : compositeOf(row);
-        var reco = composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
-        var recoHtml = '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
+        var unavailable = row.compositeStatus === 'UNAVAILABLE';
+        var composite = unavailable ? null : (row.composite != null ? row.composite : compositeOf(row));
+        var reco = unavailable ? '' : composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
+        var recoHtml = unavailable ? '<span class="chip-reco is-unavailable" title="推荐度：暂不可用">暂不可用</span>' : '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '" data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '" data-composite="' + esc(composite) + '" data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
@@ -809,6 +810,12 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 var code = row.stock_code;
                 var stockName = row.stock_name || '';
                 var themes = row.theme_concepts ? JSON.parse(row.theme_concepts) : [];
+                var profits = { week: row.week_profit, month: row.month_profit, quarter: row.quarter_profit };
+                var hasPeriods = [profits.week, profits.month, profits.quarter].every(function(value) {
+                  if (typeof value !== 'number' && !(typeof value === 'string' && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim()))) return false;
+                  var number = Number(value);
+                  return Number.isFinite(number) && number >= 0 && number <= 100;
+                });
                 data.rows.push({
                   symbol: code,
                   name: stockName || code,
@@ -842,24 +849,17 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                     report_period: row.report_period,
                     price: row.price,
                   },
-                  profits: {
-                    week: row.week_profit ?? null,
-                    month: row.month_profit ?? null,
-                    quarter: row.quarter_profit ?? null,
-                  },
-                  composite: compositeOf({
+                  isHistory: true,
+                  compositeStatus: hasPeriods ? 'AVAILABLE' : 'UNAVAILABLE',
+                  composite: hasPeriods ? compositeOf({
                     financials: row.financials ? JSON.parse(row.financials) : {},
                     shareholderMetrics: {
                       shareholder_change_pct: row.shareholder_change_pct,
                       main_force: row.main_force,
                       chip_focus: row.chip_focus,
                     },
-                    profits: {
-                      week: row.week_profit ?? null,
-                      month: row.month_profit ?? null,
-                      quarter: row.quarter_profit ?? null,
-                    },
-                  })
+                    profits: profits,
+                  }) : null
                 });
               });
             }
