@@ -132,7 +132,7 @@ def fetch_etf_profit_ratios(codes: list[str], trade_date: str) -> dict[str, floa
     return result
 
 
-def attach_industry_etfs(data_path: Path = DATA, pool_path: Path = POOL, trade_date: str | None = None) -> dict[str, int]:
+def attach_industry_etfs(data_path: Path = DATA, pool_path: Path = POOL, trade_date: str | None = None, *, skip_profit_query: bool = False) -> dict[str, int]:
     payload = json.loads(data_path.read_text(encoding="utf-8"))
     pool = json.loads(pool_path.read_text(encoding="utf-8"))
     pool_count = int((pool.get("summary") or {}).get("universe_count") or 0)
@@ -181,7 +181,7 @@ def attach_industry_etfs(data_path: Path = DATA, pool_path: Path = POOL, trade_d
     if trade_date is None:
         trade_date = str(payload.get("data_as_of") or "").replace("-", "")
     profit_map: dict[str, float | None] = {}
-    if trade_date:
+    if trade_date and not skip_profit_query:
         all_etf_codes: list[str] = []
         for code in symbols:
             for etf in enrichments.get(code, {}).get("industry_etfs") or []:
@@ -197,6 +197,18 @@ def attach_industry_etfs(data_path: Path = DATA, pool_path: Path = POOL, trade_d
             c = str(etf.get("code") or "").strip()
             etf["profit_ratio"] = profit_map.get(c) if c in profit_map else None
 
+    if skip_profit_query:
+        day = str(payload.get("data_as_of") or "")[:10]
+        failed = sorted({etf["code"] for code in symbols
+                         for etf in enrichments.get(code, {}).get("industry_etfs") or []})
+        payload["industry_etf_profit_contract"] = {
+            "status": "UNAVAILABLE", "degraded": True, "data_as_of": day,
+            "target_day": day, "requested": 0, "computed": 0,
+            "failed_codes": failed, "reason": "profit query skipped by --skip-profit-query",
+            "coverage": {"requested": 0, "computed": 0, "failed": len(failed)},
+        }
+    else:
+        payload.pop("industry_etf_profit_contract", None)
     tmp = data_path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     tmp.replace(data_path)
@@ -212,8 +224,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DATA)
     parser.add_argument("--pool", type=Path, default=POOL)
+    parser.add_argument("--skip-profit-query", action="store_true")
     args = parser.parse_args()
-    result = attach_industry_etfs(args.input, args.pool)
+    result = attach_industry_etfs(args.input, args.pool, skip_profit_query=args.skip_profit_query)
     print(
         f"Industry ETF mapping: {result['covered']}/{result['stocks']} covered; "
         f"candidate pool={result['pool_count']}"

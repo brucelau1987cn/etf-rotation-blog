@@ -988,6 +988,55 @@ def test_release_blocks_every_preexisting_owned_path(mocked_release, monkeypatch
     assert state['pushed'] is False
 
 
+@pytest.mark.parametrize('boundary', ['success', 'calendar', 'validation', 'candidate'])
+def test_core_only_full_pipeline_keeps_core_and_release_gates(mocked_release, monkeypatch, boundary):
+    module, state = mocked_release
+    monkeypatch.setenv('LOW_CHIP_CORE_ONLY', '1')
+    events = []
+    monkeypatch.setattr(module, 'configure_unlock_run', lambda: events.append('unlock-context'))
+    monkeypatch.setattr(module, 'run_enrichments', lambda: events.append('enrichment'))
+    if boundary == 'calendar':
+        monkeypatch.setattr(module, 'release_calendar_gate', lambda day: {'status': 'blocked'})
+    original_validate = module.validate_payload
+    def validate(payload):
+        events.append('validation')
+        if boundary == 'validation':
+            raise RuntimeError('fixture core validation blocked')
+        return original_validate(payload)
+    monkeypatch.setattr(module, 'validate_payload', validate)
+    original_run = module.run
+    def runner(args, timeout=900, env=None, **kwargs):
+        result = original_run(args, timeout, env, **kwargs)
+        if boundary == 'candidate' and args[:2] == ['git', 'diff-tree']:
+            return subprocess.CompletedProcess(args, 0, result.stdout + 'foreign.py\0', '')
+        return result
+    monkeypatch.setattr(module, 'run', runner)
+    result = module.run_pipeline()
+    assert result == (0 if boundary == 'success' else 1)
+    assert state['pushed'] is (boundary == 'success')
+    assert state.get('d1_started', False) is (boundary == 'success')
+    if boundary == 'calendar':
+        assert state['generated'] is False and events == []
+        return
+    assert state['generated'] is True
+    assert events == ['unlock-context', 'enrichment', 'validation']
+    commands = state['calls']
+    names = [str(arg) for command in commands for arg in command]
+    for script in ['sync_low_chip_raw_pool.py', 'query_low_chip_unlocks.py',
+                   'enrich_low_chip_stocks.py', 'query_low_chip_holder_em.py',
+                   'query_low_chip_main_force.py', 'attach_low_chip_shareholder_metrics.py',
+                   'attach_low_chip_financials.py', 'refresh_low_chip_ftshare_industry.py',
+                   'archive_low_chip_snapshot.py']:
+        assert 'scripts/' + script in names
+    for script in ['attach_low_chip_hlp.py', 'attach_low_chip_touchstone.py',
+                   'attach_low_chip_technical.py', 'audit_low_chip_fuyao.py']:
+        assert 'scripts/' + script not in names
+    if boundary != 'validation':
+        assert ['npm', 'run', 'build'] in commands
+        assert any(c[:2] == ['git', 'commit'] for c in commands)
+    assert state['foreign'] <= module.dirty()
+
+
 def test_release_foreign_dirty_survives_all_publish_gates(mocked_release):
     module, state = mocked_release
     assert module.run_pipeline() == 0
