@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -18,9 +19,11 @@ from jsonschema.exceptions import SchemaError
 try:
     from generate_data_catalog import DATASETS, active_dataset_specs, entry_for, stable_batch_id
     from generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
+    from public_contract_gate import ALLOW_FOREIGN_ENV, OWNED_DATASETS_ENV, split_errors
 except ModuleNotFoundError:
     from scripts.generate_data_catalog import DATASETS, active_dataset_specs, entry_for, stable_batch_id
     from scripts.generate_public_dashboard_payloads import A_FIELDS, build_payload as build_dashboard_payload, dashboard_batch_id
+    from scripts.public_contract_gate import ALLOW_FOREIGN_ENV, OWNED_DATASETS_ENV, split_errors
 
 if __package__:
     from .us_compass_research_metrics import (
@@ -750,8 +753,25 @@ def main() -> int:
     parser.add_argument("--schema-dir", type=Path, default=SCHEMAS)
     args = parser.parse_args()
     result = validate(args.data_dir, args.schema_dir)
-    print(json.dumps(result._asdict(), ensure_ascii=False, indent=2))
-    return 0 if result.status == "ok" else 2
+    errors = list(result.errors)
+    tolerated: list[str] = []
+    # A publisher that owns one market builds the shared site through this
+    # chain. Foreign drift (another market's stalled stage) is not its to fix
+    # and cannot leak into its commit, so it may opt in to tolerating exactly
+    # the messages in public_contract_gate. Its OWN catalog entries stay fatal.
+    if errors and os.environ.get(ALLOW_FOREIGN_ENV) == "1":
+        owned = frozenset(
+            name.strip()
+            for name in os.environ.get(OWNED_DATASETS_ENV, "").split(",")
+            if name.strip()
+        )
+        own, tolerated = split_errors(errors, owned)
+        errors = own
+    payload = {"status": "ok" if not errors else "error", "errors": errors}
+    if tolerated:
+        payload["tolerated_foreign_errors"] = tolerated
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if not errors else 2
 
 
 if __name__ == "__main__":

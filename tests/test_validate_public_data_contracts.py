@@ -185,3 +185,53 @@ def test_stale_dashboard_is_rejected_even_when_internally_consistent(tmp_path):
     write_json(data / "catalog.json", catalog_module.build_catalog(data, generated_at="2026-07-20T22:01:00Z"))
     result = module.validate(data, schemas)
     assert any("differs from etf-garden-pool export" in error for error in result.errors)
+
+
+FOREIGN_ONLY = module.ValidationResult("error", [
+    "A-share plant candidates differ from deterministic current-pool rebuild",
+    "a-compass-dashboard differs from etf-garden-pool export",
+])
+
+
+def _run_main(monkeypatch, capsys, result, argv=("--data-dir", "/tmp/ignored")):
+    monkeypatch.setattr(module, "validate", lambda data_dir, schema_dir: result)
+    monkeypatch.setattr(sys, "argv", ["validate_public_data_contracts.py", *argv])
+    code = module.main()
+    return code, json.loads(capsys.readouterr().out)
+
+
+def test_main_stays_fail_closed_without_the_opt_in_switch(monkeypatch, capsys):
+    monkeypatch.delenv(module.ALLOW_FOREIGN_ENV, raising=False)
+
+    code, payload = _run_main(monkeypatch, capsys, FOREIGN_ONLY)
+
+    assert code == 2
+    assert payload["status"] == "error"
+    assert "tolerated_foreign_errors" not in payload
+
+
+def test_main_tolerates_foreign_drift_when_a_single_market_publisher_asks(monkeypatch, capsys):
+    """2026-10-31: the US weekly report must not die on an A-share stall."""
+    monkeypatch.setenv(module.ALLOW_FOREIGN_ENV, "1")
+    monkeypatch.delenv(module.OWNED_DATASETS_ENV, raising=False)
+
+    code, payload = _run_main(monkeypatch, capsys, FOREIGN_ONLY)
+
+    assert code == 0
+    assert payload["status"] == "ok"
+    assert payload["errors"] == []
+    assert payload["tolerated_foreign_errors"] == FOREIGN_ONLY.errors
+
+
+def test_main_keeps_own_errors_fatal_even_with_the_switch_on(monkeypatch, capsys):
+    monkeypatch.setenv(module.ALLOW_FOREIGN_ENV, "1")
+    monkeypatch.setenv(module.OWNED_DATASETS_ENV, "us-compass-research")
+    mixed = module.ValidationResult("error", [
+        "A-share plant candidates differ from deterministic current-pool rebuild",
+        "catalog us-compass-research sha256 mismatch",
+    ])
+
+    code, payload = _run_main(monkeypatch, capsys, mixed)
+
+    assert code == 2
+    assert payload["errors"] == ["catalog us-compass-research sha256 mismatch"]

@@ -28,6 +28,7 @@ IWENCAI_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 PROJECT = "etf-rotation-blog"
 sys.path.insert(0, str(ROOT))
 from scripts.a_share_nightly_contract import site_publish_lock
+from scripts.public_contract_gate import ALLOW_FOREIGN_ENV, OWNED_DATASETS_ENV
 if __package__:
     from .us_compass_fingerprint import consistent_model_fingerprint as _strict_consistent_fingerprint
     from .validate_public_data_contracts import validate_us_compass_health_payload
@@ -582,6 +583,14 @@ def publish_unlocked() -> str:
     except ModuleNotFoundError:
         from scripts.a_share_nightly_contract import site_publish_lock
         from scripts.pages_release import release_pages
+    # This job owns US research data only. The shared validator also reports
+    # other markets' drift, and on 2026-10-31 a stalled A-share stage blocked
+    # this weekly report for a defect it can neither fix nor commit. Opt in to
+    # tolerating exactly the foreign messages (see public_contract_gate) while
+    # keeping this job's own datasets fatal. The switch is exported, not passed,
+    # because `npm run build` runs the validator in a child process.
+    os.environ[ALLOW_FOREIGN_ENV] = "1"
+    os.environ[OWNED_DATASETS_ENV] = ",".join(("us-compass-research", "us-compass-health"))
     # sys.executable, not bare `python3`: under cron a bare python3 resolves to
     # the Hermes tool interpreter, which lacks the project dependencies
     # (jsonschema) that the contract validator imports.

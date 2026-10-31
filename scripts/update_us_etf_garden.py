@@ -21,6 +21,10 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 from pages_release import release_pages
 try:
+    from public_contract_gate import split_errors
+except ModuleNotFoundError:
+    from scripts.public_contract_gate import split_errors
+try:
     from a_share_nightly_contract import site_publish_lock
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import site_publish_lock
@@ -126,26 +130,30 @@ def validate_us_release_data() -> None:
 
 
 def validate_us_public_contracts() -> None:
-    """Run the broad validator while allowing only known foreign drift."""
+    """Run the broad validator while allowing only known foreign drift.
+
+    The allowlist itself lives in scripts/public_contract_gate.py: two copies of
+    it drift apart, and a drifted copy fails on the file the other one already
+    whitelisted.
+    """
     result = run("python3", "scripts/validate_public_data_contracts.py", check=False)
     if result.returncode == 0:
         return
-    allowed = {
-        "a-compass-dashboard differs from etf-garden-pool export",
-    }
     try:
         payload = json.loads(result.stdout)
         errors = payload.get("errors") or []
     except json.JSONDecodeError as error:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip()) from error
-    unexpected = [
-        error for error in errors
-        if error not in allowed and not error.startswith((
-            "A-share ", "a-share-", "A research audit ", "A action price ", "catalog ",
-        ))
-    ]
-    if unexpected:
-        raise RuntimeError("US public contract validation failed: " + "; ".join(unexpected))
+    own, _foreign = split_errors(errors)
+    # No owned datasets here: this publisher does not regenerate the catalog, so
+    # a `catalog <key>` mismatch (its own entries included) is settled by
+    # whichever publisher regenerates the catalog next. Everything that is not
+    # recognised foreign drift stays fatal.
+    if own or not errors:
+        raise RuntimeError(
+            "US public contract validation failed: "
+            + "; ".join(own or [result.stderr.strip() or result.stdout.strip() or "no error payload"])
+        )
 
 
 def restore_foreign_public_data_in_dist() -> None:
