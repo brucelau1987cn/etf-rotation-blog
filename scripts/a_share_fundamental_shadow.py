@@ -8,6 +8,7 @@ import math
 import multiprocessing as mp
 import os
 import tempfile
+import time
 import urllib.request
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
@@ -176,6 +177,10 @@ DEFAULT_ENDPOINT = "https://etf.peekabo.cc/api/public/v1/low-chip-metrics"
 # Mirrors MAX_METRICS in functions/api/public/v1/low-chip-metrics.js: a D1 batch
 # holds at most 100 statements, and a replace batch reserves one for DELETE.
 D1_MAX_METRICS = 198
+# A transport-level BaoStock failure can survive one fresh session; give the
+# still-failing subset one more serial round before the fail-closed gate.
+FINAL_RETRY_ROUNDS = 1
+FINAL_RETRY_DELAY_S = 20.0
 BAOSTOCK_FIELDS = "date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM"
 
 
@@ -397,7 +402,23 @@ def retry_incomplete_or_stale_results(
     by_code = {item["code"]: item for item in universe}
     retry_items = [by_code[code] for code in sorted(retry_codes) if code in by_code]
     repaired = {row[0]: row for row in _fetch_partition(retry_items, 0)}
-    return [repaired.get(result[0], result) for result in results]
+    merged = [repaired.get(result[0], result) for result in results]
+    # A BaoStock transport error ("接收数据异常" / socket 10001) can outlive one
+    # fresh session: on 2026-10-30 two codes failed in both the batch and the
+    # retry round, coverage landed at 673/675, and the fail-closed gate threw
+    # away the entire night's chain. A second round after a pause costs seconds
+    # for a handful of symbols.
+    for _ in range(FINAL_RETRY_ROUNDS):
+        still_failed = [
+            item for item in retry_items
+            if next(row for row in merged if row[0] == item["code"])[1] != "succeeded"
+        ]
+        if not still_failed:
+            break
+        time.sleep(FINAL_RETRY_DELAY_S)
+        again = {row[0]: row for row in _fetch_partition(still_failed, 0)}
+        merged = [again.get(row[0], row) for row in merged]
+    return merged
 
 
 def atomic_write(path: Path, payload: dict[str, Any]) -> None:
