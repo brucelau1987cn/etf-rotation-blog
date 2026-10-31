@@ -181,6 +181,18 @@ D1_MAX_METRICS = 198
 # still-failing subset one more serial round before the fail-closed gate.
 FINAL_RETRY_ROUNDS = 1
 FINAL_RETRY_DELAY_S = 20.0
+# Only transport/connection verdicts are worth a second round. A data-level
+# verdict (missing bars, no share observation) will not change on a retry.
+TRANSIENT_ERROR_MARKERS = (
+    "接收数据异常", "网络", "timeout", "timed out", "pipe", "socket",
+    "10001", "ssl", "eof", "connection", "reset", "login",
+)
+
+
+def _is_transient_failure(error: str | None) -> bool:
+    lowered = str(error or "").lower()
+    return any(marker.lower() in lowered for marker in TRANSIENT_ERROR_MARKERS)
+
 BAOSTOCK_FIELDS = "date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM"
 
 
@@ -406,13 +418,16 @@ def retry_incomplete_or_stale_results(
     # A BaoStock transport error ("接收数据异常" / socket 10001) can outlive one
     # fresh session: on 2026-10-30 two codes failed in both the batch and the
     # retry round, coverage landed at 673/675, and the fail-closed gate threw
-    # away the entire night's chain. A second round after a pause costs seconds
-    # for a handful of symbols.
+    # away the entire night's chain. Retry the still-failing *transport* subset
+    # once more after a pause. Data-level verdicts ("fewer than two valuation
+    # bars", "no reliable share observation") are final — retrying them only
+    # burns time and would mask a genuinely missing series.
     for _ in range(FINAL_RETRY_ROUNDS):
-        still_failed = [
-            item for item in retry_items
-            if next(row for row in merged if row[0] == item["code"])[1] != "succeeded"
-        ]
+        still_failed = []
+        for item in retry_items:
+            row = next(row for row in merged if row[0] == item["code"])
+            if row[1] != "succeeded" and _is_transient_failure(row[3]):
+                still_failed.append(item)
         if not still_failed:
             break
         time.sleep(FINAL_RETRY_DELAY_S)

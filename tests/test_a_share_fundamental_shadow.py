@@ -399,3 +399,68 @@ def test_post_metrics_still_fails_closed_on_a_short_write(monkeypatch):
     monkeypatch.setattr(mod.urllib.request, "urlopen", lambda request, timeout=120: _Resp())
     with pytest.raises(RuntimeError, match="D1 metric write incomplete"):
         mod.post_metrics("https://example.test/api", "tok", [{"stock_code": "000001"}] * 5)
+
+
+def _retry_item(code: str, latest: str = "2026-08-17") -> dict:
+    return {
+        "stock_code": code,
+        "valuation_rows": [
+            ["2026-08-14", f"sh.{code}", "10", "", "", "", ""],
+            [latest, f"sh.{code}", "11", "", "", "", ""],
+        ],
+        "share_rows": [],
+    }
+
+
+def test_transport_failure_gets_one_more_round_after_the_first_retry(monkeypatch):
+    """2026-10-30: two codes failed in the batch AND in the retry round.
+
+    BaoStock's "接收数据异常" is a transport verdict, so the still-failing subset
+    earns one more serial round instead of throwing the night away at 673/675.
+    """
+    import scripts.a_share_fundamental_shadow as shadow
+
+    universe = [{"code": "A", "name": "A", "market": "SH"}]
+    calls: list[list[str]] = []
+
+    def fetch(rows, sessions):
+        codes = [row["code"] for row in rows]
+        calls.append(codes)
+        if len(calls) == 1:
+            return [("A", "failed", None, "接收数据异常")]
+        return [("A", "succeeded", _retry_item("A"), None)]
+
+    monkeypatch.setattr(shadow, "_fetch_partition", fetch)
+    monkeypatch.setattr(shadow.time, "sleep", lambda seconds: None)
+
+    repaired = shadow.retry_incomplete_or_stale_results(
+        universe, [("A", "failed", None, "接收数据异常")],
+    )
+
+    assert calls == [["A"], ["A"]]
+    assert repaired == [("A", "succeeded", _retry_item("A"), None)]
+
+
+def test_data_level_failure_is_not_retried_again(monkeypatch):
+    """A missing series will not appear on a retry, and the gate stays closed."""
+    import scripts.a_share_fundamental_shadow as shadow
+
+    universe = [{"code": "A", "name": "A", "market": "SH"}]
+    calls: list[list[str]] = []
+
+    def fetch(rows, sessions):
+        calls.append([row["code"] for row in rows])
+        return [("A", "failed", None, "no reliable share observation")]
+
+    monkeypatch.setattr(shadow, "_fetch_partition", fetch)
+    monkeypatch.setattr(
+        shadow.time, "sleep",
+        lambda seconds: pytest.fail("data-level failures must not sleep/retry"),
+    )
+
+    repaired = shadow.retry_incomplete_or_stale_results(
+        universe, [("A", "failed", None, "no reliable share observation")],
+    )
+
+    assert calls == [["A"]]
+    assert repaired == [("A", "failed", None, "no reliable share observation")]
