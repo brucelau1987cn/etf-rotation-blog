@@ -329,8 +329,20 @@ def test_public_snapshot_validation_blocks_old_or_incomplete_payloads(monkeypatc
 
 
 def test_build_runs_futures_snapshot_freshness_gate():
+    """`npm run build` must still run the futures freshness validator.
+
+    The long shell chain moved into `scripts/build_site.py`, so the assertion
+    follows the contract: the package build delegates to the single entry point
+    and that entry point's chain still contains the futures gate.
+    """
     package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-    assert "scripts/validate_futures_compass.py" in package["scripts"]["build"]
+    assert "scripts/build_site.py" in package["scripts"]["build"]
+
+    spec = importlib.util.spec_from_file_location("project_runtime_gate", SCRIPTS / "project_runtime.py")
+    assert spec and spec.loader
+    runtime = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runtime)
+    assert "validate_futures_compass.py" in runtime.CONTRACT_CHAIN_SCRIPTS
 
 
 def test_publisher_tracks_briefing_and_deploys_both_json_files():

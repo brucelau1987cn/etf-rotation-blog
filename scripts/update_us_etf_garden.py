@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 from pages_release import release_pages
+from project_runtime import build_static_site
 try:
     from public_contract_gate import split_errors
 except ModuleNotFoundError:
@@ -180,10 +181,9 @@ def build_us_release() -> None:
     """Build a validated US release while A-share batches converge independently."""
     validate_us_release_data()
     validate_us_public_contracts()
-    run("python3", "scripts/bootstrap_build_python.py")
-    shutil.rmtree(REPO / "dist", ignore_errors=True)
-    run("npx", "astro", "build")
-    run("node", "scripts/inject_public_js_version.mjs", "dist")
+    # project_runtime owns the interpreters and strips the gateway PYTHONPATH
+    # (`rpds.rpds`); the US publisher builds only its own payload scope.
+    build_static_site(contract_chain=False, clean_dist=True)
     restore_foreign_public_data_in_dist()
 
 

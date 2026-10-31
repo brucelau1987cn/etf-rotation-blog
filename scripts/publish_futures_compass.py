@@ -11,10 +11,12 @@ from pathlib import Path
 try:
     from a_share_nightly_contract import site_publish_lock
     from pages_release import release_pages
+    from project_runtime import build_static_site
     from shadow_dirty_files import SHADOW_DIRTY_FILES
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import site_publish_lock
     from scripts.pages_release import release_pages
+    from scripts.project_runtime import build_static_site
     from scripts.shadow_dirty_files import SHADOW_DIRTY_FILES
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -148,9 +150,9 @@ def publish(slot: str) -> dict[str, str]:
             # and US shadow writers may legitimately be converging here; this
             # publisher owns only the futures payload and must build the
             # already-validated snapshot without consuming foreign freshness.
-            run(["python3", "scripts/bootstrap_build_python.py"])
-            run(["npx", "astro", "build"])
-            run(["node", "scripts/inject_public_js_version.mjs", "dist"])
+            # project_runtime pins both interpreters and strips the gateway's
+            # PYTHONPATH (the `rpds.rpds` break) for every build caller.
+            build_static_site(contract_chain=False)
             run(["git", "commit", "--only", "-m", f"data: refresh futures compass {slot}", "--", *PUBLISH_FILES])
         except Exception:
             run(["git", "reset", "--quiet", "--", *PUBLISH_FILES], check=False)

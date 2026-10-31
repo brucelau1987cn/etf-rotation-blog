@@ -82,19 +82,22 @@ def test_close_publisher_regenerates_health_after_learning():
 
 def test_us_release_build_is_independent_from_a_share_batch_gate(monkeypatch):
     calls = []
+    builds = []
     monkeypatch.setattr(module, "run", lambda *args, **kwargs: calls.append(args))
     monkeypatch.setattr(module, "validate_us_release_data", lambda: None)
     monkeypatch.setattr(module, "validate_us_public_contracts", lambda: None)
     monkeypatch.setattr(module, "restore_foreign_public_data_in_dist", lambda: None)
+    monkeypatch.setattr(
+        module, "build_static_site",
+        lambda **kwargs: builds.append(kwargs),
+    )
 
     module.build_us_release()
 
-    assert calls == [
-        ("python3", "scripts/bootstrap_build_python.py"),
-        ("npx", "astro", "build"),
-        ("node", "scripts/inject_public_js_version.mjs", "dist"),
-    ]
-    assert ("npm", "run", "build") not in calls
+    # The build is delegated to the shared project runtime, which pins the
+    # interpreters and strips PYTHONPATH; no bare `python3`/`npx` calls remain.
+    assert builds == [{"contract_chain": False, "clean_dist": True}]
+    assert [c for c in calls if c and c[0] in {"python3", "npx", "npm"}] == []
 
 
 def test_us_close_commit_precedes_release_build():

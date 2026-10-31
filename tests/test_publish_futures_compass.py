@@ -32,6 +32,7 @@ def result(stdout="", returncode=0):
 @requires_local_hermes
 def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkeypatch):
     calls = []
+    builds = []
 
     def fake_run(command, check=True, **kwargs):
         calls.append(command)
@@ -46,6 +47,10 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
         return result()
 
     monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(
+        publisher, "build_static_site",
+        lambda **kwargs: builds.append(kwargs),
+    )
     monkeypatch.setattr(publisher, "restore_tracked_dist", lambda: None)
     probes = []
     monkeypatch.setattr(publisher, "release_pages", lambda urls, json_matches=None: probes.extend(urls))
@@ -53,9 +58,10 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
 
     assert [publisher.FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", "day-close"] in calls
     assert [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"] in calls
-    assert ["python3", "scripts/bootstrap_build_python.py"] in calls
-    assert ["npx", "astro", "build"] in calls
-    assert ["node", "scripts/inject_public_js_version.mjs", "dist"] in calls
+    # The build goes through the shared project runtime (project interpreters,
+    # PYTHONPATH stripped) and never through an unqualified `python3`.
+    assert builds == [{"contract_chain": False}]
+    assert not [c for c in calls if c and c[0] == "python3"]
     assert ["git", "commit", "--only", "-m", "data: refresh futures compass day-close", "--", *publisher.PUBLISH_FILES] in calls
     assert probes == [
         "https://etf.peekabo.cc/futures-compass/",
@@ -102,11 +108,13 @@ def test_futures_publisher_rolls_back_snapshot_when_build_fails(monkeypatch):
         calls.append(command)
         if command[:4] == ["git", "diff", "--quiet", "--"]:
             return result(returncode=1)
-        if command == ["npx", "astro", "build"]:
-            raise subprocess.CalledProcessError(1, command)
         return result()
 
+    def failing_build(**kwargs):
+        raise subprocess.CalledProcessError(1, ["npx", "astro", "build"])
+
     monkeypatch.setattr(publisher, "run", fake_run)
+    monkeypatch.setattr(publisher, "build_static_site", failing_build)
     try:
         publisher.publish("night")
     except subprocess.CalledProcessError:
