@@ -102,48 +102,85 @@ def _python_version(executable: str) -> tuple[int, ...] | None:
         return None
 
 
+def _python_can_build_venv(executable: str) -> bool:
+    """True when the interpreter can create a venv with pip (ensurepip present).
+
+    Debian/Ubuntu system pythons ship without `python3-venv`, so `venv` exists
+    but `ensurepip` does not; `.build-venv` creation then fails. The Cloudflare
+    Pages build image's PATH python3 does have it while /usr/bin/python3 does
+    not — preferring /usr/bin/python3 blindly broke every Pages deploy
+    (2026-10-31: "The virtual environment was not created successfully because
+    ensurepip is not available").
+    """
+    try:
+        result = subprocess.run(
+            [executable, "-c", "import ensurepip, venv"],
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0
+
+
 def bootstrap_python() -> str:
     """Interpreter allowed to create/drive `.build-venv`.
 
-    Prefers `/usr/bin/python3`, then any `python3` on PATH, and rejects any
-    interpreter newer than `MAX_BOOTSTRAP_PYTHON` so the build venv cannot be
-    silently re-created on the gateway's 3.14 ABI.
-
-    When no supported interpreter exists (a CI image older/newer than the pin),
-    fall back to the newest available one with a warning rather than failing the
-    build: once `.build-venv` exists, `bootstrap_build_python.py` drives the
-    venv's own interpreter and only `pip install`s into it, so an outer newer
-    python cannot change the venv's ABI.
+    Selection order:
+    1. `HERMES_BUILD_PYTHON` override.
+    2. The environment's own `python3` (what a CI image provides) and the
+       project pin, deduplicated in that order.
+    3. Among those that can actually build a venv, prefer one <=
+       `MAX_BOOTSTRAP_PYTHON` so the gateway's 3.14 venv never owns the build
+       venv; a capable newer interpreter is still accepted with a warning.
+    4. Capability beats version: an interpreter that cannot create a venv is
+       only chosen when nothing else exists (an existing `.build-venv` is then
+       driven, which needs no venv creation).
     """
     global _BOOTSTRAP_PYTHON
     if _BOOTSTRAP_PYTHON:
         return _BOOTSTRAP_PYTHON
+    candidates: list[str] = []
     override = os.environ.get("HERMES_BUILD_PYTHON")
-    candidates = [override] if override else []
-    candidates.append(PROJECT_PYTHON)
+    if override:
+        candidates.append(override)
     for name in ("python3", "python3.12", "python3.11"):
         found = shutil.which(name)
         if found:
             candidates.append(found)
-    fallback: str | None = None
+    candidates.append(PROJECT_PYTHON)
+
+    probed: list[tuple[str, tuple[int, ...], bool]] = []
     for candidate in dict.fromkeys(c for c in candidates if c):
         if not Path(candidate).exists():
             continue
         version = _python_version(candidate)
         if version is None:
             continue
-        if version <= MAX_BOOTSTRAP_PYTHON:
-            _BOOTSTRAP_PYTHON = candidate
-            return candidate
-        fallback = fallback or candidate
-    if fallback:
-        print(
-            f"warning: no python3 <= {'.'.join(map(str, MAX_BOOTSTRAP_PYTHON))}; "
-            f"driving the existing build venv with {fallback} ({_python_version(fallback)})",
-            file=sys.stderr,
-        )
-        _BOOTSTRAP_PYTHON = fallback
-        return fallback
+        probed.append((candidate, version, _python_can_build_venv(candidate)))
+
+    for wanted_capability in (True, False):
+        pool = [c for c in probed if c[2] is wanted_capability]
+        if not pool:
+            continue
+        supported = [c for c in pool if c[1] <= MAX_BOOTSTRAP_PYTHON]
+        chosen = (supported or pool)[0]
+        if chosen[1] > MAX_BOOTSTRAP_PYTHON:
+            print(
+                f"warning: no python3 <= {'.'.join(map(str, MAX_BOOTSTRAP_PYTHON))} "
+                f"that can build a venv; using {chosen[0]} ({chosen[1]})",
+                file=sys.stderr,
+            )
+        if not chosen[2]:
+            print(
+                f"warning: {chosen[0]} cannot create a venv (ensurepip missing); "
+                "it can only drive an existing .build-venv",
+                file=sys.stderr,
+            )
+        _BOOTSTRAP_PYTHON = chosen[0]
+        return chosen[0]
     raise RuntimeError(
         "no usable python3 found for the build venv (set HERMES_BUILD_PYTHON)"
     )

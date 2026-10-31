@@ -36,7 +36,7 @@ def test_build_python_is_relative_to_project_root():
     assert project_runtime.BUILD_PYTHON == ".build-venv/bin/python"
 
 
-def test_bootstrap_python_rejects_newer_interpreters(monkeypatch, tmp_path):
+def test_bootstrap_python_accepts_newer_capable_interpreter(monkeypatch, tmp_path):
     """A newer-only image must not hard-fail: it drives the existing venv."""
     fake_python = tmp_path / "python3.14"
     fake_python.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -44,12 +44,34 @@ def test_bootstrap_python_rejects_newer_interpreters(monkeypatch, tmp_path):
     monkeypatch.setattr(project_runtime, "PROJECT_PYTHON", str(fake_python))
     monkeypatch.delenv("HERMES_BUILD_PYTHON", raising=False)
 
-    def fake_version(executable):
-        return (3, 14) if executable == str(fake_python) else None
-
-    monkeypatch.setattr(project_runtime, "_python_version", fake_version)
+    monkeypatch.setattr(project_runtime, "_python_version", lambda exe: (3, 14))
+    monkeypatch.setattr(project_runtime, "_python_can_build_venv", lambda exe: True)
     monkeypatch.setattr(project_runtime.shutil, "which", lambda name: None)
     assert project_runtime.bootstrap_python() == str(fake_python)
+
+
+def test_capability_beats_the_version_pin(monkeypatch, tmp_path):
+    """An older PATH python that can build a venv wins over a pinned one that cannot.
+
+    Reproduces the 2026-10-31 Cloudflare Pages breakage: /usr/bin/python3 was
+    preferred but has no ensurepip, so every deploy failed while the image's own
+    python3 could have built the venv.
+    """
+    pinned = tmp_path / "usr_bin_python3"
+    env_python = tmp_path / "env_python3"
+    for exe in (pinned, env_python):
+        exe.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.setattr(project_runtime, "_BOOTSTRAP_PYTHON", None)
+    monkeypatch.setattr(project_runtime, "PROJECT_PYTHON", str(pinned))
+    monkeypatch.delenv("HERMES_BUILD_PYTHON", raising=False)
+    monkeypatch.setattr(project_runtime, "_python_version", lambda exe: (3, 11))
+    monkeypatch.setattr(
+        project_runtime, "_python_can_build_venv", lambda exe: exe == str(env_python)
+    )
+    monkeypatch.setattr(
+        project_runtime.shutil, "which", lambda name: str(env_python) if name == "python3" else None
+    )
+    assert project_runtime.bootstrap_python() == str(env_python)
 
 
 def test_bootstrap_python_fails_when_no_interpreter_exists(monkeypatch, tmp_path):
