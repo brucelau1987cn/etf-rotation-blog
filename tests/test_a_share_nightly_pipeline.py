@@ -476,7 +476,7 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
 
     python_commands = [command for command, _ in commands if command and command[0] == publish.PROJECT_PYTHON]
     assert python_commands == [
-        [publish.PROJECT_PYTHON, "-m", "pytest", "-q", "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot"],
+        [publish.PROJECT_PYTHON, "-m", "pytest", "-q", "-m", "not network", "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot"],
         [publish.PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"],
     ]
     for _, kwargs in commands:
@@ -907,3 +907,28 @@ def test_candidate_commit_excludes_foreign_worktree_changes(tmp_path, monkeypatc
     ).stdout
     assert candidate_owned == "new-owned\n"
     assert candidate_foreign == "old-foreign\n"
+
+
+def test_candidate_gate_excludes_live_network_probes():
+    """The publication gate must never depend on a live upstream being healthy.
+
+    2026-10-19: test_live_probe_news_returns_owned_rows() failed against a live
+    Eastmoney endpoint inside the 22:30 candidate suite, and the entire night's
+    A-share publication was skipped. Transient upstream trouble is not a reason
+    to withhold already-computed data.
+    """
+    source = Path(publish.__file__).read_text(encoding="utf-8")
+    gate = source[source.index("pytest_command = ["):source.index("--deselect=")]
+    assert '"-m", "not network"' in gate
+
+
+def test_network_marker_is_declared_and_actually_used():
+    """If the marker stops being registered, `-m 'not network'` silently no-ops."""
+    root = Path(publish.__file__).resolve().parents[1]
+    ini = (root / "pytest.ini").read_text(encoding="utf-8")
+    assert "network:" in ini
+    marked = [
+        path for path in (root / "tests").glob("test_*.py")
+        if "pytest.mark.network" in path.read_text(encoding="utf-8")
+    ]
+    assert marked, "no test carries @pytest.mark.network, so the gate exclusion is dead weight"

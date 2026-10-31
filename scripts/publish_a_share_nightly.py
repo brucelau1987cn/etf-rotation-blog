@@ -282,6 +282,13 @@ def validate_candidate_commit(commit: str) -> None:
         run(["npm", "ci"], cwd=candidate_dir, env=env, timeout=600)
         pytest_command = [
             PROJECT_PYTHON, "-m", "pytest", "-q",
+            # Live-network probes must never gate a publication. On 2026-10-19
+            # test_live_probe_news_returns_owned_rows() hit Eastmoney at 22:30,
+            # got a short/空 response and failed the candidate suite — the whole
+            # night's A-share publication was lost to a transient upstream
+            # hiccup. The `network` marker is declared in pytest.ini and these
+            # tests still run on demand with `-m network`.
+            "-m", "not network",
             "--deselect=tests/test_futures_compass_pipeline.py::test_each_maintenance_slot_refreshes_public_snapshot",
         ]
         try:
