@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -344,6 +345,122 @@ def test_project_subprocess_env_keeps_project_node_runtime_available(monkeypatch
     assert "VIRTUAL_ENV" not in env
 
 
+def test_sandbox_env_drops_libfaketime_but_keeps_real_preload(monkeypatch):
+    """The candidate sandbox must not inherit libfaketime.
+
+    2026-10-29/30: the after-midnight publisher replay runs under `faketime`
+    so the manifest's own trade-date window is visible. libfaketime also
+    fakes CLOCK_MONOTONIC (it returns the faked REALTIME instead of a real
+    monotonic reading), and CPython derives the deadline of
+    threading.Condition.wait(timeout) from CLOCK_MONOTONIC. The deadline
+    therefore lands ~11443s in the past, the wait never returns, and the
+    candidate-commit pytest gate hung until subprocess.TimeoutExpired
+    (300s, then 600s).
+
+    `FAKETIME_DONT_FAKE_MONOTONIC=1` is not a usable substitute: libfaketime
+    0.9.10 then makes time.sleep() fail with EINVAL, which broke 30 tests.
+    The sandbox drops libfaketime entirely instead.
+    """
+    monkeypatch.setenv("LD_PRELOAD", "/opt/real/lib.so:/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1")
+    monkeypatch.setenv("FAKETIME", "-11443")
+    monkeypatch.setenv("FAKETIME_SHARED", "/faketime_sem_1 /faketime_shm_1")
+
+    env = publish.sandbox_env()
+
+    assert env["LD_PRELOAD"] == "/opt/real/lib.so"
+    assert "FAKETIME" not in env
+    assert "FAKETIME_SHARED" not in env
+    assert "FAKETIME_DONT_FAKE_MONOTONIC" not in env
+
+
+def test_sandbox_env_keeps_project_node_runtime_available(monkeypatch):
+    monkeypatch.delenv("LD_PRELOAD", raising=False)
+    monkeypatch.delenv("FAKETIME", raising=False)
+
+    env = publish.sandbox_env()
+
+    assert env["PATH"].startswith(publish.PROJECT_NODE_BIN)
+    assert "VIRTUAL_ENV" not in env
+    assert "PYTHONPATH" not in env
+
+
+@pytest.mark.skipif(
+    not Path("/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1").exists(),
+    reason="host integration test requires libfaketime",
+)
+def test_sandbox_env_lets_timed_waits_and_sleeps_expire():
+    """End-to-end proof that the sandbox clock behaves normally.
+
+    Under libfaketime a timed wait never returns and, with
+    FAKETIME_DONT_FAKE_MONOTONIC=1, time.sleep() raises EINVAL. With the
+    sandbox environment neither happens.
+    """
+    # The sandbox drops libfaketime, so this child runs on the real clock.
+    child_env = publish.sandbox_env()
+    result = subprocess.run(
+        [
+            publish.PROJECT_PYTHON,
+            "-c",
+            "import threading,time;e=threading.Event();t=time.monotonic();"
+            "e.wait(0.2);time.sleep(0.05);print(round(time.monotonic()-t,1))",
+        ],
+        env=child_env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert float(result.stdout.strip()) < 10
+
+
+@pytest.mark.skipif(
+    not Path("/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1").exists(),
+    reason="host integration test requires libfaketime",
+)
+def test_libfaketime_preloaded_child_hangs_on_timed_wait():
+    """Negative control: the hang this fix removes really is libfaketime's.
+
+    With libfaketime preloaded, threading.Event.wait(0.2) never returns
+    because CPython derives the deadline from the faked CLOCK_MONOTONIC.
+    The sandbox drops the preload, so the same child completes instantly.
+    """
+    faked_env = dict(os.environ)
+    faked_env["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1"
+    faked_env["FAKETIME"] = "-11443"
+    faked_env.pop("PYTHONPATH", None)
+    faked_env.pop("VIRTUAL_ENV", None)
+
+    with pytest.raises(subprocess.TimeoutExpired):
+        subprocess.run(
+            [
+                publish.PROJECT_PYTHON,
+                "-c",
+                "import threading;threading.Event().wait(0.2)",
+            ],
+            env=faked_env,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+    # The same child under the sandbox environment returns promptly.
+    child_env = publish.sandbox_env()
+    ok = subprocess.run(
+        [
+            publish.PROJECT_PYTHON,
+            "-c",
+            "import threading;threading.Event().wait(0.2);print('done')",
+        ],
+        env=child_env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert ok.returncode == 0, ok.stderr
+    assert "done" in ok.stdout
+
+
 def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
     candidate_dir = tmp_path / "candidate"
     candidate_dir.mkdir()
@@ -366,6 +483,10 @@ def test_candidate_validation_uses_system_python(tmp_path, monkeypatch):
         if "env" in kwargs:
             assert kwargs["env"]["PATH"].startswith("/root/.local/bin:/usr/bin:")
             assert "VIRTUAL_ENV" not in kwargs["env"]
+            # The candidate sandbox must never inherit libfaketime: it fakes
+            # CLOCK_MONOTONIC and every timed wait in the suite hangs.
+            assert "FAKETIME" not in kwargs["env"]
+            assert "libfaketime" not in kwargs["env"].get("LD_PRELOAD", "")
 
 
 def test_candidate_validation_retries_one_transient_pytest_timeout(tmp_path, monkeypatch):

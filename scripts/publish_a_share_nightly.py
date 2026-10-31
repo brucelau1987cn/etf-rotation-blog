@@ -53,6 +53,48 @@ def project_subprocess_env() -> dict[str, str]:
     return env
 
 
+def sandbox_env() -> dict[str, str]:
+    """Environment for the candidate-commit validation sandbox.
+
+    The candidate sandbox re-runs the repository test suite and the static
+    build against a throwaway worktree. It must observe a *real* clock:
+
+    libfaketime (used by the after-midnight replay wrapper so the publisher
+    sees the manifest's own trade-date window) also fakes CLOCK_MONOTONIC by
+    returning the faked REALTIME value. CPython derives the deadline of
+    threading.Condition.wait(timeout) from CLOCK_MONOTONIC, so under
+    libfaketime that deadline lands ~11443s in the past and the wait never
+    returns. The candidate pytest gate hung on the first timed wait and the
+    publisher died with subprocess.TimeoutExpired after 300s and again after
+    600s (2026-10-29/30).
+
+    `FAKETIME_DONT_FAKE_MONOTONIC=1` is not a usable substitute: libfaketime
+    0.9.10 then makes time.sleep() fail with EINVAL, which broke 30 tests in
+    the same suite. Dropping libfaketime from the sandbox entirely keeps both
+    time.sleep() and timed waits working, and the sandbox output is
+    wall-clock independent anyway — the build is byte-identical with and
+    without the fake clock.
+
+    The publisher's own process keeps the faked wall clock: it needs the
+    trade date for its staleness gate.
+    """
+    env = project_subprocess_env()
+    preload = env.get("LD_PRELOAD", "")
+    kept = [
+        part for part in preload.split(":")
+        if part and not Path(part).name.startswith("libfaketime")
+    ]
+    if kept:
+        env["LD_PRELOAD"] = ":".join(kept)
+    else:
+        env.pop("LD_PRELOAD", None)
+    for key in (
+        "FAKETIME", "FAKETIME_SHARED", "FAKETIME_DONT_FAKE_MONOTONIC", "FAKETIME_FAKEPID",
+    ):
+        env.pop(key, None)
+    return env
+
+
 def run(
     command: list[str], check: bool = True, *, cwd: Path | None = None,
     env: dict[str, str] | None = None, timeout: int = 600,
@@ -234,7 +276,7 @@ def create_candidate_commit(paths: list[str], message: str) -> tuple[str, str]:
 
 def validate_candidate_commit(commit: str) -> None:
     candidate_dir = Path(tempfile.mkdtemp(prefix="a-share-nightly-candidate-"))
-    env = project_subprocess_env()
+    env = sandbox_env()
     try:
         run(["git", "worktree", "add", "--detach", str(candidate_dir), commit])
         run(["npm", "ci"], cwd=candidate_dir, env=env, timeout=600)
