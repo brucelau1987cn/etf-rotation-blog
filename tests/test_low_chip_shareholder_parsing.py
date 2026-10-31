@@ -31,8 +31,20 @@ def test_unlock_query_uses_raw_non_bj_intersection_during_skip_build():
     }
     assert unlock.unlock_query_codes(payload) == ["600001.SH", "000002.SZ"]
     assert unlock.unlock_query_codes({
-        "intersection_before_filters": [" 600001.SH ", "600001.SH", None, "", "920001.BJ"],
+        "intersection_before_filters": ["600001.SH", "600001.SH", "920001.BJ"],
     }) == ["600001.SH"]
+
+
+@pytest.mark.parametrize("bad", [None, "", " 600001.SH ", 600001, "600001.XX"])
+def test_unlock_query_blocks_malformed_codes_instead_of_silently_dropping(bad):
+    """Fail closed on a malformed pool entry.
+
+    6e3b18f tightened this from "drop the bad entry" to a STAGING BLOCKER:
+    silently skipping a code would screen unlock dates for an incomplete
+    universe and publish a wrong calendar-month window.
+    """
+    with pytest.raises(ValueError, match="STAGING BLOCKER.*invalid requested stock code"):
+        unlock.unlock_query_codes({"intersection_before_filters": [bad]})
 
 
 def test_unlock_query_falls_back_to_intersection_for_legacy_payload():
