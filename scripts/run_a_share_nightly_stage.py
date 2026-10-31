@@ -33,6 +33,16 @@ LOCK_PATH = STATE_DIR / "a-share-nightly-stage.lock"
 CHAIN_READY_PATH = STATE_DIR / "a-share-nightly-chain-ready.json"
 CN = ZoneInfo("Asia/Shanghai")
 
+# Historical replay: `--as-of` pins the clock this runner reports so a trade
+# date that was missed can be replayed. It never changes what the stages fetch
+# — each stage still derives its own trade date from the qfq cache — and the
+# status marker records the override explicitly so provenance stays honest.
+AS_OF: datetime | None = None
+
+
+def clock() -> datetime:
+    return AS_OF or datetime.now(CN)
+
 STAGE_LABELS = {
     "precheck": "环境预检",
     "cache": "行情缓存",
@@ -93,7 +103,7 @@ def stage_environment(stage: str) -> dict[str, str] | None:
 
 
 def now_iso() -> str:
-    return datetime.now(CN).isoformat(timespec="seconds")
+    return clock().isoformat(timespec="seconds")
 
 
 def duration_text(started_at: str, finished_at: str) -> str:
@@ -378,12 +388,20 @@ def run_command(
     return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
 
 
+def stage_command(name: str) -> list[str]:
+    """Resolve a stage command, forwarding the replay clock where supported."""
+    command = list(STAGES[name])
+    if AS_OF is not None and name == "prepare":
+        command += ["--now", AS_OF.isoformat(timespec="seconds")]
+    return command
+
+
 def run_stage(stage: str, timeout: int) -> dict:
     stages = resolve_stages(stage)
     results = []
     overall_ok = True
     for name in stages:
-        cmd = STAGES[name]
+        cmd = stage_command(name)
         started = now_iso()
         stage_timeout = effective_timeout(name, timeout)
         write_status({
@@ -394,6 +412,7 @@ def run_stage(stage: str, timeout: int) -> dict:
             "started_at": started,
             "ok": False,
             "results": results,
+            "clock_override": now_iso() if AS_OF is not None else None,
         })
         try:
             proc = run_command(
@@ -457,6 +476,9 @@ def run_stage(stage: str, timeout: int) -> dict:
         "finished_at": now_iso(),
         "results": results,
     }
+    if AS_OF is not None:
+        # Record the replay honestly: the marker's clock is not the wall clock.
+        payload["clock_override"] = AS_OF.isoformat(timespec="seconds")
     write_status(payload)
     persist_chain_ready(payload)
     write_log(payload, stage)
@@ -471,7 +493,21 @@ def main() -> int:
         choices=sorted(list(STAGES) + ["chain", "precheck-cache"]),
     )
     parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument(
+        "--as-of",
+        help=(
+            "replay clock (ISO timestamp, Asia/Shanghai). Pins the status marker and "
+            "forwards --now to the prepare stage so a missed trade date can be replayed. "
+            "Stages still derive their trade date from the qfq cache."
+        ),
+    )
     args = parser.parse_args()
+    global AS_OF
+    if args.as_of:
+        AS_OF = datetime.fromisoformat(args.as_of)
+        if AS_OF.tzinfo is None:
+            AS_OF = AS_OF.replace(tzinfo=CN)
+        AS_OF = AS_OF.astimezone(CN)
     try:
         lock_handle = acquire_lock()
     except RuntimeError as exc:

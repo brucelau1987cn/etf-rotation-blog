@@ -15,6 +15,8 @@ import concurrent.futures
 import datetime as dt
 import json
 import math
+import os
+import re
 import subprocess
 import sys
 import time
@@ -364,6 +366,20 @@ def now_cn() -> dt.datetime:
 
 
 def local_today() -> str:
+    """Trade date this evaluation applies to.
+
+    An explicit `A_SHARE_EVALUATION_DATE` pins it for a historical replay of a
+    missed trade date (weekend/holiday backfill); the default stays the local
+    calendar day. Only the metadata changes — every price series still comes
+    from the qfq cache, whose own `latest_trade_date` is authoritative.
+    """
+    override = (os.environ.get("A_SHARE_EVALUATION_DATE") or "").strip()
+    if override:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", override):
+            raise SystemExit(
+                f"A_SHARE_EVALUATION_DATE must be YYYY-MM-DD, got {override!r}"
+            )
+        return override
     return now_cn().date().isoformat()
 
 

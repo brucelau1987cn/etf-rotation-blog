@@ -194,7 +194,13 @@ def validate_kronos_snapshot(payload: dict, trade_date: str | None) -> list[str]
 
 def prepare(now: datetime | None = None, state_path: Path = STATE) -> dict:
     current = now or datetime.now(CN)
-    gate = run_json(["python3", "scripts/check_a_share_cron_gate.py", "--stage", "22:00"])
+    gate_command = ["python3", "scripts/check_a_share_cron_gate.py", "--stage", "22:00"]
+    if now is not None:
+        # Historical replay: the gate evaluates the same rules against the
+        # supplied timestamp instead of the wall clock, exactly like
+        # check_a_share_cron_gate.py's own --now.
+        gate_command += ["--now", current.isoformat(timespec="seconds")]
+    gate = run_json(gate_command)
     if gate.get("decision") != "run":
         if gate.get("decision") == "idempotent" and state_path.is_file():
             try:
@@ -356,14 +362,24 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--state", type=Path, default=STATE)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument(
+        "--now",
+        help="historical replay clock (ISO timestamp); forwarded to the 22:00 gate",
+    )
     args = parser.parse_args()
     if args.self_test:
         assert ROOT.joinpath("scripts/check_a_share_cron_gate.py").exists()
         print("prepare_a_share_nightly self-test: OK")
         return 0
+    now = None
+    if args.now:
+        now = datetime.fromisoformat(args.now)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=CN)
+        now = now.astimezone(CN)
     with nightly_lock(), site_publish_lock():
         ensure_current_main()
-        result = prepare(state_path=args.state)
+        result = prepare(now=now, state_path=args.state)
     if result.get("version") == 2:
         return 0
     print(json.dumps(result, ensure_ascii=False))
