@@ -318,3 +318,148 @@ def test_complete_evidence_stays_available_without_mutating_input(sandbox, monke
     assert status["availability"] == "AVAILABLE"
     assert status["coverage"] == {"industry": 2, "top10_shareholders": 2}
     assert status["failures"] == []
+
+
+# --- quality-shareholder query chunking -------------------------------------
+# iWenCai rejects questions longer than 4000 characters (`-203 query length
+# max: 4000`). The quality query used to join EVERY code into one question
+# (~5300 chars for 749 stocks), so each run degraded the whole enrichment
+# block. These tests pin the chunking contract.
+
+
+def _many_codes(count: int) -> list[str]:
+    return [f"{600000 + index:06d}.SH" for index in range(count)]
+
+
+def _codes_of(query: str) -> list[str]:
+    head = query.split(" ", 1)[0]
+    return [part for part in head.split("、") if part]
+
+
+def test_chunk_quality_codes_preserves_order_and_coverage():
+    codes = [f"{index:06d}" for index in range(900)]
+    batches = fetch_module().chunk_quality_codes(codes)
+
+    assert len(batches) > 1
+    assert [code for batch in batches for code in batch] == codes
+    for batch in batches:
+        assert len("、".join(batch) + fetch_module().QUALITY_QUERY) <= 4000
+
+
+def fetch_module():
+    spec = importlib.util.spec_from_file_location(
+        "fetch_low_chip_chunking_test", ROOT / "scripts/fetch_low_chip_enrichments.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_quality_query_is_split_into_length_safe_batches(sandbox, monkeypatch):
+    mod, directory = sandbox
+    codes = _many_codes(800)
+    data = directory / "input.json"
+    data.write_text(json.dumps({"intersection": codes}))
+
+    quality_queries: list[str] = []
+
+    def query(q, **kwargs):
+        if mod.QUALITY_QUERY in q:
+            quality_queries.append(q)
+            return {"datas": [{"股票代码": f"{code}.SH"} for code in _codes_of(q)]}
+        bare = _codes_of(q)
+        if "最新价、最新涨跌幅、所属申万行业、所属概念" in q:
+            # The individual batch carries industry + shareholder names, which
+            # is what keeps the per-code fallback budget untouched.
+            return {
+                "datas": [
+                    {
+                        "股票代码": f"{code}.SH",
+                        "所属申万行业": "银行",
+                        "前十大流通股东名称(报告期)[20260630]": "全国社保基金一一八组合",
+                    }
+                    for code in bare
+                ]
+            }
+        return {
+            "datas": [
+                {
+                    "股票代码": f"{code}.SH",
+                    "所属申万行业": "银行",
+                    "前十大流通股东名称(报告期)[20260630]": "全国社保基金一一八组合",
+                }
+                for code in bare
+            ]
+        }
+
+    monkeypatch.setattr(mod, "iwc", query)
+    assert mod.main() == 0
+
+    assert len(quality_queries) > 1, "the full code list must not ride in one question"
+    assert all(len(q) <= 4000 for q in quality_queries)
+    covered = [code for q in quality_queries for code in _codes_of(q)]
+    assert sorted(covered) == sorted(code.split(".")[0] for code in codes)
+
+    quality = json.loads((directory / "low_chip_quality.json").read_text())
+    assert quality["availability"] == "AVAILABLE"
+    assert quality["batches"] == len(quality_queries)
+    assert quality["failed_batches"] == 0
+    assert len(quality["datas"]) == len(codes)
+
+    status = json.loads((directory / "low_chip_enrichment_status.json").read_text())
+    assert status["quality_query"] == "AVAILABLE"
+    assert status["status"] == "ok"
+
+
+def test_one_failed_quality_batch_keeps_the_rest_and_marks_unavailable(sandbox, monkeypatch):
+    mod, directory = sandbox
+    codes = _many_codes(40)
+    (directory / "input.json").write_text(json.dumps({"intersection": codes}))
+    # Force several chunks so exactly one of them can fail.
+    monkeypatch.setattr(mod, "MAX_QUERY_CHARS", 200)
+
+    def query(q, **kwargs):
+        if mod.QUALITY_QUERY in q:
+            if "600020" in _codes_of(q):
+                raise SystemExit("SSL handshake timeout")
+            return {"datas": [{"股票代码": f"{code}.SH"} for code in _codes_of(q)]}
+        bare = _codes_of(q)
+        if "最新价、最新涨跌幅、所属申万行业、所属概念" in q:
+            # The individual batch carries industry + shareholder names, which
+            # is what keeps the per-code fallback budget untouched.
+            return {
+                "datas": [
+                    {
+                        "股票代码": f"{code}.SH",
+                        "所属申万行业": "银行",
+                        "前十大流通股东名称(报告期)[20260630]": "全国社保基金一一八组合",
+                    }
+                    for code in bare
+                ]
+            }
+        return {
+            "datas": [
+                {
+                    "股票代码": f"{code}.SH",
+                    "所属申万行业": "银行",
+                    "前十大流通股东名称(报告期)[20260630]": "全国社保基金一一八组合",
+                }
+                for code in bare
+            ]
+        }
+
+    monkeypatch.setattr(mod, "iwc", query)
+    assert mod.main() == 0
+
+    quality = json.loads((directory / "low_chip_quality.json").read_text())
+    assert quality["availability"] == "UNAVAILABLE"
+    # A failed query opens the circuit for the remaining batches (one failure
+    # must not burn one quota slot per chunk), so at least one batch fails.
+    assert quality["failed_batches"] >= 1
+    assert quality["batches"] > 1
+    # Codes from the healthy chunks are retained; the failed chunks are not faked.
+    assert 0 < len(quality["datas"]) < len(codes)
+
+    status = json.loads((directory / "low_chip_enrichment_status.json").read_text())
+    assert status["quality_query"] == "UNAVAILABLE"

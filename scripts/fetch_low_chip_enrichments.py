@@ -46,6 +46,35 @@ SHAREHOLDER_PERIOD_RE = re.compile(r"^前十大流通股东名称(?:\(报告期\
 
 QUALITY_QUERY = " 前十大流通股东名称包含全国社保基金或基本养老保险基金或国家集成电路产业投资基金或国新投资或深圳市创新投资集团或科威特政府投资局或澳门金融管理局"
 
+# iWenCai rejects any question longer than 4000 characters with
+# `-203 query length max: 4000`. Sending all ~749 codes in one quality query
+# produced a ~5300-character question, so every run degraded the whole
+# enrichment block (status=degraded, availability=UNAVAILABLE) on 2026-10-30.
+MAX_QUERY_CHARS = 3800
+
+
+def chunk_quality_codes(
+    bare_codes: list[str], limit: int = MAX_QUERY_CHARS, suffix: str = QUALITY_QUERY
+) -> list[list[str]]:
+    """Split codes so each quality query stays under iWenCai's length cap.
+
+    Order is preserved and every code lands in exactly one chunk; a single code
+    that cannot fit is still emitted alone and will fail loudly rather than be
+    silently dropped.
+    """
+    batches: list[list[str]] = []
+    current: list[str] = []
+    for code in bare_codes:
+        candidate = current + [code]
+        if current and len("、".join(candidate) + suffix) > limit:
+            batches.append(current)
+            current = [code]
+        else:
+            current = candidate
+    if current:
+        batches.append(current)
+    return batches
+
 
 def iwc(query, page=1, limit=50, timeout=90, attempts=3):
     last_err = ""
@@ -558,12 +587,44 @@ def main() -> int:
         json.dumps(rows, ensure_ascii=False), encoding="utf-8")
     print(f"  individual rows: {len(rows)}", flush=True)
 
-    # /tmp/low_chip_quality.json — quality shareholders check
-    q = "、".join(bare_codes) + QUALITY_QUERY
-    d = optional_iwc(q, limit=max(20, len(bare_codes) * 3))
+    # /tmp/low_chip_quality.json — quality shareholders check.
+    # Batched: one question per chunk, because iWenCai caps queries at 4000
+    # characters and the full code list is far longer than that.
+    quality_batches = chunk_quality_codes(bare_codes, MAX_QUERY_CHARS)
+    quality_rows: list[dict] = []
+    quality_availability = "AVAILABLE"
+    quality_failed_batches = 0
+    for position, quality_batch in enumerate(quality_batches, start=1):
+        quality_query = "、".join(quality_batch) + QUALITY_QUERY
+        if len(quality_query) > 4000:
+            raise SystemExit(
+                f"iWenCai quality query chunk {position} is {len(quality_query)} chars; "
+                "chunking must stay under the 4000-character cap"
+            )
+        result = optional_iwc(quality_query, limit=max(20, len(quality_batch) * 3))
+        if result.get("availability") == "UNAVAILABLE":
+            quality_availability = "UNAVAILABLE"
+            quality_failed_batches += 1
+            continue
+        quality_rows.extend(result.get("datas") or [])
+        print(
+            f"  quality batch {position}/{len(quality_batches)}: "
+            f"codes={len(quality_batch)} rows={len(result.get('datas') or [])}",
+            flush=True,
+        )
+    d = {
+        "datas": quality_rows,
+        "availability": quality_availability,
+        "batches": len(quality_batches),
+        "failed_batches": quality_failed_batches,
+    }
     Path("/tmp/low_chip_quality.json").write_text(
         json.dumps(d, ensure_ascii=False), encoding="utf-8")
-    print(f"  quality rows: {len(d.get('datas') or [])}", flush=True)
+    print(
+        f"  quality rows: {len(quality_rows)} "
+        f"(batches={len(quality_batches)}, failed={quality_failed_batches})",
+        flush=True,
+    )
 
     coverage = {
         field: sum(row["_enrichment_availability"][field] == "AVAILABLE" for row in rows)
