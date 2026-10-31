@@ -19,6 +19,10 @@ PAGES_ENV = Path("/root/.hermes/credentials/cloudflare-pages.env")
 GLOBAL_ENV = Path("/root/.hermes/credentials/cloudflare-global.env")
 PROJECT = "etf-rotation-blog"
 ZONE_NAME = "peekabo.cc"
+try:
+    from shadow_dirty_files import SHADOW_DIRTY_FILES
+except ModuleNotFoundError:
+    from scripts.shadow_dirty_files import SHADOW_DIRTY_FILES
 EXTERNAL_DIRTY = {
     "public/data/korea-tech-factor-shadow.json",
     "public/data/us-selector-shadow.json",
@@ -140,6 +144,43 @@ def foreign_dirty_paths(lines: list[str]) -> list[str]:
         if path and path not in EXTERNAL_DIRTY and not path.startswith("public/data/") and not path.startswith("src/content/blog/"):
             paths.append(path)
     return paths
+
+
+def quarantine_unowned_shadow_dirty(owned: Iterable[str] = ()) -> list[str]:
+    """Restore tracked shadow files the caller will not commit to HEAD bytes.
+
+    generate_data_catalog.py hashes worktree bytes, so a publisher that
+    regenerates and commits catalog.json while another job's shadow data is
+    dirty bakes hashes of bytes that never enter the commit. A clean checkout
+    then regenerates a different catalog and the nightly candidate build dies
+    with "candidate build rewrote managed public artifacts".
+
+    2026-10-31: the weekly US research publish committed a catalog describing a
+    dirty a-han-precise-signals.json (observation_date 2026-10-29) while HEAD
+    still held the 2026-10-28 file — every clean-tree build after that failed.
+
+    Call this before generating the catalog, with the paths the publisher will
+    actually commit. Unowned shadow files are restored; the owning cron rewrites
+    them on its next run.
+    """
+    owned_set = {str(path) for path in owned}
+    result = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=ROOT, text=True, capture_output=True, check=True,
+    )
+    restored: list[str] = []
+    for line in result.stdout.splitlines():
+        path = line[3:].strip() if len(line) >= 4 else ""
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if not path or path in owned_set or path not in EXTERNAL_DIRTY | SHADOW_DIRTY_FILES:
+            continue
+        if subprocess.run(
+            ["git", "cat-file", "-e", f"HEAD:{path}"], cwd=ROOT, capture_output=True,
+        ).returncode != 0:
+            continue  # untracked: nothing to restore to
+        subprocess.run(["git", "checkout", "--", path], cwd=ROOT, capture_output=True, check=True)
+        restored.append(path)
+    return restored
 
 
 def ensure_release_scope() -> None:

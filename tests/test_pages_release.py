@@ -422,3 +422,73 @@ def test_json_probe_retries_during_pages_eventual_consistency(tmp_path, monkeypa
     monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
     pages_release.probe_json_matches({"https://example.test/data.json": expected_path})
     assert responses == []
+
+
+def test_quarantine_restores_only_unowned_tracked_shadow_files(monkeypatch):
+    """A publisher must not bake another job's dirty bytes into the catalog.
+
+    2026-10-31: the weekly US publish regenerated catalog.json while
+    a-han-precise-signals.json held uncommitted 2026-10-30 output. The committed
+    catalog described bytes that never entered the commit, so every clean-tree
+    build afterwards regenerated a different catalog and the A-share nightly
+    candidate gate died with "candidate build rewrote managed public artifacts".
+    """
+    dirty = [
+        " M public/data/a-han-precise-signals.json",
+        " M public/data/us-compass-research.json",
+        " M public/data/catalog.json",
+        " M scripts/publish_us_compass_research.py",
+        "?? src/content/blog/2026-10-30.md",
+    ]
+    checked_out = []
+    missing_from_head: set[str] = set()  # every shadow path here is tracked at HEAD
+
+    def fake_run(command, **kwargs):
+        if command[:3] == ["git", "status", "--porcelain"]:
+            return SimpleNamespace(stdout="\n".join(dirty), returncode=0)
+        if command[:2] == ["git", "cat-file"]:
+            path = command[-1].split(":", 1)[1]
+            return SimpleNamespace(stdout="", returncode=1 if path in missing_from_head else 0)
+        if command[:2] == ["git", "checkout"]:
+            checked_out.append(command[-1])
+            return SimpleNamespace(stdout="", returncode=0)
+        raise AssertionError(f"unexpected command {command}")
+
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    restored = pages_release.quarantine_unowned_shadow_dirty(
+        {"public/data/us-compass-research.json", "public/data/catalog.json"},
+    )
+
+    # Owned files are left alone; the tracked unowned shadow file is restored.
+    assert restored == ["public/data/a-han-precise-signals.json"]
+    assert checked_out == ["public/data/a-han-precise-signals.json"]
+
+
+def test_quarantine_never_touches_code_or_untracked_paths(monkeypatch):
+    dirty = [" M scripts/pages_release.py", "?? tests/brand_new.py"]
+
+    def fake_run(command, **kwargs):
+        if command[:3] == ["git", "status", "--porcelain"]:
+            return SimpleNamespace(stdout="\n".join(dirty), returncode=0)
+        raise AssertionError(f"unexpected command {command}")
+
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    assert pages_release.quarantine_unowned_shadow_dirty() == []
+
+
+def test_quarantine_skips_shadow_paths_absent_from_head(monkeypatch):
+    """Untracked shadow output has no committed bytes to restore to."""
+    dirty = [" M public/data/us-selector-shadow.json"]
+
+    def fake_run(command, **kwargs):
+        if command[:3] == ["git", "status", "--porcelain"]:
+            return SimpleNamespace(stdout="\n".join(dirty), returncode=0)
+        if command[:2] == ["git", "cat-file"]:
+            return SimpleNamespace(stdout="", returncode=1)
+        raise AssertionError(f"unexpected command {command}")
+
+    monkeypatch.setattr(pages_release.subprocess, "run", fake_run)
+
+    assert pages_release.quarantine_unowned_shadow_dirty() == []

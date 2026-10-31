@@ -23,6 +23,13 @@ SHADOW = DATA / "us-compass-shadow.json"
 POOL = DATA / "us-etf-pool.json"
 HEALTH = DATA / "us-compass-health.json"
 OUT = DATA / "us-compass-research.json"
+# Paths this publisher produces and commits. Everything else that is dirty is
+# another job's pending product and must not be baked into the committed catalog.
+US_OWNED_FILES = (
+    "public/data/us-compass-research.json",
+    "public/data/us-compass-health.json",
+    "public/data/catalog.json",
+)
 CATALOG = DATA / "catalog.json"
 IWENCAI_WRAPPER = Path("/root/.hermes/scripts/iwencai-skill-run")
 PROJECT = "etf-rotation-blog"
@@ -579,10 +586,10 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
 def publish_unlocked() -> str:
     try:
         from a_share_nightly_contract import site_publish_lock
-        from pages_release import release_pages
+        from pages_release import quarantine_unowned_shadow_dirty, release_pages
     except ModuleNotFoundError:
         from scripts.a_share_nightly_contract import site_publish_lock
-        from scripts.pages_release import release_pages
+        from scripts.pages_release import quarantine_unowned_shadow_dirty, release_pages
     # This job owns US research data only. The shared validator also reports
     # other markets' drift, and on 2026-10-31 a stalled A-share stage blocked
     # this weekly report for a defect it can neither fix nor commit. Opt in to
@@ -591,6 +598,13 @@ def publish_unlocked() -> str:
     # because `npm run build` runs the validator in a child process.
     os.environ[ALLOW_FOREIGN_ENV] = "1"
     os.environ[OWNED_DATASETS_ENV] = ",".join(("us-compass-research", "us-compass-health"))
+    # The catalog hashes worktree bytes. This publisher commits catalog.json but
+    # never another job's shadow data, so a dirty shadow file would put hashes of
+    # never-committed bytes into the commit and every later clean-tree build
+    # would disagree with it.
+    restored = quarantine_unowned_shadow_dirty(US_OWNED_FILES)
+    if restored:
+        print(f"quarantined unowned shadow dirt: {restored}", flush=True)
     # sys.executable, not bare `python3`: under cron a bare python3 resolves to
     # the Hermes tool interpreter, which lacks the project dependencies
     # (jsonschema) that the contract validator imports.
