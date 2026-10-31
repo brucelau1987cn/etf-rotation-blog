@@ -178,6 +178,13 @@ def paginate(query):
                 break
             if attempt == 3:
                 raise SystemExit(blocker)
+            # iWenCai answers a page it is still willing to serve with an empty
+            # envelope (code_count=0, has_more=false) while it is shedding load.
+            # Three back-to-back refetches land inside the same bad window, so
+            # the integrity retry must back off exactly like the transport
+            # retry above — 2026-10-30 died on "pagination total changed
+            # 2379->0" after three no-wait attempts.
+            time.sleep(FETCH_BACKOFF_S * attempt)
         p += 1
         if p > MAX_PAGES:
             raise SystemExit(
