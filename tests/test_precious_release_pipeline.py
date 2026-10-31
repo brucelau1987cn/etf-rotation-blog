@@ -20,6 +20,17 @@ release = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(release)
 
 
+@pytest.fixture(autouse=True)
+def _pin_trading_calendar(monkeypatch):
+    """The publisher refuses to run on a closed exchange day.
+
+    These tests must not depend on the wall clock: unpinned, the whole file goes
+    red every weekend and holiday (the run returns the calendar idempotent
+    receipt instead of exercising the pipeline).
+    """
+    monkeypatch.setattr(release, "is_trading_day", lambda day: (True, "test_calendar"))
+
+
 def completed(stdout: str = "", returncode: int = 0):
     return SimpleNamespace(stdout=stdout, stderr="", returncode=returncode)
 
@@ -155,3 +166,46 @@ def test_preexisting_precious_dirty_file_blocks_before_collection(monkeypatch):
     monkeypatch.setattr(release, "run", fake_run)
     assert release.run_pipeline() == 1
     assert all("update_precious_inventory.py" not in args for args in calls)
+
+
+def test_main_retries_once_when_origin_moves_during_publication(monkeypatch):
+    """A concurrent push during the candidate build is a collision, not data loss.
+
+    The candidate's parent is our base head, so it can never fast-forward once
+    origin/main advanced. One fresh round on the new base is the difference
+    between refreshing the day's inventory and losing it (2026-10-29).
+    """
+    monkeypatch.setattr(release, "site_publish_lock", nullcontext)
+    monkeypatch.setattr(release.time, "sleep", lambda seconds: None)
+    statuses = iter([75, 0])
+    calls = []
+
+    def fake_pipeline():
+        calls.append(1)
+        return next(statuses)
+
+    monkeypatch.setattr(release, "run_pipeline", fake_pipeline)
+
+    assert release.main() == 0
+    assert len(calls) == 2
+
+
+def test_main_returns_drift_status_after_one_retry(monkeypatch):
+    monkeypatch.setattr(release, "site_publish_lock", nullcontext)
+    monkeypatch.setattr(release.time, "sleep", lambda seconds: None)
+    calls = []
+
+    monkeypatch.setattr(release, "run_pipeline", lambda: calls.append(1) or 75)
+
+    assert release.main() == 75
+    assert len(calls) == 2
+
+
+def test_main_does_not_retry_other_failures(monkeypatch):
+    monkeypatch.setattr(release, "site_publish_lock", nullcontext)
+    calls = []
+
+    monkeypatch.setattr(release, "run_pipeline", lambda: calls.append(1) or 1)
+
+    assert release.main() == 1
+    assert len(calls) == 1
