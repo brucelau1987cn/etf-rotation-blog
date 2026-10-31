@@ -10,6 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/build_low_chip_base.py"
 
 
+@pytest.fixture(autouse=True)
+def _no_retry_backoff_sleep(monkeypatch):
+    """Retry backoff is real elapsed time; the assertions are not.
+
+    paginate() sleeps FETCH_BACKOFF_S * attempt between integrity retries, and
+    every module instance here shares the global `time` module, so patch it once
+    for the whole file. Without this the pagination-retry tests add minutes to
+    the suite (and to the nightly candidate gate, which runs the full suite).
+    """
+    import time as _time
+
+    monkeypatch.setattr(_time, "sleep", lambda *_: None)
+
+
 def load_module():
     spec = importlib.util.spec_from_file_location("build_low_chip_threshold", SCRIPT)
     assert spec is not None and spec.loader is not None
