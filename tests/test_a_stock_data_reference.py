@@ -3,6 +3,8 @@
 覆盖：筹码 CYQ 三角分布算法 + 打板层解析逻辑。
 """
 import importlib.util
+import sys
+import types
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +13,24 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 REF = ROOT / "scripts" / "reference" / "a-stock-data"
+
+
+# mootdx 只在 /root/.cache/mootdx/venv 里，项目 venv 没有；注入 stub 后才能 import 两个客户端模块。
+def _install_mootdx_stub():
+    if "mootdx.quotes" in sys.modules:
+        return
+    quotes = types.ModuleType("mootdx.quotes")
+
+    class _FakeQuotes:
+        @staticmethod
+        def factory(**kwargs):  # pragma: no cover - 测试里不该真的建连
+            raise RuntimeError("no network in tests")
+
+    quotes.Quotes = _FakeQuotes  # type: ignore[attr-defined]
+    package = types.ModuleType("mootdx")
+    setattr(package, "quotes", quotes)  # noqa: B010 - 动态 stub
+    sys.modules.setdefault("mootdx", package)
+    sys.modules.setdefault("mootdx.quotes", quotes)
 
 
 def _load(name, path):
@@ -23,6 +43,9 @@ def _load(name, path):
 
 chip = _load("chip_distribution", REF / "chip_distribution.py")
 limit = _load("limit_up", REF / "limit_up.py")
+_install_mootdx_stub()
+tdx_ref = _load("tdx_client_ref", REF / "tdx_client.py")
+mootdx_quote = _load("mootdx_quote", ROOT / "scripts" / "mootdx_quote.py")
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -107,3 +130,92 @@ def test_monitor_market_map_is_three_valued():
 def test_anomaly_rules_cover_bj():
     """异动规则码含北交所专用码 8。"""
     assert limit.ANOMALY_RULES[8] == "北交所连续10个交易日内3次出现同向异常波动"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# mootdx 分用途验活（上游 #52）
+# ──────────────────────────────────────────────────────────────────────────
+
+class _EmptyBarsClient:
+    """复现 2026-09 起通达信公开服务器：bars/quotes 返回空表，finance/F10 正常。"""
+
+    def bars(self, **kwargs):
+        return pd.DataFrame()
+
+    def finance(self, **kwargs):
+        return pd.DataFrame([{"code": "000001", "net_profit": 1}])
+
+    def F10C(self, **kwargs):
+        return [{"name": "最新提示"}]
+
+    def F10(self, **kwargs):
+        return "  最新提示正文  "
+
+
+class _WorkingBarsClient:
+    """行情命令仍可用的节点（财务也正常）。"""
+
+    def bars(self, **kwargs):
+        return pd.DataFrame([{"close": 10.0}])
+
+    def finance(self, **kwargs):
+        return pd.DataFrame([{"code": "000001"}])
+
+    def F10C(self, **kwargs):
+        return [{"name": "最新提示"}]
+
+    def F10(self, **kwargs):
+        return "正文"
+
+
+class _BrokenFinanceClient:
+    """财务正常但 F10 为空：只验财务会误判为活，必须一并要求 F10 正文。"""
+
+    def bars(self, **kwargs):
+        return pd.DataFrame()
+
+    def finance(self, **kwargs):
+        return pd.DataFrame([{"code": "000001"}])
+
+    def F10C(self, **kwargs):
+        return []
+
+    def F10(self, **kwargs):
+        return ""
+
+
+@pytest.mark.parametrize("module", [mootdx_quote, tdx_ref])
+def test_finance_check_survives_dead_bars(module):
+    """行情命令全空时，财务验活仍应通过——这是 #52 后唯一可用的模式。"""
+    assert module._validate(_EmptyBarsClient(), "std", "finance") is True
+    assert module._validate(_EmptyBarsClient(), "std", "bars") is False
+
+
+@pytest.mark.parametrize("module", [mootdx_quote, tdx_ref])
+def test_bars_check_still_works_on_live_node(module):
+    assert module._validate(_WorkingBarsClient(), "std", "bars") is True
+    assert module._validate(_WorkingBarsClient(), "std", "finance") is True
+
+
+@pytest.mark.parametrize("module", [mootdx_quote, tdx_ref])
+def test_finance_check_requires_f10_text(module):
+    """F10 为空即判死，避免选中「财务正常、F10 静默空文本」的节点。"""
+    assert module._validate(_BrokenFinanceClient(), "std", "finance") is False
+
+
+@pytest.mark.parametrize("module", [mootdx_quote, tdx_ref])
+def test_non_std_market_skips_validation(module):
+    """扩展行情用 000001 必然取不到数，不能因此把正常节点全判死。"""
+    assert module._validate(_EmptyBarsClient(), "ext", "bars") is True
+
+
+@pytest.mark.parametrize("module", [mootdx_quote, tdx_ref])
+def test_invalid_check_rejected(module):
+    with pytest.raises(ValueError, match="check"):
+        module.tdx_client(check="quotes")
+
+
+def test_bars_unavailable_hint_points_at_tencent():
+    """失败信息必须给出替代源，否则调用方只会看到「全部不可达」。"""
+    hint = mootdx_quote.BARS_UNAVAILABLE_HINT
+    assert "腾讯" in hint and "check='finance'" in hint

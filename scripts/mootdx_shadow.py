@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from mootdx_quote import tdx_client  # noqa: E402
+from mootdx_quote import BARS_UNAVAILABLE_HINT, tdx_client  # noqa: E402
 
 OUT = ROOT / "public" / "data" / "mootdx-shadow.json"
 CN_TZ = timezone(timedelta(hours=8))
@@ -85,13 +85,18 @@ def main() -> int:
     max_diff = max((abs(x["diff_pct"]) for x in mismatch), default=0.0)
 
     status = "ok" if (not errors and len(diff_ok) >= len(matched) * 0.9) else "degraded"
+    unavailable_reason = None
     if not mootdx_map:
-        status = "error"
+        # 全部取不到 ≠ 数据质量退化：上游 #52（2026-09 起通达信公开服务器 bars/quotes 返回 0 行，
+        # finance/F10 仍正常）。单独标 unavailable，避免健康门禁把它当成持续退化刷告警。
+        status = "unavailable"
+        unavailable_reason = BARS_UNAVAILABLE_HINT
 
     payload = {
         "version": 1,
         "generated_at": now.isoformat(timespec="seconds"),
         "status": status,
+        "unavailable_reason": unavailable_reason,
         "quote_count": len(quotes),
         "summary": {
             "matched": len(matched),
@@ -123,6 +128,8 @@ def main() -> int:
         f"偏差≥0.5% {s['mismatch']}只(最大{s['max_diff_pct']}%)"
         + (f"｜异常 {list(errors)}" if errors else "")
     )
+    if unavailable_reason:
+        print(f"  └ 原因：{unavailable_reason}")
     return 0
 
 

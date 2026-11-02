@@ -3,14 +3,15 @@
 从 [simonlin1212/a-stock-data](https://github.com/simonlin1212/a-stock-data)（Apache 2.0）抽取的参考实现，
 整合为自包含可运行脚本。**仅供参考/对比，未接入本项目生产流水线、cron 或页面。**
 
-原项目是给 AI 编程助手用的单文件 skill（SKILL.md，208KB，11 层 / 54 端点 / 19 数据源，除 iwencai 外全零鉴权）。
-抽取了其中两个对本项目最有补充价值的层：
+原项目是给 AI 编程助手用的单文件 skill。抽取时的基线是 **V3.6.0（打板层）/ V3.7.0（筹码 CYQ）**；
+2026-11-02 已对上游 **V3.10.3**（SKILL.md 438KB，15 层 / 87 端点 / 34 数据源，除 iwencai 外全零鉴权）逐段复核，见下文「上游版本漂移」。
+抽取了其中三个对本项目最有补充价值的层：
 
 | 文件 | 内容 | 依赖 |
 |------|------|------|
 | `chip_distribution.py` | 筹码分布 CYQ（本地三角分布推演：获利比例/平均成本/90-70 成本区间/筹码峰） | numpy + pandas（算法）；baostock（取 OHLC+换手率示例） |
 | `limit_up.py` | 打板层（涨停/炸板/跌停/昨涨停四池 + 同花顺涨停揭秘 + 连板梯队 + 重点监控池 + 日内异动） | requests |
-| `tdx_client.py` | mootdx 通达信 TCP 行情（K线/盘口/逐笔/报价，规避 BESTIP 空串 bug + 坏服务器验活） | mootdx |
+| `tdx_client.py` | mootdx 通达信 TCP（`check='bars'` K线/盘口/逐笔、`check='finance'` 财务/F10），规避 BESTIP 空串 bug + 坏服务器验活 | mootdx |
 
 ## 用法
 
@@ -21,7 +22,32 @@ python3 scripts/reference/a-stock-data/chip_distribution.py 600519
 # 打板层（指定交易日 / 最近交易日 / 只要情绪温度计）
 python3 scripts/reference/a-stock-data/limit_up.py 20260821
 python3 scripts/reference/a-stock-data/limit_up.py --sentiment-only
+
+# mootdx（需在 /root/.cache/mootdx/venv 里跑；行情模式目前普遍取不到，见 #52）
+/root/.cache/mootdx/venv/bin/python scripts/reference/a-stock-data/tdx_client.py 600519 --check finance
 ```
+
+## 上游版本漂移（V3.6/V3.7 → V3.10.3，2026-11-02 复核）
+
+逐行比对结论：
+
+- `chip_distribution.py`、`limit_up.py` 的**算法与端点代码与上游 V3.10.3 一致**（差异只在本项目加的 docstring/CLI 包装），无需改动。
+- `tdx_client.py` 有实质缺口并已补齐：上游从 V3.10.0 起把验活按用途拆成 `check='bars'` / `check='finance'`。
+- 上游中间版本新增的能力（本项目**未抽取**，需要时再单独评估）：V3.9.0 期货与大宗商品 / 事件驱动 / 可转债三层 + 腾讯 K 线 / 通达信官网盘后包 / 新浪研报 / ETF 份额 / 利率曲线共 25 个入口；V3.10.0 `tencent_ticks()` 当日逐笔与 `futures_kline()` 新浪期货日 K（含大商所）；V3.10.3 `sse_e_interaction()` 相对时间换算。
+
+### #52：通达信公开服务器行情类命令失效
+
+上游 2026-09 实测（#52）与**本机 2026-11-02 复测一致**（3 台节点逐台）：
+
+| 命令 | 结果 |
+|------|------|
+| `bars()` / `quotes()` | **0 行**（TCP 可达，服务端返回空） |
+| `finance()` | 1 行（正常） |
+| `F10C()` | 只剩「最新提示」一类（正常） |
+
+后果：旧版 `_validate()` 用 K 线验活，会把所有正常节点判死并抛
+`所有 mootdx 服务器均无法取到数据`——这正是 `scripts/mootdx_shadow.py` 影子快照长期 `error` 的原因。
+财务 / F10 调用必须传 `check='finance'`；K 线、盘口、逐笔改走腾讯（`qt.gtimg.cn` / `fqkline`），本项目生产价格源本就是腾讯，无需切换。
 
 ## 关键算法/坑（原项目实测校准，保留）
 
