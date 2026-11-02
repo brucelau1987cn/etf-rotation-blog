@@ -32,6 +32,139 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports: Record<string, DailyInsightReport> = {
+  '2026-11-02': {
+  "tradeDate": "2026-11-02",
+  "shortDate": "11/02",
+  "title": "11月2日滚动信号收盘复盘",
+  "subtitle": "全市场8条首次入库，归为5个研究标识；4只有效价格标的（三安光电、创新医疗、长鑫科技、中国宏桥）+1只非看板合约；确认0、收复2、混合1、观察2。",
+  "cutoff": "2026-11-02 18:35 北京时间；A股15:00完整收盘、港股16:08收盘；连续品种与美股当日未结算。",
+  "summary": "今日只有空方，且大多被价格收复：三安光电10m@8.92与15m@8.91双节点收盘9.06全部收复；创新医疗10m@15.80落在早盘低点附近，收盘16.53高出4.62%同样收复；长鑫科技15m@41.53收41.72仅高0.46%，判混合；中国宏桥三个空方节点缺价，只作观察。指数侧是普涨环境——上证3638.03 +1.08%、深成指11010.68 +1.63%、创业板2458.70 +1.87%，与「空方全线不成立」方向一致，但个股分化明显（创新医疗-4.01%、宏桥-3.21%）。盘中空方信号在反弹日被系统性收复，说明当前节点的做空时效不足，不能沿用昨日空方思路。8条D1记录经前缀与别名归并为5个研究标识，全部event_id与首次入库时间保留在证据列；三只A股用iWenCai收盘证据交叉核对，港股缺iWenCai口径改用腾讯收盘+分钟线。",
+  "buyRule": "今日无正式多方节点，一律不新开多。三安光电需放量站上MA5 9.12且量比回到1以上；创新医疗需收盘站稳MA20 16.504且换手回落；长鑫科技需放量收复MA5 42.75并站上42.80；中国宏桥缺信号价，等下一个带价节点或收复MA5 19.86再看。宁可错过反弹，不用收复信号价当买入理由。",
+  "sellRule": "已有持仓按反抽处理：三安光电9.12—9.19减仓观察、站上9.54失效；创新医疗16.89反抽减仓、跌破16.47与15.70收紧；长鑫科技42.02—42.75反抽减仓、跌破41.20收紧；宏桥以19.86反抽观察、跌破19.372与19.51收紧。A股「卖出」指已有持仓减仓/退出观察，不据此自动新增卖空仓位。",
+  "discipline": "只认D1首次入库的event_id与trigger_price，8条原始节点全部保留在证据列，不做合并后省略。三个宏桥节点缺价即UNAVAILABLE，禁止用腾讯分钟价倒填信号价；XAG-USDT-SWAP非看板合约、周期码「3」不在前端正式/观察集合，只登记不点亮；SI=F 今日无D1事件，LKG快照不是当日信号。今日所有A股trigger_time_utc等于received_at，报告时刻是接收时刻而非bar收盘时刻。历史胜率、MFE/MAE与前瞻样本INSUFFICIENT，不估算、不改生产权重与仓位。连续品种与美股当日尚未结算，相关结论留到结算后再评估。",
+  "signals": [
+    {
+      "name": "三安光电",
+      "symbol": "600703",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "10m / 15m",
+      "signalPrices": "SELL 10m 09:50:06 @ ¥8.92 / SELL 15m 10:00:20 @ ¥8.91",
+      "close": "¥9.06",
+      "change": "0.00%",
+      "validation": "reclaimed",
+      "validationLabel": "空方收复",
+      "verdict": "两个空方节点（10m@8.92、15m@8.91）当日均被价格收复：收盘9.06高于两条信号价0.5%—1.7%，最低8.87只在信号价下方短暂停留。价格侧不成立，但收盘仍低于MA5 9.12、MA10 9.54、MA20 10.34，RSI6 23.67处于超卖区，主力净流出2241.50万元，属于弱反弹而非趋势反转。",
+      "support": "8.87（当日低点）/ 8.91（15m信号价）",
+      "pressure": "9.12（MA5）/ 9.54（MA10）/ 9.19（当日高点）",
+      "buyPlan": "空方已收复但反弹无量的品种不追多；只在放量站上MA5 9.12且量比回到1以上时纳入观察，跌破8.87重新评估空方。",
+      "sellPlan": "已有持仓以9.12—9.19为减仓观察区，站上MA10 9.54则今日空方彻底失效；跌破8.87且量能放大再收紧风险。",
+      "evidence": [
+        "首次入库 600703 SELL 10m 09:50:06 @ 8.92；event_id=evt_1793584206973_myt8pu；price_source=sina-m1",
+        "首次入库 600703 SELL 15m 10:00:20 @ 8.91；event_id=evt_1793584820985_b1dsbw；price_source=sina-m1",
+        "observed：当日开9.13 高9.19 低8.87 收9.06；涨跌0.00%；腾讯与iWenCai收盘交叉一致。",
+        "observed：成交量68526806股；成交额6.185亿元；换手1.374%；量比0.911；主力资金-2241.50万元（相关性证据，非因果）。",
+        "技术环境：MA5/10/20=9.12/9.54/10.34；RSI6=23.673。",
+        "筹码：收盘获利2.4%；90%筹码集中度34.6%（iWenCai 2026-11-02）。"
+      ]
+    },
+    {
+      "name": "创新医疗",
+      "symbol": "002173",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "10m",
+      "signalPrices": "SELL 10m 09:40:03 @ ¥15.80",
+      "close": "¥16.53",
+      "change": "-4.01%",
+      "validation": "reclaimed",
+      "validationLabel": "空方收复",
+      "verdict": "09:40:03收到10m空方15.80，正好落在早盘杀跌低点附近（当日低点15.70），随后价格反弹，收盘16.53高于信号价4.62%，空方在价格侧被收复。当日仍跌4.01%，收盘16.53与MA20 16.504几乎重合，属高换手9.95%的宽幅震荡，不是干净的下跌延续。",
+      "support": "16.47（MA5）/ 15.70（当日低点）",
+      "pressure": "16.89（当日高点）/ 16.504（MA20）",
+      "buyPlan": "空方收复只代表卖压失效，不代表可以追多；等收盘站稳MA20 16.504且量比回落至1附近再评估多方，失守15.70则观察重新转向。",
+      "sellPlan": "已有持仓以16.89为反抽减仓观察位，跌破16.47（MA5）与15.70再收紧风险；今日不机械追卖。",
+      "evidence": [
+        "首次入库 002173 SELL 10m 09:40:03 @ 15.80；event_id=evt_1793583603268_fh0rk5；price_source=sina-m1",
+        "observed：当日开16.82 高16.89 低15.70 收16.53；涨跌-4.01%（前收17.22）；腾讯与iWenCai收盘交叉一致。",
+        "observed：成交量41866357股；成交额6.795亿元；换手9.948%；量比1.439；主力资金-6670.83万元。",
+        "技术环境：MA5/10/20=16.47/16.41/16.504；RSI6=50.436。",
+        "筹码：收盘获利36.3%；90%筹码集中度8.5%，筹码高度收敛，波动放大属正常。"
+      ]
+    },
+    {
+      "name": "长鑫科技",
+      "symbol": "688825",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "15m",
+      "signalPrices": "SELL 15m 10:00:26 @ ¥41.53",
+      "close": "¥41.72",
+      "change": "-0.19%",
+      "validation": "mixed",
+      "validationLabel": "空方贴价未确认",
+      "verdict": "10:00:26收到15m空方41.53，收41.72，仅高于信号价0.46%，价格侧未跟随但差距极小，判为混合而非确认。收盘仍低于MA5 42.75、MA10 42.02，主力净流出9.312亿元为当日最大流出，量比0.81表示缩量，空方缺乏增量抛压佐证。",
+      "support": "41.20（当日低点）/ 41.53（信号价）",
+      "pressure": "42.02（MA10）/ 42.75（MA5）/ 42.80（当日高点）",
+      "buyPlan": "没有正式多方节点前不买入；需放量收复42.75（MA5）并站稳42.80才重新评估多方。",
+      "sellPlan": "已有持仓以42.02—42.75为反抽减仓区；跌破41.20转弱再收紧，重新站上42.80则今日空方失效。",
+      "evidence": [
+        "首次入库 688825 SELL 15m 10:00:26 @ 41.53；event_id=evt_1793584826119_aqq8j0；price_source=sina-m1",
+        "observed：当日开42.49 高42.80 低41.20 收41.72；涨跌-0.19%（前收41.80）；腾讯与iWenCai收盘交叉一致。",
+        "observed：成交量258594348股；成交额108.42亿元；换手5.743%；量比0.810；主力资金-9.312亿元。",
+        "技术环境：MA5/10/20=42.75/42.02/45.18；RSI6=37.181。",
+        "筹码：收盘获利21.1%；90%筹码集中度18.3%。"
+      ]
+    },
+    {
+      "name": "中国宏桥",
+      "symbol": "01378",
+      "market": "港股",
+      "direction": "SELL",
+      "nodes": "10m / 15m / 30m",
+      "signalPrices": "UNAVAILABLE：三个节点均无持久化信号价（10m 09:55、15m 10:15、30m 11:15 首次入库）",
+      "close": "HK$19.57",
+      "change": "-3.21%",
+      "validation": "watch",
+      "validationLabel": "空方缺价观察",
+      "verdict": "三个正式空方节点连续触发却全部缺少D1 trigger_price，无法计算收盘偏离度，只能降级为观察。方向侧证据一致：参考分钟价09:55 19.89、10:15 19.74、11:15 19.59逐级下移，收盘19.57接近当日低点19.51，跌幅3.21%，低于MA20 20.086。缺价即UNAVAILABLE，不按方向补一个信号价。",
+      "support": "19.51（当日低点）/ 19.372（MA10）",
+      "pressure": "19.86（MA5）/ 20.086（MA20）/ 20.22（当日高点=开盘）",
+      "buyPlan": "缺价不建仓；需等下一个带价节点或放量收复19.86（MA5）后再评估，20.22是当日未破的高点压力。",
+      "sellPlan": "持仓者以19.86反抽为减仓观察位，跌破19.372（MA10）与19.51再收紧；无信号价锚，不做精确止损价推算。",
+      "evidence": [
+        "首次入库 01378 SELL 10m 09:55:02；event_id=evt_1793584502569_mwv90a；trigger_price=UNAVAILABLE",
+        "首次入库 01378 SELL 15m 10:15:17；event_id=evt_1793585717926_op0uc4；trigger_price=UNAVAILABLE",
+        "首次入库 01378 SELL 30m 11:15:13；event_id=evt_1793589313607_77l9s9；trigger_price=UNAVAILABLE",
+        "observed（腾讯分钟线参考，非D1信号价）：09:55 19.890、10:15 19.740、11:15 19.590。",
+        "observed：当日开20.22 高20.22 低19.51 收19.57；涨跌-3.21%（前收20.22）；成交2590.67万股，成交额5.109亿港元。",
+        "技术环境：MA5/10/20=19.86/19.372/20.086。"
+      ]
+    },
+    {
+      "name": "白银XAG-USDT-SWAP",
+      "symbol": "XAG-USDT-SWAP",
+      "market": "期货",
+      "direction": "BUY",
+      "nodes": "3（非标准节点）",
+      "signalPrices": "UNAVAILABLE：非看板合约、非标准周期，无持久化信号价",
+      "close": "UNAVAILABLE",
+      "change": "UNAVAILABLE",
+      "validation": "watch",
+      "validationLabel": "非看板合约观察",
+      "verdict": "该标识不在 rolling_instruments 看板（看板白银为 SI=F），周期码「3」也不在当前前端正式/观察集合，今日不点亮、不构成独立样本。仅登记为webhook入库记录，不参与方向判断。",
+      "support": "UNAVAILABLE",
+      "pressure": "UNAVAILABLE",
+      "buyPlan": "不入交易计划；如需白银敞口以看板 SI=F 为唯一执行口径。",
+      "sellPlan": "无持仓计划；不下发止损价。",
+      "evidence": [
+        "首次入库 XAG-USDT-SWAP BUY 3 04:47:40（北京时间）；event_id=evt_1793566060309_swekjb；trigger_price=UNAVAILABLE",
+        "observed：该标识不属于 rolling_instruments 16 只看板；SI=F 今日无 D1 事件，LKG 快照不等于当日信号。"
+      ]
+    }
+  ],
+  "sources": "D1 rolling_signals 按 Asia/Shanghai trade_date=2026-11-02 全量8行；rolling_instruments 16只；Pages 公开 batch API 覆盖16只（storage=d1）；腾讯 qt.gtimg.cn 收盘与日线（600703/002173/688825/01378）及港股分钟线；iWenCai 多key批量收盘证据 trace_id=4f04eef60108ddef3cbf797511d2bb766c2a288f1ece706332924e689090cdda（返回600703/002173/688825/601868，601868非看板未采用，01378无A股口径故用腾讯）；BaoStock 交易日=true。"
+},
   '2026-10-30': {
     "tradeDate": "2026-10-30",
     "shortDate": "10/30",
@@ -4395,7 +4528,8 @@ export const rollingDailyReports: Record<string, DailyInsightReport> = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-30', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-02', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-30', href: '/rolling/insights/2026-10-30/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-29', href: '/rolling/insights/2026-10-29/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-28', href: '/rolling/insights/2026-10-28/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-10-27', href: '/rolling/insights/2026-10-27/' },
