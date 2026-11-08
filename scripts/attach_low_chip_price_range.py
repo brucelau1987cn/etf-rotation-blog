@@ -165,9 +165,18 @@ def load_bars(symbol: str, as_of: str) -> tuple[list[dict], str]:
 
 
 def price_range_metrics(bars: list[dict], as_of: str, price: float | None) -> dict:
-    """把日K序列折算成 1年/3年最低价契约。bars 已按日升序且不含未来数据。"""
+    """把日K序列折算成 1年/3年最低价契约。
+
+    调用方可能传入覆盖到今天的长序列（历史快照回填就是这样），因此这里
+    再按 as_of 截断一次：no-lookahead 是这一层的责任，不能只靠抓取侧。
+    2026-11-08 首次回填漏了这一步，2026-09-03 快照里出现 2026-10-30 的
+    最低点（未来数据），已全量重算。
+    """
     if not bars:
         return {"status": "UNAVAILABLE", "reason": "no unadjusted daily bars", "adjustment": ADJUSTMENT, "as_of": as_of}
+    bars = [row for row in bars if str(row.get("trade_date") or "")[:10] <= as_of]
+    if not bars:
+        return {"status": "UNAVAILABLE", "reason": "no bars on or before as_of", "adjustment": ADJUSTMENT, "as_of": as_of}
     anchor = date.fromisoformat(as_of)
     start_1y = anchor - timedelta(days=365)
     start_3y = _shift_years(anchor, 3)

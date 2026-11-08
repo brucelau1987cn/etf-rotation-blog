@@ -67,6 +67,15 @@ def test_distance_percent_uses_snapshot_price():
     assert m["price"] == 15.0
 
 
+def test_metrics_itself_drops_future_bars():
+    """历史快照回填会传入覆盖到今天的长序列，函数自身必须按 as_of 截断。"""
+    raw = bars(("2026-08-20", 9.0, 9.1), ("2026-10-30", 1.0, 1.0))
+    m = mod.price_range_metrics(raw, "2026-09-03", 10.0)
+    assert m["status"] == "ok"
+    assert m["low_3y"] == 9.0 and m["low_3y_date"] == "2026-08-20"
+    assert all(str(m[k]) <= "2026-09-03" for k in ("low_1y_date", "low_3y_date"))
+
+
 def test_no_lookahead_rows_after_as_of_are_dropped():
     raw = bars(("2026-11-05", 9.0, 9.1), ("2026-11-09", 1.0, 1.0))
     normalized = mod._normalize(raw, "2026-11-06")

@@ -17,6 +17,7 @@ import argparse
 import json
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,11 +31,17 @@ REQUEST_INTERVAL_S = 0.12
 
 
 def long_bars(symbol: str) -> tuple[list[dict], str]:
-    """拉一条长不复权序列（不改 pr 模块常量的副作用：临时覆盖后还原）。"""
+    """拉一条长不复权序列（不改 pr 模块常量的副作用：临时覆盖后还原）。
+
+    end 必须传「今天」而不是 2099：同花顺按 end 的年份决定拉哪几个年份
+    (end-3 … end)，传 2099 会去请求 2096–2099 四个空端点，腾讯 501 时
+    无备源可用 —— 2026-11-08 首轮回填 112 只因此整只失败。
+    上限语义由 price_range_metrics 里的 as_of 截断保证。
+    """
     original = pr.TENCENT_COUNT
     pr.TENCENT_COUNT = LONG_COUNT
     try:
-        return pr.load_bars(symbol, "2099-12-31")
+        return pr.load_bars(symbol, date.today().isoformat())
     finally:
         pr.TENCENT_COUNT = original
 
@@ -68,6 +75,8 @@ def main() -> int:
 
     failed: list[str] = []
     written = 0
+    # 只重算仍缺有效记录的代码；已有 ok 的不再拉一次网络（本轮失败项过多时
+    # 直接重跑即可，不必 --force 全量重算）。
     for index, symbol in enumerate(symbols, 1):
         try:
             bars, source = long_bars(symbol)
