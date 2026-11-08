@@ -195,6 +195,17 @@ def test_page_renders_three_price_range_metrics():
     assert "不复权" in page
 
 
+def test_price_range_only_channel_updates_single_column():
+    """历史回写只动 price_range 一列，不能重写 shadow 等其它列。"""
+    worker = WORKER.read_text(encoding="utf-8")
+    sync = SYNC.read_text(encoding="utf-8")
+    assert "const priceRangeOnly = preserveExisting && body?.price_range_only === true;" in worker
+    assert "priceRangeOnly ? ['price_range'] : [" in worker
+    assert 'parser.add_argument("--price-range-only"' in sync
+    assert 'body["price_range_only"] = True' in sync
+    assert "price_range_only=price_range_only" in sync
+
+
 def test_d1_worker_and_sync_carry_price_range():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")

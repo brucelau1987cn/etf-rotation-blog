@@ -36,7 +36,8 @@ BATCH_LIMIT = 5000
 CHUNK_ROWS = 198
 
 
-def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> dict:
+def post_metrics(metrics: list[dict], replace_trade_date: str | None = None,
+                 *, price_range_only: bool = False) -> dict:
     """POST metrics array to the D1 API endpoint, chunked to the server's limit.
 
     The server caps one request at MAX_METRICS because a D1 batch holds at most
@@ -52,7 +53,12 @@ def post_metrics(metrics: list[dict], replace_trade_date: str | None = None) -> 
     results: list[dict] = []
     for index, chunk in enumerate(chunks):
         body: dict[str, object] = {"metrics": chunk}
-        if replace_trade_date:
+        if price_range_only:
+            # 只回写 price_range 一列：历史日期补字段时不能顺手把 shadow 等
+            # 其它列重写成快照里的空值。
+            body["preserve_existing"] = True
+            body["price_range_only"] = True
+        elif replace_trade_date:
             body["replace_trade_date"] = replace_trade_date
         if len(chunks) > 1:
             body["chunk_index"] = index
@@ -189,7 +195,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
     return metrics
 
 
-def push(payload: dict, *, dry_run: bool = False) -> int:
+def push(payload: dict, *, dry_run: bool = False, price_range_only: bool = False) -> int:
     metrics = snapshot_metrics(payload)
     if not metrics:
         source = payload.get("_source") or "current"
@@ -204,7 +210,8 @@ def push(payload: dict, *, dry_run: bool = False) -> int:
     if dry_run:
         print(f"DRY-RUN D1 sync: {len(metrics)} rows ({replace_trade_date})", flush=True)
         return 0
-    results = [post_metrics(metrics, replace_trade_date=replace_trade_date)]
+    results = [post_metrics(metrics, replace_trade_date=replace_trade_date,
+                            price_range_only=price_range_only)]
     result = results[0]
     label = payload.get("data_as_of") or payload.get("_source") or ""
     if all(item.get("ok") for item in results):
@@ -223,6 +230,9 @@ def main() -> int:
     parser.add_argument("--history", action="store_true", help="push all history snapshots + current")
     parser.add_argument("--day", help="push a single history snapshot by date YYYY-MM-DD")
     parser.add_argument("--dry-run", action="store_true", help="validate and report; never call D1")
+    parser.add_argument("--price-range-only", action="store_true",
+                        help="only update the price_range column on existing rows "
+                             "(historical price-range backfill; leaves every other column untouched)")
     args = parser.parse_args()
 
     failures = 0
@@ -231,11 +241,11 @@ def main() -> int:
         for snap in snapshots:
             payload = json.loads(snap.read_text(encoding="utf-8"))
             payload["_source"] = snap.name
-            failures += push(payload, dry_run=args.dry_run)
+            failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only)
         # also current file
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
-        failures += push(payload, dry_run=args.dry_run)
+        failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only)
     elif args.day:
         snap = HISTORY_DIR / f"{args.day}.json"
         if not snap.exists():
@@ -243,11 +253,11 @@ def main() -> int:
             return 1
         payload = json.loads(snap.read_text(encoding="utf-8"))
         payload["_source"] = snap.name
-        failures += push(payload, dry_run=args.dry_run)
+        failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only)
     else:
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
-        failures += push(payload, dry_run=args.dry_run)
+        failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only)
 
     return 1 if failures else 0
 

@@ -179,7 +179,7 @@ def test_push_splits_oversized_date_into_ordered_chunks():
     }
     batches = []
 
-    def fake_post(metrics, replace_trade_date=None):
+    def fake_post(metrics, replace_trade_date=None, **kwargs):
         batches.append((len(metrics), replace_trade_date))
         return {"ok": True, "inserted": len(metrics), "total": len(metrics)}
 

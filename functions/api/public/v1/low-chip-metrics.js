@@ -172,6 +172,7 @@ export async function onRequest(context) {
       return json({ ok: false, error: 'invalid JSON' }, 400);
     }
     const preserveExisting = body?.preserve_existing === true;
+    const priceRangeOnly = preserveExisting && body?.price_range_only === true;
     const replaceTradeDate = String(body?.replace_trade_date || '').trim();
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
@@ -292,10 +293,15 @@ export async function onRequest(context) {
       const chunk = valid.slice(i, i + ROWS_PER_STMT);
       const placeholders = chunk.map(() => `(${cols.map(() => '?').join(',')})`).join(',');
       const insertPrefix = preserveExisting ? 'INSERT INTO' : 'INSERT OR REPLACE INTO';
-      const conflict = preserveExisting ? ` ON CONFLICT (trade_date, stock_code) DO UPDATE SET ${[
+      // price_range_only replays a single advisory column onto rows that already
+      // exist (historical price-range backfill). Rewriting the full preserve set
+      // would null shadow fields the snapshots never carried.
+      const updateColumns = priceRangeOnly ? ['price_range'] : [
         'stock_name', 'price', 'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
         'fundamental_shadow_status', 'fundamental_shadow_sessions',
-      ].map((column) => `${column}=excluded.${column}`).join(',')}` : '';
+      ];
+      const conflict = preserveExisting ? ` ON CONFLICT (trade_date, stock_code) DO UPDATE SET ${updateColumns
+        .map((column) => `${column}=excluded.${column}`).join(',')}` : '';
       stmts.push(env.DB.prepare(
         `${insertPrefix} stock_metrics (${cols.join(',')}) VALUES ${placeholders}${conflict}`
       ).bind(...chunk.flatMap(rowValues)));
