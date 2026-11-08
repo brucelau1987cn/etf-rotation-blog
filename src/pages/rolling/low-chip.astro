@@ -143,6 +143,7 @@ const rows = intersectionRows.map((row) => {
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     hlpMetrics: enr.hlp_metrics || null,
     touchstoneMetrics: enr.touchstone_metrics || null,
+    priceRange: enr.price_range || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
     shareholderMetrics: sm,
@@ -293,8 +294,11 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                     <span class="chip-institutional" title="十大流通股东数据待补">股东数据待补</span>
                   ) : null}
                 </div>
-                <div class="chip-row-metrics" aria-label="观察日期">
+                <div class="chip-row-metrics" aria-label="观察日期与价格区间">
                   <span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">{asOfLabel || lowChipData.data_as_of}</em><small>日期</small></span>
+                  <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `一年内最低价（不复权）${row.priceRange.low_1y_date} 最低 ¥${fmt(row.priceRange.low_1y)}` : '一年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_1y != null ? `¥${fmt(row.priceRange.low_1y)}` : '—'}</em><small>1年最低</small></span>
+                  <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `三年内最低价（不复权）${row.priceRange.low_3y_date} 最低 ¥${fmt(row.priceRange.low_3y)}` : '三年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_3y != null ? `¥${fmt(row.priceRange.low_3y)}` : '—'}</em><small>3年最低</small></span>
+                  <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `现价相对三年内最低价（不复权，含分红送股偏差）` : '距三年低点数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.from_low_3y_pct != null ? `${row.priceRange.from_low_3y_pct >= 0 ? '+' : ''}${fmt(row.priceRange.from_low_3y_pct)}%` : '—'}</em><small>距3年低</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
@@ -350,6 +354,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       <footer class="data-note">
         <strong>数据来源：同花顺</strong>
         <span id="chip-data-note">观察日期：{lowChipData.data_as_of} · 范围：沪深A股</span>
+        <p>价格区间指标：一年内 / 三年内最低价取不复权日线最低价（真实成交价，含分红送股影响），「距3年低」为现价相对该最低价的涨幅。</p>
         <p>模型规则与参数属于内部研究信息，仅展示观察结果与公开市场数据。</p>
       </footer>
     </main>
@@ -439,11 +444,18 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         return meta ? '累计入池' + meta.appearances + '日 · 共' + meta.episodes + '轮 · 本轮连续' + meta.streak + '日' : '';
       }
 
+      function parseJsonSafe(value) {
+        if (value == null) return null;
+        if (typeof value !== 'string') return value;
+        try { return JSON.parse(value); } catch (e) { return null; }
+      }
+
       function buildRows(data) {
         return (Array.isArray(data.rows) ? data.rows : []).map(function(row) {
           return Object.assign({}, row, {
             hlpMetrics: row.hlp_metrics || row.hlpMetrics || null,
             touchstoneMetrics: row.touchstone_metrics || row.touchstoneMetrics || null,
+            priceRange: row.price_range || row.priceRange || null,
             nameInitials: row.nameInitials || ''
           });
         });
@@ -477,6 +489,22 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var debtScore = isFinite(debt) ? (debt < 30 ? 6 : debt < 50 ? 4 : debt < 70 ? 2 : 0) : 2;
         var finScore = Math.min(20, roeScore + netScore + debtScore);
         return Math.round(profitScore + mfScore + shScore + finScore);
+      }
+
+      function priceRangeHtml(pr) {
+        var ok = pr && pr.status === 'ok';
+        var fmtPrice = function(v) { return (v == null || !isFinite(Number(v))) ? '—' : '¥' + Number(v).toFixed(2); };
+        var low1 = ok ? fmtPrice(pr.low_1y) : '—';
+        var low3 = ok ? fmtPrice(pr.low_3y) : '—';
+        var dist = (ok && pr.from_low_3y_pct != null && isFinite(Number(pr.from_low_3y_pct)))
+          ? (Number(pr.from_low_3y_pct) >= 0 ? '+' : '') + Number(pr.from_low_3y_pct).toFixed(2) + '%'
+          : '—';
+        var title1 = ok ? '一年内最低价（不复权）' + (pr.low_1y_date || '') + ' 最低 ' + fmtPrice(pr.low_1y) : '一年内最低价数据待补';
+        var title3 = ok ? '三年内最低价（不复权）' + (pr.low_3y_date || '') + ' 最低 ' + fmtPrice(pr.low_3y) : '三年内最低价数据待补';
+        var titleD = ok ? '现价相对三年内最低价（不复权，含分红送股偏差）' : '距三年低点数据待补';
+        return '<span class="chip-metric" title="' + esc(title1) + '"><em class="chip-val">' + low1 + '</em><small>1年最低</small></span>' +
+          '<span class="chip-metric" title="' + esc(title3) + '"><em class="chip-val">' + low3 + '</em><small>3年最低</small></span>' +
+          '<span class="chip-metric" title="' + esc(titleD) + '"><em class="chip-val">' + dist + '</em><small>距3年低</small></span>';
       }
 
       function rowHtml(row, index, asOf) {
@@ -530,8 +558,9 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
               '</div>' +
-              '<div class="chip-row-metrics" aria-label="观察日期">' +
+              '<div class="chip-row-metrics" aria-label="观察日期与价格区间">' +
                 '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
+                priceRangeHtml(row.priceRange) +
               '</div>' +
               '<div class="chip-row-footer">' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
@@ -836,6 +865,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   technical: row.technical ? JSON.parse(row.technical) : {},
                   hlpMetrics: row.hlp_metrics || null,
                   touchstoneMetrics: row.touchstone_metrics || null,
+                  priceRange: parseJsonSafe(row.price_range),
                   industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
                   industryEtfStatus: row.industry_etf_status || 'unknown',
                   industryEtfPoolCount: row.industry_etf_pool_count ?? null,
@@ -1094,7 +1124,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{grid-template-columns:1fr}.chip-toolbar-left{grid-column:1;grid-row:1}.chip-toolbar-right,.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;grid-row:2;justify-content:flex-start}.chip-history{grid-column:1;grid-row:3}.chip-pager{grid-column:1;grid-row:4;justify-self:start}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.55rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.3rem .55rem;flex-wrap:wrap}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 
 /* 对应ETF (2026-09-07: 直接显示ETF名称+代码, 无标签无池说明) */
 .chip-row-etf{margin-top:.4rem;display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap;padding:.3rem .4rem;background:rgba(241,245,249,.42);border-radius:7px;border:1px solid rgba(148,163,184,.14)}

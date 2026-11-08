@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit', 'hlp_metrics', 'touchstone_metrics',
+  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range',
   'risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons',
   'risk_advisory', 'risk_coverage', 'risk_freshness',
 ];
@@ -46,6 +46,7 @@ function clientMetric(row) {
   metric.shareholder_nature = parseJsonField(metric.shareholder_nature, null);
   metric.hlp_metrics = parseJsonField(metric.hlp_metrics, null);
   metric.touchstone_metrics = parseJsonField(metric.touchstone_metrics, null);
+  metric.price_range = parseJsonField(metric.price_range, null);
   metric.risk_reasons = parseJsonField(metric.risk_reasons, []);
   metric.risk_coverage = parseJsonField(metric.risk_coverage, null);
   metric.risk_freshness = parseJsonField(metric.risk_freshness, null);
@@ -108,6 +109,7 @@ export async function onRequest(context) {
         risk_advisory INTEGER,
         risk_coverage TEXT,
         risk_freshness TEXT,
+        price_range TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
@@ -213,6 +215,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN conc70 REAL').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN hlp_metrics TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN touchstone_metrics TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
     for (const column of ['risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_coverage', 'risk_freshness']) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} TEXT`).run(); } catch (e) {}
     }
@@ -225,7 +228,7 @@ export async function onRequest(context) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} ${type}`).run(); } catch (e) {}
     }
     let inserted = 0;
-    // 批量写入：D1 prepared statement 参数上限约100；39列×2行=78参数。
+    // 批量写入：D1 prepared statement 参数上限约100；48列×2行=96参数（勿再轻易加列）。
 
     const cols = ['trade_date', 'stock_code', 'stock_name', 'shareholder_count',
       'shareholder_change_pct', 'main_force', 'main_force_label',
@@ -235,7 +238,7 @@ export async function onRequest(context) {
       'industry_etf_status', 'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
-      'fundamental_shadow_status', 'fundamental_shadow_sessions'];
+      'fundamental_shadow_status', 'fundamental_shadow_sessions', 'price_range'];
     cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
@@ -256,6 +259,7 @@ export async function onRequest(context) {
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
       m.hlp_metrics ? JSON.stringify(m.hlp_metrics) : null,
       m.touchstone_metrics ? JSON.stringify(m.touchstone_metrics) : null,
+      m.price_range ? JSON.stringify(m.price_range) : null,
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
