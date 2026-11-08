@@ -116,6 +116,10 @@ export async function onRequest(context) {
     `).run();
     // Backward-compatible column add
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN announcement_date TEXT').run(); } catch (e) {}
+    // GET path binds nothing, but `SELECT *` only returns columns that exist.
+    // A pre-existing table without price_range silently dropped the field from
+    // the API response (2026-11-08 first sync), so the add must live here too.
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
   };
 
   if (method === 'GET') {
@@ -238,8 +242,8 @@ export async function onRequest(context) {
       'industry_etf_status', 'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
-      'fundamental_shadow_status', 'fundamental_shadow_sessions', 'price_range'];
-    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness');
+      'fundamental_shadow_status', 'fundamental_shadow_sessions'];
+    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -259,7 +263,6 @@ export async function onRequest(context) {
       m.closing_profit ?? null, m.average_cost ?? null, m.conc70 ?? null,
       m.hlp_metrics ? JSON.stringify(m.hlp_metrics) : null,
       m.touchstone_metrics ? JSON.stringify(m.touchstone_metrics) : null,
-      m.price_range ? JSON.stringify(m.price_range) : null,
       m.pe_ttm ?? null, m.pb ?? null, m.ps_ttm ?? null, m.pcf_ttm ?? null,
       m.total_share ?? null, m.total_mv ?? null,
       m.fundamental_shadow_status || null, m.fundamental_shadow_sessions ?? null,
@@ -267,6 +270,7 @@ export async function onRequest(context) {
       m.risk_reasons ? JSON.stringify(m.risk_reasons) : null, m.risk_advisory ? 1 : 0,
       m.risk_coverage ? JSON.stringify(m.risk_coverage) : null,
       m.risk_freshness ? JSON.stringify(m.risk_freshness) : null,
+      m.price_range ? JSON.stringify(m.price_range) : null,
     ];
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
