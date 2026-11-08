@@ -20,6 +20,8 @@ function history(nature, legacy = {}) {
   return vm.runInNewContext('(' + historyObject + '})', {
     row: { ...legacy, shareholder_nature: nature }, code: '600269', stockName: '测试',
     stockInitialsByCode: {}, themes: [], occurrenceLookup: {}, day: '2026-10-29', hasPeriods: false,
+    // 历史行映射现在会解析 price_range JSON；vm 沙箱必须提供同名辅助函数。
+    parseJsonSafe: (value) => value,
   });
 }
 function html(row) {
@@ -27,6 +29,8 @@ function html(row) {
     row, PAGE_SIZE: 6, esc: (v) => String(v ?? ''), fmt: (v) => String(v),
     fmtInt: (v) => String(v ?? '—'), fmtMetric: (v) => String(v ?? '—'),
     chipFocusClass: () => '', compositeOf: () => 50, renderIndustryEtfSection: () => '',
+    // rowHtml 现在会拼接价格区间区块；本用例只关心股东徽章，沙箱返回空片段即可。
+    priceRangeHtml: () => '',
   });
 }
 

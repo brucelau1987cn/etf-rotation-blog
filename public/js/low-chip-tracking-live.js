@@ -209,6 +209,8 @@
     }
     card.dataset.totalChange = String(totalChange);
     card.dataset.liveApplied = '1';
+    card.dataset.liveTime = quoted.time;
+    card.dataset.liveMode = mode;
     quoteBySymbol.set(card.dataset.liveSymbol, { totalChange: totalChange, quote: quote });
     drawLivePoint(card, price, totalChange);
     renderLiveRow(card, quote, mode, dailyChange);
@@ -216,31 +218,9 @@
   }
 
   function renderSummary() {
-    var liveValues = Array.from(quoteBySymbol.values());
-    var changes = liveValues.map(function (item) { return item.totalChange; }).filter(Number.isFinite);
-    if (!changes.length) return;
-
-    var sorted = changes.slice().sort(function (a, b) { return a - b; });
-    var rising = changes.filter(function (value) { return value > 0; }).length;
-    var middle = Math.floor(sorted.length / 2);
-    var median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-    var strongest = Math.max.apply(null, changes);
-    var risingEl = document.getElementById('tc-summary-rising');
-    var countEl = document.getElementById('tc-summary-rising-count');
-    var medianEl = document.getElementById('tc-summary-median');
-    var strongestEl = document.getElementById('tc-summary-strongest');
-    var modeEl = document.getElementById('tc-summary-mode');
-    var firstLive = liveValues[0];
-
-    if (risingEl) risingEl.textContent = fmt(rising / changes.length * 100, 1) + '%';
-    if (countEl) countEl.textContent = rising + '/' + changes.length;
-    if (medianEl) { medianEl.textContent = signed(median, 1) + '%'; setDirection(medianEl, median); }
-    if (strongestEl) { strongestEl.textContent = signed(strongest, 1) + '%'; setDirection(strongestEl, strongest); }
-    if (modeEl && firstLive) {
-      var quoted = quoteParts(firstLive.quote);
-      var partial = changes.length === cards.length ? '' : ' · 部分实时 ' + changes.length + '/' + cards.length;
-      modeEl.textContent = liveMode(firstLive.quote) + '统计 · ' + (quoted ? quoted.time : '—') + partial;
-    }
+    // 概览统计的唯一实现位于跟踪页内的筛选脚本：它按「当前筛选 + 加入日口径」计算，
+    // 实时脚本只负责更新各卡片的 data-* 数值，然后请求重算，避免两套口径互相覆盖。
+    if (typeof window.__tcUpdateSummary === 'function') window.__tcUpdateSummary();
   }
 
   function rerenderCached() {

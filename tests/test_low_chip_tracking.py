@@ -206,6 +206,48 @@ def test_tracking_page_progressively_materializes_cards_from_safe_inline_data():
     assert "var items = Array.from(list.querySelectorAll('.tc-card'));" in page
 
 
+def test_tracking_page_join_date_cohort_filter_contract():
+    """加入日期筛选：两种口径 + 每日上涨占比，概览统计跟随当前筛选。"""
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+
+    # 口径切换与日期下拉
+    assert 'id="tc-basis-first"' in page
+    assert 'id="tc-basis-last"' in page
+    assert 'id="tc-join-date"' in page
+    assert 'id="tc-join-meta"' in page
+    assert "首次加入" in page
+    assert "最近入池" in page
+    assert "low_chip_tracking_join_basis" in page
+    assert "low_chip_tracking_join_date" in page
+
+    # 两种口径都需要卡片携带对应日期，SSR 与动态卡片成套
+    assert "data-last-seen=" in page
+    assert "data-first-seen=" in page
+    assert "lastSeen: rec.last_seen" in page
+    assert "firstSeen: rec.first_seen" in page
+    assert "el.dataset.lastSeen" in page
+    assert "el.dataset.firstSeen" in page
+
+    # 分组与占比计算
+    assert "function cardJoinDate(el)" in page
+    assert "function cohortStats(list)" in page
+    assert "function renderJoinOptions()" in page
+    assert "joinBasis === 'last' ? el.dataset.lastSeen : el.dataset.firstSeen" in page
+    assert "preDateItems" in page
+    assert "entry.rising / entry.valued * 100" in page
+
+    # 概览统计必须按当前筛选重算，且与实时脚本共用同一实现
+    assert 'id="tc-summary-scope"' in page
+    assert "function updateSummary()" in page
+    assert "window.__tcUpdateSummary = updateSummary;" in page
+    live = (ROOT / "public" / "js" / "low-chip-tracking-live.js").read_text(encoding="utf-8")
+    assert "window.__tcUpdateSummary()" in live
+    assert "card.dataset.liveTime" in live
+    assert "card.dataset.liveMode" in live
+    # 清除按钮重置加入日期
+    assert "localStorage.removeItem(joinDateKey)" in page
+
+
 def test_tracking_script_exists():
     assert SCRIPT.exists()
     text = SCRIPT.read_text(encoding="utf-8")
@@ -390,7 +432,10 @@ def test_tracking_page_has_batched_live_quote_layer():
     assert "currentPhase.label !== '今日休市'" in live_app
     assert "document.createElement('td')" in live_app
     assert "low-chip-quotes-updated" in live_app
-    assert "部分实时" in live_app
+    # 概览统计（含「部分实时 x/y」文案）现在只在跟踪页的筛选脚本里实现，
+    # 实时脚本负责更新卡片 data-* 后回调重算，避免两套口径互相覆盖。
+    assert "部分实时" in page
+    assert "部分实时 " in page and "liveCards.length + '/' + filteredItems.length" in page
     assert "今日盘中" in live_app
     assert "收盘待结算" in live_app
     assert "获利盘待收盘" in live_app
