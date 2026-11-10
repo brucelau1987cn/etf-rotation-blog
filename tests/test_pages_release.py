@@ -398,19 +398,88 @@ def test_url_probe_stops_after_retry_budget(monkeypatch):
     assert len({call[0][0].full_url for call in attempts}) == 3
 
 
-def test_url_probe_does_not_retry_http_failure(monkeypatch):
+def test_url_probe_does_not_retry_client_error(monkeypatch):
+    """4xx 是真实的路由/鉴权问题，重试只会拖慢失败。"""
     attempts = []
 
     def fake_urlopen(request, **kwargs):
         attempts.append((request, kwargs))
         raise pages_release.urllib.error.HTTPError(
-            request.full_url, 503, "Service Unavailable", Message(), None,
+            request.full_url, 404, "Not Found", Message(), None,
         )
 
     monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
-    with pytest.raises(RuntimeError, match="HTTP 503"):
+    with pytest.raises(RuntimeError, match="HTTP 404"):
         pages_release.probe_urls(["https://example.test/page/"])
+    assert len(attempts) == 1
+
+
+def test_url_probe_retries_transient_server_error(monkeypatch):
+    """5xx 是 Pages 传播期的边缘瞬时错误，必须重试而不是直接判失败。"""
+    attempts = []
+
+    class Response:
+        status = 200
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, _limit):
+            return b"ok"
+
+    def fake_urlopen(request, **kwargs):
+        attempts.append((request, kwargs))
+        if len(attempts) == 1:
+            raise pages_release.urllib.error.HTTPError(
+                request.full_url, 500, "Internal Server Error", Message(), None,
+            )
+        return Response()
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    busts = iter((1, 2))
+    monkeypatch.setattr(pages_release.time, "time_ns", lambda: next(busts))
+    monkeypatch.setattr(pages_release, "URL_PROBE_ATTEMPTS", 2)
+    pages_release.probe_urls(["https://example.test/page/"])
+    assert len(attempts) == 2
+
+
+def test_json_probe_retries_transient_server_error(tmp_path, monkeypatch):
+    """2026-11-10 17:30 金银库存发布：一次 HTTP 500 让已上线的数据被判失败。"""
+    expected_path = tmp_path / "snapshot.json"
+    expected_path.write_text(json.dumps({"generated_at": "new"}), encoding="utf-8")
+    attempts = []
+
+    def fake_urlopen(request, **kwargs):
+        attempts.append(request)
+        if len(attempts) == 1:
+            raise pages_release.urllib.error.HTTPError(
+                request.full_url, 500, "Internal Server Error", Message(), None,
+            )
+        return io.BytesIO(json.dumps({"generated_at": "new"}).encode())
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    pages_release.probe_json_matches({"https://example.test/data.json": expected_path})
+    assert len(attempts) == 2
+
+
+def test_json_probe_fails_fast_on_client_error(tmp_path, monkeypatch):
+    expected_path = tmp_path / "snapshot.json"
+    expected_path.write_text(json.dumps({"generated_at": "new"}), encoding="utf-8")
+    attempts = []
+
+    def fake_urlopen(request, **kwargs):
+        attempts.append(request)
+        raise pages_release.urllib.error.HTTPError(
+            request.full_url, 403, "Forbidden", Message(), None,
+        )
+
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pages_release.time, "sleep", lambda seconds: None)
+    with pytest.raises(RuntimeError, match="HTTP 403"):
+        pages_release.probe_json_matches({"https://example.test/data.json": expected_path})
     assert len(attempts) == 1
 
 

@@ -297,6 +297,16 @@ def purge_custom_domain() -> None:
     )
 
 
+def is_transient_http_status(code: int) -> bool:
+    """True for statuses Pages returns while an edge is still converging.
+
+    5xx and 429 are propagation/warm-up noise; retrying them is correct.
+    4xx (403/404) means the route or credential is genuinely wrong and
+    retrying only delays the real failure.
+    """
+    return code >= 500 or code == 429
+
+
 def probe_urls(urls: Iterable[str]) -> None:
     for url in urls:
         separator = "&" if "?" in url else "?"
@@ -312,7 +322,12 @@ def probe_urls(urls: Iterable[str]) -> None:
                     response.read(1024)
                 break
             except urllib.error.HTTPError as exc:
-                raise RuntimeError(f"production probe failed: {url} HTTP {exc.code}") from exc
+                # 4xx 是真实的路由/权限问题，立即失败；5xx/429 是 Pages 传播期的
+                # 边缘瞬时错误（2026-11-10 17:30 金银库存发布即因一次 HTTP 500
+                # 被判失败，而数据其实已经上线），必须重试到预算耗尽。
+                if not is_transient_http_status(exc.code) or attempt >= URL_PROBE_ATTEMPTS - 1:
+                    raise RuntimeError(f"production probe failed: {url} HTTP {exc.code}") from exc
+                time.sleep(URL_PROBE_DELAY_SECONDS)
             except OSError as exc:
                 if attempt >= URL_PROBE_ATTEMPTS - 1:
                     raise RuntimeError(
@@ -330,8 +345,23 @@ def probe_json_matches(matches: dict[str, Path]) -> None:
                 f"{url}{separator}bust={time.time_ns()}",
                 headers={"User-Agent": "HermesPagesRelease/1.0", "Cache-Control": "no-cache"},
             )
-            with urllib.request.urlopen(request, timeout=30) as response:
-                actual = json.load(response)
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    actual = json.load(response)
+            except urllib.error.HTTPError as exc:
+                # 与 probe_urls 同理：传播期的 5xx/429 属于瞬时错误，用同一份
+                # 65 次预算重试；4xx 说明路径或鉴权真的不对，立即失败。
+                if not is_transient_http_status(exc.code) or attempt >= JSON_PROBE_ATTEMPTS - 1:
+                    raise RuntimeError(f"production JSON probe failed: {url} HTTP {exc.code}") from exc
+                time.sleep(JSON_PROBE_DELAY_SECONDS)
+                continue
+            except OSError as exc:
+                if attempt >= JSON_PROBE_ATTEMPTS - 1:
+                    raise RuntimeError(
+                        f"production JSON probe connection failed after {JSON_PROBE_ATTEMPTS} attempts: {url}: {exc}"
+                    ) from exc
+                time.sleep(JSON_PROBE_DELAY_SECONDS)
+                continue
             if actual == expected:
                 break
             if attempt < JSON_PROBE_ATTEMPTS - 1:
