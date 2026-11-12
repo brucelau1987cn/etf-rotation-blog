@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-11-12 11:44:19 CST",
+  "generated_at": "2026-11-12 14:37:54 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 0.93,
+          "value": 1.69,
           "unit": "pp",
-          "display": "0.93pp",
+          "display": "1.69pp",
           "as_of": "2026-11-12",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -95,12 +95,12 @@
           "detail": "国债/信用债ETF均值减沪深300收益",
           "change": null,
           "change_label": "较上期",
-          "tone": "neutral"
+          "tone": "warning"
         }
       ],
       "state": "逆风",
-      "score": 1.5,
-      "headline": "固收5日相对转强+0.93pp",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+1.69pp",
       "as_of": "2026-11-12"
     },
     {
@@ -372,14 +372,14 @@
         {
           "key": "overseas_5d",
           "title": "海外映射ETF 5日",
-          "value": -0.02,
+          "value": -0.72,
           "unit": "%",
-          "display": "-0.02%",
+          "display": "-0.72%",
           "as_of": "2026-11-12",
           "frequency": "日频",
           "source": "境内QDII行情",
           "source_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-          "detail": "20日 -0.40% · 汇率与溢折价会扰动",
+          "detail": "20日 -1.10% · 汇率与溢折价会扰动",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -402,7 +402,7 @@
       ],
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日-0.02%",
+      "headline": "海外映射ETF 5日-0.72%",
       "as_of": "2026-11-12"
     },
     {
@@ -493,11 +493,11 @@
       "key": "rates_fixed_income",
       "label": "固收相对权益强弱",
       "state": "逆风",
-      "score": 1.5,
-      "headline": "固收5日相对转强+0.93pp",
+      "score": 2.0,
+      "headline": "固收5日相对沪深300超额+1.69pp",
       "reasons": [
-        "固收5日相对转强+0.93pp",
-        "固收20日相对偏强+2.32pp"
+        "固收5日相对沪深300超额+1.69pp",
+        "固收20日相对偏强+3.09pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -510,36 +510,36 @@
         "信用利差"
       ],
       "metrics": {
-        "bond_ret5": -0.14,
-        "bond_ret20": 0.15,
-        "equity_ret5": -1.07,
-        "equity_ret20": -2.17,
-        "bond_vs_equity_5d_pp": 0.93,
-        "bond_vs_equity_20d_pp": 2.32
+        "bond_ret5": -0.1,
+        "bond_ret20": 0.21,
+        "equity_ret5": -1.79,
+        "equity_ret20": -2.88,
+        "bond_vs_equity_5d_pp": 1.69,
+        "bond_vs_equity_20d_pp": 3.09
       },
       "details": {
         "511260": {
-          "ret5": 0.03,
-          "ret20": 0.54,
-          "last": 135.92,
+          "ret5": 0.08,
+          "ret20": 0.59,
+          "last": 135.99,
           "date": "2026-11-12"
         },
         "511010": {
-          "ret5": -0.02,
-          "ret20": 0.29,
-          "last": 141.32,
+          "ret5": -0.0,
+          "ret20": 0.32,
+          "last": 141.35,
           "date": "2026-11-12"
         },
         "511110": {
-          "ret5": -0.44,
-          "ret20": -0.37,
-          "last": 101.3,
+          "ret5": -0.37,
+          "ret20": -0.29,
+          "last": 101.38,
           "date": "2026-11-12"
         },
         "510300": {
-          "ret5": -1.07,
-          "ret20": -2.17,
-          "last": 4.15,
+          "ret5": -1.79,
+          "ret20": -2.88,
+          "last": 4.12,
           "date": "2026-11-12"
         }
       },
@@ -550,9 +550,9 @@
       "label": "海外风险映射压力",
       "state": "中性",
       "score": 0.25,
-      "headline": "海外映射ETF 5日-0.02%",
+      "headline": "海外映射ETF 5日-0.72%",
       "reasons": [
-        "海外映射ETF 5日-0.02%",
+        "海外映射ETF 5日-0.72%",
         "海外相关池弱化占比62%（确认项）"
       ],
       "status": "ok",
@@ -566,17 +566,17 @@
         "行业集中度"
       ],
       "metrics": {
-        "proxy_ret5_avg": -0.02,
-        "proxy_ret20_avg": -0.4,
-        "proxy_weak_count_5d": 0,
+        "proxy_ret5_avg": -0.72,
+        "proxy_ret20_avg": -1.1,
+        "proxy_weak_count_5d": 1,
         "overseas_pool_count": 8,
         "overseas_weak_share": 0.625
       },
       "details": {
         "159941": {
-          "ret5": 1.53,
-          "ret20": -2.98,
-          "last": 1.66,
+          "ret5": 0.92,
+          "ret20": -3.57,
+          "last": 1.65,
           "date": "2026-11-12"
         },
         "513500": {
@@ -586,15 +586,15 @@
           "date": "2026-11-12"
         },
         "159502": {
-          "ret5": -1.28,
-          "ret20": 7.73,
-          "last": 1.617,
+          "ret5": -2.26,
+          "ret20": 6.66,
+          "last": 1.601,
           "date": "2026-11-12"
         },
         "513520": {
-          "ret5": -0.52,
-          "ret20": -5.99,
-          "last": 2.104,
+          "ret5": -1.75,
+          "ret20": -7.15,
+          "last": 2.078,
           "date": "2026-11-12"
         }
       },
@@ -713,7 +713,7 @@
     "headwind_level": 1,
     "headwind_count": 1,
     "watch_count": 0,
-    "score_total": 2.25,
+    "score_total": 2.75,
     "label": "偏逆风",
     "allow_chase": false,
     "allow_new_offense": true,
