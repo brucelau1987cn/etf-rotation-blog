@@ -143,6 +143,7 @@ const rows = intersectionRows.map((row) => {
     institutionalShareholderNames: enr.institutional_shareholder_names || [],
     hlpMetrics: enr.hlp_metrics || null,
     touchstoneMetrics: enr.touchstone_metrics || null,
+    chipConcentration: enr.chip_concentration || null,
     priceRange: enr.price_range || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
@@ -246,6 +247,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="debt-ratio" aria-pressed="false">负债率 ≤ 30%</button>
           <button type="button" class="chip-filter-btn" data-filter="touchstone" aria-pressed="false" title="日线 ZIG15：当前候选底部或正式确认底部">点石成金</button>
           <button type="button" class="chip-filter-btn" data-filter="hlp-chip-signal" aria-pressed="false">筹码顶底</button>
+          <button type="button" class="chip-filter-btn" data-filter="conc90" aria-pressed="false" title="90%筹码集中度 &lt; 10%（同花顺集中度90口径，数值越小筹码越集中）">集中度90 &lt; 10%</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -276,6 +278,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
               data-hlp-chip-signal={row.hlpMetrics?.chip_signals?.length ? '1' : '0'}
               data-touchstone={(row.touchstoneMetrics?.touchstone_hit ?? row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? '1' : '0'}
+              data-conc90={row.chipConcentration?.concentration_90 ?? ''}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -299,6 +302,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `一年内最低价（不复权）${row.priceRange.low_1y_date} 最低 ¥${fmt(row.priceRange.low_1y)}` : '一年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_1y != null ? `¥${fmt(row.priceRange.low_1y)}` : '—'}</em><small>1年最低</small></span>
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `三年内最低价（不复权）${row.priceRange.low_3y_date} 最低 ¥${fmt(row.priceRange.low_3y)}` : '三年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_3y != null ? `¥${fmt(row.priceRange.low_3y)}` : '—'}</em><small>3年最低</small></span>
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `现价相对三年内最低价（不复权，含分红送股偏差）` : '距三年低点数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.from_low_3y_pct != null ? `${row.priceRange.from_low_3y_pct >= 0 ? '+' : ''}${fmt(row.priceRange.from_low_3y_pct)}%` : '—'}</em><small>距3年低</small></span>
+                  <span class="chip-metric" title={row.chipConcentration?.status === 'ok' ? `90%筹码集中度 ${fmt(row.chipConcentration.concentration_90)}%（同花顺集中度90，数值越小筹码越集中）` : '90%筹码集中度数据待补'}><em class="chip-val">{row.chipConcentration?.status === 'ok' && row.chipConcentration.concentration_90 != null ? `${fmt(row.chipConcentration.concentration_90)}%` : '—'}</em><small>集中度90</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
@@ -455,6 +459,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           return Object.assign({}, row, {
             hlpMetrics: row.hlp_metrics || row.hlpMetrics || null,
             touchstoneMetrics: row.touchstone_metrics || row.touchstoneMetrics || null,
+            chipConcentration: row.chip_concentration || row.chipConcentration || null,
             priceRange: row.price_range || row.priceRange || null,
             nameInitials: row.nameInitials || ''
           });
@@ -507,6 +512,15 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           '<span class="chip-metric" title="' + esc(titleD) + '"><em class="chip-val">' + dist + '</em><small>距3年低</small></span>';
       }
 
+      function conc90Html(conc) {
+        var ok = conc && conc.status === 'ok' && conc.concentration_90 != null && isFinite(Number(conc.concentration_90));
+        var text = ok ? Number(conc.concentration_90).toFixed(2) + '%' : '—';
+        var title = ok
+          ? '90%筹码集中度 ' + Number(conc.concentration_90).toFixed(2) + '%（同花顺集中度90，数值越小筹码越集中）'
+          : '90%筹码集中度数据待补';
+        return '<span class="chip-metric" title="' + esc(title) + '"><em class="chip-val">' + text + '</em><small>集中度90</small></span>';
+      }
+
       function rowHtml(row, index, asOf) {
         var change = Number(row.change_percent);
         var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
@@ -514,6 +528,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var badge = '';
         var hlp = row.hlpMetrics || null;
         var touchstone = row.touchstoneMetrics || null;
+        var conc = row.chipConcentration || null;
         if (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length) {
           badge += '<span class="chip-hlp-badge" title="HLP筹码顶底：' + esc(hlp.chip_signals.join('、')) + '">筹码顶底</span>';
         }
@@ -553,7 +568,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var reco = unavailable ? '' : composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
         var recoHtml = unavailable ? '<span class="chip-reco is-unavailable" title="推荐度：暂不可用">暂不可用</span>' : '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
@@ -561,6 +576,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               '<div class="chip-row-metrics" aria-label="观察日期与价格区间">' +
                 '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
                 priceRangeHtml(row.priceRange) +
+                conc90Html(conc) +
               '</div>' +
               '<div class="chip-row-footer">' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
@@ -673,6 +689,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
           if (activeFilters.has('hlp-chip-signal') && c.dataset.hlpChipSignal !== '1') return false;
           if (activeFilters.has('touchstone') && c.dataset.touchstone !== '1') return false;
+          if (activeFilters.has('conc90') && (c.dataset.conc90 === '' || c.dataset.conc90 == null || !Number.isFinite(Number(c.dataset.conc90)) || Number(c.dataset.conc90) >= 10)) return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -865,6 +882,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   technical: row.technical ? JSON.parse(row.technical) : {},
                   hlpMetrics: row.hlp_metrics || null,
                   touchstoneMetrics: row.touchstone_metrics || null,
+                  chipConcentration: parseJsonSafe(row.chip_concentration),
                   priceRange: parseJsonSafe(row.price_range),
                   industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
                   industryEtfStatus: row.industry_etf_status || 'unknown',
@@ -1095,7 +1113,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-hlp-badge{padding:.18rem .45rem;border:1px solid #fca5a5;border-radius:999px;background:#fff1f2;color:#be123c;font-size:.66rem;font-weight:800;white-space:nowrap}
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
-  .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
+  .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;flex-wrap:wrap;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
   .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:64px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
   .chip-metric:first-child{border-left:0}
   .chip-metric-asof{min-width:92px}

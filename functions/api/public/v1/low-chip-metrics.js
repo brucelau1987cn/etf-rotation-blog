@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range',
+  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range', 'chip_concentration',
   'risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons',
   'risk_advisory', 'risk_coverage', 'risk_freshness',
 ];
@@ -47,6 +47,7 @@ function clientMetric(row) {
   metric.hlp_metrics = parseJsonField(metric.hlp_metrics, null);
   metric.touchstone_metrics = parseJsonField(metric.touchstone_metrics, null);
   metric.price_range = parseJsonField(metric.price_range, null);
+  metric.chip_concentration = parseJsonField(metric.chip_concentration, null);
   metric.risk_reasons = parseJsonField(metric.risk_reasons, []);
   metric.risk_coverage = parseJsonField(metric.risk_coverage, null);
   metric.risk_freshness = parseJsonField(metric.risk_freshness, null);
@@ -120,7 +121,8 @@ export async function onRequest(context) {
     // A pre-existing table without price_range silently dropped the field from
     // the API response (2026-11-08 first sync), so the add must live here too.
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
-  };
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN chip_concentration TEXT').run(); } catch (e) {}
+
 
   if (method === 'GET') {
     const syncToken = String(env.LOW_CHIP_SYNC_TOKEN || '').trim();
@@ -173,6 +175,7 @@ export async function onRequest(context) {
     }
     const preserveExisting = body?.preserve_existing === true;
     const priceRangeOnly = preserveExisting && body?.price_range_only === true;
+    const chipConcentrationOnly = preserveExisting && body?.chip_concentration_only === true;
     const replaceTradeDate = String(body?.replace_trade_date || '').trim();
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
@@ -221,6 +224,7 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN hlp_metrics TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN touchstone_metrics TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN chip_concentration TEXT').run(); } catch (e) {}
     for (const column of ['risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_coverage', 'risk_freshness']) {
       try { await env.DB.prepare(`ALTER TABLE stock_metrics ADD COLUMN ${column} TEXT`).run(); } catch (e) {}
     }
@@ -244,7 +248,7 @@ export async function onRequest(context) {
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
-    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range');
+    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range', 'chip_concentration');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -272,6 +276,7 @@ export async function onRequest(context) {
       m.risk_coverage ? JSON.stringify(m.risk_coverage) : null,
       m.risk_freshness ? JSON.stringify(m.risk_freshness) : null,
       m.price_range ? JSON.stringify(m.price_range) : null,
+      m.chip_concentration ? JSON.stringify(m.chip_concentration) : null,
     ];
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
@@ -296,7 +301,7 @@ export async function onRequest(context) {
       // price_range_only replays a single advisory column onto rows that already
       // exist (historical price-range backfill). Rewriting the full preserve set
       // would null shadow fields the snapshots never carried.
-      const updateColumns = priceRangeOnly ? ['price_range'] : [
+      const updateColumns = priceRangeOnly ? ['price_range'] : chipConcentrationOnly ? ['chip_concentration'] : [
         'stock_name', 'price', 'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
         'fundamental_shadow_status', 'fundamental_shadow_sessions',
       ];
