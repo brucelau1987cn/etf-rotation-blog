@@ -174,6 +174,40 @@ def test_chip_concentration_only_channel_updates_single_column():
     assert "chip_concentration_only=chip_concentration_only" in sync
 
 
+def test_query_codes_keeps_exchange_suffix():
+    """裸 6 位代码批量查询会被 iWenCai 误识别成基金（2026-07-31 实测
+    20 只裸代码只返回 3 条 .SZ，其余变 .OF），必须带 .SZ/.SH 后缀。"""
+    assert mod._query_codes(["000931.SZ", "600605.SH"]) == "000931.SZ、600605.SH"
+
+
+def test_fetch_batch_splits_on_silent_empty_envelope(monkeypatch):
+    """iWenCai 负载时返回合法的空信封（code_count=0/has_more=false）。整批静默
+    变空必须靠对半拆批识别，不能当成「上游没有数据」。"""
+    calls = []
+    good = {"000931.SZ": 14.4, "600605.SH": 18.8, "603033.SH": 21.2, "688091.SH": 25.1}
+
+    def fake_paginate(query):
+        codes = [part for part in query.split(" ")[0].split("、") if part]
+        calls.append(len(codes))
+        if len(codes) >= 4:
+            return ([], 0)  # 空信封
+        return ([{"股票代码": c, "集中度90[20260731]": good[c]} for c in codes], len(codes))
+
+    monkeypatch.setattr(mod.base, "paginate", fake_paginate)
+    out = mod.fetch_batch(list(good), "20260731")
+    assert out == good
+    assert calls[0] == 4 and len(calls) > 1
+
+
+def test_fetch_batch_gives_up_after_depth_limit(monkeypatch):
+    def fake_paginate(query):
+        return ([], 0)
+
+    monkeypatch.setattr(mod.base, "paginate", fake_paginate)
+    out = mod.fetch_batch(["000931.SZ", "600605.SH"], "20260731")
+    assert out == {}
+
+
 def test_worker_js_parses():
     """字符串断言全过但文件语法坏了（少一个 `};`）会让 Pages Functions 构建失败，
     而本地 astro build 不检查 functions/。必须真跑一次 node --check。"""

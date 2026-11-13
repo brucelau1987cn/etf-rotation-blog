@@ -35,6 +35,7 @@ import build_low_chip_base as base  # noqa: E402  (复用 paginate / DATA)
 FIELD_PREFIX = "集中度90"
 THRESHOLD = 10.0
 BATCH_SIZE = 40
+MAX_SPLIT_DEPTH = 4
 SOURCE = "iwencai-concentration-90"
 
 
@@ -77,11 +78,27 @@ def _value(row: dict) -> float | None:
     return None
 
 
-def fetch_batch(codes: list[str], compact_date: str) -> dict[str, float]:
-    """批量取一批标的的集中度90；返回 {code: value}。"""
-    bare = [code.split(".")[0] for code in codes]
-    base.fetch = _fetch  # paginate 内部调用模块级 fetch
-    rows, _ = base.paginate("、".join(bare) + f" {FIELD_PREFIX}[{compact_date}]")
+def _query_codes(codes: list[str]) -> str:
+    """批量查询用带交易所后缀的完整代码。
+
+    iWenCai 把裸 6 位代码批量丢进查询时会误识别成基金：2026-07-31 的 20 只
+    裸代码返回 `000931.OF`、`600605.OF`…，code_count 只有 3（真正匹配的
+    sz 三只），其余静默缺失。带 `.SZ`/`.SH` 后缀后同样 20 只返回 20 条。
+    """
+    return "、".join(codes)
+
+
+def _fetch_chunk(codes: list[str], compact_date: str, depth: int = 0) -> dict[str, float]:
+    """查一批代码；返回空时对半拆开重查。
+
+    iWenCai 在负载时会返回**合法的空信封**（code_count=0、has_more=false），
+    paginate 的一致性校验认为这是完整结果，于是一整个 40 只批次静默变成
+    「上游没有数据」。2026-08-21 的 40 只批次实测就是这样：38 只成功、39 只
+    起返回 0 条且可复现，同一批 38 只拆两半各自正常。所以并发/长度触发的
+    空响应必须靠拆批识别，不能当成缺失。
+    """
+    base.fetch = _fetch  # paginate 内部调用模块级 fetch；query 长度不能进文件名
+    rows, _ = base.paginate(_query_codes(codes) + f" {FIELD_PREFIX}[{compact_date}]")
     by_code: dict[str, float] = {}
     for row in rows:
         code = row.get("股票代码")
@@ -90,7 +107,21 @@ def fetch_batch(codes: list[str], compact_date: str) -> dict[str, float]:
         value = _value(row)
         if value is not None:
             by_code[code] = value
+
+    if len(by_code) >= len(codes) or depth >= MAX_SPLIT_DEPTH or len(codes) <= 1:
+        return by_code
+    mid = len(codes) // 2
+    left = [code for code in codes[:mid] if code not in by_code]
+    right = [code for code in codes[mid:] if code not in by_code]
+    for half in (left, right):
+        if half:
+            by_code.update(_fetch_chunk(half, compact_date, depth + 1))
     return by_code
+
+
+def fetch_batch(codes: list[str], compact_date: str) -> dict[str, float]:
+    """取一批标的的集中度90；返回 {code: value}，缺的即上游确实没有。"""
+    return _fetch_chunk(codes, compact_date)
 
 
 def attach(payload: dict, trade_date: str, *, fetch=fetch_batch) -> dict:

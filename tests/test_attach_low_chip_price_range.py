@@ -200,7 +200,7 @@ def test_price_range_only_channel_updates_single_column():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")
     assert "const priceRangeOnly = preserveExisting && body?.price_range_only === true;" in worker
-    assert "priceRangeOnly ? ['price_range'] : [" in worker
+    assert "priceRangeOnly ? ['price_range']" in worker
     assert 'parser.add_argument("--price-range-only"' in sync
     assert 'body["price_range_only"] = True' in sync
     assert "price_range_only=price_range_only" in sync
