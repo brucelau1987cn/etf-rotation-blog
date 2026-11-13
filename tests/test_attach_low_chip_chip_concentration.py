@@ -174,6 +174,21 @@ def test_chip_concentration_only_channel_updates_single_column():
     assert "chip_concentration_only=chip_concentration_only" in sync
 
 
+def test_worker_js_parses():
+    """字符串断言全过但文件语法坏了（少一个 `};`）会让 Pages Functions 构建失败，
+    而本地 astro build 不检查 functions/。必须真跑一次 node --check。"""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if not node:
+        import pytest
+
+        pytest.skip("node not available")
+    result = subprocess.run([node, "--check", str(WORKER)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr[-2000:]
+
+
 def test_worker_cols_and_row_values_stay_aligned():
     """cols 与 rowValues 必须尾部成对追加，错位不会报错但每列都写错。"""
     worker = WORKER.read_text(encoding="utf-8")

@@ -122,7 +122,7 @@ export async function onRequest(context) {
     // the API response (2026-11-08 first sync), so the add must live here too.
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN chip_concentration TEXT').run(); } catch (e) {}
-
+  };
 
   if (method === 'GET') {
     const syncToken = String(env.LOW_CHIP_SYNC_TOKEN || '').trim();
