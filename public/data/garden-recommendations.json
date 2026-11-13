@@ -1,6 +1,6 @@
 {
   "date": "2026-11-13",
-  "updated_at": "2026-11-13 14:43:28 CST",
+  "updated_at": "2026-11-13 14:49:49 CST",
   "applies_to": "2026-11-13",
   "data_as_of": "14:30尾盘口径：8只指数与91只池内ETF的现价/涨跌幅/日内高低/盘中位置为腾讯行情 qt.gtimg.cn 2026-11-13 14:31:21-14:31:27 CST 盘中快照（8只指数+91只ETF全量返回，0缺失，非收盘价）；全市场宽度（上涨801/下跌4706/涨停36/跌停29）与全A -2.1260% 报1684.737、累计成交额14914.41亿元为 iWenCai 883957 2026-11-13 14:31 盘中口径；qfq基线与全部关键位为2026-11-12收盘全量前复权日线（91/91，pool.evaluation_date=2026-11-13、pool.latest_trade_date=2026-11-12）；指数MA20/MA60由腾讯 web.ifzq.gtimg.cn qfq日线141根本窗口自算，含2026-11-13盘中K线，为盘中口径；港股为腾讯行情 2026-11-13 14:33:04 CST 盘中（恒指23656.96 -1.46%、恒生科技3817.47 -2.91%）；商品为腾讯 hf_ 接口 14:31-14:32 快照（伦敦金3896.50 +0.49%、伦敦银49.90 -0.28%、纽约原油88.71 -0.04%）。",
   "level_data_as_of": "2026-11-12 收盘前复权日线（A ETF Compass Levels v2，evaluation_date=2026-11-13，新关键位只对11-13生效）",
@@ -47,7 +47,7 @@
       "name": "印度基金LOF",
       "priority": "高",
       "trigger": "现价1.327，等待回踩1.298附近止跌确认；跌破1.258取消候场。",
-      "action": "现价1.327，等待回踩1.298附近止跌确认；跌破1.258取消候场。",
+      "action": "现价1.327，等待回踩1.298附近止跌确认；跌破1.258取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
       "eligibility_reason": "趋势C；信号得分59.9；动量排名1；距伏击位2.2%；风险低；动量通过",
@@ -79,7 +79,8 @@
         "风险低",
         "动量通过"
       ],
-      "selection_rule_version": "a-candidate-v1"
+      "selection_rule_version": "a-candidate-v1",
+      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
     },
     {
       "status": "候场",
@@ -87,7 +88,7 @@
       "name": "银行ETF华宝",
       "priority": "中",
       "trigger": "现价0.895，等待回踩0.876附近止跌确认；跌破0.860取消候场。",
-      "action": "现价0.895，等待回踩0.876附近止跌确认；跌破0.860取消候场。",
+      "action": "现价0.895，等待回踩0.876附近止跌确认；跌破0.860取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
       "eligibility_reason": "趋势C；信号得分56.5；动量排名4；距伏击位2.2%；风险低；动量通过",
@@ -119,7 +120,8 @@
         "风险低",
         "动量通过"
       ],
-      "selection_rule_version": "a-candidate-v1"
+      "selection_rule_version": "a-candidate-v1",
+      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
     },
     {
       "status": "候场",
@@ -127,7 +129,7 @@
       "name": "汽车ETF国泰",
       "priority": "中",
       "trigger": "现价1.076，等待回踩1.057附近止跌确认；跌破1.025取消候场。",
-      "action": "现价1.076，等待回踩1.057附近止跌确认；跌破1.025取消候场。",
+      "action": "现价1.076，等待回踩1.057附近止跌确认；跌破1.025取消候场；中观约束：禁止追高，只按伏击位分批。",
       "signal_state": "当日正式池重选候场",
       "eligibility": "ok",
       "eligibility_reason": "趋势C；信号得分58.0；动量排名3；距伏击位1.8%；风险低",
@@ -158,7 +160,8 @@
         "距伏击位1.8%",
         "风险低"
       ],
-      "selection_rule_version": "a-candidate-v1"
+      "selection_rule_version": "a-candidate-v1",
+      "mid_macro_constraint": "中观偏逆风：权益上限降1档，只回踩不追高"
     }
   ],
   "watch": [
@@ -958,27 +961,27 @@
     ]
   },
   "mid_macro": {
-    "generated_at": "2026-11-13 14:43:28 CST",
-    "headwind_level": 0,
-    "label": "中性",
-    "equity_constraint": "中观中性：按关键位正常执行",
-    "allow_chase": true,
+    "generated_at": "2026-11-13 14:49:49 CST",
+    "headwind_level": 1,
+    "label": "偏逆风",
+    "equity_constraint": "中观偏逆风：权益上限降1档，只回踩不追高",
+    "allow_chase": false,
     "allow_new_offense": true,
     "base_position": "权益0%-10%；防御/现金90%-100%",
     "factors": [
       {
         "key": "rates_fixed_income",
         "label": "固收相对权益强弱",
-        "state": "中性",
-        "score": 0.5,
-        "headline": "固收/权益5日相对中性+0.48pp"
+        "state": "逆风",
+        "score": 1.5,
+        "headline": "固收5日相对转强+0.72pp"
       },
       {
         "key": "overseas_deleveraging",
         "label": "海外风险映射压力",
         "state": "中性",
-        "score": 0.75,
-        "headline": "海外映射ETF 5日+2.97%"
+        "score": 0.25,
+        "headline": "海外映射ETF 5日+3.14%"
       },
       {
         "key": "margin_financing",
@@ -1019,7 +1022,7 @@
       "516110"
     ],
     "macro_gate_removed_codes": [],
-    "macro_headwind_level": 0
+    "macro_headwind_level": 1
   },
   "harvest_selection": {
     "rule_version": "a-share-harvest-audit-v1",
