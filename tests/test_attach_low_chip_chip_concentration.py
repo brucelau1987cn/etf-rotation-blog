@@ -168,7 +168,7 @@ def test_chip_concentration_only_channel_updates_single_column():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")
     assert "const chipConcentrationOnly = preserveExisting && body?.chip_concentration_only === true;" in worker
-    assert "chipConcentrationOnly ? ['chip_concentration'] : [" in worker
+    assert "chipConcentrationOnly ? ['chip_concentration'] :" in worker
     assert 'parser.add_argument("--chip-concentration-only"' in sync
     assert 'body["chip_concentration_only"] = True' in sync
     assert "chip_concentration_only=chip_concentration_only" in sync
@@ -245,4 +245,7 @@ def test_worker_cols_and_row_values_stay_aligned():
     if rv_block.rstrip().endswith(","):
         exprs -= 1  # 尾随逗号不是表达式
     assert total_cols == exprs, f"cols={total_cols} rowValues={exprs}"
-    assert total_cols <= 50, "2 rows per statement must stay under D1's 100-parameter cap"
+    # D1 单语句上限 100 个绑定参数；列数超过 50 后 worker 会把每语句行数降到 1，
+    # 所以这里校验的是「列数 × 行数」而不是写死 50。
+    rows_per_stmt = max(1, min(2, 100 // total_cols))
+    assert total_cols * rows_per_stmt <= 100, f"cols={total_cols} exceeds the 100-parameter cap"

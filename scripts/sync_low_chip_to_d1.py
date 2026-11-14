@@ -38,7 +38,8 @@ CHUNK_ROWS = 198
 
 def post_metrics(metrics: list[dict], replace_trade_date: str | None = None,
                  *, price_range_only: bool = False,
-                 chip_concentration_only: bool = False) -> dict:
+                 chip_concentration_only: bool = False,
+                 jinlong_only: bool = False) -> dict:
     """POST metrics array to the D1 API endpoint, chunked to the server's limit.
 
     The server caps one request at MAX_METRICS because a D1 batch holds at most
@@ -63,6 +64,10 @@ def post_metrics(metrics: list[dict], replace_trade_date: str | None = None,
             # 同上，只回写 chip_concentration 一列。
             body["preserve_existing"] = True
             body["chip_concentration_only"] = True
+        elif jinlong_only:
+            # 同上，只回写 jinlong 一列（金龙信号历史回放）。
+            body["preserve_existing"] = True
+            body["jinlong_only"] = True
         elif replace_trade_date:
             body["replace_trade_date"] = replace_trade_date
         if len(chunks) > 1:
@@ -174,6 +179,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             'touchstone_metrics': enr.get('touchstone_metrics'),
             'price_range': enr.get('price_range'),
             'chip_concentration': enr.get('chip_concentration'),
+            'jinlong': enr.get('jinlong'),
             "industry_etfs": enr.get("industry_etfs") or [],
             "industry_etf_status": enr.get("industry_etf_status") or "unknown",
             "industry_etf_pool_count": enr.get("industry_etf_pool_count"),
@@ -202,7 +208,7 @@ def snapshot_metrics(payload: dict) -> list[dict]:
 
 
 def push(payload: dict, *, dry_run: bool = False, price_range_only: bool = False,
-         chip_concentration_only: bool = False) -> int:
+         chip_concentration_only: bool = False, jinlong_only: bool = False) -> int:
     metrics = snapshot_metrics(payload)
     if not metrics:
         source = payload.get("_source") or "current"
@@ -219,7 +225,8 @@ def push(payload: dict, *, dry_run: bool = False, price_range_only: bool = False
         return 0
     results = [post_metrics(metrics, replace_trade_date=replace_trade_date,
                             price_range_only=price_range_only,
-                            chip_concentration_only=chip_concentration_only)]
+                            chip_concentration_only=chip_concentration_only,
+                            jinlong_only=jinlong_only)]
     result = results[0]
     label = payload.get("data_as_of") or payload.get("_source") or ""
     if all(item.get("ok") for item in results):
@@ -244,6 +251,9 @@ def main() -> int:
     parser.add_argument("--chip-concentration-only", action="store_true",
                         help="only update the chip_concentration column on existing rows "
                              "(historical 90%% concentration backfill; leaves every other column untouched)")
+    parser.add_argument("--jinlong-only", action="store_true",
+                        help="only update the jinlong column on existing rows "
+                             "(historical 金龙 signal backfill; leaves every other column untouched)")
     args = parser.parse_args()
 
     failures = 0
@@ -253,12 +263,14 @@ def main() -> int:
             payload = json.loads(snap.read_text(encoding="utf-8"))
             payload["_source"] = snap.name
             failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only,
-                             chip_concentration_only=args.chip_concentration_only)
+                             chip_concentration_only=args.chip_concentration_only,
+                             jinlong_only=args.jinlong_only)
         # also current file
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
         failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only,
-                             chip_concentration_only=args.chip_concentration_only)
+                             chip_concentration_only=args.chip_concentration_only,
+                             jinlong_only=args.jinlong_only)
     elif args.day:
         snap = HISTORY_DIR / f"{args.day}.json"
         if not snap.exists():
@@ -267,12 +279,14 @@ def main() -> int:
         payload = json.loads(snap.read_text(encoding="utf-8"))
         payload["_source"] = snap.name
         failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only,
-                             chip_concentration_only=args.chip_concentration_only)
+                             chip_concentration_only=args.chip_concentration_only,
+                             jinlong_only=args.jinlong_only)
     else:
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
         failures += push(payload, dry_run=args.dry_run, price_range_only=args.price_range_only,
-                             chip_concentration_only=args.chip_concentration_only)
+                             chip_concentration_only=args.chip_concentration_only,
+                             jinlong_only=args.jinlong_only)
 
     return 1 if failures else 0
 

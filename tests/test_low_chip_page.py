@@ -240,7 +240,7 @@ def test_low_chip_financial_filter_controls_and_logic():
         "activeFilters.clear()",
     ):
         assert marker in page
-    assert page.count('class="chip-filter-btn"') == 10
+    assert page.count('class="chip-filter-btn"') == 11
     assert page.count('aria-pressed="false"') >= 10
     for metric in ('roe', 'netMargin', 'cashProfit', 'grossMargin', 'debtRatio'):
         assert f"c.dataset.{metric} === ''" in page

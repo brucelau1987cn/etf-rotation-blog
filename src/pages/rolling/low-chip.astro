@@ -144,6 +144,7 @@ const rows = intersectionRows.map((row) => {
     hlpMetrics: enr.hlp_metrics || null,
     touchstoneMetrics: enr.touchstone_metrics || null,
     chipConcentration: enr.chip_concentration || null,
+    jinlong: enr.jinlong || null,
     priceRange: enr.price_range || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
@@ -161,6 +162,19 @@ const rows = intersectionRows.map((row) => {
     reco: recoLabel(compositeScore(row.symbol, enr)),
   };
 });
+function jinlongLabel(jl: any): string {
+  if (!jl || jl.status !== 'ok') return '—';
+  if (jl.hit_today) return '今日';
+  if (jl.bars_since_hit != null && jl.hit) return `D+${jl.bars_since_hit}`;
+  return '—';
+}
+function jinlongTitle(jl: any): string {
+  if (!jl || jl.status !== 'ok') return '金龙信号数据待补';
+  if (jl.hit_today) return `金龙信号：今日成立（双龙抄底PRO 入选，收 ${jl.close}）`;
+  if (jl.hit) return `金龙信号：${jl.last_hit_date} 成立，距今 ${jl.bars_since_hit} 个交易日（观察窗 ${jl.window} 日）`;
+  return jl.last_hit_date ? `金龙信号：最近一次 ${jl.last_hit_date}，已超出 ${jl.window} 日观察窗` : '金龙信号：近一年内未出现';
+}
+
 const initialClientData = { data_as_of: lowChipData.data_as_of, rows };
 
 // 默认综合分降序(前端首次渲染即按综合分排); 排序按钮可切换
@@ -248,6 +262,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="touchstone" aria-pressed="false" title="日线 ZIG15：当前候选底部或正式确认底部">点石成金</button>
           <button type="button" class="chip-filter-btn" data-filter="hlp-chip-signal" aria-pressed="false">筹码顶底</button>
           <button type="button" class="chip-filter-btn" data-filter="conc90" aria-pressed="false" title="90%筹码集中度 &lt; 10%（同花顺集中度90口径，数值越小筹码越集中）">集中度90 &lt; 10%</button>
+          <button type="button" class="chip-filter-btn" data-filter="jinlong" aria-pressed="false" title="金龙信号：最近 20 个交易日内出现「双龙抄底PRO」入选信号（深跌 26% 后高振幅 + RSI 低位回升）">金龙信号</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -279,6 +294,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               data-hlp-chip-signal={row.hlpMetrics?.chip_signals?.length ? '1' : '0'}
               data-touchstone={(row.touchstoneMetrics?.touchstone_hit ?? row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? '1' : '0'}
               data-conc90={row.chipConcentration?.concentration_90 ?? ''}
+              data-jinlong={row.jinlong?.hit ? '1' : '0'}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -303,6 +319,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `三年内最低价（不复权）${row.priceRange.low_3y_date} 最低 ¥${fmt(row.priceRange.low_3y)}` : '三年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_3y != null ? `¥${fmt(row.priceRange.low_3y)}` : '—'}</em><small>3年最低</small></span>
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `现价相对三年内最低价（不复权，含分红送股偏差）` : '距三年低点数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.from_low_3y_pct != null ? `${row.priceRange.from_low_3y_pct >= 0 ? '+' : ''}${fmt(row.priceRange.from_low_3y_pct)}%` : '—'}</em><small>距3年低</small></span>
                   <span class="chip-metric" title={row.chipConcentration?.status === 'ok' ? `90%筹码集中度 ${fmt(row.chipConcentration.concentration_90)}%（同花顺集中度90，数值越小筹码越集中）` : '90%筹码集中度数据待补'}><em class="chip-val">{row.chipConcentration?.status === 'ok' && row.chipConcentration.concentration_90 != null ? `${fmt(row.chipConcentration.concentration_90)}%` : '—'}</em><small>集中度90</small></span>
+                  <span class="chip-metric" title={jinlongTitle(row.jinlong)}><em class="chip-val">{jinlongLabel(row.jinlong)}</em><small>金龙</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
@@ -460,6 +477,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
             hlpMetrics: row.hlp_metrics || row.hlpMetrics || null,
             touchstoneMetrics: row.touchstone_metrics || row.touchstoneMetrics || null,
             chipConcentration: row.chip_concentration || row.chipConcentration || null,
+            jinlong: row.jinlong || row.jinlongMetrics || null,
             priceRange: row.price_range || row.priceRange || null,
             nameInitials: row.nameInitials || ''
           });
@@ -521,6 +539,26 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         return '<span class="chip-metric" title="' + esc(title) + '"><em class="chip-val">' + text + '</em><small>集中度90</small></span>';
       }
 
+      function jinlongLabel(jl) {
+        if (!jl || jl.status !== 'ok') return '—';
+        if (jl.hit_today) return '今日';
+        if (jl.bars_since_hit != null && jl.hit) return 'D+' + jl.bars_since_hit;
+        return '—';
+      }
+
+      function jinlongTitle(jl) {
+        if (!jl || jl.status !== 'ok') return '金龙信号数据待补';
+        if (jl.hit_today) return '金龙信号：今日成立（双龙抄底PRO 入选，收 ' + jl.close + '）';
+        if (jl.hit) return '金龙信号：' + jl.last_hit_date + ' 成立，距今 ' + jl.bars_since_hit + ' 个交易日（观察窗 ' + jl.window + ' 日）';
+        return jl.last_hit_date ? '金龙信号：最近一次 ' + jl.last_hit_date + '，已超出 ' + jl.window + ' 日观察窗' : '金龙信号：近一年内未出现';
+      }
+
+      function jinlongHtml(jl) {
+        var label = jinlongLabel(jl);
+        var cls = jl && jl.status === 'ok' && jl.hit ? 'chip-val is-jinlong' : 'chip-val';
+        return '<span class="chip-metric" title="' + esc(jinlongTitle(jl)) + '"><em class="' + cls + '">' + label + '</em><small>金龙</small></span>';
+      }
+
       function rowHtml(row, index, asOf) {
         var change = Number(row.change_percent);
         var changeCls = change >= 0 ? 'chip-up' : 'chip-down';
@@ -529,6 +567,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var hlp = row.hlpMetrics || null;
         var touchstone = row.touchstoneMetrics || null;
         var conc = row.chipConcentration || null;
+        var jl = row.jinlong || null;
         if (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length) {
           badge += '<span class="chip-hlp-badge" title="HLP筹码顶底：' + esc(hlp.chip_signals.join('、')) + '">筹码顶底</span>';
         }
@@ -568,7 +607,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var reco = unavailable ? '' : composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
         var recoHtml = unavailable ? '<span class="chip-reco is-unavailable" title="推荐度：暂不可用">暂不可用</span>' : '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-jinlong="' + (jl && jl.hit ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
@@ -577,6 +616,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
                 priceRangeHtml(row.priceRange) +
                 conc90Html(conc) +
+                jinlongHtml(jl) +
               '</div>' +
               '<div class="chip-row-footer">' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
@@ -690,6 +730,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           if (activeFilters.has('hlp-chip-signal') && c.dataset.hlpChipSignal !== '1') return false;
           if (activeFilters.has('touchstone') && c.dataset.touchstone !== '1') return false;
           if (activeFilters.has('conc90') && (c.dataset.conc90 === '' || c.dataset.conc90 == null || !Number.isFinite(Number(c.dataset.conc90)) || Number(c.dataset.conc90) >= 10)) return false;
+          if (activeFilters.has('jinlong') && c.dataset.jinlong !== '1') return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -883,6 +924,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   hlpMetrics: row.hlp_metrics || null,
                   touchstoneMetrics: row.touchstone_metrics || null,
                   chipConcentration: parseJsonSafe(row.chip_concentration),
+                  jinlong: parseJsonSafe(row.jinlong),
                   priceRange: parseJsonSafe(row.price_range),
                   industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
                   industryEtfStatus: row.industry_etf_status || 'unknown',
@@ -1119,6 +1161,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-metric-asof{min-width:92px}
   .chip-metric small{color:#8b98a9;font-size:.62rem;font-weight:700;letter-spacing:.02em}
   .chip-val{font-style:normal;font-size:.88rem;font-weight:850;color:#9a3412}
+  .chip-val.is-jinlong{color:#b91c1c}
   .chip-asof-val{font-variant-numeric:tabular-nums;letter-spacing:.01em}
   .chip-row-footer{display:flex;align-items:center;gap:.55rem;margin-left:auto}
   .chip-price{color:#14243b;font-size:1.02rem;font-weight:850;font-variant-numeric:tabular-nums}
