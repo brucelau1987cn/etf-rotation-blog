@@ -41,7 +41,9 @@ def post_metrics(metrics: list[dict], replace_trade_date: str | None = None,
                  chip_concentration_only: bool = False,
                  jinlong_only: bool = False,
                  yinlong_only: bool = False,
-                 beili_only: bool = False) -> dict:
+                 beili_only: bool = False,
+                 xdiv_only: bool = False,
+                 xtop_only: bool = False) -> dict:
     """POST metrics array to the D1 API endpoint, chunked to the server's limit.
 
     The server caps one request at MAX_METRICS because a D1 batch holds at most
@@ -78,6 +80,14 @@ def post_metrics(metrics: list[dict], replace_trade_date: str | None = None,
             # 同上，只回写 beili 一列（底背离历史回放）。
             body["preserve_existing"] = True
             body["beili_only"] = True
+        elif xdiv_only:
+            # 同上，只回写 xdiv 一列（三路金叉型底背离历史回放）。
+            body["preserve_existing"] = True
+            body["xdiv_only"] = True
+        elif xtop_only:
+            # 同上，只回写 xtop 一列（三路金叉型顶背离历史回放）。
+            body["preserve_existing"] = True
+            body["xtop_only"] = True
         elif replace_trade_date:
             body["replace_trade_date"] = replace_trade_date
         if len(chunks) > 1:
@@ -192,6 +202,8 @@ def snapshot_metrics(payload: dict) -> list[dict]:
             'jinlong': enr.get('jinlong'),
             'yinlong': enr.get('yinlong'),
             'beili': enr.get('beili'),
+            'xdiv': enr.get('xdiv'),
+            'xtop': enr.get('xtop'),
             "industry_etfs": enr.get("industry_etfs") or [],
             "industry_etf_status": enr.get("industry_etf_status") or "unknown",
             "industry_etf_pool_count": enr.get("industry_etf_pool_count"),
@@ -221,7 +233,8 @@ def snapshot_metrics(payload: dict) -> list[dict]:
 
 def push(payload: dict, *, dry_run: bool = False, price_range_only: bool = False,
          chip_concentration_only: bool = False, jinlong_only: bool = False,
-         yinlong_only: bool = False, beili_only: bool = False) -> int:
+         yinlong_only: bool = False, beili_only: bool = False,
+         xdiv_only: bool = False, xtop_only: bool = False) -> int:
     metrics = snapshot_metrics(payload)
     if not metrics:
         source = payload.get("_source") or "current"
@@ -241,7 +254,9 @@ def push(payload: dict, *, dry_run: bool = False, price_range_only: bool = False
                             chip_concentration_only=chip_concentration_only,
                             jinlong_only=jinlong_only,
                             yinlong_only=yinlong_only,
-                            beili_only=beili_only)]
+                            beili_only=beili_only,
+                            xdiv_only=xdiv_only,
+                            xtop_only=xtop_only)]
     result = results[0]
     label = payload.get("data_as_of") or payload.get("_source") or ""
     if all(item.get("ok") for item in results):
@@ -266,6 +281,12 @@ def main() -> int:
     parser.add_argument("--chip-concentration-only", action="store_true",
                         help="only update the chip_concentration column on existing rows "
                              "(historical 90%% concentration backfill; leaves every other column untouched)")
+    parser.add_argument("--xdiv-only", action="store_true",
+                        help="only update the xdiv column on existing rows "
+                             "(historical 三路金叉型底背离 backfill)")
+    parser.add_argument("--xtop-only", action="store_true",
+                        help="only update the xtop column on existing rows "
+                             "(historical 三路金叉型顶背离 backfill)")
     parser.add_argument("--beili-only", action="store_true",
                         help="only update the beili column on existing rows "
                              "(historical 底背离 backfill; leaves every other column untouched)")
@@ -287,7 +308,9 @@ def main() -> int:
                              chip_concentration_only=args.chip_concentration_only,
                              jinlong_only=args.jinlong_only,
                              yinlong_only=args.yinlong_only,
-                             beili_only=args.beili_only)
+                             beili_only=args.beili_only,
+                             xdiv_only=args.xdiv_only,
+                             xtop_only=args.xtop_only)
         # also current file
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
@@ -295,7 +318,9 @@ def main() -> int:
                              chip_concentration_only=args.chip_concentration_only,
                              jinlong_only=args.jinlong_only,
                              yinlong_only=args.yinlong_only,
-                             beili_only=args.beili_only)
+                             beili_only=args.beili_only,
+                             xdiv_only=args.xdiv_only,
+                             xtop_only=args.xtop_only)
     elif args.day:
         snap = HISTORY_DIR / f"{args.day}.json"
         if not snap.exists():
@@ -307,7 +332,9 @@ def main() -> int:
                              chip_concentration_only=args.chip_concentration_only,
                              jinlong_only=args.jinlong_only,
                              yinlong_only=args.yinlong_only,
-                             beili_only=args.beili_only)
+                             beili_only=args.beili_only,
+                             xdiv_only=args.xdiv_only,
+                             xtop_only=args.xtop_only)
     else:
         payload = json.loads(DATA.read_text(encoding="utf-8"))
         payload["_source"] = "current"
@@ -315,7 +342,9 @@ def main() -> int:
                              chip_concentration_only=args.chip_concentration_only,
                              jinlong_only=args.jinlong_only,
                              yinlong_only=args.yinlong_only,
-                             beili_only=args.beili_only)
+                             beili_only=args.beili_only,
+                             xdiv_only=args.xdiv_only,
+                             xtop_only=args.xtop_only)
 
     return 1 if failures else 0
 

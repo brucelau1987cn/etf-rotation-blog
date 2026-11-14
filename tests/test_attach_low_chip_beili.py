@@ -251,7 +251,7 @@ def test_beili_only_channel_updates_single_column():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")
     assert "const beiliOnly = preserveExisting && body?.beili_only === true;" in worker
-    assert "beiliOnly ? ['beili'] : [" in worker
+    assert "beiliOnly ? ['beili'] :" in worker
     assert 'parser.add_argument("--beili-only"' in sync
     assert 'body["beili_only"] = True' in sync
     assert "beili_only=beili_only" in sync

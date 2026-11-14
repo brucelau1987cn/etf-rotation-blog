@@ -147,6 +147,8 @@ const rows = intersectionRows.map((row) => {
     jinlong: enr.jinlong || null,
     yinlong: enr.yinlong || null,
     beili: enr.beili || null,
+    xdiv: enr.xdiv || null,
+    xtop: enr.xtop || null,
     priceRange: enr.price_range || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
@@ -164,6 +166,32 @@ const rows = intersectionRows.map((row) => {
     reco: recoLabel(compositeScore(row.symbol, enr)),
   };
 });
+function xdivLabel(xd: any): string {
+  if (!xd || xd.status !== 'ok') return '—';
+  if (xd.today) return '今日';
+  if (xd.hit && xd.bars_since_hit != null) return `D+${xd.bars_since_hit}`;
+  return '—';
+}
+function xdivTitle(xd: any): string {
+  if (!xd || xd.status !== 'ok') return '金叉背离数据待补';
+  const parts = (xd.today_parts || []).map((p: string) => p === 'b1_macd' ? 'MACD' : p === 'b2_kdj' ? 'KDJ' : 'RSI').join('+');
+  if (xd.today) return `金叉型底背离：今日成立${parts ? `（${parts} 同时金叉）` : ''}，价格创新低而指标抬高（观察窗 ${xd.window} 日）`;
+  if (xd.hit) return `金叉型底背离：${xd.last_hit_date} 成立，距今 ${xd.bars_since_hit} 个交易日（观察窗 ${xd.window} 日）`;
+  return xd.last_hit_date ? `金叉型底背离：最近一次 ${xd.last_hit_date}，已超出 ${xd.window} 日观察窗` : '金叉型底背离：近一年内未出现';
+}
+function xtopLabel(xt: any): string {
+  if (!xt || xt.status !== 'ok') return '—';
+  if (xt.today) return '今日';
+  if (xt.hit && xt.bars_since_hit != null) return `D+${xt.bars_since_hit}`;
+  return '—';
+}
+function xtopTitle(xt: any): string {
+  if (!xt || xt.status !== 'ok') return '金叉背离数据待补';
+  const parts = (xt.today_parts || []).map((p: string) => p === 'd1_macd' ? 'MACD' : p === 'd2_kdj' ? 'KDJ' : 'RSI').join('+');
+  if (xt.today) return `金叉型顶背离：今日成立${parts ? `（${parts} 同时死叉）` : ''}，价格创新高而指标走低（观察窗 ${xt.window} 日）`;
+  if (xt.hit) return `金叉型顶背离：${xt.last_hit_date} 成立，距今 ${xt.bars_since_hit} 个交易日（观察窗 ${xt.window} 日）`;
+  return xt.last_hit_date ? `金叉型顶背离：最近一次 ${xt.last_hit_date}，已超出 ${xt.window} 日观察窗` : '金叉型顶背离：近一年内未出现';
+}
 function beiliLabel(bl: any): string {
   if (!bl || bl.status !== 'ok') return '—';
   if (bl.today) return '今日';
@@ -293,6 +321,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="jinlong" aria-pressed="false" title="金龙信号：最近 20 个交易日内出现「双龙抄底PRO」入选信号（深跌 26% 后高振幅 + RSI 低位回升）">金龙信号</button>
           <button type="button" class="chip-filter-btn" data-filter="yinlong" aria-pressed="false" title="银龙信号：最近 20 个交易日内出现「RSI9 上穿 20 且 MACD 柱为负」（超卖后初步修复）">银龙信号</button>
           <button type="button" class="chip-filter-btn" data-filter="beili" aria-pressed="false" title="底背离：最近 20 个交易日内出现「价格创新低而 DIF 抬高」且 MACD 柱在零轴下方（直接/隔峰），且未被消失条件否定">底背离</button>
+          <button type="button" class="chip-filter-btn" data-filter="xdiv" aria-pressed="false" title="金叉背离：最近 5 个交易日内 MACD/KDJ/RSI 任一出现「价格创新低而指标抬高后金叉」">金叉背离</button>
+          <button type="button" class="chip-filter-btn" data-filter="xtop" aria-pressed="false" title="顶背离：最近 5 个交易日内 MACD/KDJ/RSI 任一出现「价格创新高而指标走低后死叉」（减仓参考）">顶背离</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -327,6 +357,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               data-jinlong={row.jinlong?.hit ? '1' : '0'}
               data-yinlong={row.yinlong?.hit ? '1' : '0'}
               data-beili={row.beili?.hit ? '1' : '0'}
+              data-xdiv={row.xdiv?.hit ? '1' : '0'}
+              data-xtop={row.xtop?.hit ? '1' : '0'}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -351,14 +383,18 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `三年内最低价（不复权）${row.priceRange.low_3y_date} 最低 ¥${fmt(row.priceRange.low_3y)}` : '三年内最低价数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.low_3y != null ? `¥${fmt(row.priceRange.low_3y)}` : '—'}</em><small>3年最低</small></span>
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `现价相对三年内最低价（不复权，含分红送股偏差）` : '距三年低点数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.from_low_3y_pct != null ? `${row.priceRange.from_low_3y_pct >= 0 ? '+' : ''}${fmt(row.priceRange.from_low_3y_pct)}%` : '—'}</em><small>距3年低</small></span>
                   <span class="chip-metric" title={row.chipConcentration?.status === 'ok' ? `90%筹码集中度 ${fmt(row.chipConcentration.concentration_90)}%（同花顺集中度90，数值越小筹码越集中）` : '90%筹码集中度数据待补'}><em class="chip-val">{row.chipConcentration?.status === 'ok' && row.chipConcentration.concentration_90 != null ? `${fmt(row.chipConcentration.concentration_90)}%` : '—'}</em><small>集中度90</small></span>
-                  <span class="chip-metric" title={jinlongTitle(row.jinlong)}><em class="chip-val">{jinlongLabel(row.jinlong)}</em><small>金龙</small></span>
-                  <span class="chip-metric" title={yinlongTitle(row.yinlong)}><em class="chip-val">{yinlongLabel(row.yinlong)}</em><small>银龙</small></span>
-                  <span class="chip-metric" title={beiliTitle(row.beili)}><em class="chip-val">{beiliLabel(row.beili)}</em><small>底背离</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
                   <span class:list={['chip-change', row.change_percent >= 0 ? 'chip-up' : 'chip-down']}>{row.change_percent >= 0 ? '+' : ''}{fmt(row.change_percent)}%</span>
                 </div>
+              </div>
+              <div class="chip-row-signals" aria-label="选股信号">
+                <span class="chip-signal" title={jinlongTitle(row.jinlong)}><small>金龙</small><em class:list={['chip-signal-val', row.jinlong?.hit ? 'is-hit' : '']}>{jinlongLabel(row.jinlong)}</em></span>
+                <span class="chip-signal" title={yinlongTitle(row.yinlong)}><small>银龙</small><em class:list={['chip-signal-val', row.yinlong?.hit ? 'is-hit' : '']}>{yinlongLabel(row.yinlong)}</em></span>
+                <span class="chip-signal" title={beiliTitle(row.beili)}><small>底背离</small><em class:list={['chip-signal-val', row.beili?.hit ? 'is-hit' : '']}>{beiliLabel(row.beili)}</em></span>
+                <span class="chip-signal" title={xdivTitle(row.xdiv)}><small>金叉背离</small><em class:list={['chip-signal-val', row.xdiv?.hit ? 'is-hit' : '']}>{xdivLabel(row.xdiv)}</em></span>
+                <span class="chip-signal" title={xtopTitle(row.xtop)}><small>顶背离</small><em class:list={['chip-signal-val', row.xtop?.hit ? 'is-hit' : '']}>{xtopLabel(row.xtop)}</em></span>
               </div>
               <div class="chip-row-shareholders" aria-label={`${row.name}股东与筹码指标`}>
                 <button type="button" class="chip-shr-toggle" aria-expanded="false">
@@ -514,6 +550,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
             jinlong: row.jinlong || row.jinlongMetrics || null,
             yinlong: row.yinlong || row.yinlongMetrics || null,
             beili: row.beili || row.beiliMetrics || null,
+            xdiv: row.xdiv || row.xdivMetrics || null,
+            xtop: row.xtop || row.xtopMetrics || null,
             priceRange: row.price_range || row.priceRange || null,
             nameInitials: row.nameInitials || ''
           });
@@ -575,6 +613,46 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         return '<span class="chip-metric" title="' + esc(title) + '"><em class="chip-val">' + text + '</em><small>集中度90</small></span>';
       }
 
+      function xdivLabel(xd) {
+        if (!xd || xd.status !== 'ok') return '—';
+        if (xd.today) return '今日';
+        if (xd.hit && xd.bars_since_hit != null) return 'D+' + xd.bars_since_hit;
+        return '—';
+      }
+
+      function xdivTitle(xd) {
+        if (!xd || xd.status !== 'ok') return '金叉背离数据待补';
+        var parts = (xd.today_parts || []).map(function (p) { return p === 'b1_macd' ? 'MACD' : p === 'b2_kdj' ? 'KDJ' : 'RSI'; }).join('+');
+        if (xd.today) return '金叉型底背离：今日成立' + (parts ? '（' + parts + ' 同时金叉）' : '') + '，价格创新低而指标抬高（观察窗 ' + xd.window + ' 日）';
+        if (xd.hit) return '金叉型底背离：' + xd.last_hit_date + ' 成立，距今 ' + xd.bars_since_hit + ' 个交易日（观察窗 ' + xd.window + ' 日）';
+        return xd.last_hit_date ? '金叉型底背离：最近一次 ' + xd.last_hit_date + '，已超出 ' + xd.window + ' 日观察窗' : '金叉型底背离：近一年内未出现';
+      }
+
+      function xdivHtml(xd) {
+        var hit = xd && xd.status === 'ok' && xd.hit ? ' is-hit' : '';
+        return '<span class="chip-signal" title="' + esc(xdivTitle(xd)) + '"><small>金叉背离</small><em class="chip-signal-val' + hit + '">' + xdivLabel(xd) + '</em></span>';
+      }
+
+      function xtopLabel(xt) {
+        if (!xt || xt.status !== 'ok') return '—';
+        if (xt.today) return '今日';
+        if (xt.hit && xt.bars_since_hit != null) return 'D+' + xt.bars_since_hit;
+        return '—';
+      }
+
+      function xtopTitle(xt) {
+        if (!xt || xt.status !== 'ok') return '金叉背离数据待补';
+        var parts = (xt.today_parts || []).map(function (p) { return p === 'd1_macd' ? 'MACD' : p === 'd2_kdj' ? 'KDJ' : 'RSI'; }).join('+');
+        if (xt.today) return '金叉型顶背离：今日成立' + (parts ? '（' + parts + ' 同时死叉）' : '') + '，价格创新高而指标走低（观察窗 ' + xt.window + ' 日）';
+        if (xt.hit) return '金叉型顶背离：' + xt.last_hit_date + ' 成立，距今 ' + xt.bars_since_hit + ' 个交易日（观察窗 ' + xt.window + ' 日）';
+        return xt.last_hit_date ? '金叉型顶背离：最近一次 ' + xt.last_hit_date + '，已超出 ' + xt.window + ' 日观察窗' : '金叉型顶背离：近一年内未出现';
+      }
+
+      function xtopHtml(xt) {
+        var hit = xt && xt.status === 'ok' && xt.hit ? ' is-hit' : '';
+        return '<span class="chip-signal" title="' + esc(xtopTitle(xt)) + '"><small>顶背离</small><em class="chip-signal-val' + hit + '">' + xtopLabel(xt) + '</em></span>';
+      }
+
       function beiliLabel(bl) {
         if (!bl || bl.status !== 'ok') return '—';
         if (bl.today) return '今日';
@@ -592,8 +670,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       }
 
       function beiliHtml(bl) {
-        var cls = bl && bl.status === 'ok' && bl.hit ? 'chip-val is-jinlong' : 'chip-val';
-        return '<span class="chip-metric" title="' + esc(beiliTitle(bl)) + '"><em class="' + cls + '">' + beiliLabel(bl) + '</em><small>底背离</small></span>';
+        var hit = bl && bl.status === 'ok' && bl.hit ? ' is-hit' : '';
+        return '<span class="chip-signal" title="' + esc(beiliTitle(bl)) + '"><small>底背离</small><em class="chip-signal-val' + hit + '">' + beiliLabel(bl) + '</em></span>';
       }
 
       function yinlongLabel(yl) {
@@ -611,8 +689,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       }
 
       function yinlongHtml(yl) {
-        var cls = yl && yl.status === 'ok' && yl.hit ? 'chip-val is-jinlong' : 'chip-val';
-        return '<span class="chip-metric" title="' + esc(yinlongTitle(yl)) + '"><em class="' + cls + '">' + yinlongLabel(yl) + '</em><small>银龙</small></span>';
+        var hit = yl && yl.status === 'ok' && yl.hit ? ' is-hit' : '';
+        return '<span class="chip-signal" title="' + esc(yinlongTitle(yl)) + '"><small>银龙</small><em class="chip-signal-val' + hit + '">' + yinlongLabel(yl) + '</em></span>';
       }
 
       function jinlongLabel(jl) {
@@ -631,8 +709,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
       function jinlongHtml(jl) {
         var label = jinlongLabel(jl);
-        var cls = jl && jl.status === 'ok' && jl.hit ? 'chip-val is-jinlong' : 'chip-val';
-        return '<span class="chip-metric" title="' + esc(jinlongTitle(jl)) + '"><em class="' + cls + '">' + label + '</em><small>金龙</small></span>';
+        var hit = jl && jl.status === 'ok' && jl.hit ? ' is-hit' : '';
+        return '<span class="chip-signal" title="' + esc(jinlongTitle(jl)) + '"><small>金龙</small><em class="chip-signal-val' + hit + '">' + label + '</em></span>';
       }
 
       function rowHtml(row, index, asOf) {
@@ -646,6 +724,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var jl = row.jinlong || null;
         var yl = row.yinlong || null;
         var bl = row.beili || null;
+        var xd = row.xdiv || null;
+        var xt = row.xtop || null;
         if (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length) {
           badge += '<span class="chip-hlp-badge" title="HLP筹码顶底：' + esc(hlp.chip_signals.join('、')) + '">筹码顶底</span>';
         }
@@ -685,7 +765,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var reco = unavailable ? '' : composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
         var recoHtml = unavailable ? '<span class="chip-reco is-unavailable" title="推荐度：暂不可用">暂不可用</span>' : '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-jinlong="' + (jl && jl.hit ? '1' : '0') + '" data-yinlong="' + (yl && yl.hit ? '1' : '0') + '" data-beili="' + (bl && bl.hit ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-jinlong="' + (jl && jl.hit ? '1' : '0') + '" data-yinlong="' + (yl && yl.hit ? '1' : '0') + '" data-beili="' + (bl && bl.hit ? '1' : '0') + '" data-xdiv="' + (xd && xd.hit ? '1' : '0') + '" data-xtop="' + (xt && xt.hit ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
@@ -694,9 +774,13 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 '<span class="chip-metric chip-metric-asof" title="查询日期股价"><em class="chip-val chip-asof-val">' + esc(asOfLabel) + '</em><small>日期</small></span>' +
                 priceRangeHtml(row.priceRange) +
                 conc90Html(conc) +
+              '</div>' +
+              '<div class="chip-row-signals" aria-label="选股信号">' +
                 jinlongHtml(jl) +
                 yinlongHtml(yl) +
                 beiliHtml(bl) +
+                xdivHtml(xd) +
+                xtopHtml(xt) +
               '</div>' +
               '<div class="chip-row-footer">' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
@@ -813,6 +897,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           if (activeFilters.has('jinlong') && c.dataset.jinlong !== '1') return false;
           if (activeFilters.has('yinlong') && c.dataset.yinlong !== '1') return false;
           if (activeFilters.has('beili') && c.dataset.beili !== '1') return false;
+          if (activeFilters.has('xdiv') && c.dataset.xdiv !== '1') return false;
+          if (activeFilters.has('xtop') && c.dataset.xtop !== '1') return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -1009,6 +1095,8 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   jinlong: parseJsonSafe(row.jinlong),
                   yinlong: parseJsonSafe(row.yinlong),
                   beili: parseJsonSafe(row.beili),
+                  xdiv: parseJsonSafe(row.xdiv),
+                  xtop: parseJsonSafe(row.xtop),
                   priceRange: parseJsonSafe(row.price_range),
                   industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
                   industryEtfStatus: row.industry_etf_status || 'unknown',
@@ -1240,6 +1328,11 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
   .chip-quality,.chip-institutional{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;font-weight:800;white-space:nowrap}
   .chip-quality.is-none{border-color:#e2e8f0;background:#fff;color:#94a3b8}
   .chip-row-metrics{display:inline-flex;align-items:center;justify-content:flex-end;gap:0;flex-wrap:wrap;border:1px solid #e7ecf2;border-radius:10px;background:#fafbfc;overflow:hidden}
+  .chip-row-signals{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;width:100%;margin-top:.45rem}
+  .chip-signal{display:inline-flex;align-items:baseline;gap:.3rem;padding:.2rem .5rem;border:1px solid #e7ecf2;border-radius:999px;background:#fafbfc;white-space:nowrap}
+  .chip-signal small{color:#8b98a9;font-size:.62rem;font-weight:750;letter-spacing:.02em}
+  .chip-signal-val{font-style:normal;font-size:.78rem;font-weight:850;color:#b6c0cd;font-variant-numeric:tabular-nums}
+  .chip-signal-val.is-hit{color:#b91c1c}
   .chip-metric{display:flex;align-items:baseline;justify-content:center;gap:.32rem;min-width:64px;padding:.38rem .55rem;border-left:1px solid #edf1f5}
   .chip-metric:first-child{border-left:0}
   .chip-metric-asof{min-width:92px}
@@ -1269,7 +1362,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
   @media(max-width:960px){.chip-row-top{grid-template-columns:1fr auto;grid-template-areas:'main footer' 'metrics metrics'}.chip-row-main{grid-area:main}.chip-row-footer{grid-area:footer}.chip-row-metrics{grid-area:metrics;justify-content:flex-start}}
   @media(max-width:900px){.chip-toolbar{grid-template-columns:1fr}.chip-toolbar-left{grid-column:1;grid-row:1}.chip-toolbar-right,.chip-top-actions{display:contents}.chip-search-wrap{grid-column:1;grid-row:2;justify-content:flex-start}.chip-history{grid-column:1;grid-row:3}.chip-pager{grid-column:1;grid-row:4;justify-self:start}.chip-search-input{width:min(100%,20rem)}}
-  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.3rem .55rem;flex-wrap:wrap}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
+  @media(max-width:720px){.low-chip-hero{grid-template-columns:1fr;padding:1.1rem}.low-chip-hero dl{grid-template-columns:repeat(3,minmax(0,1fr))}.chip-history{flex-wrap:wrap}.chip-calendar-wrap{flex:1;min-width:0}.chip-history-calendar-btn{width:100%;min-width:0}.chip-history-calendar{position:fixed;z-index:100;top:50%;left:50%;width:min(92vw,340px);transform:translate(-50%,-50%)}.chip-search-suggestions{left:0;right:auto;width:min(92vw,280px)}.chip-toolbar-right{grid-template-columns:1fr;align-items:stretch}.chip-search-wrap{order:1}.chip-history{order:2}.chip-pager{order:3}.chip-financial-filters{flex-wrap:nowrap;overflow-x:auto;padding:.6rem 1rem;scrollbar-width:none}.chip-financial-filters::-webkit-scrollbar{display:none}.chip-filter-meta{margin-left:0}.chip-row{gap:.4rem;padding:.6rem 1rem}.chip-row-main{min-width:0;flex-wrap:wrap;gap:.35rem}.chip-row-name{font-size:.9rem}.chip-row-code{font-size:.72rem}.chip-row-metrics{border:0;background:none;gap:.3rem .55rem;flex-wrap:wrap}.chip-row-signals{gap:.3rem;margin-top:.35rem}.chip-signal{padding:.16rem .42rem}.chip-metric{min-width:0;padding:0;border:0;gap:.28rem}.chip-metric small{font-size:.6rem}.chip-val{font-size:.8rem}.chip-shr-head{display:none}.chip-shr-toggle{display:inline-flex;align-items:center;gap:.3rem;margin-top:.2rem;padding:.28rem .6rem;border:1px solid #e7ecf2;border-radius:8px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:800;cursor:pointer;width:max-content}.chip-shr-chev{font-style:normal;transition:transform .15s}.chip-row.is-shr-open .chip-shr-chev{transform:rotate(180deg)}.chip-shr-body{display:none;grid-template-columns:repeat(2,minmax(0,1fr))}.chip-row.is-shr-open .chip-shr-body{display:grid}.chip-shr-body span{padding:.3rem .2rem}.chip-row-footer{margin-left:0}}
 
 /* 对应ETF (2026-09-07: 直接显示ETF名称+代码, 无标签无池说明) */
 .chip-row-etf{margin-top:.4rem;display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap;padding:.3rem .4rem;background:rgba(241,245,249,.42);border-radius:7px;border:1px solid rgba(148,163,184,.14)}

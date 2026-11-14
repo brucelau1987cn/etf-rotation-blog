@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range', 'chip_concentration', 'jinlong', 'yinlong', 'beili',
+  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range', 'chip_concentration', 'jinlong', 'yinlong', 'beili', 'xdiv', 'xtop',
   'risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons',
   'risk_advisory', 'risk_coverage', 'risk_freshness',
 ];
@@ -51,6 +51,8 @@ function clientMetric(row) {
   metric.jinlong = parseJsonField(metric.jinlong, null);
   metric.yinlong = parseJsonField(metric.yinlong, null);
   metric.beili = parseJsonField(metric.beili, null);
+  metric.xdiv = parseJsonField(metric.xdiv, null);
+  metric.xtop = parseJsonField(metric.xtop, null);
   metric.risk_reasons = parseJsonField(metric.risk_reasons, []);
   metric.risk_coverage = parseJsonField(metric.risk_coverage, null);
   metric.risk_freshness = parseJsonField(metric.risk_freshness, null);
@@ -118,6 +120,8 @@ export async function onRequest(context) {
         jinlong TEXT,
         yinlong TEXT,
         beili TEXT,
+        xdiv TEXT,
+        xtop TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
@@ -137,6 +141,9 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN yinlong TEXT').run(); } catch (e) {}
     // 底背离（直接/隔峰）：单列 JSON
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN beili TEXT').run(); } catch (e) {}
+    // 三路金叉型背离：底背离(B1/B2/B3) 与 顶背离(D1/D2/D3) 各一列
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN xdiv TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN xtop TEXT').run(); } catch (e) {}
   };
 
   if (method === 'GET') {
@@ -194,6 +201,8 @@ export async function onRequest(context) {
     const jinlongOnly = preserveExisting && body?.jinlong_only === true;
     const yinlongOnly = preserveExisting && body?.yinlong_only === true;
     const beiliOnly = preserveExisting && body?.beili_only === true;
+    const xdivOnly = preserveExisting && body?.xdiv_only === true;
+    const xtopOnly = preserveExisting && body?.xtop_only === true;
     const replaceTradeDate = String(body?.replace_trade_date || '').trim();
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
@@ -266,7 +275,7 @@ export async function onRequest(context) {
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
-    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range', 'chip_concentration', 'jinlong', 'yinlong', 'beili');
+    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range', 'chip_concentration', 'jinlong', 'yinlong', 'beili', 'xdiv', 'xtop');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -298,6 +307,8 @@ export async function onRequest(context) {
       m.jinlong ? JSON.stringify(m.jinlong) : null,
       m.yinlong ? JSON.stringify(m.yinlong) : null,
       m.beili ? JSON.stringify(m.beili) : null,
+      m.xdiv ? JSON.stringify(m.xdiv) : null,
+      m.xtop ? JSON.stringify(m.xtop) : null,
     ];
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
@@ -325,7 +336,7 @@ export async function onRequest(context) {
       // price_range_only replays a single advisory column onto rows that already
       // exist (historical price-range backfill). Rewriting the full preserve set
       // would null shadow fields the snapshots never carried.
-      const updateColumns = priceRangeOnly ? ['price_range'] : chipConcentrationOnly ? ['chip_concentration'] : jinlongOnly ? ['jinlong'] : yinlongOnly ? ['yinlong'] : beiliOnly ? ['beili'] : [
+      const updateColumns = priceRangeOnly ? ['price_range'] : chipConcentrationOnly ? ['chip_concentration'] : jinlongOnly ? ['jinlong'] : yinlongOnly ? ['yinlong'] : beiliOnly ? ['beili'] : xdivOnly ? ['xdiv'] : xtopOnly ? ['xtop'] : [
         'stock_name', 'price', 'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
         'fundamental_shadow_status', 'fundamental_shadow_sessions',
       ];
