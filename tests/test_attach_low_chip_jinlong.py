@@ -315,7 +315,7 @@ def test_page_wires_jinlong_filter_and_metric():
 def test_page_filter_count_and_reset_behaviour():
     page = PAGE.read_text(encoding="utf-8")
     buttons = page.count('class="chip-filter-btn"')
-    assert buttons == 11, "新增金龙开关后筛选按钮应为 11 个"
+    assert buttons == 12, "金龙 + 银龙开关后筛选按钮应为 12 个"
 
 
 def test_d1_worker_and_sync_carry_jinlong():
@@ -331,7 +331,7 @@ def test_jinlong_only_channel_updates_single_column():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")
     assert "const jinlongOnly = preserveExisting && body?.jinlong_only === true;" in worker
-    assert "jinlongOnly ? ['jinlong'] : [" in worker
+    assert "jinlongOnly ? ['jinlong'] :" in worker
     assert 'parser.add_argument("--jinlong-only"' in sync
     assert 'body["jinlong_only"] = True' in sync
     assert "jinlong_only=jinlong_only" in sync

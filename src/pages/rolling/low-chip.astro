@@ -145,6 +145,7 @@ const rows = intersectionRows.map((row) => {
     touchstoneMetrics: enr.touchstone_metrics || null,
     chipConcentration: enr.chip_concentration || null,
     jinlong: enr.jinlong || null,
+    yinlong: enr.yinlong || null,
     priceRange: enr.price_range || null,
     financials: enr.financials || {},
     technical: enr.technical || {},
@@ -162,6 +163,18 @@ const rows = intersectionRows.map((row) => {
     reco: recoLabel(compositeScore(row.symbol, enr)),
   };
 });
+function yinlongLabel(yl: any): string {
+  if (!yl || yl.status !== 'ok') return '—';
+  if (yl.hit_today) return '今日';
+  if (yl.bars_since_hit != null && yl.hit) return `D+${yl.bars_since_hit}`;
+  return '—';
+}
+function yinlongTitle(yl: any): string {
+  if (!yl || yl.status !== 'ok') return '银龙信号数据待补';
+  if (yl.hit_today) return `银龙信号：今日成立（RSI9 ${fmt(yl.rsi9_previous)} → ${fmt(yl.rsi9)} 上穿 20，MACD 柱 ${fmt(yl.macd_hist)}）`;
+  if (yl.hit) return `银龙信号：${yl.last_hit_date} 成立，距今 ${yl.bars_since_hit} 个交易日（观察窗 ${yl.window} 日）`;
+  return yl.last_hit_date ? `银龙信号：最近一次 ${yl.last_hit_date}，已超出 ${yl.window} 日观察窗` : '银龙信号：近一年内未出现';
+}
 function jinlongLabel(jl: any): string {
   if (!jl || jl.status !== 'ok') return '—';
   if (jl.hit_today) return '今日';
@@ -263,6 +276,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="hlp-chip-signal" aria-pressed="false">筹码顶底</button>
           <button type="button" class="chip-filter-btn" data-filter="conc90" aria-pressed="false" title="90%筹码集中度 &lt; 10%（同花顺集中度90口径，数值越小筹码越集中）">集中度90 &lt; 10%</button>
           <button type="button" class="chip-filter-btn" data-filter="jinlong" aria-pressed="false" title="金龙信号：最近 20 个交易日内出现「双龙抄底PRO」入选信号（深跌 26% 后高振幅 + RSI 低位回升）">金龙信号</button>
+          <button type="button" class="chip-filter-btn" data-filter="yinlong" aria-pressed="false" title="银龙信号：最近 20 个交易日内出现「RSI9 上穿 20 且 MACD 柱为负」（超卖后初步修复）">银龙信号</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
           <button type="button" class="chip-filter-btn" data-filter="institutional-shareholder" aria-pressed="false">机构股东</button>
           <button type="button" class="chip-filter-reset" id="chip-filter-reset">清除</button>
@@ -295,6 +309,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
               data-touchstone={(row.touchstoneMetrics?.touchstone_hit ?? row.touchstoneMetrics?.bottom_alert ?? row.touchstoneMetrics?.bottom_confirmed) ? '1' : '0'}
               data-conc90={row.chipConcentration?.concentration_90 ?? ''}
               data-jinlong={row.jinlong?.hit ? '1' : '0'}
+              data-yinlong={row.yinlong?.hit ? '1' : '0'}
               data-quality-shareholder={row.qualityShareholder ? '1' : '0'}
               data-institutional-shareholder={row.institutionalShareholder ? '1' : '0'}
               data-board-index={index}
@@ -320,6 +335,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   <span class="chip-metric" title={row.priceRange?.status === 'ok' ? `现价相对三年内最低价（不复权，含分红送股偏差）` : '距三年低点数据待补'}><em class="chip-val">{row.priceRange?.status === 'ok' && row.priceRange.from_low_3y_pct != null ? `${row.priceRange.from_low_3y_pct >= 0 ? '+' : ''}${fmt(row.priceRange.from_low_3y_pct)}%` : '—'}</em><small>距3年低</small></span>
                   <span class="chip-metric" title={row.chipConcentration?.status === 'ok' ? `90%筹码集中度 ${fmt(row.chipConcentration.concentration_90)}%（同花顺集中度90，数值越小筹码越集中）` : '90%筹码集中度数据待补'}><em class="chip-val">{row.chipConcentration?.status === 'ok' && row.chipConcentration.concentration_90 != null ? `${fmt(row.chipConcentration.concentration_90)}%` : '—'}</em><small>集中度90</small></span>
                   <span class="chip-metric" title={jinlongTitle(row.jinlong)}><em class="chip-val">{jinlongLabel(row.jinlong)}</em><small>金龙</small></span>
+                  <span class="chip-metric" title={yinlongTitle(row.yinlong)}><em class="chip-val">{yinlongLabel(row.yinlong)}</em><small>银龙</small></span>
                 </div>
                 <div class="chip-row-footer">
                   <span class="chip-price">¥{fmt(row.price)}</span>
@@ -478,6 +494,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
             touchstoneMetrics: row.touchstone_metrics || row.touchstoneMetrics || null,
             chipConcentration: row.chip_concentration || row.chipConcentration || null,
             jinlong: row.jinlong || row.jinlongMetrics || null,
+            yinlong: row.yinlong || row.yinlongMetrics || null,
             priceRange: row.price_range || row.priceRange || null,
             nameInitials: row.nameInitials || ''
           });
@@ -539,6 +556,25 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         return '<span class="chip-metric" title="' + esc(title) + '"><em class="chip-val">' + text + '</em><small>集中度90</small></span>';
       }
 
+      function yinlongLabel(yl) {
+        if (!yl || yl.status !== 'ok') return '—';
+        if (yl.hit_today) return '今日';
+        if (yl.bars_since_hit != null && yl.hit) return 'D+' + yl.bars_since_hit;
+        return '—';
+      }
+
+      function yinlongTitle(yl) {
+        if (!yl || yl.status !== 'ok') return '银龙信号数据待补';
+        if (yl.hit_today) return '银龙信号：今日成立（RSI9 ' + yl.rsi9_previous + ' → ' + yl.rsi9 + ' 上穿 20，MACD 柱 ' + yl.macd_hist + '）';
+        if (yl.hit) return '银龙信号：' + yl.last_hit_date + ' 成立，距今 ' + yl.bars_since_hit + ' 个交易日（观察窗 ' + yl.window + ' 日）';
+        return yl.last_hit_date ? '银龙信号：最近一次 ' + yl.last_hit_date + '，已超出 ' + yl.window + ' 日观察窗' : '银龙信号：近一年内未出现';
+      }
+
+      function yinlongHtml(yl) {
+        var cls = yl && yl.status === 'ok' && yl.hit ? 'chip-val is-jinlong' : 'chip-val';
+        return '<span class="chip-metric" title="' + esc(yinlongTitle(yl)) + '"><em class="' + cls + '">' + yinlongLabel(yl) + '</em><small>银龙</small></span>';
+      }
+
       function jinlongLabel(jl) {
         if (!jl || jl.status !== 'ok') return '—';
         if (jl.hit_today) return '今日';
@@ -568,6 +604,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var touchstone = row.touchstoneMetrics || null;
         var conc = row.chipConcentration || null;
         var jl = row.jinlong || null;
+        var yl = row.yinlong || null;
         if (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length) {
           badge += '<span class="chip-hlp-badge" title="HLP筹码顶底：' + esc(hlp.chip_signals.join('、')) + '">筹码顶底</span>';
         }
@@ -607,7 +644,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
         var reco = unavailable ? '' : composite >= 70 ? '高' : composite >= 55 ? '中' : '低';
         var recoHtml = unavailable ? '<span class="chip-reco is-unavailable" title="推荐度：暂不可用">暂不可用</span>' : '<span class="chip-reco is-' + reco + '" title="推荐度：' + reco + '（' + composite + '/100）">' + reco + '</span>';
         return (
-          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-jinlong="' + (jl && jl.hit ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
+          '<div class="chip-row" data-symbol="' + esc(row.symbol) + '" data-name="' + esc(row.name) + '" data-initials="' + esc(row.nameInitials) + '" data-industry="' + esc(row.industry) + '" data-theme="' + esc(themeText) + '" data-roe="' + esc(row.financials.roe ?? '') + '" data-net-margin="' + esc(row.financials.net_margin ?? '') + '" data-cash-profit="' + esc(row.financials.cash_profit_ratio ?? '') + '" data-gross-margin="' + esc(row.financials.gross_margin ?? '') + '" data-debt-ratio="' + esc(row.financials.debt_ratio ?? '') + '" data-year-profit="' + esc(row.yearProfit ?? row.year_profit ?? '') + '"' + (row.isHistory ? '' : ' data-week-profit="' + esc(profits.week ?? '') + '" data-month-profit="' + esc(profits.month ?? '') + '" data-quarter-profit="' + esc(profits.quarter ?? '') + '"') + (unavailable ? '' : ' data-composite="' + esc(composite) + '"') + ' data-main-force="' + esc(sm.main_force ?? '') + '" data-shareholder-change="' + esc(sm.shareholder_change_pct ?? '') + '" data-change="' + esc(row.change_percent ?? '') + '" data-hlp-chip-signal="' + (hlp && Array.isArray(hlp.chip_signals) && hlp.chip_signals.length ? '1' : '0') + '" data-touchstone="' + (touchstone && (touchstone.touchstone_hit ?? touchstone.bottom_alert ?? touchstone.bottom_confirmed) ? '1' : '0') + '" data-conc90="' + esc(conc && conc.concentration_90 != null ? conc.concentration_90 : '') + '" data-jinlong="' + (jl && jl.hit ? '1' : '0') + '" data-yinlong="' + (yl && yl.hit ? '1' : '0') + '" data-quality-shareholder="' + (row.qualityShareholder ? '1' : '0') + '" data-institutional-shareholder="' + (row.institutionalShareholder ? '1' : '0') + '" data-board-index="' + index + '"' + (index >= PAGE_SIZE ? ' hidden' : '') + '>' +
             '<div class="chip-row-top">' +
               '<div class="chip-row-main">' +
                 '<div class="chip-identity"><strong class="chip-row-name">' + esc(row.name) + '</strong>' + recoHtml + occurrenceHtml + '<span class="chip-row-code">' + esc(row.symbol) + '</span></div>' + badge +
@@ -617,6 +654,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                 priceRangeHtml(row.priceRange) +
                 conc90Html(conc) +
                 jinlongHtml(jl) +
+                yinlongHtml(yl) +
               '</div>' +
               '<div class="chip-row-footer">' +
                 '<span class="chip-price">¥' + fmt(row.price) + '</span>' +
@@ -731,6 +769,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           if (activeFilters.has('touchstone') && c.dataset.touchstone !== '1') return false;
           if (activeFilters.has('conc90') && (c.dataset.conc90 === '' || c.dataset.conc90 == null || !Number.isFinite(Number(c.dataset.conc90)) || Number(c.dataset.conc90) >= 10)) return false;
           if (activeFilters.has('jinlong') && c.dataset.jinlong !== '1') return false;
+          if (activeFilters.has('yinlong') && c.dataset.yinlong !== '1') return false;
           if (activeFilters.has('quality-shareholder') && c.dataset.qualityShareholder !== '1') return false;
           if (activeFilters.has('institutional-shareholder') && c.dataset.institutionalShareholder !== '1') return false;
           return true;
@@ -925,6 +964,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
                   touchstoneMetrics: row.touchstone_metrics || null,
                   chipConcentration: parseJsonSafe(row.chip_concentration),
                   jinlong: parseJsonSafe(row.jinlong),
+                  yinlong: parseJsonSafe(row.yinlong),
                   priceRange: parseJsonSafe(row.price_range),
                   industryEtfs: Array.isArray(row.industry_etfs) ? row.industry_etfs : [],
                   industryEtfStatus: row.industry_etf_status || 'unknown',

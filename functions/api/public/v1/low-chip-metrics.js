@@ -24,7 +24,7 @@ const CLIENT_METRIC_FIELDS = [
   'top10_float_ratio', 'price', 'announcement_date', 'change_percent', 'industry', 'sector',
   'financials', 'theme_concepts', 'industry_etfs', 'industry_etf_status',
   'industry_etf_pool_count', 'quality_shareholder', 'shareholder_nature',
-  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range', 'chip_concentration', 'jinlong',
+  'year_profit', 'hlp_metrics', 'touchstone_metrics', 'price_range', 'chip_concentration', 'jinlong', 'yinlong',
   'risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons',
   'risk_advisory', 'risk_coverage', 'risk_freshness',
 ];
@@ -49,6 +49,7 @@ function clientMetric(row) {
   metric.price_range = parseJsonField(metric.price_range, null);
   metric.chip_concentration = parseJsonField(metric.chip_concentration, null);
   metric.jinlong = parseJsonField(metric.jinlong, null);
+  metric.yinlong = parseJsonField(metric.yinlong, null);
   metric.risk_reasons = parseJsonField(metric.risk_reasons, []);
   metric.risk_coverage = parseJsonField(metric.risk_coverage, null);
   metric.risk_freshness = parseJsonField(metric.risk_freshness, null);
@@ -114,6 +115,7 @@ export async function onRequest(context) {
         price_range TEXT,
         chip_concentration TEXT,
         jinlong TEXT,
+        yinlong TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (trade_date, stock_code)
       )
@@ -126,8 +128,11 @@ export async function onRequest(context) {
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN price_range TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN chip_concentration TEXT').run(); } catch (e) {}
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN jinlong TEXT').run(); } catch (e) {}
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN yinlong TEXT').run(); } catch (e) {}
     // 金龙信号（双龙抄底PRO）：单列 JSON，历史回填只回写这一列
     try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN jinlong TEXT').run(); } catch (e) {}
+    // 银龙信号（RSI9 上穿 20 + MACD 柱为负）：单列 JSON
+    try { await env.DB.prepare('ALTER TABLE stock_metrics ADD COLUMN yinlong TEXT').run(); } catch (e) {}
   };
 
   if (method === 'GET') {
@@ -183,6 +188,7 @@ export async function onRequest(context) {
     const priceRangeOnly = preserveExisting && body?.price_range_only === true;
     const chipConcentrationOnly = preserveExisting && body?.chip_concentration_only === true;
     const jinlongOnly = preserveExisting && body?.jinlong_only === true;
+    const yinlongOnly = preserveExisting && body?.yinlong_only === true;
     const replaceTradeDate = String(body?.replace_trade_date || '').trim();
     const metrics = body?.metrics;
     if (!Array.isArray(metrics) || metrics.length === 0) {
@@ -255,7 +261,7 @@ export async function onRequest(context) {
       'closing_profit', 'average_cost', 'conc70', 'hlp_metrics', 'touchstone_metrics',
       'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
       'fundamental_shadow_status', 'fundamental_shadow_sessions'];
-    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range', 'chip_concentration', 'jinlong');
+    cols.push('risk_version', 'risk_as_of', 'risk_status', 'risk_level', 'risk_reasons', 'risk_advisory', 'risk_coverage', 'risk_freshness', 'price_range', 'chip_concentration', 'jinlong', 'yinlong');
     const rowValues = (m) => [
       m.trade_date, m.stock_code || null, m.stock_name || null,
       m.shareholder_count ?? null, m.shareholder_change_pct ?? null,
@@ -285,6 +291,7 @@ export async function onRequest(context) {
       m.price_range ? JSON.stringify(m.price_range) : null,
       m.chip_concentration ? JSON.stringify(m.chip_concentration) : null,
       m.jinlong ? JSON.stringify(m.jinlong) : null,
+      m.yinlong ? JSON.stringify(m.yinlong) : null,
     ];
     const invalid = metrics.filter((m) => !m || !/^\d{8}$/.test(String(m.trade_date || '')) || !/^\d{6}$/.test(String(m.stock_code || '')));
     if (invalid.length) return json({ ok: false, error: 'every metric requires YYYYMMDD trade_date and six-digit stock_code' }, 400);
@@ -312,7 +319,7 @@ export async function onRequest(context) {
       // price_range_only replays a single advisory column onto rows that already
       // exist (historical price-range backfill). Rewriting the full preserve set
       // would null shadow fields the snapshots never carried.
-      const updateColumns = priceRangeOnly ? ['price_range'] : chipConcentrationOnly ? ['chip_concentration'] : jinlongOnly ? ['jinlong'] : [
+      const updateColumns = priceRangeOnly ? ['price_range'] : chipConcentrationOnly ? ['chip_concentration'] : jinlongOnly ? ['jinlong'] : yinlongOnly ? ['yinlong'] : [
         'stock_name', 'price', 'pe_ttm', 'pb', 'ps_ttm', 'pcf_ttm', 'total_share', 'total_mv',
         'fundamental_shadow_status', 'fundamental_shadow_sessions',
       ];
