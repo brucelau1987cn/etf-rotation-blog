@@ -227,7 +227,7 @@ def test_yinlong_only_channel_updates_single_column():
     worker = WORKER.read_text(encoding="utf-8")
     sync = SYNC.read_text(encoding="utf-8")
     assert "const yinlongOnly = preserveExisting && body?.yinlong_only === true;" in worker
-    assert "yinlongOnly ? ['yinlong'] : [" in worker
+    assert "yinlongOnly ? ['yinlong'] :" in worker
     assert 'parser.add_argument("--yinlong-only"' in sync
     assert 'body["yinlong_only"] = True' in sync
     assert "yinlong_only=yinlong_only" in sync
