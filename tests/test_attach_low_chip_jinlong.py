@@ -348,3 +348,95 @@ def test_worker_js_parses():
         pytest.skip("node not available")
     result = subprocess.run([node, "--check", str(WORKER)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr[-2000:]
+
+
+# ---------- 与源码逐行实现的一致性（含 确定1 / TDF1 / NTDF1） ----------
+
+FIXTURE = ROOT / "tests/fixtures/jinlong_603668_bars.json"
+
+
+def _full_source_xg(bars):
+    """完全按用户提供的 双龙抄底PRO 源码逐行实现，不做任何化简。
+
+    用来证明 jinlong_signal 里「确定1 对最终输出无贡献」的化简是精确等价的，
+    而不是靠代数推理自说自话。
+    """
+    import jinlong_signal as jl
+
+    C = [float(b["close"]) for b in bars]
+    H = [float(b["high"]) for b in bars]
+    L = [float(b["low"]) for b in bars]
+    n = len(C)
+    ma40, ma30, ma60 = jl.ma(C, 40), jl.ma(C, 30), jl.ma(C, 60)
+
+    tdj = [False] * n
+    for i in range(1, n):
+        tdj[i] = bool(C[i - 1]) and (H[i] - L[i]) / C[i - 1] > 0.05
+    yul = [sum(1 for f in tdj[max(0, i - 4):i + 1] if f) > 1 for i in range(n)]
+    tu = [ma40[i] is not None and ma40[i] > 0 and C[i] / ma40[i] < 0.74 for i in range(n)]
+    start = [tdj[i] and yul[i] and tu[i] for i in range(n)]
+
+    var1 = jl.rsi(C, 7)
+    var2 = [None if (ma60[i] is None or ma60[i] == 0) else ((ma30[i] - L[i]) / ma60[i]) * 200
+            for i in range(n)]
+    gl_raw = [i > 0 and var1[i] is not None and var1[i - 1] is not None
+              and var1[i - 1] < 20 and var1[i] > var1[i - 1] for i in range(n)]
+    gl1 = jl.filter_signal(gl_raw, 5)
+    band_raw = [gl1[i] and i > 0 and start[i - 1] and var2[i] is not None
+                and var2[i] > 20 and C[i] > C[i - 1] for i in range(n)]
+    band1 = jl.filter_signal(band_raw, 10)
+
+    ma5, em5 = jl.ema(C, 5), jl.ema(jl.ema(C, 5), 5)
+    var3 = [abs(ma5[i] - em5[i]) for i in range(n)]
+    var4 = [ma5[i] - (ma5[i - 1] if i else ma5[i]) for i in range(n)]
+    var5 = [var4[i] - (var4[i - 1] if i else 0.0) for i in range(n)]
+    var6 = [(var4[i] + var5[i]) / 2 for i in range(n)]
+    tdf = [(var3[i] ** 1) * (var6[i] ** 3) for i in range(n)]
+    ntdf = [None] * n
+    for i in range(n):
+        denom = max(abs(x) for x in tdf[max(0, i - 14):i + 1])
+        ntdf[i] = None if denom == 0 else tdf[i] / denom
+    cross_ntdf = [i > 0 and ntdf[i] is not None and ntdf[i - 1] is not None
+                  and ntdf[i] > -0.05 and ntdf[i - 1] < -0.05 for i in range(n)]
+    queding = [band1[i] and cross_ntdf[i] for i in range(n)]
+
+    hist = jl.macd_hist(C)
+    pick_raw = [i > 0 and start[i - 1] and (queding[i] or C[i] > C[i - 1]) and hist[i] > -1.5
+                for i in range(n)]
+    pick1 = jl.filter_signal(pick_raw, 10)
+    cnt = jl.count_true(pick1, 13)
+    return [bool(cnt[i] >= 1 and (band1[i] or queding[i])) for i in range(n)]
+
+
+def _fixture_bars():
+    import json
+
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    return [
+        {"trade_date": b["trade_date"], "high": b["high"], "low": b["low"], "close": b["close"]}
+        for b in payload["bars"]
+    ]
+
+
+def test_simplified_xg_matches_full_source_formula():
+    """化简版与源码逐行版在真实行情上逐根一致。"""
+    import jinlong_signal as jl
+
+    bars = _fixture_bars()
+    full = _full_source_xg(bars)
+    simplified = [row["xg"] for row in jl.evaluate(bars)]
+    assert len(full) == len(simplified)
+    mismatches = [i for i, (a, b) in enumerate(zip(full, simplified)) if a != b]
+    assert not mismatches, f"化简版与源码不一致的 bar: {mismatches[:5]}"
+    assert sum(full) >= 1, "fixture 必须至少包含一次金龙信号，否则等价性没有说服力"
+
+
+def test_fixture_known_hit_dates():
+    import jinlong_signal as jl
+
+    bars = _fixture_bars()
+    hits = [row["trade_date"] for row in jl.evaluate(bars) if row["xg"]]
+    assert hits == ["2026-10-16", "2026-11-05"]
+    result = jl.signal_at(bars, "2026-11-13")
+    assert result["last_hit_date"] == "2026-11-05"
+    assert result["bars_since_hit"] == 6
