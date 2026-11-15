@@ -144,8 +144,8 @@ def test_attach_marks_hit_within_window(monkeypatch):
 
 
 def test_attach_marks_no_hit_when_stale(monkeypatch):
-    n = sig.MIN_BARS + 10
-    rows = _stub_rows(2, n)
+    n = sig.MIN_BARS + 25
+    rows = _stub_rows(sig.MIN_BARS - 1, n)
     monkeypatch.setattr(sig, "evaluate", lambda bars: rows)
     payload = _payload()
     mod.attach(payload, rows[-1]["trade_date"], bars_loader=lambda code: _bars([10.0] * n))

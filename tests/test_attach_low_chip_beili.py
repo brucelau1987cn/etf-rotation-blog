@@ -59,6 +59,32 @@ def _separated_series() -> list[float]:
     )
 
 
+# ---------- 截止日契约 ----------
+
+def test_all_signals_warmup_is_as_of_and_future_bars_are_ignored(monkeypatch):
+    import importlib
+    for name in ("jinlong", "yinlong", "beili"):
+        engine = importlib.import_module(name + "_signal")
+        bars = _bars([10.0] * (engine.MIN_BARS + 15))
+        early = engine.signal_at(bars, bars[engine.MIN_BARS - 2]["trade_date"])
+        assert early["status"] == "unavailable", name
+        assert early["reason"] == f"insufficient_bars:{engine.MIN_BARS - 1}/{engine.MIN_BARS}"
+        # Non-flat history exercises EMA/RSI and segmented divergence state.
+        bars = _bars(_separated_series())
+        target = engine.MIN_BARS + 2
+        full = engine.signal_at(bars, bars[target]["trade_date"])
+        assert full == engine.signal_at(bars[:target + 1], bars[target]["trade_date"]), name
+        assert full["history_bars"] == target + 1
+        real_evaluate = engine.evaluate
+        def prewarm_only(data, original=real_evaluate, field="divergence" if name == "beili" else "xg", minimum=engine.MIN_BARS):
+            rows = original(data)
+            for i, row in enumerate(rows):
+                row[field] = i == minimum - 2
+            return rows
+        monkeypatch.setattr(engine, "evaluate", prewarm_only)
+        assert engine.signal_at(bars)["last_hit_date"] is None, name
+
+
 # ---------- 通达信函数语义 ----------
 
 def test_intpart_truncates_toward_zero():
@@ -115,6 +141,17 @@ def test_divergence_void_marks_broken_structure():
     assert any(r["divergence_void"] for r in rows), "构造序列应出现底背离消失"
 
 
+def test_vanish_ors_both_branches(monkeypatch):
+    dif = [0, -2, -3, -2, -4, -5, -4, -1, -1.1, -4]
+    monkeypatch.setattr(sig, "dif_dea", lambda closes: (dif, [d + 1 for d in dif]))
+    monkeypatch.setattr(sig, "cross_up", lambda a, b: [i in (1, 4, 7) for i in range(10)])
+    rows = sig.evaluate(_bars([20, 15, 14, 15, 18, 17, 18, 13, 12, 11]))
+    assert rows[8]["direct_divergence"] and rows[8]["separated_divergence"]
+    assert rows[9]["difl1"] > rows[9]["difl2"]
+    assert rows[9]["difl1"] <= rows[9]["difl3"]
+    assert rows[9]["divergence_void"] is True
+
+
 def test_divergence_requires_negative_macd_hist():
     rows = sig.evaluate(_bars(_direct_series()))
     for i, row in enumerate(rows):
@@ -123,6 +160,80 @@ def test_divergence_requires_negative_macd_hist():
 
 
 # ---------- signal_at ----------
+
+def test_frozen_threshold_delayed_invalidation_sticky_and_new_event(monkeypatch):
+    bars = _bars([10.0] * (sig.MIN_BARS + 12))
+    rows = sig.evaluate(bars)
+    anchor = sig.MIN_BARS
+    for row in rows:
+        row.update(divergence=False, direct_divergence=False, separated_divergence=False,
+                   divergence_void=False, dif=-1.0, difl1=-1.0, difl2=-2.0, difl3=-3.0)
+    rows[anchor].update(divergence=True, direct_divergence=True, separated_divergence=True)
+    # Moving segment references cannot move the event's frozen thresholds.
+    for i in range(anchor + 1, len(rows)):
+        rows[i].update(difl2=-20.0, difl3=-30.0)
+    rows[anchor + 3]["dif"] = -2.0
+    monkeypatch.setattr(sig, "evaluate", lambda data: rows[:len(data)])
+    def state(i):
+        return sig.signal_at(bars, bars[i]["trade_date"])
+    assert state(anchor + 2)["active"] is True
+    broken = state(anchor + 4)
+    assert broken["voided"] is True
+    assert broken["legacy_voided"] is False
+    assert broken["invalidated_at"] == bars[anchor + 3]["trade_date"]
+    assert broken["invalidation_reason"] == "direct_dif_threshold_broken"
+    assert broken["anchor_reference_dif"] == {"direct": -2.0, "separated": -3.0}
+    assert broken["anchor_date"] == bars[anchor]["trade_date"]
+    assert broken["active"] is False and broken["structure_status"] == "voided"
+    assert broken["model"].endswith("-v2")
+    # New raw event can already have a broken within-segment trough.
+    rows[anchor + 5].update(divergence=True, separated_divergence=True, difl1=-31.0)
+    assert state(anchor + 5)["voided"] is True
+    rows[anchor + 6].update(divergence=True, separated_divergence=True, difl1=-1.0)
+    assert state(anchor + 6)["active"] is True
+    assert state(anchor + 6)["invalidated_at"] is None
+    assert state(anchor + 6)["anchor_reference_dif"] == {"separated": -30.0}
+    # Equality on the separated branch invalidates and stays invalid on recovery.
+    rows[anchor + 7]["dif"] = -30.0
+    assert state(anchor + 8)["invalidation_reason"] == "separated_dif_threshold_broken"
+    rows[anchor + 9].update(divergence=True, direct_divergence=True)
+    rows[anchor + 10]["divergence_void"] = True
+    assert state(anchor + 11)["legacy_voided"] is True
+    assert state(anchor + 11)["invalidation_reason"] == "legacy_divergence_void"
+
+
+def test_new_direct_anchor_resets_same_day_old_separated_void(monkeypatch):
+    padding = sig.MIN_BARS
+    tail_dif = [0, -2, -3, -2, -4, -5, -4, -1, -1.1, -4, -3.8, -5.1]
+    dif = [0.0] * padding + tail_dif
+    closes = [20.0] * padding + [20, 15, 14, 15, 18, 17, 18, 13, 12, 11, 11, 11]
+    bars = _bars(closes)
+    monkeypatch.setattr(sig, "dif_dea", lambda data: (dif[:len(data)], [d + 1 for d in dif[:len(data)]]))
+    monkeypatch.setattr(sig, "cross_up", lambda a, b: [i in (padding + 1, padding + 4, padding + 7) for i in range(len(a))])
+    rows = sig.evaluate(bars)
+    old, new = padding + 8, padding + 9
+    assert rows[old]["separated_divergence"] is True
+    assert rows[new]["direct_divergence"] is True
+    assert rows[new]["separated_divergence"] is False
+    assert rows[new]["divergence_void"] is True
+    assert rows[new]["difl2"] < rows[new]["difl1"] <= rows[new]["difl3"]
+    previous = sig.signal_at(bars, bars[old]["trade_date"])
+    assert previous["anchor_reference_dif"]["separated"] == -3
+    for index in (new, new + 1):
+        state = sig.signal_at(bars, bars[index]["trade_date"])
+        assert state["anchor_date"] == bars[new]["trade_date"]
+        assert state["anchor_reference_dif"] == {"direct": -5}
+        assert state["active"] is True
+        assert state["voided"] is False
+        assert state["legacy_voided"] is False
+        assert state["invalidated_at"] is None
+        assert state["invalidation_reason"] is None
+    broken = sig.signal_at(bars)
+    assert broken["anchor_date"] == bars[new]["trade_date"]
+    assert broken["voided"] is True
+    assert broken["legacy_voided"] is False
+    assert broken["invalidation_reason"] == "direct_dif_threshold_broken"
+
 
 def test_signal_at_reports_hit_and_void():
     bars = _bars(_direct_series())
@@ -153,6 +264,53 @@ def _payload(codes=("600000.SH", "000001.SZ")):
         "intersection": list(codes),
         "enrichments": {code: {"industry": "银行"} for code in codes},
     }
+
+
+def test_attach_background_windows_are_inclusive_and_explicit(monkeypatch):
+    import importlib
+    for name in ("jinlong", "yinlong"):
+        attach_mod = importlib.import_module("attach_low_chip_" + name)
+        engine = importlib.import_module(name + "_signal")
+        bars = _bars([10.0] * (engine.MIN_BARS + 30))
+        original = engine.evaluate(bars)
+        for distance in (0, 5, 6, 10, 11, 20, 21):
+            rows = [dict(row, xg=i == len(bars) - 1 - distance) for i, row in enumerate(original)]
+            monkeypatch.setattr(engine, "evaluate", lambda data: rows[:len(data)])
+            payload = _payload(("600000.SH",))
+            contract = attach_mod.attach(payload, bars[-1]["trade_date"], bars_loader=lambda code: bars)
+            entry = payload["enrichments"]["600000.SH"][name]
+            assert entry["hit"] == (distance <= 20)
+            assert entry["recent_hit_5"] == (distance <= 5)
+            assert entry["recent_hit_10"] == (distance <= 10)
+            assert entry["window_semantics"] == contract["window_semantics"] == "bars_since_lte"
+            assert contract["signal_semantics"] == "recent_event_background"
+            assert entry["model"] == contract["model"] == attach_mod.MODEL
+            assert entry["model"].endswith("-v2")
+        missing = attach_mod._unavailable(AS_OF, "offline")
+        assert missing["recent_hit_5"] is False and missing["recent_hit_10"] is False
+        assert missing["window_semantics"] == "bars_since_lte"
+
+
+def test_attach_carries_frozen_structure_state(monkeypatch):
+    bars = _bars([10.0] * (sig.MIN_BARS + 6))
+    rows = sig.evaluate(bars)
+    for row in rows:
+        row.update(divergence=False, direct_divergence=False, separated_divergence=False,
+                   divergence_void=False, dif=-1.0, difl1=-1.0, difl2=-2.0)
+    rows[-5].update(divergence=True, direct_divergence=True)
+    rows[-2]["dif"] = -2.1
+    monkeypatch.setattr(sig, "evaluate", lambda data: rows[:len(data)])
+    payload = _payload(("600000.SH",))
+    contract = mod.attach(payload, bars[-1]["trade_date"], bars_loader=lambda code: bars)
+    entry = payload["enrichments"]["600000.SH"]["beili"]
+    state = sig.signal_at(bars)
+    assert entry["hit"] is False and entry["voided"] is True
+    for key in ("legacy_voided", "invalidated_at", "invalidation_reason", "anchor_date",
+                "anchor_reference_dif", "active", "structure_status", "model"):
+        assert entry[key] == state[key]
+    assert contract["window_semantics"] == "bars_since_lte"
+    assert contract["signal_semantics"] == "recent_unvoided_structure"
+    assert mod._unavailable(AS_OF, "offline")["structure_status"] == "unavailable"
 
 
 def test_attach_marks_hit_when_recent_and_not_voided():

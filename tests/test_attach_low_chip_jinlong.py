@@ -142,8 +142,8 @@ def test_xg_requires_band1_and_pick1_within_window():
 
 # ---------- signal_at 观察窗 ----------
 
-def _rows_stub(xg_at):
-    n = sig.MIN_BARS + 5
+def _rows_stub(xg_at, n=None):
+    n = n or sig.MIN_BARS + 5
     days = _dates(n)
     return [
         {
@@ -217,7 +217,7 @@ def test_attach_marks_hit_within_window(monkeypatch):
 
 
 def test_attach_marks_no_hit_when_signal_is_stale(monkeypatch):
-    rows = _rows_stub({5})
+    rows = _rows_stub({sig.MIN_BARS - 1}, n=sig.MIN_BARS + 25)
     monkeypatch.setattr(sig, "evaluate", lambda bars: rows)
     payload = _payload()
 
@@ -228,7 +228,7 @@ def test_attach_marks_no_hit_when_signal_is_stale(monkeypatch):
     entry = payload["enrichments"]["600000.SH"]["jinlong"]
     assert entry["status"] == "ok"
     assert entry["hit"] is False
-    assert entry["last_hit_date"] == rows[5]["trade_date"]
+    assert entry["last_hit_date"] == rows[sig.MIN_BARS - 1]["trade_date"]
     assert entry["bars_since_hit"] > mod.WINDOW
 
 

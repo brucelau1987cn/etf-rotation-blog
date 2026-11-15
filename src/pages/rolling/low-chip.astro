@@ -194,16 +194,17 @@ function xtopTitle(xt: any): string {
 }
 function beiliLabel(bl: any): string {
   if (!bl || bl.status !== 'ok') return '—';
+  if (bl.voided) return '失效';
   if (bl.today) return '今日';
   if (bl.hit && bl.bars_since_hit != null) return `D+${bl.bars_since_hit}`;
   return '—';
 }
 function beiliTitle(bl: any): string {
   if (!bl || bl.status !== 'ok') return '底背离数据待补';
+  if (bl.voided) return `底背离：${bl.last_hit_date} 信号已失效（${bl.invalidated_at || '日期待补'}，持续复核触发时的 DIF 参考低点）`;
   const kind = bl.direct_today ? '直接底背离' : bl.separated_today ? '隔峰底背离' : '底背离';
-  if (bl.today) return `${kind}：今日成立（价 ${fmt(bl.cl1)} 低于前段 ${fmt(bl.cl2)}，DIF ${fmt(bl.difl1)} 高于前段 ${fmt(bl.difl2)}，MACD 柱 ${fmt(bl.macd_hist)}）`;
-  if (bl.hit) return `底背离：${bl.last_hit_date} 成立，距今 ${bl.bars_since_hit} 个交易日（观察窗 ${bl.window} 日，未被消失条件否定）`;
-  if (bl.voided) return `底背离：${bl.last_hit_date} 成立后已被「底背离消失」否定（DIF 未抬高）`;
+  if (bl.today) return `${kind}：今日成立（价 ${fmt(bl.cl1)} 低于前段 ${fmt(bl.direct_today ? bl.cl2 : bl.cl3)}，DIF ${fmt(bl.difl1)} 高于前段 ${fmt(bl.direct_today ? bl.difl2 : bl.difl3)}，MACD 柱 ${fmt(bl.macd_hist)}）`;
+  if (bl.hit) return `底背离：${bl.last_hit_date} 成立，距今 ${bl.bars_since_hit} 个交易日（距今至多 ${bl.window} 个交易日，持续结构有效）`;
   return bl.last_hit_date ? `底背离：最近一次 ${bl.last_hit_date}，已超出 ${bl.window} 日观察窗` : '底背离：近一年内未出现';
 }
 function yinlongLabel(yl: any): string {
@@ -215,7 +216,7 @@ function yinlongLabel(yl: any): string {
 function yinlongTitle(yl: any): string {
   if (!yl || yl.status !== 'ok') return '银龙信号数据待补';
   if (yl.hit_today) return `银龙信号：今日成立（RSI9 ${fmt(yl.rsi9_previous)} → ${fmt(yl.rsi9)} 上穿 20，MACD 柱 ${fmt(yl.macd_hist)}）`;
-  if (yl.hit) return `银龙信号：${yl.last_hit_date} 成立，距今 ${yl.bars_since_hit} 个交易日（观察窗 ${yl.window} 日）`;
+  if (yl.hit) return `银龙信号：${yl.last_hit_date} 成立，距今 ${yl.bars_since_hit} 个交易日（背景信号，距今至多 ${yl.window} 个交易日）`;
   return yl.last_hit_date ? `银龙信号：最近一次 ${yl.last_hit_date}，已超出 ${yl.window} 日观察窗` : '银龙信号：近一年内未出现';
 }
 function jinlongLabel(jl: any): string {
@@ -227,7 +228,7 @@ function jinlongLabel(jl: any): string {
 function jinlongTitle(jl: any): string {
   if (!jl || jl.status !== 'ok') return '金龙信号数据待补';
   if (jl.hit_today) return `金龙信号：今日成立（双龙抄底PRO 入选，收 ${jl.close}）`;
-  if (jl.hit) return `金龙信号：${jl.last_hit_date} 成立，距今 ${jl.bars_since_hit} 个交易日（观察窗 ${jl.window} 日）`;
+  if (jl.hit) return `金龙信号：${jl.last_hit_date} 成立，距今 ${jl.bars_since_hit} 个交易日（背景信号，距今至多 ${jl.window} 个交易日）`;
   return jl.last_hit_date ? `金龙信号：最近一次 ${jl.last_hit_date}，已超出 ${jl.window} 日观察窗` : '金龙信号：近一年内未出现';
 }
 
@@ -318,9 +319,9 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
           <button type="button" class="chip-filter-btn" data-filter="touchstone" aria-pressed="false" title="日线 ZIG15：当前候选底部或正式确认底部">点石成金</button>
           <button type="button" class="chip-filter-btn" data-filter="hlp-chip-signal" aria-pressed="false">筹码顶底</button>
           <button type="button" class="chip-filter-btn" data-filter="conc90" aria-pressed="false" title="90%筹码集中度 &lt; 10%（同花顺集中度90口径，数值越小筹码越集中）">集中度90 &lt; 10%</button>
-          <button type="button" class="chip-filter-btn" data-filter="jinlong" aria-pressed="false" title="金龙信号：最近 20 个交易日内出现「双龙抄底PRO」入选信号（深跌 26% 后高振幅 + RSI 低位回升）">金龙信号</button>
-          <button type="button" class="chip-filter-btn" data-filter="yinlong" aria-pressed="false" title="银龙信号：最近 20 个交易日内出现「RSI9 上穿 20 且 MACD 柱为负」（超卖后初步修复）">银龙信号</button>
-          <button type="button" class="chip-filter-btn" data-filter="beili" aria-pressed="false" title="底背离：最近 20 个交易日内出现「价格创新低而 DIF 抬高」且 MACD 柱在零轴下方（直接/隔峰），且未被消失条件否定">底背离</button>
+          <button type="button" class="chip-filter-btn" data-filter="jinlong" aria-pressed="false" title="金龙信号：距今至多 20 个交易日出现「双龙抄底PRO」入选信号（深跌 26% 后高振幅 + RSI 低位回升）">金龙信号</button>
+          <button type="button" class="chip-filter-btn" data-filter="yinlong" aria-pressed="false" title="银龙信号：距今至多 20 个交易日出现「RSI9 上穿 20 且 MACD 柱为负」（超卖后初步修复）">银龙信号</button>
+          <button type="button" class="chip-filter-btn" data-filter="beili" aria-pressed="false" title="底背离：距今至多 20 个交易日出现「价格创新低而 DIF 抬高」且 MACD 柱在零轴下方（直接/隔峰），且通过持续失效复核">底背离</button>
           <button type="button" class="chip-filter-btn" data-filter="xdiv" aria-pressed="false" title="金叉背离：最近 5 个交易日内 MACD/KDJ/RSI 任一出现「价格创新低而指标抬高后金叉」">金叉背离</button>
           <button type="button" class="chip-filter-btn" data-filter="xtop" aria-pressed="false" title="顶背离：最近 5 个交易日内 MACD/KDJ/RSI 任一出现「价格创新高而指标走低后死叉」（减仓参考）">顶背离</button>
           <button type="button" class="chip-filter-btn" data-filter="quality-shareholder" aria-pressed="false">优质股东</button>
@@ -655,6 +656,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
       function beiliLabel(bl) {
         if (!bl || bl.status !== 'ok') return '—';
+        if (bl.voided) return '失效';
         if (bl.today) return '今日';
         if (bl.hit && bl.bars_since_hit != null) return 'D+' + bl.bars_since_hit;
         return '—';
@@ -662,10 +664,10 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
 
       function beiliTitle(bl) {
         if (!bl || bl.status !== 'ok') return '底背离数据待补';
+        if (bl.voided) return '底背离：' + bl.last_hit_date + ' 信号已失效（' + (bl.invalidated_at || '日期待补') + '，持续复核触发时的 DIF 参考低点）';
         var kind = bl.direct_today ? '直接底背离' : bl.separated_today ? '隔峰底背离' : '底背离';
-        if (bl.today) return kind + '：今日成立（价 ' + bl.cl1 + ' 低于前段 ' + bl.cl2 + '，DIF ' + bl.difl1 + ' 高于前段 ' + bl.difl2 + '，MACD 柱 ' + bl.macd_hist + '）';
-        if (bl.hit) return '底背离：' + bl.last_hit_date + ' 成立，距今 ' + bl.bars_since_hit + ' 个交易日（观察窗 ' + bl.window + ' 日，未被消失条件否定）';
-        if (bl.voided) return '底背离：' + bl.last_hit_date + ' 成立后已被「底背离消失」否定（DIF 未抬高）';
+        if (bl.today) return kind + '：今日成立（价 ' + bl.cl1 + ' 低于前段 ' + (bl.direct_today ? bl.cl2 : bl.cl3) + '，DIF ' + bl.difl1 + ' 高于前段 ' + (bl.direct_today ? bl.difl2 : bl.difl3) + '，MACD 柱 ' + bl.macd_hist + '）';
+        if (bl.hit) return '底背离：' + bl.last_hit_date + ' 成立，距今 ' + bl.bars_since_hit + ' 个交易日（距今至多 ' + bl.window + ' 个交易日，持续结构有效）';
         return bl.last_hit_date ? '底背离：最近一次 ' + bl.last_hit_date + '，已超出 ' + bl.window + ' 日观察窗' : '底背离：近一年内未出现';
       }
 
@@ -684,7 +686,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       function yinlongTitle(yl) {
         if (!yl || yl.status !== 'ok') return '银龙信号数据待补';
         if (yl.hit_today) return '银龙信号：今日成立（RSI9 ' + yl.rsi9_previous + ' → ' + yl.rsi9 + ' 上穿 20，MACD 柱 ' + yl.macd_hist + '）';
-        if (yl.hit) return '银龙信号：' + yl.last_hit_date + ' 成立，距今 ' + yl.bars_since_hit + ' 个交易日（观察窗 ' + yl.window + ' 日）';
+        if (yl.hit) return '银龙信号：' + yl.last_hit_date + ' 成立，距今 ' + yl.bars_since_hit + ' 个交易日（背景信号，距今至多 ' + yl.window + ' 个交易日）';
         return yl.last_hit_date ? '银龙信号：最近一次 ' + yl.last_hit_date + '，已超出 ' + yl.window + ' 日观察窗' : '银龙信号：近一年内未出现';
       }
 
@@ -703,7 +705,7 @@ rows.sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0));
       function jinlongTitle(jl) {
         if (!jl || jl.status !== 'ok') return '金龙信号数据待补';
         if (jl.hit_today) return '金龙信号：今日成立（双龙抄底PRO 入选，收 ' + jl.close + '）';
-        if (jl.hit) return '金龙信号：' + jl.last_hit_date + ' 成立，距今 ' + jl.bars_since_hit + ' 个交易日（观察窗 ' + jl.window + ' 日）';
+        if (jl.hit) return '金龙信号：' + jl.last_hit_date + ' 成立，距今 ' + jl.bars_since_hit + ' 个交易日（背景信号，距今至多 ' + jl.window + ' 个交易日）';
         return jl.last_hit_date ? '金龙信号：最近一次 ' + jl.last_hit_date + '，已超出 ' + jl.window + ' 日观察窗' : '金龙信号：近一年内未出现';
       }
 

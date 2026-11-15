@@ -44,7 +44,7 @@ import build_low_chip_base as base  # noqa: E402  (复用 DATA 路径)
 from jinlong_signal import MIN_BARS, signal_at  # noqa: E402
 
 SOURCE = "ths-qfq-daily"
-MODEL = "jinlong-shuanglong-chaodi-pro-v1"
+MODEL = "jinlong-shuanglong-chaodi-pro-v2"
 WINDOW = 20                 # 观察窗：最近 20 个交易日内出现过 XG
 CACHE_DB = ROOT / "data/local/jinlong-bars.db"
 BAR_YEARS = ("2025", "2026")
@@ -160,6 +160,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
             "source": SOURCE,
             "model": MODEL,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_event_background",
             "adjustment": "qfq",
             "coverage": {"requested": 0, "ok": 0, "unavailable": 0},
             "failures": [],
@@ -186,11 +188,15 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
         entry["jinlong"] = {
             "status": "ok",
             "hit": bool(since is not None and since <= WINDOW),
+            "recent_hit_5": bool(since is not None and since <= 5),
+            "recent_hit_10": bool(since is not None and since <= 10),
             "hit_today": result["xg"],
             "as_of": result["as_of"],
             "last_hit_date": result["last_hit_date"],
             "bars_since_hit": since,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_event_background",
             "close": round(result["close"], 4),
             "rsi7": _round(result["rsi7"]),
             "var2": _round(result["var2"]),
@@ -209,6 +215,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
         "source": SOURCE,
         "model": MODEL,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_event_background",
         "adjustment": "qfq",
         "coverage": {"requested": len(codes), "ok": ok, "unavailable": len(codes) - ok},
         "failures": failures[:20],
@@ -221,11 +229,15 @@ def _unavailable(trade_date: str, reason: str) -> dict:
     return {
         "status": "UNAVAILABLE",
         "hit": False,
+        "recent_hit_5": False,
+        "recent_hit_10": False,
         "hit_today": False,
         "as_of": trade_date,
         "last_hit_date": None,
         "bars_since_hit": None,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_event_background",
         "close": None,
         "rsi7": None,
         "var2": None,

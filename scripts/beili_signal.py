@@ -18,13 +18,14 @@
     底背离消失:=(REF(直接底背离,1) AND DIFL1<=DIFL2) OR (REF(隔峰底背离,1) AND DIFL1<=DIFL3);
 
 即「价格创新低而 DIF 抬高」（直接底背离看相邻两段，隔峰底背离看跨一段的三段），
-且要求 MACD 柱仍在零轴下方；`MDIF*` 那套 INTPART/LOG 是把 DIF 按量级压成 2 位有效
-数字再比较，避免 DIF 绝对值随价格水平缩放后失真。
+且要求 MACD 柱仍在零轴下方；`MDIF*` 沿用 INTPART(LOG10) 的量级量化。
+向零取整会使小于 1 的 DIF 精度随量级跳变，整体价格缩放也可能改变判定。
 
 N2/N3 在源码里只喂给 S5/ST（强度柱），不参与背离判定，这里不算。
 
 价格口径：前复权日线。DIF/DEA 是收盘价的线性组合，MACD 柱 2*(DIF-DEA) 同理，
-所以同一份 bar 序列内的比较不受复权基准影响，但跨基准拼接会失真，契约记 adjustment。
+原始线性比较随整体价格缩放保持方向；INTPART 量化保留源码行为及尺度敏感边界。
+跨复权基准拼接会失真，契约记 adjustment。
 """
 from __future__ import annotations
 
@@ -65,7 +66,7 @@ def _intpart(value: float) -> float:
 
 
 def _scale_prefix(value: float | None) -> float | None:
-    """PDIFL*：把 |DIF| 压到 2 位有效数字所需要的 10 的幂次。"""
+    """源码 PDIFL* 量级前缀；亚单位值向零取整，精度随量级变化。"""
     if value is None or value == 0:
         return None
     return _intpart(math.log10(abs(value))) - 1
@@ -148,10 +149,10 @@ def evaluate(bars: list[dict]) -> list[dict]:
         v = False
         f1, f2, f3 = difl1[i], difl2[i], difl3[i]
         if i > 0 and f1 is not None:
-            if direct[i - 1] and f2 is not None:
-                v = f1 <= f2
-            elif separated[i - 1] and f3 is not None:
-                v = f1 <= f3
+            v = bool(
+                (direct[i - 1] and f2 is not None and f1 <= f2)
+                or (separated[i - 1] and f3 is not None and f1 <= f3)
+            )
         vanish.append(bool(v))
 
     rows = []
@@ -180,28 +181,56 @@ def evaluate(bars: list[dict]) -> list[dict]:
 def signal_at(bars: list[dict], as_of: str | None = None) -> dict:
     """取指定交易日的底背离状态。
 
-    「有效底背离」= 最近一次成立之后没有再出现「底背离消失」。返回值同时给出
-    当日是否成立、最近一次成立日期、距今根数、以及是否已被消失条件否定。
+    「有效底背离」按最近一次充分预热的原始事件冻结各分支的 DIF 参考低点。
+    事件当日检查段内最低 DIF；后续逐根检查 DIF 与原始消失条件，首次失效
+    持续到下一次原始事件。原始事件与持续结构状态分别返回。
     """
-    if len(bars) < MIN_BARS:
-        return {"status": "unavailable", "reason": f"insufficient_bars:{len(bars)}/{MIN_BARS}"}
-    rows = evaluate(bars)
-    target = str(as_of or rows[-1]["trade_date"])[:10]
+    if not bars:
+        return {"status": "unavailable", "reason": f"insufficient_bars:0/{MIN_BARS}"}
+    target = str(as_of or bars[-1].get("trade_date") or bars[-1].get("date"))[:10]
     hit_index = None
-    for i, row in enumerate(rows):
-        if str(row["trade_date"])[:10] == target:
+    for i, bar in enumerate(bars):
+        if str(bar.get("trade_date") or bar.get("date"))[:10] == target:
             hit_index = i
     if hit_index is None:
         return {"status": "unavailable", "reason": f"no_bar_on:{target}"}
+    bars = bars[:hit_index + 1]
+    if len(bars) < MIN_BARS:
+        return {"status": "unavailable", "reason": f"insufficient_bars:{len(bars)}/{MIN_BARS}"}
+    rows = evaluate(bars)
 
     last_index = None
-    for i in range(hit_index, -1, -1):
+    for i in range(hit_index, MIN_BARS - 2, -1):
         if rows[i]["divergence"]:
             last_index = i
             break
-    voided = False
+    references = {}
+    legacy_voided = False
+    invalidated_at = None
+    invalidation_reason = None
     if last_index is not None:
-        voided = any(rows[j]["divergence_void"] for j in range(last_index + 1, hit_index + 1))
+        anchor = rows[last_index]
+        if anchor["direct_divergence"]:
+            references["direct"] = anchor["difl2"]
+        if anchor["separated_divergence"]:
+            references["separated"] = anchor["difl3"]
+        legacy_voided = any(rows[j]["divergence_void"] for j in range(last_index + 1, hit_index + 1))
+        for j in range(last_index, hit_index + 1):
+            current = rows[j]
+            reason = None
+            if j > last_index and current["divergence_void"]:
+                reason = "legacy_divergence_void"
+            for branch, threshold in references.items():
+                # On the event bar include the full segment's existing trough.
+                value = current["difl1"] if j == last_index else current["dif"]
+                if threshold is not None and value is not None and value <= threshold:
+                    reason = reason or f"{branch}_dif_threshold_broken"
+            if reason is not None:
+                invalidated_at = str(current["trade_date"])[:10]
+                invalidation_reason = reason
+                break
+    voided = invalidated_at is not None
+    active = last_index is not None and not voided
 
     row = rows[hit_index]
     return {
@@ -213,6 +242,13 @@ def signal_at(bars: list[dict], as_of: str | None = None) -> dict:
         "last_hit_date": rows[last_index]["trade_date"] if last_index is not None else None,
         "bars_since_hit": (hit_index - last_index) if last_index is not None else None,
         "voided": voided,
+        "legacy_voided": legacy_voided,
+        "invalidated_at": invalidated_at,
+        "invalidation_reason": invalidation_reason,
+        "anchor_date": str(rows[last_index]["trade_date"])[:10] if last_index is not None else None,
+        "anchor_reference_dif": references,
+        "active": active,
+        "structure_status": "active" if active else "voided" if voided else "no_event",
         "close": row["close"],
         "dif": row["dif"],
         "macd_hist": row["macd_hist"],
@@ -223,5 +259,5 @@ def signal_at(bars: list[dict], as_of: str | None = None) -> dict:
         "difl2": row["difl2"],
         "difl3": row["difl3"],
         "history_bars": len(bars),
-        "model": "shuanglong-dingliang-jiegou-divergence-v1",
+        "model": "shuanglong-dingliang-jiegou-divergence-v2",
     }

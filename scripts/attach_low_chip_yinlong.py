@@ -37,7 +37,7 @@ import attach_low_chip_jinlong as bars_store  # noqa: E402  (共用行情缓存)
 from yinlong_signal import MIN_BARS, signal_at  # noqa: E402
 
 SOURCE = bars_store.SOURCE
-MODEL = "yinlong-shuanglong-chaodi-pro-v1"
+MODEL = "yinlong-shuanglong-chaodi-pro-v2"
 WINDOW = 20                 # 观察窗：最近 20 个交易日内出现过 XG（与金龙一致）
 
 
@@ -65,6 +65,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
             "source": SOURCE,
             "model": MODEL,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_event_background",
             "adjustment": "qfq",
             "coverage": {"requested": 0, "ok": 0, "unavailable": 0},
             "failures": [],
@@ -91,11 +93,15 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
         entry["yinlong"] = {
             "status": "ok",
             "hit": bool(since is not None and since <= WINDOW),
+            "recent_hit_5": bool(since is not None and since <= 5),
+            "recent_hit_10": bool(since is not None and since <= 10),
             "hit_today": result["xg"],
             "as_of": result["as_of"],
             "last_hit_date": result["last_hit_date"],
             "bars_since_hit": since,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_event_background",
             "close": round(result["close"], 4),
             "rsi9": _round(result["rsi9"]),
             "rsi9_previous": _round(result["rsi9_previous"]),
@@ -112,6 +118,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
         "source": SOURCE,
         "model": MODEL,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_event_background",
         "adjustment": "qfq",
         "coverage": {"requested": len(codes), "ok": ok, "unavailable": len(codes) - ok},
         "failures": failures[:20],
@@ -124,11 +132,15 @@ def _unavailable(trade_date: str, reason: str) -> dict:
     return {
         "status": "UNAVAILABLE",
         "hit": False,
+        "recent_hit_5": False,
+        "recent_hit_10": False,
         "hit_today": False,
         "as_of": trade_date,
         "last_hit_date": None,
         "bars_since_hit": None,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_event_background",
         "close": None,
         "rsi9": None,
         "rsi9_previous": None,

@@ -186,18 +186,21 @@ def signal_at(bars: list[dict], as_of: str | None = None) -> dict:
     返回 status=ok 时带 xg（当日是否入选）、最近一次 xg 日期与间隔；bars 不足
     MIN_BARS 或指定日期不在数据里时返回 unavailable，不静默当成「没信号」。
     """
-    if len(bars) < MIN_BARS:
-        return {"status": "unavailable", "reason": f"insufficient_bars:{len(bars)}/{MIN_BARS}"}
-    rows = evaluate(bars)
-    target = str(as_of or rows[-1]["trade_date"])[:10]
+    if not bars:
+        return {"status": "unavailable", "reason": f"insufficient_bars:0/{MIN_BARS}"}
+    target = str(as_of or bars[-1].get("trade_date") or bars[-1].get("date"))[:10]
     hit_index = None
-    for i, row in enumerate(rows):
-        if str(row["trade_date"])[:10] == target:
+    for i, bar in enumerate(bars):
+        if str(bar.get("trade_date") or bar.get("date"))[:10] == target:
             hit_index = i
     if hit_index is None:
         return {"status": "unavailable", "reason": f"no_bar_on:{target}"}
+    bars = bars[:hit_index + 1]
+    if len(bars) < MIN_BARS:
+        return {"status": "unavailable", "reason": f"insufficient_bars:{len(bars)}/{MIN_BARS}"}
+    rows = evaluate(bars)
     last_index = None
-    for i in range(hit_index, -1, -1):
+    for i in range(hit_index, MIN_BARS - 2, -1):
         if rows[i]["xg"]:
             last_index = i
             break
@@ -218,5 +221,5 @@ def signal_at(bars: list[dict], as_of: str | None = None) -> dict:
             1 for r in rows[max(0, hit_index - HISTORY_WINDOW + 1):hit_index + 1] if r["pick1"]
         ),
         "history_bars": len(bars),
-        "model": "jinlong-shuanglong-chaodi-pro-v1",
+        "model": "jinlong-shuanglong-chaodi-pro-v2",
     }

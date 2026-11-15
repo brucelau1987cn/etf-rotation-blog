@@ -39,7 +39,7 @@ import attach_low_chip_jinlong as bars_store  # noqa: E402
 from beili_signal import signal_at  # noqa: E402
 
 SOURCE = bars_store.SOURCE
-MODEL = "shuanglong-dingliang-jiegou-divergence-v1"
+MODEL = "shuanglong-dingliang-jiegou-divergence-v2"
 WINDOW = 20                 # 观察窗：最近 20 个交易日内出现且未被否定的底背离
 
 
@@ -67,6 +67,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
             "source": SOURCE,
             "model": MODEL,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_unvoided_structure",
             "adjustment": "qfq",
             "coverage": {"requested": 0, "ok": 0, "unavailable": 0},
             "failures": [],
@@ -99,9 +101,18 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
             "last_hit_date": result["last_hit_date"],
             "bars_since_hit": since,
             "window": WINDOW,
+            "window_semantics": "bars_since_lte",
+            "signal_semantics": "recent_unvoided_structure",
             "direct_today": result["direct_today"],
             "separated_today": result["separated_today"],
             "voided": result["voided"],
+            "legacy_voided": result["legacy_voided"],
+            "invalidated_at": result["invalidated_at"],
+            "invalidation_reason": result["invalidation_reason"],
+            "anchor_date": result["anchor_date"],
+            "anchor_reference_dif": result["anchor_reference_dif"],
+            "active": result["active"],
+            "structure_status": result["structure_status"],
             "close": _round(result["close"], 4),
             "dif": _round(result["dif"], 4),
             "macd_hist": _round(result["macd_hist"], 4),
@@ -123,6 +134,8 @@ def _attach(payload: dict, trade_date: str, loader) -> dict:
         "source": SOURCE,
         "model": MODEL,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_unvoided_structure",
         "adjustment": "qfq",
         "coverage": {"requested": len(codes), "ok": ok, "unavailable": len(codes) - ok},
         "failures": failures[:20],
@@ -140,9 +153,18 @@ def _unavailable(trade_date: str, reason: str) -> dict:
         "last_hit_date": None,
         "bars_since_hit": None,
         "window": WINDOW,
+        "window_semantics": "bars_since_lte",
+        "signal_semantics": "recent_unvoided_structure",
         "direct_today": False,
         "separated_today": False,
         "voided": False,
+        "legacy_voided": False,
+        "invalidated_at": None,
+        "invalidation_reason": None,
+        "anchor_date": None,
+        "anchor_reference_dif": {},
+        "active": False,
+        "structure_status": "unavailable",
         "close": None,
         "dif": None,
         "macd_hist": None,
