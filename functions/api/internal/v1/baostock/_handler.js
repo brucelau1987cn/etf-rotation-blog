@@ -133,7 +133,7 @@ export async function handleBaoStockInternal({ request, env }, dependencies = {}
   try {
     if (route === 'calendar') {
       const fetchCalendarImpl = dependencies.fetchCalendarImpl || fetchCalendarFromBaoStock;
-      const records = normalizeCalendarRecords(await fetchCalendarImpl(range.start, range.end), range);
+      const records = normalizeCalendarRecords(await fetchCalendarImpl(range.start, range.end, null, env), range);
       return reply({ ok: true, source: 'baostock', ...range, count: records.length, records }, 200,
         'private, max-age=3600, stale-while-revalidate=86400');
     }
@@ -146,7 +146,7 @@ export async function handleBaoStockInternal({ request, env }, dependencies = {}
       const results = [];
       for (const symbol of symbols) {
         const records = normalizeKlineRecords(
-          await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields }), fields, range,
+          await fetchKlineImpl(symbol, { adjust: 'qfq', ...range, fields }, null, env), fields, range,
         );
         results.push({ symbol, count: records.length, records });
       }

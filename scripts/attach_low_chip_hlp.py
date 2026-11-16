@@ -255,6 +255,12 @@ def fetch_local_batch(symbols: list[str], start: str, end: str, *, sleeper=time.
     """One locked BaoStock session; preserve per-symbol successes."""
     import baostock as bs  # type: ignore[import-not-found]
 
+    api_key = os.environ.get('BAOSTOCK_APIKEY', '').strip()
+    if api_key:
+        # baostock>=0.9.4: a `bs-` key routes the session to the VIP node
+        # (vip-api.baostock.com), which is far less loaded than public-api.
+        bs.set_API_key(api_key)
+
     LOCAL_LOCK.parent.mkdir(parents=True, exist_ok=True)
     results: dict[str, pd.DataFrame] = {}
     errors: dict[str, str] = {}

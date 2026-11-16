@@ -128,16 +128,27 @@ export function baoStockSecCode(symbol) {
     : (value.startsWith('6') ? `sh.${value}` : `sz.${value}`);
 }
 
-async function withBaoStockSession(connectOverride, operation) {
+const BAOSTOCK_PUBLIC_HOSTNAME = 'public-api.baostock.com';
+const BAOSTOCK_VIP_HOSTNAME = 'vip-api.baostock.com';
+
+// VIP node requires a `bs-` API key; anonymous traffic stays on the public node.
+function baoStockEndpoint(env) {
+  const apiKey = String(env?.BAOSTOCK_API_KEY || '').trim();
+  if (apiKey) return { hostname: BAOSTOCK_VIP_HOSTNAME, apiKey };
+  return { hostname: BAOSTOCK_PUBLIC_HOSTNAME, apiKey: '0' };
+}
+
+async function withBaoStockSession(connectOverride, operation, env) {
+  const endpoint = baoStockEndpoint(env);
   const connectFn = connectOverride || (await import('cloudflare:sockets')).connect;
-  const socket = connectFn({ hostname: 'public-api.baostock.com', port: 10030 });
+  const socket = connectFn({ hostname: endpoint.hostname, port: 10030 });
   let writer = null;
   let reader = null;
   try {
     await socket.opened;
     writer = socket.writable.getWriter();
     reader = socket.readable.getReader();
-    const login = await sendBaoStockRequest(writer, reader, '00', ['login', 'anonymous', '123456', '0'].join(SEP));
+    const login = await sendBaoStockRequest(writer, reader, '00', ['login', 'anonymous', '123456', endpoint.apiKey].join(SEP));
     if (login.type !== '01' || login.fields[0] !== '0' || !login.fields[3]) {
       throw new Error(`baostock login ${login.fields[0] || 'failed'}`);
     }
@@ -149,7 +160,7 @@ async function withBaoStockSession(connectOverride, operation) {
   }
 }
 
-async function fetchKlineFromBaoStock(symbol, options = '', connectOverride = null) {
+async function fetchKlineFromBaoStock(symbol, options = '', connectOverride = null, env = null) {
   const config = typeof options === 'string' ? { adjust: options } : (options || {});
   const adjust = config.adjust ?? '';
   const adjustFlag = { '': '3', none: '3', qfq: '2', hfq: '1' }[adjust];
@@ -165,14 +176,14 @@ async function fetchKlineFromBaoStock(symbol, options = '', connectOverride = nu
     const parsed = await sendBaoStockRequest(writer, reader, '95', body);
     if (typeof options === 'string' || options == null) return parseHistoryResponse(parsed);
     return parseBaoStockTableResponse(parsed, '96');
-  });
+  }, env);
 }
 
-async function fetchCalendarFromBaoStock(start, end, connectOverride = null) {
+async function fetchCalendarFromBaoStock(start, end, connectOverride = null, env = null) {
   return withBaoStockSession(connectOverride, async ({ writer, reader, userId }) => {
     const body = ['query_trade_dates', userId, '1', '2000', start, end].join(SEP);
     return parseBaoStockTableResponse(await sendBaoStockRequest(writer, reader, '33', body), '34');
-  });
+  }, env);
 }
 
 export {

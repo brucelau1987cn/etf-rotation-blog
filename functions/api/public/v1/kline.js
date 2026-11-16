@@ -1337,7 +1337,7 @@ export async function onRequestGet({ request, env }) {
         let source;
         if (provider === 'baostock') {
           source = 'baostock-tcp+local-cyq';
-          klines = await fetchKlineFromBaoStock(symbol, adjust);
+          klines = await fetchKlineFromBaoStock(symbol, adjust, null, env);
         } else {
           source = 'tencent-kline+local-cyq';
           try {
@@ -1345,7 +1345,7 @@ export async function onRequestGet({ request, env }) {
           } catch (tencentError) {
             if (provider === 'tencent') throw tencentError;
             source = 'baostock-tcp+local-cyq';
-            klines = await fetchKlineFromBaoStock(symbol, adjust);
+            klines = await fetchKlineFromBaoStock(symbol, adjust, null, env);
           }
         }
         const chip = computeChipDistribution(klines);
