@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-11-13 22:30:12 CST",
+  "generated_at": "2026-11-16 09:16:10 CST",
   "timezone": "Asia/Shanghai",
   "market": "CN",
   "model_version": "A-share Macro & Financial Conditions v2",
@@ -85,9 +85,9 @@
         {
           "key": "bond_equity_5d",
           "title": "固收相对权益5日",
-          "value": 0.73,
+          "value": 0.65,
           "unit": "pp",
-          "display": "0.73pp",
+          "display": "0.65pp",
           "as_of": "2026-11-13",
           "frequency": "日频",
           "source": "公开前复权行情",
@@ -100,7 +100,7 @@
       ],
       "state": "逆风",
       "score": 1.5,
-      "headline": "固收5日相对转强+0.73pp",
+      "headline": "固收5日相对转强+0.65pp",
       "as_of": "2026-11-13"
     },
     {
@@ -440,29 +440,29 @@
         {
           "key": "margin_balance",
           "title": "两融余额",
-          "value": 22738.31,
+          "value": 22571.97,
           "unit": "亿元",
-          "display": "22738亿元",
-          "as_of": "2026-11-12",
+          "display": "22572亿元",
+          "as_of": "2026-11-13",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
-          "detail": "5日 -0.21% · 20日 -8.10%",
-          "change": -0.21,
+          "detail": "5日 +0.10% · 20日 -8.23%",
+          "change": 0.1,
           "change_label": "5日",
           "tone": "positive"
         },
         {
           "key": "margin_share",
           "title": "融资余额占比",
-          "value": 2.519195,
+          "value": 2.527937,
           "unit": "%",
-          "display": "2.52%",
-          "as_of": "2026-11-12",
+          "display": "2.53%",
+          "as_of": "2026-11-13",
           "frequency": "日频",
           "source": "沪深两融历史汇总",
           "source_url": "https://www.sse.com.cn/market/othersdata/margin/sum/",
-          "detail": "连续回落 0日",
+          "detail": "连续回落 1日",
           "change": null,
           "change_label": "较上期",
           "tone": "neutral"
@@ -470,8 +470,8 @@
       ],
       "state": "中性",
       "score": 0.5,
-      "headline": "两融余额5日-0.21%",
-      "as_of": "2026-11-12"
+      "headline": "两融余额5日+0.10%",
+      "as_of": "2026-11-13"
     }
   ],
   "scoring_scope": {
@@ -494,10 +494,10 @@
       "label": "固收相对权益强弱",
       "state": "逆风",
       "score": 1.5,
-      "headline": "固收5日相对转强+0.73pp",
+      "headline": "固收5日相对转强+0.65pp",
       "reasons": [
-        "固收5日相对转强+0.73pp",
-        "固收20日相对偏强+3.71pp"
+        "固收5日相对转强+0.65pp",
+        "固收20日相对偏强+3.64pp"
       ],
       "status": "ok",
       "quality": "market_proxy",
@@ -512,22 +512,22 @@
       "metrics": {
         "bond_ret5": -0.34,
         "bond_ret20": 0.03,
-        "equity_ret5": -1.07,
-        "equity_ret20": -3.68,
-        "bond_vs_equity_5d_pp": 0.73,
-        "bond_vs_equity_20d_pp": 3.71
+        "equity_ret5": -0.99,
+        "equity_ret20": -3.61,
+        "bond_vs_equity_5d_pp": 0.65,
+        "bond_vs_equity_20d_pp": 3.64
       },
       "details": {
         "511260": {
           "ret5": -0.18,
           "ret20": 0.5,
-          "last": 135.89,
+          "last": 135.886,
           "date": "2026-11-13"
         },
         "511010": {
           "ret5": -0.08,
           "ret20": 0.26,
-          "last": 141.34,
+          "last": 141.339,
           "date": "2026-11-13"
         },
         "511110": {
@@ -537,9 +537,9 @@
           "date": "2026-11-13"
         },
         "510300": {
-          "ret5": -1.07,
-          "ret20": -3.68,
-          "last": 4.08,
+          "ret5": -0.99,
+          "ret20": -3.61,
+          "last": 4.083,
           "date": "2026-11-13"
         }
       },
@@ -574,15 +574,15 @@
       },
       "details": {
         "159941": {
-          "ret5": 4.3,
-          "ret20": -5.06,
-          "last": 1.65,
+          "ret5": 4.17,
+          "ret20": -5.18,
+          "last": 1.648,
           "date": "2026-11-13"
         },
         "513500": {
-          "ret5": 2.78,
-          "ret20": -0.71,
-          "last": 2.66,
+          "ret5": 2.9,
+          "ret20": -0.6,
+          "last": 2.663,
           "date": "2026-11-13"
         },
         "159502": {
@@ -605,39 +605,33 @@
       "label": "市场资金与杠杆",
       "state": "中性",
       "score": 0.5,
-      "headline": "两融余额5日-0.21%",
+      "headline": "两融余额5日+0.10%",
       "reasons": [
-        "两融余额5日-0.21%",
-        "两融余额20日-8.10%"
+        "两融余额5日+0.10%",
+        "两融余额20日-8.23%"
       ],
       "status": "ok",
       "quality": "market_data",
       "completeness": 1.0,
       "interpretation": "境内杠杆资金强度与风险偏好指标，属于市场资金层。",
       "metrics": {
-        "rzye": 2273830861546.0,
-        "rzye_yi": 22738.31,
-        "rzyezb": 2.519195,
-        "chg5_pct": -0.21,
-        "chg10_pct": -3.52,
-        "chg20_pct": -8.1,
-        "down_streak": 0,
-        "as_of": "2026-11-12"
+        "rzye": 2257197000848.0,
+        "rzye_yi": 22571.97,
+        "rzyezb": 2.527937,
+        "chg5_pct": 0.1,
+        "chg10_pct": -2.51,
+        "chg20_pct": -8.23,
+        "down_streak": 1,
+        "as_of": "2026-11-13"
       },
       "details": {
         "latest": {
-          "date": "2026-11-12",
-          "rzye": 2273830861546.0,
-          "rzyezb": 2.519195,
-          "rzmre": 173379043460
+          "date": "2026-11-13",
+          "rzye": 2257197000848.0,
+          "rzyezb": 2.527937,
+          "rzmre": 136251023725
         },
         "points": [
-          {
-            "date": "2026-10-28",
-            "rzye": 2383018684827.0,
-            "rzyezb": 2.623423,
-            "rzmre": 139307103125
-          },
           {
             "date": "2026-10-29",
             "rzye": 2356738193655.0,
@@ -703,10 +697,16 @@
             "rzye": 2273830861546.0,
             "rzyezb": 2.519195,
             "rzmre": 173379043460
+          },
+          {
+            "date": "2026-11-13",
+            "rzye": 2257197000848.0,
+            "rzyezb": 2.527937,
+            "rzmre": 136251023725
           }
         ]
       },
-      "as_of": "2026-11-12"
+      "as_of": "2026-11-13"
     }
   ],
   "constraint": {
