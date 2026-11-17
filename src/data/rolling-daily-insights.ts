@@ -32,6 +32,63 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports = {
+  '2026-11-17': {
+  "tradeDate": "2026-11-17",
+  "shortDate": "11/17",
+  "title": "11月17日滚动信号收盘复盘",
+  "subtitle": "全市场D1当日3条空方、2个A股标的：东方明珠30m确认；德福科技90m确认，但15:02盘后60m留待次日验证。港股/美股/期货截至采集无当日新节点。",
+  "cutoff": "2026-11-17 18:31 北京时间采集；A股15:00收盘，港股16:00收盘。美股11/17常规交易尚未开盘，期货11/17会话尚未结束；无节点不等于无市场风险。",
+  "summary": "今日全库按北京时间trade_date查得3条首次入库记录，全部SELL，涉及东方明珠与德福科技。东方明珠7.53下方收7.36，收盘确认；德福90m48.90下方收48.08，该档确认，60m在15:02才接收且等于收盘，不计可交易成功样本。按标的汇总：confirmed 1、reclaimed 0、mixed 1、watch 0；有效盘中方向验证2个价格层，盘后待验1个。相邻周期不能充作独立样本，今日无新增多方依据。",
+  "buyRule": "先修复，后确认：东方明珠先守7.34、收复7.53；德福先观察48.08、再收复48.90。收复后的回踩、量能与新节点要共同复核，未满足前不左侧抄底。上述是人工观察条件，不是生产交易指令，也不自动变更仓位。",
+  "sellRule": "东方明珠7.53下方防守，失守7.34复核延续；德福48.90下方防守，失守47.48复核延续。反向站稳信号价就降级原空方，而不是机械追空。德福盘后60m不用于当日减仓回测。",
+  "discipline": "D1同日同节点first-write-wins；首次入库价格与event_id完整保留。A股trigger_time_utc与received_at相同，只能称接收时刻，真实TradingView触发时刻UNAVAILABLE。相同标的相同方向近价才成簇；不同价格保留分层，不按周期重复计样本。11只A股、3只港股、TSLA和SI=F共16个已启用标的均批量核对；D1全库当日扫描亦覆盖非监控名单节点，港/美/期货无新记录。美股与期货尚未完成本地会话，不伪造收盘确认。策略前瞻独立样本INSUFFICIENT，全部解读仅人工/影子观察，不改变生产权重、仓位、动作。",
+  "signals": [
+    {
+      "name": "东方明珠",
+      "symbol": "600637",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "30m",
+      "signalPrices": "30m SELL 10:00:20 @7.53（北京时间接收时刻）",
+      "close": "7.36",
+      "change": "-5.40%",
+      "validation": "confirmed",
+      "validationLabel": "空方收盘确认",
+      "verdict": "10:00首次入库30m空方7.53，收7.36，较节点-2.26%；收盘位于当日7.34低点附近，且低于全部短中期均线。昨日空方收复不等于今日仍有效：今日新节点再次失守，构成新的风险证据。量比0.697，不能夸大为放量杀跌；只有一只标的一次价格簇，不是策略胜率证明。",
+      "support": "7.34（当日低点）；跌破后下一支撑UNAVAILABLE，禁止凭空外推",
+      "pressure": "7.53（信号价）/7.75（日高）/7.90（MA5）/7.962（MA20）",
+      "buyPlan": "不因获利盘3.8%或RSI6约30直接抄底。先观察7.34不破并收复7.53，再看能否站稳7.75；重返MA5与MA20后才讨论趋势修复。次日信号与成交量须重新验证。",
+      "sellPlan": "已有持仓反弹不能收复7.53时防守优先；跌破7.34且无法快速收回，触发新风险复核。若站稳7.53，空方降级；不据此新增杠杆或自动改变生产仓位。",
+      "evidence": [
+        "首次入库 30m SELL；event_id=evt_1794880820922_08cixh；trigger_time_utc=2026-11-17T02:00:20.922Z；received_at=2026-11-17T02:00:20.922Z；trigger_price=7.53；来源=sina-m1",
+        "iWenCai trace_id=e892715384583951dc1260daa7f974d26757bc482251554100271372268c08f4；开/高/低=7.74/7.75/7.34；成交量=68959667.0股；换手=2.051%；量比=0.697；MA5/10/20=7.9/7.979/7.962；DIF/DEA=-0.135/-0.12；RSI6/12=30.031/37.207；主力资金流向=-46990653.11元；获利盘=3.8%；平均成本=8.28；90%集中度=12.9%。收盘价与腾讯当日16:14快照交叉一致。资金数据仅为提供商统计口径，不足以认定下跌因果。"
+      ]
+    },
+    {
+      "name": "德福科技",
+      "symbol": "301511",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "90m /60m（盘后）",
+      "signalPrices": "90m SELL 14:00:27 @48.90；60m SELL 15:02:00 @48.08（盘后接收）",
+      "close": "48.08",
+      "change": "-4.75%",
+      "validation": "mixed",
+      "validationLabel": "90m空方确认；60m盘后观察",
+      "verdict": "14:00首次入库90m48.90，收48.08低于该价1.68%，该档收盘方向确认；15:02接收60m48.08，时间晚于15:00收盘且与收盘同价，不能冒充盘中可执行信号或用同一根收盘价验证，必须留到下一交易日观察。两档价差1.71%，分别保留为价格层，不把相邻周期当两次独立成功。低于MA5/10/20且RSI6低于30，弱势中有超跌反抽风险。",
+      "support": "47.48（当日低点）/48.08（盘后节点，仅供次日观察）",
+      "pressure": "48.90（90m信号）/49.33（开盘）/51.34（日高）/55.082（MA5）",
+      "buyPlan": "不追超跌反抽。48.08次日先看守住，再观察收复48.90后的回踩；未收复48.90不认定空方反转。站回49.33仅为修复递进，距MA5/20仍远，不把低获利盘0.4%解释为买入信号。",
+      "sellPlan": "已有持仓若反弹到48.90仍承压，优先风险复核；跌破47.48无法收回再确认延续。60m必须按次日交易验证，禁止回填当日收益；收复48.90则90m空方降级。",
+      "evidence": [
+        "首次入库 90m SELL；event_id=evt_1794895227066_6qucrv；trigger_time_utc=2026-11-17T06:00:27.066Z；received_at=2026-11-17T06:00:27.066Z；trigger_price=48.9；来源=sina-m1",
+        "首次入库 60m SELL；event_id=evt_1794898920913_ys0y8e；trigger_time_utc=2026-11-17T07:02:00.913Z；received_at=2026-11-17T07:02:00.913Z；trigger_price=48.08；来源=sina-m1",
+        "iWenCai trace_id=e892715384583951dc1260daa7f974d26757bc482251554100271372268c08f4；开/高/低=49.33/51.34/47.48；成交量=28016963.0股；换手=7.028%；量比=0.821；MA5/10/20=55.082/55.156/58.866；DIF/DEA=-7.918/-8.491；RSI6/12=28.288/30.49；主力资金流向=-8189308.61元；获利盘=0.4%；平均成本=57.23；90%集中度=36.6%。收盘价与腾讯当日16:14快照交叉一致。资金数据仅为提供商统计口径，不足以认定下跌因果。"
+      ]
+    }
+  ],
+  "sources": "D1 market_calendar（CN_A，exchange_calendars:XSHG）确认交易日；rolling_signals按北京时间trade_date全库查询，3条记录；rolling_instruments启用16标的；Pages主域公开rolling-signals批量16板，storage=d1；iWenCai多key包装器20261117日期字段，trace_id=e892715384583951dc1260daa7f974d26757bc482251554100271372268c08f4；腾讯qt.gtimg.cn双标的16:14收盘快照。未新增美股/期货/港股信号，故不拼接不同会话行情凑收盘证据。"
+},
   '2026-11-16':   {
     "tradeDate": "2026-11-16",
     "shortDate": "11/16",
@@ -5645,7 +5702,8 @@ export const rollingDailyReports = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-16', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-17', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-16', href: '/rolling/insights/2026-11-16/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-13', href: '/rolling/insights/2026-11-13/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-12', href: '/rolling/insights/2026-11-12/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-11', href: '/rolling/insights/2026-11-11/' },
