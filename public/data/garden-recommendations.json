@@ -1,6 +1,6 @@
 {
   "date": "2026-11-17",
-  "updated_at": "2026-11-17 11:52:32 CST",
+  "updated_at": "2026-11-17 11:59:21 CST",
   "applies_to": "2026-11-17",
   "data_as_of": "11:30午间口径：A股8只指数与91只正式池ETF为腾讯行情 qt.gtimg.cn 2026-11-17 11:41-11:42 CST 盘中快照（8只指数全量、91只全量、0缺失，非收盘价）；全A(883421) +0.6296% 报1229.384、半日成交8833.86亿为 iWenCai 2026-11-17 09:30-11:30 盘中口径；指数MA沿用2026-11-16收盘qfq日线160根自算窗口（level_data_as_of=2026-11-16）；全市场涨跌家数/涨跌停家数午间口径未取到（UNAVAILABLE，不以池内数据填补）；中观沿用08:30盘前重算 headwind_level=2（逆风），以本窗口发布器derive重算为准。",
   "level_data_as_of": "2026-11-16",
@@ -538,12 +538,12 @@
       "北向资金日度净买入(2024-08起停止披露)"
     ],
     "mid_macro": {
-      "headwind_level": 2,
-      "label": "逆风",
+      "headwind_level": 3,
+      "label": "强逆风",
       "allow_chase": false,
       "allow_new_offense": false,
       "base_position": "权益0%-10%；防御/现金90%-100%",
-      "note": "沿用08:30 08:51重算结果（headwind_level=2逆风、allow_chase=false），本窗口未重算，以发布器derive步骤重算为准；反抽不支持追高，仓位维持0%-10%"
+      "note": "本窗口 11:52:32 发布器 derive 重算结果：headwind_level=3（强逆风）、allow_chase=false、新增进攻仓关闭，较08:30的2（逆风）上调；反抽不支持追高，仓位维持0%-10%"
     }
   },
   "intraday_1430": {
@@ -913,7 +913,7 @@
     ]
   },
   "mid_macro": {
-    "generated_at": "2026-11-17 11:52:32 CST",
+    "generated_at": "2026-11-17 11:59:21 CST",
     "headwind_level": 3,
     "label": "强逆风",
     "equity_constraint": "中观强逆风：停止新开进攻仓，只做防御与独立阿尔法",
@@ -960,10 +960,9 @@
     ],
     "previous_codes": [
       "164824",
-      "159928",
-      "512800"
+      "159928"
     ],
-    "unchanged_from_previous": true,
+    "unchanged_from_previous": false,
     "continuity_requires_current_qualification": true,
     "defensive_limit": 1,
     "excluded_harvest_codes": [],
