@@ -561,8 +561,16 @@ def test_low_chip_build_rejects_missing_iwencai_pool(tmp_path, monkeypatch):
         module.configure_iwencai_rotation(tmp_path / 'missing.env')
 
 
-def test_main_restores_backup_after_precommit_failure(monkeypatch):
+def test_pipeline_restores_backup_after_precommit_failure(monkeypatch, tmp_path):
     module = load_module()
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    monkeypatch.setattr(module, 'DATA', tmp_path / 'data.json')
+    monkeypatch.setattr(module, 'HISTORY_DIR', tmp_path / 'history')
+    module.DATA.write_text('{"data_as_of":"2026-09-18"}')
+    monkeypatch.setattr(module, 'recover_pending_release', lambda: None)
+    monkeypatch.setattr(module, 'release_calendar_gate', lambda day: {'status': 'run'})
+    monkeypatch.setattr(module, 'configure_iwencai_rotation', lambda: None)
+    monkeypatch.setattr(module, 'load_env_file', lambda *_args: {})
     monkeypatch.setattr(module, 'TRADE_DATE_OVERRIDE', '2026-09-18')
     restored = []
     state = {'sentinel': True}
@@ -581,7 +589,7 @@ def test_main_restores_backup_after_precommit_failure(monkeypatch):
     monkeypatch.setattr(module, 'backup_generated_state', lambda _path: state)
     monkeypatch.setattr(module, 'restore_generated_state', lambda path, got: restored.append((path, got)))
 
-    assert module.main() == 1
+    assert module.run_pipeline() == 1
     assert len(restored) == 1
     assert restored[0][1] is state
 
@@ -780,7 +788,13 @@ def mocked_release(tmp_path, monkeypatch):
     })
     monkeypatch.setattr(module, 'run_risk_staging_gate', lambda: {'coverage': {'attached': 1, 'requested': 1}})
     monkeypatch.setattr(module, 'tree_digest', lambda _path: 'verified-dist')
-    state = {'generated': False, 'committed': False, 'pushed': False, 'staged': set(), 'calls': [],
+    # Exact Pages identity is exercised in the deployment-focused suite.
+    real_pages_verifier = module.verify_pages_deployment
+    monkeypatch.setattr(module, 'verify_pages_deployment', lambda output, candidate: {
+        'pages_url': 'https://abcd.etf-rotation-blog.pages.dev', 'deployment_id': 'fixture-deployment',
+        'environment': 'production', 'candidate_commit': candidate,
+    })
+    state = {'real_pages_verifier': real_pages_verifier,'generated': False, 'committed': False, 'pushed': False, 'staged': set(), 'calls': [],
              'index_blobs': {}, 'candidate_blobs': {}, 'real_run': module.run,
              'real_subprocess': subprocess.run, 'real_dirty': module.dirty, 'real_staged': module.staged}
     foreign = {'scripts/publish_a_share_nightly.py', 'tests/test_a_share_nightly_pipeline.py',
