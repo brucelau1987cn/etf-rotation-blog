@@ -25,6 +25,7 @@ import math
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -38,6 +39,12 @@ REQUEST_INTERVAL_S = 0.12
 MAX_RETRIES = 2
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 THS_HEADERS = {**UA, "Referer": "https://stockpage.10jqka.com.cn/"}
+# 腾讯 fqkline 的 WAF 会用 501 + HTML 跳转页整站拒绝。逐只重试的代价是
+# MAX_RETRIES+1 次 × 2 个 host × 20s 超时 + 退避 ≈ 5.5s/只；2026-11-18
+# 池子涨到 680 只时这一步直接把 wrapper 的 900s 预算耗尽并让整轮发布失败。
+# 一旦判定被拦，本进程内不再尝试腾讯，全部直接走同花顺 00 序列。
+_TENCENT_BLOCKED = False
+WAF_STATUSES = frozenset({403, 429, 501})
 
 
 def _item(symbol: str) -> dict:
@@ -80,6 +87,9 @@ def _normalize(bars: list[dict], as_of: str) -> list[dict]:
 
 def fetch_tencent_raw(item: dict, as_of: str) -> tuple[list[dict], str]:
     """腾讯日K 不复权：param 末位留空 → 响应 'day' 键即真实成交价。"""
+    global _TENCENT_BLOCKED
+    if _TENCENT_BLOCKED:
+        raise RuntimeError("tencent fqkline disabled for this run after WAF block")
     symbol = ("sh" if item["market"] == "XSHG" else "sz") + item["code"]
     last_error: Exception | None = None
     for host in ("ifzq.gtimg.cn", "web.ifzq.gtimg.cn"):
@@ -97,6 +107,14 @@ def fetch_tencent_raw(item: dict, as_of: str) -> tuple[list[dict], str]:
                 ]
                 if bars:
                     return _normalize(bars, as_of), "tencent-day-unadjusted"
+            except urllib.error.HTTPError as exc:
+                last_error = exc
+                if exc.code in WAF_STATUSES:
+                    # 整站 WAF 拒绝：重试其它 host 也一样，直接关掉腾讯这一源。
+                    _TENCENT_BLOCKED = True
+                    raise
+                if attempt < MAX_RETRIES:
+                    time.sleep(0.4 * (attempt + 1))
             except Exception as exc:  # noqa: BLE001 - host / retry fallback
                 last_error = exc
                 if attempt < MAX_RETRIES:

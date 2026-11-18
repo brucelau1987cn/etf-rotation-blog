@@ -128,6 +128,37 @@ def test_load_bars_raises_when_every_source_is_empty(monkeypatch):
         mod.load_bars("600000.SH", "2026-11-06")
 
 
+def test_tencent_waf_block_disables_host_for_the_rest_of_the_run(monkeypatch):
+    """WAF 501/403 必须一次判定就关掉腾讯源，否则每只股票白烧 ~5.5s。
+
+    2026-11-18：腾讯 fqkline 整站返回 501 + HTML 跳转页，680 只池子逐只重试
+    把 wrapper 的 900s 预算耗尽，整轮低筹码发布失败。
+    """
+    monkeypatch.setattr(mod, "_TENCENT_BLOCKED", False)
+    monkeypatch.setattr(mod.time, "sleep", lambda *_: None)
+    calls = []
+
+    def waf(url, timeout=None):
+        calls.append(url)
+        raise mod.urllib.error.HTTPError(url, 501, "Not Implemented", None, None)
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", waf)
+    with pytest.raises(mod.urllib.error.HTTPError):
+        mod.fetch_tencent_raw({"code": "600000", "market": "XSHG"}, "2026-11-06")
+    assert len(calls) == 1, "WAF 拒绝后不应再重试其它 host"
+    assert mod._TENCENT_BLOCKED is True
+
+    # 后续股票不再发起任何腾讯请求，直接交给同花顺兜底。
+    with pytest.raises(RuntimeError):
+        mod.fetch_tencent_raw({"code": "000001", "market": "XSHE"}, "2026-11-06")
+    assert len(calls) == 1
+    monkeypatch.setattr(mod, "fetch_ths_raw",
+                        lambda item, as_of: (bars(("2026-01-05", 10.0, 10.5)), "ths-00-unadjusted"))
+    series, source = mod.load_bars("600000.SH", "2026-11-06")
+    assert source == "ths-00-unadjusted" and len(series) == 1
+    monkeypatch.setattr(mod, "_TENCENT_BLOCKED", False)
+
+
 def _payload():
     return {
         "data_as_of": "2026-11-06",
