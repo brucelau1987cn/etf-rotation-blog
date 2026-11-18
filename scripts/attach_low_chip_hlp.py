@@ -32,8 +32,16 @@ DATA = ROOT / 'public/data/a-low-chip-stocks.json'
 LOOKBACK_DAYS = 240
 THS_LOOKBACK_DAYS = 365
 CF_BATCH_SIZE = 5
-TOTAL_BUDGET_SECONDS = 2100
-LOCAL_BUDGET_SECONDS = 600
+# 2026-11-18：池子涨到 680 只，且同花顺 chip-list 单次只回最近 40 个交易日
+# （拿不到 calc_profit_series 要求的 100 会话），HLP 只能靠本地 BaoStock 逐只
+# 单会话兜底（实测 4.23s 取数 + 1.03s 计算 ≈ 5.3s/只 → 680 只约 3600s）。
+# 原 2100s 预算在 build 成功之后把整轮发布打挂。这里按 680 只的实测口径放大，
+# 父进程超时同步给到 6000s（cron 上限 14400s 仍有余量）。
+TOTAL_BUDGET_SECONDS = 5400
+LOCAL_BUDGET_SECONDS = 4200
+# 同花顺阶段只是"能算就省事"的快路径：一旦超时就直接转本地兜底，避免
+# 680 只 × 1.35s ≈ 920s 全部花在注定被 100 会话门槛拒绝的请求上。
+THS_STAGE_BUDGET_SECONDS = 300
 LOCAL_LOCK = Path('/root/.hermes/state/baostock-local.lock')
 SERIES_CACHE = Path('/root/.hermes/state/low-chip-hlp-series.json')
 THS_CHIP_URL = 'https://dq.10jqka.com.cn/fuyao/chip_shape_stock_selection/stock/v1/chip_list'
@@ -397,6 +405,12 @@ def _build_and_publish(path=DATA, history_loader=None, *, client=None,
         stage_started = clock()
         for index, symbol in enumerate(codes, 1):
             require_budget(stage)
+            if clock() - stage_started >= THS_STAGE_BUDGET_SECONDS:
+                # 同花顺快路径只在"能凑够 100 会话"时才有意义；超时后剩余标的
+                # 直接转本地 BaoStock 兜底，别把整轮预算烧在注定失败的请求上。
+                errors[symbol] = 'THS stage budget exhausted'
+                pending.append(symbol)
+                continue
             try:
                 fresh = fetch_ths_chip_profit_series(symbol, ths_start, end)
                 if not fresh:

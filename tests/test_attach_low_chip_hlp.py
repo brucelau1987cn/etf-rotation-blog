@@ -336,6 +336,53 @@ def test_short_ths_series_uses_one_local_batch_without_cf_duplicate(tmp_path, mo
     assert local_calls == [(codes, 7)]
 
 
+def test_ths_stage_budget_cap_sends_remaining_symbols_to_fallback(tmp_path, monkeypatch):
+    """同花顺快路径超时后，剩余标的必须直接转本地兜底，不再逐只发请求。
+
+    2026-11-18：chip-list 单次只回最近 40 个交易日，凑不够 100 会话门槛；
+    680 只 × 1.35s ≈ 920s 全花在注定失败的请求上，随后本地兜底预算不足，
+    整轮发布挂在 build 成功之后。
+    """
+    codes = ['600000.SH', '000001.SZ', '600519.SH']
+    target = tmp_path / 'stocks.json'
+    original = {'data_as_of': '2026-09-17', 'intersection': codes,
+                'enrichments': {code: {} for code in codes}}
+    target.write_text(json.dumps(original), encoding='utf-8')
+    short = [{'date': f'2026-08-{index + 1:02d}', 'profit_ratio': 1.0,
+              'close': 10.0, 'average_cost': 9.0} for index in range(40)]
+    short[-1]['date'] = '2026-09-17'
+    frame = pd.DataFrame([{'date': str(index), 'high': 11, 'low': 9, 'close': 10,
+                           'turn': 1, 'tradestatus': '1'} for index in range(100)])
+    frame.attrs['source'] = 'local-baostock'
+    ths_calls = []
+    local_calls = []
+
+    def fake_ths(symbol, *_args, **_kwargs):
+        ths_calls.append(symbol)
+        return list(short)
+
+    # 每读一次时钟推进 10s；把同花顺阶段预算压到 30s，跑完 2 只左右就该停手。
+    ticks = iter(range(0, 100000, 10))
+    monkeypatch.setattr(module, 'SERIES_CACHE', tmp_path / 'cache.json')
+    monkeypatch.setattr(module, 'THS_STAGE_BUDGET_SECONDS', 30)
+    monkeypatch.setattr(module, 'fetch_ths_chip_profit_series', fake_ths)
+    monkeypatch.setattr(module, 'calc', lambda df: {'hlp': 1, 'source': df.attrs['source'], 'chip_signals': []})
+    monkeypatch.setattr(module, 'fetch_cf_batch', lambda *_a, **_k: {})
+
+    def local_runner(symbols, _start, _end, *, timeout):
+        local_calls.append(list(symbols))
+        return {symbol: frame.copy() for symbol in symbols}, {}
+
+    coverage = module.build_and_publish(
+        target, local_batch_runner=local_runner, total_budget=100000,
+        local_budget=7, clock=lambda: next(ticks),
+    )
+
+    assert coverage == {'requested': 3, 'computed': 3, 'failed': 0}
+    assert 0 < len(ths_calls) < len(codes), '超过阶段预算后不应再请求同花顺'
+    assert local_calls and sorted(local_calls[0]) == sorted(codes), '剩余标的全部走本地兜底'
+
+
 def test_local_stage_timeout_falls_back_to_cf_for_all_missing(monkeypatch):
     codes = ['600000.SH', '000001.SZ']
     rows = [{'date': '2026-09-17', 'high': 2, 'low': 1, 'close': 1.5,
