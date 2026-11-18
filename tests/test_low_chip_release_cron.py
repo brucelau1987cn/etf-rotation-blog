@@ -1213,7 +1213,10 @@ def test_large_pool_timeouts_cover_verified_baostock_runtime() -> None:
     # left on the old numbers — the mismatch failed the 22:30 A-share nightly
     # publish (the candidate-commit pytest gate), which has nothing to do with
     # the live data. Keep both sides in sync.
-    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 4200)" in source
+    # 2026-11-18: pool hit 680 and THS chip-list dropped to 40 sessions per call,
+    # so HLP now falls back to local BaoStock (5.3s/symbol ≈ 3600s). The parent
+    # timeout went 4200 -> 6000 together with the in-process budgets.
+    assert "run([hlp_python, 'scripts/attach_low_chip_hlp.py'], 6000)" in source
     assert "run([hlp_python, 'scripts/attach_low_chip_touchstone.py'], 4500)" in source
     # tracking 已拆到独立 cron（16:40），主链路不再跑它；fetch 超时仍覆盖。
     # 2026-10-22: 池子从 52 只扩到 291 只（普跌），enrichment 是 67+67 批次，
