@@ -9,73 +9,184 @@
   enrichments[code]["chip_concentration"] = {
       status, concentration_90, as_of, source, reason
   }
-  顶层 chip_concentration_contract = {status, as_of, source, threshold, coverage}
+  顶层 chip_concentration_contract 记录覆盖数、失败批次和提前停止原因。
 
-fail-soft：单批失败只把该批标的标成 UNAVAILABLE，不阻塞发布；
-          全部失败时契约 status=unavailable，页面开关命中 0 只（不静默当成「无集中标的」）。
+fail-soft：保留已验证的结果，未解决标的标成 UNAVAILABLE；
+          全部失败时契约 status=unavailable。查询截止后原子写回。
 
 用法：
-    python attach_low_chip_chip_concentration.py [TRADE_DATE]
+    python attach_low_chip_chip_concentration.py [TRADE_DATE] [--query-budget-seconds SECONDS]
     TRADE_DATE 缺省时回退 payload 的 data_as_of。
+    编排器如需缩短父超时，可用该参数传入扣除落盘余量后的查询预算。
 """
 from __future__ import annotations
 
-import hashlib
+import argparse
 import json
+import math
+import os
+import re
+import signal
 import subprocess
 import sys
+import tempfile
 import time
+from collections.abc import Iterator
+from contextlib import suppress
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import build_low_chip_base as base  # noqa: E402  (复用 paginate / DATA)
+import build_low_chip_base as base  # noqa: E402
 
 FIELD_PREFIX = "集中度90"
 THRESHOLD = 10.0
 BATCH_SIZE = 40
 MAX_SPLIT_DEPTH = 4
 SOURCE = "iwencai-concentration-90"
+QUERY_COMMAND = "/root/.hermes/scripts/iwencai-market-query"
+# The daily wrapper allows 600 s; leave 60 s for startup, cleanup and output.
+QUERY_BUDGET_S = 540.0
+REQUEST_TIMEOUT_S = 30.0
+QUERY_REAP_TIMEOUT_S = 2.0
+BUDGET_REASON = "集中度90 查询预算耗尽"
+MISSING_REASON = "iWenCai 未返回该标的当日有效集中度90"
 
 
-def _fetch(query: str, page: int) -> dict:
-    """base.fetch 的替身：把 query 直接拼进 /tmp 文件名，40 只代码会超过
-    255 字节文件名上限（Errno 36）。这里用 query 的哈希做文件名，重试语义
-    与 base.fetch 保持一致。"""
-    digest = hashlib.sha1(query.encode("utf-8")).hexdigest()[:16]
-    out = Path(f"/tmp/lc_conc_{digest}_p{page}.json")
-    detail = ""
-    for attempt in range(1, base.FETCH_ATTEMPTS + 1):
-        r = subprocess.run(
-            [
-                "/root/.hermes/scripts/iwencai-market-query",
-                "-q", query,
-                "--page", str(page),
-                "--limit", "100",
-                "--timeout", "90",
-            ],
-            capture_output=True, text=True, check=False,
+class BudgetExhausted(RuntimeError):
+    pass
+
+
+class QueryCleanupFailed(RuntimeError):
+    pass
+
+
+def _remaining(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise BudgetExhausted(BUDGET_REASON)
+    return remaining
+
+
+def _backoff(attempt: int, deadline: float) -> None:
+    delay = base.FETCH_BACKOFF_S * attempt
+    if delay >= _remaining(deadline):
+        raise BudgetExhausted(BUDGET_REASON)
+    time.sleep(delay)
+
+
+def _run_query(args: list[str], timeout: float) -> subprocess.CompletedProcess[str]:
+    # In key-pool mode the shell wrapper launches Python without exec. Kill the
+    # whole group on timeout, including children holding inherited output pipes.
+    expires = time.monotonic() + timeout
+    # SIGKILL bypasses the wrapper's EXIT trap for its mktemp file.
+    with tempfile.TemporaryDirectory(prefix="lc-conc90-") as scratch:
+        proc = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            start_new_session=True, env={**os.environ, "TMPDIR": scratch},
         )
-        if r.returncode == 0:
-            out.write_text(r.stdout, encoding="utf-8")
-            return json.loads(r.stdout)
-        detail = (r.stderr or r.stdout or "").strip()
-        if not base._is_transient(detail) or attempt == base.FETCH_ATTEMPTS:
-            raise SystemExit(f"iWenCai error: {detail[:500]}")
-        time.sleep(base.FETCH_BACKOFF_S * attempt)
-    raise SystemExit(f"iWenCai error: {detail[:500]}")
-
-
-def _value(row: dict) -> float | None:
-    """从批量返回行里取集中度90 数值（键形如 集中度90[20261113]）。"""
-    for key, value in row.items():
-        if str(key).startswith(FIELD_PREFIX) and "[" in str(key):
+        try:
+            stdout, stderr = proc.communicate(timeout=max(0.0, expires - time.monotonic()))
+        except BaseException:
+            with suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
             try:
-                return float(value)
-            except (TypeError, ValueError):
-                return None
-    return None
+                proc.wait(timeout=QUERY_REAP_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                raise QueryCleanupFailed("iWenCai 查询进程组清理超时") from None
+            raise
+        finally:
+            # Do not drain inherited pipes again after killing the process group.
+            if proc.stdout is not None:
+                proc.stdout.close()
+            if proc.stderr is not None:
+                proc.stderr.close()
+        return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+
+
+def _fetch(query: str, page: int, deadline: float) -> object:
+    for attempt in range(1, base.FETCH_ATTEMPTS + 1):
+        timeout = min(REQUEST_TIMEOUT_S, _remaining(deadline))
+        try:
+            result = _run_query([
+                QUERY_COMMAND, "-q", query, "--page", str(page), "--limit", "100",
+                "--timeout", str(max(1, int(timeout))),
+            ], timeout)
+            if result.returncode == 0:
+                return json.loads(result.stdout)
+            detail = (result.stderr or result.stdout or "").strip()
+            transient = base._is_transient(detail)
+            # Provider output can contain credential or request metadata.
+            label = "上游请求失败" if transient else "上游鉴权或额度错误"
+            reason = f"{label} (exit {result.returncode})"
+        except subprocess.TimeoutExpired:
+            transient = True
+            reason = "请求超时"
+        _remaining(deadline)
+        if not transient or attempt == base.FETCH_ATTEMPTS:
+            raise RuntimeError(f"iWenCai: {reason}")
+        _backoff(attempt, deadline)
+    raise AssertionError("unreachable")
+
+
+def _valid_page(
+    envelope: object, total: int | None, seen: set[str],
+) -> tuple[int, bool, list[dict], set[str]] | None:
+    if not isinstance(envelope, dict) or envelope.get("success", True) is not True:
+        return None
+    count, more, rows = (envelope.get(k) for k in ("code_count", "has_more", "datas"))
+    if type(count) is not int or count < 0 or (total is not None and total != count):
+        return None
+    if type(more) is not bool or not isinstance(rows, list):
+        return None
+    codes = set()
+    for row in rows:
+        code = row.get("股票代码") if isinstance(row, dict) else None
+        if not isinstance(code, str) or not re.fullmatch(r"[0-9]{6}(?:\.(?:SH|SZ|BJ))?", code):
+            return None
+        if code in codes or code in seen:
+            return None
+        codes.add(code)
+    size = len(seen) + len(rows)
+    if (more and (not rows or size >= count)) or (not more and size != count):
+        return None
+    return count, more, rows, codes
+
+
+def _pages(query: str, deadline: float) -> Iterator[list[dict]]:
+    """Validate each page before yielding it; a later page can fail independently."""
+    seen: set[str] = set()
+    total = None
+    for page in range(1, base.MAX_PAGES + 1):
+        for attempt in range(1, 4):
+            try:
+                candidate = _valid_page(_fetch(query, page, deadline), total, seen)
+            except json.JSONDecodeError:
+                candidate = None
+            if candidate is not None:
+                total, more, rows, codes = candidate
+                seen.update(codes)
+                yield rows
+                if not more:
+                    return
+                break
+            if attempt == 3:
+                raise RuntimeError(f"iWenCai 分页完整性校验失败 (第 {page} 页)")
+            _backoff(attempt, deadline)
+    raise RuntimeError(f"iWenCai 分页超过 {base.MAX_PAGES} 页")
+
+
+def _value(row: dict, compact_date: str) -> float | None:
+    """Accept only the requested observation date and a valid percentage."""
+    value = row.get(f"{FIELD_PREFIX}[{compact_date}]")
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) and 0 <= number <= 100 else None
 
 
 def _query_codes(codes: list[str]) -> str:
@@ -88,44 +199,47 @@ def _query_codes(codes: list[str]) -> str:
     return "、".join(codes)
 
 
-def _fetch_chunk(codes: list[str], compact_date: str, depth: int = 0) -> dict[str, float]:
-    """查一批代码；返回空时对半拆开重查。
+def _fetch_chunk(
+    codes: list[str], compact_date: str, deadline: float, values: dict[str, float],
+    reasons: dict[str, str], errors: list[str], depth: int = 0,
+) -> None:
+    _remaining(deadline)
+    requested = set(codes)
+    query = _query_codes(codes) + f" {FIELD_PREFIX}[{compact_date}]"
+    try:
+        for rows in _pages(query, deadline):
+            for row in rows:
+                code = row["股票代码"]
+                if code in requested and (value := _value(row, compact_date)) is not None:
+                    values[code] = value
+    except (BudgetExhausted, QueryCleanupFailed):
+        raise
+    except (OSError, ValueError, RuntimeError) as exc:
+        reason = f"{exc}"[:200]
+        errors.append(reason)
+        reasons.update({code: reason for code in codes if code not in values})
+        return
 
-    iWenCai 在负载时会返回**合法的空信封**（code_count=0、has_more=false），
-    paginate 的一致性校验认为这是完整结果，于是一整个 40 只批次静默变成
-    「上游没有数据」。2026-08-21 的 40 只批次实测就是这样：38 只成功、39 只
-    起返回 0 条且可复现，同一批 38 只拆两半各自正常。所以并发/长度触发的
-    空响应必须靠拆批识别，不能当成缺失。
-    """
-    base.fetch = _fetch  # paginate 内部调用模块级 fetch；query 长度不能进文件名
-    rows, _ = base.paginate(_query_codes(codes) + f" {FIELD_PREFIX}[{compact_date}]")
-    by_code: dict[str, float] = {}
-    for row in rows:
-        code = row.get("股票代码")
-        if not code:
-            continue
-        value = _value(row)
-        if value is not None:
-            by_code[code] = value
-
-    if len(by_code) >= len(codes) or depth >= MAX_SPLIT_DEPTH or len(codes) <= 1:
-        return by_code
-    mid = len(codes) // 2
-    left = [code for code in codes[:mid] if code not in by_code]
-    right = [code for code in codes[mid:] if code not in by_code]
-    for half in (left, right):
-        if half:
-            by_code.update(_fetch_chunk(half, compact_date, depth + 1))
-    return by_code
+    # Legal empty or short envelopes can be caused by query size. Re-query
+    # only missing codes, with a shared deadline and the existing depth cap.
+    if depth < MAX_SPLIT_DEPTH and len(codes) > 1:
+        mid = len(codes) // 2
+        for half in (codes[:mid], codes[mid:]):
+            missing = [code for code in half if code not in values]
+            if missing:
+                _fetch_chunk(missing, compact_date, deadline, values, reasons, errors, depth + 1)
+    # A completed child with no data stays distinct from a later untouched child.
+    for code in codes:
+        if code not in values:
+            reasons.setdefault(code, MISSING_REASON)
 
 
-def fetch_batch(codes: list[str], compact_date: str) -> dict[str, float]:
-    """取一批标的的集中度90；返回 {code: value}，缺的即上游确实没有。"""
-    return _fetch_chunk(codes, compact_date)
-
-
-def attach(payload: dict, trade_date: str, *, fetch=fetch_batch) -> dict:
+def attach(payload: dict, trade_date: str, *, fetch=None, budget_s: float | None = None) -> dict:
     """把集中度90 写进 payload 的 enrichments，返回契约。不写文件。"""
+    if budget_s is not None and (not math.isfinite(budget_s) or budget_s < 0):
+        raise ValueError("query budget must be a finite, nonnegative number")
+    budget = QUERY_BUDGET_S if budget_s is None else min(budget_s, QUERY_BUDGET_S)
+    deadline = time.monotonic() + budget
     compact_date = "".join(ch for ch in str(trade_date) if ch.isdigit())[:8]
     codes = payload.get("intersection") or payload.get("intersection_before_filters") or []
     enrichments = payload.setdefault("enrichments", {})
@@ -138,18 +252,41 @@ def attach(payload: dict, trade_date: str, *, fetch=fetch_batch) -> dict:
             "threshold": THRESHOLD,
             "coverage": {"requested": 0, "ok": 0, "unavailable": 0},
             "failed_batches": [],
+            "stop_reason": None,
         }
         payload["chip_concentration_contract"] = contract
         return contract
 
     values: dict[str, float] = {}
+    reasons: dict[str, str] = {}
     failures: list[str] = []
+    stop_reason = None
+    stopped_detail = MISSING_REASON
     for start in range(0, len(codes), BATCH_SIZE):
         batch = codes[start:start + BATCH_SIZE]
+        errors: list[str] = []
         try:
-            values.update(fetch(batch, compact_date))
+            _remaining(deadline)
+            if fetch is None:
+                _fetch_chunk(batch, compact_date, deadline, values, reasons, errors)
+            else:
+                values.update(fetch(batch, compact_date))
+        except BudgetExhausted:
+            stop_reason = "budget_exhausted"
+            stopped_detail = BUDGET_REASON
+            errors.append(stopped_detail)
+        except QueryCleanupFailed as exc:
+            stop_reason = "query_cleanup_timeout"
+            stopped_detail = str(exc)
+            errors.append(stopped_detail)
         except (Exception, SystemExit) as exc:  # noqa: BLE001 单批失败隔离
-            failures.append(f"batch {start // BATCH_SIZE + 1}: {str(exc)[:200]}")
+            reason = str(exc)[:200] or "iWenCai 批次查询失败"
+            errors.append(reason)
+            reasons.update({code: reason for code in batch if code not in values})
+        if errors:
+            failures.append(f"batch {start // BATCH_SIZE + 1}: {'; '.join(dict.fromkeys(errors))}")
+        if stop_reason:
+            break
 
     ok = 0
     unavailable = 0
@@ -163,7 +300,7 @@ def attach(payload: dict, trade_date: str, *, fetch=fetch_batch) -> dict:
                 "concentration_90": None,
                 "as_of": trade_date,
                 "source": SOURCE,
-                "reason": "iWenCai 未返回该标的集中度90",
+                "reason": reasons.get(code, stopped_detail),
             }
             continue
         ok += 1
@@ -182,19 +319,39 @@ def attach(payload: dict, trade_date: str, *, fetch=fetch_batch) -> dict:
         "threshold": THRESHOLD,
         "coverage": {"requested": len(codes), "ok": ok, "unavailable": unavailable},
         "failed_batches": failures,
+        "stop_reason": stop_reason,
     }
     payload["chip_concentration_contract"] = contract
     return contract
 
 
-def main() -> int:
-    payload = json.loads(base.DATA.read_text(encoding="utf-8"))
-    trade_date = sys.argv[1] if len(sys.argv) > 1 else payload.get("data_as_of") or ""
-    if trade_date:
-        base.DATE = trade_date
+def _write_atomic(path: Path, payload: dict) -> None:
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=f".{path.name}.", delete=False) as handle:
+            temporary = Path(handle.name)
+            temporary.chmod(path.stat().st_mode & 0o777)
+            json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
-    contract = attach(payload, trade_date)
-    base.DATA.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("trade_date", nargs="?")
+    parser.add_argument("--query-budget-seconds", type=float,
+                        help=f"override query budget, capped at {QUERY_BUDGET_S:g} seconds")
+    args = parser.parse_args()
+    payload = json.loads(base.DATA.read_text(encoding="utf-8"))
+    trade_date = args.trade_date or payload.get("data_as_of") or ""
+    contract = attach(payload, trade_date, budget_s=args.query_budget_seconds)
+    _write_atomic(base.DATA, payload)
     coverage = contract["coverage"]
     if contract["status"] == "empty_pool":
         print("chip concentration skipped: empty intersection", flush=True)
@@ -208,7 +365,8 @@ def main() -> int:
     print(
         f"chip concentration: pool={coverage['requested']} ok={coverage['ok']} "
         f"unavailable={coverage['unavailable']} below_{THRESHOLD:g}={hits} "
-        f"failed_batches={len(contract['failed_batches'])}",
+        f"failed_batches={len(contract['failed_batches'])} "
+        f"stop_reason={contract['stop_reason'] or 'none'}",
         flush=True,
     )
     return 0
