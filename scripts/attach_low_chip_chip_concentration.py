@@ -16,7 +16,7 @@ fail-soft：保留已验证的结果，未解决标的标成 UNAVAILABLE；
 
 用法：
     python attach_low_chip_chip_concentration.py [TRADE_DATE] [--query-budget-seconds SECONDS]
-    TRADE_DATE 缺省时回退 payload 的 data_as_of。
+    TRADE_DATE 须为有效的 YYYY-MM-DD，缺省时使用 payload 的 data_as_of。
     编排器如需缩短父超时，可用该参数传入扣除落盘余量后的查询预算。
 """
 from __future__ import annotations
@@ -33,6 +33,7 @@ import tempfile
 import time
 from collections.abc import Iterator
 from contextlib import suppress
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,7 +132,7 @@ def _fetch(query: str, page: int, deadline: float) -> object:
 
 
 def _valid_page(
-    envelope: object, total: int | None, seen: set[str],
+    envelope: object, total: int | None, seen: set[str], requested: set[str],
 ) -> tuple[int, bool, list[dict], set[str]] | None:
     if not isinstance(envelope, dict) or envelope.get("success", True) is not True:
         return None
@@ -145,7 +146,7 @@ def _valid_page(
         code = row.get("股票代码") if isinstance(row, dict) else None
         if not isinstance(code, str) or not re.fullmatch(r"[0-9]{6}(?:\.(?:SH|SZ|BJ))?", code):
             return None
-        if code in codes or code in seen:
+        if code not in requested or code in codes or code in seen:
             return None
         codes.add(code)
     size = len(seen) + len(rows)
@@ -154,14 +155,14 @@ def _valid_page(
     return count, more, rows, codes
 
 
-def _pages(query: str, deadline: float) -> Iterator[list[dict]]:
+def _pages(query: str, deadline: float, requested: set[str]) -> Iterator[list[dict]]:
     """Validate each page before yielding it; a later page can fail independently."""
     seen: set[str] = set()
     total = None
     for page in range(1, base.MAX_PAGES + 1):
         for attempt in range(1, 4):
             try:
-                candidate = _valid_page(_fetch(query, page, deadline), total, seen)
+                candidate = _valid_page(_fetch(query, page, deadline), total, seen, requested)
             except json.JSONDecodeError:
                 candidate = None
             if candidate is not None:
@@ -177,16 +178,19 @@ def _pages(query: str, deadline: float) -> Iterator[list[dict]]:
     raise RuntimeError(f"iWenCai 分页超过 {base.MAX_PAGES} 页")
 
 
-def _value(row: dict, compact_date: str) -> float | None:
-    """Accept only the requested observation date and a valid percentage."""
-    value = row.get(f"{FIELD_PREFIX}[{compact_date}]")
-    if value is None or isinstance(value, bool):
+def _percentage(value: object) -> float | None:
+    """Normalize finite percentages without accepting booleans as numbers."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         return None
     try:
         number = float(value)
     except (TypeError, ValueError, OverflowError):
         return None
     return number if math.isfinite(number) and 0 <= number <= 100 else None
+
+
+def _value(row: dict, compact_date: str) -> float | None:
+    return _percentage(row.get(f"{FIELD_PREFIX}[{compact_date}]"))
 
 
 def _query_codes(codes: list[str]) -> str:
@@ -207,11 +211,10 @@ def _fetch_chunk(
     requested = set(codes)
     query = _query_codes(codes) + f" {FIELD_PREFIX}[{compact_date}]"
     try:
-        for rows in _pages(query, deadline):
+        for rows in _pages(query, deadline, requested):
             for row in rows:
-                code = row["股票代码"]
-                if code in requested and (value := _value(row, compact_date)) is not None:
-                    values[code] = value
+                if (value := _value(row, compact_date)) is not None:
+                    values[row["股票代码"]] = value
     except (BudgetExhausted, QueryCleanupFailed):
         raise
     except (OSError, ValueError, RuntimeError) as exc:
@@ -234,13 +237,24 @@ def _fetch_chunk(
             reasons.setdefault(code, MISSING_REASON)
 
 
+def _compact_date(trade_date: str) -> str:
+    message = "trade_date must be a valid YYYY-MM-DD date"
+    if not isinstance(trade_date, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", trade_date):
+        raise ValueError(message)
+    try:
+        date.fromisoformat(trade_date)
+    except ValueError:
+        raise ValueError(message) from None
+    return trade_date.replace("-", "")
+
+
 def attach(payload: dict, trade_date: str, *, fetch=None, budget_s: float | None = None) -> dict:
     """把集中度90 写进 payload 的 enrichments，返回契约。不写文件。"""
+    compact_date = _compact_date(trade_date)
     if budget_s is not None and (not math.isfinite(budget_s) or budget_s < 0):
         raise ValueError("query budget must be a finite, nonnegative number")
     budget = QUERY_BUDGET_S if budget_s is None else min(budget_s, QUERY_BUDGET_S)
     deadline = time.monotonic() + budget
-    compact_date = "".join(ch for ch in str(trade_date) if ch.isdigit())[:8]
     codes = payload.get("intersection") or payload.get("intersection_before_filters") or []
     enrichments = payload.setdefault("enrichments", {})
 
@@ -270,7 +284,10 @@ def attach(payload: dict, trade_date: str, *, fetch=None, budget_s: float | None
             if fetch is None:
                 _fetch_chunk(batch, compact_date, deadline, values, reasons, errors)
             else:
-                values.update(fetch(batch, compact_date))
+                fetched = fetch(batch, compact_date)
+                for code in batch:
+                    if (value := _percentage(fetched.get(code))) is not None:
+                        values[code] = value
         except BudgetExhausted:
             stop_reason = "budget_exhausted"
             stopped_detail = BUDGET_REASON
@@ -349,8 +366,11 @@ def main() -> int:
                         help=f"override query budget, capped at {QUERY_BUDGET_S:g} seconds")
     args = parser.parse_args()
     payload = json.loads(base.DATA.read_text(encoding="utf-8"))
-    trade_date = args.trade_date or payload.get("data_as_of") or ""
-    contract = attach(payload, trade_date, budget_s=args.query_budget_seconds)
+    trade_date = args.trade_date if args.trade_date is not None else payload.get("data_as_of")
+    try:
+        contract = attach(payload, trade_date, budget_s=args.query_budget_seconds)
+    except ValueError as exc:
+        parser.error(str(exc))
     _write_atomic(base.DATA, payload)
     coverage = contract["coverage"]
     if contract["status"] == "empty_pool":

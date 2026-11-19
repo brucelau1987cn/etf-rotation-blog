@@ -146,6 +146,66 @@ def test_default_budget_caps_each_request_and_preserves_completed_batches(monkey
     assert contract["stop_reason"] == "budget_exhausted"
 
 
+@pytest.mark.parametrize("trade_date", [
+    "2026-1-2", "2026-02-30", "20261112", "x2026-11-12", "2026-11-12x",
+    "2026-11-12T15:00:00", "2026-11-12\n", "２０２６-11-12", "", None,
+])
+def test_attach_rejects_invalid_trade_date_before_query_or_mutation(monkeypatch, trade_date):
+    payload = {"intersection": ["600000.SH"], "data_as_of": "2026-11-12"}
+    before = json.dumps(payload)
+    calls = []
+
+    def fake_run(args, timeout):
+        calls.append(args)
+        return _response([])
+
+    monkeypatch.setattr(mod, "_run_query", fake_run)
+    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+        mod.attach(payload, trade_date)
+    assert calls == []
+    assert json.dumps(payload) == before
+
+
+@pytest.mark.parametrize(("args", "payload_date"), [
+    (["2026-02-30"], "2026-11-12"), ([""], "2026-11-12"),
+    ([], "2026-11-12T15:00:00"), ([], None),
+])
+def test_cli_invalid_date_exits_nonzero_without_request_or_replace(tmp_path, args, payload_date):
+    import subprocess
+
+    # Copy the real CLI and its local import to bind DATA to a staged snapshot.
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("attach_low_chip_chip_concentration.py", "build_low_chip_base.py"):
+        (scripts / name).write_bytes((ROOT / "scripts" / name).read_bytes())
+    entrypoint = scripts / "attach_low_chip_chip_concentration.py"
+    data = tmp_path / "public" / "data" / "a-low-chip-stocks.json"
+    data.parent.mkdir(parents=True)
+    payload = _payload(("600000.SH",))
+    if payload_date is None:
+        payload.pop("data_as_of")
+    else:
+        payload["data_as_of"] = payload_date
+    original = (json.dumps(payload, indent=2) + "\n").encode()
+    data.write_bytes(original)
+
+    # Intercept the transport inside the child, retaining the real CLI and writer.
+    launcher = (
+        "import runpy, subprocess, sys; from pathlib import Path; "
+        "path = Path(sys.argv.pop(1)); sys.argv[0] = str(path); "
+        "subprocess.Popen = lambda *a, **k: Path('query-started').touch(); "
+        "runpy.run_path(str(path), run_name='__main__')"
+    )
+    result = subprocess.run(
+        [str(Path(sys.executable).resolve()), "-c", launcher, str(entrypoint), *args],
+        cwd=tmp_path, capture_output=True, text=True, timeout=5,
+    )
+    assert not (tmp_path / "query-started").exists()
+    assert data.read_bytes() == original
+    assert result.returncode != 0
+    assert "YYYY-MM-DD" in result.stderr
+
+
 def test_zero_budget_clears_stale_overlay_without_querying(monkeypatch):
     payload = _payload()
     first = payload["intersection"][0]
@@ -214,6 +274,60 @@ def test_page_integrity_retry_recovers_on_third_attempt(monkeypatch):
     assert contract["failed_batches"] == []
 
 
+def test_foreign_code_rejects_whole_page_and_retries(monkeypatch):
+    _fake_clock(monkeypatch)
+    payload = _payload(("600000.SH", "600001.SH"))
+    first, second = payload["intersection"]
+    calls = []
+
+    def fake_run(args, timeout):
+        codes, page = _query(args)
+        calls.append((codes, page))
+        if len(calls) == 1:
+            return _response([first, "699999.SH"])
+        return _response(codes)
+
+    monkeypatch.setattr(mod, "_run_query", fake_run)
+    contract = mod.attach(payload, "2026-11-12")
+    assert calls == [([first, second], 1)] * 2
+    assert contract["coverage"] == {"requested": 2, "ok": 2, "unavailable": 0}
+    assert contract["failed_batches"] == []
+    assert "699999.SH" not in payload["enrichments"]
+
+
+def test_foreign_code_from_same_parent_rejects_split_page_but_preserves_earlier_results(monkeypatch):
+    _fake_clock(monkeypatch)
+    payload = _payload(tuple(f"{600000 + i}.SH" for i in range(6)))
+    codes = payload["intersection"]
+    calls = []
+
+    def fake_run(args, timeout):
+        requested, page = _query(args)
+        calls.append((requested, page))
+        if requested == codes:
+            return _response([])
+        if requested == codes[:3]:
+            return _response(requested)
+        if requested == codes[3:] and page == 1:
+            return _response([codes[3]], total=3, has_more=True)
+        if requested == codes[3:] and page == 2:
+            return _response([codes[4], codes[0]], total=3)
+        raise AssertionError(f"unexpected request: {(requested, page)}")
+
+    monkeypatch.setattr(mod, "_run_query", fake_run)
+    contract = mod.attach(payload, "2026-11-12")
+    assert calls == [(codes, 1), (codes[:3], 1), (codes[3:], 1)] + [(codes[3:], 2)] * 3
+    assert contract["coverage"] == {"requested": 6, "ok": 4, "unavailable": 2}
+    assert len(contract["failed_batches"]) == 1
+    assert contract["stop_reason"] is None
+    for code in codes[:4]:
+        assert payload["enrichments"][code]["chip_concentration"]["concentration_90"] == 9.7
+    for code in codes[4:]:
+        item = payload["enrichments"][code]["chip_concentration"]
+        assert (item["status"], item["concentration_90"]) == ("UNAVAILABLE", None)
+        assert "分页完整性校验失败" in item["reason"]
+
+
 def test_failed_split_subtree_does_not_skip_sibling(monkeypatch):
     payload = _payload()
     first, second = payload["intersection"]
@@ -252,7 +366,6 @@ def test_short_batch_only_requeries_missing_requested_codes(monkeypatch):
                 {"股票代码": valid, "集中度90[20261111]": 99, "集中度90[20261112]": 9.7},
                 {"股票代码": stale, "集中度90[20261111]": 5},
                 {"股票代码": zero, "集中度90[20261112]": "0"},
-                {"股票代码": "699999.SH", "集中度90[20261112]": 5},
             ])
         return _response([])
 
@@ -290,6 +403,69 @@ def test_attach_writes_ok_and_contract():
     assert contract["failed_batches"] == []
     # 既有 enrichment 字段不被覆盖
     assert payload["enrichments"]["600000.SH"]["industry"] == "银行"
+
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    (False, None), (True, None), (float("nan"), None), (float("inf"), None),
+    (float("-inf"), None), (-0.01, None), (100.01, None), ("NaN", None),
+    ("Infinity", None), ("-0.01", None), ("100.01", None), ("9.7%", None),
+    ({}, None), (0, 0), (100, 100), ("0", 0), ("100", 100), ("9.12345", 9.1235),
+])
+def test_provider_and_injected_fetch_apply_same_percent_contract(monkeypatch, tmp_path, raw, expected):
+    _fake_clock(monkeypatch)
+    code, stable = "600000.SH", "600001.SH"
+    provider_payload = _payload((code, stable))
+    injected_payload = _payload((code, stable))
+    def fake_run(args, timeout):
+        codes, _ = _query(args)
+        return _envelope([
+            {"股票代码": member, "集中度90[20261112]": raw if member == code else 8.0}
+            for member in codes
+        ])
+
+    monkeypatch.setattr(mod, "_run_query", fake_run)
+    mod.attach(provider_payload, "2026-11-12")
+    contract = mod.attach(injected_payload, "2026-11-12", fetch=lambda *_: {code: raw, stable: 8.0})
+
+    assert injected_payload == provider_payload
+    item = injected_payload["enrichments"][code]["chip_concentration"]
+    assert item["concentration_90"] == expected
+    assert item["status"] == ("UNAVAILABLE" if expected is None else "ok")
+    assert contract["coverage"] == {
+        "requested": 2, "ok": 1 if expected is None else 2,
+        "unavailable": 1 if expected is None else 0,
+    }
+    assert contract["failed_batches"] == []
+    path = tmp_path / "staged.json"
+    path.write_text("{}", encoding="utf-8")
+    mod._write_atomic(path, injected_payload)
+    assert json.loads(path.read_bytes()) == injected_payload
+
+
+def test_injected_fetch_is_bound_to_its_current_batch(monkeypatch):
+    first, second, third = "600000.SH", "600001.SH", "600002.SH"
+    alien = "699999.SH"
+    payload = _payload((first, second, third))
+    monkeypatch.setattr(mod, "BATCH_SIZE", 1)
+    data = {
+        first: {first: 7.0, third: 3.0, alien: 1.0},
+        second: {first: 99.0, second: 0},
+        third: {},
+    }
+    calls = []
+
+    def fetch(codes, compact_date):
+        calls.append(codes)
+        return data[codes[0]]
+
+    contract = mod.attach(payload, "2026-11-12", fetch=fetch)
+    assert calls == [[first], [second], [third]]
+    assert contract["coverage"] == {"requested": 3, "ok": 2, "unavailable": 1}
+    assert payload["enrichments"][first]["chip_concentration"]["concentration_90"] == 7.0
+    assert payload["enrichments"][second]["chip_concentration"]["concentration_90"] == 0
+    item = payload["enrichments"][third]["chip_concentration"]
+    assert (item["status"], item["concentration_90"]) == ("UNAVAILABLE", None)
+    assert alien not in payload["enrichments"]
 
 
 def test_missing_symbol_is_unavailable_not_zero():
