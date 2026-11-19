@@ -6,9 +6,10 @@ iWenCai 的「集中度90[YYYYMMDD]」支持按历史日期取值（实测 00040
 按各自 data_as_of 逐日回填，不需要估算。
 
 约束：
-  - 每份快照按自身 data_as_of 查询，禁止把当日值写进历史日期。
+  - 每份快照的 data_as_of 须为有效的 YYYY-MM-DD 且等于文件名日期。
+  - 日期无效的快照不查询、不写入；处理其他日期后以非零状态退出。
   - 已有 status=ok 的默认跳过（--force 重算）。
-  - 单日失败只把该日标的标成 UNAVAILABLE，不中断整轮回填。
+  - 单日查询失败只把该日标的标成 UNAVAILABLE，不中断整轮回填。
   - 只写 enrichments[code].chip_concentration 与顶层 chip_concentration_contract。
 """
 from __future__ import annotations
@@ -44,9 +45,20 @@ def main() -> int:
 
     total_ok = total_unavailable = 0
     failed_days: list[str] = []
+    date_errors = 0
     for index, path in enumerate(paths, 1):
         payload = json.loads(path.read_text(encoding="utf-8"))
-        day = str(payload.get("data_as_of") or path.stem)[:10]
+        day = payload.get("data_as_of")
+        try:
+            cc._compact_date(day)
+        except ValueError:
+            print(f"{path.name}: data_as_of must be a valid YYYY-MM-DD date", file=sys.stderr, flush=True)
+            date_errors += 1
+            continue
+        if day != path.stem:
+            print(f"{path.name}: data_as_of {day} does not match filename date", file=sys.stderr, flush=True)
+            date_errors += 1
+            continue
         codes = payload.get("intersection") or []
         if not codes:
             print(f"[{index}/{len(paths)}] {day} empty pool, skipped", flush=True)
@@ -78,12 +90,12 @@ def main() -> int:
 
     print(
         f"backfill done: snapshots={len(paths)} ok={total_ok} unavailable={total_unavailable} "
-        f"failed_days={len(failed_days)} dry_run={args.dry_run}",
+        f"failed_days={len(failed_days)} date_errors={date_errors} dry_run={args.dry_run}",
         flush=True,
     )
     if failed_days:
         print("failed days: " + ", ".join(failed_days), flush=True)
-    return 0
+    return 1 if date_errors else 0
 
 
 if __name__ == "__main__":
