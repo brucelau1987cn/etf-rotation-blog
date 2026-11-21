@@ -48,6 +48,33 @@ def test_unreadable_host_script_is_explicitly_skipped(monkeypatch, tmp_path):
         require_local_script(path)
 
 
+def test_low_chip_ci_collection_keeps_repository_contracts(tmp_path):
+    # Hosted runners cannot stat /root; root-run local CI needs the same boundary.
+    (tmp_path / "deny_host_stats.py").write_text(
+        "from pathlib import Path\n"
+        "original = Path.exists\n"
+        "def exists(path):\n"
+        "    if str(path).startswith(('/root/.hermes/scripts/', '/root/.hermes/skills/')):\n"
+        "        raise PermissionError(str(path))\n"
+        "    return original(path)\n"
+        "Path.exists = exists\n",
+        encoding="utf-8",
+    )
+    env = {**os.environ, "CI": "true", "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+           "PYTHONPATH": str(tmp_path)}
+    result = subprocess.run(
+        [str(Path(sys.executable).absolute()), "-m", "pytest", "--collect-only", "-q",
+         "-p", "deny_host_stats", "tests/test_low_chip_release_isolation.py",
+         "tests/test_low_chip_resume_release.py",
+         "tests/test_low_chip_tracking_release_isolation.py",
+         "tests/test_low_chip_suspension_schema.py"],
+        cwd=ROOT, env=env, capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "test_target_snapshot_contract_blocks_missing_wrong_day_or_fake_full_coverage" not in result.stdout
+    assert "tests/test_low_chip_suspension_schema.py::" in result.stdout
+
+
 def test_ci_collects_without_host_cron_scripts():
     env = {**os.environ, "CI": "true", "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
     result = subprocess.run(

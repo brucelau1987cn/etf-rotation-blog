@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from hermes_test_support import require_local_script
 from test_low_chip_release_cron import mocked_release as base_mocked_release
 
 LOCAL_POPEN = subprocess.Popen
@@ -39,7 +40,7 @@ def mocked_release(base_mocked_release, monkeypatch):
     return mod, state
 
 SCRIPT = Path('/root/.hermes/scripts/update_low_chip_and_release.py')
-pytestmark = pytest.mark.skipif(not SCRIPT.exists() or os.environ.get('CI') == 'true', reason='host-local publisher')
+require_local_script(SCRIPT)
 
 
 @pytest.fixture

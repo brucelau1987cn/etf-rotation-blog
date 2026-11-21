@@ -11,8 +11,10 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
+from hermes_test_support import require_local_script
 
 PUBLISHER = Path('/root/.hermes/scripts/update_low_chip_tracking_and_release.py')
+require_local_script(PUBLISHER)
 DAY = '2026-11-17'
 D1_COMMIT = 'a' * 40
 TRACKING = 'public/data/low-chip-tracking.json'

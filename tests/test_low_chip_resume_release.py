@@ -9,9 +9,10 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
+from hermes_test_support import require_local_script
 
 SCRIPT = Path('/root/.hermes/skills/research/a-share-low-profit-stock-screen/scripts/low_chip_resume_release.py')
-pytestmark = pytest.mark.skipif(not SCRIPT.exists() or os.environ.get('CI') == 'true', reason='host-local recovery')
+require_local_script(SCRIPT)
 
 
 @pytest.fixture

@@ -1321,10 +1321,11 @@ def test_preopen_runs_refuse_to_stamp_the_previous_session_with_a_new_date():
     source = SCRIPT.read_text(encoding='utf-8')
     assert 'PREOPEN_HOUR' in source
     assert 'refusing to publish before' in source
-    # The guard must sit before the calendar gate so nothing is written first.
+    # Calendar skip/error precedes preopen refusal; both precede generation.
     guard = source.index('refusing to publish before')
     gate = source.index('calendar_gate = release_calendar_gate(trade_date)')
-    assert guard < gate
+    build = source.index("run([sys.executable, 'scripts/build_low_chip_base.py'")
+    assert gate < guard < build
     # An explicit override must still allow a historical backfill.
     assert 'if not TRADE_DATE_OVERRIDE and now.hour < PREOPEN_HOUR' in source
 
@@ -1371,3 +1372,83 @@ def test_missing_contract_field_names_the_owning_stage():
     assert 'attach_low_chip_technical.py' in message
     assert 'killed mid-run' in message
     assert 'attach_low_chip_financials.py' in message
+
+
+@pytest.mark.parametrize(
+    'day,hour,trading,override,recovery,expected,reason',
+    [
+        ('2026-11-21', 8, False, '', None, 0, 'calendar'),
+        ('2026-10-01', 8, False, '', None, 0, 'calendar'),
+        ('2026-11-20', 8, True, '', None, 1, 'preopen'),
+        ('2026-11-20', 8, None, '', None, 1, 'calendar'),
+        ('2026-11-20', 9, True, '', None, 1, 'stage'),
+        ('2026-11-21', 8, True, '2026-11-20', None, 1, 'stage'),
+        ('2026-11-21', 8, False, '2026-10-01', None, 0, 'calendar'),
+        ('2026-11-21', 8, False, '', 0, 0, 'recovery'),
+        ('2026-11-21', 8, None, '', 1, 1, 'recovery'),
+    ],
+)
+def test_pipeline_calendar_precedes_preopen_gate(
+    tmp_path, monkeypatch, capsys, day, hour, trading, override, recovery, expected, reason,
+):
+    import datetime
+    import socket
+
+    module = load_module()
+    frozen = datetime.datetime.fromisoformat(f'{day}T{hour:02d}:53:00+08:00')
+
+    class FrozenDateTime(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen
+
+    monkeypatch.setattr(module.dt, 'datetime', FrozenDateTime)
+    monkeypatch.setattr(module, 'ROOT', tmp_path / 'repo')
+    monkeypatch.setattr(module, 'SHARED_ROOT', tmp_path / 'shared')
+    monkeypatch.setattr(module, 'TRADE_DATE_OVERRIDE', override)
+    calls = []
+
+    def recover():
+        calls.append('recovery')
+        return recovery
+
+    def calendar(target):
+        calls.append(('calendar', target))
+        return module.release_calendar_gate_original(target, lookup=lambda _: (trading, 'fixture'))
+
+    def stage(args, *a, **kw):
+        calls.append(('stage', args))
+        raise RuntimeError('fixture-stage-boundary')
+
+    def forbidden(*a, **kw):
+        pytest.fail('unexpected real I/O beyond gate')
+
+    monkeypatch.setattr(module, 'release_calendar_gate_original', module.release_calendar_gate, raising=False)
+    monkeypatch.setattr(module, 'recover_pending_release', recover)
+    monkeypatch.setattr(module, 'release_calendar_gate', calendar)
+    monkeypatch.setattr(module, 'run', stage)
+    monkeypatch.setattr(module.subprocess, 'run', forbidden)
+    monkeypatch.setattr(module.subprocess, 'Popen', forbidden)
+    monkeypatch.setattr(module.urllib.request, 'urlopen', forbidden)
+    monkeypatch.setattr(socket, 'create_connection', forbidden)
+    monkeypatch.setattr(socket, 'getaddrinfo', forbidden)
+    monkeypatch.setattr(module, 'sync_d1_metrics', forbidden)
+    assert module.run_pipeline() == expected
+    output = capsys.readouterr().out
+    assert calls[0] == 'recovery'
+    if reason == 'recovery':
+        assert calls == ['recovery']
+    else:
+        assert calls[1] == ('calendar', override or day)
+        if reason == 'calendar':
+            assert len(calls) == 2
+            assert json.loads(output)['calendar_gate'] == {
+                'status': 'skip' if trading is False else 'error',
+                'trade_date': override or day, 'calendar_source': 'fixture',
+            }
+        elif reason == 'preopen':
+            assert len(calls) == 2
+            assert 'refusing to publish before 9:00' in output
+        else:
+            assert calls[2] == ('stage', ['git', 'fetch', 'origin', 'main'])
+            assert 'fixture-stage-boundary' in output
