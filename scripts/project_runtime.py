@@ -234,7 +234,10 @@ CONTRACT_CHAIN_SCRIPTS = (
 def contract_chain_run(env: dict[str, str]) -> None:
     """Validator/generator steps owned by the full site build."""
     for script in CONTRACT_CHAIN_SCRIPTS:
-        run([BUILD_PYTHON, f"scripts/{script}"], env=env, timeout=900)
+        # A clean build checks the versioned artifact. Collection/publication
+        # checks the current D1-backed watchlist through the default CLI mode.
+        args = ["--watchlist", "config/futures-watchlist.json"] if script == "validate_futures_compass.py" else []
+        run([BUILD_PYTHON, f"scripts/{script}", *args], env=env, timeout=900)
 
 
 def build_static_site(

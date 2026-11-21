@@ -23,12 +23,16 @@ const active = [{
 async function callWith(q, fetchImpl) {
   mod.__resetCaches?.();
   const previous = globalThis.fetch;
+  const previousNow = Date.now;
+  // Keep all month-inference fixtures active under a reproducible clock.
+  Date.now = () => Date.parse('2026-11-01T12:00:00Z');
   globalThis.fetch = fetchImpl;
   try {
     const res = await handler({ request: new Request(`https://x/api?q=${q}`) });
     return { status: res.status, body: await res.json() };
   } finally {
     globalThis.fetch = previous;
+    Date.now = previousNow;
   }
 }
 

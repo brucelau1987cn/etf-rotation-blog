@@ -4,9 +4,10 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../src/pages/rolling/low-chip.astro', import.meta.url), 'utf8');
-const currentMapper = source.slice(source.indexOf('const rows = intersectionRows.map('), source.indexOf('const initialClientData'));
+const currentMapperStart = source.indexOf('const rows = intersectionRows.map(');
+const currentMapper = source.slice(currentMapperStart, source.indexOf('\n});', currentMapperStart) + '\n});'.length);
 const historyObject = source.slice(source.indexOf('data.rows.push({') + 'data.rows.push('.length, source.indexOf('\n                });', source.indexOf('data.rows.push({')));
-const renderer = source.slice(source.indexOf('      function rowHtml('), source.indexOf('      function renderIndustryEtfSection('));
+const renderer = source.slice(source.indexOf('      function conc90Html('), source.indexOf('      function renderIndustryEtfSection('));
 
 function current(enrichment) {
   return vm.runInNewContext(currentMapper + '\nrows[0]', {

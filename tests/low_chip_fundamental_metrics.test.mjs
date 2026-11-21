@@ -70,7 +70,7 @@ test('low-chip metrics decodes risk JSON and advisory booleans on GET', async ()
   assert.equal(body.results[0].risk_freshness.price_as_of, '2026-08-13');
 });
 
-test('replace keeps delete plus inserts within one D1 batch at the 198-row limit', async () => {
+test('replace respects D1 parameter and batch limits for all 198 rows', async () => {
   const db = new DB();
   const metrics = Array.from({ length: 198 }, (_, i) => ({ trade_date: '20260813', stock_code: String(i).padStart(6, '0') }));
   const response = await onRequest({
@@ -78,6 +78,20 @@ test('replace keeps delete plus inserts within one D1 batch at the 198-row limit
     env: { DB: db, LOW_CHIP_SYNC_TOKEN: 'test' },
   });
   assert.equal(response.status, 200);
-  assert.equal(db.batches.length, 1);
-  assert.equal(db.batches[0].length, 100);
+  assert.deepEqual(db.batches.map(batch => batch.length), [100, 99]);
+  const statements = db.batches.flat();
+  assert.match(statements[0].sql, /^DELETE FROM stock_metrics/);
+  assert.deepEqual(statements[0].values, ['20260813']);
+  assert.equal(statements.filter(stmt => stmt.sql.startsWith('DELETE')).length, 1);
+  const inserts = statements.slice(1);
+  assert.equal(inserts.length, metrics.length);
+  assert.deepEqual(inserts.map(stmt => stmt.values[1]), metrics.map(row => row.stock_code));
+  for (const statement of inserts) {
+    assert.match(statement.sql, /^INSERT OR REPLACE INTO stock_metrics/);
+    assert.ok(statement.values.length <= 100);
+    assert.equal((statement.sql.match(/\?/g) || []).length, statement.values.length);
+  }
+  const body = await response.json();
+  assert.equal(body.inserted, 198);
+  assert.equal(body.total, 198);
 });

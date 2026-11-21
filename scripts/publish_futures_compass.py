@@ -22,7 +22,8 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = "public/data/futures-compass.json"
 BRIEFING = "public/data/futures-compass-briefing.json"
-PUBLISH_FILES = (SNAPSHOT, BRIEFING)
+WATCHLIST_EXPORT = "config/futures-watchlist.json"
+PUBLISH_FILES = (SNAPSHOT, BRIEFING, WATCHLIST_EXPORT)
 FUTURES_PYTHON = "/root/.cache/etf-futures/venv/bin/python"
 LOCK = Path("/root/.hermes/state/futures-compass-publish.lock")
 EXTERNAL_DIRTY = {
@@ -143,7 +144,7 @@ def publish(slot: str) -> dict[str, str]:
                 raise RuntimeError(
                     f"futures maintenance failed for {slot} (exit {maintenance.returncode}): {detail[:400]}"
                 )
-            run([FUTURES_PYTHON, "scripts/validate_futures_compass.py"])
+            run([FUTURES_PYTHON, "scripts/validate_futures_compass.py", "--export-watchlist", WATCHLIST_EXPORT])
             if run(["git", "diff", "--quiet", "--", *PUBLISH_FILES], check=False).returncode == 0:
                 return {"status": "unchanged", "slot": slot}
             # The full site build validates every market's live batch. A-share

@@ -14,6 +14,21 @@ test('live momentum recompute is idempotent at the snapshot price for all 91 row
   assert.deepEqual(changed, []);
 });
 
+test('rounded equal MAs retain the authoritative snapshot rising check', () => {
+  for (const rising of [true, false]) {
+    const row = {
+      status: rising ? 'core' : 'watch', price: 1.379,
+      ret3: 1.03, ret5: 0.73, ma20: 1.3687, ma20_prev: 1.3687,
+      slope20: 0.086, checks: { ma_rising: rising },
+    };
+    const result = recomputeMomentumRow(row, row.price);
+    assert.equal(result.status, row.status);
+    assert.equal(result.checks.ma_rising, rising);
+    assert.equal(recomputeMomentumRow(row, 1.37).checks.ma_rising, false);
+    assert.equal(recomputeMomentumRow(row, 1.39).checks.ma_rising, true);
+  }
+});
+
 test('positive zero slope keeps the rising-MA fallback', () => {
   const row = {
     status: 'core', price: 1, ret3: 1, ret5: 1, ret10: 1, ret20: 1,

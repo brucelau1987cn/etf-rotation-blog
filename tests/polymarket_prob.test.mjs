@@ -22,9 +22,12 @@ function mockEvent({ title, endDate, slug, yes }) {
   }];
 }
 
-async function callWith(q, fetchImpl) {
+async function callWith(q, fetchImpl, now = '2026-11-01T12:00:00Z') {
   mod.__resetCaches?.();
   const previous = globalThis.fetch;
+  const previousNow = Date.now;
+  // Pin discovery before the October fixture's November settlement.
+  Date.now = () => Date.parse(now);
   globalThis.fetch = fetchImpl;
   try {
     const req = new Request(`https://etf.peekabo.cc/api/public/v1/polymarket-prob?q=${q}`);
@@ -32,6 +35,7 @@ async function callWith(q, fetchImpl) {
     return { status: res.status, body: await res.json() };
   } finally {
     globalThis.fetch = previous;
+    Date.now = previousNow;
   }
 }
 
@@ -77,6 +81,20 @@ test('polymarket-prob 在事件已过期时返回 ok:false，不把定格概率�
   assert.equal(body.ok, false);
   assert.match(String(body.error), /expired|stale|no active/i);
   assert.ok(status >= 400);
+});
+
+test('polymarket-prob expires the same fixture exactly at settlement', async () => {
+  const event = mockEvent({
+    title: 'October Inflation US - Annual', endDate: '2026-11-11T04:59:00Z',
+    slug: 'october-inflation-us-annual', yes: 0.47,
+  });
+  const active = await callWith('cpi-yoy', async () => Response.json(event), '2026-11-11T04:58:59Z');
+  assert.equal(active.status, 200);
+  assert.equal(active.body.top.yes_prob, 47);
+  const expired = await callWith('cpi-yoy', async () => Response.json(event), '2026-11-11T04:59:00Z');
+  assert.equal(expired.status, 404);
+  assert.equal(expired.body.ok, false);
+  assert.equal(expired.body.top, undefined);
 });
 
 test('polymarket-prob 未知 q 仍返回 400', async () => {

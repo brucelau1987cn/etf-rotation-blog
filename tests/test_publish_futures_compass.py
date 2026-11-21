@@ -57,7 +57,7 @@ def test_futures_publisher_refreshes_validates_builds_commits_and_deploys(monkey
     publisher.publish("day-close")
 
     assert [publisher.FUTURES_PYTHON, "scripts/run_futures_compass_maintenance.py", "--slot", "day-close"] in calls
-    assert [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"] in calls
+    assert [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py", "--export-watchlist", publisher.WATCHLIST_EXPORT] in calls
     # The build goes through the shared project runtime (project interpreters,
     # PYTHONPATH stripped) and never through an unqualified `python3`.
     assert builds == [{"contract_chain": False}]
@@ -85,7 +85,7 @@ def test_futures_publisher_rolls_back_snapshot_when_validation_fails(monkeypatch
 
     def fake_run(command, **kwargs):
         calls.append(command)
-        if command == [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py"]:
+        if command == [publisher.FUTURES_PYTHON, "scripts/validate_futures_compass.py", "--export-watchlist", publisher.WATCHLIST_EXPORT]:
             raise subprocess.CalledProcessError(1, command)
         return result()
 

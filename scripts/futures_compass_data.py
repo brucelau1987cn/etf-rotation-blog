@@ -113,14 +113,44 @@ def load_watchlist(*, force_refresh: bool = False) -> list[dict[str, Any]]:
     return [dict(item) for item in DEFAULT_WATCHLIST]
 
 
-# Back-compat name used across modules/tests.
-WATCHLIST = load_watchlist()
+# Back-compat name; managed configuration is resolved by refresh_watchlist at
+# collection time. Importing validators must remain offline and read-only.
+WATCHLIST = [dict(item) for item in DEFAULT_WATCHLIST]
 
 
 def refresh_watchlist() -> list[dict[str, Any]]:
     global WATCHLIST
     WATCHLIST = load_watchlist(force_refresh=True)
     return WATCHLIST
+
+
+def watchlist_codes(rows):
+    """Validate literal product identifiers without coercion or normalization."""
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("watchlist codes require a non-empty array of objects")
+    codes = []
+    for row in rows:
+        code = row.get("code") if isinstance(row, dict) else None
+        if not isinstance(code, str) or not code or any(c < "A" or c > "Z" for c in code):
+            raise ValueError("watchlist code must be a non-empty uppercase ASCII identifier [A-Z]+")
+        codes.append(code)
+    if len(codes) != len(set(codes)):
+        raise ValueError("watchlist codes must be unique")
+    return codes
+
+
+def export_watchlist(payload, path, *, watchlist=None):
+    """Persist the exact independently configured membership validated for release."""
+    rows = load_watchlist() if watchlist is None else watchlist
+    expected = watchlist_codes(rows)
+    actual = watchlist_codes(payload.get("items"))
+    if (not expected or len(set(expected)) != len(expected)
+            or set(actual) != set(expected) or len(actual) != len(expected)
+            or payload.get("count") != len(expected)
+            or payload.get("expected_count") != len(expected)
+            or set(payload.get("summary", {}).get("ranking", [])) != set(expected)):
+        raise ValueError("futures snapshot watchlist mismatch during export")
+    atomic_json(path, {"items": rows})
 
 
 def validate_public_snapshot(
@@ -144,9 +174,10 @@ def validate_public_snapshot(
         errors.append("futures snapshot generated_at is invalid")
 
     active = watchlist if watchlist is not None else load_watchlist()
-    expected = [str(item.get("code") or "").strip().upper() for item in active if isinstance(item, dict)]
-    if not expected or any(not code for code in expected) or len(expected) != len(set(expected)):
-        errors.append("futures snapshot watchlist codes must be non-empty and unique")
+    try:
+        expected = watchlist_codes(active)
+    except ValueError as exc:
+        return [str(exc)]
     if payload.get("ok") is not True:
         errors.append("futures snapshot ok must be true")
     if payload.get("stale") is not False:
@@ -162,7 +193,11 @@ def validate_public_snapshot(
     if not isinstance(items, list):
         errors.append("futures snapshot items must be an array")
         items = []
-    actual = [str(item.get("code") or "").strip().upper() for item in items if isinstance(item, dict)]
+    try:
+        actual = watchlist_codes(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+        actual = []
     if len(actual) != len(items) or len(actual) != len(set(actual)) or set(actual) != set(expected) or payload.get("count") != len(expected):
         errors.append(f"futures snapshot watchlist mismatch: expected={expected}, actual={actual}")
     summary = payload.get("summary")

@@ -31,7 +31,12 @@
     if (!canRecompute) return { ...row, price };
 
     const priceAboveMa = price > ma20;
-    const maRising = ma20 > ma20Prev;
+    // The generator calculates this check before rounding MAs to four decimals.
+    // At an unchanged price, equal published MAs retain that boolean evidence.
+    const maRising = price === oldPrice && ma20Snapshot === ma20Prev
+      && typeof row.checks?.ma_rising === 'boolean'
+      ? row.checks.ma_rising
+      : ma20 > ma20Prev;
     const shortOk = ret3 > -5;
     // slope20 is stored rounded (generator uses round(...,4)); a tiny positive
     // log-price slope can collapse to +0.0 while a tiny negative becomes -0.0.
