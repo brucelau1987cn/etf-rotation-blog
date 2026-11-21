@@ -9,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from hermes_test_support import require_local_script
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -865,6 +866,7 @@ def test_join_day_halt_then_resume_has_no_fabricated_entry_baseline(tmp_path, mo
     monkeypatch.setattr(mod, "confirmed_suspensions", lambda _day: {symbol: evidence})
     monkeypatch.setattr(mod, "tencent_daily", lambda *_a, **_kw: [])
     publisher_path = Path("/root/.hermes/scripts/update_low_chip_tracking_and_release.py")
+    require_local_script(publisher_path)
     spec = importlib.util.spec_from_file_location("tracking_release_check", publisher_path)
     assert spec and spec.loader
     publisher = importlib.util.module_from_spec(spec)
@@ -916,6 +918,7 @@ def test_delayed_entry_caps_at_20_and_blocks_when_release_cannot_validate(tmp_pa
 @pytest.fixture
 def tracking_publisher():
     path = Path("/root/.hermes/scripts/update_low_chip_tracking_and_release.py")
+    require_local_script(path)
     spec = importlib.util.spec_from_file_location("tracking_release_gate", path)
     assert spec and spec.loader
     publisher = importlib.util.module_from_spec(spec)

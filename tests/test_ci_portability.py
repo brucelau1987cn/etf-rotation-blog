@@ -92,3 +92,26 @@ def test_ci_collects_without_host_cron_scripts():
     assert "test_precheck_accepts_partial_qfq" not in result.stdout
     assert "test_shadow_dirty_files_is_canonical_set" in result.stdout
     assert "test_guard_detects_a_missing_execute_bit" in result.stdout
+
+
+def test_mixed_host_modules_keep_repository_tests_offline(tmp_path):
+    (tmp_path / "deny_host_io.py").write_text(
+        "import os, sys\n"
+        "def deny(event, args):\n"
+        "    if event == 'open' and isinstance(args[0], (str, bytes)):\n"
+        "        path = os.fsdecode(args[0])\n"
+        "        if path.startswith(('/root/.hermes/scripts/', '/root/.hermes/skills/')) or path == '/root/.hermes/cache/scratch/dragon-test.json':\n"
+        "            raise AssertionError('host file I/O: ' + path)\n"
+        "sys.addaudithook(deny)\n",
+        encoding="utf-8",
+    )
+    env = {**os.environ, "CI": "true", "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+           "PYTHONPATH": str(tmp_path)}
+    result = subprocess.run(
+        [str(Path(sys.executable).absolute()), "-m", "pytest", "-q", "-W", "ignore",
+         "-p", "deny_host_io", "tests/test_low_chip_core_only.py",
+         "tests/test_low_chip_tracking_retry.py", "tests/test_research_dragon_parameters.py"],
+        cwd=ROOT, env=env, capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "112 passed, 34 skipped" in result.stdout

@@ -2,10 +2,13 @@ import importlib.util
 import json
 from pathlib import Path
 import pytest
+from hermes_test_support import require_local_script
 
-ROOT = Path('/root/projects/etf-rotation-blog')
+ROOT = Path(__file__).resolve().parents[1]
 
 def load(path):
+    if path.parent == Path('/root/.hermes/scripts'):
+        require_local_script(path)
     spec = importlib.util.spec_from_file_location('core_test_' + path.stem, path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

@@ -30,8 +30,9 @@ def module():
     return mod
 
 
-def test_readonly_exact_snapshot_and_output_guard(tmp_path):
+def test_readonly_exact_snapshot_and_output_guard(tmp_path, monkeypatch):
     m = module()
+    monkeypatch.setattr(m, 'SCRATCH', tmp_path.resolve())
     db = tmp_path / 'bars.db'
     with sqlite3.connect(db) as con:
         con.execute('create table bars(code text, trade_date text, open real, high real, low real, close real)')
