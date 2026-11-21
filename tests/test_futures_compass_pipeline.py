@@ -115,6 +115,33 @@ class FakeReviewDB:
     def __exit__(self, *args): pass
 
 
+def test_iwencai_review_queries_delimited_product_names_for_main_contracts(monkeypatch):
+    watchlist = [
+        {"name": "碳酸锂", "code": "LC"}, {"name": "多晶硅", "code": "PS"},
+        {"name": "纯碱", "code": "SA"},
+    ]
+    monkeypatch.setattr(data, "refresh_watchlist", lambda: watchlist)
+    monkeypatch.setattr(data, "connect", FakeReviewDB)
+    monkeypatch.setattr(data, "audit", lambda *args, **kwargs: None)
+
+    def provider(command, **kwargs):
+        query = command[command.index("--query") + 1]
+        if query == "碳酸锂、多晶硅、纯碱 期货主力合约 最新价 涨跌幅 成交量 持仓量":
+            payload = {"code_count": 3, "datas": [{"品种代码": code} for code in ("SA", "LC", "PS")]}
+        else:
+            # The ambiguous space-joined query can return many contracts for one product.
+            payload = {"code_count": 124, "datas": [{"品种代码": "PS"}] * 20}
+        return data.subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr(data.subprocess, "run", provider)
+
+    result = data.run_iwencai_review("preopen")
+
+    assert result["status"] == "ok", result["error"]
+    assert result["covered_codes"] == ["LC", "PS", "SA"]
+    assert result["missing_codes"] == []
+
+
 def test_iwencai_review_fails_on_legal_empty_result(monkeypatch):
     monkeypatch.setattr(data, "refresh_watchlist", lambda: [{"name": "螺纹钢", "code": "RB"}])
     monkeypatch.setattr(data.subprocess, "run", lambda *args, **kwargs: data.subprocess.CompletedProcess(

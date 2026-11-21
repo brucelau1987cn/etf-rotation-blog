@@ -54,6 +54,7 @@ def test_night_requires_completed_precheck_cache():
 def test_nightly_precheck_status_requires_same_day_success(tmp_path, monkeypatch):
     path = tmp_path / "status.json"
     monkeypatch.setattr(cron_gate, "NIGHTLY_STATUS", path)
+    monkeypatch.setattr(cron_gate, "NIGHTLY_CHAIN_READY", tmp_path / "chain.json")
     path.write_text(
         '{"requested_stage":"precheck-cache","ok":true,"finished_at":"2026-07-14T20:55:00+08:00"}',
         encoding="utf-8",

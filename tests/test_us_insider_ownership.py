@@ -89,6 +89,54 @@ def test_fetch_insider_trades_uses_atom_then_form4():
     assert trades[0]["code"] == "S"
 
 
+@pytest.mark.parametrize("limit,expected_limit,expected_count", [
+    (None, 5, 10), (1, 1, 10), (7, 7, 10), (11, 11, 20), (101, 101, 500),
+])
+def test_fetch_insider_trades_uses_valid_sec_count_and_bounds_filing_downloads(
+    monkeypatch, limit, expected_limit, expected_count
+):
+    import io
+    import urllib.error
+    from urllib.parse import parse_qs, urlsplit
+
+    calls = []
+    accessions = [f"0001140361-26-{i:06d}" for i in range(expected_count)]
+
+    def sec_transport(request, timeout):
+        url = request.full_url
+        calls.append(url)
+        if "browse-edgar" in url:
+            count = int(parse_qs(urlsplit(url).query)["count"][0])
+            if count not in (*range(10, 101, 10), 500):
+                raise urllib.error.HTTPError(
+                    url, 400, f"Invalid count, Received: {count}", {}, None
+                )
+            assert count == expected_count
+            return io.BytesIO(("<feed>" + "".join(
+                f"<entry><accession-number>{acc}</accession-number></entry>"
+                for acc in accessions
+            ) + "</feed>").encode())
+        if url.endswith("-index.htm"):
+            return io.BytesIO(b'<a href="/Archives/test/form4.xml">body</a>')
+        assert url == "https://www.sec.gov/Archives/test/form4.xml"
+        return io.BytesIO(F4_FIXTURE.read_bytes())
+
+    monkeypatch.setattr(ownership_builder.urllib.request, "urlopen", sec_transport)
+    monkeypatch.setattr(ownership_builder, "MIN_INTERVAL", 0)
+    kwargs = {} if limit is None else {"limit": limit}
+    trades = fetch_insider_trades(ownership_builder.SecClient(), "0000320193", **kwargs)
+
+    assert len(trades) == expected_limit
+    assert all(row["symbol"] == "AAPL" for row in trades)
+    expected_indexes = [
+        f"https://www.sec.gov/Archives/edgar/data/320193/"
+        f"{acc.replace('-', '')}/{acc}-index.htm"
+        for acc in accessions[:expected_limit]
+    ]
+    assert calls[1::2] == expected_indexes
+    assert len(calls) == 1 + 2 * expected_limit
+
+
 def test_fetch_insider_trades_skips_xsl_render_copy():
     atom = (
         '<?xml version="1.0"?><feed><entry>'

@@ -80,6 +80,10 @@ FETCH_ATTEMPTS = 4
 FETCH_BACKOFF_S = 3.0
 
 
+class PeriodFieldPageError(SystemExit):
+    """A page exhausted its metric retries; paginate may retry its integrity."""
+
+
 def _is_transient(detail: str) -> bool:
     lowered = detail.lower()
     return not any(marker.lower() in lowered for marker in TERMINAL_MARKERS)
@@ -110,7 +114,7 @@ def fetch(query, page):
             ):
                 detail = f'STAGING BLOCKER: missing explicit {expected} on page {page}'
                 if attempt == FETCH_ATTEMPTS:
-                    raise SystemExit(detail)
+                    raise PeriodFieldPageError(detail)
                 time.sleep(FETCH_BACKOFF_S * attempt)
                 continue
             out.write_text(r.stdout, encoding="utf-8")
@@ -142,7 +146,13 @@ def paginate(query):
         # Separate integrity budget: each attempt re-fetches this page while
         # accepted rows and their declared total remain unchanged.
         for attempt in range(1, 4):
-            d = fetch(query, p)
+            try:
+                d = fetch(query, p)
+            except PeriodFieldPageError:
+                if attempt == 3:
+                    raise
+                time.sleep(FETCH_BACKOFF_S * attempt)
+                continue
             page_total = d.get('code_count')
             page_rows = d.get('datas') or []
             blocker = None

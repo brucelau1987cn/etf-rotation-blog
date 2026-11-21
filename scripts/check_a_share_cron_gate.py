@@ -22,14 +22,17 @@ from zoneinfo import ZoneInfo
 try:
     from a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
     from cf_baostock_client import CFBaoStockClient, CFBaoStockError
+    from wait_a_share_nightly_state import CHAIN_READY, chain_ready, load_json
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import SNAPSHOT_FILES, nightly_content_files
     from scripts.cf_baostock_client import CFBaoStockClient, CFBaoStockError
+    from scripts.wait_a_share_nightly_state import CHAIN_READY, chain_ready, load_json
 
 ROOT = Path(__file__).resolve().parents[1]
 POOL = ROOT / "public/data/etf-garden-pool.json"
 DB = ROOT / "data/local/etf-compass.db"
 NIGHTLY_STATUS = Path("/root/.hermes/state/a-share-nightly-trigger-status.json")
+NIGHTLY_CHAIN_READY = CHAIN_READY
 CN = ZoneInfo("Asia/Shanghai")
 EXPECTED_FORMAL = 91
 MINIMUM_COVERAGE = 82
@@ -314,8 +317,11 @@ def qfq_state() -> tuple[str | None, int]:
 
 
 def nightly_precheck_ready(day: str) -> bool:
+    # The durable completion receipt survives later standalone stage runs.
+    if chain_ready(load_json(NIGHTLY_CHAIN_READY), day):
+        return True
     try:
-        payload = json.loads(NIGHTLY_STATUS.read_text(encoding="utf-8"))
+        payload = load_json(NIGHTLY_STATUS)
         finished = datetime.fromisoformat(str(payload.get("finished_at") or ""))
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return False

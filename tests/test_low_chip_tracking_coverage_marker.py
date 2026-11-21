@@ -120,7 +120,7 @@ def test_backfill_writes_data_through_matching_newest_bar(tmp_path, monkeypatch)
     monkeypatch.setattr(
         mod,
         "tencent_daily",
-        lambda symbol, start, end: [
+        lambda symbol, start, end, **_kw: [
             {"date": "2026-10-19", "close": 10.0, "change_pct": None},
             {"date": "2026-10-20", "close": 10.5, "change_pct": 5.0},
         ],
@@ -129,12 +129,11 @@ def test_backfill_writes_data_through_matching_newest_bar(tmp_path, monkeypatch)
     monkeypatch.setattr(mod, "iwencai_profit_ratio", lambda symbol, date: 1.0)
     monkeypatch.setattr(mod, "iwencai_profit_ratios", lambda pairs: {pair: 1.0 for pair in pairs})
     monkeypatch.setattr(mod, "fetch_current_year_profit", lambda symbols: {})
-    monkeypatch.setattr(mod, "MIN_TRACK_DAYS", 1)
     monkeypatch.setattr(mod, "atomic_write_json", lambda path, payload: Path(path).write_text(
         json.dumps(payload, ensure_ascii=False), encoding="utf-8"
     ))
 
-    mod.main()
+    mod.main(target_day="2026-10-20")
 
     written = json.loads(data_path.read_text(encoding="utf-8"))
     assert written["data_through"] == "2026-10-20", (

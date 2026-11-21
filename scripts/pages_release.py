@@ -12,7 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES_ENV = Path("/root/.hermes/credentials/cloudflare-pages.env")
@@ -183,7 +183,16 @@ def quarantine_unowned_shadow_dirty(owned: Iterable[str] = ()) -> list[str]:
     return restored
 
 
-def ensure_release_scope() -> None:
+def ensure_release_scope(*, root: Path | None = None) -> None:
+    if root is not None:
+        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        status = subprocess.check_output(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none"],
+            cwd=root, env=env,
+        )
+        if status:
+            raise RuntimeError("pinned Pages release requires a clean candidate checkout")
+        return
     result = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=ROOT, text=True, capture_output=True, check=True,
@@ -211,13 +220,29 @@ def restore_tracked_public_files() -> None:
         target.write_bytes(result.stdout)
 
 
-def deploy_pages() -> str:
-    ensure_release_scope()
-    restore_tracked_public_files()
+def deploy_pages(*, root: Path | None = None, commit: str | None = None,
+                 before_upload: Callable[[], None] | None = None) -> str:
+    """Deploy with bounded retries; a failed pre-upload gate aborts the loop."""
+    if root is None and commit is None:
+        ensure_release_scope()
+        restore_tracked_public_files()
+    else:
+        if root is None or not re.fullmatch(r"[0-9a-f]{40}", commit or ""):
+            raise RuntimeError("pinned Pages release requires a candidate root and full commit SHA")
+        git_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        head = subprocess.check_output(["git", "--no-replace-objects", "rev-parse", "HEAD"],
+                                       cwd=root, env=git_env, text=True).strip()
+        if head != commit:
+            raise RuntimeError("Pages candidate HEAD differs from release commit")
+        ensure_release_scope(root=root)
     env = {**os.environ, **load_env_file(PAGES_ENV)}
+    if commit is not None:
+        env = {k: v for k, v in env.items() if not k.startswith("GIT_")}
     if not env.get("CLOUDFLARE_API_TOKEN"):
         raise RuntimeError("CLOUDFLARE_API_TOKEN is missing")
     command = ["npx", "--yes", wrangler_spec(), "pages", "deploy", "dist", "--project-name", PROJECT, "--commit-dirty=true"]
+    if commit is not None:
+        command[-1:] = ["--branch", "main", "--commit-hash", commit, "--commit-dirty=false"]
     # A deploy is a single-shot upload: a flaky socket halfway through leaves
     # no deployment behind, so a transient failure must not be fatal. Retry
     # through the bridge, which turns the 2026-10-28 `TypeError: fetch failed`
@@ -225,7 +250,9 @@ def deploy_pages() -> str:
     last_error = ""
     for attempt in range(1, DEPLOY_ATTEMPTS + 1):
         attempt_env = proxy_env(env)
-        result = subprocess.run(command, cwd=ROOT, env=attempt_env, text=True, capture_output=True)
+        if before_upload is not None:
+            before_upload()
+        result = subprocess.run(command, cwd=root or ROOT, env=attempt_env, text=True, capture_output=True)
         output = (getattr(result, "stdout", "") or "") + "\n" + (getattr(result, "stderr", "") or "")
         if result.returncode == 0:
             if "pages.dev" not in output and "Deployment complete" not in output:
@@ -240,6 +267,40 @@ def deploy_pages() -> str:
             )
             time.sleep(DEPLOY_RETRY_DELAY_SECONDS)
     raise RuntimeError(f"wrangler pages deploy failed after {DEPLOY_ATTEMPTS} attempts: {last_error}")
+
+
+def verify_production_deployment(output: str, commit: str) -> str:
+    # Wrangler prints the immutable deployment URL and can print a mutable alias
+    # on a separate line. Only the URL introducing the deployment is evidence.
+    urls = set(re.findall(
+        rf"(?:Take a peek over at |Visit your deployment at )"
+        rf"(https://[a-z0-9-]+\.{re.escape(PROJECT)}\.pages\.dev)(?![a-z0-9.-])", output,
+    ))
+    if len(urls) != 1:
+        raise RuntimeError("Wrangler did not identify exactly one deployment URL")
+    url = urls.pop()
+    account = load_env_file(PAGES_ENV).get("CLOUDFLARE_ACCOUNT_ID", "")
+    if not re.fullmatch(r"[0-9a-f]{32}", account):
+        raise RuntimeError("Pages account ID is missing or invalid")
+    endpoint = (f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/"
+                f"{PROJECT}/deployments?env=production&per_page=25")
+    for attempt in range(URL_PROBE_ATTEMPTS):
+        rows = cloudflare_request(endpoint).get("result") or []
+        for row in rows:
+            if row.get("url") != url:
+                continue
+            metadata = (row.get("deployment_trigger") or {}).get("metadata") or {}
+            stage = row.get("latest_stage") or {}
+            if (row.get("environment") != "production" or metadata.get("branch") != "main"
+                    or metadata.get("commit_hash") != commit):
+                raise RuntimeError("Pages deployment identity differs from production candidate")
+            if stage.get("name") == "deploy" and stage.get("status") == "success":
+                return url
+            if stage.get("status") in {"failure", "canceled"}:
+                raise RuntimeError(f"Pages deployment failed: {url}")
+        if attempt < URL_PROBE_ATTEMPTS - 1:
+            time.sleep(URL_PROBE_DELAY_SECONDS)
+    raise RuntimeError(f"Pages production deployment not verified: {url}")
 
 
 def cloudflare_request(url: str, *, method: str = "GET", body: dict | None = None) -> dict:
@@ -337,8 +398,22 @@ def probe_urls(urls: Iterable[str]) -> None:
 
 
 def probe_json_matches(matches: dict[str, Path]) -> None:
-    for url, local_path in matches.items():
-        expected = json.loads((local_path if local_path.is_absolute() else ROOT / local_path).read_text(encoding="utf-8"))
+    _probe_json(matches, exact=False)
+
+
+def probe_json_bytes(matches: Mapping[str, Path | bytes]) -> None:
+    _probe_json(matches, exact=True)
+
+
+def _probe_json(matches: Mapping[str, Path | bytes], *, exact: bool) -> None:
+    for url, source in matches.items():
+        if isinstance(source, bytes):
+            if not exact:
+                raise ValueError("byte expectations require exact JSON readback")
+            expected = source
+        else:
+            path = source if source.is_absolute() else ROOT / source
+            expected = path.read_bytes() if exact else json.loads(path.read_text(encoding="utf-8"))
         for attempt in range(JSON_PROBE_ATTEMPTS):
             separator = "&" if "?" in url else "?"
             request = urllib.request.Request(
@@ -347,7 +422,7 @@ def probe_json_matches(matches: dict[str, Path]) -> None:
             )
             try:
                 with urllib.request.urlopen(request, timeout=30) as response:
-                    actual = json.load(response)
+                    actual = response.read() if exact else json.load(response)
             except urllib.error.HTTPError as exc:
                 # 与 probe_urls 同理：传播期的 5xx/429 属于瞬时错误，用同一份
                 # 65 次预算重试；4xx 说明路径或鉴权真的不对，立即失败。

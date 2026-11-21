@@ -23,33 +23,52 @@ class StaleStateError(RuntimeError):
 def load_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
         return {}
     return value if isinstance(value, dict) else {}
 
 
-def chain_ready(payload: dict, trade_date: str) -> bool:
-    results = payload.get("results")
-    if not isinstance(results, list):
+def chain_ready(payload: object, trade_date: str) -> bool:
+    """Validate the durable completion proof shared by nightly consumers."""
+    if not isinstance(payload, dict):
         return False
-    stage_results = {
-        item.get("stage"): item for item in results if isinstance(item, dict)
-    }
+    results = payload.get("results")
+    if not isinstance(results, list) or len(results) != len(CHAIN_STAGES):
+        return False
+    stage_results = {}
+    for item in results:
+        if not isinstance(item, dict):
+            return False
+        name = item.get("stage")
+        if not isinstance(name, str) or name not in CHAIN_STAGES or name in stage_results:
+            return False
+        stage_results[name] = item
+    timestamp = payload.get("ready_at")
+    if not isinstance(timestamp, str):
+        return False
+    try:
+        ready_at = datetime.fromisoformat(timestamp)
+        if ready_at.tzinfo is None or ready_at.astimezone(CN).date().isoformat() != trade_date:
+            return False
+    except (TypeError, ValueError, OverflowError):
+        return False
     fundamental = payload.get("fundamental")
     coverage = fundamental.get("coverage") if isinstance(fundamental, dict) else None
     return bool(
-        payload.get("version") == 2
+        type(payload.get("version")) is int
+        and payload.get("version") == 2
         and payload.get("requested_stage") == "precheck-cache"
+        and type(payload.get("returncode")) is int
         and payload.get("returncode") == 0
         and payload.get("trade_date") == trade_date
         and payload.get("status") == "ready"
-        and str(payload.get("ready_at") or "")[:10] == trade_date
         and set(stage_results) == set(CHAIN_STAGES)
         and all(stage_results[name].get("ok") is True for name in CHAIN_STAGES)
         and isinstance(fundamental, dict)
         and fundamental.get("trade_date") == trade_date
         and isinstance(coverage, dict)
         and coverage.get("publishable") is True
+        and type(coverage.get("failed")) is int
         and coverage.get("failed") == 0
     )
 

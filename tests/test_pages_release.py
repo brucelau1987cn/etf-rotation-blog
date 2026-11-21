@@ -10,6 +10,60 @@ import pytest
 from scripts import pages_release
 
 
+def test_pinned_deploy_runs_in_candidate_without_dist_rewrite(tmp_path, monkeypatch):
+    commit = "a" * 40
+    monkeypatch.setattr(pages_release.subprocess, "check_output", lambda *a, **kw: commit + "\n")
+    monkeypatch.setattr(pages_release, "load_env_file", lambda _: {"CLOUDFLARE_API_TOKEN": "fixture"})
+    monkeypatch.setattr(pages_release, "proxy_env", lambda env: env)
+    monkeypatch.setattr(pages_release, "restore_tracked_public_files", lambda: pytest.fail("dist rewritten"))
+    checked = []
+    monkeypatch.setattr(pages_release, "ensure_release_scope", lambda *, root: checked.append(root))
+
+    def run(command, *, cwd, **kwargs):
+        assert checked == [tmp_path] and cwd == tmp_path
+        assert command[-5:] == ["--branch", "main", "--commit-hash", commit, "--commit-dirty=false"]
+        return SimpleNamespace(returncode=0, stdout="Deployment complete! https://abc.etf-rotation-blog.pages.dev")
+
+    monkeypatch.setattr(pages_release.subprocess, "run", run)
+    pages_release.deploy_pages(root=tmp_path, commit=commit)
+
+
+@pytest.mark.parametrize("invalid", [None, "preview", "branch", "sha", "stage", "other-url"])
+def test_pinned_readback_binds_cli_url_to_production_commit(monkeypatch, invalid):
+    url = "https://abc.etf-rotation-blog.pages.dev"
+    sha = "b" * 40
+    output = f"✨ Deployment complete! Take a peek over at {url}\n✨ Deployment alias URL: https://main.etf-rotation-blog.pages.dev"
+    row = {"url": url, "environment": "production", "latest_stage": {"name": "deploy", "status": "success"},
+           "deployment_trigger": {"metadata": {"branch": "main", "commit_hash": sha}}}
+    if invalid == "preview":
+        row["environment"] = "preview"
+    elif invalid == "branch":
+        row["deployment_trigger"]["metadata"]["branch"] = "head"
+    elif invalid == "sha":
+        row["deployment_trigger"]["metadata"]["commit_hash"] = "c" * 40
+    elif invalid == "stage":
+        row["latest_stage"] = {"name": "build", "status": "success"}
+    elif invalid == "other-url":
+        row["url"] = "https://def.etf-rotation-blog.pages.dev"
+    monkeypatch.setattr(pages_release, "load_env_file", lambda _: {"CLOUDFLARE_ACCOUNT_ID": "1" * 32})
+    monkeypatch.setattr(pages_release, "cloudflare_request", lambda _: {"result": [row]})
+    monkeypatch.setattr(pages_release, "URL_PROBE_ATTEMPTS", 1)
+    if invalid:
+        with pytest.raises(RuntimeError, match="identity differs|not verified"):
+            pages_release.verify_production_deployment(output, sha)
+    else:
+        assert pages_release.verify_production_deployment(output, sha) == url
+
+
+def test_exact_json_probe_rejects_equal_json_with_different_bytes(tmp_path, monkeypatch):
+    local = tmp_path / "close.json"
+    local.write_bytes(b'{"date":"2026-11-19"}\n')
+    monkeypatch.setattr(pages_release, "JSON_PROBE_ATTEMPTS", 1)
+    monkeypatch.setattr(pages_release.urllib.request, "urlopen", lambda *a, **kw: io.BytesIO(b'{"date": "2026-11-19"}'))
+    with pytest.raises(RuntimeError, match="differs from local release artifact"):
+        pages_release.probe_json_bytes({"https://example.test/close.json": local})
+
+
 def test_pages_release_deploys_then_purges_and_probes(monkeypatch):
     calls = []
     monkeypatch.setattr(pages_release, "load_env_file", lambda path: {"CLOUDFLARE_API_TOKEN": "test"})

@@ -1,15 +1,20 @@
 """Offline regression contract for the independently scheduled tracking publisher."""
 import contextlib
+import datetime
 import importlib.util
+import io
 import json
 import socket
 import subprocess
+import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
 PUBLISHER = Path('/root/.hermes/scripts/update_low_chip_tracking_and_release.py')
 DAY = '2026-11-17'
+D1_COMMIT = 'a' * 40
 TRACKING = 'public/data/low-chip-tracking.json'
 CURRENT = 'public/data/a-low-chip-stocks.json'
 MAP = 'public/data/model-lab/ftshare-sw-industry-map.json'
@@ -44,6 +49,144 @@ def payload(stocks=None):
             'data_through': DAY, 'stocks': stocks or {'600001.SH': record()}}
 
 
+def snapshot(day=DAY, intersection=None):
+    return {'schema_version': 'a-low-chip-history-v1', 'data_as_of': day,
+            'intersection': [] if intersection is None else intersection}
+
+
+@pytest.mark.parametrize('data', [
+    None,
+    snapshot('2026-11-16', ['600001.SH']),
+    snapshot(DAY, ['600001.SH', '600001.SH']),
+    snapshot(DAY, ['not-a-stock-code']),
+    {'schema_version': 'a-low-chip-history-v1', 'data_as_of': DAY},
+])
+def test_target_snapshot_contract_blocks_missing_wrong_day_or_fake_full_coverage(mod, tmp_path, data):
+    mod.ROOT.mkdir(parents=True, exist_ok=True)
+    baseline = mod.ROOT / f'public/data/low-chip-history/{DAY}.json'
+    if data is not None:
+        baseline.parent.mkdir(parents=True, exist_ok=True)
+        baseline.write_text(json.dumps(data))
+
+    def git_show(args, *a, **kw):
+        if args[:3] == ['git', 'show', f'base:public/data/low-chip-history/{DAY}.json']:
+            if data is None:
+                raise RuntimeError('missing committed snapshot')
+            return subprocess.CompletedProcess(args, 0, baseline.read_bytes(), b'')
+        raise AssertionError(args)
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(mod, 'run', git_show)
+    try:
+        with pytest.raises(RuntimeError):
+            mod.validate_baseline_snapshot('base', DAY)
+    finally:
+        monkeypatch.undo()
+
+
+@pytest.mark.parametrize('day', ['20261117', '2026-W47-2', '２０２６-１１-１７',
+                                 '2026-11-7', '2026-02-30', '2026-11-17\n', '../2026-11-17'])
+def test_target_snapshot_rejects_invalid_day_before_git_lookup(mod, monkeypatch, day):
+    def unexpected_git(*args, **kwargs):
+        pytest.fail('invalid day reached Git lookup')
+    monkeypatch.setattr(mod, 'run', unexpected_git)
+    with pytest.raises(RuntimeError, match='invalid target day'):
+        mod.validate_baseline_snapshot('base', day)
+
+
+def test_target_snapshot_contract_allows_committed_empty_pool(mod, tmp_path):
+    mod.ROOT.mkdir(parents=True, exist_ok=True)
+    path = mod.ROOT / f'public/data/low-chip-history/{DAY}.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(json.dumps(snapshot()).encode())
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(mod, 'run', lambda args, *a, **kw: subprocess.CompletedProcess(
+        args, 0, path.read_bytes(), b''))
+    try:
+        result = mod.validate_baseline_snapshot('base', DAY)
+        assert result['data_as_of'] == DAY and result['intersection'] == []
+    finally:
+        monkeypatch.undo()
+
+
+def test_target_snapshot_contract_allows_committed_positive_pool(mod, tmp_path):
+    mod.ROOT.mkdir(parents=True, exist_ok=True)
+    path = mod.ROOT / f'public/data/low-chip-history/{DAY}.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(json.dumps(snapshot(DAY, ['000001.SZ', '600001.SH'])).encode())
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(mod, 'run', lambda args, *a, **kw: subprocess.CompletedProcess(
+        args, 0, path.read_bytes(), b''))
+    try:
+        result = mod.validate_baseline_snapshot('base', DAY)
+        assert result['intersection'] == ['000001.SZ', '600001.SH']
+    finally:
+        monkeypatch.undo()
+
+
+def test_target_snapshot_contract_blocks_worktree_bytes_not_matching_git_blob(mod, tmp_path):
+    mod.ROOT.mkdir(parents=True, exist_ok=True)
+    path = mod.ROOT / f'public/data/low-chip-history/{DAY}.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    committed = json.dumps(snapshot(DAY, ['000001.SZ'])).encode()
+    path.write_bytes(committed + b'\nworking-tree-tamper')
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(mod, 'run', lambda args, *a, **kw: subprocess.CompletedProcess(
+        args, 0, committed, b''))
+    try:
+        with pytest.raises(RuntimeError, match='committed baseline'):
+            mod.validate_baseline_snapshot('base', DAY)
+    finally:
+        monkeypatch.undo()
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'wrong-day', 'partial', 'foreign-ancestor', 'symbolic-ref', 'malformed'])
+def test_new_run_requires_current_fully_verified_d1_receipt(mod, tmp_path, monkeypatch, mutation):
+    receipt = tmp_path / 'receipt.json'
+    value = {'trade_date': DAY, 'candidate_commit': D1_COMMIT,
+             'd1_sync_started': True, 'd1_verified': True, 'pushed': True}
+    if mutation == 'malformed':
+        receipt.write_text('null')
+    elif mutation != 'missing':
+        if mutation == 'wrong-day':
+            value['trade_date'] = '2026-11-16'
+        elif mutation == 'partial':
+            value['d1_verified'] = False
+        elif mutation == 'foreign-ancestor':
+            value['candidate_commit'] = 'b' * 40
+        elif mutation == 'symbolic-ref':
+            value['candidate_commit'] = 'HEAD'
+        receipt.write_text(json.dumps(value))
+    monkeypatch.setattr(mod, 'D1_RECEIPT', receipt)
+    if mutation == 'foreign-ancestor':
+        monkeypatch.setattr(mod, 'run', lambda *a, **kw: (_ for _ in ()).throw(
+            RuntimeError('not an ancestor')))
+    else:
+        monkeypatch.setattr(mod, 'run', lambda *a, **kw: subprocess.CompletedProcess(a, 0, '', ''))
+    with pytest.raises(RuntimeError, match='receipt|D1|ancestor'):
+        mod.validate_d1_receipt('base', DAY, {})
+
+
+def test_new_run_accepts_current_fully_verified_ancestor_receipt(mod, tmp_path, monkeypatch):
+    receipt = tmp_path / 'receipt.json'
+    receipt.write_text(json.dumps({'trade_date': DAY, 'candidate_commit': D1_COMMIT,
+                                   'd1_sync_started': True, 'd1_verified': True, 'pushed': True}))
+    monkeypatch.setattr(mod, 'D1_RECEIPT', receipt)
+    relative = f'public/data/low-chip-history/{DAY}.json'
+    blob = json.dumps(snapshot()).encode()
+    commands = []
+
+    def receipt_git(args, *a, **kw):
+        commands.append(args)
+        return subprocess.CompletedProcess(args, 0, blob if kw.get('binary') else '', '')
+
+    monkeypatch.setattr(mod, 'run', receipt_git)
+    baseline = {'path': relative, 'blob': blob}
+    assert mod.validate_d1_receipt('base', DAY, baseline)['candidate_commit'] == D1_COMMIT
+    assert commands == [['git', 'merge-base', '--is-ancestor', D1_COMMIT, 'base'],
+                        ['git', 'show', f'{D1_COMMIT}:{relative}']]
+
+
 def test_coverage_checks_each_unfinished_stock(mod):
     data = payload({'600001.SH': record(), '600002.SH': record('2026-11-16')})
     with pytest.raises(RuntimeError, match='600002.SH'):
@@ -64,19 +207,29 @@ def test_coverage_allows_completed_window_and_dated_halt(mod):
     import datetime
     completed = record(first_seen='2026-10-01')
     completed['daily'] = [{'date': (datetime.date(2026, 10, 1) + datetime.timedelta(days=i)).isoformat(), 'close': 10} for i in range(21)]
-    data = payload({'600001.SH': completed, '600002.SH': record('2026-11-16', coverage={'status': 'halted', 'target_day': DAY, 'reason': 'exchange suspension'})})
+    data = payload({'600001.SH': completed, '600002.SH': record('2026-11-16', coverage={'status': 'halted', 'target_day': DAY, 'source': 'eastmoney_suspend_report', 'reason': '全日停牌'})})
     result = mod.validate_tracking_coverage(data, DAY, set(data['stocks']))
     assert result == {'stocks': 2, 'complete': 1, 'covered': 0, 'halted': 1, 'target_day': DAY}
 
 
 @pytest.mark.parametrize('coverage', [
-    {'status': 'halted', 'target_day': '2026-11-16', 'reason': 'suspension'},
-    {'status': 'halted', 'target_day': DAY, 'reason': ''},
-    {'status': 'unavailable', 'target_day': DAY, 'reason': 'no data'},
+    {'status': 'halted', 'target_day': DAY, 'reason': '全日停牌'},
+    {'status': 'halted', 'target_day': DAY, 'source': 'other', 'reason': '全日停牌'},
+    {'status': 'halted', 'target_day': '2026-11-16', 'source': 'eastmoney_suspend_report', 'reason': '全日停牌'},
+    {'status': 'halted', 'target_day': DAY, 'source': 'eastmoney_suspend_report', 'reason': ' '},
+    {'status': 'unavailable', 'target_day': DAY, 'source': 'eastmoney_suspend_report', 'reason': 'no data'},
 ])
 def test_coverage_unproven_halt_or_failure_blocks(mod, coverage):
     with pytest.raises(RuntimeError, match='600001.SH'):
         mod.validate_tracking_coverage(payload({'600001.SH': record('2026-11-16', coverage=coverage)}), DAY, {'600001.SH'})
+
+
+def test_target_bar_takes_precedence_over_halt(mod):
+    data = payload({'600001.SH': record(coverage={
+        'status': 'halted', 'target_day': DAY, 'source': 'eastmoney_suspend_report', 'reason': '全日停牌',
+    })})
+    summary = mod.validate_tracking_coverage(data, DAY, {'600001.SH'})
+    assert summary['covered'] == 1 and summary['halted'] == 0
 
 
 @pytest.fixture
@@ -89,6 +242,12 @@ def pipeline(mod, monkeypatch, tmp_path):
     state = {'head': 'base', 'shared_head': 'base', 'dirty': set(), 'staged': set(),
              'remote': 'base', 'fail': None}
     monkeypatch.setattr(mod, 'RELEASE_RUNS', tmp_path)
+    receipt = tmp_path / 'low-chip-d1-release.json'
+    receipt.write_text(json.dumps({
+        'trade_date': DAY, 'candidate_commit': D1_COMMIT,
+        'd1_sync_started': True, 'd1_verified': True, 'pushed': True,
+    }))
+    monkeypatch.setattr(mod, 'D1_RECEIPT', receipt, raising=False)
     real_integrate = mod.integrate_shared
     def put(root, rel, value):
         path = root / rel
@@ -99,6 +258,8 @@ def pipeline(mod, monkeypatch, tmp_path):
         put(root, CURRENT, {'intersection': ['600001.SH']})
         put(root, MAP, {})
         put(root, 'public/data/low-chip-history/2026-11-16.json', {'intersection': ['600001.SH']})
+        put(root, f'public/data/low-chip-history/{DAY}.json', snapshot(DAY, ['600001.SH']))
+    state['receipt_snapshot'] = (shared / f'public/data/low-chip-history/{DAY}.json').read_bytes()
     def fake_run(args, timeout=900, **kwargs):
         calls.append((mod.ROOT, args))
         text = ''
@@ -108,6 +269,8 @@ def pipeline(mod, monkeypatch, tmp_path):
             op = args[1]
             if op == 'rev-parse':
                 text = (state['head'] if mod.ROOT == isolated else state['shared_head']) if args[2] == 'HEAD' else state['remote']
+            elif op == 'merge-base':
+                text = ''
             elif op == 'worktree' and args[2] == 'list':
                 text = f'worktree {isolated}\x00HEAD candidate\x00detached\x00\x00'
             elif op == 'merge':
@@ -122,11 +285,20 @@ def pipeline(mod, monkeypatch, tmp_path):
             elif op == 'commit':
                 state['head'] = 'candidate'; state['dirty'] = set(); state['staged'] = set()
                 state['blobs'] = {p: (isolated / p).read_bytes() for p in mod.OWNED}
+                state['message'] = '\n\n'.join(args[i + 1] for i, arg in enumerate(args) if arg == '-m')
+            elif op == 'show' and '--format=%B' in args:
+                text = (state['message'].split('\0', 1)[0] + '\n').encode()
+            elif args[1:4] == ['--no-replace-objects', 'cat-file', 'commit']:
+                text = ('tree ' + 'b' * 40 + '\nparent ' + 'c' * 40 + '\n\n' + state['message'] + '\n').encode()
             elif op == 'show' and '--format=%P' in args:
                 text = 'base'
             elif op == 'show':
                 revision, rel = args[-1].split(':', 1)
-                if revision == 'base':
+                if revision == D1_COMMIT:
+                    text = state['receipt_snapshot']
+                    if text is None:
+                        raise RuntimeError('missing blob at D1 commit')
+                elif revision == 'base':
                     text = (shared / rel).read_bytes()
                 elif revision == 'candidate':
                     text = state['blobs'][rel]
@@ -147,6 +319,7 @@ def pipeline(mod, monkeypatch, tmp_path):
         return subprocess.CompletedProcess(args, 0, text, '')
     monkeypatch.setattr(mod, 'run', fake_run)
     monkeypatch.setattr(mod, 'create_worktree', lambda base: isolated)
+    state['real_calendar'] = mod.calendar_target
     monkeypatch.setattr(mod, 'calendar_target', lambda: DAY)
     monkeypatch.setattr(mod, 'publish_lock', contextlib.nullcontext)
     state['real_deploy'] = mod.deploy_and_verify
@@ -156,6 +329,123 @@ def pipeline(mod, monkeypatch, tmp_path):
         calls.append((shared, ['INTEGRATE']))
     monkeypatch.setattr(mod, 'integrate_shared', integrate)
     return mod, calls, state, isolated
+
+
+def test_pipeline_rejects_unsourced_suspension_before_release_side_effects(pipeline, monkeypatch, capsys):
+    mod, calls, state, isolated = pipeline
+    run = mod.run
+    deployed = []
+
+    def inject(args, *a, **kw):
+        result = run(args, *a, **kw)
+        if 'scripts/update_low_chip_tracking.py' in args:
+            bad_halt = {'status': 'halted', 'target_day': DAY, 'reason': '全日停牌'}
+            (isolated / TRACKING).write_text(json.dumps(payload({'600001.SH': record('2026-11-16', coverage=bad_halt)})))
+        return result
+
+    monkeypatch.setattr(mod, 'run', inject)
+    monkeypatch.setattr(mod, 'deploy_and_verify', lambda *a: deployed.append(a) or {})
+    assert mod.main() != 0
+    assert 'tracking coverage missing' in capsys.readouterr().out
+    assert not deployed and state['remote'] == state['shared_head'] == 'base'
+    assert not any(a[:2] in (['git', 'add'], ['git', 'commit'], ['git', 'push'])
+                   or 'scripts/build_site.py' in a or a == ['INTEGRATE'] for _, a in calls)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'worktree-only', 'worktree-missing', 'wrong-day', 'non-ascii-code'])
+def test_pipeline_bad_target_snapshot_blocks_before_producer_and_release_side_effects(pipeline, monkeypatch, capsys, mutation):
+    mod, calls, state, isolated = pipeline
+    relative = f'public/data/low-chip-history/{DAY}.json'
+    if mutation in {'missing', 'worktree-only'}:
+        (mod.ROOT / relative).unlink()
+    if mutation in {'missing', 'worktree-missing'}:
+        (isolated / relative).unlink()
+    if mutation in {'wrong-day', 'non-ascii-code'}:
+        data = (snapshot('2026-11-16', ['600001.SH']) if mutation == 'wrong-day'
+                else snapshot(DAY, ['６００００１.SH']))
+        for root in (mod.ROOT, isolated):
+            (root / relative).write_text(json.dumps(data))
+    deploy = mod.deploy_and_verify
+    deploys = []
+    def record_deploy(*args):
+        deploys.append(args)
+        return deploy(*args)
+    monkeypatch.setattr(mod, 'deploy_and_verify', record_deploy)
+    assert mod.main() != 0
+    output = capsys.readouterr().out
+    assert 'STAGING BLOCKER' in output and 'target snapshot' in output
+    assert not deploys
+    assert state['remote'] == state['shared_head'] == 'base'
+    assert not any('scripts/update_low_chip_tracking.py' in args or
+                   'scripts/refresh_low_chip_ftshare_industry.py' in args or
+                   'scripts/build_site.py' in args or args[:2] in (['git', 'commit'], ['git', 'push'])
+                   for _, args in calls)
+
+
+def test_pipeline_stale_d1_receipt_blocks_before_producer(pipeline, capsys):
+    mod, calls, state, _ = pipeline
+    receipt = json.loads(mod.D1_RECEIPT.read_text())
+    receipt['trade_date'] = '2026-11-16'
+    mod.D1_RECEIPT.write_text(json.dumps(receipt))
+    assert mod.main() != 0
+    assert 'D1 receipt trade_date' in capsys.readouterr().out
+    assert state['remote'] == state['shared_head'] == 'base'
+    assert not any('scripts/update_low_chip_tracking.py' in args for _, args in calls)
+
+
+@pytest.mark.parametrize('mutation', ['absent', 'changed-membership', 'changed-bytes'])
+def test_same_day_ancestor_receipt_must_cover_exact_snapshot(pipeline, monkeypatch, capsys, mutation):
+    mod, calls, state, _ = pipeline
+    if mutation == 'absent':
+        state['receipt_snapshot'] = None
+    elif mutation == 'changed-membership':
+        state['receipt_snapshot'] = json.dumps(snapshot(DAY, ['000001.SZ'])).encode()
+    else:
+        state['receipt_snapshot'] += b'\n'
+    monkeypatch.setattr(mod, 'deploy_and_verify', lambda *a: pytest.fail('unexpected deploy'))
+
+    assert mod.main() == 1
+    assert 'D1 receipt snapshot' in capsys.readouterr().out
+    assert state['remote'] == state['shared_head'] == 'base'
+    assert not any(a[:2] in (['git', 'add'], ['git', 'commit'], ['git', 'push'], ['git', 'merge'])
+                   or a == ['INTEGRATE'] or a[0] == mod.COLLECT_PYTHON or 'pytest' in a
+                   for _, a in calls)
+
+
+def test_producer_gets_previous_completed_session_chosen_by_gate(pipeline, monkeypatch):
+    mod, calls, state, _ = pipeline
+
+    class Morning(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 11, 18, 9, tzinfo=tz)
+
+    monkeypatch.setattr(datetime, 'datetime', Morning)
+    calendar = ModuleType('scripts.check_a_share_cron_gate')
+    dates = []
+
+    def trading_day(day):
+        dates.append(day)
+        assert day in {'2026-11-18', DAY}
+        return True, 'fixture exchange calendar'
+
+    calendar.__dict__['is_trading_day'] = trading_day
+    monkeypatch.setitem(sys.modules, calendar.__name__, calendar)
+    monkeypatch.setattr(mod, 'calendar_target', state['real_calendar'])
+    run = mod.run
+
+    def execute_calendar_child(args, *a, **kw):
+        if args[:2] == [mod.COLLECT_PYTHON, '-c'] and 'is_trading_day' in args[-1]:
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                exec(args[-1], {})  # Publisher's in-memory calendar script, no external process.
+            return subprocess.CompletedProcess(args, 0, output.getvalue(), '')
+        return run(args, *a, **kw)
+
+    monkeypatch.setattr(mod, 'run', execute_calendar_child)
+    assert mod.main() == 0
+    assert dates == ['2026-11-18', DAY]
+    producer = next(args for _, args in calls if 'scripts/update_low_chip_tracking.py' in args)
+    assert producer[2:] == ['--target-day', DAY]
 
 
 def test_pipeline_collects_validates_builds_in_detached_checkout(pipeline):
@@ -224,6 +514,21 @@ def test_candidate_tampering_blocks_push(pipeline, monkeypatch, kind):
     assert not any(args[:2] == ['git', 'push'] for _, args in calls)
 
 
+def test_commit_hook_cannot_change_target_before_push(pipeline, monkeypatch, capsys):
+    mod, calls, state, _ = pipeline
+    run = mod.run
+    def hook(args, *a, **kw):
+        result = run(args, *a, **kw)
+        if args[:2] == ['git', 'commit']:
+            state['message'] = 'Fixture candidate\n\nTracking-Target-Day: 2026-11-16'
+        return result
+    monkeypatch.setattr(mod, 'run', hook)
+    assert mod.main() == 1
+    assert 'candidate target day' in capsys.readouterr().out
+    assert state['remote'] == state['shared_head'] == 'base'
+    assert not any(a[:2] == ['git', 'push'] or a == ['INTEGRATE'] for _, a in calls)
+
+
 def test_postpush_deploy_failure_retains_candidate_without_shared_integration(pipeline, monkeypatch, capsys):
     mod, calls, _, _ = pipeline
     def failed(*args):
@@ -233,6 +538,66 @@ def test_postpush_deploy_failure_retains_candidate_without_shared_integration(pi
     assert any(args[:2] == ['git', 'push'] for _, args in calls)
     assert not any(args == ['INTEGRATE'] for _, args in calls)
     assert '"pushed": true' in capsys.readouterr().out
+
+
+def test_resume_uses_committed_target_when_all_stocks_are_halted(pipeline, monkeypatch, capsys):
+    mod, calls, state, isolated = pipeline
+    run = mod.run
+    def collect_halts(args, *a, **kw):
+        result = run(args, *a, **kw)
+        if 'scripts/update_low_chip_tracking.py' in args:
+            halt = {'status': 'halted', 'target_day': DAY, 'source': 'eastmoney_suspend_report',
+                    'reason': '全日停牌'}
+            old = '2026-11-16'
+            data = payload({'600001.SH': record(old, coverage=halt)})
+            data['data_through'] = old
+            (isolated / TRACKING).write_text(json.dumps(data))
+        return result
+    monkeypatch.setattr(mod, 'run', collect_halts)
+    accept = mod.deploy_and_verify
+    def fail_deploy(*args):
+        raise RuntimeError('Pages unavailable after push')
+    monkeypatch.setattr(mod, 'deploy_and_verify', fail_deploy)
+    assert mod.main() == 1
+    assert state['remote'] == 'candidate' and state['shared_head'] == 'base'
+    capsys.readouterr()
+
+    # The retained commit is the only authority for the selected day.
+    mod.D1_RECEIPT.unlink()
+    monkeypatch.setattr(mod, 'calendar_target', lambda: pytest.fail('resume must not rerun calendar'))
+    monkeypatch.setattr(mod, 'deploy_and_verify', accept)
+    calls.clear()
+    assert mod.main(['--resume-worktree', str(isolated)]) == 0
+    assert state['shared_head'] == 'candidate'
+    published = next(json.loads(line) for line in capsys.readouterr().out.splitlines() if line.startswith('{'))
+    assert published['coverage']['target_day'] == DAY
+    assert published['coverage']['halted'] == 1
+    assert any('pytest' in a for _, a in calls)
+    assert all('scripts/update_low_chip_tracking.py' not in a and a[:2] not in (['git', 'commit'], ['git', 'push'])
+               for _, a in calls)
+
+
+@pytest.mark.parametrize('trailer', ['', f'Tracking-Target-Day: {DAY}\nTracking-Target-Day: {DAY}',
+                                    f'Tracking-Target-Day: {DAY}\ntracking-target-day: 2026-11-16',
+                                    'Tracking-Target-Day: 20261117', 'Tracking-Target-Day: 2026-02-30',
+                                    f'Tracking-Target-Day: {DAY} ', f'Tracking-Target-Day: {DAY}\r',
+                                    f'Tracking-Target-Day: {DAY}\n\nNot a final trailer',
+                                    f'Tracking-Target-Day: {DAY}\n\0'])
+def test_resume_blocks_untrusted_commit_target_before_downstream_actions(pipeline, monkeypatch, capsys, trailer):
+    mod, calls, state, isolated = pipeline
+    def fail_deploy(*args):
+        raise RuntimeError('Pages unavailable after push')
+    monkeypatch.setattr(mod, 'deploy_and_verify', fail_deploy)
+    assert mod.main() == 1
+    capsys.readouterr()
+
+    state['message'] = 'Fixture candidate\n\n' + trailer
+    calls.clear()
+    monkeypatch.setattr(mod, 'deploy_and_verify', lambda *a: pytest.fail('unexpected resume deploy'))
+    assert mod.main(['--resume-worktree', str(isolated)]) == 1
+    assert 'candidate target day' in capsys.readouterr().out
+    assert state['remote'] == 'candidate' and state['shared_head'] == 'base'
+    assert all(a[0] == 'git' and a[1] not in {'add', 'commit', 'push', 'merge'} for _, a in calls)
 
 
 def test_postpush_failure_resumes_verified_candidate_then_ff(pipeline, monkeypatch):
@@ -248,6 +613,8 @@ def test_postpush_failure_resumes_verified_candidate_then_ff(pipeline, monkeypat
     monkeypatch.setattr(mod, 'deploy_and_verify', deploy)
     assert mod.main() == 1
     assert state['remote'] == 'candidate' and state['shared_head'] == 'base'
+    # Resume uses the already-pushed candidate after the singleton is replaced.
+    mod.D1_RECEIPT.unlink()
     calls.clear()
     assert mod.main(['--resume-worktree', str(isolated)]) == 0
     commands = [args for _, args in calls]
@@ -263,7 +630,7 @@ def test_postpush_failure_resumes_verified_candidate_then_ff(pipeline, monkeypat
 
 @pytest.mark.parametrize('mutation', [
     'unknown', 'remote', 'shared-head', 'shared-owned', 'shared-staged',
-    'candidate-dirty', 'candidate-staged', 'parent', 'paths', 'source',
+    'candidate-dirty', 'candidate-staged', 'parent', 'paths', 'source', 'target-snapshot',
     'fixture-failure', 'build-source', 'build-dist', 'remote-after-deploy',
 ])
 def test_resume_fails_closed_before_shared_ff(pipeline, monkeypatch, mutation):
@@ -294,6 +661,8 @@ def test_resume_fails_closed_before_shared_ff(pipeline, monkeypatch, mutation):
         state['staged'] = {TRACKING}
     elif mutation == 'source':
         (isolated / TRACKING).write_text('{}')
+    elif mutation == 'target-snapshot':
+        (isolated / f'public/data/low-chip-history/{DAY}.json').unlink()
     elif mutation in {'shared-owned', 'shared-staged'}:
         original = mod.dirty_paths if mutation == 'shared-owned' else mod.staged_paths
         def dirt():

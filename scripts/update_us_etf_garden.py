@@ -7,20 +7,25 @@ published close edition.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import shutil
+import stat
 import subprocess
 import sys
 import urllib.request
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
-from pages_release import release_pages
-from project_runtime import build_static_site
+import pages_release
+import us_close_candidate as candidate
+from project_runtime import PROJECT_PYTHON, project_subprocess_env
 try:
     from public_contract_gate import split_errors
 except ModuleNotFoundError:
@@ -51,20 +56,44 @@ OWNED_COMMIT_PREFIXES = (
 )
 
 
+class ReceiptBlocked(RuntimeError):
+    """Publication blocked before a new phase is confirmed."""
+
+
+def read_state() -> dict:
+    try:
+        value = json.loads(STATE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    if not isinstance(value, dict):
+        raise RuntimeError("invalid US publisher state")
+    return value
+
+
+def replace_json(path: Path, value: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
 def write_state(phase: str, **fields: object) -> None:
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    current: dict[str, object] = {}
-    if STATE.exists():
-        try:
-            current = json.loads(STATE.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            current = {}
+    current = read_state()
     current.update({"phase": phase, "updated_at": datetime.now(timezone.utc).isoformat(), **fields})
-    if phase in {"evaluated", "idempotent", "committed", "published", "waiting_for_close"} and "error" not in fields:
+    if "error" not in fields:
         current.pop("error", None)
-    temporary = STATE.with_suffix(".tmp")
-    temporary.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, STATE)
+    replace_json(STATE, current)
+
+
+def record_error(error: Exception) -> None:
+    # Keep this diagnostic independent of the receipt, even when it is unreadable.
+    try:
+        replace_json(STATE.with_suffix(".error.json"), {
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "error": str(error),
+        })
+    except OSError as diagnostic_error:
+        print(f"could not write US publisher diagnostic: {diagnostic_error}", file=sys.stderr)
 
 
 def is_owned_commit_subject(subject: str) -> bool:
@@ -82,21 +111,28 @@ def decide_action(*, old: str | None, latest: str, state: str, recovery_dirty: b
     return "publish"
 
 
-def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(args, cwd=REPO, text=True, capture_output=True)
+def run(*args: str, check: bool = True, cwd: Path | None = None,
+        env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    if args[0] == "git" and env is None:
+        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    result = subprocess.run(args, cwd=cwd or REPO, env=env, text=True, capture_output=True)
     if check and result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or "no command output"
         raise RuntimeError(f"command failed ({result.returncode}): {' '.join(args)}\n{detail}")
     return result
 
 
-def validate_us_release_data() -> None:
+def validate_us_release_data(root: Path | None = None, *, trade_date: str | None = None) -> None:
     """Fail closed on the US close edition without coupling to A-share batches."""
-    data = REPO / "public/data"
+    source = root or REPO
+    _validate_us_release_data(lambda path: (source / path).read_bytes(), trade_date=trade_date)
+
+
+def _validate_us_release_data(read_bytes: Callable[[str], bytes], *, trade_date: str | None) -> None:
     def strict_json(name: str) -> dict:
         try:
             return json.loads(
-                (data / name).read_text(encoding="utf-8"),
+                read_bytes(f"public/data/{name}").decode("utf-8"),
                 parse_constant=lambda value: (_ for _ in ()).throw(ValueError(f"non-finite {value}")),
             )
         except (OSError, json.JSONDecodeError, ValueError) as error:
@@ -110,6 +146,8 @@ def validate_us_release_data() -> None:
     errors: list[str] = []
     if not model_date:
         errors.append("pool model_date is missing")
+    if trade_date is not None and model_date != trade_date:
+        errors.append("pool model_date differs from target trade date")
     if pool.get("session_state") != "closed":
         errors.append("pool session_state must be closed")
     if garden.get("date") != model_date or garden.get("session_state") != "closed" or garden.get("stage") != "美股收盘版":
@@ -126,18 +164,24 @@ def validate_us_release_data() -> None:
         errors.append("macro primary date is missing")
     if macro_date != model_date:
         errors.append("macro primary date differs from pool")
+    if trade_date is not None:
+        records = strict_json("us-etf-flower-history.json").get("records") or []
+        if not records or records[0].get("date") != trade_date:
+            errors.append("latest history date differs from target trade date")
+        for path in US_OWNED_FILES:
+            strict_json(Path(path).name)
     if errors:
         raise RuntimeError("invalid US release data: " + "; ".join(errors))
 
 
-def validate_us_public_contracts() -> None:
+def validate_us_public_contracts(root: Path | None = None, *, env: dict[str, str] | None = None) -> None:
     """Run the broad validator while allowing only known foreign drift.
 
     The allowlist itself lives in scripts/public_contract_gate.py: two copies of
     it drift apart, and a drifted copy fails on the file the other one already
     whitelisted.
     """
-    result = run("python3", "scripts/validate_public_data_contracts.py", check=False)
+    result = run(BUILD_PYTHON, "scripts/validate_public_data_contracts.py", check=False, cwd=root, env=env)
     if result.returncode == 0:
         return
     try:
@@ -157,75 +201,252 @@ def validate_us_public_contracts() -> None:
         )
 
 
-def restore_foreign_public_data_in_dist() -> None:
-    """Keep concurrent cron artifacts out of this publisher's deployment."""
-    owned = set(US_OWNED_FILES)
-    status = run("git", "status", "--porcelain", "--", "public/data").stdout.splitlines()
-    for line in status:
-        relative = line[3:].strip()
-        if " -> " in relative:
-            relative = relative.split(" -> ", 1)[1]
-        if not relative or relative in owned:
+SITE = "https://etf.peekabo.cc"
+CLOSE_ROUTES = ("us-compass", "us-momentum", "us-macro", "us-compass/history")
+RECEIPT_VERSION = 1
+
+
+def prepare_build_runtime(tree: Path) -> dict[str, str]:
+    env = project_subprocess_env({k: v for k, v in os.environ.items() if not k.startswith("GIT_")})
+    # Keep all mutable build inputs local. Seed the Python venv without sharing
+    # writes; bootstrap checks its requirements stamp against the pinned tree.
+    source_venv = REPO / ".build-venv"
+    if source_venv.is_dir():
+        shutil.copytree(source_venv, tree / ".build-venv", symlinks=True)
+    env["PUBLIC_JS_ASSET_VERSION"] = candidate._git(tree, "rev-parse", "--short", "HEAD").decode().strip()
+    run(PROJECT_PYTHON, "scripts/build_site.py", "--bootstrap-only", cwd=tree, env=env)
+    run("npm", "ci", "--no-audit", "--no-fund", cwd=tree, env=env)
+    return env
+
+
+def close_page_hashes(tree: Path) -> dict[str, str]:
+    hashes = {}
+    for route in CLOSE_ROUTES:
+        relative = f"dist/{route}/index.html"
+        page = tree / relative
+        if page.resolve() != page or not page.is_file():
+            raise RuntimeError(f"missing or non-regular candidate page: {relative}")
+        try:
+            hashes[relative] = hashlib.sha256(page.read_bytes()).hexdigest()
+        except OSError as error:
+            raise RuntimeError(f"cannot read candidate page: {relative}") from error
+    return hashes
+
+
+def verify_close_dist(tree: Path, commit: str, pages: dict[str, str]) -> None:
+    candidate.verify_dist(tree, commit, US_OWNED_FILES)
+    for path, digest in close_page_hashes(tree).items():
+        if digest != pages[path]:
+            raise RuntimeError(f"candidate page bytes differ from build: {path}")
+
+
+def build_us_release(tree: Path, trade_date: str) -> dict[str, str]:
+    validate_us_release_data(tree, trade_date=trade_date)
+    env = prepare_build_runtime(tree)
+    validate_us_public_contracts(tree, env=env)
+    run(PROJECT_PYTHON, "scripts/build_site.py", "--no-contract-chain", "--clean-dist", cwd=tree, env=env)
+    return close_page_hashes(tree)
+
+
+def git(*args: str) -> str:
+    return candidate._git(REPO, *args).decode().strip()
+
+
+def owned_snapshot() -> dict:
+    """Capture file identity and bytes directly, including Git-hidden changes."""
+    def identity(info: os.stat_result) -> tuple[int, ...]:
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+    snapshot = {}
+    for relative in US_OWNED_FILES:
+        path = REPO / relative
+        try:
+            before = path.lstat()
+        except FileNotFoundError:
+            snapshot[relative] = None
             continue
-        lookup = run("git", "ls-tree", "--name-only", "HEAD", "--", relative)
-        target = REPO / "dist" / Path(relative).relative_to("public")
-        if lookup.stdout.strip() != relative:
-            target.unlink(missing_ok=True)
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        result = subprocess.run(["git", "show", f"HEAD:{relative}"], cwd=REPO, capture_output=True, check=True)
-        target.write_bytes(result.stdout)
+        if not stat.S_ISREG(before.st_mode) or path.resolve() != path:
+            raise ReceiptBlocked(f"owned output is not a regular file: {relative}")
+        try:
+            digest = hashlib.sha256(path.read_bytes()).digest()
+            after = path.lstat()
+        except FileNotFoundError as error:
+            raise ReceiptBlocked(f"owned output changed during snapshot: {relative}") from error
+        if identity(before) != identity(after):
+            raise ReceiptBlocked(f"owned output changed during snapshot: {relative}")
+        snapshot[relative] = (identity(after), digest)
+    return snapshot
 
 
-def build_us_release() -> None:
-    """Build a validated US release while A-share batches converge independently."""
-    validate_us_release_data()
-    validate_us_public_contracts()
-    # project_runtime owns the interpreters and strips the gateway PYTHONPATH
-    # (`rpds.rpds`); the US publisher builds only its own payload scope.
-    build_static_site(contract_chain=False, clean_dist=True)
-    restore_foreign_public_data_in_dist()
+def check_owned_snapshot(head: str, expected: dict) -> None:
+    if git("rev-parse", "HEAD") != head:
+        raise ReceiptBlocked("source HEAD changed before publication")
+    candidate.check_index(REPO)
+    actual = owned_snapshot()
+    changed = [path for path in expected if expected[path] != actual[path]]
+    if changed:
+        raise ReceiptBlocked(f"owned output changed since preflight: {', '.join(changed)}")
 
 
-def is_ancestor(left: str, right: str) -> bool:
-    return run("git", "merge-base", "--is-ancestor", left, right, check=False).returncode == 0
+def remote_main() -> str:
+    fields = run("git", "ls-remote", "--refs", "origin", "refs/heads/main").stdout.split()
+    if len(fields) != 2 or fields[1] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", fields[0]):
+        raise RuntimeError("remote main identity unavailable")
+    return fields[0]
 
 
-def sync_remote() -> None:
-    """Publish a stranded Compass commit and start from the current remote main."""
-    branch = run("git", "branch", "--show-current").stdout.strip()
-    if branch != "main":
-        raise RuntimeError(f"US ETF publisher requires main branch, got {branch!r}")
-    if run("git", "diff", "--cached", "--quiet", check=False).returncode != 0:
-        raise RuntimeError("US ETF publisher requires a clean git index")
-
+def fetch_remote_base() -> str:
+    if git("branch", "--show-current") != "main":
+        raise RuntimeError("US ETF publisher requires main branch")
+    candidate.check_index(REPO)
     run("git", "fetch", "origin", "main")
-    if is_ancestor("origin/main", "HEAD"):
-        if run("git", "rev-list", "--count", "origin/main..HEAD").stdout.strip() != "0":
-            run("git", "push", "origin", "HEAD:main")
-        return
-    if is_ancestor("HEAD", "origin/main"):
-        run("git", "merge", "--ff-only", "origin/main")
-        return
-
-    # A prior run can commit while another publisher advances origin/main.
-    # Rebase only when every local-only commit belongs to this publisher.
-    subjects = run("git", "log", "--format=%s", "origin/main..HEAD").stdout.splitlines()
-    if not subjects or any(not is_owned_commit_subject(subject) for subject in subjects):
-        raise RuntimeError(f"main and origin/main diverged with unrelated local commits: {subjects}")
-    run("git", "rebase", "--autostash", "origin/main")
-    run("git", "push", "origin", "HEAD:main")
+    return git("rev-parse", "refs/remotes/origin/main")
 
 
-def push_compass_commit() -> None:
-    """Push after reconciling a remote commit that landed during generation."""
-    run("git", "fetch", "origin", "main")
-    if not is_ancestor("origin/main", "HEAD"):
-        subjects = run("git", "log", "--format=%s", "origin/main..HEAD").stdout.splitlines()
-        if not subjects or any(not is_owned_commit_subject(subject) for subject in subjects):
-            raise RuntimeError(f"origin/main changed and local commits are unrelated: {subjects}")
-        run("git", "rebase", "--autostash", "origin/main")
-    run("git", "push", "origin", "HEAD:main")
+def check_close_commit(commit: str, base: str) -> None:
+    parents = git("rev-list", "--parents", "-n", "1", commit).split()
+    if parents != [commit, base] or not is_owned_commit_subject(git("show", "-s", "--format=%s", commit)):
+        raise RuntimeError("close commit does not have the expected parent and ownership")
+    paths = candidate._git(REPO, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z",
+                           "--no-renames", "--ignore-submodules=none", base, commit)
+    changed = {os.fsdecode(path) for path in paths.split(b"\0") if path}
+    if not changed or not changed <= set(US_OWNED_FILES):
+        raise RuntimeError("close commit contains paths outside its owned scope")
+
+
+def close_blobs(root: Path, commit: str) -> dict[str, bytes]:
+    return {path: candidate._git(root, "cat-file", "blob", f"{commit}:{path}") for path in US_OWNED_FILES}
+
+
+def close_blob_hashes(blobs: dict[str, bytes]) -> dict[str, str]:
+    return {path: hashlib.sha256(raw).hexdigest() for path, raw in blobs.items()}
+
+
+def deploy_close(tree: Path, commit: str, trade_date: str, snapshots: int, pages: dict[str, str]) -> None:
+    # The same immutable input drives the production comparison and receipt.
+    blobs = close_blobs(tree, commit)
+    matches = {f"{SITE}/{Path(path).relative_to('public').as_posix()}": raw for path, raw in blobs.items()}
+    hashes = close_blob_hashes(blobs)
+
+    def before_upload() -> None:
+        if remote_main() != commit:
+            raise RuntimeError("remote main differs from the deployment candidate")
+        candidate.check_source(REPO, commit, US_OWNED_FILES)
+        verify_close_dist(tree, commit, pages)
+
+    output = pages_release.deploy_pages(root=tree, commit=commit, before_upload=before_upload)
+    deployment_url = pages_release.verify_production_deployment(output, commit)
+    write_state("deployed", pushed=True, deployed=True, deployment_url=deployment_url)
+    pages_release.purge_custom_domain()
+    pages_release.probe_urls(f"{SITE}/{route}/" for route in CLOSE_ROUTES)
+    pages_release.probe_json_bytes(matches)
+    if remote_main() != commit:
+        raise RuntimeError("remote main drifted during production readback")
+    candidate.check_source(REPO, commit, US_OWNED_FILES)
+    write_state("published", trade_date=trade_date, commit=commit, verified=True, learning_snapshots=snapshots,
+                receipt_version=RECEIPT_VERSION, target_day=trade_date,
+                verified_assets=hashes, verified_routes=list(CLOSE_ROUTES))
+
+
+def learning_snapshot_count(tree: Path) -> int:
+    return len(json.loads((tree / "public/data/us-compass-learning.json").read_bytes()).get("snapshots", []))
+
+
+def publish_close(commit: str, base: str, trade_date: str) -> int:
+    check_close_commit(commit, base)
+    prior = read_state()
+    # A retry of the same committed candidate has no new phase to record yet.
+    if not (prior.get("phase") in ("committed", "error") and prior.get("commit") == commit
+            and prior.get("trade_date") == trade_date and prior.get("pushed") is False
+            and prior.get("deployed") is False and prior.get("verified") is False):
+        write_state("committed", trade_date=trade_date, commit=commit, pushed=False, deployed=False,
+                    verified=False, deployment_url=None, learning_snapshots=None, receipt_version=None,
+                    target_day=None, verified_assets=None, verified_routes=None)
+    with candidate.committed_tree(REPO, commit, US_OWNED_FILES) as tree:
+        pages = build_us_release(tree, trade_date)
+        snapshots = learning_snapshot_count(tree)
+        if remote_main() != base:
+            raise RuntimeError("remote main drifted during candidate build")
+        candidate.check_source(REPO, commit, US_OWNED_FILES)
+        verify_close_dist(tree, commit, pages)
+        # Lease binds the comparison and update; the parent gate above limits the
+        # update to a one-commit fast-forward. Push the SHA, never a moving HEAD.
+        run("git", "push", f"--force-with-lease=refs/heads/main:{base}", "origin", f"{commit}:refs/heads/main")
+        write_state("pushed", pushed=True)
+        deploy_close(tree, commit, trade_date, snapshots, pages)
+    return snapshots
+
+
+def resume_pushed_close(prior: dict, head: str, base: str) -> bool:
+    if prior.get("phase") not in ("committed", "pushed", "deployed", "error") or prior.get("verified") is not False:
+        return False
+    commit, trade_date = prior.get("commit"), prior.get("trade_date")
+    if commit is None and prior.get("pushed") is False:
+        return False  # Attempt failed before it created a candidate.
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit) or commit != head:
+        raise ReceiptBlocked("pending pushed close differs from source HEAD or remote main")
+    live = remote_main()
+    if commit != live:
+        # Only a still-current exact parent proves this candidate can be sent
+        # as a pre-push retry. A later remote tip must not trigger a fast-forward.
+        if prior.get("pushed") is False and live == base:
+            try:
+                check_close_commit(commit, live)
+            except RuntimeError as error:
+                raise ReceiptBlocked("pending pushed close differs from source HEAD or remote main") from error
+            return False
+        raise ReceiptBlocked("pending pushed close differs from source HEAD or remote main")
+    if base != live:
+        raise ReceiptBlocked("pending pushed close differs from fetched remote main")
+    if not isinstance(trade_date, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", trade_date):
+        raise RuntimeError("invalid trade date for pending pushed close")
+    datetime.fromisoformat(trade_date)  # Reject impossible calendar dates.
+    parents = git("rev-list", "--parents", "-n", "1", commit).split()
+    if len(parents) != 2 or git("show", "-s", "--format=%s", commit) not in {
+        prefix + trade_date for prefix in OWNED_COMMIT_PREFIXES
+    }:
+        raise RuntimeError("pending pushed close commit ownership or trade date mismatch")
+    check_close_commit(commit, parents[1])
+    # Receipt and title identify a claim; the pinned Git blobs prove its date.
+    _validate_us_release_data(
+        lambda path: candidate._git(REPO, "cat-file", "blob", f"{commit}:{path}"),
+        trade_date=trade_date,
+    )
+    if prior.get("pushed") is not True and prior.get("deployed") is not True and prior.get("phase") != "deployed":
+        # The live tip confirms an interrupted push independently of Pages.
+        # Recheck the source after the remote query before recording that evidence.
+        candidate.check_source(REPO, commit, US_OWNED_FILES)
+        write_state("pushed", pushed=True)
+    with candidate.committed_tree(REPO, commit, US_OWNED_FILES) as tree:
+        pages = build_us_release(tree, trade_date)
+        deploy_close(tree, commit, trade_date, learning_snapshot_count(tree), pages)
+    return True
+
+
+def commit_close(base: str, trade_date: str, *, recovery_snapshot: dict | None = None) -> str:
+    expected = recovery_snapshot if recovery_snapshot is not None else owned_snapshot()
+    check_owned_snapshot(base, expected)
+    validate_us_release_data(trade_date=trade_date)
+    check_owned_snapshot(base, expected)
+    message = f"{OWNED_COMMIT_PREFIXES[recovery_snapshot is not None]}{trade_date}"
+    # Path-limited commit leaves unrelated work and staging untouched.
+    run("git", "commit", "--only", "-m", message, "--", *US_OWNED_FILES)
+    return git("rev-parse", "HEAD")
+
+
+def verified_same_date(prior: dict, head: str, trade_date: str) -> bool:
+    version = prior.get("receipt_version")
+    url = prior.get("deployment_url")
+    if (prior.get("phase") not in ("published", "idempotent")
+            or type(version) is not int or version != RECEIPT_VERSION
+            or prior.get("trade_date") != trade_date or prior.get("target_day") != trade_date
+            or prior.get("commit") != head
+            or any(prior.get(flag) is not True for flag in ("pushed", "deployed", "verified"))
+            or not isinstance(url, str)
+            or not re.fullmatch(rf"https://[a-z0-9-]+\.{re.escape(pages_release.PROJECT)}\.pages\.dev", url)
+            or prior.get("verified_routes") != list(CLOSE_ROUTES)):
+        return False
+    return prior.get("verified_assets") == close_blob_hashes(close_blobs(REPO, head))
 
 
 def latest_spy_date() -> str:
@@ -252,127 +473,79 @@ def session_state(now: datetime, trade_date: str) -> str:
 
 
 def main() -> None:
-    sync_remote()
-    now = datetime.now(NY)
+    prior = read_state()
+    base = fetch_remote_base()
+    head = git("rev-parse", "HEAD")
+    if resume_pushed_close(prior, head, base):
+        return
+    if head != base and run("git", "merge-base", "--is-ancestor", head, base, check=False).returncode == 0:
+        run("git", "merge", "--ff-only", base)
+        head = git("rev-parse", "HEAD")
+    if head != base:
+        # A pre-push failure can leave the local close commit pending. Never
+        # auto-push it or rebase it onto a different baseline.
+        check_close_commit(head, base)
+        candidate.check_source(REPO, head, US_OWNED_FILES)
+        old = json.loads(POOL.read_text(encoding="utf-8")).get("model_date") if POOL.exists() else None
+        subject = git("show", "-s", "--format=%s", head)
+        if not old or subject not in {prefix + old for prefix in OWNED_COMMIT_PREFIXES}:
+            raise RuntimeError("pending close commit trade date differs from its payload")
+        publish_close(head, base, old)
+        return
+    reviewed = owned_snapshot()
+    # Freeze the inputs to repair classification before asking the provider.
     old = json.loads(POOL.read_text(encoding="utf-8")).get("model_date") if POOL.exists() else None
+    garden = json.loads(GARDEN.read_text(encoding="utf-8")) if GARDEN.exists() else {}
+    dirty = candidate._git(REPO, "status", "--porcelain=v1", "-z", "--untracked-files=all",
+                           "--ignore-submodules=none", "--", *US_OWNED_FILES)
+    now = datetime.now(NY)
     latest = latest_spy_date()
     state = session_state(now, latest)
-    garden = json.loads(GARDEN.read_text(encoding="utf-8")) if GARDEN.exists() else {}
-
-    # Recover a completed prior close edition before evaluating the newer intraday bar.
-    # Otherwise Yahoo exposes today's open session and the script exits early forever,
-    # leaving yesterday's valid US catalog inputs dirty and blocking A-share publication.
-    dirty = run("git", "status", "--porcelain", "--", *US_OWNED_FILES).stdout.strip()
-    garden_date = str(garden.get("date") or "")
+    check_owned_snapshot(base, reviewed)
     action = decide_action(
-        old=old,
-        latest=latest,
-        state=state,
-        recovery_dirty=bool(dirty),
-        garden_date=garden_date,
-        garden_stage=str(garden.get("stage") or ""),
+        old=old, latest=latest, state=state, recovery_dirty=bool(dirty),
+        garden_date=str(garden.get("date") or ""), garden_stage=str(garden.get("stage") or ""),
         garden_session=str(garden.get("session_state") or ""),
     )
-    write_state("evaluated", old_model_date=old, latest_trade_date=latest, session_state=state, action=action)
-    if action == "recover":
-        write_state("validating_recovery", trade_date=old)
-        validate_us_release_data()
-        validate_us_public_contracts()
-        # Commit only US-owned snapshots here. The waiting A-share nightly publisher
-        # regenerates and commits catalog.json with both US and A final hashes.
-        run("git", "add", *US_OWNED_FILES)
-        run("git", "commit", "-m", f"data: recover US ETF Compass close for {old}")
-        push_compass_commit()
-        commit = run("git", "rev-parse", "HEAD").stdout.strip()
-        write_state("committed", trade_date=old, commit=commit)
-        # Deploy the recovered close edition as well; commit success alone does not
-        # advance etf.peekabo.cc because production uses direct Wrangler Pages deploys.
-        build_us_release()
-        release_pages([
-            "https://etf.peekabo.cc/us-compass/",
-            "https://etf.peekabo.cc/us-momentum/",
-            "https://etf.peekabo.cc/us-compass/history/",
-            "https://etf.peekabo.cc/data/us-etf-garden.json",
-            "https://etf.peekabo.cc/data/us-etf-pool.json",
-        ], {
-            "https://etf.peekabo.cc/data/us-etf-garden.json": GARDEN,
-            "https://etf.peekabo.cc/data/us-etf-pool.json": POOL,
-        })
-        write_state("published", trade_date=old, commit=commit, deployed=True, verified=True)
-        print(f"🇺🇸 美股ETF罗盘遗留收盘版已恢复提交并部署至 {old}；catalog 交由后续原子发布器收敛。")
-        raise SystemExit(0)
-
     if action == "noop":
-        write_state("idempotent", trade_date=old, verified=True)
+        try:
+            if not verified_same_date(prior, base, latest) or remote_main() != base:
+                raise RuntimeError(f"same-date close {latest} is unverified; publication evidence required")
+            candidate.check_source(REPO, base, US_OWNED_FILES)
+            check_owned_snapshot(base, reviewed)
+        except (RuntimeError, subprocess.CalledProcessError) as error:
+            raise ReceiptBlocked(str(error)) from error
+        write_state("idempotent")
         raise SystemExit(0)
-
-    # Incomplete session bars must not overwrite a published close edition.
     if action == "wait":
-        write_state("waiting_for_close", trade_date=latest, old_model_date=old, session_state=state)
-        print(
-            f"skip publish: trade_date={latest} session_state={state} "
-            f"old_model_date={old} (wait for US cash close 16:05 ET)"
-        )
+        # Preserve the last publication receipt during an incomplete session.
+        print(f"skip publish: trade_date={latest} session_state={state} old_model_date={old}")
+        raise SystemExit(0)
+    if action == "recover":
+        assert old is not None
+        commit = commit_close(base, old, recovery_snapshot=reviewed)
+        publish_close(commit, base, old)
+        print(f"🇺🇸 美股ETF罗盘遗留收盘版已恢复提交并部署至 {old}。")
         raise SystemExit(0)
 
-    write_state("generating", trade_date=latest)
-    # Refresh local Yahoo daily-bar cache before generating the close edition.
+    candidate.check_source(REPO, base, US_OWNED_FILES)
     run("python3", "scripts/update_us_etf_bar_cache.py", "--range", "3mo", "--workers", "8", "--mark-final")
     run("python3", "scripts/generate_us_etf_garden.py")
     run("python3", "scripts/update_us_compass_learning.py")
     run("python3", "scripts/generate_us_compass_health.py")
-    pool = json.loads(POOL.read_text(encoding="utf-8"))
-    garden = json.loads(GARDEN.read_text(encoding="utf-8"))
-    new = pool.get("model_date")
-    if new != latest:
-        raise RuntimeError(f"trade date mismatch latest={latest} new={new}")
-    if garden.get("session_state") != "closed" or garden.get("stage") != "美股收盘版":
-        raise RuntimeError(
-            f"refusing to publish non-close snapshot stage={garden.get('stage')} "
-            f"session_state={garden.get('session_state')}"
-        )
-    health = json.loads((REPO / "public/data/us-compass-health.json").read_text(encoding="utf-8"))
-    if health.get("model_date") != new:
-        raise RuntimeError(
-            f"health model_date must equal pool model_date pool={new} health={health.get('model_date')}"
-        )
+    commit = commit_close(base, latest)
+    snapshots = publish_close(commit, base, latest)
+    print(f"🇺🇸 美股ETF罗盘已发布并回读确认 {latest}；前向学习样本 {snapshots} 个。")
 
-    write_state("validated", trade_date=new)
-    run("git", "add", *FILES)
-    # Commit only when the close edition actually changed.
-    status = subprocess.run(["git", "status", "--porcelain", "--", *FILES], cwd=REPO, text=True, capture_output=True, check=True)
-    if status.stdout.strip():
-        run("git", "commit", "-m", f"data: update US ETF Compass for {new}")
-        push_compass_commit()
-    commit = run("git", "rev-parse", "HEAD").stdout.strip()
-    write_state("committed", trade_date=new, commit=commit)
-    build_us_release()
-    release_pages([
-        "https://etf.peekabo.cc/us-compass/",
-        "https://etf.peekabo.cc/us-momentum/",
-        "https://etf.peekabo.cc/us-macro/",
-        "https://etf.peekabo.cc/us-compass/history/",
-        "https://etf.peekabo.cc/data/us-etf-garden.json",
-        "https://etf.peekabo.cc/data/us-etf-pool.json",
-        "https://etf.peekabo.cc/data/us-macro-dashboard.json",
-    ], {
-        "https://etf.peekabo.cc/data/us-etf-garden.json": GARDEN,
-        "https://etf.peekabo.cc/data/us-etf-pool.json": POOL,
-        "https://etf.peekabo.cc/data/us-macro-dashboard.json": REPO / "public/data/us-macro-dashboard.json",
-    })
-    learning = json.loads((REPO / "public/data/us-compass-learning.json").read_text(encoding="utf-8"))
-    snapshots = len(learning.get("snapshots", []))
-    write_state("published", trade_date=new, commit=commit, deployed=True, verified=True, learning_snapshots=snapshots)
-    print(
-        f"🇺🇸 美股ETF罗盘已更新至 {new}：74池、趋势风控、动作触发和学习快照均已构建并推送；"
-        f"前向学习样本 {snapshots} 个。"
-    )
+
+def cli() -> None:
+    with site_publish_lock():
+        try:
+            main()
+        except Exception as error:
+            record_error(error)
+            raise
 
 
 if __name__ == "__main__":
-    try:
-        with site_publish_lock():
-            main()
-    except Exception as error:
-        write_state("error", error=str(error))
-        raise
+    cli()

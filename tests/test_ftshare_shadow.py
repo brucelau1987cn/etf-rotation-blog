@@ -261,6 +261,12 @@ def test_main_persists_degraded_snapshot_when_sdk_initialize_fails(tmp_path, mon
     def broken_client(*args, **kwargs):
         raise RuntimeError("sdk unavailable")
 
+    # Keep the real calendar gate while providing a deterministic exchange verdict.
+    calendar_gate = mod.shadow_calendar_gate
+    monkeypatch.setattr(
+        mod, "shadow_calendar_gate",
+        lambda day: calendar_gate(day, lookup=lambda _: (True, "fixture")),
+    )
     monkeypatch.setattr(mod, "create_sdk_client", broken_client)
     monkeypatch.setenv("LOW_CHIP_TRADE_DATE", "2026-08-24")
     monkeypatch.setattr("sys.argv", ["ftshare_shadow.py", "--input", str(source), "--output", str(output)])

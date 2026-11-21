@@ -447,8 +447,9 @@ def fetch_daily_bars() -> dict[str, Any]:
 
 def run_iwencai_review(slot: str) -> dict[str, Any]:
     watchlist = refresh_watchlist()
-    names = " ".join(item["name"] for item in watchlist)
-    query = f"{names} 主力合约最新价涨跌幅成交量持仓量"
+    # Space-joined names can be interpreted as all contracts for just a few products.
+    names = "、".join(item["name"] for item in watchlist)
+    query = f"{names} 期货主力合约 最新价 涨跌幅 成交量 持仓量"
     command = [str(IWENCAI_WRAPPER), "hithink-futures-query", "--query", query, "--limit", "20", "--timeout", "45"]
     started = time.time(); reviewed_at = now_iso()
     proc = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=60)

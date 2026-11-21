@@ -80,38 +80,29 @@ def test_close_publisher_regenerates_health_after_learning():
     assert "public/data/us-compass-health.json" in module.US_OWNED_FILES
 
 
-def test_us_release_build_is_independent_from_a_share_batch_gate(monkeypatch):
+def test_us_release_build_is_independent_from_a_share_batch_gate(tmp_path, monkeypatch):
     calls = []
-    builds = []
-    monkeypatch.setattr(module, "run", lambda *args, **kwargs: calls.append(args))
-    monkeypatch.setattr(module, "validate_us_release_data", lambda: None)
-    monkeypatch.setattr(module, "validate_us_public_contracts", lambda: None)
-    monkeypatch.setattr(module, "restore_foreign_public_data_in_dist", lambda: None)
-    monkeypatch.setattr(
-        module, "build_static_site",
-        lambda **kwargs: builds.append(kwargs),
-    )
+    env = {"PATH": "/usr/bin"}
+    tree = tmp_path / "target"
+    for route in module.CLOSE_ROUTES:
+        page = tree / "dist" / route / "index.html"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.touch()
+    monkeypatch.setattr(module, "validate_us_release_data", lambda *a, **kw: None)
+    monkeypatch.setattr(module, "prepare_build_runtime", lambda root: env)
 
-    module.build_us_release()
+    def run(*args, **kwargs):
+        calls.append((args, kwargs))
+        return subprocess.CompletedProcess(args, 0)
 
-    # The build is delegated to the shared project runtime, which pins the
-    # interpreters and strips PYTHONPATH; no bare `python3`/`npx` calls remain.
-    assert builds == [{"contract_chain": False, "clean_dist": True}]
-    assert [c for c in calls if c and c[0] in {"python3", "npx", "npm"}] == []
-
-
-def test_us_close_commit_precedes_release_build():
-    source = MODULE_PATH.read_text(encoding="utf-8")
-    publish_block = source[source.index('write_state("validated", trade_date=new)'):]
-    assert publish_block.index("push_compass_commit()") < publish_block.index("build_us_release()")
-
-
-def test_recovery_validation_is_not_coupled_to_a_share_batch_gate():
-    source = MODULE_PATH.read_text(encoding="utf-8")
-    recovery = source[source.index('if action == "recover"'):source.index('if action == "noop"')]
-    assert "validate_us_release_data()" in recovery
-    assert "validate_dashboard_batches.py" not in recovery
-    assert "validate_public_data_contracts.py" in source
+    monkeypatch.setattr(module, "run", run)
+    module.build_us_release(tree, "2026-09-11")
+    assert calls == [
+        ((module.BUILD_PYTHON, "scripts/validate_public_data_contracts.py"),
+         {"cwd": tree, "env": env, "check": False}),
+        ((module.PROJECT_PYTHON, "scripts/build_site.py", "--no-contract-chain", "--clean-dist"),
+         {"cwd": tree, "env": env}),
+    ]
 
 
 def test_us_release_validator_rejects_nonfinite_owned_json(tmp_path, monkeypatch):

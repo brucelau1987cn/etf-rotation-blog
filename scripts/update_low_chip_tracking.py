@@ -2,7 +2,7 @@
 """Track daily price + profit-ratio history for every stock that ever entered the low-chip screen.
 
 Data source:
-- Daily OHLCV (qfq): Tencent fqkline API (web.ifzq.gtimg.cn)
+- Daily prices (qfq): Tencent fqkline, THS, then batched BaoStock
 - Daily 收盘获利盘 ratio: iWenCai per-stock query `收盘获利[YYYYMMDD]` (historical dates supported)
 
 Output: public/data/low-chip-tracking.json
@@ -15,6 +15,8 @@ Output: public/data/low-chip-tracking.json
         "first_seen": "2026-08-05",   // first date the stock appeared in a low-chip snapshot
         "last_seen": "2026-08-07",
         "industry": "...",
+        "entry_baseline_status": "available",  // missing if no first_seen close
+        // entry_halt may record dated suspension evidence for first_seen
         "daily": [
           {"date": "2026-08-05", "close": 24.64, "change_pct": -10.0, "profit_ratio": 12.2},
           ...
@@ -26,6 +28,7 @@ Output: public/data/low-chip-tracking.json
 """
 from __future__ import annotations
 
+import argparse
 import datetime
 import http.client
 import json
@@ -38,8 +41,11 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 try:
     from cf_baostock_client import CFBaoStockClient, CFBaoStockError
@@ -49,7 +55,6 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "public/data/low-chip-tracking.json"
 HISTORY_DIR = ROOT / "public/data/low-chip-history"
-MIN_TRACK_DAYS = 1  # 至少 1 天数据才展示（刚加入当天即开始记录）
 MAX_TRACK_BARS = 20  # 加入后统计窗口：最多 20 个交易日；不足按实际天数
 MAX_STORED_BARS = MAX_TRACK_BARS + 1  # 加入日基准 + 加入后的 20 个交易日
 
@@ -164,10 +169,14 @@ def _valid_tencent_row(row: object) -> bool:
     if not isinstance(row, (list, tuple)) or len(row) < 6:
         return False
     try:
-        datetime.date.fromisoformat(str(row[0]))
+        if datetime.date.fromisoformat(row[0]).isoformat() != row[0]:
+            return False
+        if isinstance(row[2], bool) or isinstance(row[5], bool):
+            return False
         close = float(row[2])
-        return math.isfinite(close) and close > 0
-    except (TypeError, ValueError):
+        volume = float(row[5])
+        return math.isfinite(close) and close > 0 and math.isfinite(volume) and volume > 0
+    except (TypeError, ValueError, OverflowError):
         return False
 
 
@@ -178,6 +187,8 @@ def tencent_daily(
     *,
     opener=None,
     sleeper=time.sleep,
+    stored: list[dict] | None = None,
+    on_target_trade=None,
 ) -> list[dict]:
     """Daily qfq bars from Tencent with bounded transient-error retries.
 
@@ -198,9 +209,14 @@ def tencent_daily(
     open_request = opener or urllib.request.urlopen
     retry_delays = (1.0, 2.0, 5.0)
     last_error = "unknown response"
-    payload = None
+    best_rows: dict[str, float] = {}
+    in_window: set[str] = set()
+    stored_closes = {row["date"]: float(row["close"]) for row in stored or []}
     for host in TENCENT_KLINE_HOSTS:
-        for attempt in range(len(retry_delays) + 1):
+        # With usable but stale history, probe the mirror once, then let the
+        # independent providers try. Preserve the normal retry budget otherwise.
+        attempts = 1 if in_window else len(retry_delays) + 1
+        for attempt in range(attempts):
             try:
                 # Empty end is required for latest-bar inclusion; count caps payload size.
                 # 640 keeps full history since first_seen for any reasonable tracking window.
@@ -221,15 +237,40 @@ def tencent_daily(
                 symbol_data = raw_data.get(f"{ex}{code}") if isinstance(raw_data, dict) else None
                 candidate_bars = None
                 if isinstance(symbol_data, dict):
-                    candidate_bars = symbol_data.get("qfqday") or symbol_data.get("day")
-                valid_rows = [row for row in candidate_bars if _valid_tencent_row(row)] if isinstance(candidate_bars, list) else []
-                in_window_rows = [
-                    row for row in valid_rows
-                    if (not start or str(row[0]) >= start) and (not end or str(row[0]) <= end)
-                ]
-                valid_bars = bool(in_window_rows)
-                if business_code == 0 and valid_bars:
-                    payload = symbol_data
+                    candidate_bars = symbol_data.get("qfqday")
+                rows: dict[str, float] = {}
+                conflicting_dates: set[str] = set()
+                if isinstance(candidate_bars, list):
+                    for row in candidate_bars:
+                        if _valid_tencent_row(row) and (not end or row[0] <= end):
+                            day, close = row[0], float(row[2])
+                            if day in rows and rows[day] != close:
+                                conflicting_dates.add(day)
+                            rows[day] = close
+                dates = {day for day in rows if not start or day >= start}
+                success = type(business_code) is int and business_code == 0
+                if success and end and (not start or end >= start) and on_target_trade is not None:
+                    # Unadjusted rows can disprove a halt but cannot supply QFQ prices.
+                    raw_day = symbol_data.get("day") if isinstance(symbol_data, dict) else None
+                    if end in dates or (isinstance(raw_day, list) and any(
+                        _valid_tencent_row(row) and row[0] == end for row in raw_day
+                    )):
+                        on_target_trade()
+                if success and dates:
+                    if conflicting_dates:
+                        last_error = f"{host}: duplicate Tencent qfq dates disagree"
+                    elif stored_closes and not _same_qfq_basis(stored_closes, rows):
+                        last_error = f"{host}: Tencent qfq prices incompatible with stored bars"
+                    elif not best_rows or _same_qfq_basis(best_rows, rows):
+                        best_rows.update(rows)
+                        in_window.update(dates)
+                    elif best_rows.keys() <= rows.keys():
+                        # A single self-contained response can replace an
+                        # unwritten history; the stored basis was checked above.
+                        best_rows = rows
+                        in_window = dates
+                    else:
+                        last_error = f"{host}: Tencent qfq overlap missing or closes disagree"
                     break
                 last_error = (
                     f"{host}: code={business_code}, msg={message!s}, data_type={type(raw_data).__name__}, "
@@ -241,39 +282,215 @@ def tencent_daily(
                 # 两个 host 都被拒再让出给 BaoStock 备用源，避免 200+ 只标的逐个空转。
                 if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403, 405, 501):
                     break
-            if attempt < len(retry_delays):
+            if attempt + 1 < attempts:
                 sleeper(retry_delays[attempt])
-        if payload is not None:
+        if in_window and (not end or end in in_window or len(in_window) >= MAX_STORED_BARS):
             break
-    if payload is None:
+    if not in_window:
         raise RuntimeError(f"Tencent fqkline unavailable for {symbol} on all hosts: {last_error}")
 
-    kl = payload.get("qfqday") or payload.get("day") or []
     bars = []
     prev_close = None
-    for row in kl:
-        # [date, open, close, high, low, volume]
-        if not _valid_tencent_row(row):
+    for date, close in sorted(best_rows.items()):
+        if date in in_window:
+            chg = round((close - prev_close) / prev_close * 100, 2) if prev_close else None
+            bars.append({"date": date, "close": close, "change_pct": chg})
+        prev_close = close
+    return bars
+
+
+def confirmed_suspensions(target_day: str) -> dict[str, dict]:
+    """Read dated full-session suspensions; missing prices alone prove nothing."""
+    day = datetime.date.fromisoformat(target_day).isoformat()
+    query = urllib.parse.urlencode({
+        "reportName": "RPT_CUSTOM_SUSPEND_DATA_INTERFACE", "columns": "ALL",
+        "filter": f'(MARKET="全部")(DATETIME=\'{day}\')',
+        "sortColumns": "SUSPEND_START_DATE", "sortTypes": "-1",
+        "pageSize": 500, "pageNumber": 1, "source": "WEB", "client": "WEB",
+    })
+    request = urllib.request.Request(
+        f"https://datacenter-web.eastmoney.com/api/data/v1/get?{query}",
+        headers={"User-Agent": "Mozilla/5.0", "Referer": "https://data.eastmoney.com/"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            # Rows omit DATETIME in the provider's real schema. Bind this body
+            # to the exact target-day request and its final HTTPS response URL.
+            # A bare archived body carries no such binding on its own.
+            final_url = response.geturl()
+            expected, actual = urllib.parse.urlsplit(request.full_url), urllib.parse.urlsplit(final_url)
+            if (actual.scheme != "https" or actual.netloc != expected.netloc
+                    or actual.path != expected.path or actual.fragment
+                    or urllib.parse.parse_qs(actual.query, keep_blank_values=True)
+                    != urllib.parse.parse_qs(expected.query, keep_blank_values=True)):
+                raise RuntimeError("suspension response target-day binding failed")
+            payload = json.load(response)
+    except (AttributeError, OSError, ValueError, http.client.HTTPException) as exc:
+        raise RuntimeError(f"suspension report unavailable or binding missing: {type(exc).__name__}") from exc
+    report = payload.get("result") if isinstance(payload, dict) and payload.get("success") is True else None
+    if not isinstance(report, dict):
+        raise RuntimeError("suspension report missing or incomplete")
+    rows = report.get("data")
+    if not isinstance(rows, list) or report.get("pages") != 1 or report.get("count") != len(rows):
+        raise RuntimeError("suspension report missing or incomplete")
+    market_open = datetime.datetime.fromisoformat(f"{day}T09:30:00")
+    market_close = datetime.datetime.fromisoformat(f"{day}T15:00:00")
+    result = {}
+    for row in rows:
+        if not isinstance(row, dict) or not {
+            "SECUCODE", "SUSPEND_START_TIME", "SUSPEND_END_TIME", "PREDICT_RESUME_DATE", "SUSPEND_EXPIRE", "SUSPEND_REASON",
+        }.issubset(row):
             continue
-        date, _, close, _, _, _ = row[:6]
-        if start and date < start:
-            # Keep prev_close so first in-window change_pct is still correct.
-            try:
-                prev_close = float(close)
-            except (TypeError, ValueError):
-                pass
-            continue
-        if end and date > end:
+        symbol, reason = row["SECUCODE"], row["SUSPEND_REASON"]
+        if not isinstance(symbol, str) or not isinstance(reason, str) or not reason.strip():
             continue
         try:
-            close_f = float(close)
+            if "DATETIME" in row and datetime.datetime.fromisoformat(row["DATETIME"]).date().isoformat() != day:
+                continue
+            start = datetime.datetime.fromisoformat(row["SUSPEND_START_TIME"])
+            end = datetime.datetime.fromisoformat(row["SUSPEND_END_TIME"]) if row["SUSPEND_END_TIME"] is not None else None
+            resume = datetime.datetime.fromisoformat(row["PREDICT_RESUME_DATE"]) if row["PREDICT_RESUME_DATE"] is not None else None
+            if start > market_open or (end is not None and end < market_close) or (resume is not None and resume.date() <= market_open.date()):
+                continue
         except (TypeError, ValueError):
             continue
-        chg = None
-        if prev_close:
-            chg = round((close_f - prev_close) / prev_close * 100, 2)
-        bars.append({"date": date, "close": close_f, "change_pct": chg})
-        prev_close = close_f
+        if end is None and row["SUSPEND_EXPIRE"] != "连续停牌":
+            continue
+        result[symbol] = {"status": "halted", "target_day": day, "reason": reason.strip(),
+                          "source": "eastmoney_suspend_report"}
+    return result
+
+
+def ths_daily(
+    symbol: str, start: str, end: str, *, now: datetime.datetime | None = None, on_target_trade=None,
+) -> list[dict]:
+    """THS 01 (QFQ) historical bars plus a verified same-session close."""
+    code = symbol.split(".")[0]
+    lookup_start = datetime.date.fromisoformat(start) - datetime.timedelta(days=30)
+    target_date = datetime.date.fromisoformat(end)
+    rows: dict[str, float] = {}
+    conflicting_dates: set[str] = set()
+
+    def fetch(period: str) -> dict:
+        request = urllib.request.Request(
+            f"https://d.10jqka.com.cn/v6/line/hs_{code}/01/{period}.js",
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://stockpage.10jqka.com.cn/"},
+        )
+        with urllib.request.urlopen(request, timeout=6) as response:
+            raw = response.read().decode().strip().rstrip(";")
+        prefix = f"quotebridge_v6_line_hs_{code}_01_{period}("
+        if not raw.startswith(prefix) or not raw.endswith(")"):
+            raise ValueError("unexpected THS JSONP identity")
+        payload = json.loads(raw[len(prefix):-1])
+        if not isinstance(payload, dict):
+            raise ValueError("unexpected THS JSONP payload")
+        return payload
+
+    def traded_close(price, volume) -> float | None:
+        try:
+            if all(not isinstance(v, bool) and math.isfinite(float(v)) and float(v) > 0
+                   for v in (price, volume)):
+                return float(price)
+        except (TypeError, ValueError, OverflowError):
+            pass
+        return None
+
+    def absorb(ymd: str, price, volume) -> None:
+        try:
+            if len(ymd) != 8 or not ymd.isascii() or not ymd.isdigit():
+                return
+            bar_date = datetime.date(int(ymd[:4]), int(ymd[4:6]), int(ymd[6:]))
+            if bar_date.weekday() >= 5:
+                return
+            day = bar_date.isoformat()
+            close = traded_close(price, volume)
+            if day > end or close is None or day in conflicting_dates:
+                return
+            if day in rows and rows[day] != close:
+                # Quarantine the date for the entire invocation, including any
+                # later duplicate that happens to match one of these closes.
+                conflicting_dates.add(day)
+                del rows[day]
+            else:
+                rows[day] = close
+        except (TypeError, ValueError, OverflowError):
+            return
+
+    annual_error: Exception | None = None
+    target_trade_reported = False
+
+    def report_target_trade() -> None:
+        nonlocal target_trade_reported
+        if not target_trade_reported and on_target_trade is not None and start <= end:
+            on_target_trade()
+        target_trade_reported = True
+
+    try:
+        for year in range(lookup_start.year, int(end[:4]) + 1):
+            try:
+                data = fetch(str(year)).get("data")
+                if not isinstance(data, str):
+                    raise ValueError("missing THS history rows")
+                for line in data.split(";"):
+                    fields = line.split(",")
+                    if len(fields) >= 6:
+                        absorb(fields[0], fields[4], fields[5])
+            except (OSError, TypeError, ValueError, OverflowError, http.client.HTTPException) as exc:
+                # Keep usable earlier years and let the independent target quote
+                # prove a closed trade even when this year's history is empty.
+                annual_error = exc
+
+        shanghai = ZoneInfo("Asia/Shanghai")
+        now = now or datetime.datetime.now(shanghai)
+        if now.tzinfo is not None:
+            now = now.astimezone(shanghai)
+        local_day = now.date()
+        closed_today = target_date == local_day and now.hour >= 15
+        if end in conflicting_dates and (target_date < local_day or closed_today):
+            # Valid positive-volume annual rows still prove a completed trade.
+            report_target_trade()
+        if target_date.weekday() < 5 and end not in rows and closed_today:
+            try:
+                quote = fetch("today").get(f"hs_{code}")
+            except (OSError, TypeError, ValueError, OverflowError, http.client.HTTPException) as exc:
+                annual_error = annual_error or exc
+            else:
+                if (isinstance(quote, dict) and quote.get("1") == end.replace("-", "")
+                        and type(quote.get("open")) is int and quote["open"] == 0):
+                    clock = str(quote.get("dt", ""))
+                    if (len(clock) == 4 and clock.isascii() and clock.isdigit()
+                            and 15 <= int(clock[:2]) <= 23 and int(clock[2:]) < 60
+                            and int(clock) <= now.hour * 100 + now.minute):
+                        close = traded_close(quote.get("11"), quote.get("13"))
+                        if close is not None:
+                            # Trade evidence is independent of the QFQ basis check.
+                            report_target_trade()
+                            previous = quote.get("6")
+                            anchor = max(rows, default=None)
+                            # Only weekends are proven closed here. A matching
+                            # price cannot bridge an unverified weekday gap.
+                            prior = target_date - datetime.timedelta(days=1)
+                            while prior.weekday() >= 5:
+                                prior -= datetime.timedelta(days=1)
+                            if (end not in conflicting_dates and anchor == prior.isoformat()
+                                    and isinstance(previous, (str, int, float))
+                                    and not isinstance(previous, bool)
+                                    and float(previous) == rows[anchor]):
+                                rows[end] = close
+    except (OSError, TypeError, ValueError, OverflowError, http.client.HTTPException) as exc:
+        annual_error = annual_error or exc
+
+    if not rows and not target_trade_reported:
+        detail = type(annual_error).__name__ if annual_error is not None else "missing history rows"
+        raise RuntimeError(f"THS qfq unavailable: {detail}") from annual_error
+
+    bars = []
+    prev = None
+    for day, close in sorted(rows.items()):
+        if day >= start:
+            bars.append({"date": day, "close": close,
+                         "change_pct": round((close / prev - 1) * 100, 2) if prev else None})
+        prev = close
     return bars
 
 
@@ -324,7 +541,7 @@ else:
         for code in payload["codes"]:
             rows = []
             rs = bs.query_history_k_data_plus(
-                code, "date,close,tradestatus",
+                code, "date,close,tradestatus,volume",
                 start_date=payload["start"], end_date=payload["end"],
                 frequency="d", adjustflag="2",
             )
@@ -332,6 +549,8 @@ else:
                 fields = list(rs.fields)
                 while rs.next():
                     rows.append(dict(zip(fields, rs.get_row_data())))
+                if rs.error_code != "0":
+                    rows = []
             out["results"][code] = rows
         out["ok"] = True
     except Exception as exc:
@@ -346,6 +565,7 @@ BAOSTOCK_BATCH_SIZE = 20
 
 def baostock_daily_batch(
     specs: list[tuple[str, str]], end: str, *, batch_size: int = BAOSTOCK_BATCH_SIZE,
+    on_target_trade=None,
 ) -> dict[str, list[dict]]:
     """BaoStock 前复权日K for many symbols with one login per batch.
 
@@ -363,61 +583,72 @@ def baostock_daily_batch(
         return result
     earliest = min(start for _symbol, start in specs)
     window_start = (datetime.date.fromisoformat(earliest) - datetime.timedelta(days=30)).isoformat()
-    codes: list[str] = []
-    for symbol, _start in specs:
-        code = symbol.split(".")[0]
-        market = "sh" if symbol.endswith(".SH") else "sz"
-        codes.append(f"{market}.{code}")
-    start_by_code = {
-        f"{'sh' if symbol.endswith('.SH') else 'sz'}.{symbol.split('.')[0]}": start
+    specs_by_code = {
+        f"{'sh' if symbol.endswith('.SH') else 'sz'}.{symbol.split('.')[0]}": (symbol, start)
         for symbol, start in specs
     }
+    codes = list(specs_by_code)
 
     for offset in range(0, len(codes), batch_size):
         chunk = codes[offset:offset + batch_size]
-        proc = subprocess.run(
-            [BAOSTOCK_PY, "-c", _BAOSTOCK_BATCH_QUERY],
-            input=json.dumps({"codes": chunk, "start": window_start, "end": end}),
-            capture_output=True, text=True, check=False, timeout=300,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(f"baostock runner failed ({proc.returncode}): {(proc.stderr or '')[:200]}")
         try:
+            proc = subprocess.run(
+                [BAOSTOCK_PY, "-c", _BAOSTOCK_BATCH_QUERY],
+                input=json.dumps({"codes": chunk, "start": window_start, "end": end}),
+                capture_output=True, text=True, check=False, timeout=300,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(f"runner exited {proc.returncode}")
             payload = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (IndexError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"baostock output unparseable: {exc}") from exc
-        if not payload.get("ok"):
-            raise RuntimeError(f"baostock unavailable: {payload.get('error') or 'unknown'}")
-        for code, rows in (payload.get("results") or {}).items():
-            start = start_by_code.get(code)
-            if start is None:
-                continue
-            for symbol, symbol_start in specs:
-                bare = symbol.split(".")[0]
-                market = "sh" if symbol.endswith(".SH") else "sz"
-                if f"{market}.{bare}" == code:
-                    result[symbol] = _baostock_rows_to_bars(rows, symbol_start)
-                    break
+            if not isinstance(payload, dict) or payload.get("ok") is not True or not isinstance(payload.get("results"), dict):
+                raise RuntimeError("invalid or unsuccessful runner response")
+        except (OSError, subprocess.SubprocessError, IndexError, ValueError, RuntimeError) as exc:
+            print(f"  BaoStock batch {offset // batch_size + 1} unavailable: {type(exc).__name__}", flush=True)
+            continue
+        for code in chunk:
+            symbol, start = specs_by_code[code]
+            rows = payload["results"].get(code)
+            bars, target_traded = _baostock_rows_to_bars(rows, start, end)
+            if target_traded and on_target_trade is not None:
+                on_target_trade(symbol)
+            result[symbol] = bars
     return result
 
 
-def _baostock_rows_to_bars(rows: list[dict], start: str) -> list[dict]:
-    bars: list[dict] = []
-    prev_close = None
-    for row in rows or []:
-        date = str(row.get("date") or "")
-        close = row.get("close")
-        if not date or str(row.get("tradestatus") or "1") != "1":
+def _baostock_rows_to_bars(rows: object, start: str, end: str) -> tuple[list[dict], bool]:
+    closes: dict[str, float] = {}
+    conflicting = False
+    if not isinstance(rows, list):
+        return [], False
+    for row in rows:
+        if not isinstance(row, dict) or str(row.get("tradestatus")) != "1":
+            continue
+        day, close, volume = row.get("date"), row.get("close"), row.get("volume")
+        if (not isinstance(day, str) or not isinstance(close, (float, int, str))
+                or not isinstance(volume, (float, int, str)) or isinstance(close, bool) or isinstance(volume, bool)):
             continue
         try:
-            close_f = float(close)
-        except (TypeError, ValueError):
+            if datetime.date.fromisoformat(day).isoformat() != day or day > end:
+                continue
+            close_f, volume_f = float(close), float(volume)
+            if not all(math.isfinite(value) and value > 0 for value in (close_f, volume_f)):
+                continue
+        except (TypeError, ValueError, OverflowError):
             continue
-        if not start or date >= start:
-            chg = round((close_f - prev_close) / prev_close * 100, 2) if prev_close else None
-            bars.append({"date": date, "close": close_f, "change_pct": chg})
-        prev_close = close_f
-    return bars
+        if day in closes and closes[day] != close_f:
+            conflicting = True
+        closes[day] = close_f
+    target_traded = end in closes
+    if conflicting:
+        return [], target_traded
+    bars = []
+    prev_close = None
+    for day, close in sorted(closes.items()):
+        if day >= start:
+            change = round((close - prev_close) / prev_close * 100, 2) if prev_close else None
+            bars.append({"date": day, "close": close, "change_pct": change})
+        prev_close = close
+    return bars, target_traded
 
 
 def baostock_daily(symbol: str, start: str, end: str) -> list[dict]:
@@ -672,9 +903,10 @@ def normalize_daily(rows: object, first_seen: str) -> list[dict]:
             continue
         date = str(row.get("date") or "")
         try:
-            datetime.date.fromisoformat(date)
+            if datetime.date.fromisoformat(date).isoformat() != date or isinstance(row.get("close"), bool):
+                continue
             close = float(row.get("close"))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             continue
         if date < first_seen or not math.isfinite(close) or close <= 0:
             continue
@@ -711,31 +943,112 @@ def atomic_write_json(path: Path, payload: dict) -> None:
             os.fsync(handle.fileno())
         os.replace(temp_path, path)
         temp_path = None
-        directory_fd = os.open(path.parent, os.O_RDONLY)
         try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+            directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError as exc:
+            raise OSError(f"{path} already replaced; directory durability unconfirmed") from exc
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
 
 
-def main() -> int:
-    seen = load_history_dates()
+def _tracking_window(dates: set[str], first_seen: str) -> list[str]:
+    # The optional entry bar is separate from the 20 post-entry closes.
+    return sorted(dates)[:MAX_TRACK_BARS + (first_seen in dates)]
+
+
+def _is_confirmed_halt(evidence: object, day: str) -> bool:
+    return (isinstance(evidence, dict) and evidence.get("status") == "halted"
+            and evidence.get("target_day") == day and evidence.get("source") == "eastmoney_suspend_report"
+            and isinstance(evidence.get("reason"), str) and bool(evidence["reason"].strip()))
+
+
+def _window_complete(dates: set[str], first_seen: str, entry_halt: object) -> bool:
+    # Keep in sync with the host-local publisher's independent coverage gate.
+    # Callers supply unique, validated bar dates bounded by first_seen and the target day.
+    if first_seen in dates:
+        return len(dates) == MAX_STORED_BARS
+    return len(dates) == MAX_TRACK_BARS and _is_confirmed_halt(entry_halt, first_seen)
+
+
+def _has_target_or_complete(rec: dict, fetched: list[dict], target_day: str) -> bool:
+    stored = {row["date"] for row in rec["daily"]}
+    first_seen = rec["first_seen"]
+    window = set(_tracking_window(stored | {row["date"] for row in fetched}, first_seen))
+    return target_day in window or (
+        stored <= window and _window_complete(window, first_seen, rec.get("entry_halt"))
+    )
+
+
+def _same_qfq_basis(left: dict[str, float], right: dict[str, float]) -> bool:
+    overlap = left.keys() & right.keys()
+    return bool(overlap) and all(left[day] == right[day] for day in overlap)
+
+
+def _merge_prices(stored: list[dict], accepted: list[dict], incoming: list[dict]) -> list[dict]:
+    """Add prices only on a verified common QFQ basis; never rewrite stored bars."""
+    old = {row["date"]: row for row in stored}
+    staged = {row["date"]: row for row in accepted}
+    new = {row["date"]: row for row in incoming}
+    reference = staged | old
+    if not (new.keys() - reference.keys()):
+        return accepted
+
+    def comparable(left: dict[str, dict], right: dict[str, dict]) -> bool:
+        return _same_qfq_basis({d: float(r["close"]) for d, r in left.items()},
+                               {d: float(r["close"]) for d, r in right.items()})
+
+    if not reference or comparable(reference, new):
+        combined = new | staged
+    elif staged.keys() <= new.keys() and (not old or comparable(old, new)):
+        # A consistent single-source replacement for *unwritten* prices is
+        # safe when it includes every staged date and agrees with stored bars.
+        combined = new
+    else:
+        raise ValueError("QFQ overlap missing or closes disagree")
+    return [combined[day] for day in sorted(combined.keys() - old.keys())]
+
+
+def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
+    now = datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
+    local_day = now.date().isoformat()
+    today = datetime.date.fromisoformat(target_day).isoformat() if target_day is not None else local_day
+    unclosed = today == local_day and now.hour < 15
+    if today > local_day or (unclosed and target_day is not None):
+        print(f"tracking target session has not closed: {today}; preserving prior file", flush=True)
+        return 1
+    seen = {symbol: [d for d in dates if d <= today] for symbol, dates in load_history_dates().items()}
+    seen = {symbol: dates for symbol, dates in seen.items() if dates}
     existing = load_existing()
     stocks = existing.get("stocks", {})
-    today = datetime.date.today().isoformat()
+    if any(str(row.get("date") or "") > today for rec in stocks.values()
+           for row in (rec.get("daily") or []) if isinstance(row, dict)):
+        raise RuntimeError("tracking input contains bars after target day; use a dated baseline")
     # (symbol, date) pairs that 同花顺 could not answer; resolved in one
     # batched iWenCai pass after the loop.
     pending_iwencai: list[tuple[str, str]] = []
-    # (symbol, first_seen) pairs whose K-line came from the Tencent WAF
-    # fallback; resolved in one batched BaoStock pass after the loop.
-    pending_baostock: list[tuple[str, str]] = []
-    # symbol -> resolved daily bars
+    pending_prices: list[tuple[str, str]] = []
     bar_source: dict[str, list[dict]] = {}
+    target_reported: set[str] = set()
 
-    for symbol, dates in sorted(seen.items()):
+    def accept_prices(symbol: str, start: str, raw_bars: object, source: str) -> None:
+        bars = [row for row in normalize_daily(raw_bars, start) if row["date"] <= today]
+        if any(row["date"] == today for row in bars):
+            target_reported.add(symbol)
+        try:
+            bar_source[symbol] = _merge_prices(stocks[symbol]["daily"], bar_source.get(symbol, []), bars)
+        except ValueError as exc:
+            print(f"  {symbol}: {source} {exc}", flush=True)
+
+    for symbol in sorted(stocks.keys() | seen.keys()):
+        dates = seen.get(symbol)
+        if not dates:
+            previous = stocks[symbol]
+            dates = [previous["first_seen"], previous.get("last_seen") or previous["first_seen"]]
         first = min(dates)
         last = max(dates)
         rec = stocks.setdefault(symbol, {"name": "", "first_seen": first, "last_seen": last, "industry": "", "daily": []})
@@ -743,81 +1056,137 @@ def main() -> int:
         rec["first_seen"] = min(rec.get("first_seen") or first, first)
         rec["last_seen"] = last
         rec["daily"] = normalize_daily(rec.get("daily"), rec["first_seen"])
+        rec.pop("coverage", None)  # Do not carry a previous session's halt forward.
+        first_seen = rec["first_seen"]
+        stored_dates = {row["date"] for row in rec["daily"]}
+        has_baseline = first_seen in stored_dates
+        if has_baseline or not _is_confirmed_halt(rec.get("entry_halt"), first_seen):
+            rec.pop("entry_halt", None)
+        rec["entry_baseline_status"] = "available" if has_baseline else "missing"
 
-        # 固定追踪窗口：加入日基准 + 加入后的前 20 个交易日；完成后停止请求新数据
-        if len(rec.get("daily") or []) >= MAX_STORED_BARS:
-            rec["daily"] = sorted(rec["daily"], key=lambda x: x["date"])[:MAX_STORED_BARS]
-            rec["tracking_complete"] = True
+        # Preserve the legacy cap for records with a real entry bar.
+        if has_baseline and len(stored_dates) > MAX_STORED_BARS:
+            rec["daily"] = rec["daily"][:MAX_STORED_BARS]
+            stored_dates = {row["date"] for row in rec["daily"]}
+        rec["tracking_complete"] = _window_complete(stored_dates, first_seen, rec.get("entry_halt"))
+        if rec["tracking_complete"]:
             continue
+        if unclosed:
+            print(f"tracking target session has not closed: {today}; preserving prior file", flush=True)
+            return 1
         try:
-            bars = tencent_daily(symbol, rec["first_seen"], today)
+            bars = tencent_daily(symbol, rec["first_seen"], today, stored=rec["daily"],
+                                 on_target_trade=lambda: target_reported.add(symbol))
         except RuntimeError as exc:
-            # 腾讯 fqkline 被网关 WAF 拦截（HTTP 501）。备用源在下面统一批量取，
-            # 逐只调用每次都要重新登录 BaoStock，377 只约 8.5 分钟。
-            print(f"  {symbol}: tencent daily unavailable ({exc}), queued for batched fallback", flush=True)
-            pending_baostock.append((symbol, rec["first_seen"]))
+            print(f"  {symbol}: tencent daily unavailable ({exc})", flush=True)
             bars = []
-        if bars:
-            bar_source[symbol] = bars
+        accept_prices(symbol, rec["first_seen"], bars, "Tencent")
+        if not _has_target_or_complete(rec, bar_source.get(symbol, []), today):
+            pending_prices.append((symbol, rec["first_seen"]))
         time.sleep(0.2)
 
-    # 腾讯被 WAF 拦截的标的统一批量取 BaoStock：一次登录覆盖 20 只，
-    # 实测 377 只 ≈ 70s；逐只调用（每次重新登录）需要 ≈ 8.5 分钟。
-    if pending_baostock:
-        try:
-            batched = baostock_daily_batch(pending_baostock, today)
-        except Exception as exc:  # noqa: BLE001
-            print(f"batch baostock fallback failed for {len(pending_baostock)} symbols: {exc}", flush=True)
-            batched = {}
-        resolved_count = 0
-        for symbol, bars in batched.items():
-            if not bars:
-                continue
-            bar_source[symbol] = bars
-            resolved_count += 1
+    # Check both price fallbacks even for suspended symbols: historical bars
+    # can be backfilled, and an actual target-day trade takes precedence.
+    if pending_prices:
+        unresolved = []
+
+        def fetch_ths(spec: tuple[str, str]) -> tuple[list[dict], bool]:
+            symbol, start = spec
+            reported = False
+
+            def note_trade() -> None:
+                nonlocal reported
+                reported = True
+
+            try:
+                bars = ths_daily(symbol, start, today, on_target_trade=note_trade)
+            except RuntimeError as exc:
+                print(f"  {symbol}: {exc}", flush=True)
+                bars = []
+            return bars, reported
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for (symbol, start), (bars, reported) in zip(pending_prices, pool.map(fetch_ths, pending_prices)):
+                if reported:
+                    target_reported.add(symbol)
+                accept_prices(symbol, start, bars, "THS")
+                if not _has_target_or_complete(stocks[symbol], bar_source.get(symbol, []), today):
+                    unresolved.append((symbol, start))
+        print(f"THS fallback coverage: {len(pending_prices) - len(unresolved)}/{len(pending_prices)}", flush=True)
+        pending_prices = unresolved
+    if pending_prices:
+        batched = baostock_daily_batch(pending_prices, today, on_target_trade=target_reported.add)
+        for symbol, start in pending_prices:
+            accept_prices(symbol, start, batched.get(symbol), "BaoStock")
+        unresolved = [(s, start) for s, start in pending_prices
+                      if not _has_target_or_complete(stocks[s], bar_source.get(s, []), today)]
         print(
-            f"batched baostock fallback: {resolved_count}/{len(pending_baostock)} 只取到 K 线",
+            f"batched baostock fallback coverage: {len(pending_prices) - len(unresolved)}/{len(pending_prices)}",
             flush=True,
         )
+        pending_prices = unresolved
 
-    for symbol, dates in sorted(seen.items()):
-        rec = stocks.get(symbol)
-        if rec is None:
-            continue
-        bars = bar_source.get(symbol)
-        if not bars:
-            # 上游无有效数据，保留已有行，下次重试
-            rec["daily"] = sorted(rec.get("daily", []), key=lambda x: x["date"])[:MAX_STORED_BARS]
-            rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
-            print(f"  {symbol}: no bars from any source, preserving {len(rec['daily'])} existing rows", flush=True)
-            continue
-        target_bars = bars[:MAX_STORED_BARS]
-        have = {d["date"] for d in rec["daily"]}
-        new_rows = []
+    halts = {}
+    if any(symbol not in target_reported for symbol, _ in pending_prices):
+        try:
+            halts = confirmed_suspensions(today)
+        except RuntimeError as exc:
+            print(str(exc), flush=True)
+    failed = []
+    for symbol, _ in pending_prices:
+        evidence = halts.get(symbol)
+        if symbol not in target_reported and _is_confirmed_halt(evidence, today):
+            rec = stocks[symbol]
+            rec["coverage"] = evidence
+            if today == rec["first_seen"]:
+                rec["entry_halt"] = evidence
+        else:
+            failed.append(symbol)
+    if failed or not stocks:
+        print(f"tracking coverage missing for {today}: {', '.join(failed) or 'empty pool'}; preserving prior file", flush=True)
+        return 1
+
+    for symbol, rec in sorted(stocks.items()):
+        stored = {row["date"]: row for row in rec["daily"]}
+        new = {row["date"]: row for row in bar_source.get(symbol, [])}
+        target_bars = []
+        prev_close = None
+        window = _tracking_window(stored.keys() | new.keys(), rec["first_seen"])
+        if not stored.keys() <= set(window):
+            print(f"  {symbol}: window would discard stored bars; preserving prior file", flush=True)
+            return 1
+        if rec["first_seen"] in window:
+            rec["entry_baseline_status"] = "available"
+            rec.pop("entry_halt", None)
+        for day in window:
+            row = stored[day] if day in stored else new[day]
+            close = float(row["close"])
+            if day not in stored:
+                change = round((close - prev_close) / prev_close * 100, 2) if prev_close else None
+                target_bars.append({**row, "change_pct": change})
+            prev_close = close
+        # Derive completion from the exact window that will be persisted.
+        rec["tracking_complete"] = _window_complete(set(window), rec["first_seen"], rec.get("entry_halt"))
         # 获利盘优先走同花顺 chip_list 曲线复算（无鉴权、无每日配额），失败 fallback iWenCai。
         # 窗口锚定 first_seen：同花顺只返回窗口内最近 40 个交易日，固定 90 天窗口
         # 会漏掉早期入池标的的 bar，导致逐 (标的, 日期) 回退 iWenCai，
         # 2026-10-28 实测 300+ 次调用 ≈ 30 分钟，直接撞穿 1800s 超时。
+        if not target_bars:
+            continue
         profit_map = chip_list_profit_ratios(symbol, start=rec.get("first_seen") or None)
         for bar in target_bars:
-            if bar["date"] in have:
-                continue
             pr = profit_map.get(bar["date"].replace("-", ""))
             if pr is None:
                 # Queue the gap; the whole batch is resolved after the loop
                 # below. A per-symbol call here is what blew the time budget.
                 pending_iwencai.append((symbol, bar["date"]))
-            new_rows.append({**bar, "profit_ratio": pr})
-            have.add(bar["date"])
-        rec["daily"].extend(new_rows)
+            rec["daily"].append({**bar, "profit_ratio": pr})
+
         rec["daily"].sort(key=lambda x: x["date"])
-        # 固定首段窗口，禁止滚动成“最近 20 日”而改变加入以来口径
-        rec["daily"] = rec["daily"][:MAX_STORED_BARS]
-        rec["tracking_complete"] = len(rec["daily"]) >= MAX_STORED_BARS
 
     # 同花顺覆盖不到的 (标的, 日期) 用 iWenCai 批量补齐：一次查询覆盖同一天的
     # 全部标的（实测 30 只 ≈ 7s），逐只查询则是每只 ≈ 6s。
-    if pending_iwencai:
+    if pending_iwencai and not skip_iwencai:
         resolved = iwencai_profit_ratios(pending_iwencai)
         still_missing = 0
         for sym, day in pending_iwencai:
@@ -835,13 +1204,8 @@ def main() -> int:
             flush=True,
         )
 
-    # 清理：少于 MIN_TRACK_DAYS 天数的股票（刚加入、数据不足）
-    for sym in [s for s, r in stocks.items() if len(r.get("daily", [])) < MIN_TRACK_DAYS]:
-        print(f"  drop {sym}: only {len(stocks[sym]['daily'])} bars", flush=True)
-        stocks.pop(sym, None)
-
     # 补名称/行业（从历史快照的 enrichments 或 periods）
-    snaps = sorted(HISTORY_DIR.glob("????-??-??.json"), reverse=True)
+    snaps = sorted((p for p in HISTORY_DIR.glob("????-??-??.json") if p.stem <= today), reverse=True)
     name_map: dict[str, str] = {}
     industry_map: dict[str, str] = {}
     for p in snaps:
@@ -872,9 +1236,10 @@ def main() -> int:
         r["entry_financials"] = dict(entry_enrichment.get("financials") or {})
         r["entry_technical"] = dict(entry_enrichment.get("technical") or {})
 
-    current_year_profit = fetch_current_year_profit(sorted(stocks))
-    for sym, r in stocks.items():
-        r["year_profit"] = current_year_profit.get(sym)
+    if not skip_iwencai:
+        current_year_profit = fetch_current_year_profit(sorted(stocks))
+        for sym, r in stocks.items():
+            r["year_profit"] = current_year_profit.get(sym)
 
     # generated_at 只表示「本文件被写出的时刻」，不等于「数据覆盖到哪个交易日」。
     # 16:00 主链的 refresh_low_chip_ftshare_industry.py 会重写 tracking 的
@@ -897,4 +1262,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--target-day", help="closed trading session (YYYY-MM-DD); default: Shanghai date")
+    parser.add_argument("--skip-iwencai", action="store_true", help="skip iWenCai calls and preserve existing year-profit fields")
+    options = parser.parse_args()
+    sys.exit(main(target_day=options.target_day, skip_iwencai=options.skip_iwencai))

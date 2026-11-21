@@ -30,7 +30,8 @@ const controlLevel = (label: string | null | undefined) => String(label || '').r
 
 const stocks = Object.entries(trackingData.stocks || {})
   .map(([symbol, rec]) => {
-    const daily = (rec.daily || []).slice(1); // 加入当日不算，隔日股价算第一日
+    const rows = rec.daily || [];
+    const daily = rows.filter((d) => d.date > rec.first_seen); // 只排除入池日，不丢第一根复牌线
     const closes = daily.map((d) => d.close).filter((v) => v != null);
     const profits = daily.map((d) => d.profit_ratio).filter((v) => v != null);
     const firstClose = closes.length ? closes[0] : null;
@@ -52,7 +53,7 @@ const stocks = Object.entries(trackingData.stocks || {})
       : rawOccurrence;
     return {
       symbol, ...rec, daily,
-      joinClose: (rec.daily || [])[0]?.close ?? null,
+      joinClose: rows.find((d) => d.date === rec.first_seen)?.close ?? null,
       latestStoredDate: (rec.daily || []).at(-1)?.date ?? '',
       firstClose, lastClose, maxClose, minClose, firstProfit, lastProfit,
       maxGain, maxDrawdown,

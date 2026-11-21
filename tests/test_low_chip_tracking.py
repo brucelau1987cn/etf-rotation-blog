@@ -17,15 +17,22 @@ def test_tracking_data_contract():
     for symbol, rec in stocks.items():
         assert symbol.endswith((".SZ", ".SH"))
         assert rec["first_seen"]
-        assert isinstance(rec["daily"], list) and len(rec["daily"]) >= 1
-        # 每个交易日有收盘价；获利盘可能缺失（iWenCai 无数据）但应大多存在
+        assert isinstance(rec["daily"], list)
+        # 每个交易日有收盘价；获利盘可能缺失。
         assert all(d.get("close") for d in rec["daily"])
-        # daily 按日期升序
         dates = [d["date"] for d in rec["daily"]]
-        assert dates == sorted(dates)
-        # 固定窗口：加入日基准 + 加入后的最多 20 个交易日
-        assert len(dates) <= 21
-        assert dates[0] == rec["first_seen"]
+        assert dates == sorted(set(dates))
+        assert all(day >= rec["first_seen"] for day in dates)
+        has_baseline = rec["first_seen"] in dates
+        assert len(dates) <= 20 + has_baseline
+        if rec.get("entry_baseline_status") is not None or not has_baseline:
+            assert rec["entry_baseline_status"] == ("available" if has_baseline else "missing")
+        if not dates:
+            evidence = rec["coverage"]
+            assert evidence["status"] == "halted"
+            assert evidence["source"] == "eastmoney_suspend_report"
+            assert evidence["target_day"] >= rec["first_seen"]
+            assert evidence["reason"].strip()
         features = rec.get("entry_features")
         assert isinstance(features, dict)
         assert set(features) == {
@@ -56,6 +63,31 @@ def test_tracking_data_contract():
         "main_force": 37.41,
         "main_force_label": "中度控盘",
     }
+
+
+def test_tracking_page_selects_entry_baseline_by_date():
+    import subprocess
+
+    page = TRACKING_PAGE.read_text(encoding="utf-8")
+    anchor = "  .map(([symbol, rec]) => {"
+    mapping = page.split(anchor, 1)[1].split("  })", 1)[0]
+    records = [
+        {"first_seen": "2026-11-18", "daily": []},
+        {"first_seen": "2026-11-18", "daily": [{"date": "2026-11-19", "close": 10}]},
+        {"first_seen": "2026-11-18", "daily": [
+            {"date": "2026-11-18", "close": 9}, {"date": "2026-11-19", "close": 10},
+        ]},
+    ]
+    js = f"""const occurrenceLookup = {{}}, latestDate = '';
+    const project = ([symbol, rec]) => {{{mapping}}};
+    console.log(JSON.stringify({json.dumps(records)}.map(rec => project(['600185.SH', rec]))));"""
+    result = subprocess.run(["node", "--input-type=module", "-e", js], check=True, capture_output=True, text=True)
+    empty, resumed, ordinary = json.loads(result.stdout)
+    assert empty["daily"] == [] and empty["joinClose"] is None and empty["totalChange"] is None
+    assert [bar["date"] for bar in resumed["daily"]] == ["2026-11-19"]
+    assert resumed["joinClose"] is None and resumed["firstClose"] == 10
+    assert [bar["date"] for bar in ordinary["daily"]] == ["2026-11-19"]
+    assert ordinary["joinClose"] == 9 and ordinary["firstClose"] == 10
 
 
 def test_tracking_page_and_entry_link():
@@ -255,7 +287,6 @@ def test_tracking_script_exists():
     assert "iwencai_profit_ratio" in text
     assert "MAX_TRACK_BARS = 20" in text
     assert "MAX_STORED_BARS = MAX_TRACK_BARS + 1" in text
-    assert "target_bars = bars[:MAX_STORED_BARS]" in text
 
     import importlib.util
     spec = importlib.util.spec_from_file_location("tracking_window_contract", SCRIPT)
@@ -265,12 +296,10 @@ def test_tracking_script_exists():
     assert mod.MAX_TRACK_BARS == 20
     assert mod.MAX_STORED_BARS == 21
     assert 'r["entry_technical"] = dict(entry_enrichment.get("technical") or {})' in text
-    assert "rec[\"daily\"] = rec[\"daily\"][:MAX_STORED_BARS]" in text
     # Tencent multi-day range with concrete end=today often drops the latest bar;
     # empty end in the fqkline param is the reliable form.
     assert "day,{start},,640,qfq" in text or "day,{start},,640,qfq" in text.replace(" ", "")
     assert "param={ex}{code},day,{start},,640,qfq" in text
-    assert "if end and date > end:" in text
     assert "低筹码追踪" in TRACKING_PAGE.read_text(encoding="utf-8") or True
 
 
@@ -370,8 +399,8 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
     monkeypatch.setattr(mod, "fetch_current_year_profit", lambda codes: {c: None for c in codes})
 
     # A record completed under the old baseline+15 contract re-enters tracking.
-    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end: old_bars)
-    assert mod.main() == 0
+    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end, **_kw: old_bars)
+    assert mod.main(target_day="2026-01-16") == 0
     migrated = json.loads(data_path.read_text(encoding="utf-8"))["stocks"]["600000.SH"]
     assert len(migrated["daily"]) == 16
     assert migrated["tracking_complete"] is False
@@ -381,8 +410,8 @@ def test_tracking_window_migrates_old_15_day_completion_to_20_days(tmp_path, mon
         {"date": f"2026-01-{day:02d}", "close": float(day), "change_pct": 0.0}
         for day in range(17, 22)
     ]
-    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end: twenty_day_bars)
-    assert mod.main() == 0
+    monkeypatch.setattr(mod, "tencent_daily", lambda _symbol, _start, _end, **_kw: twenty_day_bars)
+    assert mod.main(target_day="2026-01-22") == 0
     completed = json.loads(data_path.read_text(encoding="utf-8"))["stocks"]["600000.SH"]
     assert len(completed["daily"]) == 21
     assert completed["daily"][0]["date"] == "2026-01-01"

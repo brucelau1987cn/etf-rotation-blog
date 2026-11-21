@@ -1,4 +1,4 @@
-"""Host publisher regression tests; all subprocess/network boundaries are mocked."""
+"""Host publisher regressions with network blocked and Git isolated to fixtures."""
 import importlib.util
 import json
 import os
@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 from test_low_chip_release_cron import mocked_release as base_mocked_release
 
+LOCAL_POPEN = subprocess.Popen
+LOCAL_RUN = subprocess.run
 
 @pytest.fixture(autouse=True)
 def offline_transport(monkeypatch):
@@ -268,6 +270,135 @@ def test_recovery_finishes_shared_checkout_integration(publisher, tmp_path, monk
     assert mod.recover_pending_release(state_file) == 0
     assert events == [('base', 'candidate')]
     assert json.loads(state_file.read_text())['pushed'] is True
+
+
+@pytest.mark.parametrize('case', ['equivalent', 'history-addition', 'history-deletion',
+                                 'foreign-history', 'invalid-date', 'gitlink', 'unrelated-parent',
+                                 'foreign-candidate', 'history-fails', 'remote-moved',
+                                 'shared-head-moved', 'shared-index-changed', 'shared-staged-gitlink',
+                                 'shared-owned-dirty'])
+def test_reconcile_cherry_picked_release_only_with_matching_git_and_d1(
+        publisher, tmp_path, monkeypatch, capsys, case):
+    mod = publisher
+    root = mod.ROOT
+    shared = tmp_path / 'active-main'
+    allowed = {'init', 'add', '-c', 'rev-parse', 'switch', 'update-ref', 'merge-base',
+               'diff', 'show', 'status', 'diff-index', 'worktree', 'update-index', 'config', 'ls-tree'}
+    monkeypatch.setattr(subprocess, 'Popen', LOCAL_POPEN)
+    def local_run(args, **kwargs):
+        assert args[0] == 'git' and args[1] in allowed and kwargs['cwd'] in {root, shared}
+        kwargs['env'] = {key: val for key, val in (kwargs.get('env') or os.environ).items()
+                         if not key.startswith('GIT_')}
+        kwargs['env'].update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+        return LOCAL_RUN(args[:1] + ['-c', 'core.hooksPath=/dev/null'] + args[1:], **kwargs)
+    monkeypatch.setattr(subprocess, 'run', local_run)
+    def git(*args, cwd=root):
+        return subprocess.check_output(['git', *args], cwd=cwd, text=True).strip()
+    def commit(message):
+        git('add', '.')
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-m', message)
+        return git('rev-parse', 'HEAD')
+
+    git('init', '-b', 'main')
+    mod.DATA.parent.mkdir(parents=True, exist_ok=True)
+    mod.DATA.write_text('{}')
+    mod.HISTORY_DIR.mkdir(parents=True)
+    dated_file = mod.HISTORY_DIR / '2026-09-17.json'
+    research_copy = mod.HISTORY_DIR / '2026-09-17.threshold-2.5.json'
+    dated_file.write_text('{}')
+    research_copy.write_text('{}')
+    first = commit('initial')
+    (root / 'parent-marker').write_text('base')
+    parent = commit('base')
+    mod.DATA.write_text(json.dumps({'data_as_of': '2026-09-18', 'intersection': ['000001.SZ']}))
+    mod.INDEX.write_text(json.dumps({'items': [{'date': '2026-09-18', 'intersection_count': 1}]}))
+    if case == 'foreign-candidate':
+        (root / 'foreign-data').write_text('foreign to low-chip release')
+    if case == 'invalid-date':
+        (mod.HISTORY_DIR / '2026-02-30.json').write_text('{}')
+    if case == 'gitlink':
+        git('config', 'diff.ignoreSubmodules', 'all')
+        git('add', '.')
+        git('update-index', '--add', '--cacheinfo', f'160000,{parent},foreign-submodule')
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-m', 'candidate')
+        candidate = git('rev-parse', 'HEAD')
+        assert git('ls-tree', candidate, 'foreign-submodule').startswith('160000 commit ')
+    else:
+        candidate = commit('candidate')
+    git('switch', '-c', 'upstream', first if case == 'unrelated-parent' else parent)
+    (root / 'upstream-marker').write_text('concurrent publish')
+    commit('upstream work')
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'cherry-pick', candidate)
+    if case == 'history-addition':
+        (mod.HISTORY_DIR / '2026-09-16.json').write_text('{}')
+        commit('additional history on remote')
+    if case == 'history-deletion':
+        dated_file.unlink()
+        commit('deleted history on remote')
+    if case == 'foreign-history':
+        research_copy.write_text('{"unowned":true}')
+        commit('changed unrelated history experiment')
+    origin = git('rev-parse', 'HEAD')
+    git('update-ref', 'refs/remotes/origin/main', origin)
+    git('switch', '--detach', candidate)
+    git('worktree', 'add', '--detach', str(shared), origin)
+    monkeypatch.setattr(mod, 'SHARED_ROOT', shared)
+
+    state = tmp_path / 'pending.json'
+    original = {'trade_date': '2026-09-18', 'candidate_commit': candidate,
+                'd1_sync_started': True, 'd1_verified': False, 'pushed': False}
+    original_bytes = json.dumps(original).encode()
+    state.write_bytes(original_bytes)
+    real_run = mod.run
+    def run(args, *a, **kw):
+        op = args[1]
+        assert op not in ('push', 'merge')
+        if op in ('fetch', 'ls-remote'):
+            sha = parent if case == 'remote-moved' else origin
+            return subprocess.CompletedProcess(args, 0, f'{sha}\trefs/heads/main\n', '')
+        return real_run(args, *a, **kw)
+    events = []
+    real_gate = mod.shared_checkout_gate
+    def gate(commit):
+        events.append(commit)
+        real_gate(commit)
+    def verify_history(_token):
+        events.append('history')
+        if case == 'history-fails':
+            raise RuntimeError('history mismatch')
+        if case == 'shared-head-moved':
+            git('update-ref', 'HEAD', parent, cwd=shared)
+        if case == 'shared-index-changed':
+            (shared / 'foreign-staged').write_text('in progress')
+            git('add', 'foreign-staged', cwd=shared)
+        if case == 'shared-staged-gitlink':
+            git('config', 'diff.ignoreSubmodules', 'all', cwd=shared)
+            git('update-index', '--add', '--cacheinfo', f'160000,{parent},foreign-submodule', cwd=shared)
+        if case == 'shared-owned-dirty':
+            (shared / mod.DATA_RELATIVE).write_text('{"concurrent":true}')
+    monkeypatch.setattr(mod, 'run', run)
+    monkeypatch.setattr(mod, 'shared_checkout_gate', gate)
+    monkeypatch.setattr(mod, 'load_env_file', lambda *a: {'LOW_CHIP_SYNC_TOKEN': 'mock'})
+    monkeypatch.setattr(mod, 'verify_d1_api', lambda *a: {'results': [{'stock_code': '000001'}]})
+    monkeypatch.setattr(mod, 'verify_history_index', verify_history)
+
+    accepted = case in {'equivalent', 'foreign-history'}
+    assert mod.recover_pending_release(state) == (0 if accepted else 1)
+    if accepted:
+        assert events == [origin, 'history', origin]
+        assert json.loads(state.read_text()) == dict(original, candidate_commit=origin,
+                                                    d1_verified=True, pushed=True)
+    else:
+        expected_events = []
+        if case.startswith('shared-'):
+            expected_events = [origin, 'history', origin]
+        elif case in {'history-fails', 'remote-moved'}:
+            expected_events = [origin, 'history']
+        assert events == expected_events
+        assert state.read_bytes() == original_bytes
+        if case == 'shared-staged-gitlink':
+            assert any(row.get('status') == 'STAGING BLOCKER' and 'shared index changed' in row.get('reason', '')
+                       for row in map(json.loads, capsys.readouterr().out.splitlines()))
 
 
 @pytest.mark.parametrize('api_case', [

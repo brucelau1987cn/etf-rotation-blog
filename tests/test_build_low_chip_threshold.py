@@ -105,6 +105,70 @@ def test_fetch_retries_metric_drift_before_accepting_page(monkeypatch):
     assert '季线收盘获利[20261030]' in result['datas'][0]
 
 
+@pytest.mark.parametrize('recovers', [True, False])
+def test_month_metric_exhaustion_retries_same_page_integrity_budget(monkeypatch, tmp_path, recovers):
+    """A metric precheck failure must reach the pagination integrity retry."""
+    import json
+    import subprocess
+    module = load_module()
+    module.DATA = tmp_path / 'snapshot.json'
+    calls, sleeps = [], []
+    writes = []
+    original_write = module.Path.write_text
+
+    def response(args, **kwargs):
+        page = int(args[args.index('--page') + 1])
+        calls.append(page)
+        field = '月线收盘获利'
+        if page == 2 and (not recovers or calls.count(2) < 9):
+            field = '收盘获利'
+        return subprocess.CompletedProcess(args, 0, json.dumps({
+            'datas': [{'股票代码': f'{page:06d}.SZ', field + '[20261120]': 0.1}],
+            'code_count': 3, 'has_more': page < 3,
+        }), '')
+
+    def record_write(path, text, **kwargs):
+        writes.append(json.loads(text))
+        return original_write(tmp_path / f'receipt-{len(writes)}.json', text, **kwargs)
+
+    monkeypatch.setattr(module.subprocess, 'run', response)
+    monkeypatch.setattr(module.time, 'sleep', sleeps.append)
+    monkeypatch.setattr(module.Path, 'write_text', record_write)
+    if recovers:
+        rows, total = module.paginate('A股 月线收盘获利小于1.5%')
+        assert total == 3
+        assert [row['股票代码'] for row in rows] == ['000001.SZ', '000002.SZ', '000003.SZ']
+        assert all('月线收盘获利[20261120]' in row for row in rows)
+        assert calls == [1] + [2] * 9 + [3]
+        assert len(writes) == 3
+    else:
+        with pytest.raises(SystemExit, match='STAGING BLOCKER: missing explicit 月线收盘获利 on page 2'):
+            module.paginate('A股 月线收盘获利小于1.5%')
+        assert calls == [1] + [2] * 12
+        assert len(writes) == 1
+    # Each four-attempt fetch sleeps 3/6/9 seconds; the outer budget sleeps 3/6.
+    assert sleeps == [3.0, 6.0, 9.0, 3.0, 3.0, 6.0, 9.0, 6.0] + ([] if recovers else [3.0, 6.0, 9.0])
+    assert not module.DATA.exists()
+
+
+@pytest.mark.parametrize('detail', ['quota exhausted: code=113', 'unauthorized 401', 'invalid key'])
+def test_pagination_preserves_terminal_fetch_failure_budget(monkeypatch, detail):
+    import subprocess
+    module = load_module()
+    calls, sleeps = [], []
+
+    def response(args, **kwargs):
+        calls.append(int(args[args.index('--page') + 1]))
+        return subprocess.CompletedProcess(args, 1, '', detail)
+
+    monkeypatch.setattr(module.subprocess, 'run', response)
+    monkeypatch.setattr(module.time, 'sleep', sleeps.append)
+    with pytest.raises(SystemExit, match='iWenCai error:'):
+        module.paginate('A股 月线收盘获利小于1.5%')
+    assert calls == [1]
+    assert sleeps == []
+
+
 # ============ pagination must never silently truncate ============
 
 def test_paginate_walks_past_ten_pages_while_has_more_is_true(monkeypatch):

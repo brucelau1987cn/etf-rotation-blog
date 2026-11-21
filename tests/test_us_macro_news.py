@@ -5,7 +5,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE_COMPONENT = ROOT / "src" / "components" / "UsMacroFundGrid.astro"
-PUBLISHER = ROOT / "scripts" / "update_us_etf_garden.py"
 
 
 def test_macro_cards_render_update_label_and_no_news_block():
@@ -13,13 +12,6 @@ def test_macro_cards_render_update_label_and_no_news_block():
     assert "更新日" in source
     for marker in ("最新解读", "item.news", "news.title", "news.url", "同花顺问财"):
         assert marker not in source
-
-
-def test_us_close_publisher_probes_macro_page_and_json():
-    source = PUBLISHER.read_text(encoding="utf-8")
-    assert '"https://etf.peekabo.cc/us-macro/"' in source
-    assert '"https://etf.peekabo.cc/data/us-macro-dashboard.json"' in source
-    assert '"public/data/us-macro-dashboard.json"' in source
 
 
 def test_live_macro_snapshot_has_no_news_contract():

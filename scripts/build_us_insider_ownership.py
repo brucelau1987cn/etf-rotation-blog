@@ -184,9 +184,11 @@ def fetch_insider_trades(
     client: SecClient, cik: str, limit: int = 5
 ) -> list[dict]:
     """Fetch recent Form 4 filings for a company and parse their trades."""
+    # SEC accepts discrete feed counts; preserve the caller's filing budget locally.
+    feed_count = next((n for n in (*range(10, 101, 10), 500) if n >= limit), 500)
     url = (
         f"{BASE}/cgi-bin/browse-edgar?action=getcompany&CIK={cik}"
-        f"&type=4&dateb=&owner=include&count={limit}&output=atom"
+        f"&type=4&dateb=&owner=include&count={feed_count}&output=atom"
     )
     raw = client.get(url)
     text = raw.decode("utf-8", errors="ignore")
@@ -194,7 +196,7 @@ def fetch_insider_trades(
 
     accessions = re.findall(r"<accession-number>(.*?)</accession-number>", text)
     out: list[dict] = []
-    for acc in accessions:
+    for acc in accessions[:limit]:
         acc = acc.strip()
         no_dash = acc.replace("-", "")
         index_url = f"{BASE}/Archives/edgar/data/{int(cik)}/{no_dash}/{acc}-index.htm"
