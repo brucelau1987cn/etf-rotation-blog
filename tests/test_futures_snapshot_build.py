@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+FROZEN_NOW = "2026-11-19T00:00:00+08:00"
 sys.path.insert(0, str(ROOT / "scripts"))
 import futures_compass_data as data
 
@@ -20,14 +21,37 @@ spec.loader.exec_module(validator)
 def run_validator(monkeypatch, tmp_path, capsys, payload, *args):
     path = tmp_path / "snapshot.json"
     path.write_text(json.dumps(payload))
-    monkeypatch.setattr(sys, "argv", ["validate", "--path", str(path), "--now", "2026-11-19T00:00:00+08:00", *args])
+    monkeypatch.setattr(sys, "argv", ["validate", "--path", str(path), "--now", FROZEN_NOW, *args])
     code = validator.main()
     return code, json.loads(capsys.readouterr().out)
 
 
 @pytest.fixture
 def snapshot():
-    return json.loads((ROOT / "public/data/futures-compass.json").read_text())
+    payload = json.loads((ROOT / "public/data/futures-compass.json").read_text())
+    # Keep committed membership/content; pin the freshness input before mutations.
+    payload["generated_at"] = FROZEN_NOW
+    return payload
+
+
+@pytest.mark.parametrize("source_generated_at", ["2020-01-01T00:00:00+08:00", "2030-01-01T00:00:00+08:00"])
+def test_snapshot_fixture_freezes_committed_date_drift(monkeypatch, request, tmp_path, capsys, source_generated_at):
+    source = ROOT / "public/data/futures-compass.json"
+    committed = json.loads(source.read_text())
+    committed["generated_at"] = source_generated_at
+    read_text = Path.read_text
+
+    def read_with_changed_date(path, *args, **kwargs):
+        if path == source:
+            return json.dumps(committed)
+        return read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_with_changed_date)
+    snapshot = request.getfixturevalue("snapshot")
+    assert snapshot["generated_at"] == "2026-11-19T00:00:00+08:00"
+    code, report = run_validator(monkeypatch, tmp_path, capsys, snapshot, "--watchlist", "config/futures-watchlist.json")
+    assert code == 0
+    assert report["errors"] == []
 
 
 @pytest.mark.parametrize("bad", ["lc", " LC", "LC ", "", " ", 12, None, [], {}, "ＬＣ"])
@@ -80,7 +104,7 @@ def test_build_validates_committed_dynamic_watchlist_offline(monkeypatch, tmp_pa
     assert report["errors"] == []
 
 
-@pytest.mark.parametrize("mutation", ["missing", "duplicate", "ranking", "stale", "core"])
+@pytest.mark.parametrize("mutation", ["missing", "duplicate", "ranking", "stale", "future", "core"])
 def test_offline_mode_preserves_snapshot_gates(monkeypatch, tmp_path, capsys, snapshot, mutation):
     if mutation == "missing":
         snapshot["items"].pop()
@@ -90,11 +114,17 @@ def test_offline_mode_preserves_snapshot_gates(monkeypatch, tmp_path, capsys, sn
         snapshot["summary"]["ranking"].pop()
     elif mutation == "stale":
         snapshot["generated_at"] = "2020-01-01T00:00:00+08:00"
+    elif mutation == "future":
+        snapshot["generated_at"] = "2030-01-01T00:00:00+08:00"
     else:
         snapshot["items"][0].pop("price")
     code, report = run_validator(monkeypatch, tmp_path, capsys, snapshot, "--watchlist", "config/futures-watchlist.json")
     assert code == 2
     assert report["errors"]
+    if mutation == "stale":
+        assert report["errors"] == ["futures snapshot is older than 259200 seconds"]
+    elif mutation == "future":
+        assert report["errors"] == ["futures snapshot generated_at is in the future"]
 
 
 def test_explicit_and_managed_config_detect_coherent_omission(monkeypatch, tmp_path, capsys, snapshot):
