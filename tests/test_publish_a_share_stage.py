@@ -54,9 +54,12 @@ def test_managed_paths_keeps_foreign_changes_out_of_candidate():
     assert foreign == ["notes/private.txt"]
 
 
-def test_managed_paths_rejects_foreign_catalog_input():
-    with pytest.raises(RuntimeError, match="catalog inputs contain unrelated changes"):
-        stage.managed_paths("2026-07-23", {"public/data/us-etf-pool.json"})
+def test_managed_paths_classifies_isolated_foreign_catalog_inputs():
+    foreign = {"public/data/us-etf-pool.json", "public/data/a-share-nightly-deployment.json"}
+    owned, ignored = stage.managed_paths("2026-07-23", foreign)
+    assert owned == []
+    assert set(ignored) == foreign
+    assert foreign.isdisjoint(stage.A_SHARE_MANAGED)
 
 
 def test_refresh_reselects_candidates_before_macro_gate(tmp_path, monkeypatch):
@@ -74,6 +77,7 @@ def test_refresh_reselects_candidates_before_macro_gate(tmp_path, monkeypatch):
     monkeypatch.setattr(stage, "run", fake_run)
     monkeypatch.setattr(stage, "build_payload", lambda *args: {})
     monkeypatch.setattr(stage, "atomic_write_json", lambda *args: None)
+    monkeypatch.setattr(stage, "refresh_catalog_contract", lambda: calls.append(["isolated-catalog-contract"]))
 
     stage.refresh_derived_artifacts("2026-07-28T08:30:00+08:00")
 
@@ -82,6 +86,9 @@ def test_refresh_reselects_candidates_before_macro_gate(tmp_path, monkeypatch):
     assert calls[2][1:] == ["scripts/audit_a_share_harvest.py"]
     assert calls[3][1:] == ["scripts/enrich_garden_recommendations.py", "--validate"]
     assert calls[4][1:] == ["scripts/bootstrap_build_python.py"]
+    assert calls[6][1:] == ["scripts/generate_public_dashboard_payloads.py"]
+    assert calls[7] == ["isolated-catalog-contract"]
+    assert calls[8][1:] == ["scripts/validate_dashboard_batches.py"]
     assert all("paper_trade_runner.py" not in call for call in calls)
 
 

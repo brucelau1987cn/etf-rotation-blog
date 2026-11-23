@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,6 @@ from zoneinfo import ZoneInfo
 try:
     from a_share_nightly_contract import (
         BACKTEST_FILE,
-        CATALOG_INPUT_FILES,
         GENERATED_PUBLIC_FILES,
         MID_MACRO_FILE,
         POOL_FILE,
@@ -37,7 +37,6 @@ try:
 except ModuleNotFoundError:
     from scripts.a_share_nightly_contract import (
         BACKTEST_FILE,
-        CATALOG_INPUT_FILES,
         GENERATED_PUBLIC_FILES,
         MID_MACRO_FILE,
         POOL_FILE,
@@ -110,6 +109,52 @@ def article_path(trade_date: str) -> str:
     return f"src/content/blog/{trade_date}.md"
 
 
+def refresh_catalog_contract() -> None:
+    """Derive and validate the catalog from the same bytes as the candidate.
+
+    A private-index candidate combines HEAD with explicit A-share outputs.
+    Mirror that view in a disposable worktree so every dataset reader,
+    including optional datasets and cross-file validation, sees that view.
+    Foreign drafts in the publishing worktree remain untouched.
+    """
+    env = project_subprocess_env()
+    temporary = Path(tempfile.mkdtemp(prefix="a-share-stage-catalog-"))
+    snapshot = temporary / "worktree"
+    primary_error = None
+    try:
+        run(["git", "worktree", "add", "--detach", str(snapshot), "HEAD"], cwd=ROOT)
+        for relative in A_SHARE_MANAGED:
+            source = ROOT / relative
+            target = snapshot / relative
+            if source.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
+            else:
+                target.unlink(missing_ok=True)
+        data = snapshot / "public/data"
+        run([
+            BUILD_PYTHON, "scripts/generate_data_catalog.py", "--data-dir", str(data),
+        ], cwd=ROOT, env=env)
+        run([
+            BUILD_PYTHON, "scripts/validate_public_data_contracts.py", "--data-dir", str(data),
+            "--schema-dir", str(snapshot / "public/schemas"),
+        ], cwd=ROOT, env=env)
+        payload = json.loads((data / "catalog.json").read_bytes())
+    except BaseException as error:
+        primary_error = error
+        raise
+    finally:
+        try:
+            run(["git", "worktree", "remove", "--force", str(snapshot)], cwd=ROOT, check=True)
+            temporary.rmdir()
+        except Exception as cleanup_error:
+            # Retain the target and Git registration together for scoped recovery.
+            raise RuntimeError(
+                f"catalog worktree cleanup failed; retained location: {snapshot}: {cleanup_error}"
+            ) from (primary_error if primary_error is not None else cleanup_error)
+    atomic_write_json(ROOT / "public/data/catalog.json", payload)
+
+
 def refresh_derived_artifacts(generated_at: str) -> None:
     env = project_subprocess_env()
     run([PROJECT_PYTHON, "scripts/select_a_share_candidates.py"], env=env)
@@ -123,8 +168,7 @@ def refresh_derived_artifacts(generated_at: str) -> None:
     run([PROJECT_PYTHON, "scripts/bootstrap_build_python.py"], env=env)
     run([PROJECT_PYTHON, "scripts/generate_a_han_precise_signals.py"], env=env, timeout=600)
     run([BUILD_PYTHON, "scripts/generate_public_dashboard_payloads.py"], env=env)
-    run([BUILD_PYTHON, "scripts/generate_data_catalog.py"], env=env)
-    run([BUILD_PYTHON, "scripts/validate_public_data_contracts.py"], env=env)
+    refresh_catalog_contract()
     run([PROJECT_PYTHON, "scripts/validate_dashboard_batches.py"], env=env)
 
 
@@ -149,9 +193,6 @@ def validate_stage_inputs(stage_key: str) -> tuple[str, str]:
 
 def managed_paths(trade_date: str, changed: set[str]) -> tuple[list[str], list[str]]:
     allowed = set(A_SHARE_MANAGED) | {article_path(trade_date)}
-    dirty_catalog_inputs = (changed & set(CATALOG_INPUT_FILES)) - allowed
-    if dirty_catalog_inputs:
-        raise RuntimeError(f"catalog inputs contain unrelated changes: {sorted(dirty_catalog_inputs)}")
     owned = sorted(changed & allowed)
     foreign = sorted(changed - allowed)
     return owned, foreign
