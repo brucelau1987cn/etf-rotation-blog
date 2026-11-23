@@ -12,24 +12,23 @@ def test_latest_daily_report_contract_and_archive():
     import json
     data = (ROOT / 'src/data/rolling-daily-insights.ts').read_text(encoding='utf-8')
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    report = json.JSONDecoder().raw_decode(data.split("'2026-11-20': ", 1)[1])[0]
-    assert report['title'] == '11月20日滚动信号收盘复盘'
-    assert [s['symbol'] for s in report['signals']] == ['002185', '600021', '600637', '688041', 'TSLA', 'SI=F']
-    assert [s['validation'] for s in report['signals']] == ['confirmed', 'confirmed', 'confirmed', 'reclaimed', 'confirmed', 'watch']
+    report = json.JSONDecoder().raw_decode(data.split("'2026-11-23': ", 1)[1])[0]
+    assert report['title'] == '11月23日滚动信号收盘复盘'
+    assert [(x['symbol'], x['validation']) for x in report['signals']] == [('688041', 'reclaimed')]
     block = json.dumps(report, ensure_ascii=False)
-    assert block.count('received_at=') == block.count('trigger_time_utc=') == 12
-    for marker in ['华天科技', '上海电力', '东方明珠', '海光信息', '特斯拉', '白银期货', '停止验证 240m', '15:17', 'UNAVAILABLE', 'INSUFFICIENT', '美东11/19']:
+    assert block.count('event_id=') == 1
+    for marker in ('海光信息', '159.96', '164.00', '午休', 'UNAVAILABLE', 'INSUFFICIENT', 'evt_1795405620823_2on6uw'):
         assert marker in block
-    assert "rollingDailyReports['2026-11-20']" in page
-    assert "'2026-11-20', href: '/rolling/insights/'" in data
-    assert "'2026-11-19', href: '/rolling/insights/2026-11-19/'" in data
-    assert (ROOT / 'src/pages/rolling/insights/2026-11-19.astro').is_file()
-    assert not (ROOT / 'src/pages/rolling/insights/2026-11-20.astro').exists()
+    assert "rollingDailyReports['2026-11-23']" in page
+    assert "'2026-11-23', href: '/rolling/insights/'" in data
+    assert "'2026-11-20', href: '/rolling/insights/2026-11-20/'" in data
+    assert (ROOT / 'src/pages/rolling/insights/2026-11-20.astro').is_file()
+    assert not (ROOT / 'src/pages/rolling/insights/2026-11-23.astro').exists()
     redirects = (ROOT / 'public/_redirects').read_text().splitlines()
-    assert '/rolling/insights/2026-11-19 /rolling/insights/2026-11-19/ 301' in redirects
-    assert '/rolling/insights/2026-11-19/ /rolling/insights/ 301' not in redirects
-    assert '/rolling/insights/2026-11-20 /rolling/insights/ 301' in redirects
-    assert '/rolling/insights/2026-11-20/ /rolling/insights/ 301' in redirects
+    assert '/rolling/insights/2026-11-20 /rolling/insights/2026-11-20/ 301' in redirects
+    assert '/rolling/insights/2026-11-20/ /rolling/insights/ 301' not in redirects
+    assert '/rolling/insights/2026-11-23 /rolling/insights/ 301' in redirects
+    assert '/rolling/insights/2026-11-23/ /rolling/insights/ 301' in redirects
     component = (ROOT / 'src/components/RollingDailyInsightReport.astro').read_text()
     for marker in ('今日操作结论', '什么时候买', '什么时候卖', '今日信号表', '逐标的计划', '执行纪律'):
         assert marker in component
@@ -69,9 +68,9 @@ def test_insights_2026_09_23():
     assert '9月28日滚动信号收盘复盘' in data, 'title missing'
     assert data.index("'2026-09-28':") < data.index("'2026-09-24':"), 'today must come before prev'
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro not pointing to latest'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro not pointing to latest'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-20'")[1].split('},')[0], 'catalog latest must be today'
+    assert "tradeDate: '2026-11-23'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-23'")[1].split('},')[0], 'catalog latest must be today'
     assert (ROOT / 'src/pages/rolling/insights/2026-09-24.astro').exists(), 'archive static page missing'
     assert (ROOT / 'src/pages/rolling/insights/2026-09-22.astro').exists(), 'prev static page missing'
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
@@ -95,7 +94,7 @@ def test_insights_2026_09_28():
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-09-24 /rolling/insights/2026-09-24/ 301' in redirects
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page
+    assert "rollingDailyReports['2026-11-23']" in page
 
 
 def test_insights_2026_09_29():
@@ -109,7 +108,7 @@ def test_insights_2026_09_29():
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-09-29 /rolling/insights/2026-09-29/ 301' in redirects
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page
+    assert "rollingDailyReports['2026-11-23']" in page
 
 
 def test_insights_2026_09_30():
@@ -123,10 +122,10 @@ def test_insights_2026_09_30():
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-09-29 /rolling/insights/2026-09-29/ 301' in redirects
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page
+    assert "rollingDailyReports['2026-11-23']" in page
     import re as _re
     cat = _re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, _re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in cat, 'catalog latest must be today'
+    assert "tradeDate: '2026-11-23'" in cat, 'catalog latest must be today'
 
 
 def test_insights_2026_10_08():
@@ -140,14 +139,14 @@ def test_insights_2026_10_08():
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-09-30 /rolling/insights/2026-09-30/ 301' in redirects
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page
+    assert "rollingDailyReports['2026-11-23']" in page
 
 def test_insights_2026_10_14():
     import json, re
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     redirects = (ROOT / "public/_redirects").read_text(encoding="utf-8")
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-15'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-15'
     assert "'2026-10-14':" in data, 'archive 2026-10-14 key missing'
     assert "10月14日滚动信号收盘复盘" in data, 'title missing'
     block = data.split("'2026-10-14': ", 1)[1].split(",\n  '2026-10-13':", 1)[0]
@@ -163,7 +162,7 @@ def test_insights_2026_10_14():
     assert (ROOT / 'src/pages/rolling/insights/2026-10-13.astro').exists(), 'archive 2026-10-13 page missing'
     assert (ROOT / 'src/pages/rolling/insights/2026-10-12.astro').exists(), 'archive 2026-10-12 page missing'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-20'")[1].split('},')[0], 'catalog latest must be 2026-10-15'
+    assert "tradeDate: '2026-11-23'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-23'")[1].split('},')[0], 'catalog latest must be 2026-10-15'
     assert "tradeDate: '2026-10-13'" in cat and "/rolling/insights/2026-10-13/'" in cat.split("tradeDate: '2026-10-13'")[1].split('},')[0], 'catalog must list 2026-10-13 archive'
     assert '/rolling/insights/2026-10-13 /rolling/insights/2026-10-13/ 301' in redirects, '2026-10-13 redirect missing'
     assert '/rolling/insights/2026-10-13/ /rolling/insights/ 301' not in redirects, 'archive must not redirect to root'
@@ -186,9 +185,9 @@ def test_latest_2026_10_15_report_contract():
     assert 'UNAVAILABLE' in block
     assert 'INSUFFICIENT' in block
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page
+    assert "rollingDailyReports['2026-11-23']" in page
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-20'")[1].split('},')[0]
+    assert "tradeDate: '2026-11-23'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-23'")[1].split('},')[0]
     assert (ROOT / 'src/pages/rolling/insights/2026-10-14.astro').exists()
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-10-15 /rolling/insights/2026-10-15/ 301' in redirects
@@ -199,7 +198,7 @@ def test_latest_2026_10_16_report_contract():
     data = (ROOT / 'src/data/rolling-daily-insights.ts').read_text(encoding='utf-8')
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-16'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-16'
     block = data.split("'2026-10-16': ", 1)[1].split(",\n  '2026-10-15':", 1)[0]
     report = json.loads(block)
     assert report['title'] == '10月16日滚动信号收盘复盘'
@@ -217,7 +216,7 @@ def test_latest_2026_10_16_report_contract():
     assert data.index("'2026-10-16':") < data.index("'2026-10-15':")
     assert (ROOT / 'src/pages/rolling/insights/2026-10-15.astro').exists(), 'archive 2026-10-15 page missing'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert f"tradeDate: '2026-11-20'" in cat and "/rolling/insights/'" in cat.split(f"tradeDate: '2026-11-20'")[1].split('},')[0]
+    assert f"tradeDate: '2026-11-23'" in cat and "/rolling/insights/'" in cat.split(f"tradeDate: '2026-11-23'")[1].split('},')[0]
     assert '/rolling/insights/2026-10-16 /rolling/insights/2026-10-16/ 301' in redirects
     assert '/rolling/insights/2026-10-16/ /rolling/insights/ 301' not in redirects
 
@@ -237,7 +236,7 @@ def test_latest_2026_10_19_report_contract():
     data = (ROOT / 'src/data/rolling-daily-insights.ts').read_text(encoding='utf-8')
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-19'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-19'
     block = data.split("'2026-10-19': ", 1)[1].split(",\n  '2026-10-16':", 1)[0]
     report = json.loads(block)
     assert report['title'] == '10月19日滚动信号收盘复盘'
@@ -252,7 +251,7 @@ def test_latest_2026_10_19_report_contract():
     assert data.index("'2026-10-19':") < data.index("'2026-10-16':")
     assert (ROOT / 'src/pages/rolling/insights/2026-10-16.astro').exists(), 'archive 2026-10-16 page missing'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-20'")[1].split('},')[0]
+    assert "tradeDate: '2026-11-23'" in cat and "/rolling/insights/'" in cat.split("tradeDate: '2026-11-23'")[1].split('},')[0]
     assert "tradeDate: '2026-10-16'" in cat and "/rolling/insights/2026-10-16/'" in cat.split("tradeDate: '2026-10-16'")[1].split('},')[0]
     assert '/rolling/insights/2026-10-16 /rolling/insights/2026-10-16/ 301' in redirects
     assert '/rolling/insights/2026-10-16/ /rolling/insights/ 301' not in redirects
@@ -270,10 +269,10 @@ def test_insights_2026_10_20():
     redirects = (ROOT / 'public/_redirects').read_text(encoding='utf-8')
     assert '/rolling/insights/2026-10-19 /rolling/insights/2026-10-19/ 301' in redirects
     page = (ROOT / 'src/pages/rolling/insights.astro').read_text(encoding='utf-8')
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-20'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-20'
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "/rolling/insights/2026-10-19/" in cat
     block = data.split("'2026-10-20': ", 1)[1].split("\n  '2026-10-19':", 1)[0]
     report = json.loads(block[:block.rstrip().rfind('}') + 1].rstrip().rstrip(','))
@@ -300,13 +299,13 @@ def test_insights_2026_10_21():
         assert nid in block, nid
     for word in ('UNAVAILABLE', 'INSUFFICIENT'):
         assert word in block, word
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-21'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-21'
     assert (ROOT / 'src/pages/rolling/insights/2026-10-20.astro').exists(), 'archive 2026-10-20 page missing'
     assert '/rolling/insights/2026-10-20 /rolling/insights/2026-10-20/ 301' in redirects
     assert '/rolling/insights/2026-10-20/ /rolling/insights/ 301' not in redirects
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "/rolling/insights/2026-10-20/" in cat
 
 
@@ -336,7 +335,7 @@ def test_latest_report_2026_10_26_contract():
     data = (ROOT / "src/data/rolling-daily-insights.ts").read_text(encoding="utf-8")
     page = (ROOT / "src/pages/rolling/insights.astro").read_text(encoding="utf-8")
     redirects = (ROOT / "public/_redirects").read_text(encoding="utf-8")
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-10-26'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-10-26'
     block = data.split("'2026-10-26': ", 1)[1].split(",\n  '2026-10-23':", 1)[0]
     report = json.loads(block)
     assert report["tradeDate"] == "2026-10-26"
@@ -355,7 +354,7 @@ def test_latest_report_2026_10_26_contract():
     assert "/rolling/insights/2026-10-23/ /rolling/insights/ 301" not in redirects
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "/rolling/insights/2026-10-23/" in cat
 
 def test_insights_2026_10_28():
@@ -371,13 +370,13 @@ def test_insights_2026_10_28():
     assert 'SI=F' in block, 'key symbol missing'
     assert '多方贴价确认' in block and '空方确认' in block
     assert '10月28日滚动信号收盘复盘' in data, 'title missing'
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be today'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be today'
     assert (ROOT / 'src/pages/rolling/insights/2026-10-27.astro').exists(), 'archive static page missing'
     assert '/rolling/insights/2026-10-27 /rolling/insights/2026-10-27/ 301' in redirects
     assert '/rolling/insights/2026-10-27/ /rolling/insights/ 301' not in redirects
     cat = re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "/rolling/insights/2026-10-27/" in cat
 
 
@@ -412,13 +411,13 @@ def test_insights_2026_10_29():
     assert '空方贴价确认' in seg and '空方收复' in seg
     for word in ('UNAVAILABLE', 'INSUFFICIENT'):
         assert word in seg, word
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be today'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be today'
     assert (ROOT / 'src/pages/rolling/insights/2026-10-28.astro').exists(), 'archive 2026-10-28 page missing'
     assert '/rolling/insights/2026-10-28 /rolling/insights/2026-10-28/ 301' in redirects
     assert '/rolling/insights/2026-10-28/ /rolling/insights/ 301' not in redirects
     cat = _re.search(r"rollingDailyArticleCatalog = \[(.+?)\];", data, _re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "/rolling/insights/2026-10-28/" in cat
 
 
@@ -443,7 +442,7 @@ def test_insights_2026_10_30_inventory_and_price_honesty():
     assert '/rolling/insights/2026-10-29 /rolling/insights/2026-10-29/ 301' in redirects
     assert '/rolling/insights/2026-10-29/ /rolling/insights/ 301' not in redirects
     catalog = re.search(r'rollingDailyArticleCatalog = \[(.+?)\];',data,re.S).group(1)
-    assert "tradeDate: '2026-11-20'" in catalog.strip().splitlines()[0]
+    assert "tradeDate: '2026-11-23'" in catalog.strip().splitlines()[0]
 
 
 def test_insights_2026_11_02():
@@ -468,12 +467,12 @@ def test_insights_2026_11_02():
     for word in ('UNAVAILABLE', 'INSUFFICIENT'):
         assert word in block, word
     assert 'SI=F' in report['discipline']
-    assert "rollingDailyReports['2026-11-20']" in page, 'insights.astro latest must be 2026-11-02'
+    assert "rollingDailyReports['2026-11-23']" in page, 'insights.astro latest must be 2026-11-02'
     assert '11月2日滚动信号收盘复盘' in page or report['title'] in data
     assert (ROOT / 'src/pages/rolling/insights/2026-10-30.astro').exists(), 'archive 2026-10-30 page missing'
     assert '/rolling/insights/2026-10-30 /rolling/insights/2026-10-30/ 301' in redirects
     assert '/rolling/insights/2026-10-30/ /rolling/insights/ 301' not in redirects
     cat = re.search(r'rollingDailyArticleCatalog = \[(.+?)\];', data, re.S).group(1)
     first = cat.strip().splitlines()[0]
-    assert "tradeDate: '2026-11-20'" in first and "href: '/rolling/insights/'" in first
+    assert "tradeDate: '2026-11-23'" in first and "href: '/rolling/insights/'" in first
     assert "tradeDate: '2026-10-30'" in cat and '/rolling/insights/2026-10-30/' in cat

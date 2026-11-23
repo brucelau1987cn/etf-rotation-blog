@@ -32,6 +32,45 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports = {
+  '2026-11-23': {
+  "tradeDate": "2026-11-23",
+  "shortDate": "11/23",
+  "title": "11月23日滚动信号收盘复盘",
+  "subtitle": "四市场16个已接入标的核查：当日D1仅1条海光信息120m空方，收盘164.00收复159.96；其余市场截至取样无新增节点。",
+  "cutoff": "北京时间11/23约18:32截面。A股及港股已收盘；美股11/23常规盘尚未开，最新完成盘为美东11/20；白银11/23仍为未完会话，不作结算判断。",
+  "summary": "确认0、收复1、分化0、观察0。海光信息收盘164.00高于首次入库信号159.96，但当日仍跌0.15%，弱于上证+0.15%、深证+1.93%和创业板+3.08%。这是空方信号价被收回，不是趋势反转；量比0.913、价格仍低于MA5/10/20，尚无多方节点。",
+  "buyRule": "无多方触发，不因空方收复直接买入。海光信息先观察159.96回踩能否守住，再看放量站稳165.39；更强修复需重新挑战MA5约175.98。未满足条件继续观察。",
+  "sellRule": "已有持仓重点看159.96和157.01：跌回159.96且反抽不回，撤销本次收复判断；有效跌破157.01且不能收回，提高风险等级。165.39反复受阻而量能不足，不追涨。",
+  "discipline": "全量D1当日1节点形成1个独立价格簇，不能将周期节点重复计样本。trigger_time_utc与received_at相同且为11:47午休，实际触发时刻 UNAVAILABLE，只能说明接收时刻；首次入库价格159.96及sina-m1来源原样保留，不推断11:47存在真实成交。当天后续收盘仅作价格侧复核，不构成可成交回测。D1/3D/5D收益、MFE/MAE和基准超额 UNAVAILABLE；前瞻样本 INSUFFICIENT。港股、美股、期货零新增不等于无风险，不把旧LKG计为今日信号；保持影子解读，不更改生产权重、仓位、动作。",
+  "signals": [
+    {
+      "name": "海光信息",
+      "symbol": "688041",
+      "market": "A股",
+      "direction": "SELL",
+      "nodes": "120m 11:47:00（接收时刻，午休）",
+      "signalPrices": "120m 159.96（首次入库）",
+      "close": "164.00",
+      "change": "-0.15%",
+      "validation": "reclaimed",
+      "validationLabel": "空方收复 · 仅价格侧复核",
+      "verdict": "收盘高于159.96约2.53%，该空方价位未延续至收盘。低开后修复但仍低于前收164.25及三条短中期均线；量比不足1、主力净流出，不能把价格收复等同趋势反转。午休接收字段不证明真实触发时点。",
+      "support": "159.96 首次入库信号锚 / 157.01 当日日低",
+      "pressure": "165.39 当日日高 / 175.98 MA5 / 185.32 MA20 / 186.19 MA10",
+      "buyPlan": "先守159.96，再观察放量突破165.39及回踩不破；MA5约175.98为后续修复关口。没有正式多方信号前，只观察而非自动入场。",
+      "sellPlan": "159.96失守且反抽不回则取消空方收复判断；157.01失守后不能迅速收回，优先风险控制。站稳165.39才下调短线压力，不据此改变生产策略。",
+      "evidence": [
+        "同花顺11/23开/高/低/收 160.00/165.39/157.01/164.00，昨收164.25；腾讯同日收盘164.00独立交叉一致。成交30,721,151股，换手1.322%，量比0.913。",
+        "MA5/10/20 175.978/186.191/185.320；DIF/DEA -8.770/-7.612，RSI6/12 25.320/33.141。价格低于均线、DIF低于DEA，低RSI不等于买点。",
+        "同花顺主力资金流向-6337.22万元（供应商估算，非因果证明）；收盘获利盘3.2%，平均成本246.76，90%筹码集中度35.9%。获利盘较11/20的1.8%提高1.4个百分点，仍属低位。筹码为模型口径，不等于真实账户持仓。",
+        "宽基对照：上证+0.15%、深证+1.93%、创业板+3.08%，海光-0.15%未同步走强；行业和公告归因未核实，不能据资金字段宣称下跌原因。",
+        "首次入库1条=1个空方簇，保留原始节点；公开批量API storage=d1、delivery.state=live，event_id与D1一致。",
+        "120m event_id=evt_1795405620823_2on6uw；trigger_time_utc=2026-11-23T03:47:00.823Z；received_at=2026-11-23T03:47:00.823Z；trigger_price=159.96；trigger_price_source=sina-m1。触发字段等于接收字段，真实触发分钟 UNAVAILABLE。"
+      ]
+    }
+  ],
+  "sources": "Cloudflare D1 market_calendar（CN_A 11/23开市）及rolling_signals当日全表、rolling_instruments四市场16个启用标的；Pages主域公开批量API（16/16返回）；同花顺多Key包装器收盘/技术/筹码，trace 3058d00de3bcc59d5ff9b62832ee430188b24ac5a009408289bd34553e508777；腾讯11/23股票及指数收盘。港股宏桥17.23(-0.23%)、澜起141.30(+2.24%)、国民技术4.60(-2.85%)仅为市场截面；TSLA美东11/20收345.82(-7.64%)不是11/23收盘；新浪伦敦银现货18:32报42.60(+3.45%)仅为现货截面，不替代SI=F结算。"
+},
   '2026-11-20': {
     "tradeDate": "2026-11-20",
     "shortDate": "11/20",
@@ -6085,7 +6124,8 @@ export const rollingDailyReports = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-20', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-23', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-20', href: '/rolling/insights/2026-11-20/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-19', href: '/rolling/insights/2026-11-19/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-18', href: '/rolling/insights/2026-11-18/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-17', href: '/rolling/insights/2026-11-17/' },
