@@ -32,6 +32,118 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports = {
+  '2026-11-24': {
+  "tradeDate": "2026-11-24",
+  "shortDate": "11/24",
+  "title": "11月24日滚动信号收盘复盘",
+  "subtitle": "四市场16个已接入标的核查：7条首次入库、4个标的、4个独立价格簇。东方明珠空方收复，上海电力盘后节点待验；特斯拉多方未守住，白银会话未结束。",
+  "cutoff": "北京时间11/24约18:32截面。A股及港股已收盘；TSLA节点属美东11/23常规盘，按该盘收盘385.46验证；美东11/24常规盘尚未开。白银11/24会话未完成，现货与期货分开列示。",
+  "summary": "确认0、收复1、分化0、观察3。东方明珠收6.96，高于14:25空方6.92，但全天跌3.33%，只是信号价收复而非趋势反转。上海电力15:17才入库且价格等于收盘10.70，不可自证。TSLA虽涨11.46%，仍低于390.89—391.31多方簇，属于大涨但追入未守住。白银仅作未完会话观察。",
+  "buyRule": "没有已确认的多方机会，不用低RSI或全天大涨替代入场条件。东方明珠先守6.92，再看放量收复MA5约7.11；上海电力看10.70能否守住及10.95—10.964收复；TSLA须重新站稳391.31并回踩不破，未满足前不追。白银先核对真实合约/现货身份及已完成会话。",
+  "sellRule": "东方明珠跌回6.92且反抽不回，撤销空方收复判断；上海电力下一会话跌破10.70不能收回，提高风险等级。TSLA重点看385.46及371.95，反抽390.89—391.31受阻不当作多方延续。白银现货42.134—42.3482仅为原始报警锚，不转成SI=F可执行价位。",
+  "discipline": "7个原始节点按同标的同方向最大/最小价格比不超过1.01归为4个独立簇；不能用相邻周期重复计样本。上海电力15:17盘后接收，trigger_time_utc等于received_at，真实触发时刻 UNAVAILABLE；禁止用当日收盘验证自身。东方明珠触发字段也等于接收字段，仅作收盘价格侧复核。TSLA按美东11/23而非北京时间11/24收盘；1h45m为观察、2h为正式。白银显示代码SI=F但报警名为白银现货且行情别名hf_XAG，身份差异未独立消除，不能拿现货或Yahoo期货互相替代结算。D1/3D/5D收益、MFE/MAE、基准超额 UNAVAILABLE；前瞻样本 INSUFFICIENT。所有解读保持影子观察，不改变生产权重、仓位或动作。",
+  "signals": [
+    {
+      "name": "东方明珠",
+      "symbol": "600637",
+      "market": "A股",
+      "direction": "SELL",
+      "validation": "reclaimed",
+      "validationLabel": "空方收复 · 弱修复",
+      "close": "6.96",
+      "change": "-3.33%",
+      "verdict": "收盘高于6.92，但仍收跌且低于MA5/10/20。observed：日内高开低走、收盘靠近日低；corroborated：同花顺和腾讯收盘一致；主力净流出仅为供应商估算，不能宣称其为下跌原因。信号质量weak，收复不代表趋势反转。",
+      "support": "6.92 日低及首次空方锚",
+      "pressure": "7.11 MA5 / 7.28 开盘 / 7.36 日高 / 7.505 MA10 / 7.6745 MA20",
+      "buyPlan": "左侧只观察6.92能否守住；右侧先放量站稳7.11并回踩不破，再看7.28—7.36。没有正式多方前不自动入场。",
+      "sellPlan": "6.92失守且反抽不回，取消收复标签；7.11反复受阻且量能不足，提高风险警惕。",
+      "nodes": "10m 11/24 14:25:07",
+      "signalPrices": "10m 6.92",
+      "evidence": [
+        "11/24开/高/低/收7.28/7.36/6.92/6.96，成交51,515,342股，换手1.532%，量比1.109；腾讯6.96交叉一致。",
+        "MA5/10/20=7.110/7.505/7.6745，DIF/DEA=-0.299/-0.213，RSI6/12=28.762/34.258；低RSI不等于止跌。",
+        "主力资金流向-43,506,345.68元；获利盘0.5%，平均成本8.22，90%集中度11.0%；均为供应商模型指标，不是实际账户持仓。",
+        "宽基上证+0.27%、深证-0.29%、创业板-0.05%，本股-3.33%更弱。1节点=1簇；实际触发分钟未独立核验，不能计算可成交回测。",
+        "10m event_id=evt_1795501507830_n5ndqa；trigger_time_utc=2026-11-24T06:25:07.830Z；received_at=2026-11-24T06:25:07.830Z；trigger_price=6.92；trigger_price_source=sina-m1。"
+      ]
+    },
+    {
+      "name": "上海电力",
+      "symbol": "600021",
+      "market": "A股",
+      "direction": "SELL",
+      "validation": "watch",
+      "validationLabel": "盘后节点 · 下一会话观察",
+      "close": "10.70",
+      "change": "-2.01%",
+      "verdict": "15:17:00才接收10m空方，价格等于已完成收盘。observed：收在日低、低于三条均线；corroborated：同花顺与腾讯收盘一致。盘后节点不能由本日收盘自证，质量weak、待下一会话。",
+      "support": "10.70 日低及盘后观察锚（下方有效支撑 UNAVAILABLE）",
+      "pressure": "10.95 开盘 / 10.964 MA5 / 11.08 日高 / 11.115 MA10 / 11.337 MA20",
+      "buyPlan": "次日先看10.70能否守住；放量收复10.95—10.964并回踩不破，再讨论修复，不因RSI6低于20抄底。",
+      "sellPlan": "下一会话有效跌破10.70且不能迅速收回时优先风控；站稳10.964才下调短线压力。",
+      "nodes": "10m 11/24 15:17:00",
+      "signalPrices": "10m 10.7",
+      "evidence": [
+        "11/24开/高/低/收10.95/11.08/10.70/10.70，成交17,112,615股，换手0.606%，量比1.009；腾讯收盘10.70交叉一致。",
+        "MA5/10/20=10.964/11.115/11.337，DIF/DEA=-0.370/-0.358，RSI6/12=17.696/23.779；没有前日动量序列，不授予衰竭标签。",
+        "主力资金流向-13,472,059.23元，获利盘0.1%，平均成本14.04，90%集中度27.8%；资金为估算，低获利盘不是买点。",
+        "宽基上证+0.27%、深证-0.29%、创业板-0.05%，本股-2.01%偏弱。1节点=1簇；真实触发时刻 UNAVAILABLE，盘后接收不等于盘中成交。",
+        "10m event_id=evt_1795504620894_z4ugps；trigger_time_utc=2026-11-24T07:17:00.894Z；received_at=2026-11-24T07:17:00.894Z；trigger_price=10.7；trigger_price_source=tencent-minute。"
+      ]
+    },
+    {
+      "name": "特斯拉",
+      "symbol": "TSLA",
+      "market": "美股（美东11/23）",
+      "direction": "BUY",
+      "validation": "watch",
+      "validationLabel": "多方未守住 · 不追高",
+      "close": "385.46（11/23收盘）",
+      "change": "+11.46%",
+      "verdict": "美东11/23 11:15的1h45m观察与11:30的2h正式多方形成同价簇，但该盘385.46低于390.89—391.31。observed：全天大涨却未守住信号价；信号质量weak，不能把全天涨幅当作信号后收益。",
+      "support": "385.46 已完成盘收盘观察位 / 374.74 开盘 / 371.95 日低",
+      "pressure": "390.89—391.31 多方簇 / 393.83 日高",
+      "buyPlan": "先观察385.46与371.95；只有放量重回391.31并回踩不破才讨论右侧确认。美东11/24常规盘未开，不写成11/24收盘结论。",
+      "sellPlan": "反抽390.89—391.31受阻不加仓；385.46失守且反抽不回提高风险等级，371.95为更下方已验证日低。",
+      "nodes": "1h45m 11/23 11:15:00 / 2h 11/23 11:30:00",
+      "signalPrices": "1h45m 391.31 / 2h 390.89",
+      "evidence": [
+        "腾讯美东2026-11-23 16:00:01报价：开/高/低/收374.74/393.83/371.95/385.46，昨收345.82，涨11.46%。",
+        "2节点=1个BUY簇；1h45m观察、2h正式，不算两个独立样本；截至取样D1无本日TSLA SELL节点。",
+        "MA、MACD、RSI、资金、筹码与分钟路径 UNAVAILABLE；未据此推断过热或事件因果。",
+        "1h45m event_id=evt_1795450505881_hq7t9k；trigger_time_utc=2026-11-23T16:15:00Z；received_at=2026-11-23T16:15:05.881Z；trigger_price=391.31；trigger_price_source=webhook。",
+        "2h event_id=evt_1795451416884_cz9jvg；trigger_time_utc=2026-11-23T16:30:00Z；received_at=2026-11-23T16:30:16.884Z；trigger_price=390.89；trigger_price_source=webhook。"
+      ]
+    },
+    {
+      "name": "白银现货（报警显示SI=F）",
+      "symbol": "SI=F",
+      "market": "期货/现货映射待核",
+      "direction": "SELL",
+      "validation": "watch",
+      "validationLabel": "未完会话 · 身份与结算待核",
+      "close": "UNAVAILABLE（未结算）；现货截面42.04",
+      "change": "现货截面-2.57%",
+      "verdict": "10m/15m/30m空方构成42.134—42.3482同向簇。18:32新浪现货42.04低于该簇，只能说现货截面价在锚下；SI=F合约身份及当日结算未核，保持watch，不能跨品种确认。",
+      "support": "现货41.80 日内低点；SI=F当前日线41.635仅未完快照",
+      "pressure": "原始报警42.134—42.3482；现货43.98日高，不能与期货混用",
+      "buyPlan": "先核对TradingView报警真实ticker与报价口径；等待同一标的已完成会话。现货重回42.3482只能降低现货空方警惕，不据此买入SI=F。",
+      "sellPlan": "已持同口径现货可观察41.80及42.134—42.3482反抽；期货须确认合约与单位后另定执行价，当前不发布期货减仓指令。",
+      "nodes": "10m 11/24 14:10:00 / 15m 11/24 14:15:00 / 30m 11/24 14:30:00",
+      "signalPrices": "10m 42.281 / 15m 42.3482 / 30m 42.134",
+      "evidence": [
+        "新浪hf_XAG于2026-11-24 18:32北京时间：42.04、昨收43.15、涨跌-2.57%、开42.04、高43.98、低41.80，属于未完现货截面。",
+        "Yahoo SI=F当前11/24日线开/高/低/最新43.050/43.810/41.635/41.810，量24474；会话未完成，最新值不是结算。前一完整11/23日线收43.147但成交仅51，流动性证据弱，不用它替代现货或推算收益。",
+        "3节点=1簇，首次10m价42.281；报警instrument_name=白银现货、display symbol=SI=F、watchlist quote_symbol=hf_XAG；保留原始映射，身份未核不修订生产。",
+        "节点北京时间14:10/14:15/14:30，对应美东11/24 01:10/01:15/01:30；同日会话未完。原生期货筹码、成交量技术序列与MFE/MAE UNAVAILABLE。",
+        "10m event_id=evt_1795500601430_97nlfe；trigger_time_utc=2026-11-24T06:10:00Z；received_at=2026-11-24T06:10:01.430Z；trigger_price=42.281；trigger_price_source=webhook。",
+        "15m event_id=evt_1795500901460_a0qhn1；trigger_time_utc=2026-11-24T06:15:00Z；received_at=2026-11-24T06:15:01.460Z；trigger_price=42.3482；trigger_price_source=webhook。",
+        "30m event_id=evt_1795501815425_b0ii19；trigger_time_utc=2026-11-24T06:30:00Z；received_at=2026-11-24T06:30:15.425Z；trigger_price=42.134；trigger_price_source=webhook。"
+      ]
+    }
+  ],
+  "sources": "Cloudflare D1 market_calendar（CN_A 11/24开市）、rolling_signals当日全表7条、rolling_instruments四市场16个启用标的；Pages主域公开批量API 16/16返回，7个event_id与D1逐条一致且四个有信号标的storage=d1/state=live。同花顺多Key包装器两只A股当日收盘、技术、筹码，trace 2ab41273eedd910d036af00e9ce147724cbe770f520b3cd23c09abbc76c9f545；腾讯股票/指数收盘独立交叉核对，TSLA美东11/23收盘；新浪hf_XAG 11/24 18:32现货截面、Yahoo SI=F日线（当前未完会话）。港股本日零新增节点：宏桥16.390(-4.88%)、澜起145.800(+3.18%)、国民技术4.585(-0.33%)只为市场截面，不计今日信号。行业/公告因果未核实。"
+},
   '2026-11-23': {
   "tradeDate": "2026-11-23",
   "shortDate": "11/23",
@@ -6124,7 +6236,8 @@ export const rollingDailyReports = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-23', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-24', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-23', href: '/rolling/insights/2026-11-23/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-20', href: '/rolling/insights/2026-11-20/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-19', href: '/rolling/insights/2026-11-19/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-18', href: '/rolling/insights/2026-11-18/' },
