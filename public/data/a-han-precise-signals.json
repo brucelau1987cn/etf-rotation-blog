@@ -1,14 +1,65 @@
 {
   "schema_version": "a-han-precise-signals-v1",
   "contract_url": "/schemas/a-han-precise-signals.schema.json",
-  "generated_at": "2026-11-23T22:30:19+08:00",
+  "generated_at": "2026-11-25T09:17:23+08:00",
   "model_version": "Han Precise Guidance Pine v6 replicate",
   "source": "local SQLite qfq daily cache",
-  "observation_date": "2026-11-23",
+  "observation_date": "2026-11-24",
   "universe_count": 91,
   "valid_count": 91,
   "unavailable_codes": [],
   "rows": [
+    {
+      "code": "512800",
+      "name": "银行ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "橙色",
+      "state": "做多",
+      "state_color": "红色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "加仓",
+          "date": "2026-11-16",
+          "close": 0.917
+        },
+        {
+          "name": "DX卖1",
+          "date": "2026-11-23",
+          "close": 0.916
+        },
+        {
+          "name": "减仓",
+          "date": "2026-11-23",
+          "close": 0.916
+        }
+      ],
+      "key_levels": {
+        "support": 0.849,
+        "pressure": 0.926,
+        "ema15_support": 0.872,
+        "ema15_resistance": null
+      },
+      "metrics": {
+        "close": 0.92,
+        "day_change_pct": 0.44,
+        "ma89": 0.845,
+        "ma03": 0.921,
+        "bias05": 0.2,
+        "bias30": 3.95,
+        "bb05": 4.98,
+        "bb10": 18.89,
+        "bb30": 11.93,
+        "k": 86.54,
+        "d": 86.14,
+        "macd": 0.004,
+        "x_trend": 93.24,
+        "gdx_qs": 85.27,
+        "dx": 41.49
+      }
+    },
     {
       "code": "164824",
       "name": "印度基金LOF",
@@ -18,7 +69,7 @@
       "background": "橙色",
       "state": "强洗",
       "state_color": "橙色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "DX卖1",
@@ -33,26 +84,26 @@
       ],
       "key_levels": {
         "support": 1.21,
-        "pressure": 1.341,
+        "pressure": 1.342,
         "ema15_support": 1.225,
         "ema15_resistance": null
       },
       "metrics": {
-        "close": 1.341,
-        "day_change_pct": -0.07,
-        "ma89": 1.282,
-        "ma03": 1.337,
-        "bias05": 0.39,
-        "bias30": 5.37,
-        "bb05": 12.69,
-        "bb10": 7.7,
-        "bb30": 19.0,
-        "k": 63.0,
-        "d": 70.82,
-        "macd": 0.007,
-        "x_trend": 86.61,
-        "gdx_qs": 79.8,
-        "dx": 31.95
+        "close": 1.338,
+        "day_change_pct": -0.22,
+        "ma89": 1.283,
+        "ma03": 1.34,
+        "bias05": 0.21,
+        "bias30": 4.81,
+        "bb05": -2.57,
+        "bb10": -0.86,
+        "bb30": 17.17,
+        "k": 55.93,
+        "d": 65.86,
+        "macd": 0.005,
+        "x_trend": 84.04,
+        "gdx_qs": 76.84,
+        "dx": 29.23
       }
     },
     {
@@ -60,17 +111,12 @@
       "name": "半导体设备ETF招商",
       "status": "ok",
       "reason": null,
-      "bar_count": 399,
+      "bar_count": 400,
       "background": "蓝色",
       "state": "强洗",
       "state_color": "橙色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.51
-        },
         {
           "name": "减仓",
           "date": "2026-11-16",
@@ -80,908 +126,25 @@
       "key_levels": {
         "support": 0.436,
         "pressure": 0.603,
-        "ema15_support": null,
-        "ema15_resistance": 0.517
+        "ema15_support": 0.516,
+        "ema15_resistance": null
       },
       "metrics": {
-        "close": 0.509,
-        "day_change_pct": -1.36,
-        "ma89": 0.632,
-        "ma03": 0.52,
-        "bias05": -2.12,
-        "bias30": -1.95,
-        "bb05": 28.43,
-        "bb10": 1.1,
-        "bb30": -30.15,
+        "close": 0.52,
+        "day_change_pct": 2.16,
+        "ma89": 0.629,
+        "ma03": 0.515,
+        "bias05": -0.27,
+        "bias30": 0.7,
+        "bb05": 15.07,
+        "bb10": 10.9,
+        "bb30": -28.05,
         "k": 45.46,
-        "d": 53.97,
-        "macd": 0.014,
-        "x_trend": 31.3,
-        "gdx_qs": 22.7,
-        "dx": 1.75
-      }
-    },
-    {
-      "code": "159928",
-      "name": "消费ETF汇添富",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "橙色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-19",
-          "close": 0.709
-        },
-        {
-          "name": "清仓",
-          "date": "2026-11-23",
-          "close": 0.7
-        }
-      ],
-      "key_levels": {
-        "support": 0.654,
-        "pressure": 0.71,
-        "ema15_support": 0.687,
-        "ema15_resistance": null
-      },
-      "metrics": {
-        "close": 0.7,
-        "day_change_pct": -0.57,
-        "ma89": 0.673,
-        "ma03": 0.704,
-        "bias05": -0.85,
-        "bias30": 2.4,
-        "bb05": -15.77,
-        "bb10": -2.45,
-        "bb30": 9.43,
-        "k": 73.8,
-        "d": 77.95,
-        "macd": -0.001,
-        "x_trend": 89.46,
-        "gdx_qs": 81.67,
-        "dx": 6.8
-      }
-    },
-    {
-      "code": "159996",
-      "name": "家电ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.355
-        },
-        {
-          "name": "DX加1",
-          "date": "2026-11-23",
-          "close": 1.371
-        }
-      ],
-      "key_levels": {
-        "support": 1.313,
-        "pressure": 1.386,
-        "ema15_support": 1.366,
-        "ema15_resistance": null
-      },
-      "metrics": {
-        "close": 1.371,
-        "day_change_pct": 1.26,
-        "ma89": 1.395,
-        "ma03": 1.37,
-        "bias05": -0.22,
-        "bias30": 1.17,
-        "bb05": 2.5,
-        "bb10": 0.0,
-        "bb30": -1.55,
-        "k": 55.46,
-        "d": 64.07,
-        "macd": 0.005,
-        "x_trend": 55.18,
-        "gdx_qs": 36.86,
-        "dx": 1.87
-      }
-    },
-    {
-      "code": "512800",
-      "name": "银行ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "橙色",
-      "state": "做多",
-      "state_color": "红色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-16",
-          "close": 0.917
-        },
-        {
-          "name": "DX卖1",
-          "date": "2026-11-23",
-          "close": 0.92
-        }
-      ],
-      "key_levels": {
-        "support": 0.849,
-        "pressure": 0.921,
-        "ema15_support": 0.872,
-        "ema15_resistance": null
-      },
-      "metrics": {
-        "close": 0.92,
-        "day_change_pct": -0.65,
-        "ma89": 0.843,
-        "ma03": 0.92,
-        "bias05": 0.2,
-        "bias30": 4.16,
-        "bb05": 3.74,
-        "bb10": 21.19,
-        "bb30": 11.12,
-        "k": 88.68,
-        "d": 86.42,
-        "macd": 0.005,
-        "x_trend": 94.66,
-        "gdx_qs": 86.85,
-        "dx": 54.38
-      }
-    },
-    {
-      "code": "159865",
-      "name": "养殖ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "橙色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX卖1",
-          "date": "2026-11-10",
-          "close": 0.542
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 0.536
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.54
-        },
-        {
-          "name": "DX加1",
-          "date": "2026-11-23",
-          "close": 0.54
-        }
-      ],
-      "key_levels": {
-        "support": 0.509,
-        "pressure": 0.55,
-        "ema15_support": 0.537,
-        "ema15_resistance": null
-      },
-      "metrics": {
-        "close": 0.54,
-        "day_change_pct": 1.31,
-        "ma89": 0.535,
-        "ma03": 0.535,
-        "bias05": 0.37,
-        "bias30": 1.94,
-        "bb05": -20.32,
-        "bb10": -3.18,
-        "bb30": 3.96,
-        "k": 51.57,
-        "d": 57.49,
-        "macd": -0.0,
-        "x_trend": 65.39,
-        "gdx_qs": 37.41,
-        "dx": -6.58
-      }
-    },
-    {
-      "code": "516110",
-      "name": "汽车ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.032
-        }
-      ],
-      "key_levels": {
-        "support": 1.012,
-        "pressure": 1.094,
-        "ema15_support": null,
-        "ema15_resistance": 1.068
-      },
-      "metrics": {
-        "close": 1.032,
-        "day_change_pct": 1.67,
-        "ma89": 1.087,
-        "ma03": 1.029,
-        "bias05": -0.23,
-        "bias30": -1.75,
-        "bb05": -28.3,
-        "bb10": -23.94,
-        "bb30": -3.99,
-        "k": 21.04,
-        "d": 27.9,
-        "macd": -0.009,
-        "x_trend": 31.93,
-        "gdx_qs": 14.55,
-        "dx": -45.25
-      }
-    },
-    {
-      "code": "560080",
-      "name": "中药ETF汇添富",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-16",
-          "close": 0.967
-        }
-      ],
-      "key_levels": {
-        "support": 0.934,
-        "pressure": 0.988,
-        "ema15_support": null,
-        "ema15_resistance": 0.966
-      },
-      "metrics": {
-        "close": 0.948,
-        "day_change_pct": 0.42,
-        "ma89": 0.967,
-        "ma03": 0.951,
-        "bias05": -1.02,
-        "bias30": -1.42,
-        "bb05": -21.56,
-        "bb10": -18.89,
-        "bb30": -1.19,
-        "k": 29.14,
-        "d": 34.68,
-        "macd": -0.006,
-        "x_trend": 53.02,
-        "gdx_qs": 44.0,
-        "dx": -35.38
-      }
-    },
-    {
-      "code": "512170",
-      "name": "医疗ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.33
-        }
-      ],
-      "key_levels": {
-        "support": 0.322,
-        "pressure": 0.357,
-        "ema15_support": null,
-        "ema15_resistance": 0.342
-      },
-      "metrics": {
-        "close": 0.33,
-        "day_change_pct": 2.48,
-        "ma89": 0.337,
-        "ma03": 0.328,
-        "bias05": -0.3,
-        "bias30": -1.7,
-        "bb05": -22.84,
-        "bb10": -26.69,
-        "bb30": -5.67,
-        "k": 20.66,
-        "d": 24.01,
-        "macd": -0.004,
-        "x_trend": 33.64,
-        "gdx_qs": 22.53,
-        "dx": -40.77
-      }
-    },
-    {
-      "code": "562500",
-      "name": "机器人ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.892
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 0.867
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.815
-        }
-      ],
-      "key_levels": {
-        "support": 0.776,
-        "pressure": 0.906,
-        "ema15_support": null,
-        "ema15_resistance": 0.87
-      },
-      "metrics": {
-        "close": 0.815,
-        "day_change_pct": 6.68,
-        "ma89": 0.916,
-        "ma03": 0.792,
-        "bias05": 2.26,
-        "bias30": -3.2,
-        "bb05": -19.29,
-        "bb10": -35.11,
-        "bb30": -5.87,
-        "k": 21.16,
-        "d": 24.64,
-        "macd": -0.013,
-        "x_trend": 16.72,
-        "gdx_qs": 2.31,
-        "dx": -32.94
-      }
-    },
-    {
-      "code": "159985",
-      "name": "豆粕ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-10",
-          "close": 2.127
-        },
-        {
-          "name": "加仓",
-          "date": "2026-11-11",
-          "close": 2.185
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 2.125
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 2.125
-        }
-      ],
-      "key_levels": {
-        "support": 2.095,
-        "pressure": 2.296,
-        "ema15_support": null,
-        "ema15_resistance": 2.168
-      },
-      "metrics": {
-        "close": 2.125,
-        "day_change_pct": 1.77,
-        "ma89": 2.215,
-        "ma03": 2.105,
-        "bias05": 0.69,
-        "bias30": -2.0,
-        "bb05": -19.26,
-        "bb10": 4.01,
-        "bb30": -14.2,
-        "k": 25.3,
-        "d": 30.75,
-        "macd": -0.0,
-        "x_trend": 7.03,
-        "gdx_qs": -4.38,
-        "dx": -20.79
-      }
-    },
-    {
-      "code": "513500",
-      "name": "标普500ETF博时",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [],
-      "key_levels": {
-        "support": 2.521,
-        "pressure": 2.754,
-        "ema15_support": null,
-        "ema15_resistance": 2.646
-      },
-      "metrics": {
-        "close": 2.46,
-        "day_change_pct": -0.57,
-        "ma89": 2.641,
-        "ma03": 2.501,
-        "bias05": -2.72,
-        "bias30": -6.5,
-        "bb05": -48.2,
-        "bb10": -28.96,
-        "bb30": -19.15,
-        "k": 24.4,
-        "d": 38.07,
-        "macd": -0.033,
-        "x_trend": 18.49,
-        "gdx_qs": 7.4,
-        "dx": -63.38
-      }
-    },
-    {
-      "code": "159941",
-      "name": "纳指ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-10",
-          "close": 1.63
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-19",
-          "close": 1.61
-        }
-      ],
-      "key_levels": {
-        "support": 1.549,
-        "pressure": 1.768,
-        "ema15_support": null,
-        "ema15_resistance": 1.646
-      },
-      "metrics": {
-        "close": 1.52,
-        "day_change_pct": -0.39,
-        "ma89": 1.649,
-        "ma03": 1.552,
-        "bias05": -3.21,
-        "bias30": -8.01,
-        "bb05": -49.49,
-        "bb10": -17.91,
-        "bb30": -26.46,
-        "k": 24.97,
-        "d": 32.3,
-        "macd": -0.019,
-        "x_trend": 12.35,
-        "gdx_qs": 1.17,
-        "dx": -46.55
-      }
-    },
-    {
-      "code": "588000",
-      "name": "科创50ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 1.337
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 1.354
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 1.322
-        }
-      ],
-      "key_levels": {
-        "support": 1.215,
-        "pressure": 1.524,
-        "ema15_support": null,
-        "ema15_resistance": 1.338
-      },
-      "metrics": {
-        "close": 1.3,
-        "day_change_pct": 0.0,
-        "ma89": 1.621,
-        "ma03": 1.315,
-        "bias05": -0.91,
-        "bias30": -3.85,
-        "bb05": 15.38,
-        "bb10": -11.46,
-        "bb30": -26.81,
-        "k": 30.58,
-        "d": 37.84,
-        "macd": 0.019,
-        "x_trend": 19.24,
-        "gdx_qs": 9.75,
-        "dx": -11.85
-      }
-    },
-    {
-      "code": "510210",
-      "name": "上证指数ETF富国",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 0.949
-        }
-      ],
-      "key_levels": {
-        "support": 0.923,
-        "pressure": 0.981,
-        "ema15_support": null,
-        "ema15_resistance": 0.953
-      },
-      "metrics": {
-        "close": 0.917,
-        "day_change_pct": 0.11,
-        "ma89": 0.978,
-        "ma03": 0.921,
-        "bias05": -0.89,
-        "bias30": -3.23,
-        "bb05": -22.25,
-        "bb10": -18.81,
-        "bb30": -11.7,
-        "k": 20.07,
-        "d": 26.59,
-        "macd": -0.003,
-        "x_trend": 8.6,
-        "gdx_qs": -3.26,
-        "dx": -57.84
-      }
-    },
-    {
-      "code": "515880",
-      "name": "通信ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "买入",
-          "date": "2026-11-11",
-          "close": 0.459
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.38
-        }
-      ],
-      "key_levels": {
-        "support": 0.369,
-        "pressure": 0.582,
-        "ema15_support": null,
-        "ema15_resistance": 0.458
-      },
-      "metrics": {
-        "close": 0.38,
-        "day_change_pct": 4.97,
-        "ma89": 0.591,
-        "ma03": 0.374,
-        "bias05": 1.01,
-        "bias30": -16.6,
-        "bb05": -14.85,
-        "bb10": -39.22,
-        "bb30": -52.73,
-        "k": 15.43,
-        "d": 18.27,
-        "macd": 0.002,
-        "x_trend": 3.81,
-        "gdx_qs": -6.72,
-        "dx": -35.38
-      }
-    },
-    {
-      "code": "159329",
-      "name": "沙特ETF南方",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.842
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-16",
-          "close": 0.846
-        }
-      ],
-      "key_levels": {
-        "support": 0.784,
-        "pressure": 0.866,
-        "ema15_support": null,
-        "ema15_resistance": 0.841
-      },
-      "metrics": {
-        "close": 0.826,
-        "day_change_pct": -0.84,
-        "ma89": 0.876,
-        "ma03": 0.834,
-        "bias05": -1.69,
-        "bias30": -0.79,
-        "bb05": -25.35,
-        "bb10": -4.07,
-        "bb30": -8.86,
-        "k": 46.41,
-        "d": 62.23,
-        "macd": 0.003,
-        "x_trend": 45.88,
-        "gdx_qs": 28.1,
-        "dx": -21.27
-      }
-    },
-    {
-      "code": "159938",
-      "name": "医药ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-10",
-          "close": 0.647
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.618
-        }
-      ],
-      "key_levels": {
-        "support": 0.611,
-        "pressure": 0.663,
-        "ema15_support": null,
-        "ema15_resistance": 0.639
-      },
-      "metrics": {
-        "close": 0.618,
-        "day_change_pct": 1.81,
-        "ma89": 0.643,
-        "ma03": 0.615,
-        "bias05": -0.13,
-        "bias30": -1.87,
-        "bb05": -21.12,
-        "bb10": -25.41,
-        "bb30": -5.74,
-        "k": 24.24,
-        "d": 26.0,
-        "macd": -0.006,
-        "x_trend": 25.81,
-        "gdx_qs": 14.22,
-        "dx": -46.35
-      }
-    },
-    {
-      "code": "563300",
-      "name": "中证2000ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 1.286
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 1.252
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.125
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.125
-        }
-      ],
-      "key_levels": {
-        "support": 1.111,
-        "pressure": 1.393,
-        "ema15_support": null,
-        "ema15_resistance": 1.278
-      },
-      "metrics": {
-        "close": 1.125,
-        "day_change_pct": 3.97,
-        "ma89": 1.35,
-        "ma03": 1.115,
-        "bias05": -1.54,
-        "bias30": -10.47,
-        "bb05": -56.01,
-        "bb10": -46.19,
-        "bb30": -33.06,
-        "k": 17.17,
-        "d": 24.06,
-        "macd": -0.022,
-        "x_trend": 7.14,
-        "gdx_qs": -4.77,
-        "dx": -51.95
-      }
-    },
-    {
-      "code": "159992",
-      "name": "创新药ETF银华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.775
-        }
-      ],
-      "key_levels": {
-        "support": 0.762,
-        "pressure": 0.851,
-        "ema15_support": null,
-        "ema15_resistance": 0.819
-      },
-      "metrics": {
-        "close": 0.775,
-        "day_change_pct": 3.33,
-        "ma89": 0.844,
-        "ma03": 0.767,
-        "bias05": 0.31,
-        "bias30": -3.53,
-        "bb05": -26.08,
-        "bb10": -35.47,
-        "bb30": -12.83,
-        "k": 20.7,
-        "d": 23.47,
-        "macd": -0.01,
-        "x_trend": 13.34,
-        "gdx_qs": 0.82,
-        "dx": -46.23
-      }
-    },
-    {
-      "code": "513730",
-      "name": "东南亚科技ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 1.032
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.011
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.951
-        }
-      ],
-      "key_levels": {
-        "support": 0.961,
-        "pressure": 1.062,
-        "ema15_support": null,
-        "ema15_resistance": 1.023
-      },
-      "metrics": {
-        "close": 0.951,
-        "day_change_pct": 0.63,
-        "ma89": 1.095,
-        "ma03": 0.958,
-        "bias05": -2.14,
-        "bias30": -6.16,
-        "bb05": -47.18,
-        "bb10": -36.81,
-        "bb30": -19.82,
-        "k": 14.91,
-        "d": 22.85,
-        "macd": -0.008,
-        "x_trend": 5.18,
-        "gdx_qs": -6.45,
-        "dx": -67.69
+        "d": 51.13,
+        "macd": 0.013,
+        "x_trend": 31.14,
+        "gdx_qs": 22.4,
+        "dx": 3.04
       }
     },
     {
@@ -993,7 +156,7 @@
       "background": "橙色",
       "state": "强洗",
       "state_color": "橙色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "DX买",
@@ -1023,980 +186,123 @@
       ],
       "key_levels": {
         "support": 1.201,
-        "pressure": 1.27,
+        "pressure": 1.271,
         "ema15_support": 1.229,
         "ema15_resistance": null
       },
       "metrics": {
-        "close": 1.256,
-        "day_change_pct": -1.18,
-        "ma89": 1.2,
-        "ma03": 1.264,
-        "bias05": -0.71,
-        "bias30": 1.75,
-        "bb05": -6.31,
-        "bb10": 6.38,
-        "bb30": 4.02,
-        "k": 83.09,
-        "d": 83.53,
-        "macd": 0.003,
-        "x_trend": 91.76,
-        "gdx_qs": 83.57,
-        "dx": 30.6
+        "close": 1.26,
+        "day_change_pct": 0.32,
+        "ma89": 1.201,
+        "ma03": 1.262,
+        "bias05": -0.35,
+        "bias30": 1.97,
+        "bb05": -2.72,
+        "bb10": 10.4,
+        "bb30": 5.55,
+        "k": 80.85,
+        "d": 82.64,
+        "macd": 0.002,
+        "x_trend": 89.88,
+        "gdx_qs": 81.52,
+        "dx": 22.0
       }
     },
     {
-      "code": "159825",
-      "name": "农业ETF富国",
+      "code": "159928",
+      "name": "消费ETF汇添富",
       "status": "ok",
       "reason": null,
       "bar_count": 400,
-      "background": "绿色",
+      "background": "橙色",
       "state": "做空",
       "state_color": "绿色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
-          "name": "减仓",
-          "date": "2026-11-10",
-          "close": 0.728
+          "name": "加仓",
+          "date": "2026-11-19",
+          "close": 0.709
         },
         {
-          "name": "DX买",
+          "name": "清仓",
           "date": "2026-11-23",
-          "close": 0.716
+          "close": 0.702
         }
       ],
       "key_levels": {
-        "support": 0.689,
-        "pressure": 0.736,
-        "ema15_support": null,
-        "ema15_resistance": 0.722
+        "support": 0.654,
+        "pressure": 0.71,
+        "ema15_support": 0.687,
+        "ema15_resistance": null
       },
       "metrics": {
-        "close": 0.716,
-        "day_change_pct": 1.27,
-        "ma89": 0.725,
-        "ma03": 0.712,
-        "bias05": -0.03,
-        "bias30": 0.32,
-        "bb05": -23.98,
-        "bb10": -13.23,
-        "bb30": -1.34,
-        "k": 38.87,
-        "d": 43.86,
+        "close": 0.7,
+        "day_change_pct": -0.28,
+        "ma89": 0.673,
+        "ma03": 0.702,
+        "bias05": -0.62,
+        "bias30": 2.18,
+        "bb05": -15.81,
+        "bb10": -0.82,
+        "bb30": 11.57,
+        "k": 70.68,
+        "d": 76.02,
         "macd": -0.002,
-        "x_trend": 47.53,
-        "gdx_qs": 21.85,
-        "dx": -23.88
+        "x_trend": 87.94,
+        "gdx_qs": 79.92,
+        "dx": 0.65
       }
     },
     {
-      "code": "515000",
-      "name": "科技ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.932
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.897
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.88
-        }
-      ],
-      "key_levels": {
-        "support": 0.872,
-        "pressure": 1.132,
-        "ema15_support": null,
-        "ema15_resistance": 1.266
-      },
-      "metrics": {
-        "close": 0.88,
-        "day_change_pct": 1.62,
-        "ma89": 1.173,
-        "ma03": 0.883,
-        "bias05": -0.52,
-        "bias30": -9.44,
-        "bb05": -5.16,
-        "bb10": -25.67,
-        "bb30": -38.41,
-        "k": 19.38,
-        "d": 23.88,
-        "macd": 0.006,
-        "x_trend": 5.68,
-        "gdx_qs": -4.76,
-        "dx": -30.25
-      }
-    },
-    {
-      "code": "513310",
-      "name": "中韩半导体ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-10",
-          "close": 3.575
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 3.59
-        }
-      ],
-      "key_levels": {
-        "support": 3.431,
-        "pressure": 4.486,
-        "ema15_support": null,
-        "ema15_resistance": 3.894
-      },
-      "metrics": {
-        "close": 3.405,
-        "day_change_pct": 0.89,
-        "ma89": 4.453,
-        "ma03": 3.463,
-        "bias05": -2.71,
-        "bias30": -8.56,
-        "bb05": -25.27,
-        "bb10": -16.1,
-        "bb30": -42.16,
-        "k": 20.69,
-        "d": 20.73,
-        "macd": 0.018,
-        "x_trend": 6.45,
-        "gdx_qs": -3.89,
-        "dx": -30.46
-      }
-    },
-    {
-      "code": "512880",
-      "name": "证券ETF国泰",
+      "code": "159985",
+      "name": "豆粕ETF华夏",
       "status": "ok",
       "reason": null,
       "bar_count": 400,
       "background": "绿色",
       "state": "做多",
       "state_color": "红色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-17",
-          "close": 0.986
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-19",
-          "close": 0.986
-        }
-      ],
-      "key_levels": {
-        "support": 0.962,
-        "pressure": 1.039,
-        "ema15_support": null,
-        "ema15_resistance": 1.011
-      },
-      "metrics": {
-        "close": 0.984,
-        "day_change_pct": 0.31,
-        "ma89": 1.056,
-        "ma03": 0.984,
-        "bias05": 0.02,
-        "bias30": -1.95,
-        "bb05": -1.16,
-        "bb10": -13.08,
-        "bb30": -9.78,
-        "k": 33.34,
-        "d": 31.57,
-        "macd": 0.0,
-        "x_trend": 20.24,
-        "gdx_qs": 4.82,
-        "dx": -28.28
-      }
-    },
-    {
-      "code": "560800",
-      "name": "数字经济ETF鹏扬",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.927
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.93
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.912
-        }
-      ],
-      "key_levels": {
-        "support": 0.868,
-        "pressure": 1.026,
-        "ema15_support": null,
-        "ema15_resistance": 0.938
-      },
-      "metrics": {
-        "close": 0.887,
-        "day_change_pct": 0.57,
-        "ma89": 1.083,
-        "ma03": 0.893,
-        "bias05": -1.09,
-        "bias30": -4.81,
-        "bb05": -6.36,
-        "bb10": -19.27,
-        "bb30": -24.5,
-        "k": 23.65,
-        "d": 30.49,
-        "macd": 0.005,
-        "x_trend": 12.43,
-        "gdx_qs": 2.49,
-        "dx": -27.43
-      }
-    },
-    {
-      "code": "159920",
-      "name": "恒生ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX卖1",
           "date": "2026-11-11",
-          "close": 1.431
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 1.431
-        }
-      ],
-      "key_levels": {
-        "support": 1.317,
-        "pressure": 1.453,
-        "ema15_support": null,
-        "ema15_resistance": 1.41
-      },
-      "metrics": {
-        "close": 1.309,
-        "day_change_pct": 0.38,
-        "ma89": 1.45,
-        "ma03": 1.314,
-        "bias05": -1.93,
-        "bias30": -5.51,
-        "bb05": -50.17,
-        "bb10": -43.6,
-        "bb30": -15.68,
-        "k": 12.18,
-        "d": 21.52,
-        "macd": -0.019,
-        "x_trend": 11.1,
-        "gdx_qs": -2.37,
-        "dx": -68.47
-      }
-    },
-    {
-      "code": "516560",
-      "name": "养老ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 0.765
+          "close": 2.185
         },
         {
           "name": "DX买",
           "date": "2026-11-23",
-          "close": 0.737
-        }
-      ],
-      "key_levels": {
-        "support": 0.727,
-        "pressure": 0.778,
-        "ema15_support": null,
-        "ema15_resistance": 0.759
-      },
-      "metrics": {
-        "close": 0.737,
-        "day_change_pct": 1.94,
-        "ma89": 0.753,
-        "ma03": 0.734,
-        "bias05": -0.51,
-        "bias30": -1.66,
-        "bb05": -36.88,
-        "bb10": -25.46,
-        "bb30": -3.31,
-        "k": 26.36,
-        "d": 33.08,
-        "macd": -0.008,
-        "x_trend": 33.97,
-        "gdx_qs": 23.27,
-        "dx": -41.79
-      }
-    },
-    {
-      "code": "515180",
-      "name": "红利ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-16",
-          "close": 1.383
-        }
-      ],
-      "key_levels": {
-        "support": 1.336,
-        "pressure": 1.403,
-        "ema15_support": null,
-        "ema15_resistance": 1.374
-      },
-      "metrics": {
-        "close": 1.357,
-        "day_change_pct": -0.8,
-        "ma89": 1.403,
-        "ma03": 1.366,
-        "bias05": -0.99,
-        "bias30": -1.02,
-        "bb05": -20.7,
-        "bb10": -9.11,
-        "bb30": -3.89,
-        "k": 43.43,
-        "d": 53.0,
-        "macd": 0.001,
-        "x_trend": 39.08,
-        "gdx_qs": 20.14,
-        "dx": -20.33
-      }
-    },
-    {
-      "code": "159502",
-      "name": "标普生物科技ETF嘉实",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-10",
-          "close": 1.608
-        },
-        {
-          "name": "清仓",
-          "date": "2026-11-12",
-          "close": 1.595
-        }
-      ],
-      "key_levels": {
-        "support": 1.47,
-        "pressure": 1.638,
-        "ema15_support": null,
-        "ema15_resistance": 1.587
-      },
-      "metrics": {
-        "close": 1.452,
-        "day_change_pct": 0.48,
-        "ma89": 1.576,
-        "ma03": 1.464,
-        "bias05": -2.22,
-        "bias30": -6.67,
-        "bb05": -53.84,
-        "bb10": -37.29,
-        "bb30": -17.43,
-        "k": 15.34,
-        "d": 22.12,
-        "macd": -0.03,
-        "x_trend": 12.87,
-        "gdx_qs": -1.4,
-        "dx": -58.7
-      }
-    },
-    {
-      "code": "513180",
-      "name": "恒生科技ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 0.505
-        }
-      ],
-      "key_levels": {
-        "support": 0.448,
-        "pressure": 0.526,
-        "ema15_support": null,
-        "ema15_resistance": 0.5
-      },
-      "metrics": {
-        "close": 0.44,
-        "day_change_pct": 0.23,
-        "ma89": 0.549,
-        "ma03": 0.445,
-        "bias05": -3.25,
-        "bias30": -9.9,
-        "bb05": -58.68,
-        "bb10": -54.76,
-        "bb30": -29.4,
-        "k": 11.97,
-        "d": 18.45,
-        "macd": -0.008,
-        "x_trend": 6.19,
-        "gdx_qs": -6.09,
-        "dx": -76.37
-      }
-    },
-    {
-      "code": "560280",
-      "name": "工程机械ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "清仓",
-          "date": "2026-11-12",
-          "close": 1.321
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-19",
-          "close": 1.306
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.29
-        }
-      ],
-      "key_levels": {
-        "support": 1.285,
-        "pressure": 1.379,
-        "ema15_support": null,
-        "ema15_resistance": 1.348
-      },
-      "metrics": {
-        "close": 1.29,
-        "day_change_pct": 1.18,
-        "ma89": 1.444,
-        "ma03": 1.29,
-        "bias05": -0.4,
-        "bias30": -2.98,
-        "bb05": -14.67,
-        "bb10": -20.81,
-        "bb30": -11.32,
-        "k": 24.12,
-        "d": 25.9,
-        "macd": -0.004,
-        "x_trend": 9.16,
-        "gdx_qs": -3.39,
-        "dx": -39.74
-      }
-    },
-    {
-      "code": "516950",
-      "name": "基建ETF银华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [],
-      "key_levels": {
-        "support": 0.939,
-        "pressure": 0.996,
-        "ema15_support": null,
-        "ema15_resistance": 0.975
-      },
-      "metrics": {
-        "close": 0.933,
-        "day_change_pct": -0.11,
-        "ma89": 1.008,
-        "ma03": 0.937,
-        "bias05": -0.87,
-        "bias30": -3.28,
-        "bb05": -15.4,
-        "bb10": -23.28,
-        "bb30": -12.26,
-        "k": 21.23,
-        "d": 22.84,
-        "macd": -0.004,
-        "x_trend": 9.37,
-        "gdx_qs": -3.68,
-        "dx": -68.78
-      }
-    },
-    {
-      "code": "512690",
-      "name": "酒ETF鹏华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "橙色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-13",
-          "close": 0.44
-        }
-      ],
-      "key_levels": {
-        "support": 0.404,
-        "pressure": 0.454,
-        "ema15_support": null,
-        "ema15_resistance": 0.438
-      },
-      "metrics": {
-        "close": 0.43,
-        "day_change_pct": -0.23,
-        "ma89": 0.426,
-        "ma03": 0.434,
-        "bias05": -1.69,
-        "bias30": 0.01,
-        "bb05": -32.46,
-        "bb10": -19.98,
-        "bb30": 4.88,
-        "k": 33.18,
-        "d": 45.08,
-        "macd": -0.004,
-        "x_trend": 61.93,
-        "gdx_qs": 52.99,
-        "dx": -27.37
-      }
-    },
-    {
-      "code": "512480",
-      "name": "半导体ETF国联安",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.785
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.793
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.771
-        }
-      ],
-      "key_levels": {
-        "support": 0.702,
-        "pressure": 0.899,
-        "ema15_support": null,
-        "ema15_resistance": 0.794
-      },
-      "metrics": {
-        "close": 0.75,
-        "day_change_pct": 0.67,
-        "ma89": 0.954,
-        "ma03": 0.758,
-        "bias05": -1.42,
-        "bias30": -5.05,
-        "bb05": 1.51,
-        "bb10": -17.82,
-        "bb30": -30.07,
-        "k": 26.68,
-        "d": 34.37,
-        "macd": 0.009,
-        "x_trend": 17.26,
-        "gdx_qs": 7.88,
-        "dx": -19.0
-      }
-    },
-    {
-      "code": "513080",
-      "name": "法国ETF华安",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-16",
-          "close": 1.664
-        }
-      ],
-      "key_levels": {
-        "support": 1.574,
-        "pressure": 1.69,
-        "ema15_support": null,
-        "ema15_resistance": 1.655
-      },
-      "metrics": {
-        "close": 1.568,
-        "day_change_pct": 0.19,
-        "ma89": 1.719,
-        "ma03": 1.579,
-        "bias05": -1.94,
-        "bias30": -3.62,
-        "bb05": -49.88,
-        "bb10": -24.19,
-        "bb30": -9.18,
-        "k": 18.71,
-        "d": 33.22,
-        "macd": -0.014,
-        "x_trend": 15.14,
-        "gdx_qs": 2.83,
-        "dx": -60.97
-      }
-    },
-    {
-      "code": "159667",
-      "name": "工业母机ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.515
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.496
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.456
+          "close": 2.125
         },
         {
           "name": "底部B",
           "date": "2026-11-23",
-          "close": 0.456
+          "close": 2.125
         }
       ],
       "key_levels": {
-        "support": 0.442,
-        "pressure": 0.564,
-        "ema15_support": null,
-        "ema15_resistance": 0.516
+        "support": 2.088,
+        "pressure": 2.29,
+        "ema15_support": 2.139,
+        "ema15_resistance": null
       },
       "metrics": {
-        "close": 0.456,
-        "day_change_pct": 6.29,
-        "ma89": 0.602,
-        "ma03": 0.446,
-        "bias05": 0.71,
-        "bias30": -9.21,
-        "bb05": -31.57,
-        "bb10": -44.8,
-        "bb30": -32.87,
-        "k": 18.07,
-        "d": 21.94,
-        "macd": -0.005,
-        "x_trend": 5.81,
-        "gdx_qs": -5.49,
-        "dx": -40.3
-      }
-    },
-    {
-      "code": "511380",
-      "name": "可转债ETF博时",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 12.746
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 11.908
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 11.908
-        }
-      ],
-      "key_levels": {
-        "support": 11.637,
-        "pressure": 12.88,
-        "ema15_support": null,
-        "ema15_resistance": 12.659
-      },
-      "metrics": {
-        "close": 11.908,
-        "day_change_pct": 2.75,
-        "ma89": 13.203,
-        "ma03": 11.727,
-        "bias05": 0.59,
-        "bias30": -4.32,
-        "bb05": -11.53,
-        "bb10": -32.18,
-        "bb30": -12.9,
-        "k": 18.6,
-        "d": 25.18,
-        "macd": -0.139,
-        "x_trend": 10.02,
-        "gdx_qs": -3.03,
-        "dx": -47.84
-      }
-    },
-    {
-      "code": "513060",
-      "name": "恒生医疗ETF博时",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "高抛低吸",
-          "date": "2026-11-10",
-          "close": 0.558
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 0.552
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.496
-        }
-      ],
-      "key_levels": {
-        "support": 0.49,
-        "pressure": 0.567,
-        "ema15_support": null,
-        "ema15_resistance": 0.541
-      },
-      "metrics": {
-        "close": 0.496,
-        "day_change_pct": 3.12,
-        "ma89": 0.552,
-        "ma03": 0.494,
-        "bias05": -1.31,
-        "bias30": -6.42,
-        "bb05": -47.78,
-        "bb10": -46.65,
-        "bb30": -23.97,
-        "k": 17.91,
-        "d": 27.0,
-        "macd": -0.008,
-        "x_trend": 12.33,
-        "gdx_qs": 0.42,
-        "dx": -51.11
-      }
-    },
-    {
-      "code": "159766",
-      "name": "旅游ETF富国",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [],
-      "key_levels": {
-        "support": 0.513,
-        "pressure": 0.564,
-        "ema15_support": null,
-        "ema15_resistance": 0.543
-      },
-      "metrics": {
-        "close": 0.522,
-        "day_change_pct": 0.58,
-        "ma89": 0.55,
-        "ma03": 0.525,
-        "bias05": -1.47,
-        "bias30": -2.19,
-        "bb05": -38.19,
-        "bb10": -29.8,
-        "bb30": -4.28,
-        "k": 17.94,
-        "d": 23.97,
-        "macd": -0.005,
-        "x_trend": 38.83,
-        "gdx_qs": 20.41,
-        "dx": -54.42
-      }
-    },
-    {
-      "code": "515210",
-      "name": "钢铁ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 1.033
-        }
-      ],
-      "key_levels": {
-        "support": 1.009,
-        "pressure": 1.127,
-        "ema15_support": null,
-        "ema15_resistance": 1.078
-      },
-      "metrics": {
-        "close": 1.001,
-        "day_change_pct": 0.1,
-        "ma89": 1.125,
-        "ma03": 1.006,
-        "bias05": -1.48,
-        "bias30": -6.04,
-        "bb05": -31.24,
-        "bb10": -30.41,
-        "bb30": -20.66,
-        "k": 16.21,
-        "d": 18.89,
-        "macd": -0.007,
-        "x_trend": 6.35,
-        "gdx_qs": -6.28,
-        "dx": -70.9
-      }
-    },
-    {
-      "code": "159755",
-      "name": "电池ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.703
-        }
-      ],
-      "key_levels": {
-        "support": 0.704,
-        "pressure": 0.855,
-        "ema15_support": null,
-        "ema15_resistance": 0.773
-      },
-      "metrics": {
-        "close": 0.703,
-        "day_change_pct": 1.44,
-        "ma89": 0.865,
-        "ma03": 0.703,
-        "bias05": -1.29,
-        "bias30": -6.85,
-        "bb05": -34.88,
-        "bb10": -42.62,
-        "bb30": -32.11,
-        "k": 15.32,
-        "d": 17.44,
-        "macd": -0.006,
-        "x_trend": 6.89,
-        "gdx_qs": -6.0,
-        "dx": -60.3
+        "close": 2.16,
+        "day_change_pct": 1.65,
+        "ma89": 2.214,
+        "ma03": 2.124,
+        "bias05": 1.89,
+        "bias30": -0.2,
+        "bb05": 24.46,
+        "bb10": 8.76,
+        "bb30": -10.37,
+        "k": 38.26,
+        "d": 33.25,
+        "macd": 0.007,
+        "x_trend": 11.12,
+        "gdx_qs": -1.23,
+        "dx": -1.25
       }
     },
     {
@@ -2008,7 +314,7 @@
       "background": "橙色",
       "state": "强洗",
       "state_color": "橙色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "减仓",
@@ -2028,1737 +334,72 @@
       ],
       "key_levels": {
         "support": 1.201,
-        "pressure": 1.252,
+        "pressure": 1.255,
         "ema15_support": 1.225,
         "ema15_resistance": null
       },
       "metrics": {
-        "close": 1.241,
-        "day_change_pct": -1.12,
-        "ma89": 1.217,
+        "close": 1.245,
+        "day_change_pct": 0.32,
+        "ma89": 1.218,
         "ma03": 1.247,
-        "bias05": -0.47,
-        "bias30": 1.13,
-        "bb05": -4.58,
-        "bb10": 3.24,
-        "bb30": 1.25,
-        "k": 80.13,
-        "d": 81.19,
+        "bias05": -0.1,
+        "bias30": 1.4,
+        "bb05": -2.76,
+        "bb10": 4.61,
+        "bb30": 2.95,
+        "k": 77.75,
+        "d": 80.04,
         "macd": 0.003,
-        "x_trend": 89.86,
-        "gdx_qs": 52.15,
-        "dx": 23.42
+        "x_trend": 88.17,
+        "gdx_qs": 56.89,
+        "dx": 17.77
       }
     },
     {
-      "code": "159326",
-      "name": "电网设备ETF华夏",
+      "code": "159996",
+      "name": "家电ETF国泰",
       "status": "ok",
       "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "减仓",
           "date": "2026-11-12",
-          "close": 1.41
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.322
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.322
-        }
-      ],
-      "key_levels": {
-        "support": 1.318,
-        "pressure": 1.527,
-        "ema15_support": null,
-        "ema15_resistance": 1.428
-      },
-      "metrics": {
-        "close": 1.322,
-        "day_change_pct": 2.01,
-        "ma89": 1.565,
-        "ma03": 1.319,
-        "bias05": -0.87,
-        "bias30": -6.18,
-        "bb05": -29.54,
-        "bb10": -34.62,
-        "bb30": -24.55,
-        "k": 17.16,
-        "d": 20.67,
-        "macd": -0.006,
-        "x_trend": 5.3,
-        "gdx_qs": -5.78,
-        "dx": -50.31
-      }
-    },
-    {
-      "code": "159732",
-      "name": "消费电子ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 1.012
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.942
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 0.942
-        }
-      ],
-      "key_levels": {
-        "support": 0.928,
-        "pressure": 1.167,
-        "ema15_support": null,
-        "ema15_resistance": 1.054
-      },
-      "metrics": {
-        "close": 0.942,
-        "day_change_pct": 3.86,
-        "ma89": 1.249,
-        "ma03": 0.933,
-        "bias05": 0.04,
-        "bias30": -9.02,
-        "bb05": -19.79,
-        "bb10": -37.46,
-        "bb30": -33.0,
-        "k": 17.74,
-        "d": 22.12,
-        "macd": -0.003,
-        "x_trend": 5.32,
-        "gdx_qs": -5.55,
-        "dx": -38.34
-      }
-    },
-    {
-      "code": "159566",
-      "name": "储能电池ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.318
-        }
-      ],
-      "key_levels": {
-        "support": 1.32,
-        "pressure": 1.64,
-        "ema15_support": null,
-        "ema15_resistance": 1.493
-      },
-      "metrics": {
-        "close": 1.318,
-        "day_change_pct": 2.17,
-        "ma89": 1.681,
-        "ma03": 1.319,
-        "bias05": -1.95,
-        "bias30": -9.24,
-        "bb05": -48.56,
-        "bb10": -49.8,
-        "bb30": -35.84,
-        "k": 13.2,
-        "d": 17.27,
-        "macd": -0.018,
-        "x_trend": 6.41,
-        "gdx_qs": -5.93,
-        "dx": -55.87
-      }
-    },
-    {
-      "code": "510050",
-      "name": "上证50ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做多",
-      "state_color": "红色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-20",
-          "close": 2.9
+          "close": 1.355
         },
         {
           "name": "DX加1",
-          "date": "2026-11-20",
-          "close": 2.9
+          "date": "2026-11-23",
+          "close": 1.371
         }
       ],
       "key_levels": {
-        "support": 2.836,
-        "pressure": 2.932,
-        "ema15_support": null,
-        "ema15_resistance": 2.89
+        "support": 1.313,
+        "pressure": 1.386,
+        "ema15_support": 1.366,
+        "ema15_resistance": null
       },
       "metrics": {
-        "close": 2.88,
-        "day_change_pct": -0.69,
-        "ma89": 2.967,
-        "ma03": 2.888,
-        "bias05": -0.21,
-        "bias30": -0.11,
-        "bb05": -1.98,
-        "bb10": -5.73,
-        "bb30": -3.44,
-        "k": 57.32,
-        "d": 53.09,
+        "close": 1.376,
+        "day_change_pct": 0.36,
+        "ma89": 1.394,
+        "ma03": 1.367,
+        "bias05": 0.23,
+        "bias30": 1.54,
+        "bb05": -4.99,
+        "bb10": -1.67,
+        "bb30": 0.14,
+        "k": 59.2,
+        "d": 62.44,
         "macd": 0.005,
-        "x_trend": 40.15,
-        "gdx_qs": 24.49,
-        "dx": -6.15
-      }
-    },
-    {
-      "code": "159852",
-      "name": "软件ETF嘉实",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.598
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.578
-        }
-      ],
-      "key_levels": {
-        "support": 0.573,
-        "pressure": 0.662,
-        "ema15_support": null,
-        "ema15_resistance": 0.626
-      },
-      "metrics": {
-        "close": 0.578,
-        "day_change_pct": 1.94,
-        "ma89": 0.657,
-        "ma03": 0.577,
-        "bias05": -1.1,
-        "bias30": -6.34,
-        "bb05": -32.86,
-        "bb10": -33.59,
-        "bb30": -18.18,
-        "k": 18.1,
-        "d": 19.84,
-        "macd": -0.007,
-        "x_trend": 12.27,
-        "gdx_qs": -0.84,
-        "dx": -46.02
-      }
-    },
-    {
-      "code": "159611",
-      "name": "电力ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 1.032
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-16",
-          "close": 1.041
-        }
-      ],
-      "key_levels": {
-        "support": 1.018,
-        "pressure": 1.059,
-        "ema15_support": null,
-        "ema15_resistance": 1.039
-      },
-      "metrics": {
-        "close": 1.031,
-        "day_change_pct": -1.43,
-        "ma89": 1.045,
-        "ma03": 1.041,
-        "bias05": -1.09,
-        "bias30": -0.49,
-        "bb05": -10.84,
-        "bb10": -8.75,
-        "bb30": -3.5,
-        "k": 51.49,
-        "d": 60.12,
-        "macd": 0.002,
-        "x_trend": 54.94,
-        "gdx_qs": 44.95,
-        "dx": -0.23
-      }
-    },
-    {
-      "code": "159915",
-      "name": "创业板ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 2.442
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 2.3
-        }
-      ],
-      "key_levels": {
-        "support": 2.269,
-        "pressure": 3.024,
-        "ema15_support": null,
-        "ema15_resistance": 2.588
-      },
-      "metrics": {
-        "close": 2.3,
-        "day_change_pct": 3.14,
-        "ma89": 3.142,
-        "ma03": 2.279,
-        "bias05": 0.21,
-        "bias30": -10.0,
-        "bb05": -16.46,
-        "bb10": -35.57,
-        "bb30": -41.44,
-        "k": 14.44,
-        "d": 17.62,
-        "macd": 0.004,
-        "x_trend": 3.7,
-        "gdx_qs": -6.94,
-        "dx": -40.3
-      }
-    },
-    {
-      "code": "159851",
-      "name": "金融科技ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.517
-        }
-      ],
-      "key_levels": {
-        "support": 0.511,
-        "pressure": 0.598,
-        "ema15_support": null,
-        "ema15_resistance": 0.572
-      },
-      "metrics": {
-        "close": 0.517,
-        "day_change_pct": 2.17,
-        "ma89": 0.595,
-        "ma03": 0.515,
-        "bias05": -1.15,
-        "bias30": -7.87,
-        "bb05": -38.54,
-        "bb10": -37.76,
-        "bb30": -22.2,
-        "k": 16.58,
-        "d": 19.56,
-        "macd": -0.008,
-        "x_trend": 11.54,
-        "gdx_qs": -3.11,
-        "dx": -54.53
-      }
-    },
-    {
-      "code": "159869",
-      "name": "游戏ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.913
-        }
-      ],
-      "key_levels": {
-        "support": 0.898,
-        "pressure": 1.092,
-        "ema15_support": null,
-        "ema15_resistance": 1.05
-      },
-      "metrics": {
-        "close": 0.913,
-        "day_change_pct": 4.34,
-        "ma89": 1.063,
-        "ma03": 0.903,
-        "bias05": -1.08,
-        "bias30": -9.88,
-        "bb05": -59.9,
-        "bb10": -53.56,
-        "bb30": -24.32,
-        "k": 12.97,
-        "d": 18.95,
-        "macd": -0.032,
-        "x_trend": 12.08,
-        "gdx_qs": -2.9,
-        "dx": -54.49
-      }
-    },
-    {
-      "code": "510310",
-      "name": "沪深300ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 3.998
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-19",
-          "close": 3.95
-        }
-      ],
-      "key_levels": {
-        "support": 3.922,
-        "pressure": 4.252,
-        "ema15_support": null,
-        "ema15_resistance": 4.062
-      },
-      "metrics": {
-        "close": 3.91,
-        "day_change_pct": 0.05,
-        "ma89": 4.343,
-        "ma03": 3.923,
-        "bias05": -0.51,
-        "bias30": -2.83,
-        "bb05": -8.38,
-        "bb10": -14.81,
-        "bb30": -15.21,
-        "k": 26.94,
-        "d": 29.35,
-        "macd": 0.007,
-        "x_trend": 7.54,
-        "gdx_qs": -3.66,
-        "dx": -50.23
-      }
-    },
-    {
-      "code": "563360",
-      "name": "A500ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.11
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.069
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.069
-        }
-      ],
-      "key_levels": {
-        "support": 1.07,
-        "pressure": 1.192,
-        "ema15_support": null,
-        "ema15_resistance": 1.128
-      },
-      "metrics": {
-        "close": 1.069,
-        "day_change_pct": 0.66,
-        "ma89": 1.222,
-        "ma03": 1.07,
-        "bias05": -0.43,
-        "bias30": -4.07,
-        "bb05": -11.56,
-        "bb10": -21.47,
-        "bb30": -18.92,
-        "k": 20.73,
-        "d": 22.8,
-        "macd": -0.0,
-        "x_trend": 6.1,
-        "gdx_qs": -4.94,
-        "dx": -51.41
-      }
-    },
-    {
-      "code": "513030",
-      "name": "德国ETF华安",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "清仓",
-          "date": "2026-11-18",
-          "close": 1.763
-        }
-      ],
-      "key_levels": {
-        "support": 1.704,
-        "pressure": 1.876,
-        "ema15_support": null,
-        "ema15_resistance": 1.819
-      },
-      "metrics": {
-        "close": 1.67,
-        "day_change_pct": -0.3,
-        "ma89": 1.821,
-        "ma03": 1.693,
-        "bias05": -3.74,
-        "bias30": -6.03,
-        "bb05": -61.82,
-        "bb10": -34.04,
-        "bb30": -10.19,
-        "k": 17.8,
-        "d": 35.76,
-        "macd": -0.033,
-        "x_trend": 19.5,
-        "gdx_qs": 5.52,
-        "dx": -62.82
-      }
-    },
-    {
-      "code": "516530",
-      "name": "物流ETF银华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-16",
-          "close": 0.984
-        }
-      ],
-      "key_levels": {
-        "support": 0.958,
-        "pressure": 1.043,
-        "ema15_support": null,
-        "ema15_resistance": 1.005
-      },
-      "metrics": {
-        "close": 0.97,
-        "day_change_pct": -0.31,
-        "ma89": 1.002,
-        "ma03": 0.975,
-        "bias05": -0.9,
-        "bias30": -2.42,
-        "bb05": -15.92,
-        "bb10": -16.96,
-        "bb30": -10.06,
-        "k": 26.35,
-        "d": 28.35,
-        "macd": -0.003,
-        "x_trend": 21.22,
-        "gdx_qs": 9.05,
-        "dx": -27.3
-      }
-    },
-    {
-      "code": "159745",
-      "name": "建材ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [],
-      "key_levels": {
-        "support": 0.477,
-        "pressure": 0.527,
-        "ema15_support": null,
-        "ema15_resistance": 0.512
-      },
-      "metrics": {
-        "close": 0.469,
-        "day_change_pct": -0.21,
-        "ma89": 0.522,
-        "ma03": 0.475,
-        "bias05": -2.74,
-        "bias30": -7.3,
-        "bb05": -48.94,
-        "bb10": -40.15,
-        "bb30": -19.19,
-        "k": 12.33,
-        "d": 18.34,
-        "macd": -0.007,
-        "x_trend": 8.52,
-        "gdx_qs": -5.11,
-        "dx": -79.08
-      }
-    },
-    {
-      "code": "516150",
-      "name": "稀土ETF嘉实",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.461
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.299
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.299
-        }
-      ],
-      "key_levels": {
-        "support": 1.284,
-        "pressure": 1.54,
-        "ema15_support": null,
-        "ema15_resistance": 1.466
-      },
-      "metrics": {
-        "close": 1.299,
-        "day_change_pct": 3.51,
-        "ma89": 1.598,
-        "ma03": 1.289,
-        "bias05": -0.31,
-        "bias30": -9.03,
-        "bb05": -45.08,
-        "bb10": -50.06,
-        "bb30": -27.69,
-        "k": 16.04,
-        "d": 19.73,
-        "macd": -0.024,
-        "x_trend": 6.91,
-        "gdx_qs": -5.32,
-        "dx": -56.91
-      }
-    },
-    {
-      "code": "516520",
-      "name": "智能驾驶ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.901
-        }
-      ],
-      "key_levels": {
-        "support": 0.887,
-        "pressure": 1.002,
-        "ema15_support": null,
-        "ema15_resistance": 0.967
-      },
-      "metrics": {
-        "close": 0.901,
-        "day_change_pct": 3.8,
-        "ma89": 1.012,
-        "ma03": 0.892,
-        "bias05": -0.38,
-        "bias30": -4.69,
-        "bb05": -40.53,
-        "bb10": -32.4,
-        "bb30": -13.45,
-        "k": 18.88,
-        "d": 26.67,
-        "macd": -0.013,
-        "x_trend": 11.92,
-        "gdx_qs": 0.14,
-        "dx": -41.41
-      }
-    },
-    {
-      "code": "512580",
-      "name": "环保ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.96
-        }
-      ],
-      "key_levels": {
-        "support": 0.964,
-        "pressure": 1.101,
-        "ema15_support": null,
-        "ema15_resistance": 1.033
-      },
-      "metrics": {
-        "close": 0.96,
-        "day_change_pct": 0.52,
-        "ma89": 1.11,
-        "ma03": 0.963,
-        "bias05": -1.13,
-        "bias30": -5.37,
-        "bb05": -34.82,
-        "bb10": -38.24,
-        "bb30": -24.29,
-        "k": 14.23,
-        "d": 18.07,
-        "macd": -0.008,
-        "x_trend": 7.96,
-        "gdx_qs": -5.2,
-        "dx": -66.93
-      }
-    },
-    {
-      "code": "515260",
-      "name": "电子ETF华宝",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.622
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.604
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.589
-        }
-      ],
-      "key_levels": {
-        "support": 0.577,
-        "pressure": 0.732,
-        "ema15_support": null,
-        "ema15_resistance": 0.639
-      },
-      "metrics": {
-        "close": 0.589,
-        "day_change_pct": 1.03,
-        "ma89": 0.775,
-        "ma03": 0.592,
-        "bias05": -0.77,
-        "bias30": -7.51,
-        "bb05": 1.93,
-        "bb10": -20.65,
-        "bb30": -34.26,
-        "k": 21.66,
-        "d": 28.14,
-        "macd": 0.006,
-        "x_trend": 8.64,
-        "gdx_qs": -1.45,
-        "dx": -26.66
-      }
-    },
-    {
-      "code": "512980",
-      "name": "传媒ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 0.826
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.739
-        }
-      ],
-      "key_levels": {
-        "support": 0.724,
-        "pressure": 0.855,
-        "ema15_support": null,
-        "ema15_resistance": 0.82
-      },
-      "metrics": {
-        "close": 0.739,
-        "day_change_pct": 4.23,
-        "ma89": 0.812,
-        "ma03": 0.729,
-        "bias05": -0.59,
-        "bias30": -7.04,
-        "bb05": -58.64,
-        "bb10": -48.51,
-        "bb30": -18.49,
-        "k": 16.83,
-        "d": 24.7,
-        "macd": -0.022,
-        "x_trend": 18.48,
-        "gdx_qs": 4.05,
-        "dx": -51.52
-      }
-    },
-    {
-      "code": "159998",
-      "name": "计算机ETF天弘",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 0.826
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.811
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.764
-        }
-      ],
-      "key_levels": {
-        "support": 0.768,
-        "pressure": 0.883,
-        "ema15_support": null,
-        "ema15_resistance": 0.838
-      },
-      "metrics": {
-        "close": 0.764,
-        "day_change_pct": 1.73,
-        "ma89": 0.918,
-        "ma03": 0.767,
-        "bias05": -2.23,
-        "bias30": -7.65,
-        "bb05": -43.93,
-        "bb10": -38.76,
-        "bb30": -23.81,
-        "k": 17.34,
-        "d": 23.12,
-        "macd": -0.008,
-        "x_trend": 7.85,
-        "gdx_qs": -4.05,
-        "dx": -45.72
-      }
-    },
-    {
-      "code": "513360",
-      "name": "教育ETF博时",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 0.426
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 0.42
-        }
-      ],
-      "key_levels": {
-        "support": 0.392,
-        "pressure": 0.466,
-        "ema15_support": null,
-        "ema15_resistance": 0.425
-      },
-      "metrics": {
-        "close": 0.387,
-        "day_change_pct": 0.78,
-        "ma89": 0.448,
-        "ma03": 0.39,
-        "bias05": -2.67,
-        "bias30": -8.48,
-        "bb05": -48.84,
-        "bb10": -39.54,
-        "bb30": -31.1,
-        "k": 15.21,
-        "d": 23.26,
-        "macd": -0.004,
-        "x_trend": 6.27,
-        "gdx_qs": -5.4,
-        "dx": -64.66
-      }
-    },
-    {
-      "code": "159206",
-      "name": "卫星ETF永赢",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.201
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.022
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.022
-        }
-      ],
-      "key_levels": {
-        "support": 1.008,
-        "pressure": 1.244,
-        "ema15_support": null,
-        "ema15_resistance": 1.195
-      },
-      "metrics": {
-        "close": 1.022,
-        "day_change_pct": 4.61,
-        "ma89": 1.282,
-        "ma03": 1.013,
-        "bias05": -1.08,
-        "bias30": -11.51,
-        "bb05": -55.4,
-        "bb10": -57.62,
-        "bb30": -27.84,
-        "k": 15.54,
-        "d": 23.0,
-        "macd": -0.03,
-        "x_trend": 7.11,
-        "gdx_qs": -4.48,
-        "dx": -53.29
-      }
-    },
-    {
-      "code": "588220",
-      "name": "科创100ETF鹏华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 1.386
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 1.339
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.209
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.209
-        }
-      ],
-      "key_levels": {
-        "support": 1.198,
-        "pressure": 1.554,
-        "ema15_support": null,
-        "ema15_resistance": 1.391
-      },
-      "metrics": {
-        "close": 1.209,
-        "day_change_pct": 4.04,
-        "ma89": 1.607,
-        "ma03": 1.202,
-        "bias05": -0.97,
-        "bias30": -11.23,
-        "bb05": -40.72,
-        "bb10": -49.88,
-        "bb30": -38.45,
-        "k": 16.2,
-        "d": 23.07,
-        "macd": -0.013,
-        "x_trend": 5.45,
-        "gdx_qs": -5.66,
-        "dx": -47.74
-      }
-    },
-    {
-      "code": "159939",
-      "name": "信息技术ETF广发",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "强洗",
-      "state_color": "橙色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.834
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.807
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.788
-        }
-      ],
-      "key_levels": {
-        "support": 0.774,
-        "pressure": 0.97,
-        "ema15_support": null,
-        "ema15_resistance": 0.856
-      },
-      "metrics": {
-        "close": 0.788,
-        "day_change_pct": 1.81,
-        "ma89": 1.017,
-        "ma03": 0.79,
-        "bias05": -0.78,
-        "bias30": -7.41,
-        "bb05": -7.17,
-        "bb10": -24.87,
-        "bb30": -33.33,
-        "k": 20.27,
-        "d": 26.71,
-        "macd": 0.005,
-        "x_trend": 8.14,
-        "gdx_qs": -2.08,
-        "dx": -29.6
-      }
-    },
-    {
-      "code": "513400",
-      "name": "道琼斯ETF鹏华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "加仓",
-          "date": "2026-11-10",
-          "close": 1.333
-        },
-        {
-          "name": "清仓",
-          "date": "2026-11-12",
-          "close": 1.324
-        },
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 1.319
-        }
-      ],
-      "key_levels": {
-        "support": 1.234,
-        "pressure": 1.346,
-        "ema15_support": null,
-        "ema15_resistance": 1.316
-      },
-      "metrics": {
-        "close": 1.211,
-        "day_change_pct": 0.25,
-        "ma89": 1.317,
-        "ma03": 1.226,
-        "bias05": -2.98,
-        "bias30": -7.12,
-        "bb05": -56.84,
-        "bb10": -34.21,
-        "bb30": -16.87,
-        "k": 11.63,
-        "d": 21.14,
-        "macd": -0.023,
-        "x_trend": 9.46,
-        "gdx_qs": -4.14,
-        "dx": -67.59
-      }
-    },
-    {
-      "code": "159883",
-      "name": "医疗器械ETF永赢",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.419
-        }
-      ],
-      "key_levels": {
-        "support": 0.418,
-        "pressure": 0.456,
-        "ema15_support": null,
-        "ema15_resistance": 0.443
-      },
-      "metrics": {
-        "close": 0.419,
-        "day_change_pct": 1.21,
-        "ma89": 0.437,
-        "ma03": 0.421,
-        "bias05": -1.64,
-        "bias30": -3.98,
-        "bb05": -39.96,
-        "bb10": -31.73,
-        "bb30": -8.25,
-        "k": 18.32,
-        "d": 21.81,
-        "macd": -0.006,
-        "x_trend": 26.21,
-        "gdx_qs": 13.87,
-        "dx": -59.97
-      }
-    },
-    {
-      "code": "515790",
-      "name": "光伏ETF华泰柏瑞",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.643
-        }
-      ],
-      "key_levels": {
-        "support": 0.645,
-        "pressure": 0.762,
-        "ema15_support": null,
-        "ema15_resistance": 0.726
-      },
-      "metrics": {
-        "close": 0.643,
-        "day_change_pct": 1.26,
-        "ma89": 0.783,
-        "ma03": 0.645,
-        "bias05": -1.38,
-        "bias30": -8.79,
-        "bb05": -45.91,
-        "bb10": -52.77,
-        "bb30": -28.82,
-        "k": 12.07,
-        "d": 17.4,
-        "macd": -0.012,
-        "x_trend": 6.7,
-        "gdx_qs": -5.76,
-        "dx": -65.38
-      }
-    },
-    {
-      "code": "512400",
-      "name": "有色金属ETF南方",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.282
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.282
-        }
-      ],
-      "key_levels": {
-        "support": 1.261,
-        "pressure": 1.621,
-        "ema15_support": null,
-        "ema15_resistance": 1.474
-      },
-      "metrics": {
-        "close": 1.282,
-        "day_change_pct": 3.22,
-        "ma89": 1.677,
-        "ma03": 1.268,
-        "bias05": -0.26,
-        "bias30": -10.46,
-        "bb05": -37.67,
-        "bb10": -52.08,
-        "bb30": -35.45,
-        "k": 16.42,
-        "d": 18.43,
-        "macd": -0.016,
-        "x_trend": 6.08,
-        "gdx_qs": -6.44,
-        "dx": -60.65
-      }
-    },
-    {
-      "code": "515980",
-      "name": "人工智能ETF华富",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-13",
-          "close": 0.786
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 0.751
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.72
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 0.72
-        }
-      ],
-      "key_levels": {
-        "support": 0.716,
-        "pressure": 0.915,
-        "ema15_support": null,
-        "ema15_resistance": 0.813
-      },
-      "metrics": {
-        "close": 0.72,
-        "day_change_pct": 2.86,
-        "ma89": 0.956,
-        "ma03": 0.717,
-        "bias05": -1.15,
-        "bias30": -10.51,
-        "bb05": -40.16,
-        "bb10": -38.1,
-        "bb30": -36.96,
-        "k": 15.03,
-        "d": 20.46,
-        "macd": -0.004,
-        "x_trend": 4.58,
-        "gdx_qs": -6.08,
-        "dx": -41.43
-      }
-    },
-    {
-      "code": "517520",
-      "name": "黄金股ETF永赢",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.669
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.52
-        },
-        {
-          "name": "底部B",
-          "date": "2026-11-23",
-          "close": 1.52
-        }
-      ],
-      "key_levels": {
-        "support": 1.472,
-        "pressure": 1.903,
-        "ema15_support": null,
-        "ema15_resistance": 1.73
-      },
-      "metrics": {
-        "close": 1.52,
-        "day_change_pct": 4.97,
-        "ma89": 1.898,
-        "ma03": 1.488,
-        "bias05": 0.16,
-        "bias30": -9.84,
-        "bb05": -37.65,
-        "bb10": -55.61,
-        "bb30": -32.95,
-        "k": 20.89,
-        "d": 25.0,
-        "macd": -0.023,
-        "x_trend": 9.11,
-        "gdx_qs": -3.51,
-        "dx": -45.23
-      }
-    },
-    {
-      "code": "159227",
-      "name": "航空航天ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 371,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-10",
-          "close": 0.961
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.808
-        }
-      ],
-      "key_levels": {
-        "support": 0.811,
-        "pressure": 0.993,
-        "ema15_support": null,
-        "ema15_resistance": 0.958
-      },
-      "metrics": {
-        "close": 0.808,
-        "day_change_pct": 2.15,
-        "ma89": 0.977,
-        "ma03": 0.81,
-        "bias05": -2.79,
-        "bias30": -13.59,
-        "bb05": -63.48,
-        "bb10": -60.29,
-        "bb30": -24.43,
-        "k": 12.43,
-        "d": 19.8,
-        "macd": -0.03,
-        "x_trend": 6.52,
-        "gdx_qs": -6.3,
-        "dx": -75.61
-      }
-    },
-    {
-      "code": "513520",
-      "name": "日经ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-10",
-          "close": 2.085
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-19",
-          "close": 2.032
-        }
-      ],
-      "key_levels": {
-        "support": 1.97,
-        "pressure": 2.391,
-        "ema15_support": null,
-        "ema15_resistance": 2.328
-      },
-      "metrics": {
-        "close": 1.922,
-        "day_change_pct": -0.31,
-        "ma89": 2.225,
-        "ma03": 1.961,
-        "bias05": -3.14,
-        "bias30": -10.16,
-        "bb05": -50.31,
-        "bb10": -27.2,
-        "bb30": -35.79,
-        "k": 19.58,
-        "d": 25.34,
-        "macd": -0.024,
-        "x_trend": 7.48,
-        "gdx_qs": -3.41,
-        "dx": -55.21
-      }
-    },
-    {
-      "code": "518880",
-      "name": "黄金ETF华安",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-11",
-          "close": 8.289
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 7.4
-        }
-      ],
-      "key_levels": {
-        "support": 7.447,
-        "pressure": 8.608,
-        "ema15_support": null,
-        "ema15_resistance": 8.301
-      },
-      "metrics": {
-        "close": 7.4,
-        "day_change_pct": 1.62,
-        "ma89": 8.606,
-        "ma03": 7.431,
-        "bias05": -2.37,
-        "bias30": -9.28,
-        "bb05": -49.69,
-        "bb10": -50.82,
-        "bb30": -25.73,
-        "k": 13.96,
-        "d": 18.01,
-        "macd": -0.14,
-        "x_trend": 6.66,
-        "gdx_qs": -5.79,
-        "dx": -62.58
-      }
-    },
-    {
-      "code": "516510",
-      "name": "云计算ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 1.416
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-18",
-          "close": 1.368
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 1.275
-        }
-      ],
-      "key_levels": {
-        "support": 1.28,
-        "pressure": 1.524,
-        "ema15_support": null,
-        "ema15_resistance": 1.433
-      },
-      "metrics": {
-        "close": 1.275,
-        "day_change_pct": 2.33,
-        "ma89": 1.581,
-        "ma03": 1.278,
-        "bias05": -2.6,
-        "bias30": -9.55,
-        "bb05": -48.94,
-        "bb10": -45.56,
-        "bb30": -28.72,
-        "k": 16.98,
-        "d": 23.43,
-        "macd": -0.018,
-        "x_trend": 7.08,
-        "gdx_qs": -4.49,
-        "dx": -47.19
-      }
-    },
-    {
-      "code": "159870",
-      "name": "化工ETF鹏华",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-17",
-          "close": 0.663
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.64
-        }
-      ],
-      "key_levels": {
-        "support": 0.643,
-        "pressure": 0.741,
-        "ema15_support": null,
-        "ema15_resistance": 0.695
-      },
-      "metrics": {
-        "close": 0.64,
-        "day_change_pct": 1.27,
-        "ma89": 0.751,
-        "ma03": 0.642,
-        "bias05": -1.33,
-        "bias30": -5.95,
-        "bb05": -27.54,
-        "bb10": -37.97,
-        "bb30": -22.99,
-        "k": 14.95,
-        "d": 17.42,
-        "macd": -0.004,
-        "x_trend": 5.68,
-        "gdx_qs": -6.84,
-        "dx": -53.93
-      }
-    },
-    {
-      "code": "162411",
-      "name": "华宝油气LOF",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-11",
-          "close": 0.911
-        }
-      ],
-      "key_levels": {
-        "support": 0.883,
-        "pressure": 1.085,
-        "ema15_support": null,
-        "ema15_resistance": 1.039
-      },
-      "metrics": {
-        "close": 0.877,
-        "day_change_pct": -0.11,
-        "ma89": 0.961,
-        "ma03": 0.881,
-        "bias05": -1.99,
-        "bias30": -10.64,
-        "bb05": -60.04,
-        "bb10": -16.44,
-        "bb30": -21.09,
-        "k": 13.08,
-        "d": 20.77,
-        "macd": -0.016,
-        "x_trend": 5.15,
-        "gdx_qs": -7.56,
-        "dx": -48.89
-      }
-    },
-    {
-      "code": "512660",
-      "name": "军工ETF国泰",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 400,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.909
-        }
-      ],
-      "key_levels": {
-        "support": 0.915,
-        "pressure": 1.082,
-        "ema15_support": null,
-        "ema15_resistance": 1.037
-      },
-      "metrics": {
-        "close": 0.909,
-        "day_change_pct": 1.45,
-        "ma89": 1.088,
-        "ma03": 0.913,
-        "bias05": -2.05,
-        "bias30": -10.48,
-        "bb05": -50.02,
-        "bb10": -51.43,
-        "bb30": -25.95,
-        "k": 13.66,
-        "d": 18.92,
-        "macd": -0.018,
-        "x_trend": 5.65,
-        "gdx_qs": -6.11,
-        "dx": -73.3
+        "x_trend": 56.39,
+        "gdx_qs": 37.08,
+        "dx": 5.13
       }
     },
     {
@@ -3766,11 +407,11 @@
       "name": "证券保险ETF易方达",
       "status": "ok",
       "reason": null,
-      "bar_count": 399,
+      "bar_count": 400,
       "background": "绿色",
       "state": "做多",
       "state_color": "红色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "DX买",
@@ -3795,118 +436,2616 @@
         "ema15_resistance": 0.755
       },
       "metrics": {
-        "close": 0.75,
-        "day_change_pct": -1.19,
-        "ma89": 0.78,
-        "ma03": 0.755,
-        "bias05": -0.61,
-        "bias30": -0.3,
-        "bb05": -9.02,
-        "bb10": -9.04,
-        "bb30": -4.3,
-        "k": 53.46,
-        "d": 51.72,
-        "macd": 0.002,
-        "x_trend": 42.87,
-        "gdx_qs": 19.86,
-        "dx": -2.8
+        "close": 0.751,
+        "day_change_pct": 0.13,
+        "ma89": 0.779,
+        "ma03": 0.753,
+        "bias05": -0.4,
+        "bias30": -0.13,
+        "bb05": -4.55,
+        "bb10": -7.56,
+        "bb30": -1.78,
+        "k": 53.18,
+        "d": 52.21,
+        "macd": 0.001,
+        "x_trend": 42.23,
+        "gdx_qs": 18.92,
+        "dx": -7.5
       }
     },
     {
-      "code": "510500",
-      "name": "中证500ETF南方",
+      "code": "588000",
+      "name": "科创50ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 1.354
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 1.322
+        }
+      ],
+      "key_levels": {
+        "support": 1.215,
+        "pressure": 1.507,
+        "ema15_support": null,
+        "ema15_resistance": 1.338
+      },
+      "metrics": {
+        "close": 1.32,
+        "day_change_pct": 1.69,
+        "ma89": 1.612,
+        "ma03": 1.306,
+        "bias05": 0.24,
+        "bias30": -1.92,
+        "bb05": 21.63,
+        "bb10": -7.29,
+        "bb30": -24.75,
+        "k": 33.08,
+        "d": 36.29,
+        "macd": 0.02,
+        "x_trend": 19.18,
+        "gdx_qs": 9.49,
+        "dx": -7.43
+      }
+    },
+    {
+      "code": "159865",
+      "name": "养殖ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "橙色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 0.536
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.54
+        },
+        {
+          "name": "DX加1",
+          "date": "2026-11-23",
+          "close": 0.54
+        }
+      ],
+      "key_levels": {
+        "support": 0.509,
+        "pressure": 0.55,
+        "ema15_support": 0.537,
+        "ema15_resistance": null
+      },
+      "metrics": {
+        "close": 0.538,
+        "day_change_pct": -0.37,
+        "ma89": 0.535,
+        "ma03": 0.537,
+        "bias05": 0.26,
+        "bias30": 1.47,
+        "bb05": -14.59,
+        "bb10": -4.24,
+        "bb30": 5.03,
+        "k": 52.77,
+        "d": 55.92,
+        "macd": -0.0,
+        "x_trend": 68.29,
+        "gdx_qs": 36.92,
+        "dx": -5.28
+      }
+    },
+    {
+      "code": "515880",
+      "name": "通信ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "买入",
+          "date": "2026-11-11",
+          "close": 0.459
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.381
+        }
+      ],
+      "key_levels": {
+        "support": 0.362,
+        "pressure": 0.572,
+        "ema15_support": null,
+        "ema15_resistance": 0.458
+      },
+      "metrics": {
+        "close": 0.38,
+        "day_change_pct": -0.26,
+        "ma89": 0.586,
+        "ma03": 0.374,
+        "bias05": 0.8,
+        "bias30": -15.42,
+        "bb05": 9.06,
+        "bb10": -48.28,
+        "bb30": -54.55,
+        "k": 17.25,
+        "d": 17.8,
+        "macd": 0.004,
+        "x_trend": 4.66,
+        "gdx_qs": -5.96,
+        "dx": -29.22
+      }
+    },
+    {
+      "code": "510050",
+      "name": "上证50ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做多",
+      "state_color": "红色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-20",
+          "close": 2.9
+        },
+        {
+          "name": "DX加1",
+          "date": "2026-11-20",
+          "close": 2.9
+        }
+      ],
+      "key_levels": {
+        "support": 2.836,
+        "pressure": 2.931,
+        "ema15_support": 2.888,
+        "ema15_resistance": null
+      },
+      "metrics": {
+        "close": 2.89,
+        "day_change_pct": 0.52,
+        "ma89": 2.965,
+        "ma03": 2.888,
+        "bias05": 0.13,
+        "bias30": 0.28,
+        "bb05": 2.38,
+        "bb10": -0.2,
+        "bb30": -1.79,
+        "k": 61.28,
+        "d": 55.42,
+        "macd": 0.005,
+        "x_trend": 39.91,
+        "gdx_qs": 24.15,
+        "dx": -2.73
+      }
+    },
+    {
+      "code": "515180",
+      "name": "红利ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-16",
+          "close": 1.383
+        }
+      ],
+      "key_levels": {
+        "support": 1.336,
+        "pressure": 1.403,
+        "ema15_support": null,
+        "ema15_resistance": 1.374
+      },
+      "metrics": {
+        "close": 1.35,
+        "day_change_pct": -0.52,
+        "ma89": 1.403,
+        "ma03": 1.358,
+        "bias05": -1.13,
+        "bias30": -1.44,
+        "bb05": -20.78,
+        "bb10": -8.71,
+        "bb30": -5.55,
+        "k": 32.37,
+        "d": 46.13,
+        "macd": -0.001,
+        "x_trend": 35.56,
+        "gdx_qs": 16.55,
+        "dx": -35.23
+      }
+    },
+    {
+      "code": "159825",
+      "name": "农业ETF富国",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.716
+        }
+      ],
+      "key_levels": {
+        "support": 0.689,
+        "pressure": 0.736,
+        "ema15_support": null,
+        "ema15_resistance": 0.722
+      },
+      "metrics": {
+        "close": 0.715,
+        "day_change_pct": -0.14,
+        "ma89": 0.725,
+        "ma03": 0.713,
+        "bias05": 0.14,
+        "bias30": 0.17,
+        "bb05": -17.08,
+        "bb10": -10.22,
+        "bb30": 0.54,
+        "k": 41.66,
+        "d": 43.12,
+        "macd": -0.002,
+        "x_trend": 50.05,
+        "gdx_qs": 20.81,
+        "dx": -20.42
+      }
+    },
+    {
+      "code": "159939",
+      "name": "信息技术ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.834
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.807
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.788
+        }
+      ],
+      "key_levels": {
+        "support": 0.774,
+        "pressure": 0.956,
+        "ema15_support": null,
+        "ema15_resistance": 0.856
+      },
+      "metrics": {
+        "close": 0.796,
+        "day_change_pct": 1.02,
+        "ma89": 1.011,
+        "ma03": 0.786,
+        "bias05": 0.15,
+        "bias30": -5.88,
+        "bb05": 4.32,
+        "bb10": -27.79,
+        "bb30": -31.75,
+        "k": 23.42,
+        "d": 25.61,
+        "macd": 0.007,
+        "x_trend": 8.72,
+        "gdx_qs": -1.81,
+        "dx": -23.29
+      }
+    },
+    {
+      "code": "512690",
+      "name": "酒ETF鹏华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "橙色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-13",
+          "close": 0.44
+        }
+      ],
+      "key_levels": {
+        "support": 0.404,
+        "pressure": 0.454,
+        "ema15_support": null,
+        "ema15_resistance": 0.438
+      },
+      "metrics": {
+        "close": 0.43,
+        "day_change_pct": -0.46,
+        "ma89": 0.427,
+        "ma03": 0.431,
+        "bias05": -1.06,
+        "bias30": -0.12,
+        "bb05": -36.16,
+        "bb10": -20.04,
+        "bb30": 6.63,
+        "k": 31.49,
+        "d": 41.56,
+        "macd": -0.004,
+        "x_trend": 58.78,
+        "gdx_qs": 49.15,
+        "dx": -31.03
+      }
+    },
+    {
+      "code": "159502",
+      "name": "标普生物科技ETF嘉实",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "清仓",
+          "date": "2026-11-12",
+          "close": 1.595
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 1.479
+        }
+      ],
+      "key_levels": {
+        "support": 1.445,
+        "pressure": 1.638,
+        "ema15_support": null,
+        "ema15_resistance": 1.587
+      },
+      "metrics": {
+        "close": 1.479,
+        "day_change_pct": 1.86,
+        "ma89": 1.575,
+        "ma03": 1.459,
+        "bias05": 0.16,
+        "bias30": -4.75,
+        "bb05": -29.49,
+        "bb10": -40.0,
+        "bb30": -11.03,
+        "k": 20.18,
+        "d": 21.48,
+        "macd": -0.027,
+        "x_trend": 15.34,
+        "gdx_qs": 1.0,
+        "dx": -46.99
+      }
+    },
+    {
+      "code": "560710",
+      "name": "船舶ETF富国",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 191,
+      "background": "绿色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.805
+        }
+      ],
+      "key_levels": {
+        "support": 0.798,
+        "pressure": 0.956,
+        "ema15_support": null,
+        "ema15_resistance": 0.951
+      },
+      "metrics": {
+        "close": 0.813,
+        "day_change_pct": 0.99,
+        "ma89": 0.901,
+        "ma03": 0.805,
+        "bias05": -0.34,
+        "bias30": -7.31,
+        "bb05": -26.01,
+        "bb10": -36.38,
+        "bb30": -28.39,
+        "k": 19.75,
+        "d": 15.98,
+        "macd": -0.01,
+        "x_trend": 7.87,
+        "gdx_qs": -3.71,
+        "dx": -57.61
+      }
+    },
+    {
+      "code": "513520",
+      "name": "日经ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-19",
+          "close": 2.032
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 2.0
+        }
+      ],
+      "key_levels": {
+        "support": 1.925,
+        "pressure": 2.367,
+        "ema15_support": null,
+        "ema15_resistance": 2.328
+      },
+      "metrics": {
+        "close": 2.0,
+        "day_change_pct": 4.06,
+        "ma89": 2.222,
+        "ma03": 1.95,
+        "bias05": 0.96,
+        "bias30": -6.01,
+        "bb05": -9.72,
+        "bb10": -22.69,
+        "bb30": -28.05,
+        "k": 30.14,
+        "d": 26.94,
+        "macd": -0.015,
+        "x_trend": 11.11,
+        "gdx_qs": -0.26,
+        "dx": -32.41
+      }
+    },
+    {
+      "code": "512980",
+      "name": "传媒ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 0.826
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.739
+        }
+      ],
+      "key_levels": {
+        "support": 0.709,
+        "pressure": 0.855,
+        "ema15_support": null,
+        "ema15_resistance": 0.82
+      },
+      "metrics": {
+        "close": 0.736,
+        "day_change_pct": -0.41,
+        "ma89": 0.811,
+        "ma03": 0.728,
+        "bias05": -0.08,
+        "bias30": -7.09,
+        "bb05": -42.45,
+        "bb10": -56.52,
+        "bb30": -19.19,
+        "k": 19.14,
+        "d": 22.85,
+        "macd": -0.021,
+        "x_trend": 19.45,
+        "gdx_qs": 3.73,
+        "dx": -45.01
+      }
+    },
+    {
+      "code": "512480",
+      "name": "半导体ETF国联安",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.793
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.771
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 0.76
+        }
+      ],
+      "key_levels": {
+        "support": 0.702,
+        "pressure": 0.887,
+        "ema15_support": null,
+        "ema15_resistance": 0.794
+      },
+      "metrics": {
+        "close": 0.76,
+        "day_change_pct": 1.6,
+        "ma89": 0.947,
+        "ma03": 0.751,
+        "bias05": -0.08,
+        "bias30": -3.26,
+        "bb05": 1.51,
+        "bb10": -17.88,
+        "bb30": -28.0,
+        "k": 28.52,
+        "d": 32.24,
+        "macd": 0.009,
+        "x_trend": 16.73,
+        "gdx_qs": 7.01,
+        "dx": -15.77
+      }
+    },
+    {
+      "code": "159201",
+      "name": "自由现金流ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-16",
+          "close": 1.14
+        }
+      ],
+      "key_levels": {
+        "support": 1.121,
+        "pressure": 1.182,
+        "ema15_support": null,
+        "ema15_resistance": 1.146
+      },
+      "metrics": {
+        "close": 1.115,
+        "day_change_pct": -0.62,
+        "ma89": 1.164,
+        "ma03": 1.124,
+        "bias05": -1.45,
+        "bias30": -3.14,
+        "bb05": -21.18,
+        "bb10": -12.44,
+        "bb30": -9.84,
+        "k": 24.37,
+        "d": 31.03,
+        "macd": -0.004,
+        "x_trend": 15.26,
+        "gdx_qs": 1.16,
+        "dx": -35.41
+      }
+    },
+    {
+      "code": "159938",
+      "name": "医药ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.618
+        }
+      ],
+      "key_levels": {
+        "support": 0.607,
+        "pressure": 0.663,
+        "ema15_support": null,
+        "ema15_resistance": 0.639
+      },
+      "metrics": {
+        "close": 0.611,
+        "day_change_pct": -1.13,
+        "ma89": 0.642,
+        "ma03": 0.612,
+        "bias05": -0.75,
+        "bias30": -2.88,
+        "bb05": -27.34,
+        "bb10": -29.8,
+        "bb30": -6.04,
+        "k": 25.19,
+        "d": 25.73,
+        "macd": -0.006,
+        "x_trend": 23.96,
+        "gdx_qs": 12.33,
+        "dx": -43.19
+      }
+    },
+    {
+      "code": "562500",
+      "name": "机器人ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 0.867
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.815
+        }
+      ],
+      "key_levels": {
+        "support": 0.764,
+        "pressure": 0.906,
+        "ema15_support": null,
+        "ema15_resistance": 0.87
+      },
+      "metrics": {
+        "close": 0.816,
+        "day_change_pct": 0.12,
+        "ma89": 0.913,
+        "ma03": 0.798,
+        "bias05": 2.23,
+        "bias30": -3.0,
+        "bb05": 8.56,
+        "bb10": -42.36,
+        "bb30": -4.75,
+        "k": 28.02,
+        "d": 25.76,
+        "macd": -0.01,
+        "x_trend": 21.3,
+        "gdx_qs": 5.75,
+        "dx": -20.93
+      }
+    },
+    {
+      "code": "516530",
+      "name": "物流ETF银华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-16",
+          "close": 0.984
+        }
+      ],
+      "key_levels": {
+        "support": 0.958,
+        "pressure": 1.042,
+        "ema15_support": null,
+        "ema15_resistance": 1.005
+      },
+      "metrics": {
+        "close": 0.97,
+        "day_change_pct": 0.0,
+        "ma89": 1.002,
+        "ma03": 0.971,
+        "bias05": -0.72,
+        "bias30": -2.19,
+        "bb05": -10.42,
+        "bb10": -12.08,
+        "bb30": -12.85,
+        "k": 26.76,
+        "d": 27.82,
+        "macd": -0.003,
+        "x_trend": 19.2,
+        "gdx_qs": 7.07,
+        "dx": -30.71
+      }
+    },
+    {
+      "code": "510210",
+      "name": "上证指数ETF富国",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 0.949
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 0.92
+        }
+      ],
+      "key_levels": {
+        "support": 0.916,
+        "pressure": 0.978,
+        "ema15_support": null,
+        "ema15_resistance": 0.953
+      },
+      "metrics": {
+        "close": 0.92,
+        "day_change_pct": 0.33,
+        "ma89": 0.978,
+        "ma03": 0.918,
+        "bias05": -0.35,
+        "bias30": -2.71,
+        "bb05": -12.2,
+        "bb10": -18.32,
+        "bb30": -11.53,
+        "k": 22.74,
+        "d": 25.3,
+        "macd": -0.003,
+        "x_trend": 9.99,
+        "gdx_qs": -2.13,
+        "dx": -53.27
+      }
+    },
+    {
+      "code": "560800",
+      "name": "数字经济ETF鹏扬",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.93
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.912
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 0.892
+        }
+      ],
+      "key_levels": {
+        "support": 0.868,
+        "pressure": 1.012,
+        "ema15_support": null,
+        "ema15_resistance": 0.938
+      },
+      "metrics": {
+        "close": 0.892,
+        "day_change_pct": 0.56,
+        "ma89": 1.078,
+        "ma03": 0.887,
+        "bias05": -0.54,
+        "bias30": -3.87,
+        "bb05": 0.0,
+        "bb10": -20.99,
+        "bb30": -22.88,
+        "k": 25.51,
+        "d": 28.83,
+        "macd": 0.005,
+        "x_trend": 11.82,
+        "gdx_qs": 1.62,
+        "dx": -25.21
+      }
+    },
+    {
+      "code": "512880",
+      "name": "证券ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-17",
+          "close": 0.986
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-19",
+          "close": 0.986
+        }
+      ],
+      "key_levels": {
+        "support": 0.962,
+        "pressure": 1.039,
+        "ema15_support": null,
+        "ema15_resistance": 1.011
+      },
+      "metrics": {
+        "close": 0.969,
+        "day_change_pct": -1.52,
+        "ma89": 1.055,
+        "ma03": 0.978,
+        "bias05": -1.16,
+        "bias30": -3.24,
+        "bb05": -19.07,
+        "bb10": -20.03,
+        "bb30": -12.36,
+        "k": 23.38,
+        "d": 28.84,
+        "macd": -0.001,
+        "x_trend": 17.36,
+        "gdx_qs": 2.54,
+        "dx": -40.98
+      }
+    },
+    {
+      "code": "513500",
+      "name": "标普500ETF博时",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 2.53
+        }
+      ],
+      "key_levels": {
+        "support": 2.465,
+        "pressure": 2.754,
+        "ema15_support": null,
+        "ema15_resistance": 2.646
+      },
+      "metrics": {
+        "close": 2.53,
+        "day_change_pct": 3.05,
+        "ma89": 2.641,
+        "ma03": 2.486,
+        "bias05": 0.43,
+        "bias30": -3.56,
+        "bb05": -18.79,
+        "bb10": -25.25,
+        "bb30": -15.84,
+        "k": 31.46,
+        "d": 35.84,
+        "macd": -0.027,
+        "x_trend": 21.53,
+        "gdx_qs": 9.13,
+        "dx": -39.98
+      }
+    },
+    {
+      "code": "159611",
+      "name": "电力ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 1.032
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-16",
+          "close": 1.041
+        }
+      ],
+      "key_levels": {
+        "support": 1.018,
+        "pressure": 1.059,
+        "ema15_support": null,
+        "ema15_resistance": 1.039
+      },
+      "metrics": {
+        "close": 1.028,
+        "day_change_pct": -0.29,
+        "ma89": 1.045,
+        "ma03": 1.035,
+        "bias05": -1.15,
+        "bias30": -0.72,
+        "bb05": -12.97,
+        "bb10": -6.59,
+        "bb30": -2.95,
+        "k": 38.36,
+        "d": 52.86,
+        "macd": -0.0,
+        "x_trend": 48.33,
+        "gdx_qs": 38.07,
+        "dx": -15.8
+      }
+    },
+    {
+      "code": "159329",
+      "name": "沙特ETF南方",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-16",
+          "close": 0.846
+        }
+      ],
+      "key_levels": {
+        "support": 0.784,
+        "pressure": 0.861,
+        "ema15_support": null,
+        "ema15_resistance": 0.841
+      },
+      "metrics": {
+        "close": 0.827,
+        "day_change_pct": 0.12,
+        "ma89": 0.875,
+        "ma03": 0.829,
+        "bias05": -1.15,
+        "bias30": -0.56,
+        "bb05": -23.19,
+        "bb10": -10.08,
+        "bb30": -6.4,
+        "k": 42.05,
+        "d": 55.5,
+        "macd": 0.001,
+        "x_trend": 43.74,
+        "gdx_qs": 25.61,
+        "dx": -29.44
+      }
+    },
+    {
+      "code": "563300",
+      "name": "中证2000ETF华泰柏瑞",
       "status": "ok",
       "reason": null,
       "bar_count": 400,
       "background": "蓝色",
       "state": "做空",
       "state_color": "绿色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "减仓",
-          "date": "2026-11-12",
-          "close": 6.628
+          "date": "2026-11-13",
+          "close": 1.252
         },
         {
           "name": "DX买",
           "date": "2026-11-23",
-          "close": 6.16
-        }
-      ],
-      "key_levels": {
-        "support": 6.169,
-        "pressure": 7.204,
-        "ema15_support": null,
-        "ema15_resistance": 6.694
-      },
-      "metrics": {
-        "close": 6.16,
-        "day_change_pct": 1.77,
-        "ma89": 7.36,
-        "ma03": 6.166,
-        "bias05": -1.04,
-        "bias30": -6.73,
-        "bb05": -29.07,
-        "bb10": -35.04,
-        "bb30": -25.86,
-        "k": 16.72,
-        "d": 21.74,
-        "macd": -0.032,
-        "x_trend": 5.43,
-        "gdx_qs": -5.76,
-        "dx": -51.72
-      }
-    },
-    {
-      "code": "512100",
-      "name": "中证1000ETF南方",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "减仓",
-          "date": "2026-11-12",
-          "close": 2.657
-        },
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 2.362
+          "close": 1.125
         },
         {
           "name": "底部B",
           "date": "2026-11-23",
-          "close": 2.362
+          "close": 1.125
         }
       ],
       "key_levels": {
-        "support": 2.358,
-        "pressure": 2.882,
+        "support": 1.082,
+        "pressure": 1.383,
         "ema15_support": null,
-        "ema15_resistance": 2.676
+        "ema15_resistance": 1.278
       },
       "metrics": {
-        "close": 2.362,
-        "day_change_pct": 2.7,
-        "ma89": 2.897,
-        "ma03": 2.359,
+        "close": 1.124,
+        "day_change_pct": -0.09,
+        "ma89": 1.346,
+        "ma03": 1.11,
+        "bias05": -0.44,
+        "bias30": -9.93,
+        "bb05": -49.96,
+        "bb10": -53.35,
+        "bb30": -34.49,
+        "k": 20.34,
+        "d": 22.82,
+        "macd": -0.02,
+        "x_trend": 9.86,
+        "gdx_qs": -2.29,
+        "dx": -46.19
+      }
+    },
+    {
+      "code": "159766",
+      "name": "旅游ETF富国",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [],
+      "key_levels": {
+        "support": 0.513,
+        "pressure": 0.564,
+        "ema15_support": null,
+        "ema15_resistance": 0.543
+      },
+      "metrics": {
+        "close": 0.522,
+        "day_change_pct": 0.0,
+        "ma89": 0.55,
+        "ma03": 0.521,
+        "bias05": -0.8,
+        "bias30": -2.09,
+        "bb05": -34.2,
+        "bb10": -33.77,
+        "bb30": -5.35,
+        "k": 21.36,
+        "d": 23.1,
+        "macd": -0.005,
+        "x_trend": 35.79,
+        "gdx_qs": 16.33,
+        "dx": -55.21
+      }
+    },
+    {
+      "code": "515000",
+      "name": "科技ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.932
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.897
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.879
+        }
+      ],
+      "key_levels": {
+        "support": 0.866,
+        "pressure": 1.118,
+        "ema15_support": null,
+        "ema15_resistance": 1.266
+      },
+      "metrics": {
+        "close": 0.88,
+        "day_change_pct": 0.11,
+        "ma89": 1.165,
+        "ma03": 0.875,
+        "bias05": -0.54,
+        "bias30": -8.69,
+        "bb05": 2.59,
+        "bb10": -32.03,
+        "bb30": -39.23,
+        "k": 20.93,
+        "d": 22.88,
+        "macd": 0.007,
+        "x_trend": 6.43,
+        "gdx_qs": -4.15,
+        "dx": -28.73
+      }
+    },
+    {
+      "code": "513080",
+      "name": "法国ETF华安",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-16",
+          "close": 1.664
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 1.573
+        }
+      ],
+      "key_levels": {
+        "support": 1.565,
+        "pressure": 1.69,
+        "ema15_support": null,
+        "ema15_resistance": 1.655
+      },
+      "metrics": {
+        "close": 1.573,
+        "day_change_pct": 0.32,
+        "ma89": 1.717,
+        "ma03": 1.569,
+        "bias05": -0.74,
+        "bias30": -3.18,
+        "bb05": -41.61,
+        "bb10": -33.61,
+        "bb30": -8.05,
+        "k": 18.43,
+        "d": 28.29,
+        "macd": -0.015,
+        "x_trend": 13.52,
+        "gdx_qs": 0.4,
+        "dx": -60.69
+      }
+    },
+    {
+      "code": "516520",
+      "name": "智能驾驶ETF华泰柏瑞",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.901
+        }
+      ],
+      "key_levels": {
+        "support": 0.868,
+        "pressure": 1.002,
+        "ema15_support": null,
+        "ema15_resistance": 0.967
+      },
+      "metrics": {
+        "close": 0.903,
+        "day_change_pct": 0.22,
+        "ma89": 1.009,
+        "ma03": 0.891,
+        "bias05": 0.44,
+        "bias30": -4.29,
+        "bb05": -30.84,
+        "bb10": -42.47,
+        "bb30": -11.36,
+        "k": 22.27,
+        "d": 25.2,
+        "macd": -0.012,
+        "x_trend": 14.32,
+        "gdx_qs": 1.86,
+        "dx": -33.62
+      }
+    },
+    {
+      "code": "516560",
+      "name": "养老ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 0.765
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.737
+        }
+      ],
+      "key_levels": {
+        "support": 0.723,
+        "pressure": 0.778,
+        "ema15_support": null,
+        "ema15_resistance": 0.759
+      },
+      "metrics": {
+        "close": 0.736,
+        "day_change_pct": -0.14,
+        "ma89": 0.753,
+        "ma03": 0.732,
+        "bias05": -0.05,
+        "bias30": -1.76,
+        "bb05": -30.71,
+        "bb10": -25.57,
+        "bb30": -2.29,
+        "k": 30.54,
+        "d": 32.23,
+        "macd": -0.008,
+        "x_trend": 32.22,
+        "gdx_qs": 20.0,
+        "dx": -36.01
+      }
+    },
+    {
+      "code": "560080",
+      "name": "中药ETF汇添富",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-16",
+          "close": 0.967
+        }
+      ],
+      "key_levels": {
+        "support": 0.934,
+        "pressure": 0.988,
+        "ema15_support": null,
+        "ema15_resistance": 0.966
+      },
+      "metrics": {
+        "close": 0.936,
+        "day_change_pct": -1.27,
+        "ma89": 0.967,
+        "ma03": 0.943,
+        "bias05": -1.56,
+        "bias30": -2.61,
+        "bb05": -36.16,
+        "bb10": -22.59,
+        "bb30": -2.98,
+        "k": 23.05,
+        "d": 30.81,
+        "macd": -0.008,
+        "x_trend": 44.88,
+        "gdx_qs": 35.45,
+        "dx": -45.24
+      }
+    },
+    {
+      "code": "159732",
+      "name": "消费电子ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做多",
+      "state_color": "红色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 1.012
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.942
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 0.942
+        }
+      ],
+      "key_levels": {
+        "support": 0.907,
+        "pressure": 1.145,
+        "ema15_support": null,
+        "ema15_resistance": 1.054
+      },
+      "metrics": {
+        "close": 0.953,
+        "day_change_pct": 1.17,
+        "ma89": 1.241,
+        "ma03": 0.934,
+        "bias05": 1.15,
+        "bias30": -7.38,
+        "bb05": 3.65,
+        "bb10": -43.68,
+        "bb30": -31.72,
+        "k": 22.94,
+        "d": 22.39,
+        "macd": 0.001,
+        "x_trend": 7.73,
+        "gdx_qs": -3.31,
+        "dx": -27.82
+      }
+    },
+    {
+      "code": "159326",
+      "name": "电网设备ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.41
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.322
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.322
+        }
+      ],
+      "key_levels": {
+        "support": 1.296,
+        "pressure": 1.511,
+        "ema15_support": null,
+        "ema15_resistance": 1.428
+      },
+      "metrics": {
+        "close": 1.327,
+        "day_change_pct": 0.38,
+        "ma89": 1.56,
+        "ma03": 1.315,
+        "bias05": -0.11,
+        "bias30": -5.43,
+        "bb05": -21.3,
+        "bb10": -35.36,
+        "bb30": -22.95,
+        "k": 21.89,
+        "d": 21.08,
+        "macd": -0.004,
+        "x_trend": 7.29,
+        "gdx_qs": -3.94,
+        "dx": -41.48
+      }
+    },
+    {
+      "code": "515260",
+      "name": "电子ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.622
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.604
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.589
+        }
+      ],
+      "key_levels": {
+        "support": 0.577,
+        "pressure": 0.723,
+        "ema15_support": null,
+        "ema15_resistance": 0.639
+      },
+      "metrics": {
+        "close": 0.598,
+        "day_change_pct": 1.53,
+        "ma89": 0.77,
+        "ma03": 0.59,
+        "bias05": 0.4,
+        "bias30": -5.48,
+        "bb05": 18.62,
+        "bb10": -20.72,
+        "bb30": -33.2,
+        "k": 24.82,
+        "d": 27.03,
+        "macd": 0.007,
+        "x_trend": 8.92,
+        "gdx_qs": -1.43,
+        "dx": -19.15
+      }
+    },
+    {
+      "code": "563360",
+      "name": "A500ETF华泰柏瑞",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.11
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.069
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.069
+        }
+      ],
+      "key_levels": {
+        "support": 1.062,
+        "pressure": 1.183,
+        "ema15_support": null,
+        "ema15_resistance": 1.128
+      },
+      "metrics": {
+        "close": 1.067,
+        "day_change_pct": -0.19,
+        "ma89": 1.218,
+        "ma03": 1.066,
+        "bias05": -0.41,
+        "bias30": -3.92,
+        "bb05": -11.58,
+        "bb10": -23.78,
+        "bb30": -18.83,
+        "k": 21.54,
+        "d": 22.38,
+        "macd": 0.0,
+        "x_trend": 6.77,
+        "gdx_qs": -4.22,
+        "dx": -49.49
+      }
+    },
+    {
+      "code": "159992",
+      "name": "创新药ETF银华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.775
+        }
+      ],
+      "key_levels": {
+        "support": 0.75,
+        "pressure": 0.851,
+        "ema15_support": null,
+        "ema15_resistance": 0.819
+      },
+      "metrics": {
+        "close": 0.764,
+        "day_change_pct": -1.42,
+        "ma89": 0.842,
+        "ma03": 0.763,
+        "bias05": -0.55,
+        "bias30": -4.68,
+        "bb05": -29.66,
+        "bb10": -40.15,
+        "bb30": -13.08,
+        "k": 22.04,
+        "d": 22.99,
+        "macd": -0.01,
+        "x_trend": 14.45,
+        "gdx_qs": 2.21,
+        "dx": -39.96
+      }
+    },
+    {
+      "code": "159667",
+      "name": "工业母机ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.496
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.456
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 0.456
+        }
+      ],
+      "key_levels": {
+        "support": 0.429,
+        "pressure": 0.555,
+        "ema15_support": null,
+        "ema15_resistance": 0.516
+      },
+      "metrics": {
+        "close": 0.453,
+        "day_change_pct": -0.66,
+        "ma89": 0.598,
+        "ma03": 0.446,
+        "bias05": 0.44,
+        "bias30": -9.19,
+        "bb05": -21.68,
+        "bb10": -52.34,
+        "bb30": -34.1,
+        "k": 22.02,
+        "d": 21.97,
+        "macd": -0.003,
+        "x_trend": 8.41,
+        "gdx_qs": -2.95,
+        "dx": -32.76
+      }
+    },
+    {
+      "code": "159915",
+      "name": "创业板ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 2.442
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 2.295
+        }
+      ],
+      "key_levels": {
+        "support": 2.23,
+        "pressure": 2.979,
+        "ema15_support": null,
+        "ema15_resistance": 2.588
+      },
+      "metrics": {
+        "close": 2.29,
+        "day_change_pct": -0.22,
+        "ma89": 3.125,
+        "ma03": 2.272,
+        "bias05": -0.01,
+        "bias30": -9.58,
+        "bb05": -9.89,
+        "bb10": -42.54,
+        "bb30": -41.74,
+        "k": 16.02,
+        "d": 16.98,
+        "macd": 0.009,
+        "x_trend": 4.58,
+        "gdx_qs": -6.06,
+        "dx": -36.31
+      }
+    },
+    {
+      "code": "513310",
+      "name": "中韩半导体ETF华泰柏瑞",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做多",
+      "state_color": "红色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 3.59
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 3.468
+        }
+      ],
+      "key_levels": {
+        "support": 3.375,
+        "pressure": 4.366,
+        "ema15_support": null,
+        "ema15_resistance": 3.894
+      },
+      "metrics": {
+        "close": 3.468,
+        "day_change_pct": 1.85,
+        "ma89": 4.428,
+        "ma03": 3.416,
+        "bias05": -0.62,
+        "bias30": -6.17,
+        "bb05": -16.55,
+        "bb10": -16.73,
+        "bb30": -36.87,
+        "k": 26.11,
+        "d": 22.52,
+        "macd": 0.022,
+        "x_trend": 8.48,
+        "gdx_qs": -1.94,
+        "dx": -24.93
+      }
+    },
+    {
+      "code": "511380",
+      "name": "可转债ETF博时",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 11.908
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 11.908
+        }
+      ],
+      "key_levels": {
+        "support": 11.589,
+        "pressure": 12.83,
+        "ema15_support": null,
+        "ema15_resistance": 12.659
+      },
+      "metrics": {
+        "close": 11.91,
+        "day_change_pct": 0.02,
+        "ma89": 13.181,
+        "ma03": 11.802,
+        "bias05": 0.84,
+        "bias30": -4.09,
+        "bb05": -13.03,
+        "bb10": -34.44,
+        "bb30": -13.03,
+        "k": 21.62,
+        "d": 23.99,
+        "macd": -0.108,
+        "x_trend": 13.08,
+        "gdx_qs": -0.47,
+        "dx": -36.66
+      }
+    },
+    {
+      "code": "513400",
+      "name": "道琼斯ETF鹏华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "清仓",
+          "date": "2026-11-12",
+          "close": 1.324
+        },
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 1.319
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 1.236
+        }
+      ],
+      "key_levels": {
+        "support": 1.208,
+        "pressure": 1.346,
+        "ema15_support": null,
+        "ema15_resistance": 1.316
+      },
+      "metrics": {
+        "close": 1.236,
+        "day_change_pct": 2.06,
+        "ma89": 1.316,
+        "ma03": 1.218,
+        "bias05": -0.15,
+        "bias30": -4.96,
+        "bb05": -39.8,
+        "bb10": -37.04,
+        "bb30": -13.93,
+        "k": 16.84,
+        "d": 19.71,
+        "macd": -0.02,
+        "x_trend": 12.4,
+        "gdx_qs": -1.98,
+        "dx": -52.29
+      }
+    },
+    {
+      "code": "516950",
+      "name": "基建ETF银华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [],
+      "key_levels": {
+        "support": 0.933,
+        "pressure": 0.996,
+        "ema15_support": null,
+        "ema15_resistance": 0.975
+      },
+      "metrics": {
+        "close": 0.925,
+        "day_change_pct": -0.86,
+        "ma89": 1.007,
+        "ma03": 0.931,
+        "bias05": -1.26,
+        "bias30": -3.87,
+        "bb05": -25.06,
+        "bb10": -26.36,
+        "bb30": -13.79,
+        "k": 17.94,
+        "d": 21.21,
+        "macd": -0.005,
+        "x_trend": 8.5,
+        "gdx_qs": -4.33,
+        "dx": -76.01
+      }
+    },
+    {
+      "code": "516110",
+      "name": "汽车ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.032
+        }
+      ],
+      "key_levels": {
+        "support": 1.012,
+        "pressure": 1.094,
+        "ema15_support": null,
+        "ema15_resistance": 1.068
+      },
+      "metrics": {
+        "close": 1.029,
+        "day_change_pct": -0.29,
+        "ma89": 1.086,
+        "ma03": 1.025,
+        "bias05": -0.21,
+        "bias30": -2.0,
+        "bb05": -17.19,
+        "bb10": -29.24,
+        "bb30": -2.36,
+        "k": 22.53,
+        "d": 26.11,
+        "macd": -0.009,
+        "x_trend": 29.5,
+        "gdx_qs": 11.59,
+        "dx": -39.99
+      }
+    },
+    {
+      "code": "510310",
+      "name": "沪深300ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "强洗",
+      "state_color": "橙色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 3.998
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-19",
+          "close": 3.95
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 3.92
+        }
+      ],
+      "key_levels": {
+        "support": 3.908,
+        "pressure": 4.23,
+        "ema15_support": null,
+        "ema15_resistance": 4.062
+      },
+      "metrics": {
+        "close": 3.92,
+        "day_change_pct": 0.26,
+        "ma89": 4.335,
+        "ma03": 3.913,
+        "bias05": -0.17,
+        "bias30": -2.34,
+        "bb05": -4.66,
+        "bb10": -13.9,
+        "bb30": -14.05,
+        "k": 28.41,
+        "d": 29.04,
+        "macd": 0.008,
+        "x_trend": 8.05,
+        "gdx_qs": -3.15,
+        "dx": -45.59
+      }
+    },
+    {
+      "code": "159941",
+      "name": "纳指ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-19",
+          "close": 1.61
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 1.56
+        }
+      ],
+      "key_levels": {
+        "support": 1.521,
+        "pressure": 1.768,
+        "ema15_support": null,
+        "ema15_resistance": 1.646
+      },
+      "metrics": {
+        "close": 1.56,
+        "day_change_pct": 2.83,
+        "ma89": 1.648,
+        "ma03": 1.534,
+        "bias05": -0.19,
+        "bias30": -5.2,
+        "bb05": -23.42,
+        "bb10": -23.58,
+        "bb30": -21.87,
+        "k": 31.64,
+        "d": 32.08,
+        "macd": -0.016,
+        "x_trend": 16.3,
+        "gdx_qs": 4.61,
+        "dx": -33.94
+      }
+    },
+    {
+      "code": "159206",
+      "name": "卫星ETF永赢",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.201
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.022
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.022
+        }
+      ],
+      "key_levels": {
+        "support": 0.977,
+        "pressure": 1.238,
+        "ema15_support": null,
+        "ema15_resistance": 1.195
+      },
+      "metrics": {
+        "close": 1.033,
+        "day_change_pct": 1.08,
+        "ma89": 1.277,
+        "ma03": 1.011,
+        "bias05": 0.68,
+        "bias30": -10.08,
+        "bb05": -34.87,
+        "bb10": -60.58,
+        "bb30": -27.97,
+        "k": 19.15,
+        "d": 21.72,
+        "macd": -0.025,
+        "x_trend": 9.94,
+        "gdx_qs": -1.89,
+        "dx": -43.36
+      }
+    },
+    {
+      "code": "560280",
+      "name": "工程机械ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "清仓",
+          "date": "2026-11-12",
+          "close": 1.321
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-19",
+          "close": 1.306
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.29
+        }
+      ],
+      "key_levels": {
+        "support": 1.275,
+        "pressure": 1.379,
+        "ema15_support": null,
+        "ema15_resistance": 1.348
+      },
+      "metrics": {
+        "close": 1.29,
+        "day_change_pct": 0.0,
+        "ma89": 1.441,
+        "ma03": 1.285,
+        "bias05": -0.2,
+        "bias30": -2.77,
+        "bb05": -11.35,
+        "bb10": -23.13,
+        "bb30": -12.03,
+        "k": 26.96,
+        "d": 26.25,
+        "macd": -0.003,
+        "x_trend": 11.14,
+        "gdx_qs": -2.38,
+        "dx": -35.46
+      }
+    },
+    {
+      "code": "515790",
+      "name": "光伏ETF华泰柏瑞",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.643
+        }
+      ],
+      "key_levels": {
+        "support": 0.635,
+        "pressure": 0.758,
+        "ema15_support": null,
+        "ema15_resistance": 0.726
+      },
+      "metrics": {
+        "close": 0.643,
+        "day_change_pct": 0.0,
+        "ma89": 0.781,
+        "ma03": 0.64,
+        "bias05": -0.68,
+        "bias30": -8.32,
+        "bb05": -35.2,
+        "bb10": -54.87,
+        "bb30": -27.27,
+        "k": 13.84,
+        "d": 16.21,
+        "macd": -0.011,
+        "x_trend": 7.46,
+        "gdx_qs": -5.02,
+        "dx": -62.97
+      }
+    },
+    {
+      "code": "512170",
+      "name": "医疗ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.33
+        }
+      ],
+      "key_levels": {
+        "support": 0.322,
+        "pressure": 0.357,
+        "ema15_support": null,
+        "ema15_resistance": 0.342
+      },
+      "metrics": {
+        "close": 0.325,
+        "day_change_pct": -1.52,
+        "ma89": 0.337,
+        "ma03": 0.326,
+        "bias05": -1.04,
+        "bias30": -3.09,
+        "bb05": -38.15,
+        "bb10": -34.35,
+        "bb30": -5.67,
+        "k": 22.78,
+        "d": 23.92,
+        "macd": -0.004,
+        "x_trend": 29.3,
+        "gdx_qs": 17.62,
+        "dx": -38.77
+      }
+    },
+    {
+      "code": "159566",
+      "name": "储能电池ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "弱升",
+      "state_color": "青色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.318
+        }
+      ],
+      "key_levels": {
+        "support": 1.29,
+        "pressure": 1.617,
+        "ema15_support": null,
+        "ema15_resistance": 1.493
+      },
+      "metrics": {
+        "close": 1.328,
+        "day_change_pct": 0.76,
+        "ma89": 1.674,
+        "ma03": 1.312,
+        "bias05": -0.43,
+        "bias30": -7.98,
+        "bb05": -37.73,
+        "bb10": -50.64,
+        "bb30": -31.79,
+        "k": 17.37,
+        "d": 17.3,
+        "macd": -0.016,
+        "x_trend": 8.08,
+        "gdx_qs": -4.54,
+        "dx": -48.52
+      }
+    },
+    {
+      "code": "512660",
+      "name": "军工ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.909
+        }
+      ],
+      "key_levels": {
+        "support": 0.896,
+        "pressure": 1.082,
+        "ema15_support": null,
+        "ema15_resistance": 1.037
+      },
+      "metrics": {
+        "close": 0.922,
+        "day_change_pct": 1.43,
+        "ma89": 1.086,
+        "ma03": 0.909,
+        "bias05": 0.13,
+        "bias30": -8.72,
+        "bb05": -37.81,
+        "bb10": -48.11,
+        "bb30": -27.71,
+        "k": 18.4,
+        "d": 18.75,
+        "macd": -0.015,
+        "x_trend": 8.2,
+        "gdx_qs": -3.82,
+        "dx": -58.45
+      }
+    },
+    {
+      "code": "159920",
+      "name": "恒生ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX卖1",
+          "date": "2026-11-11",
+          "close": 1.431
+        },
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 1.431
+        }
+      ],
+      "key_levels": {
+        "support": 1.304,
+        "pressure": 1.453,
+        "ema15_support": null,
+        "ema15_resistance": 1.41
+      },
+      "metrics": {
+        "close": 1.297,
+        "day_change_pct": -0.92,
+        "ma89": 1.449,
+        "ma03": 1.303,
         "bias05": -1.7,
-        "bias30": -9.99,
-        "bb05": -50.02,
-        "bb10": -47.96,
-        "bb30": -31.95,
-        "k": 14.68,
-        "d": 20.9,
-        "macd": -0.038,
-        "x_trend": 5.14,
-        "gdx_qs": -6.35,
-        "dx": -57.22
+        "bias30": -6.08,
+        "bb05": -49.08,
+        "bb10": -46.76,
+        "bb30": -17.24,
+        "k": 10.65,
+        "d": 17.9,
+        "macd": -0.021,
+        "x_trend": 9.04,
+        "gdx_qs": -4.81,
+        "dx": -71.25
+      }
+    },
+    {
+      "code": "162411",
+      "name": "华宝油气LOF",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-11",
+          "close": 0.911
+        }
+      ],
+      "key_levels": {
+        "support": 0.877,
+        "pressure": 1.085,
+        "ema15_support": null,
+        "ema15_resistance": 1.039
+      },
+      "metrics": {
+        "close": 0.859,
+        "day_change_pct": -2.05,
+        "ma89": 0.961,
+        "ma03": 0.871,
+        "bias05": -2.65,
+        "bias30": -12.03,
+        "bb05": -54.19,
+        "bb10": -21.53,
+        "bb30": -27.0,
+        "k": 9.39,
+        "d": 16.98,
+        "macd": -0.017,
+        "x_trend": 3.46,
+        "gdx_qs": -9.25,
+        "dx": -56.99
+      }
+    },
+    {
+      "code": "513030",
+      "name": "德国ETF华安",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "清仓",
+          "date": "2026-11-18",
+          "close": 1.763
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-24",
+          "close": 1.685
+        }
+      ],
+      "key_levels": {
+        "support": 1.672,
+        "pressure": 1.876,
+        "ema15_support": null,
+        "ema15_resistance": 1.819
+      },
+      "metrics": {
+        "close": 1.685,
+        "day_change_pct": 0.9,
+        "ma89": 1.82,
+        "ma03": 1.677,
+        "bias05": -1.18,
+        "bias30": -5.05,
+        "bb05": -59.63,
+        "bb10": -41.55,
+        "bb30": -8.32,
+        "k": 16.57,
+        "d": 29.36,
+        "macd": -0.034,
+        "x_trend": 15.92,
+        "gdx_qs": 1.66,
+        "dx": -60.88
+      }
+    },
+    {
+      "code": "513730",
+      "name": "东南亚科技ETF华泰柏瑞",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.011
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.951
+        }
+      ],
+      "key_levels": {
+        "support": 0.945,
+        "pressure": 1.061,
+        "ema15_support": null,
+        "ema15_resistance": 1.023
+      },
+      "metrics": {
+        "close": 0.959,
+        "day_change_pct": 0.84,
+        "ma89": 1.093,
+        "ma03": 0.952,
+        "bias05": -0.56,
+        "bias30": -5.07,
+        "bb05": -37.29,
+        "bb10": -36.28,
+        "bb30": -17.35,
+        "k": 19.37,
+        "d": 21.69,
+        "macd": -0.008,
+        "x_trend": 8.12,
+        "gdx_qs": -4.37,
+        "dx": -57.91
+      }
+    },
+    {
+      "code": "512580",
+      "name": "环保ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.96
+        }
+      ],
+      "key_levels": {
+        "support": 0.955,
+        "pressure": 1.087,
+        "ema15_support": null,
+        "ema15_resistance": 1.033
+      },
+      "metrics": {
+        "close": 0.961,
+        "day_change_pct": 0.1,
+        "ma89": 1.108,
+        "ma03": 0.959,
+        "bias05": -0.54,
+        "bias30": -4.91,
+        "bb05": -26.3,
+        "bb10": -37.75,
+        "bb30": -20.53,
+        "k": 17.13,
+        "d": 17.75,
+        "macd": -0.007,
+        "x_trend": 8.69,
+        "gdx_qs": -4.46,
+        "dx": -64.79
+      }
+    },
+    {
+      "code": "515980",
+      "name": "人工智能ETF华富",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 0.786
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.751
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.721
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 0.721
+        }
+      ],
+      "key_levels": {
+        "support": 0.7,
+        "pressure": 0.903,
+        "ema15_support": null,
+        "ema15_resistance": 0.813
+      },
+      "metrics": {
+        "close": 0.72,
+        "day_change_pct": -0.14,
+        "ma89": 0.95,
+        "ma03": 0.714,
+        "bias05": -0.66,
+        "bias30": -9.83,
+        "bb05": -27.54,
+        "bb10": -43.48,
+        "bb30": -37.02,
+        "k": 17.42,
+        "d": 19.58,
+        "macd": -0.002,
+        "x_trend": 5.94,
+        "gdx_qs": -4.86,
+        "dx": -37.3
+      }
+    },
+    {
+      "code": "516150",
+      "name": "稀土ETF嘉实",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.461
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.299
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.299
+        }
+      ],
+      "key_levels": {
+        "support": 1.255,
+        "pressure": 1.523,
+        "ema15_support": null,
+        "ema15_resistance": 1.466
+      },
+      "metrics": {
+        "close": 1.282,
+        "day_change_pct": -1.31,
+        "ma89": 1.592,
+        "ma03": 1.279,
+        "bias05": -0.85,
+        "bias30": -9.72,
+        "bb05": -37.5,
+        "bb10": -54.98,
+        "bb30": -29.26,
+        "k": 17.36,
+        "d": 18.94,
+        "macd": -0.023,
+        "x_trend": 8.55,
+        "gdx_qs": -3.8,
+        "dx": -51.09
       }
     },
     {
@@ -3914,11 +3053,11 @@
       "name": "油气ETF汇添富",
       "status": "ok",
       "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "弱升",
-      "state_color": "青色",
-      "signal_date": "2026-11-23",
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "DX买",
@@ -3937,27 +3076,216 @@
         }
       ],
       "key_levels": {
-        "support": 1.252,
+        "support": 1.246,
         "pressure": 1.461,
         "ema15_support": null,
         "ema15_resistance": 1.386
       },
       "metrics": {
-        "close": 1.242,
-        "day_change_pct": -0.64,
-        "ma89": 1.371,
-        "ma03": 1.249,
-        "bias05": -1.13,
-        "bias30": -7.24,
-        "bb05": -25.42,
-        "bb10": -33.0,
-        "bb30": -21.76,
-        "k": 18.76,
-        "d": 18.41,
-        "macd": -0.01,
-        "x_trend": 7.0,
-        "gdx_qs": -5.23,
-        "dx": -47.62
+        "close": 1.225,
+        "day_change_pct": -1.37,
+        "ma89": 1.37,
+        "ma03": 1.239,
+        "bias05": -1.98,
+        "bias30": -8.02,
+        "bb05": -27.0,
+        "bb10": -26.38,
+        "bb30": -28.38,
+        "k": 14.38,
+        "d": 17.07,
+        "macd": -0.011,
+        "x_trend": 5.68,
+        "gdx_qs": -6.15,
+        "dx": -54.53
+      }
+    },
+    {
+      "code": "159227",
+      "name": "航空航天ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 372,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.808
+        }
+      ],
+      "key_levels": {
+        "support": 0.791,
+        "pressure": 0.993,
+        "ema15_support": null,
+        "ema15_resistance": 0.958
+      },
+      "metrics": {
+        "close": 0.819,
+        "day_change_pct": 1.36,
+        "ma89": 0.975,
+        "ma03": 0.806,
+        "bias05": 0.02,
+        "bias30": -11.93,
+        "bb05": -56.17,
+        "bb10": -58.04,
+        "bb30": -28.61,
+        "k": 15.69,
+        "d": 18.43,
+        "macd": -0.026,
+        "x_trend": 9.03,
+        "gdx_qs": -4.34,
+        "dx": -63.48
+      }
+    },
+    {
+      "code": "588220",
+      "name": "科创100ETF鹏华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-13",
+          "close": 1.339
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.209
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.209
+        }
+      ],
+      "key_levels": {
+        "support": 1.162,
+        "pressure": 1.532,
+        "ema15_support": null,
+        "ema15_resistance": 1.391
+      },
+      "metrics": {
+        "close": 1.215,
+        "day_change_pct": 0.5,
+        "ma89": 1.599,
+        "ma03": 1.195,
+        "bias05": 0.1,
+        "bias30": -10.1,
+        "bb05": -29.83,
+        "bb10": -52.96,
+        "bb30": -37.45,
+        "k": 19.03,
+        "d": 21.72,
+        "macd": -0.009,
+        "x_trend": 7.11,
+        "gdx_qs": -4.23,
+        "dx": -40.39
+      }
+    },
+    {
+      "code": "513060",
+      "name": "恒生医疗ETF博时",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 0.552
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.496
+        }
+      ],
+      "key_levels": {
+        "support": 0.481,
+        "pressure": 0.562,
+        "ema15_support": null,
+        "ema15_resistance": 0.541
+      },
+      "metrics": {
+        "close": 0.487,
+        "day_change_pct": -1.81,
+        "ma89": 0.552,
+        "ma03": 0.488,
+        "bias05": -1.74,
+        "bias30": -7.73,
+        "bb05": -54.32,
+        "bb10": -53.62,
+        "bb30": -22.54,
+        "k": 16.41,
+        "d": 23.47,
+        "macd": -0.009,
+        "x_trend": 11.17,
+        "gdx_qs": -1.23,
+        "dx": -48.94
+      }
+    },
+    {
+      "code": "517520",
+      "name": "黄金股ETF永赢",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.669
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.52
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.52
+        }
+      ],
+      "key_levels": {
+        "support": 1.448,
+        "pressure": 1.886,
+        "ema15_support": null,
+        "ema15_resistance": 1.73
+      },
+      "metrics": {
+        "close": 1.467,
+        "day_change_pct": -3.49,
+        "ma89": 1.895,
+        "ma03": 1.478,
+        "bias05": -1.65,
+        "bias30": -12.28,
+        "bb05": -59.73,
+        "bb10": -62.11,
+        "bb30": -38.89,
+        "k": 19.72,
+        "d": 23.24,
+        "macd": -0.023,
+        "x_trend": 9.2,
+        "gdx_qs": -3.53,
+        "dx": -42.52
       }
     },
     {
@@ -3969,112 +3297,30 @@
       "background": "绿色",
       "state": "做空",
       "state_color": "绿色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [],
       "key_levels": {
-        "support": 1.163,
+        "support": 1.155,
         "pressure": 1.303,
         "ema15_support": null,
         "ema15_resistance": 1.238
       },
       "metrics": {
-        "close": 1.148,
-        "day_change_pct": -1.12,
+        "close": 1.133,
+        "day_change_pct": -1.31,
         "ma89": 1.24,
-        "ma03": 1.158,
-        "bias05": -1.56,
-        "bias30": -5.18,
-        "bb05": -38.05,
-        "bb10": -27.32,
-        "bb30": -19.07,
-        "k": 24.59,
-        "d": 30.13,
-        "macd": -0.003,
-        "x_trend": 9.22,
-        "gdx_qs": -4.18,
-        "dx": -34.79
-      }
-    },
-    {
-      "code": "560710",
-      "name": "船舶ETF富国",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 190,
-      "background": "蓝色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-23",
-          "close": 0.805
-        }
-      ],
-      "key_levels": {
-        "support": 0.812,
-        "pressure": 0.956,
-        "ema15_support": null,
-        "ema15_resistance": 0.951
-      },
-      "metrics": {
-        "close": 0.805,
-        "day_change_pct": 0.88,
-        "ma89": 0.901,
-        "ma03": 0.81,
-        "bias05": -1.81,
-        "bias30": -8.72,
-        "bb05": -39.44,
-        "bb10": -41.83,
-        "bb30": -24.48,
-        "k": 13.94,
-        "d": 14.09,
-        "macd": -0.012,
-        "x_trend": 5.19,
-        "gdx_qs": -6.4,
-        "dx": -70.58
-      }
-    },
-    {
-      "code": "159201",
-      "name": "自由现金流ETF华夏",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做空",
-      "state_color": "绿色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-16",
-          "close": 1.14
-        }
-      ],
-      "key_levels": {
-        "support": 1.121,
-        "pressure": 1.182,
-        "ema15_support": null,
-        "ema15_resistance": 1.146
-      },
-      "metrics": {
-        "close": 1.122,
-        "day_change_pct": -1.06,
-        "ma89": 1.164,
-        "ma03": 1.132,
-        "bias05": -1.22,
-        "bias30": -2.7,
-        "bb05": -17.53,
-        "bb10": -14.31,
-        "bb30": -8.37,
-        "k": 32.5,
-        "d": 34.36,
-        "macd": -0.003,
-        "x_trend": 20.73,
-        "gdx_qs": 5.48,
-        "dx": -23.53
+        "ma03": 1.147,
+        "bias05": -2.13,
+        "bias30": -6.01,
+        "bb05": -36.41,
+        "bb10": -23.47,
+        "bb30": -23.64,
+        "k": 18.41,
+        "d": 26.22,
+        "macd": -0.006,
+        "x_trend": 6.98,
+        "gdx_qs": -5.9,
+        "dx": -46.43
       }
     },
     {
@@ -4082,11 +3328,11 @@
       "name": "房地产ETF南方",
       "status": "ok",
       "reason": null,
-      "bar_count": 399,
+      "bar_count": 400,
       "background": "蓝色",
       "state": "做空",
       "state_color": "绿色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
         {
           "name": "减仓",
@@ -4100,27 +3346,773 @@
         }
       ],
       "key_levels": {
-        "support": 1.034,
-        "pressure": 1.264,
+        "support": 1.011,
+        "pressure": 1.242,
         "ema15_support": null,
         "ema15_resistance": 1.159
       },
       "metrics": {
-        "close": 1.018,
-        "day_change_pct": 0.69,
-        "ma89": 1.189,
-        "ma03": 1.029,
-        "bias05": -2.97,
-        "bias30": -10.52,
-        "bb05": -54.29,
-        "bb10": -45.32,
-        "bb30": -33.57,
-        "k": 12.92,
-        "d": 17.4,
+        "close": 1.01,
+        "day_change_pct": -0.79,
+        "ma89": 1.187,
+        "ma03": 1.013,
+        "bias05": -2.4,
+        "bias30": -10.62,
+        "bb05": -53.92,
+        "bb10": -50.75,
+        "bb30": -33.75,
+        "k": 13.68,
+        "d": 16.16,
         "macd": -0.019,
-        "x_trend": 4.24,
-        "gdx_qs": -7.3,
-        "dx": -75.17
+        "x_trend": 5.39,
+        "gdx_qs": -6.11,
+        "dx": -75.77
+      }
+    },
+    {
+      "code": "159883",
+      "name": "医疗器械ETF永赢",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.419
+        }
+      ],
+      "key_levels": {
+        "support": 0.414,
+        "pressure": 0.456,
+        "ema15_support": null,
+        "ema15_resistance": 0.443
+      },
+      "metrics": {
+        "close": 0.416,
+        "day_change_pct": -0.72,
+        "ma89": 0.437,
+        "ma03": 0.416,
+        "bias05": -1.33,
+        "bias30": -4.54,
+        "bb05": -45.93,
+        "bb10": -36.4,
+        "bb30": -7.83,
+        "k": 20.15,
+        "d": 21.26,
+        "macd": -0.007,
+        "x_trend": 23.6,
+        "gdx_qs": 10.3,
+        "dx": -58.64
+      }
+    },
+    {
+      "code": "159755",
+      "name": "电池ETF广发",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.703
+        }
+      ],
+      "key_levels": {
+        "support": 0.693,
+        "pressure": 0.833,
+        "ema15_support": null,
+        "ema15_resistance": 0.773
+      },
+      "metrics": {
+        "close": 0.698,
+        "day_change_pct": -0.71,
+        "ma89": 0.862,
+        "ma03": 0.698,
+        "bias05": -1.16,
+        "bias30": -7.01,
+        "bb05": -40.11,
+        "bb10": -46.44,
+        "bb30": -28.12,
+        "k": 17.17,
+        "d": 17.35,
+        "macd": -0.006,
+        "x_trend": 7.58,
+        "gdx_qs": -5.37,
+        "dx": -58.07
+      }
+    },
+    {
+      "code": "515210",
+      "name": "钢铁ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 1.033
+        }
+      ],
+      "key_levels": {
+        "support": 1.0,
+        "pressure": 1.123,
+        "ema15_support": null,
+        "ema15_resistance": 1.078
+      },
+      "metrics": {
+        "close": 0.988,
+        "day_change_pct": -1.3,
+        "ma89": 1.123,
+        "ma03": 0.996,
+        "bias05": -1.98,
+        "bias30": -6.87,
+        "bb05": -38.22,
+        "bb10": -36.7,
+        "bb30": -22.59,
+        "k": 13.94,
+        "d": 17.24,
+        "macd": -0.008,
+        "x_trend": 6.36,
+        "gdx_qs": -6.21,
+        "dx": -75.54
+      }
+    },
+    {
+      "code": "512400",
+      "name": "有色金属ETF南方",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.282
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 1.282
+        }
+      ],
+      "key_levels": {
+        "support": 1.242,
+        "pressure": 1.6,
+        "ema15_support": null,
+        "ema15_resistance": 1.474
+      },
+      "metrics": {
+        "close": 1.246,
+        "day_change_pct": -2.81,
+        "ma89": 1.671,
+        "ma03": 1.257,
+        "bias05": -1.78,
+        "bias30": -12.25,
+        "bb05": -52.58,
+        "bb10": -57.59,
+        "bb30": -39.5,
+        "k": 14.34,
+        "d": 17.07,
+        "macd": -0.016,
+        "x_trend": 6.0,
+        "gdx_qs": -6.45,
+        "dx": -56.32
+      }
+    },
+    {
+      "code": "159852",
+      "name": "软件ETF嘉实",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.598
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.578
+        }
+      ],
+      "key_levels": {
+        "support": 0.567,
+        "pressure": 0.662,
+        "ema15_support": null,
+        "ema15_resistance": 0.626
+      },
+      "metrics": {
+        "close": 0.57,
+        "day_change_pct": -1.38,
+        "ma89": 0.656,
+        "ma03": 0.572,
+        "bias05": -1.69,
+        "bias30": -7.29,
+        "bb05": -38.21,
+        "bb10": -43.11,
+        "bb30": -20.44,
+        "k": 19.18,
+        "d": 19.62,
+        "macd": -0.007,
+        "x_trend": 12.45,
+        "gdx_qs": -0.87,
+        "dx": -45.65
+      }
+    },
+    {
+      "code": "516510",
+      "name": "云计算ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 1.416
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 1.368
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 1.275
+        }
+      ],
+      "key_levels": {
+        "support": 1.246,
+        "pressure": 1.506,
+        "ema15_support": null,
+        "ema15_resistance": 1.433
+      },
+      "metrics": {
+        "close": 1.264,
+        "day_change_pct": -0.86,
+        "ma89": 1.575,
+        "ma03": 1.262,
+        "bias05": -2.26,
+        "bias30": -9.82,
+        "bb05": -50.36,
+        "bb10": -50.86,
+        "bb30": -29.68,
+        "k": 17.52,
+        "d": 21.46,
+        "macd": -0.019,
+        "x_trend": 7.97,
+        "gdx_qs": -3.85,
+        "dx": -46.51
+      }
+    },
+    {
+      "code": "159745",
+      "name": "建材ETF国泰",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [],
+      "key_levels": {
+        "support": 0.469,
+        "pressure": 0.525,
+        "ema15_support": null,
+        "ema15_resistance": 0.512
+      },
+      "metrics": {
+        "close": 0.465,
+        "day_change_pct": -0.85,
+        "ma89": 0.521,
+        "ma03": 0.468,
+        "bias05": -2.31,
+        "bias30": -7.76,
+        "bb05": -52.13,
+        "bb10": -44.19,
+        "bb30": -19.92,
+        "k": 11.37,
+        "d": 16.01,
+        "macd": -0.008,
+        "x_trend": 7.81,
+        "gdx_qs": -5.81,
+        "dx": -83.67
+      }
+    },
+    {
+      "code": "518880",
+      "name": "黄金ETF华安",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 8.289
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 7.396
+        }
+      ],
+      "key_levels": {
+        "support": 7.282,
+        "pressure": 8.599,
+        "ema15_support": null,
+        "ema15_resistance": 8.301
+      },
+      "metrics": {
+        "close": 7.39,
+        "day_change_pct": -0.08,
+        "ma89": 8.595,
+        "ma03": 7.356,
+        "bias05": -1.17,
+        "bias30": -8.95,
+        "bb05": -53.22,
+        "bb10": -52.1,
+        "bb30": -26.29,
+        "k": 16.26,
+        "d": 17.4,
+        "macd": -0.135,
+        "x_trend": 8.15,
+        "gdx_qs": -4.19,
+        "dx": -60.14
+      }
+    },
+    {
+      "code": "159870",
+      "name": "化工ETF鹏华",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-17",
+          "close": 0.663
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.64
+        }
+      ],
+      "key_levels": {
+        "support": 0.632,
+        "pressure": 0.722,
+        "ema15_support": null,
+        "ema15_resistance": 0.695
+      },
+      "metrics": {
+        "close": 0.632,
+        "day_change_pct": -1.25,
+        "ma89": 0.749,
+        "ma03": 0.635,
+        "bias05": -1.62,
+        "bias30": -6.73,
+        "bb05": -43.71,
+        "bb10": -41.74,
+        "bb30": -22.61,
+        "k": 13.14,
+        "d": 15.99,
+        "macd": -0.005,
+        "x_trend": 5.39,
+        "gdx_qs": -7.1,
+        "dx": -54.16
+      }
+    },
+    {
+      "code": "510500",
+      "name": "中证500ETF南方",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 6.628
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 6.16
+        }
+      ],
+      "key_levels": {
+        "support": 6.053,
+        "pressure": 7.117,
+        "ema15_support": null,
+        "ema15_resistance": 6.694
+      },
+      "metrics": {
+        "close": 6.13,
+        "day_change_pct": -0.49,
+        "ma89": 7.336,
+        "ma03": 6.114,
+        "bias05": -0.93,
+        "bias30": -6.72,
+        "bb05": -31.0,
+        "bb10": -40.16,
+        "bb30": -26.3,
+        "k": 18.53,
+        "d": 20.69,
+        "macd": -0.031,
+        "x_trend": 6.78,
+        "gdx_qs": -4.5,
+        "dx": -48.99
+      }
+    },
+    {
+      "code": "513180",
+      "name": "恒生科技ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-11",
+          "close": 0.505
+        }
+      ],
+      "key_levels": {
+        "support": 0.439,
+        "pressure": 0.526,
+        "ema15_support": null,
+        "ema15_resistance": 0.5
+      },
+      "metrics": {
+        "close": 0.432,
+        "day_change_pct": -1.82,
+        "ma89": 0.547,
+        "ma03": 0.437,
+        "bias05": -3.31,
+        "bias30": -11.01,
+        "bb05": -60.38,
+        "bb10": -58.73,
+        "bb30": -30.41,
+        "k": 10.69,
+        "d": 15.86,
+        "macd": -0.009,
+        "x_trend": 5.75,
+        "gdx_qs": -6.6,
+        "dx": -80.31
+      }
+    },
+    {
+      "code": "159869",
+      "name": "游戏ETF华夏",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.913
+        }
+      ],
+      "key_levels": {
+        "support": 0.875,
+        "pressure": 1.092,
+        "ema15_support": null,
+        "ema15_resistance": 1.05
+      },
+      "metrics": {
+        "close": 0.903,
+        "day_change_pct": -1.1,
+        "ma89": 1.061,
+        "ma03": 0.897,
+        "bias05": -0.86,
+        "bias30": -10.44,
+        "bb05": -52.89,
+        "bb10": -60.1,
+        "bb30": -25.51,
+        "k": 15.19,
+        "d": 17.7,
+        "macd": -0.03,
+        "x_trend": 13.59,
+        "gdx_qs": -2.41,
+        "dx": -49.39
+      }
+    },
+    {
+      "code": "159998",
+      "name": "计算机ETF天弘",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 0.826
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-18",
+          "close": 0.811
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.764
+        }
+      ],
+      "key_levels": {
+        "support": 0.751,
+        "pressure": 0.876,
+        "ema15_support": null,
+        "ema15_resistance": 0.838
+      },
+      "metrics": {
+        "close": 0.758,
+        "day_change_pct": -0.79,
+        "ma89": 0.915,
+        "ma03": 0.758,
+        "bias05": -2.04,
+        "bias30": -7.94,
+        "bb05": -44.2,
+        "bb10": -44.16,
+        "bb30": -25.43,
+        "k": 17.77,
+        "d": 21.33,
+        "macd": -0.008,
+        "x_trend": 8.24,
+        "gdx_qs": -3.93,
+        "dx": -45.76
+      }
+    },
+    {
+      "code": "512100",
+      "name": "中证1000ETF南方",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 2.657
+        },
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 2.362
+        },
+        {
+          "name": "底部B",
+          "date": "2026-11-23",
+          "close": 2.362
+        }
+      ],
+      "key_levels": {
+        "support": 2.3,
+        "pressure": 2.854,
+        "ema15_support": null,
+        "ema15_resistance": 2.676
+      },
+      "metrics": {
+        "close": 2.35,
+        "day_change_pct": -0.51,
+        "ma89": 2.888,
+        "ma03": 2.337,
+        "bias05": -1.19,
+        "bias30": -9.87,
+        "bb05": -45.67,
+        "bb10": -52.01,
+        "bb30": -32.53,
+        "k": 16.4,
+        "d": 19.4,
+        "macd": -0.036,
+        "x_trend": 6.75,
+        "gdx_qs": -4.84,
+        "dx": -53.2
+      }
+    },
+    {
+      "code": "159851",
+      "name": "金融科技ETF华宝",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-23",
+          "close": 0.517
+        }
+      ],
+      "key_levels": {
+        "support": 0.506,
+        "pressure": 0.598,
+        "ema15_support": null,
+        "ema15_resistance": 0.572
+      },
+      "metrics": {
+        "close": 0.51,
+        "day_change_pct": -1.35,
+        "ma89": 0.594,
+        "ma03": 0.511,
+        "bias05": -1.58,
+        "bias30": -8.67,
+        "bb05": -42.55,
+        "bb10": -46.14,
+        "bb30": -25.97,
+        "k": 17.16,
+        "d": 18.76,
+        "macd": -0.008,
+        "x_trend": 11.21,
+        "gdx_qs": -3.7,
+        "dx": -52.15
+      }
+    },
+    {
+      "code": "513360",
+      "name": "教育ETF博时",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "蓝色",
+      "state": "做空",
+      "state_color": "绿色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "减仓",
+          "date": "2026-11-12",
+          "close": 0.42
+        }
+      ],
+      "key_levels": {
+        "support": 0.384,
+        "pressure": 0.462,
+        "ema15_support": null,
+        "ema15_resistance": 0.425
+      },
+      "metrics": {
+        "close": 0.384,
+        "day_change_pct": -0.78,
+        "ma89": 0.447,
+        "ma03": 0.385,
+        "bias05": -2.14,
+        "bias30": -8.64,
+        "bb05": -52.6,
+        "bb10": -45.8,
+        "bb30": -30.93,
+        "k": 14.72,
+        "d": 20.41,
+        "macd": -0.004,
+        "x_trend": 6.53,
+        "gdx_qs": -5.44,
+        "dx": -66.44
+      }
+    },
+    {
+      "code": "511110",
+      "name": "公司债ETF易方达",
+      "status": "ok",
+      "reason": null,
+      "bar_count": 400,
+      "background": "绿色",
+      "state": "做多",
+      "state_color": "红色",
+      "signal_date": "2026-11-24",
+      "signals": [
+        {
+          "name": "DX买",
+          "date": "2026-11-17",
+          "close": 101.124
+        }
+      ],
+      "key_levels": {
+        "support": 100.606,
+        "pressure": 103.737,
+        "ema15_support": null,
+        "ema15_resistance": 103.561
+      },
+      "metrics": {
+        "close": 101.15,
+        "day_change_pct": 0.04,
+        "ma89": 102.668,
+        "ma03": 101.159,
+        "bias05": 0.04,
+        "bias30": -0.46,
+        "bb05": 0.29,
+        "bb10": -3.44,
+        "bb30": -4.8,
+        "k": 49.25,
+        "d": 44.89,
+        "macd": 0.05,
+        "x_trend": 18.66,
+        "gdx_qs": 8.41,
+        "dx": -9.83
       }
     },
     {
@@ -4132,13 +4124,8 @@
       "background": "橙色",
       "state": "弱升",
       "state_color": "青色",
-      "signal_date": "2026-11-23",
+      "signal_date": "2026-11-24",
       "signals": [
-        {
-          "name": "DX卖1",
-          "date": "2026-11-10",
-          "close": 136.05
-        },
         {
           "name": "减仓",
           "date": "2026-11-11",
@@ -4156,68 +4143,27 @@
         }
       ],
       "key_levels": {
-        "support": 134.898,
+        "support": 135.02,
         "pressure": 136.133,
         "ema15_support": 135.733,
         "ema15_resistance": null
       },
       "metrics": {
-        "close": 135.95,
-        "day_change_pct": -0.05,
-        "ma89": 135.43,
-        "ma03": 136.017,
-        "bias05": 0.0,
-        "bias30": 0.23,
-        "bb05": 4.34,
-        "bb10": -0.73,
-        "bb30": 1.38,
-        "k": 73.21,
-        "d": 70.33,
-        "macd": -0.01,
-        "x_trend": 85.54,
-        "gdx_qs": 75.82,
-        "dx": 11.43
-      }
-    },
-    {
-      "code": "511110",
-      "name": "公司债ETF易方达",
-      "status": "ok",
-      "reason": null,
-      "bar_count": 399,
-      "background": "绿色",
-      "state": "做多",
-      "state_color": "红色",
-      "signal_date": "2026-11-23",
-      "signals": [
-        {
-          "name": "DX买",
-          "date": "2026-11-17",
-          "close": 101.124
-        }
-      ],
-      "key_levels": {
-        "support": 100.606,
-        "pressure": 103.737,
-        "ema15_support": null,
-        "ema15_resistance": 103.561
-      },
-      "metrics": {
-        "close": 101.11,
-        "day_change_pct": -0.11,
-        "ma89": 102.687,
-        "ma03": 101.169,
-        "bias05": 0.0,
-        "bias30": -0.59,
-        "bb05": 5.7,
-        "bb10": -4.05,
-        "bb30": -4.84,
-        "k": 44.94,
-        "d": 42.73,
-        "macd": 0.029,
-        "x_trend": 17.91,
-        "gdx_qs": 7.3,
-        "dx": -12.64
+        "close": 136.038,
+        "day_change_pct": 0.06,
+        "ma89": 135.443,
+        "ma03": 136.004,
+        "bias05": 0.03,
+        "bias30": 0.27,
+        "bb05": 2.27,
+        "bb10": -0.05,
+        "bb30": 1.36,
+        "k": 76.14,
+        "d": 72.27,
+        "macd": -0.006,
+        "x_trend": 86.64,
+        "gdx_qs": 77.28,
+        "dx": 14.31
       }
     }
   ]
