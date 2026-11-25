@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
+import pickle
+import signal
+import select
+import sys
 import math
 import multiprocessing as mp
 import os
@@ -11,7 +16,7 @@ import tempfile
 import time
 import urllib.request
 from collections import Counter
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -319,16 +324,25 @@ def symbol_fetch_requires_child_process(in_daemonic_worker: bool) -> bool:
     return not in_daemonic_worker
 
 
+def _run_partition(items, observation_sessions):
+    # Resolve the provider in the forked worker (also supports offline fakes).
+    return _fetch_partition(items, observation_sessions)
+
+
 def fetch_partitions_parallel(chunks, observation_sessions: int, workers: int):
-    """Use non-daemonic workers so each session may spawn timeout children."""
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(_fetch_partition, chunk, observation_sessions) for chunk in chunks]
-        # A partition owns roughly one quarter of the A-share universe. Each
-        # symbol already has a bounded 60-second child timeout, so an 8-minute
-        # partition timeout can abort healthy batches during BaoStock latency.
-        # Keep the partition budget below the nightly stage's 3900-second
-        # outer budget while allowing slow partitions to finish cleanly.
-        return [future.result(timeout=1800) for future in futures]
+    """Observe failures immediately; the collection owner handles tree teardown."""
+    executor = ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork"))
+    futures = [executor.submit(_run_partition, chunk, observation_sessions) for chunk in chunks]
+    try:
+        ordered: list[Any] = [None] * len(futures)
+        indexes = {future: index for index, future in enumerate(futures)}
+        for future in as_completed(futures):
+            ordered[indexes[future]] = future.result()
+        executor.shutdown(wait=True)
+        return ordered
+    except BaseException:
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
 
 
 def _fetch_partition(
@@ -483,6 +497,285 @@ def post_metrics(endpoint: str, token: str, metrics: list[dict[str, Any]]) -> in
     return inserted
 
 
+# Collection, including all fresh-session retries, ends below the 2400s stage
+# budget. Cleanup and downstream validation/writes retain a separate reserve.
+COLLECTION_TIMEOUT_S = 1800.0
+CONTAINMENT_CLEANUP_S = 5.0
+
+
+class CollectionCancelled(RuntimeError):
+    pass
+
+
+def _descendants(owner: int) -> set[int]:
+    """Walk every thread's child list; session/process-group changes are irrelevant."""
+    found: set[int] = set()
+    pending = [owner]
+    while pending:
+        pid = pending.pop()
+        try:
+            tasks = list(Path(f"/proc/{pid}/task").iterdir())
+        except FileNotFoundError:
+            continue
+        for task in tasks:
+            try:
+                children = (task / "children").read_text().split()
+            except FileNotFoundError:
+                continue
+            for value in children:
+                child = int(value)
+                if child not in found:
+                    found.add(child)
+                    pending.append(child)
+    return found
+
+
+def _process_identity(pid: int) -> tuple[int, int]:
+    # comm may contain spaces and ')'; fields after its final ')' start at state.
+    fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+    return int(fields[1]), int(fields[19])  # ppid, starttime
+
+
+def _signal_owned_process(pid: int, owner: int, sig: int) -> None:
+    """Pin the target and ancestry before signalling; uncertainty skips this pass.
+
+    Each pidfd brackets matching proc identities. Live-handle checks exclude
+    exit/reuse even within one starttime clock tick. Ancestor handles and a final
+    identity pass bind each parent edge back to this still-running owner.
+    """
+    handles = []
+    chain = []
+    try:
+        current = pid
+        seen = {owner}
+        while current != owner:
+            if current <= 1 or current in seen:
+                return
+            seen.add(current)
+            before = _process_identity(current)
+            fd = os.pidfd_open(current, 0)
+            handles.append(fd)
+            after = _process_identity(current)
+            if before != after or select.select([fd], [], [], 0)[0]:
+                return
+            chain.append((current, after, fd))
+            current = after[0]
+        for current, identity, fd in chain:
+            if _process_identity(current) != identity or select.select([fd], [], [], 0)[0]:
+                return
+        if handles:
+            signal.pidfd_send_signal(handles[0], sig, None, 0)
+    except (OSError, ValueError, IndexError, AttributeError):
+        # ECHILD remains the only proof; inaccessible/unsupported identity keeps
+        # live children and the persistent fence under owner supervision.
+        return
+    finally:
+        for fd in handles:
+            os.close(fd)
+
+
+def _reap_collection_tree() -> bool:
+    """Prove ECHILD in the dedicated subreaper after bounded TERM/KILL."""
+    started = time.monotonic()
+    deadline = started + CONTAINMENT_CLEANUP_S
+    while True:
+        while True:
+            try:
+                pid, _ = os.waitpid(-1, os.WNOHANG)
+            except ChildProcessError:
+                return True
+            if pid == 0:
+                break
+        sig = signal.SIGTERM if time.monotonic() - started < .05 else signal.SIGKILL
+        for pid in _descendants(os.getpid()):
+            _signal_owned_process(pid, os.getpid(), sig)
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(.005)
+
+
+def _collect_universe(universe, worker_count):
+    chunks = partition_items(universe, workers=worker_count)
+    if worker_count == 1:
+        results = _fetch_partition(chunks[0], 0)
+    else:
+        results = [row for part in fetch_partitions_parallel(chunks, 0, worker_count) for row in part]
+    return retry_incomplete_or_stale_results(universe, results)
+
+
+def _collection_owner(universe, worker_count, control, done, spool):
+    """Own every descendant through cleanup, independently of the caller's session."""
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+    os.setsid()  # Keep ownership alive across the outer stage's process-group kill.
+    try:
+        if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "PR_SET_CHILD_SUBREAPER")
+        deadline = time.monotonic() + COLLECTION_TIMEOUT_S
+        collector = os.fork()
+        if collector == 0:
+            os.close(control)
+            os.close(done)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
+            try:
+                try:
+                    outcome = ("ok", _collect_universe(universe, worker_count))
+                except BaseException as exc:
+                    outcome = ("error", exc)
+                spool.seek(0)
+                pickle.dump(outcome, spool)
+                spool.flush()
+                sys.stdout.flush()
+                sys.stderr.flush()
+                os._exit(0)
+            except BaseException:
+                os._exit(70)
+        verdict = b"error"
+        while True:
+            # EOF also cancels after caller death; the owner retains its tree.
+            if select.select([control], [], [], 0)[0]:
+                verdict = b"cancel"
+                break
+            child, status = os.waitpid(collector, os.WNOHANG)
+            if child:
+                verdict = b"done" if os.waitstatus_to_exitcode(status) == 0 else b"error"
+                break
+            if time.monotonic() >= deadline:
+                verdict = b"timeout"
+                break
+            time.sleep(.005)
+        if not _reap_collection_tree():
+            os.write(done, b"blocked")
+            os.close(done)
+            # Retain adoption ownership while a persistent fence blocks admission.
+            while not _reap_collection_tree():
+                time.sleep(.05)
+            os._exit(71)
+        os.write(done, verdict)
+        os._exit(0)
+    except BaseException:
+        # Preserve adoption ownership on an internal supervisor error as well.
+        # Every abnormal path retains the durable fence for reconciliation.
+        while not _reap_collection_tree():
+            time.sleep(.05)
+        os._exit(72)
+
+
+def collect_supervised(universe, worker_count: int, state_path: Path):
+    """Return data only after the Linux subreaper proves the entire tree reaped.
+
+    The existing nightly parent retains its lock. A durable admission fence is
+    installed before launch and survives crashes/unproved teardown. Operators
+    must inspect/reconcile that fence explicitly after an abnormal owner exit.
+    """
+    if not sys.platform.startswith("linux"):
+        raise RuntimeError("STAGING BLOCKER fundamental containment requires Linux")
+    fence = state_path.with_name(state_path.name + ".containment-fence")
+    fence.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(fence, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise RuntimeError(f"STAGING BLOCKER fundamental containment fence: {fence}") from exc
+    cancelled = []
+    old_handlers = {}
+    owner = None
+    open_fds = {fd}
+    proved = False
+    def cancel(signum, _frame):
+        cancelled.append(signum)
+    try:
+        handle = os.fdopen(fd, "w")
+        open_fds.remove(fd)  # fdopen now owns the descriptor, including errors.
+        with handle:
+            json.dump({"pid": os.getpid(), "status": "cleanup_unproved"}, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        directory = os.open(fence.parent, os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+        control_r, control_w = os.pipe()
+        open_fds.update((control_r, control_w))
+        done_r, done_w = os.pipe()
+        open_fds.update((done_r, done_w))
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            old_handlers[sig] = signal.signal(sig, cancel)
+        with tempfile.TemporaryFile() as spool:
+            owner = os.fork()
+            if owner == 0:
+                os.close(control_w)
+                os.close(done_r)
+                _collection_owner(universe, worker_count, control_r, done_w, spool)
+                os._exit(73)
+            os.close(control_r)
+            os.close(done_w)
+            open_fds.difference_update((control_r, done_w))
+            deadline = time.monotonic() + COLLECTION_TIMEOUT_S + CONTAINMENT_CLEANUP_S + .2
+            sent_cancel = False
+            verdict = b""
+            while time.monotonic() < deadline:
+                if cancelled and not sent_cancel:
+                    os.write(control_w, b"cancel")
+                    sent_cancel = True
+                    deadline = min(deadline, time.monotonic() + CONTAINMENT_CLEANUP_S + .2)
+                if select.select([done_r], [], [], .005)[0]:
+                    verdict = os.read(done_r, 32)
+                    break
+            if verdict not in (b"done", b"error", b"timeout", b"cancel"):
+                raise RuntimeError("STAGING BLOCKER fundamental cleanup unproved; persistent fence retained")
+            # Owner emits its proof only after waitpid(-1) reports ECHILD.
+            while time.monotonic() < deadline:
+                pid, status = os.waitpid(owner, os.WNOHANG)
+                if pid:
+                    owner = None
+                    proved = os.waitstatus_to_exitcode(status) == 0
+                    break
+                time.sleep(.005)
+            if not proved:
+                raise RuntimeError("STAGING BLOCKER fundamental owner exit unproved; persistent fence retained")
+            if cancelled or verdict == b"cancel":
+                raise CollectionCancelled(f"fundamental collection cancelled: {cancelled}")
+            if verdict == b"timeout":
+                raise TimeoutError(f"fundamental collection exceeded {COLLECTION_TIMEOUT_S}s")
+            if verdict != b"done":
+                raise RuntimeError("fundamental collector exited without a result")
+            spool.seek(0)
+            kind, result = pickle.load(spool)
+            if kind == "error":
+                raise result
+            return result
+    finally:
+        if owner is not None and owner > 0:
+            # Reap an exited owner even when its proof channel closed abnormally.
+            # A live owner retains adoption/cleanup duty behind the durable fence.
+            try:
+                os.waitpid(owner, os.WNOHANG)
+            except ChildProcessError:
+                pass
+        for fd in open_fds:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        try:
+            if proved:
+                fence.unlink()
+                directory = os.open(fence.parent, os.O_DIRECTORY)
+                try:
+                    os.fsync(directory)
+                finally:
+                    os.close(directory)
+        finally:
+            # Restoration is also required if durable fence removal fails.
+            for sig, handler in old_handlers.items():
+                signal.signal(sig, handler)
+        if cancelled and sys.exc_info()[0] is None:
+            raise CollectionCancelled(f"fundamental collection cancelled: {cancelled}")
+
+
 def run(
     *, pool_path: Path = DEFAULT_POOL, state_path: Path = DEFAULT_STATE,
     output_path: Path = DEFAULT_OUTPUT, workers: int = 4,
@@ -493,13 +786,7 @@ def run(
     universe = load_universe(pool_path)
     if not universe:
         raise RuntimeError("fundamental shadow universe is empty")
-    chunks = partition_items(universe, workers=worker_count)
-    if worker_count == 1:
-        results = _fetch_partition(chunks[0], 0)
-    else:
-        partitions = fetch_partitions_parallel(chunks, 0, worker_count)
-        results = [row for partition in partitions for row in partition]
-    results = retry_incomplete_or_stale_results(universe, results)
+    results = collect_supervised(universe, worker_count, state_path)
     raw_items = [row for _, status, row, _ in results if status == "succeeded" and row is not None]
     empty = sum(status == "empty" for _, status, _, _ in results)
     failures = {code: error for code, status, _, error in results if status == "failed"}

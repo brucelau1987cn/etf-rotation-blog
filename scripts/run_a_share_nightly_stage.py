@@ -284,8 +284,14 @@ def resolve_stages(stage: str) -> list[str]:
     return [stage]
 
 
+def fundamental_containment_fence() -> Path:
+    return ROOT / "data/local/a-share-fundamental-shadow-state.json.containment-fence"
+
+
 def fundamental_shadow_fallback(expected_trade_date: str | None) -> dict | None:
     """Reuse a complete persisted shadow only for the current target trade date."""
+    if fundamental_containment_fence().exists():
+        return None
     if not expected_trade_date:
         return None
     path = ROOT / "data/local/a-share-fundamental-shadow-latest.json"
@@ -415,6 +421,8 @@ def run_stage(stage: str, timeout: int) -> dict:
             "clock_override": now_iso() if AS_OF is not None else None,
         })
         try:
+            if name == "fundamental-shadow" and fundamental_containment_fence().exists():
+                raise RuntimeError("STAGING BLOCKER fundamental containment fence requires reconciliation")
             proc = run_command(
                 cmd,
                 cwd=str(ROOT),

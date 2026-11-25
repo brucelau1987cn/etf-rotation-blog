@@ -185,26 +185,20 @@ def test_daemonic_pool_worker_fetches_in_process_without_nested_child():
 def test_parallel_partitions_keep_order_and_allow_symbol_timeout_children(monkeypatch):
     calls = []
 
-    class Future:
-        def __init__(self, value):
-            self.value = value
-
-        def result(self, timeout):
-            assert timeout == 1800
-            return self.value
+    from concurrent.futures import Future
 
     class Executor:
-        def __init__(self, max_workers):
+        def __init__(self, max_workers, mp_context):
             assert max_workers == 2
+            assert mp_context.get_start_method() == 'fork'
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
+        def shutdown(self, wait=True, cancel_futures=False):
+            assert wait is True
 
         def submit(self, function, items, sessions):
-            return Future(function(items, sessions))
+            future = Future()
+            future.set_result(function(items, sessions))
+            return future
 
     def fake_fetch(items, sessions):
         calls.append((items, sessions))

@@ -163,6 +163,24 @@ def test_fundamental_fallback_requires_expected_trade_date(monkeypatch, tmp_path
     assert module.fundamental_shadow_fallback(None) is None
 
 
+def test_fundamental_fence_blocks_fallback_and_launch(monkeypatch, tmp_path):
+    module = load()
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    local = tmp_path / 'data/local'
+    local.mkdir(parents=True)
+    (local / 'a-share-fundamental-shadow-latest.json').write_text(
+        '{"trade_date":"2026-09-13","coverage":{"publishable":true,"failed":0}}')
+    (local / 'a-share-fundamental-shadow-state.json.containment-fence').write_text('{}')
+    assert module.fundamental_shadow_fallback('2026-09-13') is None
+    monkeypatch.setattr(module, 'write_status', lambda *a: None)
+    monkeypatch.setattr(module, 'write_log', lambda *a: None)
+    monkeypatch.setattr(module, 'stage_environment', lambda *a: None)
+    monkeypatch.setattr(module, 'run_command', lambda *a, **kw: pytest.fail('fenced launch'))
+    payload = module.run_stage('fundamental-shadow', 2400)
+    assert payload['ok'] is False
+    assert 'containment fence' in payload['results'][0]['stderr_tail']
+
+
 def test_expected_trade_date_extracts_latest_stage_artifact_only():
     module = load()
     results = [
