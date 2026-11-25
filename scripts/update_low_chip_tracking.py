@@ -31,6 +31,8 @@ from __future__ import annotations
 import argparse
 import datetime
 import http.client
+import copy
+import hashlib
 import json
 import math
 import os
@@ -1013,7 +1015,109 @@ def _merge_prices(stored: list[dict], accepted: list[dict], incoming: list[dict]
     return [combined[day] for day in sorted(combined.keys() - old.keys())]
 
 
-def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
+def _qfq_digest(value: object) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
+                                    allow_nan=False).encode()).hexdigest()
+
+
+def validated_qfq_rebase(symbol: str, rec: dict, incoming: object, provider: str,
+                         target_day: str, contract: object) -> tuple[list[dict], dict]:
+    """Validate an explicitly audited, hash-bound single-response replacement.
+
+    Contracts are injected by the caller after bounded, batched evidence collection.
+    This function performs zero I/O; ordinary tracking keeps exact-overlap policy.
+    required_dates is the independently audited whole tracking window (including
+    intermediate trading sessions), bound to this exact provider response.
+    """
+    def require(condition: bool, reason: str) -> None:
+        if not condition:
+            raise ValueError(f"QFQ rebase rejected: {reason}")
+
+    def date(value: object) -> str:
+        require(isinstance(value, str), "invalid date")
+        try:
+            require(datetime.date.fromisoformat(value).isoformat() == value, "invalid date")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("QFQ rebase rejected: invalid date") from exc
+        return value
+
+    require(isinstance(contract, dict), "explicit contract missing")
+    require(contract.get("schema") == "low-chip-qfq-rebase-v1", "contract schema")
+    require(provider in ("Tencent", "THS", "BaoStock") and contract.get("provider") == provider,
+            "single provider binding")
+    require(contract.get("symbol") == symbol and contract.get("adjustment") == "qfq", "symbol/basis binding")
+    first = date(rec["first_seen"])
+    target = date(target_day)
+    previous = date(contract.get("previous_basis_as_of"))
+    basis = date(contract.get("basis_as_of"))
+    require(first <= previous < basis == target, "basis interval")
+    stored = rec.get("daily")
+    require(isinstance(stored, list) and bool(stored), "stored history missing")
+    require(normalize_daily(stored, first) == stored and len(normalize_daily(stored, first)) == len(stored),
+            "stored rows invalid")
+    require(contract.get("stored_sha256") == _qfq_digest(stored), "stale stored history")
+    require(previous == max(row["date"] for row in stored), "stored cutoff")
+    prior_basis = rec.get("price_basis")
+    if prior_basis is not None:
+        require(isinstance(prior_basis, dict) and prior_basis.get("adjustment") == "qfq"
+                and date(prior_basis.get("as_of")) <= previous, "stored basis provenance")
+    require(isinstance(incoming, list) and bool(incoming), "empty response")
+    require(contract.get("prices_sha256") == _qfq_digest(incoming), "response binding")
+    clean = normalize_daily(incoming, first)
+    dates = [row["date"] for row in clean]
+    require(len(clean) == len(incoming) and dates == [row.get("date") for row in incoming]
+            and len(dates) == len(set(dates)) and all(day <= target for day in dates), "invalid/duplicate response rows")
+    old = {row["date"]: row for row in stored}
+    require(len(old) == len(stored) and old.keys() <= set(dates), "stored date lost")
+    require(max(old) <= previous, "stored bars after basis date")
+    required = contract.get("required_dates")
+    require(isinstance(required, list) and bool(required), "required window missing")
+    require(all(date(day) >= first for day in required) and required == sorted(set(required))
+            and required == dates, "whole-window coverage")
+    require(dates == _tracking_window(set(dates), first), "window exceeds cap")
+    require(target in dates or _window_complete(set(dates), first, rec.get("entry_halt")), "target/window missing")
+    require(any(float(row["close"]) != float(old[row["date"]]["close"])
+                for row in clean if row["date"] in old), "unchanged overlap")
+    evidence = contract.get("corporate_actions")
+    require(isinstance(evidence, dict) and evidence.get("source") == "baostock_adjust_factor"
+            and evidence.get("symbol") == symbol and evidence.get("start") == previous
+            and evidence.get("end") == basis and evidence.get("error_code") == "0"
+            and evidence.get("complete") is True, "corporate action envelope")
+    actions = evidence.get("rows")
+    require(isinstance(actions, list) and bool(actions), "corporate action missing")
+    expected_code = ("sh." if symbol.endswith(".SH") else "sz.") + symbol.split(".")[0]
+    action_dates = []
+    for action in actions:
+        require(isinstance(action, dict) and action.get("code") == expected_code, "corporate action symbol")
+        action_day = date(action.get("dividOperateDate"))
+        require(previous < action_day <= basis, "corporate action outside basis interval")
+        for field in ("foreAdjustFactor", "backAdjustFactor", "adjustFactor"):
+            value = action.get(field)
+            try:
+                require(not isinstance(value, bool) and math.isfinite(float(value)) and float(value) > 0,
+                        "invalid action factor")
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("QFQ rebase rejected: invalid action factor") from exc
+        action_dates.append(action_day)
+    require(len(action_dates) == len(set(action_dates)), "duplicate corporate actions")
+    result = []
+    prev = None
+    for row in clean:
+        day, close = row["date"], float(row["close"])
+        # Every old dated observation and extra row-level evidence survives.
+        out = {**old.get(day, {}), "date": day, "close": close,
+               "change_pct": round((close - prev) / prev * 100, 2) if prev else None}
+        if day not in old:
+            out["profit_ratio"] = None
+        result.append(out)
+        prev = close
+    provenance = {"provider": provider, "adjustment": "qfq", "as_of": basis,
+                  "rebase": copy.deepcopy(contract), "previous_basis": copy.deepcopy(prior_basis)}
+    return result, provenance
+
+
+def main(*, target_day: str | None = None, skip_iwencai: bool = False,
+         qfq_rebase_contracts: dict[str, dict] | None = None) -> int:
     now = datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
     local_day = now.date().isoformat()
     today = datetime.date.fromisoformat(target_day).isoformat() if target_day is not None else local_day
@@ -1034,13 +1138,39 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
     pending_prices: list[tuple[str, str]] = []
     bar_source: dict[str, list[dict]] = {}
     target_reported: set[str] = set()
+    # Explicit, precollected evidence only: zero extra queries per tracking stock.
+    contracts = copy.deepcopy(qfq_rebase_contracts) if qfq_rebase_contracts is not None else {}
+    if not isinstance(contracts, dict) or any(not isinstance(c, dict) for c in contracts.values()):
+        raise ValueError("invalid QFQ rebase contract map")
+    rebased: set[str] = set()
+    original_entry: dict[str, dict] = {}
+    original_daily: dict[str, list[dict]] = {}
+
+    def needs_prices(symbol: str, remaining_providers: tuple[str, ...]) -> bool:
+        # Coverage and explicit rebase completion are independent obligations.
+        pending_contract = (symbol in contracts and symbol not in rebased
+                            and contracts[symbol].get("provider") in remaining_providers)
+        return pending_contract or not _has_target_or_complete(
+            stocks[symbol], bar_source.get(symbol, []), today)
 
     def accept_prices(symbol: str, start: str, raw_bars: object, source: str) -> None:
         bars = [row for row in normalize_daily(raw_bars, start) if row["date"] <= today]
         if any(row["date"] == today for row in bars):
             target_reported.add(symbol)
         try:
-            bar_source[symbol] = _merge_prices(stocks[symbol]["daily"], bar_source.get(symbol, []), bars)
+            if symbol in contracts and contracts[symbol].get("provider") == source:
+                # Rebase the exact one-provider response before normalizing or
+                # combining it with another source. Failure leaves the old series.
+                rec = stocks[symbol]
+                candidate_rec = {**rec, "daily": original_daily[symbol]}
+                replacement, provenance = validated_qfq_rebase(
+                    symbol, candidate_rec, raw_bars, source, today, contracts[symbol])
+                rec["daily"] = replacement
+                rec["price_basis"] = provenance
+                bar_source[symbol] = []
+                rebased.add(symbol)
+            else:
+                bar_source[symbol] = _merge_prices(stocks[symbol]["daily"], bar_source.get(symbol, []), bars)
         except ValueError as exc:
             print(f"  {symbol}: {source} {exc}", flush=True)
 
@@ -1052,6 +1182,11 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
         first = min(dates)
         last = max(dates)
         rec = stocks.setdefault(symbol, {"name": "", "first_seen": first, "last_seen": last, "industry": "", "daily": []})
+        if symbol in contracts:
+            original_daily[symbol] = copy.deepcopy(rec.get("daily", []))
+            original_entry[symbol] = {key: copy.deepcopy(rec[key]) for key in
+                                      ("entry_features", "entry_financials", "entry_technical", "entry_halt")
+                                      if key in rec}
         # 更新 first/last_seen（保留最早加入日）
         rec["first_seen"] = min(rec.get("first_seen") or first, first)
         rec["last_seen"] = last
@@ -1069,19 +1204,20 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
             rec["daily"] = rec["daily"][:MAX_STORED_BARS]
             stored_dates = {row["date"] for row in rec["daily"]}
         rec["tracking_complete"] = _window_complete(stored_dates, first_seen, rec.get("entry_halt"))
-        if rec["tracking_complete"]:
+        if rec["tracking_complete"] and symbol not in contracts:
             continue
         if unclosed:
             print(f"tracking target session has not closed: {today}; preserving prior file", flush=True)
             return 1
         try:
-            bars = tencent_daily(symbol, rec["first_seen"], today, stored=rec["daily"],
+            tencent_rebase = symbol in contracts and contracts[symbol].get("provider") == "Tencent"
+            bars = tencent_daily(symbol, rec["first_seen"], today, stored=None if tencent_rebase else rec["daily"],
                                  on_target_trade=lambda: target_reported.add(symbol))
         except RuntimeError as exc:
             print(f"  {symbol}: tencent daily unavailable ({exc})", flush=True)
             bars = []
         accept_prices(symbol, rec["first_seen"], bars, "Tencent")
-        if not _has_target_or_complete(rec, bar_source.get(symbol, []), today):
+        if needs_prices(symbol, ("THS", "BaoStock")):
             pending_prices.append((symbol, rec["first_seen"]))
         time.sleep(0.2)
 
@@ -1110,7 +1246,7 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
                 if reported:
                     target_reported.add(symbol)
                 accept_prices(symbol, start, bars, "THS")
-                if not _has_target_or_complete(stocks[symbol], bar_source.get(symbol, []), today):
+                if needs_prices(symbol, ("BaoStock",)):
                     unresolved.append((symbol, start))
         print(f"THS fallback coverage: {len(pending_prices) - len(unresolved)}/{len(pending_prices)}", flush=True)
         pending_prices = unresolved
@@ -1125,6 +1261,10 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
             flush=True,
         )
         pending_prices = unresolved
+
+    if set(contracts) != rebased:
+        print(f"QFQ rebase contracts unresolved: {', '.join(sorted(set(contracts) - rebased))}; preserving prior file", flush=True)
+        return 1
 
     halts = {}
     if any(symbol not in target_reported for symbol, _ in pending_prices):
@@ -1167,6 +1307,19 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
             prev_close = close
         # Derive completion from the exact window that will be persisted.
         rec["tracking_complete"] = _window_complete(set(window), rec["first_seen"], rec.get("entry_halt"))
+        if symbol in rebased:
+            # A validated replacement already owns every price in this window.
+            # Enrich only new dated observations; all historical ratios survive.
+            new_days = set(window) - {row["date"] for row in original_daily[symbol]}
+            if new_days:
+                profit_map = chip_list_profit_ratios(symbol, start=rec["first_seen"])
+                for row in rec["daily"]:
+                    if row["date"] in new_days:
+                        pr = profit_map.get(row["date"].replace("-", ""))
+                        row["profit_ratio"] = pr
+                        if pr is None:
+                            pending_iwencai.append((symbol, row["date"]))
+            continue
         # 获利盘优先走同花顺 chip_list 曲线复算（无鉴权、无每日配额），失败 fallback iWenCai。
         # 窗口锚定 first_seen：同花顺只返回窗口内最近 40 个交易日，固定 90 天窗口
         # 会漏掉早期入池标的的 bar，导致逐 (标的, 日期) 回退 iWenCai，
@@ -1222,6 +1375,13 @@ def main(*, target_day: str | None = None, skip_iwencai: bool = False) -> int:
     for sym, r in stocks.items():
         r["name"] = r.get("name") or name_map.get(sym, "")
         r["industry"] = r.get("industry") or industry_map.get(sym, "")
+        if sym in rebased:
+            for key in ("entry_features", "entry_financials", "entry_technical", "entry_halt"):
+                if key in original_entry[sym]:
+                    r[key] = copy.deepcopy(original_entry[sym][key])
+                else:
+                    r.pop(key, None)
+            continue
         entry_snapshot = resolve_entry_snapshot(HISTORY_DIR, r["first_seen"], sym)
         entry_enrichment, entry_metrics = load_entry_enrichment(entry_snapshot, sym)
         r["entry_features"] = {
