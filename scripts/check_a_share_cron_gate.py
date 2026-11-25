@@ -210,26 +210,48 @@ def cf_baostock_trading_day(day: str) -> bool | None:
 
 
 def baostock_trading_day(day: str) -> bool | None:
+    # The scheduler runtime lacks baostock; /usr/bin/python3 is the verified
+    # dependency-complete runtime. A separate process bounds SDK socket hangs.
+    code = (
+        "import json,sys; "
+        "from scripts.check_a_share_cron_gate import _baostock_sdk_day; "
+        "print(json.dumps(_baostock_sdk_day(sys.argv[1])))"
+    )
     for attempt in range(BAOSTOCK_ATTEMPTS):
         try:
-            import baostock as bs  # type: ignore[import-not-found]
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                login = bs.login()
-                if login.error_code != "0":
-                    result = None
-                else:
-                    result = bs.query_trade_dates(start_date=day, end_date=day)
-                if login.error_code == "0":
-                    row = result.get_row_data() if result and result.error_code == "0" and result.next() else None
-                    bs.logout()
-                else:
-                    row = None
-            if row:
-                return bool(len(row) > 1 and row[1] == "1")
-        except Exception:
+            result = subprocess.run(
+                ["/usr/bin/python3", "-c", code, day], cwd=ROOT,
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+            if result.returncode == 0:
+                value = json.loads(result.stdout)
+                if type(value) is bool:
+                    return value
+        except (OSError, subprocess.TimeoutExpired, ValueError):
             pass
         _backoff(attempt)
     return None
+
+
+def _baostock_sdk_day(day: str) -> bool | None:
+    """Single-date SDK lookup, executed only in the bounded child."""
+    import baostock as bs  # type: ignore[import-not-found]
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        login = bs.login()
+        if login.error_code != "0":
+            return None
+        try:
+            result = bs.query_trade_dates(start_date=day, end_date=day)
+            # A one-day calendar has at most one record, strictly below the
+            # SDK page threshold. Reject unexpected coverage before iteration.
+            if result.error_code != "0" or len(result.data) != 1 or not result.next():
+                return None
+            row = result.get_row_data()
+            if len(row) != 2 or row[0] != day or row[1] not in {"0", "1"}:
+                return None
+            return row[1] == "1"
+        finally:
+            bs.logout()
 
 
 def is_trading_day(day: str) -> tuple[bool | None, str]:
