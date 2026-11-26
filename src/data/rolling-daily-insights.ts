@@ -32,7 +32,7 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports = {
-  {
+  '2026-11-26': {
     "tradeDate": "2026-11-26",
     "shortDate": "11/26",
     "title": "11月26日滚动信号收盘复盘",
