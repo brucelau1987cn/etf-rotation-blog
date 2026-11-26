@@ -354,6 +354,19 @@ def latest_review(db: sqlite3.Connection) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def _realtime_frame(ak, name: str):
+    """Sina intermittently returns a payload without the 'trade' column for one
+    product (observed for PS at preopen/night slots: KeyError('trade')), which
+    fails the whole slot. Retry once before treating it as a real gap."""
+    for attempt in (1, 2):
+        try:
+            return ak.futures_zh_realtime(symbol=name)
+        except KeyError:
+            if attempt == 2:
+                raise
+            time.sleep(1.5)
+
+
 def fetch_realtime() -> dict[str, Any]:
     import akshare as ak  # pyright: ignore[reportMissingImports]
 
@@ -365,7 +378,7 @@ def fetch_realtime() -> dict[str, Any]:
     with connect() as db:
         for meta in watchlist:
             try:
-                frame = ak.futures_zh_realtime(symbol=meta["name"])
+                frame = _realtime_frame(ak, meta["name"])
                 records = frame.to_dict("records")
                 continuous = next((r for r in records if str(r.get("symbol", "")).upper() == meta["continuous"]), None)
                 monthly = [r for r in records if str(r.get("symbol", "")).upper().startswith(meta["code"]) and str(r.get("symbol", "")).upper() != meta["continuous"]]
