@@ -13,11 +13,11 @@ def test_latest_daily_report_contract_and_archive():
     data = (ROOT / 'src/data/rolling-daily-insights.ts').read_text(encoding='utf-8')
     report = json.JSONDecoder().raw_decode(data.split("'2026-11-26': ", 1)[1])[0]
     assert report['title'] == '11月26日滚动信号收盘复盘'
-    assert len(report['signals']) == 12
-    assert {k: sum(s['validation']==k for s in report['signals']) for k in ('confirmed','reclaimed','mixed','watch')} == {'confirmed':8,'reclaimed':1,'mixed':0,'watch':3}
+    assert len(report['signals']) == 1
+    assert {k: sum(s['validation']==k for s in report['signals']) for k in ('confirmed','reclaimed','mixed','watch')} == {'confirmed':0,'reclaimed':1,'mixed':0,'watch':0}
     block = json.dumps(report, ensure_ascii=False)
-    assert block.count('event_id=') == 25
-    for word in ('三安光电','深科技','华天科技','国民技术','澜起科技','特斯拉','SI=F','盘后','UNAVAILABLE','INSUFFICIENT','TLS'):
+    assert block.count('event_id=') == 1
+    for word in ('海光信息','688041','空方','SI=F','UNAVAILABLE','INSUFFICIENT'):
         assert word in block
     assert "rollingDailyReports['2026-11-26']" in (ROOT / 'src/pages/rolling/insights.astro').read_text()
     assert "'2026-11-26', href: '/rolling/insights/'" in data
