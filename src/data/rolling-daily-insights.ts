@@ -32,6 +32,47 @@ export type DailyInsightReport = {
 };
 
 export const rollingDailyReports = {
+  {
+    "tradeDate": "2026-11-26",
+    "shortDate": "11/26",
+    "title": "11月26日滚动信号收盘复盘",
+    "subtitle": "四市场14个启用标的收盘核查：1条首次入库、1个信号标的；其余标的当日无新节点。",
+    "cutoff": "北京时间11/26 18:30盘后截面；A股/港股已收盘，美股按美东11/25收盘价引用，期货单独待验。",
+    "summary": "确认0、收复1、分化0、观察0。海光信息15m空方155.01，收盘157.88高于锚价，属空方价收复，风险缓和但不是买点；其余13标的当日无新信号节点，不生成虚假节点。",
+    "buyRule": "本日无多方节点，不以大跌、低获利盘或低RSI当作买点。先守逐标的日低，再等待同口径信号锚被放量收复和回踩确认；缺失量价指标不补猜。空方锚被收复只是风险缓和，不是自动买入。",
+    "sellRule": "已有持仓跟踪日低及首次空方锚：日低失守且反抽不回优先风控，锚价附近反抽受阻不追涨。当日无新空方确认，不新增风险敞口。",
+    "discipline": "1条节点形成1个有价独立簇（同标的同方向最大/最小价比不超过1.01），缺价节点不估算成价格簇。D1首次价和event_id保持不变；API后补价不等同首次价。触发时刻与接收时刻区分。D1/3D/5D收益、MFE/MAE、基准超额 UNAVAILABLE；前瞻样本 INSUFFICIENT。只发布研究解读，不改变生产信号、仓位、权重或动作。",
+    "sources": [
+      "D1 rolling_signals（trade_date=2026-11-26）",
+      "公开 API /api/public/v1/rolling-signals?symbols=",
+      "腾讯行情 qt.gtimg.cn（收盘截面）"
+    ],
+    "signals": [
+      {
+        "name": "海光信息",
+        "symbol": "688041",
+        "market": "A股",
+        "direction": "SELL",
+        "nodes": "15m 11/26 10:00:26",
+        "signalPrices": "15m 155.01",
+        "close": "157.88",
+        "change": "-0.04%",
+        "support": "153.33 当日低点（不是保证支撑）",
+        "pressure": "155.01 首次入库空方锚 / 159.74 开盘 / 159.98 日高",
+        "buyPlan": "不因大跌、低获利盘或低RSI当作买点。先守逐标的日低，再等同口径信号锚被放量收复并回踩确认；缺失量价指标不补猜。",
+        "sellPlan": "已有持仓重点跟踪日低与首次锚：日低失守且反抽不回优先风控；锚价附近反抽受阻不追涨。只作影子观察，不自动改仓位。",
+        "verdict": "收盘157.88高于15m空方锚155.01，空方价被收复，风险缓和；不构成多方买点，需观察锚价上方回踩确认。",
+        "validation": "reclaimed",
+        "validationLabel": "空方收复 · 价格侧",
+        "evidence": [
+          "腾讯行情时间20261126161455：开/高/低/收 159.74/159.98/153.33/157.88，昨收157.95，涨跌-0.04%；行情成交量原始值20525376（保留供应商单位，未跨市场换算）。",
+          "1条首次入库；有效价格形成1个同向独立簇（簇内最大/最小价不超过1.01）；原始event_id全部保留，缺价不估算。",
+          "15m event_id=evt_1795658426407_fxiuwp；trigger_time_utc=2026-11-26T02:00:26.407Z；received_at=2026-11-26T02:00:26.407Z；trigger_price=155.01；trigger_price_source=sina-m1；触发时刻=接收时刻。",
+          "期货品种（SI=F、hf_XAG）当日节点 0 条；SI=F 显示代码与白银现货存在身份差异，不混用结算。"
+        ]
+      }
+    ]
+  },
   '2026-11-25': {
   "tradeDate": "2026-11-25",
   "shortDate": "11/25",
@@ -6550,7 +6591,8 @@ export const rollingDailyReports = {
 };
 
 export const rollingDailyArticleCatalog = [
-  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-25', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-26', href: '/rolling/insights/' },
+  { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-25', href: '/rolling/insights/2026-11-25/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-24', href: '/rolling/insights/2026-11-24/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-23', href: '/rolling/insights/2026-11-23/' },
   { symbol: 'ROLLING', name: '滚动全市场', initials: 'gdqsc', tradeDate: '2026-11-20', href: '/rolling/insights/2026-11-20/' },
