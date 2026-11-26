@@ -1,27 +1,27 @@
 {
   "version": 1,
-  "generated_at": "2026-11-03T00:05:39+00:00",
+  "generated_at": "2026-11-26T00:06:23+00:00",
   "mode": "shadow_research_only",
   "production_weights_changed": false,
   "point_in_time": "for A-share date D, every external component uses the latest completed observation strictly before D",
   "factor": {
     "name": "Korea Tech Factor",
-    "decision_date": "2026-11-03",
-    "score": 19.5635,
+    "decision_date": "2026-11-26",
+    "score": 16.0714,
     "regime": "weak",
     "components": {
-      "hynix_relative": 21.8254,
-      "samsung_relative": 26.1905,
-      "soxx_trend": 0.7937,
-      "kospi_trend": 8.7302,
-      "won_strength": 62.6984
+      "hynix_relative": 26.5873,
+      "samsung_relative": 11.1111,
+      "soxx_trend": 1.5873,
+      "kospi_trend": 19.8413,
+      "won_strength": 25.0
     },
     "source_cutoffs": {
-      "hynix_relative": "2026-10-30",
-      "samsung_relative": "2026-10-30",
-      "soxx_trend": "2026-11-02",
-      "kospi_trend": "2026-10-30",
-      "won_strength": "2026-11-02"
+      "hynix_relative": "2026-11-24",
+      "samsung_relative": "2026-11-24",
+      "soxx_trend": "2026-11-25",
+      "kospi_trend": "2026-11-24",
+      "won_strength": "2026-11-25"
     },
     "weights": {
       "hynix_relative": 0.3,
@@ -64,101 +64,101 @@
   "backtest": {
     "horizons": {
       "t1": {
-        "basket_rank_ic": 0.058739,
-        "basket_pearson_ic": 0.034372,
-        "pooled_rank_ic": 0.051345,
-        "strong_minus_weak": 0.003321,
+        "basket_rank_ic": 0.062352,
+        "basket_pearson_ic": 0.03551,
+        "pooled_rank_ic": 0.054864,
+        "strong_minus_weak": 0.003618,
         "all": {
-          "n": 7212,
-          "mean": 0.001243,
+          "n": 7239,
+          "mean": 0.001116,
           "median": 0.0,
-          "win_rate": 0.489323
+          "win_rate": 0.487775
         }
       },
       "t5": {
-        "basket_rank_ic": 0.127139,
-        "basket_pearson_ic": 0.070838,
-        "pooled_rank_ic": 0.104865,
-        "strong_minus_weak": 0.012312,
+        "basket_rank_ic": 0.140227,
+        "basket_pearson_ic": 0.083896,
+        "pooled_rank_ic": 0.118209,
+        "strong_minus_weak": 0.014085,
         "all": {
-          "n": 7212,
-          "mean": 0.002947,
-          "median": 0.000802,
-          "win_rate": 0.502357
+          "n": 7239,
+          "mean": 0.002052,
+          "median": 0.0,
+          "win_rate": 0.499102
         }
       },
       "t20": {
-        "basket_rank_ic": 0.052524,
-        "basket_pearson_ic": -0.010181,
-        "pooled_rank_ic": 0.065976,
-        "strong_minus_weak": 0.000578,
+        "basket_rank_ic": 0.048228,
+        "basket_pearson_ic": -0.020626,
+        "pooled_rank_ic": 0.06591,
+        "strong_minus_weak": -0.002245,
         "all": {
-          "n": 7212,
-          "mean": 0.010133,
+          "n": 7239,
+          "mean": 0.009632,
           "median": 0.0,
-          "win_rate": 0.49695
+          "win_rate": 0.495372
         }
       }
     },
     "regimes": {
       "strong": {
         "t1": {
-          "n": 1461,
-          "mean": 0.002668,
-          "median": 0.00223,
-          "win_rate": 0.54757
+          "n": 1481,
+          "mean": 0.002863,
+          "median": 0.002304,
+          "win_rate": 0.548278
         },
         "t5": {
-          "n": 1461,
-          "mean": 0.012125,
-          "median": 0.009709,
-          "win_rate": 0.597536
+          "n": 1481,
+          "mean": 0.012495,
+          "median": 0.010183,
+          "win_rate": 0.60027
         },
         "t20": {
-          "n": 1461,
-          "mean": 0.008185,
-          "median": 0.011475,
-          "win_rate": 0.552361
+          "n": 1481,
+          "mean": 0.008693,
+          "median": 0.011828,
+          "win_rate": 0.55503
         }
       },
       "neutral": {
         "t1": {
-          "n": 4129,
-          "mean": 0.001483,
-          "median": -0.00081,
-          "win_rate": 0.476629
+          "n": 4191,
+          "mean": 0.001199,
+          "median": -0.000916,
+          "win_rate": 0.472441
         },
         "t5": {
-          "n": 4129,
-          "mean": 0.00093,
-          "median": 0.0,
-          "win_rate": 0.495762
+          "n": 4191,
+          "mean": -0.000276,
+          "median": -0.000777,
+          "win_rate": 0.489382
         },
         "t20": {
-          "n": 4129,
-          "mean": 0.011815,
-          "median": 0.002367,
-          "win_rate": 0.50884
+          "n": 4191,
+          "mean": 0.009476,
+          "median": 0.000951,
+          "win_rate": 0.502505
         }
       },
       "weak": {
         "t1": {
-          "n": 1622,
-          "mean": -0.000652,
-          "median": -0.000942,
-          "win_rate": 0.469174
+          "n": 1567,
+          "mean": -0.000755,
+          "median": -0.000858,
+          "win_rate": 0.471602
         },
         "t5": {
-          "n": 1622,
-          "mean": -0.000187,
-          "median": -0.006457,
-          "win_rate": 0.433416
+          "n": 1567,
+          "mean": -0.00159,
+          "median": -0.007174,
+          "win_rate": 0.429483
         },
         "t20": {
-          "n": 1622,
-          "mean": 0.007607,
-          "median": -0.018226,
-          "win_rate": 0.416769
+          "n": 1567,
+          "mean": 0.010938,
+          "median": -0.015876,
+          "win_rate": 0.419911
         }
       }
     },
@@ -166,72 +166,72 @@
       "512480": {
         "t1": {
           "all": {
-            "n": 1110,
-            "mean": 0.000697,
+            "n": 1108,
+            "mean": 0.000593,
             "median": 0.0,
-            "win_rate": 0.485586
+            "win_rate": 0.483755
           },
           "strong": {
-            "n": 221,
-            "mean": 0.002674,
+            "n": 225,
+            "mean": 0.003023,
             "median": 0.001944,
-            "win_rate": 0.542986
+            "win_rate": 0.542222
           },
           "weak": {
-            "n": 255,
-            "mean": -0.002895,
+            "n": 240,
+            "mean": -0.003093,
             "median": 0.0,
-            "win_rate": 0.466667
+            "win_rate": 0.475
           }
         },
         "t5": {
           "all": {
-            "n": 1110,
-            "mean": 0.001496,
-            "median": -0.001833,
-            "win_rate": 0.482883
+            "n": 1108,
+            "mean": 0.000909,
+            "median": -0.001943,
+            "win_rate": 0.482852
           },
           "strong": {
-            "n": 221,
-            "mean": 0.011245,
-            "median": 0.008734,
-            "win_rate": 0.58371
+            "n": 225,
+            "mean": 0.011907,
+            "median": 0.008806,
+            "win_rate": 0.586667
           },
           "weak": {
-            "n": 255,
-            "mean": -0.004595,
-            "median": -0.011484,
-            "win_rate": 0.392157
+            "n": 240,
+            "mean": -0.00542,
+            "median": -0.012254,
+            "win_rate": 0.395833
           }
         },
         "t20": {
           "all": {
-            "n": 1110,
-            "mean": 0.004988,
-            "median": -0.00624,
-            "win_rate": 0.467568
+            "n": 1108,
+            "mean": 0.006094,
+            "median": -0.005814,
+            "win_rate": 0.468412
           },
           "strong": {
-            "n": 221,
-            "mean": 0.000199,
-            "median": -0.002921,
-            "win_rate": 0.461538
+            "n": 225,
+            "mean": 0.001143,
+            "median": -0.002339,
+            "win_rate": 0.466667
           },
           "weak": {
-            "n": 255,
-            "mean": 0.001936,
-            "median": -0.025072,
-            "win_rate": 0.380392
+            "n": 240,
+            "mean": 0.010701,
+            "median": -0.022033,
+            "win_rate": 0.3875
           }
         }
       },
       "561980": {
         "t1": {
           "all": {
-            "n": 745,
-            "mean": 0.005254,
-            "median": -0.000768,
-            "win_rate": 0.47651
+            "n": 762,
+            "mean": 0.00481,
+            "median": -0.001033,
+            "win_rate": 0.472441
           },
           "strong": {
             "n": 153,
@@ -240,18 +240,18 @@
             "win_rate": 0.529412
           },
           "weak": {
-            "n": 166,
-            "mean": -0.000909,
-            "median": -0.002513,
-            "win_rate": 0.433735
+            "n": 176,
+            "mean": -0.00169,
+            "median": -0.003167,
+            "win_rate": 0.426136
           }
         },
         "t5": {
           "all": {
-            "n": 745,
-            "mean": 0.003446,
-            "median": -0.00108,
-            "win_rate": 0.481879
+            "n": 762,
+            "mean": 0.00149,
+            "median": -0.002598,
+            "win_rate": 0.471129
           },
           "strong": {
             "n": 153,
@@ -260,18 +260,18 @@
             "win_rate": 0.542484
           },
           "weak": {
-            "n": 166,
-            "mean": 0.003428,
-            "median": -0.009074,
-            "win_rate": 0.409639
+            "n": 176,
+            "mean": -0.002327,
+            "median": -0.011658,
+            "win_rate": 0.386364
           }
         },
         "t20": {
           "all": {
-            "n": 745,
-            "mean": 0.008529,
-            "median": -0.001033,
-            "win_rate": 0.491275
+            "n": 762,
+            "mean": 0.005887,
+            "median": -0.003089,
+            "win_rate": 0.48294
           },
           "strong": {
             "n": 153,
@@ -280,144 +280,144 @@
             "win_rate": 0.555556
           },
           "weak": {
-            "n": 166,
-            "mean": 0.015111,
+            "n": 176,
+            "mean": 0.011895,
             "median": -0.035535,
-            "win_rate": 0.361446
+            "win_rate": 0.352273
           }
         }
       },
       "515880": {
         "t1": {
           "all": {
-            "n": 1109,
-            "mean": 0.000901,
-            "median": 0.000923,
-            "win_rate": 0.511271
+            "n": 1108,
+            "mean": 0.000823,
+            "median": 0.000926,
+            "win_rate": 0.512635
           },
           "strong": {
-            "n": 221,
-            "mean": 0.000303,
-            "median": 0.003501,
-            "win_rate": 0.565611
+            "n": 225,
+            "mean": 0.000619,
+            "median": 0.003556,
+            "win_rate": 0.568889
           },
           "weak": {
-            "n": 255,
-            "mean": 0.00304,
-            "median": 0.000987,
-            "win_rate": 0.509804
+            "n": 240,
+            "mean": 0.003459,
+            "median": 0.001482,
+            "win_rate": 0.520833
           }
         },
         "t5": {
           "all": {
-            "n": 1109,
-            "mean": 0.002437,
-            "median": 0.005855,
-            "win_rate": 0.546438
+            "n": 1108,
+            "mean": 0.001449,
+            "median": 0.005541,
+            "win_rate": 0.543321
           },
           "strong": {
-            "n": 221,
-            "mean": -0.000506,
+            "n": 225,
+            "mean": 3.2e-05,
             "median": 0.015348,
-            "win_rate": 0.633484
+            "win_rate": 0.635556
           },
           "weak": {
-            "n": 255,
-            "mean": 0.00383,
-            "median": 0.002642,
-            "win_rate": 0.509804
+            "n": 240,
+            "mean": 0.002528,
+            "median": 0.00198,
+            "win_rate": 0.504167
           }
         },
         "t20": {
           "all": {
-            "n": 1109,
-            "mean": 0.009442,
-            "median": 0.011636,
-            "win_rate": 0.543733
+            "n": 1108,
+            "mean": 0.007576,
+            "median": 0.011822,
+            "win_rate": 0.544224
           },
           "strong": {
-            "n": 221,
-            "mean": -0.02372,
+            "n": 225,
+            "mean": -0.022515,
             "median": 0.038212,
-            "win_rate": 0.638009
+            "win_rate": 0.64
           },
           "weak": {
-            "n": 255,
-            "mean": 0.019878,
-            "median": -0.001192,
-            "win_rate": 0.490196
+            "n": 240,
+            "mean": 0.019819,
+            "median": 0.003377,
+            "win_rate": 0.504167
           }
         }
       },
       "515000": {
         "t1": {
           "all": {
-            "n": 1109,
-            "mean": 0.000635,
+            "n": 1108,
+            "mean": 0.000581,
             "median": 0.0,
-            "win_rate": 0.47881
+            "win_rate": 0.479242
           },
           "strong": {
-            "n": 221,
-            "mean": 0.002385,
+            "n": 225,
+            "mean": 0.002546,
             "median": 0.002351,
-            "win_rate": 0.552036
+            "win_rate": 0.551111
           },
           "weak": {
-            "n": 255,
-            "mean": -0.000622,
-            "median": -0.001526,
-            "win_rate": 0.443137
+            "n": 240,
+            "mean": -0.000639,
+            "median": -0.001274,
+            "win_rate": 0.445833
           }
         },
         "t5": {
           "all": {
-            "n": 1109,
-            "mean": 0.000844,
-            "median": 0.000772,
-            "win_rate": 0.500451
+            "n": 1108,
+            "mean": 0.000118,
+            "median": 0.0,
+            "win_rate": 0.497292
           },
           "strong": {
-            "n": 221,
-            "mean": 0.011431,
-            "median": 0.010519,
-            "win_rate": 0.61991
+            "n": 225,
+            "mean": 0.011759,
+            "median": 0.010563,
+            "win_rate": 0.622222
           },
           "weak": {
-            "n": 255,
-            "mean": 0.000425,
-            "median": -0.004529,
-            "win_rate": 0.427451
+            "n": 240,
+            "mean": -0.000589,
+            "median": -0.004871,
+            "win_rate": 0.425
           }
         },
         "t20": {
           "all": {
-            "n": 1109,
-            "mean": 0.001048,
-            "median": -0.004461,
-            "win_rate": 0.476105
+            "n": 1108,
+            "mean": 0.000499,
+            "median": -0.004314,
+            "win_rate": 0.476534
           },
           "strong": {
-            "n": 221,
-            "mean": 0.024702,
-            "median": 0.016897,
-            "win_rate": 0.58371
+            "n": 225,
+            "mean": 0.024919,
+            "median": 0.017241,
+            "win_rate": 0.586667
           },
           "weak": {
-            "n": 255,
-            "mean": 0.001062,
-            "median": -0.023551,
-            "win_rate": 0.384314
+            "n": 240,
+            "mean": 0.002892,
+            "median": -0.021388,
+            "win_rate": 0.391667
           }
         }
       },
       "513310": {
         "t1": {
           "all": {
-            "n": 921,
-            "mean": 0.001984,
-            "median": 0.000816,
-            "win_rate": 0.517915
+            "n": 937,
+            "mean": 0.001756,
+            "median": 0.00074,
+            "win_rate": 0.51334
           },
           "strong": {
             "n": 203,
@@ -426,18 +426,18 @@
             "win_rate": 0.561576
           },
           "weak": {
-            "n": 181,
-            "mean": 0.000655,
-            "median": 0.000917,
-            "win_rate": 0.519337
+            "n": 191,
+            "mean": 0.00036,
+            "median": 0.000883,
+            "win_rate": 0.513089
           }
         },
         "t5": {
           "all": {
-            "n": 921,
-            "mean": 0.00992,
-            "median": 0.005814,
-            "win_rate": 0.561346
+            "n": 937,
+            "mean": 0.008785,
+            "median": 0.00571,
+            "win_rate": 0.55603
           },
           "strong": {
             "n": 203,
@@ -446,18 +446,18 @@
             "win_rate": 0.625616
           },
           "weak": {
-            "n": 181,
-            "mean": 0.005023,
-            "median": 0.004989,
-            "win_rate": 0.535912
+            "n": 191,
+            "mean": 0.003961,
+            "median": 0.004093,
+            "win_rate": 0.528796
           }
         },
         "t20": {
           "all": {
-            "n": 921,
-            "mean": 0.038114,
-            "median": 0.021878,
-            "win_rate": 0.62215
+            "n": 937,
+            "mean": 0.035562,
+            "median": 0.02,
+            "win_rate": 0.611526
           },
           "strong": {
             "n": 203,
@@ -466,466 +466,146 @@
             "win_rate": 0.704433
           },
           "weak": {
-            "n": 181,
-            "mean": 0.021312,
-            "median": 0.012839,
-            "win_rate": 0.574586
+            "n": 191,
+            "mean": 0.016601,
+            "median": 0.00898,
+            "win_rate": 0.544503
           }
         }
       },
       "159995": {
         "t1": {
           "all": {
-            "n": 1109,
-            "mean": 0.000202,
-            "median": -0.00082,
-            "win_rate": 0.474301
+            "n": 1108,
+            "mean": 0.000103,
+            "median": -0.000897,
+            "win_rate": 0.471119
           },
           "strong": {
-            "n": 221,
-            "mean": 0.002607,
+            "n": 225,
+            "mean": 0.002842,
             "median": 0.001677,
-            "win_rate": 0.529412
+            "win_rate": 0.528889
           },
           "weak": {
-            "n": 255,
-            "mean": -0.002972,
-            "median": -0.001623,
-            "win_rate": 0.458824
+            "n": 240,
+            "mean": -0.003153,
+            "median": -0.001576,
+            "win_rate": 0.4625
           }
         },
         "t5": {
           "all": {
-            "n": 1109,
-            "mean": 0.001253,
-            "median": -0.003215,
-            "win_rate": 0.473399
+            "n": 1108,
+            "mean": 0.000566,
+            "median": -0.003471,
+            "win_rate": 0.472022
           },
           "strong": {
-            "n": 221,
-            "mean": 0.012777,
-            "median": 0.008347,
-            "win_rate": 0.58371
+            "n": 225,
+            "mean": 0.013183,
+            "median": 0.008604,
+            "win_rate": 0.586667
           },
           "weak": {
-            "n": 255,
-            "mean": -0.008675,
-            "median": -0.012876,
-            "win_rate": 0.372549
+            "n": 240,
+            "mean": -0.009636,
+            "median": -0.013605,
+            "win_rate": 0.370833
           }
         },
         "t20": {
           "all": {
-            "n": 1109,
-            "mean": 0.004072,
-            "median": -0.006622,
-            "win_rate": 0.466186
+            "n": 1108,
+            "mean": 0.004995,
+            "median": -0.006331,
+            "win_rate": 0.466606
           },
           "strong": {
-            "n": 221,
-            "mean": 0.01281,
-            "median": 0.000937,
-            "win_rate": 0.502262
+            "n": 225,
+            "mean": 0.013485,
+            "median": 0.000973,
+            "win_rate": 0.506667
           },
           "weak": {
-            "n": 255,
-            "mean": -0.005899,
-            "median": -0.024331,
-            "win_rate": 0.380392
+            "n": 240,
+            "mean": 0.003179,
+            "median": -0.020924,
+            "win_rate": 0.3875
           }
         }
       },
       "588000": {
         "t1": {
           "all": {
-            "n": 1109,
-            "mean": 0.00047,
+            "n": 1108,
+            "mean": 0.0004,
             "median": 0.0,
-            "win_rate": 0.481515
+            "win_rate": 0.481047
           },
           "strong": {
-            "n": 221,
-            "mean": 0.002092,
-            "median": 0.001821,
-            "win_rate": 0.547511
+            "n": 225,
+            "mean": 0.002368,
+            "median": 0.001912,
+            "win_rate": 0.551111
           },
           "weak": {
-            "n": 255,
-            "mean": -0.000574,
-            "median": -0.002506,
-            "win_rate": 0.454902
+            "n": 240,
+            "mean": -0.000552,
+            "median": -0.002672,
+            "win_rate": 0.454167
           }
         },
         "t5": {
           "all": {
-            "n": 1109,
-            "mean": 0.00258,
-            "median": -0.002674,
-            "win_rate": 0.473399
+            "n": 1108,
+            "mean": 0.001913,
+            "median": -0.002698,
+            "win_rate": 0.471119
           },
           "strong": {
-            "n": 221,
-            "mean": 0.009613,
-            "median": 0.006512,
-            "win_rate": 0.579186
+            "n": 225,
+            "mean": 0.010403,
+            "median": 0.006554,
+            "win_rate": 0.586667
           },
           "weak": {
-            "n": 255,
-            "mean": 0.002031,
-            "median": -0.010018,
-            "win_rate": 0.407843
+            "n": 240,
+            "mean": 0.001291,
+            "median": -0.01019,
+            "win_rate": 0.404167
           }
         },
         "t20": {
           "all": {
-            "n": 1109,
-            "mean": 0.008959,
-            "median": -0.014272,
-            "win_rate": 0.431019
+            "n": 1108,
+            "mean": 0.009645,
+            "median": -0.013967,
+            "win_rate": 0.431408
           },
           "strong": {
-            "n": 221,
-            "mean": 0.004362,
-            "median": -0.013295,
-            "win_rate": 0.434389
+            "n": 225,
+            "mean": 0.005062,
+            "median": -0.011461,
+            "win_rate": 0.44
           },
           "weak": {
-            "n": 255,
-            "mean": 0.006444,
-            "median": -0.021092,
-            "win_rate": 0.372549
+            "n": 240,
+            "mean": 0.012889,
+            "median": -0.018684,
+            "win_rate": 0.379167
           }
         }
       }
     }
   },
   "coverage": {
-    "factor_start": "2022-03-03",
-    "factor_end": "2026-11-02",
-    "factor_days": 1130,
-    "observation_rows": 7212
+    "factor_start": "2022-03-29",
+    "factor_end": "2026-11-24",
+    "factor_days": 1128,
+    "observation_rows": 7239
   },
   "history_tail": [
-    {
-      "date": "2026-08-31",
-      "score": 48.1548,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 36.9048,
-        "samsung_relative": 38.4921,
-        "soxx_trend": 29.7619,
-        "kospi_trend": 86.5079,
-        "won_strength": 89.6825
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-08-28",
-        "samsung_relative": "2026-08-28",
-        "soxx_trend": "2026-08-28",
-        "kospi_trend": "2026-08-28",
-        "won_strength": "2026-08-30"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-01",
-      "score": 27.8373,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 15.0794,
-        "samsung_relative": 5.9524,
-        "soxx_trend": 29.7619,
-        "kospi_trend": 37.3016,
-        "won_strength": 90.873
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-08-31",
-        "samsung_relative": "2026-08-31",
-        "soxx_trend": "2026-08-31",
-        "kospi_trend": "2026-08-31",
-        "won_strength": "2026-08-31"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-02",
-      "score": 32.0437,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 25.0,
-        "samsung_relative": 24.2063,
-        "soxx_trend": 9.127,
-        "kospi_trend": 57.1429,
-        "won_strength": 88.4921
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-01",
-        "samsung_relative": "2026-09-01",
-        "soxx_trend": "2026-09-01",
-        "kospi_trend": "2026-09-01",
-        "won_strength": "2026-09-01"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-03",
-      "score": 31.7659,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 25.0,
-        "samsung_relative": 30.5556,
-        "soxx_trend": 14.6825,
-        "kospi_trend": 35.7143,
-        "won_strength": 91.2698
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-02",
-        "samsung_relative": "2026-09-02",
-        "soxx_trend": "2026-09-02",
-        "kospi_trend": "2026-09-02",
-        "won_strength": "2026-09-02"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-04",
-      "score": 29.3056,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 17.8571,
-        "samsung_relative": 37.3016,
-        "soxx_trend": 13.4921,
-        "kospi_trend": 25.7937,
-        "won_strength": 92.4603
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-03",
-        "samsung_relative": "2026-09-03",
-        "soxx_trend": "2026-09-03",
-        "kospi_trend": "2026-09-03",
-        "won_strength": "2026-09-03"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-07",
-      "score": 41.9841,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 38.0952,
-        "samsung_relative": 50.0,
-        "soxx_trend": 18.6508,
-        "kospi_trend": 45.6349,
-        "won_strength": 90.4762
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-04",
-        "samsung_relative": "2026-09-04",
-        "soxx_trend": "2026-09-04",
-        "kospi_trend": "2026-09-04",
-        "won_strength": "2026-09-06"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-08",
-      "score": 52.7976,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 61.9048,
-        "samsung_relative": 51.5873,
-        "soxx_trend": 18.6508,
-        "kospi_trend": 65.0794,
-        "won_strength": 94.8413
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-07",
-        "samsung_relative": "2026-09-07",
-        "soxx_trend": "2026-09-04",
-        "kospi_trend": "2026-09-07",
-        "won_strength": "2026-09-07"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-09",
-      "score": 57.877,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 66.6667,
-        "samsung_relative": 61.5079,
-        "soxx_trend": 28.5714,
-        "kospi_trend": 59.9206,
-        "won_strength": 94.4444
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-08",
-        "samsung_relative": "2026-09-08",
-        "soxx_trend": "2026-09-08",
-        "kospi_trend": "2026-09-08",
-        "won_strength": "2026-09-08"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-10",
-      "score": 54.0278,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 70.6349,
-        "samsung_relative": 32.9365,
-        "soxx_trend": 28.5714,
-        "kospi_trend": 63.8889,
-        "won_strength": 95.2381
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-09",
-        "samsung_relative": "2026-09-09",
-        "soxx_trend": "2026-09-09",
-        "kospi_trend": "2026-09-09",
-        "won_strength": "2026-09-09"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-11",
-      "score": 43.631,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 66.2698,
-        "samsung_relative": 18.254,
-        "soxx_trend": 15.873,
-        "kospi_trend": 46.4286,
-        "won_strength": 91.6667
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-10",
-        "samsung_relative": "2026-09-10",
-        "soxx_trend": "2026-09-10",
-        "kospi_trend": "2026-09-10",
-        "won_strength": "2026-09-10"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-14",
-      "score": 36.5278,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 56.3492,
-        "samsung_relative": 5.1587,
-        "soxx_trend": 19.4444,
-        "kospi_trend": 30.1587,
-        "won_strength": 92.0635
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-11",
-        "samsung_relative": "2026-09-11",
-        "soxx_trend": "2026-09-11",
-        "kospi_trend": "2026-09-11",
-        "won_strength": "2026-09-13"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-15",
-      "score": 26.8254,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 44.0476,
-        "samsung_relative": 3.5714,
-        "soxx_trend": 5.5556,
-        "kospi_trend": 15.873,
-        "won_strength": 91.2698
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-14",
-        "samsung_relative": "2026-09-14",
-        "soxx_trend": "2026-09-14",
-        "kospi_trend": "2026-09-14",
-        "won_strength": "2026-09-14"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-16",
-      "score": 25.6548,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 38.8889,
-        "samsung_relative": 7.9365,
-        "soxx_trend": 5.1587,
-        "kospi_trend": 18.254,
-        "won_strength": 83.7302
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-15",
-        "samsung_relative": "2026-09-15",
-        "soxx_trend": "2026-09-15",
-        "kospi_trend": "2026-09-15",
-        "won_strength": "2026-09-15"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-17",
-      "score": 38.1944,
-      "regime": "neutral",
-      "components": {
-        "hynix_relative": 59.5238,
-        "samsung_relative": 20.2381,
-        "soxx_trend": 16.2698,
-        "kospi_trend": 38.0952,
-        "won_strength": 65.0794
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-16",
-        "samsung_relative": "2026-09-16",
-        "soxx_trend": "2026-09-16",
-        "kospi_trend": "2026-09-16",
-        "won_strength": "2026-09-16"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-18",
-      "score": 29.8413,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 38.0952,
-        "samsung_relative": 5.1587,
-        "soxx_trend": 31.3492,
-        "kospi_trend": 21.0317,
-        "won_strength": 63.8889
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-17",
-        "samsung_relative": "2026-09-17",
-        "soxx_trend": "2026-09-17",
-        "kospi_trend": "2026-09-17",
-        "won_strength": "2026-09-17"
-      },
-      "available_weight": 1.0
-    },
-    {
-      "date": "2026-09-21",
-      "score": 31.627,
-      "regime": "weak",
-      "components": {
-        "hynix_relative": 44.0476,
-        "samsung_relative": 1.1905,
-        "soxx_trend": 35.7143,
-        "kospi_trend": 24.6032,
-        "won_strength": 55.5556
-      },
-      "source_cutoffs": {
-        "hynix_relative": "2026-09-18",
-        "samsung_relative": "2026-09-18",
-        "soxx_trend": "2026-09-18",
-        "kospi_trend": "2026-09-18",
-        "won_strength": "2026-09-20"
-      },
-      "available_weight": 1.0
-    },
     {
       "date": "2026-09-22",
       "score": 47.2222,
@@ -1028,11 +708,11 @@
     },
     {
       "date": "2026-09-30",
-      "score": 51.0516,
+      "score": 53.1151,
       "regime": "neutral",
       "components": {
         "hynix_relative": 39.6825,
-        "samsung_relative": 50.0,
+        "samsung_relative": 60.3175,
         "soxx_trend": 69.8413,
         "kospi_trend": 29.7619,
         "won_strength": 72.2222
@@ -1048,11 +728,11 @@
     },
     {
       "date": "2026-10-08",
-      "score": 44.2659,
+      "score": 45.6151,
       "regime": "neutral",
       "components": {
         "hynix_relative": 31.746,
-        "samsung_relative": 43.254,
+        "samsung_relative": 50.0,
         "soxx_trend": 65.0794,
         "kospi_trend": 31.3492,
         "won_strength": 51.1905
@@ -1068,11 +748,11 @@
     },
     {
       "date": "2026-10-09",
-      "score": 38.5516,
+      "score": 40.2183,
       "regime": "neutral",
       "components": {
         "hynix_relative": 24.6032,
-        "samsung_relative": 36.9048,
+        "samsung_relative": 45.2381,
         "soxx_trend": 63.4921,
         "kospi_trend": 14.6825,
         "won_strength": 57.1429
@@ -1088,11 +768,11 @@
     },
     {
       "date": "2026-10-12",
-      "score": 36.0913,
+      "score": 37.7579,
       "regime": "neutral",
       "components": {
         "hynix_relative": 24.6032,
-        "samsung_relative": 36.9048,
+        "samsung_relative": 45.2381,
         "soxx_trend": 53.9683,
         "kospi_trend": 14.6825,
         "won_strength": 56.3492
@@ -1108,11 +788,11 @@
     },
     {
       "date": "2026-10-13",
-      "score": 35.5952,
+      "score": 37.4206,
       "regime": "neutral",
       "components": {
         "hynix_relative": 18.6508,
-        "samsung_relative": 28.5714,
+        "samsung_relative": 37.6984,
         "soxx_trend": 65.873,
         "kospi_trend": 10.3175,
         "won_strength": 62.6984
@@ -1128,11 +808,11 @@
     },
     {
       "date": "2026-10-14",
-      "score": 33.0754,
+      "score": 34.9802,
       "regime": "weak",
       "components": {
         "hynix_relative": 11.1111,
-        "samsung_relative": 26.1905,
+        "samsung_relative": 35.7143,
         "soxx_trend": 63.8889,
         "kospi_trend": 7.1429,
         "won_strength": 74.6032
@@ -1148,11 +828,11 @@
     },
     {
       "date": "2026-10-15",
-      "score": 27.8968,
+      "score": 29.8016,
       "regime": "weak",
       "components": {
         "hynix_relative": 9.127,
-        "samsung_relative": 27.7778,
+        "samsung_relative": 37.3016,
         "soxx_trend": 41.2698,
         "kospi_trend": 7.1429,
         "won_strength": 82.1429
@@ -1168,11 +848,11 @@
     },
     {
       "date": "2026-10-16",
-      "score": 23.9087,
+      "score": 25.6548,
       "regime": "weak",
       "components": {
         "hynix_relative": 7.5397,
-        "samsung_relative": 26.5873,
+        "samsung_relative": 35.3175,
         "soxx_trend": 29.3651,
         "kospi_trend": 5.1587,
         "won_strength": 82.1429
@@ -1188,11 +868,11 @@
     },
     {
       "date": "2026-10-19",
-      "score": 21.7262,
+      "score": 23.4722,
       "regime": "weak",
       "components": {
         "hynix_relative": 8.7302,
-        "samsung_relative": 34.9206,
+        "samsung_relative": 43.6508,
         "soxx_trend": 10.3175,
         "kospi_trend": 7.5397,
         "won_strength": 84.127
@@ -1208,11 +888,11 @@
     },
     {
       "date": "2026-10-20",
-      "score": 18.9286,
+      "score": 20.754,
       "regime": "weak",
       "components": {
         "hynix_relative": 6.3492,
-        "samsung_relative": 28.1746,
+        "samsung_relative": 37.3016,
         "soxx_trend": 5.9524,
         "kospi_trend": 10.7143,
         "won_strength": 82.9365
@@ -1228,11 +908,11 @@
     },
     {
       "date": "2026-10-21",
-      "score": 16.1706,
+      "score": 17.996,
       "regime": "weak",
       "components": {
         "hynix_relative": 4.3651,
-        "samsung_relative": 28.5714,
+        "samsung_relative": 37.6984,
         "soxx_trend": 3.1746,
         "kospi_trend": 5.9524,
         "won_strength": 74.6032
@@ -1248,11 +928,11 @@
     },
     {
       "date": "2026-10-22",
-      "score": 22.0635,
+      "score": 23.3333,
       "regime": "weak",
       "components": {
         "hynix_relative": 7.1429,
-        "samsung_relative": 44.4444,
+        "samsung_relative": 50.7937,
         "soxx_trend": 6.746,
         "kospi_trend": 8.3333,
         "won_strength": 80.9524
@@ -1268,11 +948,11 @@
     },
     {
       "date": "2026-10-23",
-      "score": 18.0556,
+      "score": 19.4841,
       "regime": "weak",
       "components": {
         "hynix_relative": 3.5714,
-        "samsung_relative": 38.0952,
+        "samsung_relative": 45.2381,
         "soxx_trend": 1.5873,
         "kospi_trend": 4.7619,
         "won_strength": 82.5397
@@ -1288,11 +968,11 @@
     },
     {
       "date": "2026-10-26",
-      "score": 16.4881,
+      "score": 17.5198,
       "regime": "weak",
       "components": {
         "hynix_relative": 9.127,
-        "samsung_relative": 22.2222,
+        "samsung_relative": 27.381,
         "soxx_trend": 1.5873,
         "kospi_trend": 4.3651,
         "won_strength": 82.5397
@@ -1308,11 +988,11 @@
     },
     {
       "date": "2026-10-27",
-      "score": 17.5397,
+      "score": 18.5714,
       "regime": "weak",
       "components": {
         "hynix_relative": 12.3016,
-        "samsung_relative": 21.0317,
+        "samsung_relative": 26.1905,
         "soxx_trend": 5.1587,
         "kospi_trend": 3.5714,
         "won_strength": 78.1746
@@ -1328,11 +1008,11 @@
     },
     {
       "date": "2026-10-28",
-      "score": 18.7897,
+      "score": 19.7421,
       "regime": "weak",
       "components": {
         "hynix_relative": 15.4762,
-        "samsung_relative": 17.4603,
+        "samsung_relative": 22.2222,
         "soxx_trend": 7.9365,
         "kospi_trend": 5.1587,
         "won_strength": 78.9683
@@ -1348,11 +1028,11 @@
     },
     {
       "date": "2026-10-29",
-      "score": 26.9444,
+      "score": 28.373,
       "regime": "weak",
       "components": {
         "hynix_relative": 22.2222,
-        "samsung_relative": 42.0635,
+        "samsung_relative": 49.2063,
         "soxx_trend": 10.7143,
         "kospi_trend": 13.8889,
         "won_strength": 71.0317
@@ -1368,11 +1048,11 @@
     },
     {
       "date": "2026-10-30",
-      "score": 23.2341,
+      "score": 23.1548,
       "regime": "weak",
       "components": {
         "hynix_relative": 30.5556,
-        "samsung_relative": 21.0317,
+        "samsung_relative": 20.6349,
         "soxx_trend": 6.746,
         "kospi_trend": 12.6984,
         "won_strength": 62.6984
@@ -1388,11 +1068,11 @@
     },
     {
       "date": "2026-11-02",
-      "score": 20.2976,
+      "score": 20.1389,
       "regime": "weak",
       "components": {
         "hynix_relative": 21.8254,
-        "samsung_relative": 26.1905,
+        "samsung_relative": 25.3968,
         "soxx_trend": 1.1905,
         "kospi_trend": 8.7302,
         "won_strength": 69.0476
@@ -1405,6 +1085,326 @@
         "won_strength": "2026-10-30"
       },
       "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-03",
+      "score": 18.7897,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 22.2222,
+        "samsung_relative": 21.4286,
+        "soxx_trend": 0.7937,
+        "kospi_trend": 9.127,
+        "won_strength": 62.6984
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-02",
+        "samsung_relative": "2026-11-02",
+        "soxx_trend": "2026-11-02",
+        "kospi_trend": "2026-11-02",
+        "won_strength": "2026-11-02"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-04",
+      "score": 16.0119,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 20.6349,
+        "samsung_relative": 21.4286,
+        "soxx_trend": 1.1905,
+        "kospi_trend": 7.1429,
+        "won_strength": 41.6667
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-03",
+        "samsung_relative": "2026-11-03",
+        "soxx_trend": "2026-11-03",
+        "kospi_trend": "2026-11-03",
+        "won_strength": "2026-11-03"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-05",
+      "score": 16.0714,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 23.8095,
+        "samsung_relative": 18.254,
+        "soxx_trend": 1.1905,
+        "kospi_trend": 7.5397,
+        "won_strength": 38.4921
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-04",
+        "samsung_relative": "2026-11-04",
+        "soxx_trend": "2026-11-04",
+        "kospi_trend": "2026-11-04",
+        "won_strength": "2026-11-04"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-06",
+      "score": 12.4008,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 19.0476,
+        "samsung_relative": 8.3333,
+        "soxx_trend": 0.3968,
+        "kospi_trend": 4.7619,
+        "won_strength": 42.0635
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-05",
+        "samsung_relative": "2026-11-05",
+        "soxx_trend": "2026-11-05",
+        "kospi_trend": "2026-11-05",
+        "won_strength": "2026-11-05"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-09",
+      "score": 8.9881,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 11.9048,
+        "samsung_relative": 7.9365,
+        "soxx_trend": 1.1905,
+        "kospi_trend": 3.1746,
+        "won_strength": 30.5556
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-06",
+        "samsung_relative": "2026-11-06",
+        "soxx_trend": "2026-11-06",
+        "kospi_trend": "2026-11-06",
+        "won_strength": "2026-11-06"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-10",
+      "score": 11.5278,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 15.4762,
+        "samsung_relative": 15.0794,
+        "soxx_trend": 3.5714,
+        "kospi_trend": 4.7619,
+        "won_strength": 22.619
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-09",
+        "samsung_relative": "2026-11-09",
+        "soxx_trend": "2026-11-09",
+        "kospi_trend": "2026-11-09",
+        "won_strength": "2026-11-09"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-11",
+      "score": 19.127,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 26.1905,
+        "samsung_relative": 23.4127,
+        "soxx_trend": 3.9683,
+        "kospi_trend": 15.873,
+        "won_strength": 32.1429
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-10",
+        "samsung_relative": "2026-11-10",
+        "soxx_trend": "2026-11-10",
+        "kospi_trend": "2026-11-10",
+        "won_strength": "2026-11-10"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-12",
+      "score": 24.9802,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 34.5238,
+        "samsung_relative": 25.0,
+        "soxx_trend": 11.5079,
+        "kospi_trend": 18.254,
+        "won_strength": 40.0794
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-11",
+        "samsung_relative": "2026-11-11",
+        "soxx_trend": "2026-11-11",
+        "kospi_trend": "2026-11-11",
+        "won_strength": "2026-11-11"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-13",
+      "score": 33.7897,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 41.6667,
+        "samsung_relative": 45.6349,
+        "soxx_trend": 12.6984,
+        "kospi_trend": 26.5873,
+        "won_strength": 50.0
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-12",
+        "samsung_relative": "2026-11-12",
+        "soxx_trend": "2026-11-12",
+        "kospi_trend": "2026-11-12",
+        "won_strength": "2026-11-12"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-16",
+      "score": 32.4405,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 40.0794,
+        "samsung_relative": 42.8571,
+        "soxx_trend": 13.4921,
+        "kospi_trend": 21.0317,
+        "won_strength": 53.1746
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-13",
+        "samsung_relative": "2026-11-13",
+        "soxx_trend": "2026-11-13",
+        "kospi_trend": "2026-11-13",
+        "won_strength": "2026-11-13"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-17",
+      "score": 26.2698,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 32.5397,
+        "samsung_relative": 38.4921,
+        "soxx_trend": 6.746,
+        "kospi_trend": 17.8571,
+        "won_strength": 44.4444
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-16",
+        "samsung_relative": "2026-11-16",
+        "soxx_trend": "2026-11-16",
+        "kospi_trend": "2026-11-16",
+        "won_strength": "2026-11-16"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-18",
+      "score": 24.5635,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 34.5238,
+        "samsung_relative": 30.9524,
+        "soxx_trend": 7.1429,
+        "kospi_trend": 19.0476,
+        "won_strength": 33.7302
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-17",
+        "samsung_relative": "2026-11-17",
+        "soxx_trend": "2026-11-17",
+        "kospi_trend": "2026-11-17",
+        "won_strength": "2026-11-17"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-19",
+      "score": 21.7659,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 34.5238,
+        "samsung_relative": 22.619,
+        "soxx_trend": 4.7619,
+        "kospi_trend": 17.8571,
+        "won_strength": 30.1587
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-18",
+        "samsung_relative": "2026-11-18",
+        "soxx_trend": "2026-11-18",
+        "kospi_trend": "2026-11-18",
+        "won_strength": "2026-11-18"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-20",
+      "score": 27.3611,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 46.4286,
+        "samsung_relative": 23.8095,
+        "soxx_trend": 7.9365,
+        "kospi_trend": 21.0317,
+        "won_strength": 35.3175
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-19",
+        "samsung_relative": "2026-11-19",
+        "soxx_trend": "2026-11-19",
+        "kospi_trend": "2026-11-19",
+        "won_strength": "2026-11-19"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-23",
+      "score": 19.1071,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 33.3333,
+        "samsung_relative": 14.2857,
+        "soxx_trend": 2.381,
+        "kospi_trend": 17.8571,
+        "won_strength": 29.7619
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-20",
+        "samsung_relative": "2026-11-20",
+        "soxx_trend": "2026-11-20",
+        "kospi_trend": "2026-11-20",
+        "won_strength": "2026-11-20"
+      },
+      "available_weight": 1.0
+    },
+    {
+      "date": "2026-11-24",
+      "score": 18.4722,
+      "regime": "weak",
+      "components": {
+        "hynix_relative": 31.746,
+        "samsung_relative": 14.6825,
+        "soxx_trend": 8.3333,
+        "kospi_trend": 14.2857,
+        "won_strength": 17.8571
+      },
+      "source_cutoffs": {
+        "hynix_relative": "2026-11-23",
+        "samsung_relative": "2026-11-23",
+        "soxx_trend": "2026-11-23",
+        "kospi_trend": "2026-11-23",
+        "won_strength": "2026-11-23"
+      },
+      "available_weight": 1.0
     }
   ],
   "notes": [
@@ -1413,7 +1413,7 @@
     "Research-only; formal rankings, key levels, positions and ambush eligibility remain unchanged."
   ],
   "forward_test": {
-    "frozen_samples": 70,
+    "frozen_samples": 86,
     "history_path": "data/local/korea-tech-factor-forward.json"
   }
 }
