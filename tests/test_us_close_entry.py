@@ -318,7 +318,7 @@ def test_same_date_with_matching_verified_receipt_skips_build_and_deploy(close):
 
 
 @pytest.mark.parametrize("mutation", ["legacy", "version", "target", "asset-count", "asset-hash",
-                                      "routes", "flags", "deployment", "ancestor"])
+                                      "routes", "flags", "deployment"])
 def test_same_date_rejects_incomplete_or_different_sha_receipt(close, mutation):
     root, bare, _, state, _, events, _ = close
     pub.main()
@@ -339,11 +339,6 @@ def test_same_date_rejects_incomplete_or_different_sha_receipt(close, mutation):
         receipt["pushed"] = 1
     elif mutation == "deployment":
         receipt["deployment_url"] = "https://example.invalid/"
-    elif mutation == "ancestor":
-        # The JSON blobs are identical; a page change still invalidates the SHA.
-        git(root, "commit", "--only", "-qm", "unrelated page", "--", "src/page.astro")
-        git(root, "push", "origin", "main")
-        assert git(bare, "rev-parse", "HEAD") != receipt["commit"]
     state.write_text(json.dumps(receipt))
     before = state.read_bytes()
     events.clear()
@@ -351,3 +346,24 @@ def test_same_date_rejects_incomplete_or_different_sha_receipt(close, mutation):
         pub.main()
     assert state.read_bytes() == before
     assert not events
+
+
+def test_same_date_accepts_ancestor_receipt_when_us_payload_unchanged(close):
+    """Unrelated commits keep a verified US close valid: the receipt commit is an
+    ancestor of HEAD and the US-owned blobs are byte-identical at HEAD."""
+
+    root, bare, _, state, _, events, _ = close
+    pub.main()
+    receipt = json.loads(state.read_text())
+    git(root, "commit", "--only", "-qm", "unrelated page", "--", "src/page.astro")
+    git(root, "push", "origin", "main")
+    assert git(bare, "rev-parse", "HEAD") != receipt["commit"]
+    events.clear()
+    with pytest.raises(SystemExit) as done:
+        pub.main()
+    assert done.value.code == 0 and not events
+    refreshed = json.loads(state.read_text())
+    assert refreshed["phase"] == "idempotent"
+    assert refreshed["receipt_version"] == receipt["receipt_version"]
+    assert refreshed["verified_assets"] == receipt["verified_assets"]
+    assert refreshed["verified_routes"] == receipt["verified_routes"]

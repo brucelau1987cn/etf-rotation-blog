@@ -434,13 +434,28 @@ def commit_close(base: str, trade_date: str, *, recovery_snapshot: dict | None =
     return git("rev-parse", "HEAD")
 
 
+def receipt_commit_covers(commit: object, head: str) -> bool:
+    """The receipt commit must be HEAD itself or an ancestor of it.
+
+    Unrelated pipelines commit to main between the US close publication and the
+    next no-op check (weekend, Thanksgiving, holiday), so requiring the receipt
+    commit to equal HEAD blocks a healthy publication. Payload drift is still
+    rejected separately: verified_assets must equal the US-owned blobs at HEAD.
+    """
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        return False
+    if commit == head:
+        return True
+    return run("git", "merge-base", "--is-ancestor", commit, head, check=False).returncode == 0
+
+
 def verified_same_date(prior: dict, head: str, trade_date: str) -> bool:
     version = prior.get("receipt_version")
     url = prior.get("deployment_url")
     if (prior.get("phase") not in ("published", "idempotent")
             or type(version) is not int or version != RECEIPT_VERSION
             or prior.get("trade_date") != trade_date or prior.get("target_day") != trade_date
-            or prior.get("commit") != head
+            or not receipt_commit_covers(prior.get("commit"), head)
             or any(prior.get(flag) is not True for flag in ("pushed", "deployed", "verified"))
             or not isinstance(url, str)
             or not re.fullmatch(rf"https://[a-z0-9-]+\.{re.escape(pages_release.PROJECT)}\.pages\.dev", url)

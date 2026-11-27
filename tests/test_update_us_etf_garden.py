@@ -220,3 +220,75 @@ def test_success_state_clears_stale_error(tmp_path, monkeypatch):
     payload = json.loads(state.read_text(encoding="utf-8"))
     assert payload["phase"] == "idempotent"
     assert "error" not in payload
+
+
+def _completed(returncode: int, args) -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(args, returncode, stdout="", stderr="")
+
+
+def test_receipt_commit_accepts_unrelated_descendant(monkeypatch):
+    calls = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(args)
+        return _completed(0, args)
+
+    monkeypatch.setattr(module, "run", fake_run)
+    assert module.receipt_commit_covers("a" * 40, "b" * 40) is True
+    assert calls and calls[0][:3] == ("git", "merge-base", "--is-ancestor")
+
+
+def test_receipt_commit_rejects_non_ancestor_and_malformed(monkeypatch):
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: _completed(1, args))
+    assert module.receipt_commit_covers("a" * 40, "b" * 40) is False
+    assert module.receipt_commit_covers("abc123", "b" * 40) is False
+    assert module.receipt_commit_covers(None, "b" * 40) is False
+
+
+def test_receipt_commit_exact_head_skips_git(monkeypatch):
+    def boom(*args, **kwargs):
+        raise AssertionError("git should not run when receipt commit equals HEAD")
+
+    monkeypatch.setattr(module, "run", boom)
+    assert module.receipt_commit_covers("a" * 40, "a" * 40) is True
+
+
+def test_verified_same_date_accepts_ancestor_receipt(monkeypatch):
+    assets = {"public/data/us-etf-pool.json": "h1"}
+    monkeypatch.setattr(module, "close_blob_hashes", lambda blobs: assets)
+    monkeypatch.setattr(module, "close_blobs", lambda root, commit: {"public/data/us-etf-pool.json": b"x"})
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: _completed(0, args))
+    prior = {
+        "receipt_version": module.RECEIPT_VERSION,
+        "phase": "published",
+        "trade_date": "2026-11-25",
+        "target_day": "2026-11-25",
+        "commit": "a" * 40,
+        "pushed": True,
+        "deployed": True,
+        "verified": True,
+        "deployment_url": f"https://abc123.{module.pages_release.PROJECT}.pages.dev",
+        "verified_routes": list(module.CLOSE_ROUTES),
+        "verified_assets": assets,
+    }
+    assert module.verified_same_date(prior, "b" * 40, "2026-11-25") is True
+
+
+def test_verified_same_date_rejects_asset_drift(monkeypatch):
+    monkeypatch.setattr(module, "close_blob_hashes", lambda blobs: {"public/data/us-etf-pool.json": "drifted"})
+    monkeypatch.setattr(module, "close_blobs", lambda root, commit: {"public/data/us-etf-pool.json": b"x"})
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: _completed(0, args))
+    prior = {
+        "receipt_version": module.RECEIPT_VERSION,
+        "phase": "published",
+        "trade_date": "2026-11-25",
+        "target_day": "2026-11-25",
+        "commit": "a" * 40,
+        "pushed": True,
+        "deployed": True,
+        "verified": True,
+        "deployment_url": f"https://abc123.{module.pages_release.PROJECT}.pages.dev",
+        "verified_routes": list(module.CLOSE_ROUTES),
+        "verified_assets": {"public/data/us-etf-pool.json": "h1"},
+    }
+    assert module.verified_same_date(prior, "b" * 40, "2026-11-25") is False
